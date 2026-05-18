@@ -1,4 +1,4 @@
-package com.example.mymoney
+package com.kshavrin.mymoney
 
 import org.junit.Test
 

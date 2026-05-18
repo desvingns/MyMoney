@@ -1,4 +1,4 @@
-package com.example.mymoney.ui.theme
+package com.kshavrin.mymoney.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

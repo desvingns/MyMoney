@@ -270,3 +270,5 @@ Set `screenshot_record_needed: true` in the return JSON — the Runner agent wil
 `expected_failures` is a short prose list — what kind of failure should the runner see, and why. The orchestrator uses it to distinguish "expected red" from "unexpected break" in TDD Step 2.
 
 No extra text before or after the JSON.
+
+Read .claude/cmp-mymoney/tester-extras.md before starting.

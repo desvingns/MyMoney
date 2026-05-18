@@ -100,3 +100,5 @@ Output exactly this JSON (no extra text):
 ```json
 {"changed_files": ["app/src/main/.../File1.kt", "..."], "commit": "abc1234"}
 ```
+
+Read .claude/cmp-mymoney/developer-extras.md before starting.

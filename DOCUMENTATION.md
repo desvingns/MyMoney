@@ -1,47 +1,5 @@
-# MyMoney — Project Documentation
+# DOCUMENTATION.md — stub redirect
 
-> **Maintained by:** `cmp-docs` agent after every feature or bugfix.
-> **Purpose:** Product features, user flows, domain concepts, architecture decisions.
-> For developer setup and tech stack → see `CLAUDE.md`. For current iteration → see `STATE.md`.
+> **Source of truth for product/architecture documentation**: `D:\Pet\TDD_creater\MyMoney\MyMoney_TDD.md` (authoritative spec, 2 850 lines, RU).
 
----
-
-## App Overview
-
-(One paragraph: what does this app do? Who is it for? Replace this placeholder during Iteration 1.)
-
----
-
-## Domain Model
-
-| Entity | Fields | Storage |
-|--------|--------|---------|
-| (none yet — populated as iterations ship) | | |
-
----
-
-## Screens
-
-(none yet — populated as screens are added; format: subsection per screen with purpose, key behaviours, UiState fields)
-
----
-
-## User Flows
-
-(none yet — populated as flows are added; format: numbered steps per flow)
-
----
-
-## Architecture Decisions Log
-
-| Date | Decision | Reason |
-|------|----------|--------|
-| 2026-05-18 | Adopted cmp v1.0.0 pipeline | Standardised agent orchestration; STATE / ROADMAP / DOCUMENTATION trinity for state vs history vs cheatsheet |
-
----
-
-## Feature Changelog
-
-### Iteration 1 — TBD
-
-(none yet — first iteration not started)
+This file is intentionally a one-line redirect. All screens, domain models, business rules, user flows, and architecture decisions live in the TDD. See [`CLAUDE.md`](CLAUDE.md) "Project glossary" for the section-anchor map.

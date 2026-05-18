@@ -1,26 +1,5 @@
-# Roadmap — MyMoney
+# ROADMAP.md — stub redirect
 
-> **Planned and pending work**, ordered by intended iteration.
-> Done items move to `DOCUMENTATION.md` → Feature Changelog (history).
-> Current iteration and in-flight work live in `STATE.md`.
->
-> Edit manually. Use `/cmp --discuss <topic>` to surface options on a topic before
-> deciding what goes into an iteration.
+> **Source of truth for the phase map**: [`docs/implementation_plan/00_overview.md`](docs/implementation_plan/00_overview.md).
 
----
-
-## Iteration 1 — TBD
-
-**Goal:** (describe the first iteration's theme here — typically setup + first user-facing feature)
-
-- [ ] (first item with rough scope)
-- [ ] (second item)
-- [ ] (third item)
-
-## Iteration 2+ — TBD
-
-To be decided. Surface candidates via `/cmp --discuss <topic>` once Iteration 1 ships.
-
-## Backlog (unscheduled)
-
-(empty — populate as topics surface)
+This file is intentionally a one-line redirect. MyMoney's "roadmap" is the 15-phase plan in `docs/implementation_plan/`. Iteration-style backlog is not used here — see [`CLAUDE.md`](CLAUDE.md) "Project state files".

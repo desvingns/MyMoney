@@ -1,29 +1,5 @@
-# Project State — MyMoney
+# STATE.md — stub redirect
 
-> **Live document.** Updated by `cmp-docs` after each `/cmp` run.
-> Manual edits welcome — `cmp-docs` only edits known sections and preserves the rest.
->
-> Different from related files:
-> - `STATE.md` (this file) — **now**: where we are today, what's mid-flight.
-> - `ROADMAP.md` — **next**: planned iterations, ordered backlog.
-> - `DOCUMENTATION.md` — **history**: feature changelog, architecture decisions, user flows.
+> **Source of truth for project state**: [`docs/implementation_plan/PROGRESS.md`](docs/implementation_plan/PROGRESS.md).
 
----
-
-## Now
-
-- **Current iteration:** 1 — Initial setup
-- **In progress:** idle
-- **Last completed:** bootstrap from cmp v1.0.0 on 2026-05-18
-
-## Recently shipped (last 5 commits)
-
-(none yet — first iteration not started)
-
-## Known tech debt
-
-(none yet)
-
-## Up next (head of ROADMAP)
-
-- See `ROADMAP.md` → Iteration 1
+This file is intentionally a one-line redirect. The MyMoney project uses a 15-phase implementation plan; `PROGRESS.md` is the sole writer of state. CMP's `cmp-docs` agent is inert here — see [`CLAUDE.md`](CLAUDE.md) "Project state files".

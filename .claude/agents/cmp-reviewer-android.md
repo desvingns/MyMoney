@@ -105,3 +105,5 @@ grep -n "fun .*Content(" <screen_file>
 ```
 
 A Screen file that lacks a public `<Name>Content(...)` composable is a violation. (The `<Name>Screen` wrapper is the Hilt entry point; `<Name>Content` is the stateless, testable body.)
+
+Read .claude/cmp-mymoney/reviewer-extras.md before starting.

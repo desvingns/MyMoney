@@ -24,4 +24,20 @@ dependencyResolutionManagement {
 
 rootProject.name = "MyMoney"
 include(":app")
- 
+include(":core:ui")
+include(":core:designsystem")
+include(":core:database")
+include(":core:datastore")
+include(":core:network")
+include(":core:sync")
+include(":core:domain")
+include(":core:common")
+include(":core:testing")
+include(":feature:onboarding")
+include(":feature:dashboard")
+include(":feature:transaction")
+include(":feature:transactionslist")
+include(":feature:settings")
+include(":feature:dictionaries")
+include(":feature:cloudsync")
+include(":feature:lockscreen")

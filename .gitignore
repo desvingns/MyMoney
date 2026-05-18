@@ -1,0 +1,52 @@
+# --- Gradle -----------------------------------------------------------------
+.gradle/
+build/
+**/build/
+!**/src/**/build/
+
+# --- IDE: JetBrains ---------------------------------------------------------
+.idea/
+*.iml
+*.iws
+*.ipr
+/captures/
+
+# --- IDE: VS Code -----------------------------------------------------------
+.vscode/
+
+# --- Native build -----------------------------------------------------------
+.externalNativeBuild/
+.cxx/
+
+# --- Local config (per-developer) -------------------------------------------
+local.properties
+
+# --- Signing & secrets — must never reach the repo --------------------------
+*.keystore
+*.jks
+*.p12
+*.pfx
+google-services.json
+.env
+.env.*
+sentry.properties
+
+# --- Build outputs ----------------------------------------------------------
+*.apk
+*.aab
+*.aar
+
+# --- Logs -------------------------------------------------------------------
+*.log
+hs_err_pid*
+
+# --- OS noise ---------------------------------------------------------------
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# --- Claude Code: per-user local state (team-shared agents live elsewhere) --
+.claude/settings.local.json
+
+# --- CMP pipeline — has its own repo (github.com/desvingns/claude-mobile-pipeline) ----
+CMP/

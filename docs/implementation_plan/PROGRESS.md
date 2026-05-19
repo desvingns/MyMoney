@@ -7,10 +7,10 @@
 
 ## Current state
 
-- **Active phase:** `PHASE_01` — Multi-module Gradle scaffolding (not yet started)
-- **Last session:** 2026-05-18 — implementation plan created (phase files + tracker bootstrapped, no app code yet)
-- **Next action:** Open `phases/PHASE_01_scaffolding.md`, read its TDD anchors, work through the task list.
-- **Blockers:** none
+- **Active phase:** `PHASE_02` — DI + App shell + Sentry skeleton (not yet started)
+- **Last session:** 2026-05-19 — PHASE_01 completed (13/13 implementation tasks ticked + 1 pre-existing TDD-anchors-read tick = 14/14); outcome captured in `phases/PHASE_01_scaffolding.md` "Notes for next session"
+- **Next action:** Open `phases/PHASE_02_di_app_shell.md`, read its TDD anchors, work through the task list. Resolve OQ-1 (Sentry DSN) before reaching the Sentry-init task.
+- **Blockers:** OS-level loopback failure on this Windows host blocks actual `gradlew` runs — see "Open questions" entry 2026-05-19 + cross-session memory `mymoney-windows-loopback-blocker.md`. PHASE_02 work can proceed via static-inspection precedent established across PHASE_01.
 
 ---
 
@@ -19,8 +19,8 @@
 | #  | Phase                                                 | Status        | Session date  | Outcome / link to "Notes for next session" |
 |----|-------------------------------------------------------|---------------|---------------|--------------------------------------------|
 | 00 | Overview / orientation                                | done          | 2026-05-18    | Plan + checklist files created. Start with PHASE_01. |
-| 01 | Multi-module Gradle scaffolding                       | **active**    | —             | — |
-| 02 | DI + App shell + Sentry skeleton                      | not started   | —             | — |
+| 01 | Multi-module Gradle scaffolding                       | done          | 2026-05-19    | 14/14 tasks ticked. 4 of 5 Done-criteria deferred-due-loopback; one ✓ verified (`com\example\mymoney` absent in `:app`). See `phases/PHASE_01_scaffolding.md` → "Notes for next session" (lines 69–114). |
+| 02 | DI + App shell + Sentry skeleton                      | **active**    | —             | — |
 | 03 | Design system (`:core:ui` + designsystem skeleton)    | not started   | —             | — |
 | 04 | Database layer (`:core:database`)                     | not started   | —             | — |
 | 05 | DataStore + secure storage (`:core:datastore`)        | not started   | —             | — |

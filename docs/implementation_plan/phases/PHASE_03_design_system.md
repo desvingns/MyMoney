@@ -51,9 +51,9 @@ Stub the package only; full components arrive in PHASE_08 / PHASE_10. The packag
 - [x] Write `Color.kt` with `LightColors`, `DarkColors`, `CategoryColors`. Use the exact ARGB literals from lines 1258–1300 — including the unusual `onSurface = Color(0xAE000000)` (68 % black, deliberate APK fidelity).
 - [x] Write `Typography.kt` — Roboto via `FontFamily.Default`. Sizes exactly per §6.2.
 - [x] Write `Shape.kt` and `Spacing.kt`.
-- [ ] Write `Theme.kt`. Make `dynamicColor` parameter explicit and default `false` — TDD §6.1 implies no Material You dynamic colour (we keep brand mint-pink).
-- [ ] Add `@ThemePreviews` meta-annotation.
-- [ ] Create a preview helper composable `PreviewSamplePalette` showing each colour swatch + each type style. Use it for visual QA in Android Studio.
+- [x] Write `Theme.kt`. Make `dynamicColor` parameter explicit and default `false` — TDD §6.1 implies no Material You dynamic colour (we keep brand mint-pink).
+- [x] Add `@ThemePreviews` meta-annotation.
+- [x] Create a preview helper composable `PreviewSamplePalette` showing each colour swatch + each type style. Use it for visual QA in Android Studio.
 - [ ] Stub all six `:core:designsystem` component files. Each contains a one-line `@Composable` placeholder (returning an empty Box) so feature modules can `import` them now.
 - [ ] Verify previews render both light + dark in Android Studio (`Split` view).
 - [ ] In `MainActivity` (`:app`), replace the placeholder `MaterialTheme { ... }` from PHASE_02 with `MyMoneyTheme { ... }`. App now uses the real palette.

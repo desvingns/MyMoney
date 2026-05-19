@@ -10,6 +10,7 @@ kotlin {
 dependencies {
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.hilt.core)
+    implementation(libs.sentry.core)
     ksp(libs.hilt.compiler)
 
     testImplementation(libs.junit)

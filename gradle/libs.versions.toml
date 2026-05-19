@@ -95,6 +95,7 @@ firebase-config-ktx = { group = "com.google.firebase", name = "firebase-config-k
 firebase-analytics-ktx = { group = "com.google.firebase", name = "firebase-analytics-ktx" }
 
 sentry-android = { group = "io.sentry", name = "sentry-android", version.ref = "sentryAndroid" }
+sentry-core = { group = "io.sentry", name = "sentry", version.ref = "sentryAndroid" }
 coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coilCompose" }
 
 junit = { group = "junit", name = "junit", version.ref = "junit" }

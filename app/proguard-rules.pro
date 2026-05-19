@@ -1,21 +1,25 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# kotlinx.serialization
+-keepclasseswithmembers class * {
+    @kotlinx.serialization.* <methods>;
+}
+-keep class **$$serializer { *; }
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Room
+-keep class * extends androidx.room.RoomDatabase
+-keep @androidx.room.Entity class *
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# Hilt-generated
+-keep class * extends dagger.hilt.android.internal.lifecycle.HiltViewModelFactory
+-keep class hilt_aggregated_deps.** { *; }
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# Sentry
+-keep class io.sentry.** { *; }
+
+# Dropbox SDK reflectively loads response classes
+-keep class com.dropbox.core.** { *; }
+
+# Google API client uses GenericData reflection
+-keep class com.google.api.client.** { *; }
+
+# Compose stability
+-dontwarn androidx.compose.runtime.**

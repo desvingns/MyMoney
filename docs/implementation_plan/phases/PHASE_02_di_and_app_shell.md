@@ -37,8 +37,8 @@ Wire Hilt across all modules, create `MyMoneyApp` (the `@HiltAndroidApp` Applica
 
 - [x] Read TDD anchors.
 - [x] Add Hilt + KSP plugins to `app/build.gradle.kts` and every module that needs DI. Each feature/core module declares `id("com.google.devtools.ksp")` and `id("com.google.dagger.hilt.android")` in its plugins block.
-- [ ] Create `MyMoneyApp.kt` with `@HiltAndroidApp`. In `onCreate`, init Sentry (no-op if DSN blank).
-- [ ] Wire `android:name=".MyMoneyApp"` in `AndroidManifest.xml`.
+- [x] Create `MyMoneyApp.kt` with `@HiltAndroidApp`. In `onCreate`, init Sentry (no-op if DSN blank).
+- [x] Wire `android:name=".MyMoneyApp"` in `AndroidManifest.xml`.
 - [ ] Convert `MainActivity` to use `@AndroidEntryPoint`. Wrap content in `MaterialTheme { Scaffold { ... } }`. The screen body is a placeholder `Text("MyMoney")`.
 - [x] Add `buildConfigField("String", "SENTRY_DSN", "\"\"")` in `defaultConfig` (overridable via `gradle.properties` `sentry.dsn=...` or CI env). Confirm `BuildConfig` regenerates: `Get-ChildItem app\build\generated\source\buildConfig`.
 - [ ] Build `:core:common` with Hilt qualifiers + dispatcher module. Run `:core:common:test` (empty but should pass).

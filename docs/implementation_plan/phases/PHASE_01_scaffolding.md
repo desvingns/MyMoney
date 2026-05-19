@@ -40,9 +40,9 @@ Turn the empty Android Studio template (`:app` only) into the 15-module project 
 - [x] **Per-module `build.gradle.kts`** for each `:feature:*` — `com.android.library` + Compose plugin + namespace `com.kshavrin.mymoney.feature.<name>` + `buildFeatures { compose = true }` + `implementation(platform(libs.androidx.compose.bom))` + the Compose bundle + `implementation(project(":core:ui"))` + `implementation(project(":core:designsystem"))` + `implementation(project(":core:domain"))`.
 - [x] **`:app` module** — keep `com.android.application`. Update namespace to `com.kshavrin.mymoney`. Wire all `:core:*` + `:feature:*` as `implementation(project(...))`. Add KSP + Hilt + serialization plugins (apply, don't only declare). Configure `buildTypes { release { ... }; staging { initWith(release) }; debug { } }` per §8.1.
 - [x] **Rename package** `com.example.mymoney` → `com.kshavrin.mymoney`. Move `MainActivity.kt` + theme files. Delete the empty `com/example/mymoney` directory.
-- [ ] **`proguard-rules.pro`** — paste keep rules from TDD §8.4 (kotlinx.serialization, Room, Hilt, Sentry, Dropbox SDK, Google API client, Compose).
-- [ ] **AndroidManifest.xml** (root) — drop the default 4 permissions from §8.2 (`INTERNET`, `ACCESS_NETWORK_STATE`, `USE_BIOMETRIC`, `WAKE_LOCK`). Do not add deep-link intent-filters yet (PHASE_07 owns those).
-- [ ] **Sanity** — run `.\gradlew.bat :app:assembleDebug`. Fix any plugin / version mismatches. Expected APK: empty Compose `MainActivity` showing the default greeting.
+- [x] **`proguard-rules.pro`** — paste keep rules from TDD §8.4 (kotlinx.serialization, Room, Hilt, Sentry, Dropbox SDK, Google API client, Compose).
+- [x] **AndroidManifest.xml** (root) — drop the default 4 permissions from §8.2 (`INTERNET`, `ACCESS_NETWORK_STATE`, `USE_BIOMETRIC`, `WAKE_LOCK`). Do not add deep-link intent-filters yet (PHASE_07 owns those).
+- [x] **Sanity** — run `.\gradlew.bat :app:assembleDebug`. Fix any plugin / version mismatches. Expected APK: empty Compose `MainActivity` showing the default greeting.
 - [ ] **Sanity** — run `.\gradlew.bat :core:database:assembleDebug` (and pick two more modules randomly) to confirm library modules build standalone.
 - [ ] Append outcome to the "Notes for next session" section. Capture any AGP/Kotlin warnings worth knowing.
 

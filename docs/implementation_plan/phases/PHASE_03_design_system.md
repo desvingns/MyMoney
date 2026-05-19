@@ -55,8 +55,8 @@ Stub the package only; full components arrive in PHASE_08 / PHASE_10. The packag
 - [x] Add `@ThemePreviews` meta-annotation.
 - [x] Create a preview helper composable `PreviewSamplePalette` showing each colour swatch + each type style. Use it for visual QA in Android Studio.
 - [x] Stub all six `:core:designsystem` component files. Each contains a one-line `@Composable` placeholder (returning an empty Box) so feature modules can `import` them now.
-- [ ] Verify previews render both light + dark in Android Studio (`Split` view).
-- [ ] In `MainActivity` (`:app`), replace the placeholder `MaterialTheme { ... }` from PHASE_02 with `MyMoneyTheme { ... }`. App now uses the real palette.
+- [x] Verify previews render both light + dark in Android Studio (`Split` view).
+- [x] In `MainActivity` (`:app`), replace the placeholder `MaterialTheme { ... }` from PHASE_02 with `MyMoneyTheme { ... }`. App now uses the real palette.
 - [ ] Build + install; confirm status bar tinted, content uses mint background (`#F2FFF7`), text contrast looks right.
 - [ ] Update PROGRESS.md.
 

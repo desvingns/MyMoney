@@ -40,7 +40,7 @@ Wire Hilt across all modules, create `MyMoneyApp` (the `@HiltAndroidApp` Applica
 - [ ] Create `MyMoneyApp.kt` with `@HiltAndroidApp`. In `onCreate`, init Sentry (no-op if DSN blank).
 - [ ] Wire `android:name=".MyMoneyApp"` in `AndroidManifest.xml`.
 - [ ] Convert `MainActivity` to use `@AndroidEntryPoint`. Wrap content in `MaterialTheme { Scaffold { ... } }`. The screen body is a placeholder `Text("MyMoney")`.
-- [ ] Add `buildConfigField("String", "SENTRY_DSN", "\"\"")` in `defaultConfig` (overridable via `gradle.properties` `sentry.dsn=...` or CI env). Confirm `BuildConfig` regenerates: `Get-ChildItem app\build\generated\source\buildConfig`.
+- [x] Add `buildConfigField("String", "SENTRY_DSN", "\"\"")` in `defaultConfig` (overridable via `gradle.properties` `sentry.dsn=...` or CI env). Confirm `BuildConfig` regenerates: `Get-ChildItem app\build\generated\source\buildConfig`.
 - [ ] Build `:core:common` with Hilt qualifiers + dispatcher module. Run `:core:common:test` (empty but should pass).
 - [ ] Build `:app:assembleDebug`. Confirm no Hilt-graph errors (Hilt fails early if a module mismatches).
 - [ ] Install on emulator. App shows a blank Scaffold containing "MyMoney".

@@ -36,11 +36,11 @@ Build the entire Room layer per TDD §7.1–§7.8: 9 entities (`CurrencyEntity`,
 - [x] Set up `room.schemaLocation` in `core/database/build.gradle.kts` via `ksp` block. Verify the `schemas/` directory is gitignored EXCEPT the actual JSON files.
 - [x] Write `MoneyTypeConverters.kt`. Cover `LocalDate`, `Instant`, and (only-if-used-in-domain-layer) `BigDecimal`. Note: storage is `Double`; the BigDecimal converter is for type adapters between domain and storage in PHASE_06.
 - [x] Write each entity file — one per entity. Copy `@Entity(...)`, `@PrimaryKey`, `@ColumnInfo`, `@ForeignKey`, `@Index` blocks **verbatim** from §7.2. Keep column ordering identical (helps when diffing schema JSON against the original APK's table definitions later).
-- [ ] Write each DAO file. Each query string is also verbatim. Pay attention to the `AccountDao.computeBalance` and the multi-line `TransactionDao` queries — they use `\`transaction\`` (back-tick escaped, because `transaction` is a SQL keyword).
+- [x] Write each DAO file. Each query string is also verbatim. Pay attention to the `AccountDao.computeBalance` and the multi-line `TransactionDao` queries — they use `\`transaction\`` (back-tick escaped, because `transaction` is a SQL keyword).
 - [x] Write `MoneyDatabase`. The `entities` array must match the 9 entity files exactly.
-- [ ] Write `DatabaseModule` (Hilt `@InstallIn(SingletonComponent::class)`). Database name: `monefy.db` (matches the storage layout at §8.3 line 2047 — kept identical so v1 can read existing user databases if we ever import).
+- [x] Write `DatabaseModule` (Hilt `@InstallIn(SingletonComponent::class)`). Database name: `monefy.db` (matches the storage layout at §8.3 line 2047 — kept identical so v1 can read existing user databases if we ever import).
 - [ ] Build `:core:database:assembleDebug`. Confirm the schema JSON is produced at `core/database/schemas/.../1.json`. Check that the JSON contains all 9 tables with the indices listed in §7.2.
-- [ ] Write `RoundTripTest`. For each entity:
+- [x] Write `RoundTripTest`. For each entity:
   - Insert one row with sensible default values.
   - Read it back and assert equality.
   - For entities with FKs (e.g. `AccountEntity` needs `CurrencyEntity`), seed the parent first.

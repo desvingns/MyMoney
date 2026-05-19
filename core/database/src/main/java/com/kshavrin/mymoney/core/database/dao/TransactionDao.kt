@@ -1,0 +1,65 @@
+package com.kshavrin.mymoney.core.database.dao
+
+import androidx.paging.PagingSource
+import androidx.room.Dao
+import androidx.room.Query
+import androidx.room.Upsert
+import com.kshavrin.mymoney.core.database.entity.TransactionEntity
+import com.kshavrin.mymoney.core.database.projection.CategorySummaryRow
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface TransactionDao {
+    @Query("""
+        SELECT * FROM `transaction`
+        WHERE account_id = :accountId
+          AND occurred_at BETWEEN :from AND :to
+          AND is_deleted = 0
+        ORDER BY occurred_at DESC, created_at DESC
+    """)
+    fun pagedByAccount(accountId: Long, from: Long, to: Long): PagingSource<Int, TransactionEntity>
+
+    @Query("""
+        SELECT * FROM `transaction`
+        WHERE is_deleted = 0
+        ORDER BY occurred_at DESC, created_at DESC
+        LIMIT :limit
+    """)
+    fun observeRecent(limit: Int): Flow<List<TransactionEntity>>
+
+    @Query("""
+        SELECT c.id AS categoryId, c.name AS categoryName, c.color_hex AS colorHex,
+               SUM(t.amount) AS total
+        FROM `transaction` t
+        INNER JOIN category c ON c.id = t.category_id
+        WHERE t.account_id = :accountId
+          AND t.occurred_at BETWEEN :from AND :to
+          AND t.kind = :kind
+          AND t.is_deleted = 0
+        GROUP BY c.id
+        ORDER BY total DESC
+    """)
+    suspend fun getCategorySummary(accountId: Long, from: Long, to: Long, kind: String): List<CategorySummaryRow>
+
+    @Query("""
+        SELECT * FROM `transaction`
+        WHERE is_deleted = 0
+          AND (note LIKE '%' || :q || '%' COLLATE NOCASE
+               OR category_id IN (SELECT id FROM category WHERE name LIKE '%' || :q || '%' COLLATE NOCASE))
+        ORDER BY occurred_at DESC
+        LIMIT :limit
+    """)
+    suspend fun searchByNote(q: String, limit: Int = 200): List<TransactionEntity>
+
+    @Query("SELECT * FROM `transaction` WHERE id = :id LIMIT 1")
+    suspend fun findById(id: Long): TransactionEntity?
+
+    @Upsert
+    suspend fun upsert(transaction: TransactionEntity): Long
+
+    @Query("UPDATE `transaction` SET is_deleted = 1, updated_at = :now WHERE id = :id")
+    suspend fun softDelete(id: Long, now: Long)
+
+    @Query("DELETE FROM `transaction` WHERE is_deleted = 1 AND updated_at < :before")
+    suspend fun pruneDeleted(before: Long)
+}

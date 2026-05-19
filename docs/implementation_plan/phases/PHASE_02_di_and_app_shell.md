@@ -42,11 +42,11 @@ Wire Hilt across all modules, create `MyMoneyApp` (the `@HiltAndroidApp` Applica
 - [x] Convert `MainActivity` to use `@AndroidEntryPoint`. Wrap content in `MaterialTheme { Scaffold { ... } }`. The screen body is a placeholder `Text("MyMoney")`.
 - [x] Add `buildConfigField("String", "SENTRY_DSN", "\"\"")` in `defaultConfig` (overridable via `gradle.properties` `sentry.dsn=...` or CI env). Confirm `BuildConfig` regenerates: `Get-ChildItem app\build\generated\source\buildConfig`.
 - [x] Build `:core:common` with Hilt qualifiers + dispatcher module. Run `:core:common:test` (empty but should pass).
-- [ ] Build `:app:assembleDebug`. Confirm no Hilt-graph errors (Hilt fails early if a module mismatches).
-- [ ] Install on emulator. App shows a blank Scaffold containing "MyMoney".
-- [ ] Trigger a manual Sentry test event (`Sentry.captureMessage("test from PHASE_02")` from a debug-only IconButton in MainActivity), verify in your test Sentry project. If OQ-1 not yet resolved, leave DSN blank — confirm the call is silently no-op'd.
+- [x] Build `:app:assembleDebug`. Confirm no Hilt-graph errors (Hilt fails early if a module mismatches).
+- [x] Install on emulator. App shows a blank Scaffold containing "MyMoney".
+- [x] Trigger a manual Sentry test event (`Sentry.captureMessage("test from PHASE_02")` from a debug-only IconButton in MainActivity), verify in your test Sentry project. If OQ-1 not yet resolved, leave DSN blank — confirm the call is silently no-op'd.
 - [x] Add `Sentry.captureException` helper to `:core:common/exception` package: a tiny `fun Throwable.reportToSentry()` extension that calls `Sentry.captureException(this)`. (Used by repositories in PHASE_06+.)
-- [ ] Add `Sentry` keep-rules block to `proguard-rules.pro` (verify it's already pasted from PHASE_01).
+- [x] Add `Sentry` keep-rules block to `proguard-rules.pro` (verify it's already pasted from PHASE_01).
 - [ ] Update PROGRESS.md (mark phase done, set PHASE_03 active, append "Sentry DSN: blank-by-default; populate via local.properties `sentry.dsn=...` when OQ-1 is resolved").
 
 ## Done criteria

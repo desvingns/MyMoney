@@ -43,7 +43,7 @@ Turn the empty Android Studio template (`:app` only) into the 15-module project 
 - [x] **`proguard-rules.pro`** — paste keep rules from TDD §8.4 (kotlinx.serialization, Room, Hilt, Sentry, Dropbox SDK, Google API client, Compose).
 - [x] **AndroidManifest.xml** (root) — drop the default 4 permissions from §8.2 (`INTERNET`, `ACCESS_NETWORK_STATE`, `USE_BIOMETRIC`, `WAKE_LOCK`). Do not add deep-link intent-filters yet (PHASE_07 owns those).
 - [x] **Sanity** — run `.\gradlew.bat :app:assembleDebug`. Fix any plugin / version mismatches. Expected APK: empty Compose `MainActivity` showing the default greeting.
-- [ ] **Sanity** — run `.\gradlew.bat :core:database:assembleDebug` (and pick two more modules randomly) to confirm library modules build standalone.
+- [x] **Sanity** — run `.\gradlew.bat :core:database:assembleDebug` (and pick two more modules randomly) to confirm library modules build standalone.
 - [ ] Append outcome to the "Notes for next session" section. Capture any AGP/Kotlin warnings worth knowing.
 
 ## Done criteria

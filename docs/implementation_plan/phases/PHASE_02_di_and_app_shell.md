@@ -41,7 +41,7 @@ Wire Hilt across all modules, create `MyMoneyApp` (the `@HiltAndroidApp` Applica
 - [x] Wire `android:name=".MyMoneyApp"` in `AndroidManifest.xml`.
 - [x] Convert `MainActivity` to use `@AndroidEntryPoint`. Wrap content in `MaterialTheme { Scaffold { ... } }`. The screen body is a placeholder `Text("MyMoney")`.
 - [x] Add `buildConfigField("String", "SENTRY_DSN", "\"\"")` in `defaultConfig` (overridable via `gradle.properties` `sentry.dsn=...` or CI env). Confirm `BuildConfig` regenerates: `Get-ChildItem app\build\generated\source\buildConfig`.
-- [ ] Build `:core:common` with Hilt qualifiers + dispatcher module. Run `:core:common:test` (empty but should pass).
+- [x] Build `:core:common` with Hilt qualifiers + dispatcher module. Run `:core:common:test` (empty but should pass).
 - [ ] Build `:app:assembleDebug`. Confirm no Hilt-graph errors (Hilt fails early if a module mismatches).
 - [ ] Install on emulator. App shows a blank Scaffold containing "MyMoney".
 - [ ] Trigger a manual Sentry test event (`Sentry.captureMessage("test from PHASE_02")` from a debug-only IconButton in MainActivity), verify in your test Sentry project. If OQ-1 not yet resolved, leave DSN blank — confirm the call is silently no-op'd.

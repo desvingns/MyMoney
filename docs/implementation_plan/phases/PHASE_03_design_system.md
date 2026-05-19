@@ -47,8 +47,8 @@ Stub the package only; full components arrive in PHASE_08 / PHASE_10. The packag
 
 ## Task checklist
 
-- [ ] Re-read TDD §6.1 colour table. Note every `(APK)` vs `(decision)` provenance — preserve as one-line comments above each `Color(0x...)` in `Color.kt` (this makes future diffs easy to audit against the APK source).
-- [ ] Write `Color.kt` with `LightColors`, `DarkColors`, `CategoryColors`. Use the exact ARGB literals from lines 1258–1300 — including the unusual `onSurface = Color(0xAE000000)` (68 % black, deliberate APK fidelity).
+- [x] Re-read TDD §6.1 colour table. Note every `(APK)` vs `(decision)` provenance — preserve as one-line comments above each `Color(0x...)` in `Color.kt` (this makes future diffs easy to audit against the APK source).
+- [x] Write `Color.kt` with `LightColors`, `DarkColors`, `CategoryColors`. Use the exact ARGB literals from lines 1258–1300 — including the unusual `onSurface = Color(0xAE000000)` (68 % black, deliberate APK fidelity).
 - [ ] Write `Typography.kt` — Roboto via `FontFamily.Default`. Sizes exactly per §6.2.
 - [ ] Write `Shape.kt` and `Spacing.kt`.
 - [ ] Write `Theme.kt`. Make `dynamicColor` parameter explicit and default `false` — TDD §6.1 implies no Material You dynamic colour (we keep brand mint-pink).

@@ -54,13 +54,13 @@ Build the centerpiece of the app: the main dashboard (S01 day-period, S05 year-p
 - [ ] Implement `PeriodStrip`. Chips: Today, Week, Month, Year, All, "Pick a date". Tapping "Pick a date" opens `DateRangePickerDialog` (M3). On confirm: emit `Period.CustomRange(start, end)`.
 - [ ] Implement `BalancePill`. Animate colour change between sign flips: `animateColorAsState(targetValue = if (balance >= 0) primary else tertiary, animationSpec = tween(400))`.
 - [ ] Implement the two-FAB layout. The "−" FAB invokes `MinusFabClicked` → navigation effect to `"add_expense"`. "+" FAB → `"add_income"`. Transfer icon → `"transfer"` per AS-1.
-- [ ] Implement the **donut chart** — the hardest single component in this phase:
+- [x] Implement the **donut chart** — the hardest single component in this phase:
   - Compute slice geometry from `slices: List<CategorySlice>`. Outer ring is 2 arcs (income half, expense half). Each half is subdivided into per-category sub-arcs proportional to that category's total.
   - Animate from `fraction = 0` to `fraction = slice.fraction` on first composition. Use `Animatable<Float>` per slice.
   - Render percentage label centred on each slice's arc midpoint when `slice.fraction >= LABEL_THRESHOLD` (3 %).
   - Render orbital icons: for each slice with an icon, compute the icon's centre `(cx + r_outer * cos(theta_mid), cy + r_outer * sin(theta_mid))` where `r_outer = chartRadius + 24.dp`. Draw 1 dp line from icon centre to slice midpoint at `chartRadius - strokeWidth/2`.
   - Hit-testing: on `Modifier.pointerInput(slices) { detectTapGestures { offset -> findSlice(offset)?.let(onSliceClick) } }`.
-- [ ] Implement `MonefyBalancePill` + `MonefyConfetti` for AS-10 lifetime trigger. Pull `firstPositiveSeen` from `AppSettings`; on first render with `balanceSnapshot.net.amount >= BigDecimal.ZERO`, fire confetti once and `appSettingsRepository.update { it.copy(firstPositiveSeen = true) }`.
+- [x] Implement `MonefyBalancePill` + `MonefyConfetti` for AS-10 lifetime trigger. Pull `firstPositiveSeen` from `AppSettings`; on first render with `balanceSnapshot.net.amount >= BigDecimal.ZERO`, fire confetti once and `appSettingsRepository.update { it.copy(firstPositiveSeen = true) }`.
 - [ ] Tap-handling:
   - `BalanceCardClicked` → nav to `"transactions?accountId=<id>"` (S12 unfiltered per AS-2). Routing wires in PHASE_11; for now this is a navigation Action that PHASE_11 picks up.
   - `SliceClicked(categoryId)` → nav to `"transactions?accountId=<id>&categoryId=<categoryId>"` per AS-3.

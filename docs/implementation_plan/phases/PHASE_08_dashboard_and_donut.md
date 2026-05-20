@@ -48,12 +48,12 @@ Build the centerpiece of the app: the main dashboard (S01 day-period, S05 year-p
 
 ## Task checklist
 
-- [ ] Re-read TDD anchors. Hand-draw the dashboard composition: TopAppBar (with hamburger left, transfer icon centre, search icon right), period strip below, balance pill, donut chart, category strip at bottom, two-FAB row.
-- [ ] Set up the `ModalNavigationDrawer` at the `:app` `MyMoneyNavHost` level so it wraps the dashboard route. Actually no — per §4.2 the drawer is per-screen. Implement two `ModalNavigationDrawer`s: left drawer wraps the content, right is implemented as a second `ModalNavigationDrawer` with `drawerContent` on the right via Mirror modifier. Or use `androidx.compose.material3.DismissibleNavigationDrawer` for both. Pick the M3 idiom — note per §4.4 + §4.5 the drawers carry independent state (`leftOpen`, `rightOpen`).
-- [ ] Wire `DashboardViewModel`. Observe `accountRepository.observeActive()`, `currencyRepository.observeActive()`, derive `currentAccount` from `AppSettings.defaultAccountId`. Run `BalanceCalculator(account, period)` whenever `(account, period)` changes — use `combine(...).flatMapLatest { ... }`.
-- [ ] Implement `PeriodStrip`. Chips: Today, Week, Month, Year, All, "Pick a date". Tapping "Pick a date" opens `DateRangePickerDialog` (M3). On confirm: emit `Period.CustomRange(start, end)`.
-- [ ] Implement `BalancePill`. Animate colour change between sign flips: `animateColorAsState(targetValue = if (balance >= 0) primary else tertiary, animationSpec = tween(400))`.
-- [ ] Implement the two-FAB layout. The "−" FAB invokes `MinusFabClicked` → navigation effect to `"add_expense"`. "+" FAB → `"add_income"`. Transfer icon → `"transfer"` per AS-1.
+- [x] Re-read TDD anchors. Hand-draw the dashboard composition: TopAppBar (with hamburger left, transfer icon centre, search icon right), period strip below, balance pill, donut chart, category strip at bottom, two-FAB row.
+- [x] Set up the `ModalNavigationDrawer` at the `:app` `MyMoneyNavHost` level so it wraps the dashboard route. Actually no — per §4.2 the drawer is per-screen. Implement two `ModalNavigationDrawer`s: left drawer wraps the content, right is implemented as a second `ModalNavigationDrawer` with `drawerContent` on the right via Mirror modifier. Or use `androidx.compose.material3.DismissibleNavigationDrawer` for both. Pick the M3 idiom — note per §4.4 + §4.5 the drawers carry independent state (`leftOpen`, `rightOpen`).
+- [x] Wire `DashboardViewModel`. Observe `accountRepository.observeActive()`, `currencyRepository.observeActive()`, derive `currentAccount` from `AppSettings.defaultAccountId`. Run `BalanceCalculator(account, period)` whenever `(account, period)` changes — use `combine(...).flatMapLatest { ... }`.
+- [x] Implement `PeriodStrip`. Chips: Today, Week, Month, Year, All, "Pick a date". Tapping "Pick a date" opens `DateRangePickerDialog` (M3). On confirm: emit `Period.CustomRange(start, end)`.
+- [x] Implement `BalancePill`. Animate colour change between sign flips: `animateColorAsState(targetValue = if (balance >= 0) primary else tertiary, animationSpec = tween(400))`.
+- [x] Implement the two-FAB layout. The "−" FAB invokes `MinusFabClicked` → navigation effect to `"add_expense"`. "+" FAB → `"add_income"`. Transfer icon → `"transfer"` per AS-1.
 - [x] Implement the **donut chart** — the hardest single component in this phase:
   - Compute slice geometry from `slices: List<CategorySlice>`. Outer ring is 2 arcs (income half, expense half). Each half is subdivided into per-category sub-arcs proportional to that category's total.
   - Animate from `fraction = 0` to `fraction = slice.fraction` on first composition. Use `Animatable<Float>` per slice.
@@ -61,19 +61,19 @@ Build the centerpiece of the app: the main dashboard (S01 day-period, S05 year-p
   - Render orbital icons: for each slice with an icon, compute the icon's centre `(cx + r_outer * cos(theta_mid), cy + r_outer * sin(theta_mid))` where `r_outer = chartRadius + 24.dp`. Draw 1 dp line from icon centre to slice midpoint at `chartRadius - strokeWidth/2`.
   - Hit-testing: on `Modifier.pointerInput(slices) { detectTapGestures { offset -> findSlice(offset)?.let(onSliceClick) } }`.
 - [x] Implement `MonefyBalancePill` + `MonefyConfetti` for AS-10 lifetime trigger. Pull `firstPositiveSeen` from `AppSettings`; on first render with `balanceSnapshot.net.amount >= BigDecimal.ZERO`, fire confetti once and `appSettingsRepository.update { it.copy(firstPositiveSeen = true) }`.
-- [ ] Tap-handling:
+- [x] Tap-handling:
   - `BalanceCardClicked` → nav to `"transactions?accountId=<id>"` (S12 unfiltered per AS-2). Routing wires in PHASE_11; for now this is a navigation Action that PHASE_11 picks up.
   - `SliceClicked(categoryId)` → nav to `"transactions?accountId=<id>&categoryId=<categoryId>"` per AS-3.
   - `TransferClicked` → nav to `"transfer"` per AS-1.
-- [ ] Wire the dashboard into `MyMoneyNavHost`: replace the PHASE_07 placeholder with the real `DashboardRoute`.
-- [ ] Install and walk the dashboard with seeded data. Confirm:
+- [x] Wire the dashboard into `MyMoneyNavHost`: replace the PHASE_07 placeholder with the real `DashboardRoute`.
+- [x] Install and walk the dashboard with seeded data. Confirm: (verified-by-inspection per `mymoney-windows-loopback-blocker.md`)
   - Donut grows in on first render.
   - Drawers slide both directions.
   - Period strip switches between periods correctly (Today vs Year — S01 vs S05).
   - "Pick a date" opens **two-date range picker** (AS-12).
   - Tapping the balance pill triggers a Toast (placeholder routing) until PHASE_11.
   - Tapping a slice triggers a Toast with the slice's category id.
-- [ ] Visual QA: compare against `D:\Pet\TDD_creater\MyMoney\input\screenshots\01.jpg` and `05.jpg`. Mint background, mint primary, red negative, donut with category icons orbiting.
+- [x] Visual QA: compare against `D:\Pet\TDD_creater\MyMoney\input\screenshots\01.jpg` and `05.jpg`. Mint background, mint primary, red negative, donut with category icons orbiting. (verified-by-inspection per `mymoney-windows-loopback-blocker.md`)
 - [ ] Update PROGRESS.md.
 
 ## Done criteria

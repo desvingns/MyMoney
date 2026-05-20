@@ -87,12 +87,24 @@ fun CurrencyEditContent(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            val codeLockedSupporting: @Composable (() -> Unit)? = if (state.isCodeLocked) {
+                {
+                    Text(
+                        stringResource(
+                            R.string.currency_code_locked,
+                            state.dependentAccountCount,
+                        ),
+                    )
+                }
+            } else null
             OutlinedTextField(
                 value = state.code,
                 onValueChange = { onEvent(CurrencyEditEvent.CodeChanged(it)) },
                 label = { Text(stringResource(R.string.dictionaries_field_code)) },
                 isError = state.errorMessage == "code_format",
                 singleLine = true,
+                enabled = !state.isCodeLocked,
+                supportingText = codeLockedSupporting,
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(

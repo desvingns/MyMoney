@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kshavrin.mymoney.core.domain.model.Currency
+import com.kshavrin.mymoney.core.domain.repository.AccountRepository
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -20,6 +21,7 @@ import javax.inject.Inject
 class CurrencyEditViewModel @Inject constructor(
     private val currencyRepository: CurrencyRepository,
     private val transactionRepository: TransactionRepository,
+    private val accountRepository: AccountRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -45,14 +47,21 @@ class CurrencyEditViewModel @Inject constructor(
                         isCreateMode = false,
                     )
                 }
+                val count = accountRepository.countByCurrency(currencyId)
+                _state.value = _state.value.copy(
+                    dependentAccountCount = count,
+                    isCodeLocked = count > 0,
+                )
             }
         }
     }
 
     fun onEvent(event: CurrencyEditEvent) {
         when (event) {
-            is CurrencyEditEvent.CodeChanged ->
+            is CurrencyEditEvent.CodeChanged -> {
+                if (_state.value.isCodeLocked) return
                 _state.value = _state.value.copy(code = event.value.uppercase(), errorMessage = null)
+            }
             is CurrencyEditEvent.SymbolChanged ->
                 _state.value = _state.value.copy(symbol = event.value, errorMessage = null)
             is CurrencyEditEvent.NameChanged ->
@@ -131,6 +140,8 @@ data class CurrencyEditState(
     val sortOrder: Int = 0,
     val blockedDeleteCount: Int? = null,
     val errorMessage: String? = null,
+    val dependentAccountCount: Int = 0,
+    val isCodeLocked: Boolean = false,
 )
 
 sealed interface CurrencyEditEvent {

@@ -12,4 +12,5 @@ interface AccountRepository {
     suspend fun upsert(account: Account): Long
     suspend fun archive(id: Long)
     suspend fun setDefault(id: Long)
+    suspend fun countByCurrency(currencyId: Long): Int
 }

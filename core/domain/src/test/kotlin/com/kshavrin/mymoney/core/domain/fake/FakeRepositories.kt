@@ -82,6 +82,8 @@ class FakeAccountRepository : AccountRepository {
     override suspend fun setDefault(id: Long) {
         state.value = state.value.map { it.copy(isDefault = it.id == id) }
     }
+    override suspend fun countByCurrency(currencyId: Long): Int =
+        state.value.count { it.currencyId == currencyId && !it.isArchived }
 }
 
 class FakeCategoryRepository : CategoryRepository {

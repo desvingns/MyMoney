@@ -45,4 +45,7 @@ abstract class AccountDao {
 
     @Query("UPDATE account SET is_default = 1 WHERE id = :id")
     protected abstract suspend fun markDefault(id: Long)
+
+    @Query("SELECT COUNT(*) FROM account WHERE currency_id = :id AND is_archived = 0")
+    abstract suspend fun countByCurrency(id: Long): Int
 }

@@ -48,6 +48,10 @@ class AccountRepositoryImpl @Inject constructor(
         dao.setDefault(id)
     }
 
+    override suspend fun countByCurrency(currencyId: Long): Int = withContext(ioDispatcher) {
+        dao.countByCurrency(currencyId)
+    }
+
     private companion object {
         val COLOR_HEX_REGEX = Regex("^#[0-9A-Fa-f]{6}$")
     }

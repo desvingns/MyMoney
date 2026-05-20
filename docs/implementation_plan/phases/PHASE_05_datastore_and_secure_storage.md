@@ -30,18 +30,18 @@ Implement `AppSettings` persistence (DataStore Preferences) and `SecureSettings`
 
 ## Task checklist
 
-- [ ] Re-read TDD §7.3. Write down the 15 `AppSettings` fields and their types — especially the deliberately-monotonic `firstPositiveSeen` (false → true, never back; validate this rule in `update()`).
-- [ ] Write `AppSettings.kt` exactly per TDD. Defaults matter — see lines 1665–1681.
-- [ ] Write `AppSettingsKeys.kt`. Use one key per field, naming convention `LANGUAGE`, `THEME_MODE`, …
-- [ ] Write `AppSettingsRepositoryImpl`. Mapping functions `toAppSettings()` / `toPreferences()` handle nullable `Long?` (for `defaultAccountId = -1L` sentinel and `onboardingCompletedAt: Long?` proper null).
-- [ ] In `update(transform)`, after applying `transform`, validate `firstPositiveSeen` cannot flip true→false. If a caller tries to set it false when the current value is true, throw `IllegalStateException` (the test should assert this).
-- [ ] Write `SecureStorage`. Three fields. Don't expose the underlying `SharedPreferences` — only typed getters/setters.
-- [ ] Write Hilt module. Confirm `@Singleton` on both impls.
-- [ ] Write unit test for `AppSettingsRepository` (uses `TestScope` + `PreferenceDataStoreFactory.create`).
-- [ ] Write instrumentation test for `SecureStorage` (needs Android Keystore — must run on emulator).
-- [ ] Run `:core:datastore:test` and `:core:datastore:connectedAndroidTest`.
-- [ ] Smoke-check: install app, open with debug `IconButton` that calls `settings.update { it.copy(themeMode = "dark") }` — observe theme actually flips after relaunch. (We can't observe live yet — PHASE_12 wires the theme observer.)
-- [ ] Update PROGRESS.md.
+- [x] Re-read TDD §7.3. Write down the 15 `AppSettings` fields and their types — especially the deliberately-monotonic `firstPositiveSeen` (false → true, never back; validate this rule in `update()`).
+- [x] Write `AppSettings.kt` exactly per TDD. Defaults matter — see lines 1665–1681.
+- [x] Write `AppSettingsKeys.kt`. Use one key per field, naming convention `LANGUAGE`, `THEME_MODE`, …
+- [x] Write `AppSettingsRepositoryImpl`. Mapping functions `toAppSettings()` / `toPreferences()` handle nullable `Long?` (for `defaultAccountId = -1L` sentinel and `onboardingCompletedAt: Long?` proper null).
+- [x] In `update(transform)`, after applying `transform`, validate `firstPositiveSeen` cannot flip true→false. If a caller tries to set it false when the current value is true, throw `IllegalStateException` (the test should assert this).
+- [x] Write `SecureStorage`. Three fields. Don't expose the underlying `SharedPreferences` — only typed getters/setters.
+- [x] Write Hilt module. Confirm `@Singleton` on both impls.
+- [x] Write unit test for `AppSettingsRepository` (uses `TestScope` + `PreferenceDataStoreFactory.create`).
+- [x] Write instrumentation test for `SecureStorage` (needs Android Keystore — must run on emulator).
+- [x] Run `:core:datastore:test` and `:core:datastore:connectedAndroidTest`.
+- [x] Smoke-check: install app, open with debug `IconButton` that calls `settings.update { it.copy(themeMode = "dark") }` — observe theme actually flips after relaunch. (We can't observe live yet — PHASE_12 wires the theme observer.)
+- [x] Update PROGRESS.md.
 
 ## Done criteria
 

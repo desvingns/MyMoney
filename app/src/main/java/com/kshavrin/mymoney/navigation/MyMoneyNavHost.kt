@@ -32,10 +32,22 @@ fun MyMoneyNavHost(
             DecisionRouter(navController = navController)
         }
         composable(Destinations.SPLASH) {
-            PlaceholderScreen(text = "Splash placeholder — PHASE_07 SPEC B")
+            com.kshavrin.mymoney.feature.onboarding.SplashScreen(
+                onNavigateToOnboarding = {
+                    navController.navigate(Destinations.ONBOARDING) {
+                        popUpTo(Destinations.SPLASH) { inclusive = true }
+                    }
+                },
+            )
         }
         composable(Destinations.ONBOARDING) {
-            PlaceholderScreen(text = "Onboarding placeholder — PHASE_07 SPEC B")
+            com.kshavrin.mymoney.feature.onboarding.OnboardingScreen(
+                onComplete = {
+                    navController.navigate(Destinations.DASHBOARD) {
+                        popUpTo(Destinations.ONBOARDING) { inclusive = true }
+                    }
+                },
+            )
         }
         composable(Destinations.DASHBOARD) {
             PlaceholderScreen(text = "Dashboard placeholder — PHASE_08")

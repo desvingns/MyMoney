@@ -1,0 +1,18 @@
+<resources>
+    <string name="onboarding_slide_1_headline">Track every penny</string>
+    <string name="onboarding_slide_1_body">Add expenses and income in seconds with a single tap. Your wallet, simplified.</string>
+
+    <string name="onboarding_slide_2_headline">See where money flows</string>
+    <string name="onboarding_slide_2_body">The donut chart shows your spending at a glance. Slice by category. Period by period.</string>
+
+    <string name="onboarding_slide_3_headline">Stay within budget</string>
+    <string name="onboarding_slide_3_body">Set budgets for any category and we will warn you before you overshoot.</string>
+
+    <string name="onboarding_slide_4_headline">Your data, your device</string>
+    <string name="onboarding_slide_4_body">Everything lives on your phone. Optional cloud backup to Dropbox or Google Drive — your choice.</string>
+
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_get_started">Get started</string>
+
+    <string name="splash_logo_content_description">MyMoney logo</string>
+</resources>

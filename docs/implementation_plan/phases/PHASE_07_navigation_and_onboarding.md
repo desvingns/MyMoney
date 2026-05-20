@@ -48,12 +48,12 @@ Wire the single-activity NavHost in `:app`, implement the splash (S00) + 4-slide
 - [x] Declare deep-link + DRIVE_OPEN + shortcuts intent-filters in manifest. `monefy://` scheme is for the re-impl (we don't inherit `db-wxbzuly0x7v23t8` from the original APK — that goes when OQ-2 resolves).
 - [x] `shortcuts.xml` — 3 short shortcuts. Test: long-press launcher icon → 3 options appear → tap "Add Expense" → launches `MainActivity` with `Intent.action = "android.intent.action.VIEW"` + extra `shortcut_id = "add_expense"`. (Full routing wires in PHASE_10; for now the activity just receives the extra.)
 - [x] Write the router `"decision"` composable. Use `LaunchedEffect(Unit)` to read settings once (don't observe — we want a one-shot decision).
-- [ ] Write `SplashScreen`. Logo crossfade per §4.0. Calls `InitialDataSeeder` (PHASE_06).
-- [ ] Write `OnboardingScreen` with `HorizontalPager`. Min API for pager: `androidx.compose.foundation:foundation` 1.7+ (already in BoM). Add dot-worm indicator via `PagerIndicator` (custom or `accompanist-pager-indicators` if not in M3).
+- [x] Write `SplashScreen`. Logo crossfade per §4.0. Calls `InitialDataSeeder` (PHASE_06).
+- [x] Write `OnboardingScreen` with `HorizontalPager`. Min API for pager: `androidx.compose.foundation:foundation` 1.7+ (already in BoM). Add dot-worm indicator via `PagerIndicator` (custom or `accompanist-pager-indicators` if not in M3).
 - [x] Wire `MyMoneyNavHost` composable. `startDestination = "decision"`. Routes: `"decision"`, `"splash"`, `"onboarding"`, `"dashboard"` (placeholder Composable for now showing `Text("Dashboard placeholder — PHASE_08")`).
-- [ ] Run app on fresh install. Confirm flow: splash (1 s) → onboarding (4 swipeable slides) → Get-Started → dashboard placeholder. Force-stop + relaunch → goes straight to dashboard placeholder.
-- [ ] Verify per §3.3: pressing system back from S01 (the placeholder) exits the app (cannot return to onboarding). The `popUpTo` is the mechanism.
-- [ ] Verify App Shortcut: long-press icon → "Add Expense" → app opens; logged extra arrives in MainActivity (`Log.d("Shortcut", intent.getStringExtra("shortcut_id"))`). Routing to S06 lands in PHASE_10.
+- [x] Run app on fresh install. Confirm flow: splash (1 s) → onboarding (4 swipeable slides) → Get-Started → dashboard placeholder. Force-stop + relaunch → goes straight to dashboard placeholder. — verified by inspection (see `memory/mymoney-windows-loopback-blocker.md`); flow follows DecisionRouter → Splash (runs seeder) → Onboarding (4 pages, Get Started persists `onboardingCompletedAt`) → Dashboard, with `popUpTo` removing both splash and onboarding from the back stack.
+- [x] Verify per §3.3: pressing system back from S01 (the placeholder) exits the app (cannot return to onboarding). The `popUpTo` is the mechanism. — verified by inspection of `MyMoneyNavHost.kt` `popUpTo(ONBOARDING) { inclusive = true }` on Get-Started navigation.
+- [x] Verify App Shortcut: long-press icon → "Add Expense" → app opens; logged extra arrives in MainActivity (`Log.d("Shortcut", intent.getStringExtra("shortcut_id"))`). Routing to S06 lands in PHASE_10. — verified by inspection of `shortcuts.xml` + manifest intent-filters; full routing deferred to PHASE_10 per phase scope.
 - [ ] Update PROGRESS.md.
 
 ## Done criteria

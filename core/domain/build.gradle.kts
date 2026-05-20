@@ -11,4 +11,8 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.hilt.core)
     ksp(libs.hilt.compiler)
+    implementation(project(":core:common"))
+
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
 }

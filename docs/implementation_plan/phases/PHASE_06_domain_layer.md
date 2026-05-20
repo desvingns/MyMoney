@@ -55,11 +55,11 @@ Add the domain layer (`:core:domain`) sitting between Room/DataStore and ViewMod
 
 ## Task checklist
 
-- [ ] Re-read §2.1 layer rules (UI → VM → UseCase or Repository → Repository → DAO). Internalise that domain models must not leak Room types upward.
-- [ ] Build `Money` value object. Confirm equality + arithmetic (`plus`, `minus`, `times`) use `BigDecimal.add` etc. with scale `currency.decimalDigits`.
-- [ ] Build `Period` sealed class including `CustomRange` per AS-12. Provide `displayName` for the period strip in PHASE_08.
-- [ ] Domain models: one per Room entity. Mappers `XxxEntity.toDomain()` + `Xxx.toEntity()` live in the impl file (next to the repository impl using them).
-- [ ] Repository interfaces — define every method needed by feature modules. Look ahead: PHASE_08 dashboard needs `accountRepository.observeActive()`, `transactionRepository.observePagedByPeriod(...)`. PHASE_09 dictionaries need full CRUD. PHASE_10 add-transaction needs `transactionRepository.insert(...)`. List all upfront so future phases don't need to mutate the interface.
+- [x] Re-read §2.1 layer rules (UI → VM → UseCase or Repository → Repository → DAO). Internalise that domain models must not leak Room types upward.
+- [x] Build `Money` value object. Confirm equality + arithmetic (`plus`, `minus`, `times`) use `BigDecimal.add` etc. with scale `currency.decimalDigits`.
+- [x] Build `Period` sealed class including `CustomRange` per AS-12. Provide `displayName` for the period strip in PHASE_08.
+- [x] Domain models: one per Room entity. Mappers `XxxEntity.toDomain()` + `Xxx.toEntity()` live in the impl file (next to the repository impl using them).
+- [x] Repository interfaces — define every method needed by feature modules. Look ahead: PHASE_08 dashboard needs `accountRepository.observeActive()`, `transactionRepository.observePagedByPeriod(...)`. PHASE_09 dictionaries need full CRUD. PHASE_10 add-transaction needs `transactionRepository.insert(...)`. List all upfront so future phases don't need to mutate the interface.
 - [ ] Default impls: simple delegation to DAO + mappers + validation. Catch + rethrow `SyncException` only at the sync repository (PHASE_13); domain repositories propagate `IllegalArgumentException` etc.
 - [ ] Implement `BalanceCalculator` using DAO `findByPeriod` + Kotlin reduce. Be careful about transfers: a transfer's `amount` is debited from `accountId`, `toAmount` credited to `toAccountId`. For "account view", transfers in/out depending on which side this account is.
 - [ ] Implement `TransferExecutor` per AS-7: write a **single `TransactionEntity`** row with `kind = "transfer"`, `accountId`, `toAccountId`, `amount`, `toAmount`, `exchangeRate`. Per AS-6: if cross-currency and rate missing, return `AppResult.Failure(SyncError.Conflict)` or a dedicated `TransferError.RateMissing(fromId, toId)` sum type so the VM can decide to navigate to S27.

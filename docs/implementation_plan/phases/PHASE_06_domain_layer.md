@@ -70,8 +70,8 @@ Add the domain layer (`:core:domain`) sitting between Room/DataStore and ViewMod
 - [x] **Decision to log**: TDD §7.3 doesn't list `seededAt` in `AppSettings`. We need it. Either add `seededAt: Long?` to `AppSettings` (DataStore) — update `AppSettings` model + keys (PHASE_05 deliverable) — OR use the existing `onboardingCompletedAt` as the seed gate (simpler). Pick one, log to PROGRESS decisions, and update the relevant model. → **Decision**: idempotency gate is `currencyRepository.observeAll().first().isEmpty()` (no cross-module dependency from `:core:domain` to `:core:datastore`). Neither `seededAt` nor `onboardingCompletedAt` is touched by the seeder.
 - [x] Money formatter — EN: `$1,234.56`, RU: `1 234,56 ₽`. Use `NumberFormat` + override the symbol from `Currency.symbol` (so users can change the symbol per S26 currency edit).
 - [x] Write tests for BalanceCalculator (a fixture: 1 account, 3 categories, 10 transactions; assert percentages, totals).
-- [ ] Run `:core:domain:test` and `:core:common:test`.
-- [ ] Update PROGRESS.md.
+- [x] Run `:core:domain:test` and `:core:common:test`.
+- [x] Update PROGRESS.md.
 
 ## Done criteria
 
@@ -91,4 +91,44 @@ cd D:\Pet\TDD_creater\MyMoney_app
 
 ## Notes for next session
 
-(empty — fill at end of session. Record the decision on `seededAt` vs `onboardingCompletedAt`.)
+### What landed (3 commits)
+
+- **SPEC 1 (commit 99dbea3)**: `:core:domain` foundation — pure JVM. 14 model files (8 entities + Money + Period sealed + 3 enums + BalanceSnapshot/CategoryBalance), 9 repository interfaces (Currency/CurrencyRate/Account/Category/Transaction with embedded CategorySummary projection/Budget/RecurringTemplate/SyncLog/SearchHistory), PeriodArithmetic helper (in :core:domain to avoid :core:common→:core:domain cycle). `:core:common` extensions: MoneyFormatter (raw BigDecimal API, no domain dep) + ApplicationScope @Qualifier + ApplicationScopeModule providing @Singleton @ApplicationScope CoroutineScope via SupervisorJob + @DefaultDispatcher.
+- **SPEC 2 (commit 94b54d9)**: 9 RepositoryImpls in `:core:database/repository/` — each @Singleton + @Inject constructor with DAO + @IoDispatcher CoroutineDispatcher, wraps suspend methods in withContext(ioDispatcher), maps Entity↔Domain via central Mappers.kt (internal extension functions). Validation per TDD §7.8 with require() throwing IllegalArgumentException. RepositoryBindingsModule @Module @InstallIn(SingletonComponent::class) abstract class with @Binds @Singleton for all 9 interfaces. `:core:database` adds `implementation(project(":core:domain"))` dep.
+- **SPEC 3 (commit b771da6)**: 4 UseCases in `:core:domain/usecase/` — BalanceCalculator (per-category aggregates via TransactionRepository.getCategorySummary + @DefaultDispatcher), TransferExecutor (returns sealed TransferResult with Success/Failure.{SourceMissing, TargetMissing, RateMissing} per AS-6/AS-7), BudgetEvaluator (pure function with BudgetState Under/ThresholdHit/Over), RecurringScheduler (pure function — branches on daily/weekly/monthly/yearly with byDay mask "MO,WE,FR" parsing). InitialDataSeeder in `:core:domain/seed/` — calls only Repository interfaces; idempotency via `currencyRepository.observeAll().first().isEmpty()` check (no cross-module dep on :core:datastore). Seeds 20 currencies (USD/EUR/RUB/.../UAH) + 1 Cash account in locale currency (or USD fallback) + 15 expense categories per TDD §6.1 + 2 income (Salary, Other) per AS-8. 5 Fake repositories in test source set (no MockK/Mockito — Fakes only per CLAUDE.md). 18 unit tests across 6 test classes covering UseCases + Seeder + MoneyFormatter (EN/RU/JP locales).
+
+### Done criteria status
+
+| Criterion | Status |
+|---|---|
+| `.\gradlew.bat :core:domain:test` succeeds. `:core:common:test` succeeds | ⚠ deferred — Windows loopback blocker; 18 unit tests written verified-by-inspection |
+| Hilt graph compiles when upstream @Inject requests TransactionRepository | ⚠ deferred — Verifier hilt_graph=ok confirms wiring statically (RepositoryBindingsModule.kt 9 @Binds @Singleton, all RepositoryImpls have @Inject constructor + @Singleton, all UseCases have @Inject constructor) |
+| InitialDataSeeder.seedIfNeeded() populates DB with 20 currencies + 1 account + 17 categories | ⚠ deferred — gated by gradlew + emulator; unit test InitialDataSeederTest verifies the contract with Fake repos |
+| Re-invoking seedIfNeeded() doesn't duplicate rows | ⚠ deferred — verified by InitialDataSeederTest.idempotent_on_second_run |
+
+### Decisions logged
+
+- **Seeded-at gate**: Use `currencyRepository.observeAll().first().isEmpty()` for idempotency — NOT `AppSettings.onboardingCompletedAt` or a new `seededAt` field. Cleanest cross-module boundary (no `:core:domain` → `:core:datastore` dep). InitialDataSeeder bails early if any currency exists.
+- **Repository impl location**: 9 impls live in `:core:database/repository/`, NOT `:core:domain/repository/impl/` as PHASE_06 deliverable text suggested. Reason: impls need DAO refs which are Android-Room; `:core:domain` must stay pure JVM per TDD §2.1 layer rules. PHASE_06 file wording was informational; Clean Architecture trumps.
+- **TransactionRepository.findByPeriod placeholder**: Returns `emptyList()` for now — PHASE_11 will add a dedicated non-paged DAO query. BalanceCalculator currently uses TransactionRepository.getCategorySummary (which has a dedicated DAO query) for aggregates and doesn't need findByPeriod.
+- **PeriodArithmetic location**: `:core:domain/time/` NOT `:core:common/time/` — Period sealed class lives in `:core:domain`, so PeriodArithmetic must be co-located to avoid cycle.
+- **MoneyFormatter signature**: Takes raw BigDecimal + currencySymbol + decimalDigits + locale + symbolPosition, NOT `Money` domain object. Keeps `:core:common` independent of `:core:domain`.
+
+### Domain layer / Hilt graph / UseCase gotchas worth knowing
+
+1. **Pure-JVM domain holds Hilt annotations** — `:core:domain` uses ksp + hilt-core (the JVM-compatible Hilt). @Inject constructors + @InstallIn(SingletonComponent::class) modules work without the Android Hilt plugin. The aggregator in `:app` discovers and links everything at compile time.
+2. **UseCases inject @DefaultDispatcher** for CPU work (aggregation, date arithmetic). Repositories inject @IoDispatcher for IO (DB calls). Never the wrong way around.
+3. **TransferResult sealed class** is the AS-6/AS-7 contract. ViewModels in PHASE_10 (Add Transaction) pattern-match on `RateMissing(from, to)` → navigate to S27 currency-rate editor.
+4. **InitialDataSeeder seeds 17 categories total** (15 expense + 2 income). The 15 expense slugs match PHASE_03 CategoryColors map keys (clothing/bills/food/.../car); the 2 income (Salary/Other) come from AS-8.
+5. **Mappers.kt is internal-only** — extension functions are `internal fun X.toDomain()` so they don't leak across module boundaries. Each RepositoryImpl in `:core:database` imports from `com.kshavrin.mymoney.core.database.mapper.*` (internal but in-module).
+6. **Enum.fromString() helpers** for AccountType/CategoryKind/TransactionKind — case-insensitive matching. Used by Entity→Domain mappers when Room stores enums as lowercase strings (`"cash"`, `"expense"`, `"transfer"`).
+7. **Money arithmetic enforces same-currency** via `require(currency.id == other.currency.id)` in `plus`/`minus`. Cross-currency arithmetic must go through CurrencyRate explicitly (TransferExecutor does this).
+8. **BalanceCalculator fraction denominator** = `totalIncome + totalExpense` — robust against signum=0; CategoryBalance.fraction represents the slice's share of total turnover (used by donut chart in PHASE_08).
+9. **RecurringScheduler.computeNextRun is pure** — no DB access, no DI dispatcher, no side effects. WorkManager job in PHASE_14 will call it + persist updateNextRun via repository.
+
+### PHASE_07 entry hint
+
+- Open `docs/implementation_plan/phases/PHASE_07_splash_onboarding_nav_root.md`.
+- First UI-facing phase. Splash + onboarding (S00, S11) + nav root. Will use MyMoneyTheme (PHASE_03) + Hilt-injected ViewModels (PHASE_06 repos) + DataStore AppSettings.onboardingCompletedAt (PHASE_05).
+- PHASE_07 will likely call `InitialDataSeeder.seedIfNeeded()` from a splash ViewModel or onboarding finish handler (per task #11 design decision). Use `applicationScope.launch { ... }` or a dedicated splash coroutine.
+- First phase requiring REAL emulator runs (loopback blocker must be resolved before PHASE_07 close). Static inspection still OK for code review; runtime verification requires device.

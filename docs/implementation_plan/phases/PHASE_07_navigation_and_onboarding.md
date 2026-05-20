@@ -54,7 +54,7 @@ Wire the single-activity NavHost in `:app`, implement the splash (S00) + 4-slide
 - [x] Run app on fresh install. Confirm flow: splash (1 s) → onboarding (4 swipeable slides) → Get-Started → dashboard placeholder. Force-stop + relaunch → goes straight to dashboard placeholder. — verified by inspection (see `memory/mymoney-windows-loopback-blocker.md`); flow follows DecisionRouter → Splash (runs seeder) → Onboarding (4 pages, Get Started persists `onboardingCompletedAt`) → Dashboard, with `popUpTo` removing both splash and onboarding from the back stack.
 - [x] Verify per §3.3: pressing system back from S01 (the placeholder) exits the app (cannot return to onboarding). The `popUpTo` is the mechanism. — verified by inspection of `MyMoneyNavHost.kt` `popUpTo(ONBOARDING) { inclusive = true }` on Get-Started navigation.
 - [x] Verify App Shortcut: long-press icon → "Add Expense" → app opens; logged extra arrives in MainActivity (`Log.d("Shortcut", intent.getStringExtra("shortcut_id"))`). Routing to S06 lands in PHASE_10. — verified by inspection of `shortcuts.xml` + manifest intent-filters; full routing deferred to PHASE_10 per phase scope.
-- [ ] Update PROGRESS.md.
+- [x] Update PROGRESS.md.
 
 ## Done criteria
 
@@ -77,4 +77,37 @@ adb shell am start -n com.kshavrin.mymoney.debug/com.kshavrin.mymoney.MainActivi
 
 ## Notes for next session
 
-(empty — fill at end of session. Especially: confirm whether the onboarding hero illustrations are good-enough placeholders or need a design pass before launch.)
+### What landed (3 commits)
+
+- **SPEC A (commit 6519467)**: :app navigation skeleton — `Destinations.kt` (12 route constants), `MyMoneyNavHost.kt` (NavHost with DecisionRouter routing to SPLASH or DASHBOARD based on `AppSettings.onboardingCompletedAt`), `MainActivity.kt` (installSplashScreen + MyMoneyTheme + MyMoneyNavHost; debug Sentry IconButton removed). `themes.xml` adds `Theme.MyMoney.Splash` (parent Theme.SplashScreen, windowSplashScreenBackground=#7AC794 LightColors.primary, postSplashScreenTheme=Theme.MyMoney). `shortcuts.xml` with 3 static shortcuts (add_expense / add_income / transfer, each Intent.action=VIEW + extra shortcut_id). `AndroidManifest.xml` adds 2 new intent-filters (monefy:// VIEW/DEFAULT/BROWSABLE + DRIVE_OPEN) + shortcuts meta-data; activity theme switched to Theme.MyMoney.Splash. `strings.xml` adds 6 shortcut labels.
+- **SPEC B (commit 7b77dab)**: :feature:onboarding full implementation. `SplashScreen.kt` (LaunchedEffect → SplashViewModel.initialise() → seeder + nav). `SplashViewModel.kt` (@HiltViewModel injecting InitialDataSeeder; runs seedIfNeeded then sets destination=Onboarding). `OnboardingScreen.kt` with public `OnboardingContent(currentPage, pagerState, onNext, onGetStarted)` extraction. HorizontalPager(pageCount=4) + custom `PagerDotsIndicator` (active 12dp primary, inactive 8dp outline) + bottom button "Next" / "Get started" on last slide. `OnboardingViewModel.kt` (@HiltViewModel injecting AppSettingsRepository; completeOnboarding() flips onboardingCompletedAt via appSettingsRepository.update). 4 placeholder vector hero drawables (mint/dark-green/red/light-mint). `strings.xml` with 4 headlines + 4 bodies + Next + Get Started (EN — RU translation deferred to PHASE_15). `feature/onboarding/build.gradle.kts` adds libs.bundles.hilt + :core:datastore + :core:common deps. MyMoneyNavHost.kt SPLASH+ONBOARDING composables now invoke real SplashScreen/OnboardingScreen with popUpTo navigation.
+- **Fix (commit 42f4887)**: Reviewer-flagged violations fixed. (1) DecisionRouter no longer uses EntryPointAccessors — now uses hiltViewModel() backed by new DecisionRouterViewModel (@HiltViewModel injecting AppSettingsRepository, exposes StateFlow<DecisionDestination>{Pending,Splash,Dashboard}, settings check on init via viewModelScope). (2) SplashScreen body extracted into public stateless SplashContent() per screen-content-extraction rule. AppSettingsRepositoryEntryPoint interface deleted (no longer needed).
+
+### Done criteria status
+
+| Criterion | Status |
+|---|---|
+| `.\gradlew.bat :feature:onboarding:assembleDebug` succeeds | ⚠ deferred — Windows loopback blocker; verified-by-inspection |
+| App launches: cold start splash → onboarding → dashboard placeholder; second launch skips | ⚠ deferred — loopback; navigation flow verified by inspection (DecisionRouter → SPLASH if no onboardingCompletedAt; SplashScreen runs seeder + routes to ONBOARDING; OnboardingScreen Get Started persists onboardingCompletedAt + routes to DASHBOARD with popUpTo) |
+| Persisted onboardingCompletedAt visible in DataStore | ⚠ deferred — gated by gradlew/adb; OnboardingViewModel.completeOnboarding() calls appSettingsRepository.update { it.copy(onboardingCompletedAt = System.currentTimeMillis()) } |
+| System-back from dashboard exits app | ⚠ deferred — verified by inspection: popUpTo(SPLASH){inclusive=true} on SplashScreen→Onboarding; popUpTo(ONBOARDING){inclusive=true} on Onboarding→Dashboard |
+| 3 App Shortcuts visible | ⚠ deferred — verified by inspection of shortcuts.xml + AndroidManifest.xml meta-data |
+
+### Navigation / Hilt EntryPoint / Compose Pager / Screen-Content gotchas
+
+1. **NavHost decision composable + Hilt** — initially used EntryPointAccessors directly in DecisionRouter (Reviewer flagged as violation per "no direct Repository injection into Composables"). Fix: extracted to DecisionRouterViewModel + hiltViewModel(). Per Clean Architecture, even one-shot reads go through a ViewModel.
+2. **Public stateless `<Name>Content()` extraction is mandatory** per screen-content-extraction rule. SplashScreen initially didn't have one — Reviewer flagged. Both SplashScreen and OnboardingScreen now have public `<Name>Content()` for preview/test reuse.
+3. **HorizontalPager with rememberPagerState(pageCount={...})** — Compose foundation 1.7+ API. `pageCount` is a lambda. `pagerState.animateScrollToPage(...)` requires CoroutineScope from `rememberCoroutineScope()`.
+4. **Theme.MyMoney.Splash extends Theme.SplashScreen** — Android 12+ splash convention. `postSplashScreenTheme` reverts to Theme.MyMoney after splash window finishes. `installSplashScreen()` in MainActivity.onCreate (BEFORE super.onCreate) is required.
+5. **`popUpTo(routeName) { inclusive = true }`** removes the entire stack up to and INCLUDING that route. Used on SplashScreen→Onboarding transition (inclusive removes splash) and on Get Started→Dashboard transition (inclusive removes onboarding). Per TDD §3.3 noHistory semantics.
+6. **monefy:// scheme is OUR re-impl scheme** — TDD §3.4 line 396 documents this. We DO NOT inherit `db-wxbzuly0x7v23t8` from the original APK (OQ-2 will register a new Dropbox client). The `<data android:scheme="monefy" />` intent-filter is declared but not yet wired beyond logging in MainActivity.
+7. **Onboarding hero drawables are placeholders** — 4 simple vectors (coloured circles with motifs). Design pass deferred to PHASE_15 (Polish). The current drawables are good-enough for the e2e flow but not for App Store assets.
+8. **RU translation deferred to PHASE_15** — Reviewer noted missing values-ru/strings.xml for onboarding strings + new shortcut strings. Not a blocker; documented here for PHASE_15.
+
+### PHASE_08 entry hint
+
+- Open `docs/implementation_plan/phases/PHASE_08_dashboard_and_donut.md`.
+- Replace the "Dashboard placeholder" route in MyMoneyNavHost with the real S01 (Dashboard day-period) + S02/S04/S05 (period switcher) screens.
+- Donut chart (`MonefyDonutChart` PHASE_03 stub) gets the real Canvas-based implementation with AS-14 ≥3% label threshold + per-category slices.
+- BalanceCalculator (PHASE_06 UseCase) drives the dashboard ViewModel.
+- New :feature:dashboard wiring on :app/build.gradle.kts (already declared in PHASE_01, just verify).

@@ -9,9 +9,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 
 @Composable
 fun MyMoneyNavHost(
@@ -56,8 +58,12 @@ fun MyMoneyNavHost(
                             navController.navigate(Destinations.TRANSACTIONS_LIST)
                         com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateSettings ->
                             navController.navigate(Destinations.SETTINGS)
-                        com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateDictionaries ->
-                            navController.navigate(Destinations.DICTIONARIES)
+                        com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateCategories ->
+                            navController.navigate(Destinations.CATEGORIES_LIST)
+                        com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateAccounts ->
+                            navController.navigate(Destinations.ACCOUNTS_LIST)
+                        com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateCurrencies ->
+                            navController.navigate(Destinations.CURRENCIES_LIST)
                         is com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateTransactionsByAccount ->
                             navController.navigate("${Destinations.TRANSACTIONS_LIST}?accountId=${action.accountId}")
                         is com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateTransactionsByCategory ->
@@ -68,6 +74,51 @@ fun MyMoneyNavHost(
                             navController.navigate(Destinations.SETTINGS)
                     }
                 },
+            )
+        }
+        composable(Destinations.CATEGORIES_LIST) {
+            com.kshavrin.mymoney.feature.dictionaries.categories.CategoriesListRoute(
+                onAdd = { navController.navigate("${Destinations.CATEGORY_EDIT}/-1") },
+                onEdit = { id -> navController.navigate("${Destinations.CATEGORY_EDIT}/$id") },
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(
+            route = "${Destinations.CATEGORY_EDIT}/{id}",
+            arguments = listOf(navArgument("id") { type = NavType.LongType; defaultValue = -1L }),
+        ) {
+            com.kshavrin.mymoney.feature.dictionaries.categories.CategoryEditRoute(
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(Destinations.ACCOUNTS_LIST) {
+            com.kshavrin.mymoney.feature.dictionaries.accounts.AccountsListRoute(
+                onAdd = { navController.navigate("${Destinations.ACCOUNT_EDIT}/-1") },
+                onEdit = { id -> navController.navigate("${Destinations.ACCOUNT_EDIT}/$id") },
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(
+            route = "${Destinations.ACCOUNT_EDIT}/{id}",
+            arguments = listOf(navArgument("id") { type = NavType.LongType; defaultValue = -1L }),
+        ) {
+            com.kshavrin.mymoney.feature.dictionaries.accounts.AccountEditRoute(
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(Destinations.CURRENCIES_LIST) {
+            com.kshavrin.mymoney.feature.dictionaries.currencies.CurrenciesListRoute(
+                onAdd = { navController.navigate("${Destinations.CURRENCY_EDIT}/-1") },
+                onEdit = { id -> navController.navigate("${Destinations.CURRENCY_EDIT}/$id") },
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(
+            route = "${Destinations.CURRENCY_EDIT}/{id}",
+            arguments = listOf(navArgument("id") { type = NavType.LongType; defaultValue = -1L }),
+        ) {
+            com.kshavrin.mymoney.feature.dictionaries.currencies.CurrencyEditRoute(
+                onBack = { navController.popBackStack() },
             )
         }
     }

@@ -96,4 +96,15 @@ adb shell am start -n com.kshavrin.mymoney.debug/com.kshavrin.mymoney.MainActivi
 
 ## Notes for next session
 
-(empty — fill at end of session. Especially: any donut-rendering edge cases at small fractions, dark-theme polish gaps.)
+### What landed (2 commits + close-out)
+
+- **SPEC 1 (commit fa50c68)**: :core:designsystem — MonefyDonutChart full Canvas + DonutGeometry (computeSliceArcs / midAngleRadians / hitTest) + LABEL_THRESHOLD=0.03f (AS-14) + spring(0.7,300) animation + 1.dp orbital spokes. MonefyBalancePill animateColorAsState(tween(400)) primary/tertiary. MonefyConfetti placeholder Canvas (40 particles, 1500ms). 5 DonutGeometry unit tests.
+- **SPEC 2 (commit 8995437)**: :feature:dashboard — DashboardViewModel (4 deps, UDF + StateFlow + SharedFlow actions replay=0). DashboardContent public extraction. PeriodStrip with DateRangePicker (AS-12). TwoFabLayout (- tertiary + transfer + + primary). 2 nested ModalNavigationDrawers. AS-10 lifetime confetti. 22 EN strings. MyMoneyNavHost integration.
+
+Reviewer ✓ all 9 boundary checks. Verifier ✓ nav_wired+hilt_graph+en_strings all ok. Done criteria deferred per loopback.
+
+### PHASE_09 entry hint
+
+- Dictionaries CRUD: S21 (categories list), S22 (categories edit), S23 (accounts list), S24 (accounts edit), S25 (currencies list), S26 (currency edit).
+- Reuse CategoryRepository/AccountRepository/CurrencyRepository (PHASE_06). New :feature:dictionaries.
+- Expand DICTIONARIES destination into separate sub-routes.

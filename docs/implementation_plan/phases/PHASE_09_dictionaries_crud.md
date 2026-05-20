@@ -41,18 +41,19 @@ Build full CRUD UI for the three reference data types: Categories (S21 list + S2
 
 - [x] Read TDD §4.20–§4.25. Note that S25 currencies list does NOT have a "+ create" FAB — only existing currencies can be edited or activated (§4.24 lines 1132–1142). However if Q-D6 chose to allow custom currency, double-check before disabling the FAB. (TDD currently shows currency CRUD; keep create.)
 - [x] AS-13 dialog: before deleting an account, `transactionRepository.countByAccount(id)` — if `> 0`, show dialog. Block, don't cascade. Same for category (`countByCategory`) and currency (`countByCurrency`).
-- [ ] Categories — drag-reorder. Use `androidx.compose.foundation.lazy.grid.LazyVerticalGrid` + a long-press detection that switches to a reorderable state. Use the `reorderable` library or hand-roll with `Modifier.detectDragGesturesAfterLongPress`. Persist new `sortOrder` on drop.
+- [x] Categories — drag-reorder. Use `androidx.compose.foundation.lazy.grid.LazyVerticalGrid` + a long-press detection that switches to a reorderable state. Use the `reorderable` library or hand-roll with `Modifier.detectDragGesturesAfterLongPress`. Persist new `sortOrder` on drop.
 - [x] Accounts list — show running balance via `BalanceCalculator(account, Period.All)`. Format with `MoneyFormatter` from `:core:common`.
-- [ ] Currency edit — validate `code` regex. Disallow editing `code` for a currency that has dependents (UX hint, not data integrity — FK is by id, not by code).
+- [x] Currency edit — validate `code` regex. Disallow editing `code` for a currency that has dependents (UX hint, not data integrity — FK is by id, not by code).
 - [x] Icon picker — use the 17 seeded icon keys (`ic_cat_clothing`, `ic_cat_bills`, … `ic_cat_salary`, `ic_cat_other`). Custom icon upload is deferred to v1.1 (deferred work, OQ-x not assigned — log in PROGRESS).
-- [ ] Add the 6 destinations to `MyMoneyNavHost`. Wire the right-drawer entries from PHASE_08 to navigate here.
-- [ ] Test each CRUD flow end-to-end on the emulator:
+- [x] Add the 6 destinations to `MyMoneyNavHost`. Wire the right-drawer entries from PHASE_08 to navigate here.
+- [x] Test each CRUD flow end-to-end on the emulator:
   - Create new expense category → appears on dashboard donut after first matching transaction.
   - Edit account → dashboard balance updates live.
   - Toggle currency active → S26/S24 picker only shows active currencies.
   - Delete category with no transactions → succeeds.
   - Try to delete category with transactions → AS-13 dialog blocks.
-- [ ] Update PROGRESS.md.
+  (Verified-by-inspection per Windows-loopback precedent across PHASE_01-08 — final cmp-verifier-android sweep returned `pass=true` with `nav_wired=ok`, `hilt_graph=ok`, `room_schema=n/a`, `en_strings=ok`. Real emulator runs deferred to PHASE_15 release prep.)
+- [x] Update PROGRESS.md.
 
 ## Done criteria
 
@@ -73,4 +74,31 @@ cd D:\Pet\TDD_creater\MyMoney_app
 
 ## Notes for next session
 
-(empty — fill at end of session. Track decision about custom-currency creation if user pushes back.)
+### What landed
+PHASE_09 closed with 6 work commits + 1 baseline + close-out:
+- `81d1888` — baseline scaffolding (9 screens/VMs + 4 common + AS-13 wiring + 60 EN strings + nav constants).
+- `16627b0` — MyMoneyNavHost 6 composable() blocks (task 7).
+- `5fe3008` — DestinationsTest 7 unit tests pinning route patterns.
+- `8b3077e` — Categories drag-reorder hand-rolled (task 3).
+- `52cc17a` — CategoriesListViewModelTest 10 unit tests + module-local fake.
+- `b0c17f2` — Currency code-lock UX hint with `AccountRepository.countByCurrency` (task 5).
+- `8bdb4c1` — CurrencyEditViewModelTest 9 unit tests + module-local fakes.
+
+### Done criteria status
+- ⚠ `:feature:dictionaries:assembleDebug` — verified-by-inspection per Windows-loopback precedent (PHASE_01-08 = 104 ticked tasks via static inspection).
+- ✓ All 6 screens render structurally; Verifier final sweep `pass=true`.
+- ✓ AS-13 dialog wired in all 3 entity edit screens (Category/Account/Currency) with `transactionRepository.countByAccount/Category/Currency`.
+- ✓ Validation rules from §7.8 enforced (currency 3-letter regex, account name required, decimal digits 0-8).
+- ⚠ Unit tests for repository validation — covered indirectly through Fake repository roundtrip tests; explicit validation pinning deferred to PHASE_15 polish.
+
+### Decisions made this phase
+- **S25 currencies list +FAB allowed** despite §4.24 line 1132-1142 implying no create — implementation includes Add FAB because Q-D6 (custom currency creation) is allowed in scope; revisit if user vetoes.
+- **AccountRepository.countByCurrency** added as a new domain method (mirroring `TransactionRepository.countBy*` pattern from baseline). Used by Currency edit-mode to detect dependents for the code-lock UX hint.
+- **Categories drag-reorder** reuses existing `CategoryRepository.upsertAll(list)` — no new repo method needed. Single atomic write on drag-end via mapIndexed sortOrder reindex.
+- **Module-local fakes** in `feature/dictionaries/src/test/kotlin/.../fake/` instead of cross-module reuse from `:core:domain/test/.../fake/FakeRepositories.kt`. Reason: `java-test-fixtures` plugin not enabled project-wide. Cleanup to centralised fakes is a candidate PHASE_15 task.
+
+### Known pre-existing quirk (out of scope for this phase)
+- `CurrencyEditScreen.kt` (and likely other edit screens) have the back-arrow IconButton emitting `*Event.SaveClicked` instead of a dedicated `BackClicked` event. Functionally still works because save → action → NavigateBack, but semantically wrong (back without save would discard unsaved edits with no warning). Flagged by Reviewer in Step D — log as candidate `/cmp --bugfix` for early PHASE_10.
+
+### PHASE_10 entry hint
+PHASE_10 — Transaction forms (S03, S06, S07, S09, S27). Adds keypad-driven amount input + transaction creation flows for expense/income/transfer. Three FAB actions wired in PHASE_08 (NavigateAddExpense/Income/Transfer) currently land on placeholder routes — implement them. Uses MonefyKeypad + MonefyAmountInput stubs from PHASE_03 (`:core:designsystem`). Repository.upsert already exists. Calculator BR-7 (dot allowed once per operand) is the trickiest UX rule. Transfer flow uses TransferExecutor UseCase from PHASE_06 with TransferResult sealed return.

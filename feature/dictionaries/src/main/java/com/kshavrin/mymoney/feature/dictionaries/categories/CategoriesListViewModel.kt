@@ -49,6 +49,18 @@ class CategoriesListViewModel @Inject constructor(
                 viewModelScope.launch { _actions.emit(CategoriesListAction.NavigateEdit(event.id)) }
             CategoriesListEvent.BackClicked ->
                 viewModelScope.launch { _actions.emit(CategoriesListAction.NavigateBack) }
+            is CategoriesListEvent.Reordered -> persistReorder(event.kind, event.newOrder)
+        }
+    }
+
+    private fun persistReorder(kind: CategoryKind, newOrder: List<Category>) {
+        val reindexed = newOrder.mapIndexed { idx, cat -> cat.copy(sortOrder = idx) }
+        _state.value = when (kind) {
+            CategoryKind.Expense -> _state.value.copy(expense = reindexed)
+            CategoryKind.Income -> _state.value.copy(income = reindexed)
+        }
+        viewModelScope.launch {
+            categoryRepository.upsertAll(reindexed)
         }
     }
 }
@@ -62,6 +74,7 @@ sealed interface CategoriesListEvent {
     data object AddClicked : CategoriesListEvent
     data class ItemClicked(val id: Long) : CategoriesListEvent
     data object BackClicked : CategoriesListEvent
+    data class Reordered(val kind: CategoryKind, val newOrder: List<Category>) : CategoriesListEvent
 }
 
 sealed interface CategoriesListAction {

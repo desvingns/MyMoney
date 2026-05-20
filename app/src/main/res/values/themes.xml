@@ -2,4 +2,9 @@
 <resources>
 
     <style name="Theme.MyMoney" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <style name="Theme.MyMoney.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#7AC794</item>
+        <item name="postSplashScreenTheme">@style/Theme.MyMoney</item>
+    </style>
 </resources>

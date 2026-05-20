@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <shortcut
+        android:shortcutId="add_expense"
+        android:enabled="true"
+        android:shortcutShortLabel="@string/shortcut_add_expense_short"
+        android:shortcutLongLabel="@string/shortcut_add_expense_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.kshavrin.mymoney"
+            android:targetClass="com.kshavrin.mymoney.MainActivity">
+            <extra android:name="shortcut_id" android:value="add_expense" />
+        </intent>
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="add_income"
+        android:enabled="true"
+        android:shortcutShortLabel="@string/shortcut_add_income_short"
+        android:shortcutLongLabel="@string/shortcut_add_income_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.kshavrin.mymoney"
+            android:targetClass="com.kshavrin.mymoney.MainActivity">
+            <extra android:name="shortcut_id" android:value="add_income" />
+        </intent>
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="transfer"
+        android:enabled="true"
+        android:shortcutShortLabel="@string/shortcut_transfer_short"
+        android:shortcutLongLabel="@string/shortcut_transfer_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.kshavrin.mymoney"
+            android:targetClass="com.kshavrin.mymoney.MainActivity">
+            <extra android:name="shortcut_id" android:value="transfer" />
+        </intent>
+    </shortcut>
+
+</shortcuts>

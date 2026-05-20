@@ -1,3 +1,10 @@
 <resources>
     <string name="app_name">MyMoney</string>
+
+    <string name="shortcut_add_expense_short">Expense</string>
+    <string name="shortcut_add_expense_long">Add Expense</string>
+    <string name="shortcut_add_income_short">Income</string>
+    <string name="shortcut_add_income_long">Add Income</string>
+    <string name="shortcut_transfer_short">Transfer</string>
+    <string name="shortcut_transfer_long">Transfer between accounts</string>
 </resources>

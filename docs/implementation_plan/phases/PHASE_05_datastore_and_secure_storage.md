@@ -61,4 +61,40 @@ adb shell run-as com.kshavrin.mymoney.debug ls -R files shared_prefs
 
 ## Notes for next session
 
-(empty — fill at end of session)
+### What landed (commit 15ec5ac)
+
+- **AppSettings.kt**: 15 fields verbatim from TDD §7.3 (`language`/`themeMode`/`biometricLockEnabled`/`biometricIdleTimeoutSec=60`/`soundEnabled=true`/`hapticEnabled=true`/`defaultAccountId=-1L`/`defaultPeriod="month"`/`dateFirstDayOfWeek=1`/`currencySymbolPosition="before"`/`onboardingCompletedAt: Long? = null`/`lastSyncAt: Long? = null`/`autoSyncEnabled=true` per OQ-7/`budgetModeEnabled=true`/`firstPositiveSeen=false` per AS-10 monotonic flag).
+- **SecureSettings.kt**: 3 nullable String fields (dropboxRefreshToken / gdriveAccountEmail / pinHash).
+- **AppSettingsKeys.kt**: 15 typed Preferences keys (internal object).
+- **AppSettingsRepositoryImpl.kt**: `@Singleton` impl with `settings: Flow<AppSettings>` via `dataStore.data.map { it.toAppSettings() }.distinctUntilChanged()` and `suspend fun update(transform)`. **Monotonic firstPositiveSeen guard** — throws IllegalStateException on true→false.
+- **SecureStorageImpl.kt**: `@Singleton` impl using `EncryptedSharedPreferences.create(...)` with `MasterKey` AES256_GCM scheme. File `com.kshavrin.mymoney_secure`.
+- **DataStoreModule.kt**: `@InstallIn(SingletonComponent::class)` — `@Provides @Singleton DataStore<Preferences>` via `PreferenceDataStoreFactory.create(scope = CoroutineScope(SupervisorJob() + @IoDispatcher))`. Plus `@Binds @Singleton` for AppSettingsRepository and SecureStorage interfaces. **FIRST cross-module Hilt qualifier usage** — `@IoDispatcher` from `:core:common`.
+- **Tests** — `AppSettingsRepositoryTest` (4 unit tests: defaults / 15-field round-trip / monotonic enforcement / null-clearing). `SecureStorageTest` (5 androidTests: per-secret roundtrip / clearAll / null-write-removes).
+
+### Done criteria status
+
+| Criterion | Status |
+|---|---|
+| `.\gradlew.bat :core:datastore:test` passes; round-trip covers all 15 AppSettings fields | ⚠ deferred — Windows loopback blocker; 4 unit tests written + verified-by-inspection |
+| `.\gradlew.bat :core:datastore:connectedAndroidTest` passes; SecureStorage roundtrips Dropbox/GDrive/PIN | ⚠ deferred — loopback + Android Keystore needed; 5 androidTests written |
+| Hilt-injecting AppSettingsRepository into @AndroidEntryPoint works | ⚠ deferred — loopback; Verifier hilt_graph=ok confirms wiring statically |
+| Storage layout matches §8.3 | ⚠ deferred — gated by adb access; file names match TDD by construction |
+
+### DataStore + EncryptedSharedPreferences gotchas worth knowing
+
+1. **`preferencesDataStoreFile(name)` auto-appends `.preferences_pb`.** Pass `"app_settings"` — DataStore writes `app_settings.preferences_pb`. Don't include the extension yourself.
+2. **`@IoDispatcher` requires :core:common dep on the consumer.** `:core:datastore` now depends on `:core:common` — first explicit cross-module Hilt qualifier consumption.
+3. **Monotonic firstPositiveSeen** — enforced in `update()` not in `toAppSettings()`. The READ path returns whatever's persisted (defaults to false). The WRITE path blocks regression. Pattern is non-obvious; if a future caller resets prefs via clearAll-equivalent, firstPositiveSeen drops back to false — that's expected (lifetime flag, not session flag).
+4. **`PreferenceDataStoreFactory.create(produceFile = { tempFile })`** lets you skip DI in tests — no Context required, just a temp file. Use as the unit-test substrate for any DataStore Preferences code.
+5. **`SupervisorJob() + ioDispatcher`** is the CoroutineContext for DataStore writes. If any single write throws, the supervisor keeps the scope alive for subsequent writes.
+6. **`@Binds` + `@Provides` in same module** — Hilt allows `object DataStoreModule { @Provides ... }` + `abstract class DataStoreBindings { @Binds ... }` to coexist under `@InstallIn(SingletonComponent::class)`. `@Binds` requires an `abstract class` (not `object`).
+7. **EncryptedSharedPreferences MUST run on Android with Keystore** — JUnit unit tests cannot exercise the encryption; use androidTest with `ApplicationProvider.getApplicationContext()` for integration tests.
+8. **Null vs. default for optional fields** — `onboardingCompletedAt: Long? = null` vs. `defaultAccountId: Long = -1L`. Both encode "no value", but null is preferred for genuine absences (supports `remove(key)`), while sentinel values (`-1L`) are used when there's a natural "invalid ID" semantic.
+
+### PHASE_06 entry hint
+
+- Open `docs/implementation_plan/phases/PHASE_06_domain_layer.md`.
+- Build `:core:domain` — domain entities (Account, Category, Transaction, etc. with BigDecimal money + LocalDate/Instant time vs. data-layer Double + Long), repository interfaces, use cases (BalanceCalculator, TransferExecutor, BudgetEvaluator, RecurringScheduler per TDD §2.1).
+- `InitialDataSeeder` (per TDD §7.7) seeds 20 currencies + 1 default Cash account in locale currency + 15 expense categories per §6.1 + 2 income categories (Salary, Other — locked per AS-8/OQ-12).
+- Domain repository interfaces in `:core:domain/repository/` — data-layer impls in `:core:database/repository/`. Will need a repository binding module.
+- `:core:database` repositories will catch Room exceptions + remap to `SyncException(SyncError)` per CLAUDE.md error handling policy.

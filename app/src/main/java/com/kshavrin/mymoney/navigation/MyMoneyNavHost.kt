@@ -6,19 +6,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
-import dagger.hilt.EntryPoint
-import dagger.hilt.InstallIn
-import dagger.hilt.android.EntryPointAccessors
-import dagger.hilt.components.SingletonComponent
-import kotlinx.coroutines.flow.first
 
 @Composable
 fun MyMoneyNavHost(
@@ -57,19 +53,20 @@ fun MyMoneyNavHost(
 
 @Composable
 private fun DecisionRouter(navController: NavHostController) {
-    val context = LocalContext.current
-    LaunchedEffect(Unit) {
-        val appSettings = EntryPointAccessors.fromApplication(
-            context.applicationContext,
-            AppSettingsRepositoryEntryPoint::class.java,
-        ).appSettingsRepository()
-        val onboardingCompletedAt = appSettings.settings.first().onboardingCompletedAt
-        val next = if (onboardingCompletedAt == null) Destinations.SPLASH else Destinations.DASHBOARD
-        navController.navigate(next) {
-            popUpTo(Destinations.DECISION) { inclusive = true }
+    val viewModel: DecisionRouterViewModel = hiltViewModel()
+    val state by viewModel.state.collectAsState()
+    LaunchedEffect(state) {
+        when (state) {
+            DecisionDestination.Pending -> Unit
+            DecisionDestination.Splash -> navController.navigate(Destinations.SPLASH) {
+                popUpTo(Destinations.DECISION) { inclusive = true }
+            }
+            DecisionDestination.Dashboard -> navController.navigate(Destinations.DASHBOARD) {
+                popUpTo(Destinations.DECISION) { inclusive = true }
+            }
         }
     }
-    PlaceholderScreen(text = "")
+    Box(modifier = Modifier.fillMaxSize())
 }
 
 @Composable
@@ -80,10 +77,4 @@ private fun PlaceholderScreen(text: String) {
     ) {
         Text(text = text, style = MaterialTheme.typography.titleLarge)
     }
-}
-
-@EntryPoint
-@InstallIn(SingletonComponent::class)
-interface AppSettingsRepositoryEntryPoint {
-    fun appSettingsRepository(): AppSettingsRepository
 }

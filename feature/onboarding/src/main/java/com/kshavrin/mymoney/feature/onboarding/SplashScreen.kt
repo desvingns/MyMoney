@@ -34,6 +34,11 @@ fun SplashScreen(
         }
     }
 
+    SplashContent()
+}
+
+@Composable
+fun SplashContent() {
     Box(
         modifier = Modifier
             .fillMaxSize()

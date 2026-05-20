@@ -9,7 +9,7 @@
 
 - **Active phase:** `PHASE_09` — Dictionaries CRUD (S21–S26) (not yet started)
 - **Last session:** 2026-05-20 — PHASE_08 completed (13/13 tasks ticked across SPEC 1 + SPEC 2 + close-out). Full S01/S05 dashboard with Canvas-based MonefyDonutChart (AS-14 3% threshold) + MonefyBalancePill (sign-based colour anim) + MonefyConfetti (AS-10 lifetime) + two ModalNavigationDrawers + PeriodStrip (AS-12 DateRangePicker) + TwoFabLayout. DashboardViewModel UDF with SharedFlow actions. 5 DonutGeometry unit tests.
-- **Next action:** Open `phases/PHASE_09_dictionaries.md`. CRUD for categories/accounts/currencies (S21-S26). Reuse repository interfaces from PHASE_06.
+- **Next action:** Open `phases/PHASE_09_dictionaries_crud.md`. CRUD for categories/accounts/currencies (S21-S26). Reuse repository interfaces from PHASE_06.
 - **Blockers:** OS-level loopback failure on this Windows host blocks actual `gradlew` runs. PHASE_09+ work continues via static-inspection precedent across PHASE_01-08 = 104 tasks.
 
 ---

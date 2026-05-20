@@ -67,4 +67,16 @@ class TransactionRepositoryImpl @Inject constructor(
     override suspend fun pruneDeleted(before: Instant) = withContext(ioDispatcher) {
         dao.pruneDeleted(before.toEpochMilli())
     }
+
+    override suspend fun countByAccount(id: Long): Int = withContext(ioDispatcher) {
+        dao.countByAccount(id)
+    }
+
+    override suspend fun countByCategory(id: Long): Int = withContext(ioDispatcher) {
+        dao.countByCategory(id)
+    }
+
+    override suspend fun countByCurrency(id: Long): Int = withContext(ioDispatcher) {
+        dao.countByCurrency(id)
+    }
 }

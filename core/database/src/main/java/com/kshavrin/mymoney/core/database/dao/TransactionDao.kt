@@ -62,4 +62,13 @@ interface TransactionDao {
 
     @Query("DELETE FROM `transaction` WHERE is_deleted = 1 AND updated_at < :before")
     suspend fun pruneDeleted(before: Long)
+
+    @Query("SELECT COUNT(*) FROM `transaction` WHERE account_id = :id AND is_deleted = 0")
+    suspend fun countByAccount(id: Long): Int
+
+    @Query("SELECT COUNT(*) FROM `transaction` WHERE category_id = :id AND is_deleted = 0")
+    suspend fun countByCategory(id: Long): Int
+
+    @Query("SELECT COUNT(*) FROM `transaction` WHERE currency_id = :id AND is_deleted = 0")
+    suspend fun countByCurrency(id: Long): Int
 }

@@ -1,0 +1,60 @@
+<resources>
+    <string name="dictionaries_categories_title">Categories</string>
+    <string name="dictionaries_accounts_title">Accounts</string>
+    <string name="dictionaries_currencies_title">Currencies</string>
+    <string name="dictionaries_category_new">New category</string>
+    <string name="dictionaries_category_edit">Edit category</string>
+    <string name="dictionaries_account_new">New account</string>
+    <string name="dictionaries_account_edit">Edit account</string>
+    <string name="dictionaries_currency_new">New currency</string>
+    <string name="dictionaries_currency_edit">Edit currency</string>
+
+    <string name="dictionaries_section_expense">Expense</string>
+    <string name="dictionaries_section_income">Income</string>
+
+    <string name="dictionaries_field_name">Name</string>
+    <string name="dictionaries_field_kind">Kind</string>
+    <string name="dictionaries_kind_expense">Expense</string>
+    <string name="dictionaries_kind_income">Income</string>
+    <string name="dictionaries_field_icon">Icon</string>
+    <string name="dictionaries_field_color">Color</string>
+    <string name="dictionaries_field_currency">Currency</string>
+    <string name="dictionaries_field_initial_balance">Initial balance</string>
+    <string name="dictionaries_field_type">Type</string>
+    <string name="dictionaries_field_set_default">Set as default</string>
+    <string name="dictionaries_field_code">Code</string>
+    <string name="dictionaries_field_symbol">Symbol</string>
+    <string name="dictionaries_field_decimal_digits">Decimal digits</string>
+    <string name="dictionaries_field_is_active">Active</string>
+
+    <string name="dictionaries_type_cash">Cash</string>
+    <string name="dictionaries_type_card">Card</string>
+    <string name="dictionaries_type_bank">Bank</string>
+    <string name="dictionaries_type_savings">Savings</string>
+
+    <string name="dictionaries_choose_icon">Choose icon</string>
+    <string name="dictionaries_choose_color">Choose color</string>
+
+    <string name="dictionaries_save">Save</string>
+    <string name="dictionaries_delete">Delete</string>
+    <string name="dictionaries_cancel">Cancel</string>
+    <string name="dictionaries_ok">OK</string>
+    <string name="dictionaries_back">Back</string>
+    <string name="dictionaries_add">Add</string>
+
+    <string name="dictionaries_blocked_delete_title">Cannot delete</string>
+    <string name="dictionaries_blocked_delete_message">Cannot delete %1$s: it has %2$d existing transactions. Move or delete them first.</string>
+
+    <string name="dictionaries_default_badge">Default</string>
+    <string name="dictionaries_archived_badge">Archived</string>
+    <string name="dictionaries_balance_label">Balance</string>
+
+    <string name="dictionaries_error_name_required">Name is required (max 32 chars)</string>
+    <string name="dictionaries_error_code_format">Code must be 3 uppercase letters</string>
+    <string name="dictionaries_error_color_format">Color must be #RRGGBB</string>
+    <string name="dictionaries_error_decimal_digits">Decimal digits must be 0–8</string>
+    <string name="dictionaries_error_symbol_required">Symbol is required (max 4 chars)</string>
+    <string name="dictionaries_error_currency_required">Currency is required</string>
+    <string name="dictionaries_error_initial_balance_format">Initial balance must be a number</string>
+    <string name="dictionaries_error_generic">Save failed</string>
+</resources>

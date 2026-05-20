@@ -134,4 +134,10 @@ class FakeTransactionRepository : TransactionRepository {
     override suspend fun pruneDeleted(before: Instant) {
         transactions.value = transactions.value.filterNot { it.isDeleted && it.updatedAt.isBefore(before) }
     }
+    override suspend fun countByAccount(id: Long): Int =
+        transactions.value.count { !it.isDeleted && (it.accountId == id || it.toAccountId == id) }
+    override suspend fun countByCategory(id: Long): Int =
+        transactions.value.count { !it.isDeleted && it.categoryId == id }
+    override suspend fun countByCurrency(id: Long): Int =
+        transactions.value.count { !it.isDeleted && it.currencyId == id }
 }

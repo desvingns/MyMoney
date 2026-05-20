@@ -15,6 +15,9 @@ interface TransactionRepository {
     suspend fun upsert(transaction: Transaction): Long
     suspend fun softDelete(id: Long, now: Instant)
     suspend fun pruneDeleted(before: Instant)
+    suspend fun countByAccount(id: Long): Int
+    suspend fun countByCategory(id: Long): Int
+    suspend fun countByCurrency(id: Long): Int
 }
 
 data class CategorySummary(

@@ -10,7 +10,12 @@ object Destinations {
     const val TRANSFER = "transaction/transfer"
     const val TRANSACTIONS_LIST = "transactions"
     const val SETTINGS = "settings"
-    const val DICTIONARIES = "dictionaries"
+    const val CATEGORIES_LIST = "dictionaries/categories"
+    const val CATEGORY_EDIT = "dictionaries/categories/edit"
+    const val ACCOUNTS_LIST = "dictionaries/accounts"
+    const val ACCOUNT_EDIT = "dictionaries/accounts/edit"
+    const val CURRENCIES_LIST = "dictionaries/currencies"
+    const val CURRENCY_EDIT = "dictionaries/currencies/edit"
     const val CLOUD_SYNC = "cloud_sync"
     const val LOCK_SCREEN = "lock_screen"
 }

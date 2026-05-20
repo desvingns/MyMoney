@@ -74,7 +74,7 @@ Build the centerpiece of the app: the main dashboard (S01 day-period, S05 year-p
   - Tapping the balance pill triggers a Toast (placeholder routing) until PHASE_11.
   - Tapping a slice triggers a Toast with the slice's category id.
 - [x] Visual QA: compare against `D:\Pet\TDD_creater\MyMoney\input\screenshots\01.jpg` and `05.jpg`. Mint background, mint primary, red negative, donut with category icons orbiting. (verified-by-inspection per `mymoney-windows-loopback-blocker.md`)
-- [ ] Update PROGRESS.md.
+- [x] Update PROGRESS.md.
 
 ## Done criteria
 

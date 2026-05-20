@@ -39,12 +39,12 @@ Build full CRUD UI for the three reference data types: Categories (S21 list + S2
 
 ## Task checklist
 
-- [ ] Read TDD §4.20–§4.25. Note that S25 currencies list does NOT have a "+ create" FAB — only existing currencies can be edited or activated (§4.24 lines 1132–1142). However if Q-D6 chose to allow custom currency, double-check before disabling the FAB. (TDD currently shows currency CRUD; keep create.)
-- [ ] AS-13 dialog: before deleting an account, `transactionRepository.countByAccount(id)` — if `> 0`, show dialog. Block, don't cascade. Same for category (`countByCategory`) and currency (`countByCurrency`).
+- [x] Read TDD §4.20–§4.25. Note that S25 currencies list does NOT have a "+ create" FAB — only existing currencies can be edited or activated (§4.24 lines 1132–1142). However if Q-D6 chose to allow custom currency, double-check before disabling the FAB. (TDD currently shows currency CRUD; keep create.)
+- [x] AS-13 dialog: before deleting an account, `transactionRepository.countByAccount(id)` — if `> 0`, show dialog. Block, don't cascade. Same for category (`countByCategory`) and currency (`countByCurrency`).
 - [ ] Categories — drag-reorder. Use `androidx.compose.foundation.lazy.grid.LazyVerticalGrid` + a long-press detection that switches to a reorderable state. Use the `reorderable` library or hand-roll with `Modifier.detectDragGesturesAfterLongPress`. Persist new `sortOrder` on drop.
-- [ ] Accounts list — show running balance via `BalanceCalculator(account, Period.All)`. Format with `MoneyFormatter` from `:core:common`.
+- [x] Accounts list — show running balance via `BalanceCalculator(account, Period.All)`. Format with `MoneyFormatter` from `:core:common`.
 - [ ] Currency edit — validate `code` regex. Disallow editing `code` for a currency that has dependents (UX hint, not data integrity — FK is by id, not by code).
-- [ ] Icon picker — use the 17 seeded icon keys (`ic_cat_clothing`, `ic_cat_bills`, … `ic_cat_salary`, `ic_cat_other`). Custom icon upload is deferred to v1.1 (deferred work, OQ-x not assigned — log in PROGRESS).
+- [x] Icon picker — use the 17 seeded icon keys (`ic_cat_clothing`, `ic_cat_bills`, … `ic_cat_salary`, `ic_cat_other`). Custom icon upload is deferred to v1.1 (deferred work, OQ-x not assigned — log in PROGRESS).
 - [ ] Add the 6 destinations to `MyMoneyNavHost`. Wire the right-drawer entries from PHASE_08 to navigate here.
 - [ ] Test each CRUD flow end-to-end on the emulator:
   - Create new expense category → appears on dashboard donut after first matching transaction.

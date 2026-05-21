@@ -43,8 +43,8 @@ Implement the five interconnected forms that let the user log money: Add Expense
 
 ## Task checklist
 
-- [ ] Re-read TDD §4.6, §4.7, §4.8, §4.10, §4.26 + §2.3 (UDF pattern example).
-- [ ] **Calculator engine** — pure Kotlin class `CalculatorEngine` in `:core:common`. Handles BR-7 (dot once per operand), BR-8 (operator chains: `5 + 3 + 2 = 10`), BR-9 (= terminates expression), BR-10 (backspace deletes last char), BR-11 (overflow protection). Unit-test thoroughly.
+- [x] Re-read TDD §4.6, §4.7, §4.8, §4.10, §4.26 + §2.3 (UDF pattern example).
+- [x] **Calculator engine** — pure Kotlin class `CalculatorEngine` in `:core:common`. Handles BR-7 (dot once per operand), BR-8 (operator chains: `5 + 3 + 2 = 10`), BR-9 (= terminates expression), BR-10 (backspace deletes last char), BR-11 (overflow protection). Unit-test thoroughly.
 - [ ] Wire `CalculatorEngine` into `AddExpenseViewModel`. Each `KeypadDigit` event mutates engine state; ViewModel emits `state.copy(amount = engine.currentValue, amountInput = engine.display, pendingOperator = engine.pendingOp)`.
 - [ ] Implement `MonefyKeypad` — the spring + haptic happens inside the Composable; sound playback is via injected `SoundPlayer` (interface; impl lands in PHASE_15).
 - [ ] Implement `MonefyAmountInput` — `headlineLarge` for current value, `bodySmall` grey for expression. Auto-shrink on long values (use `BasicTextField` measure pass or Compose `AutoSizeText` 3rd-party).

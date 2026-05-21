@@ -1,0 +1,14 @@
+<resources>
+    <string name="new_expense_title">New expense</string>
+    <string name="new_income_title">New income</string>
+    <string name="amount_hint">0</string>
+    <string name="note_hint">Note</string>
+    <string name="choose_category_cta">CHOOSE CATEGORY</string>
+    <string name="error_enter_amount_first">Enter amount first</string>
+    <string name="error_choose_category_first">Choose a category</string>
+    <string name="error_save_failed">Could not save. Please try again.</string>
+    <string name="back">Back</string>
+    <string name="swap_mode">Swap</string>
+    <string name="dismiss">Dismiss</string>
+    <string name="pick_date">Pick date</string>
+</resources>

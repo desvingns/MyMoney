@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.feature.dictionaries.R
 import com.kshavrin.mymoney.feature.dictionaries.common.BlockedDeleteDialog
@@ -50,6 +51,29 @@ fun CategoryEditRoute(
         viewModel.actions.collect { action ->
             when (action) {
                 CategoryEditAction.NavigateBack -> onBack()
+                is CategoryEditAction.NavigateBackToPickerWithId -> onBack()
+            }
+        }
+    }
+    CategoryEditContent(state = state, onEvent = viewModel::onEvent)
+}
+
+@Composable
+fun CategoryEditRoute(
+    navController: NavController,
+    viewModel: CategoryEditViewModel = hiltViewModel(),
+) {
+    val state by viewModel.state.collectAsState()
+    LaunchedEffect(viewModel) {
+        viewModel.actions.collect { action ->
+            when (action) {
+                CategoryEditAction.NavigateBack -> navController.popBackStack()
+                is CategoryEditAction.NavigateBackToPickerWithId -> {
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set("createdCategoryId", action.id)
+                    navController.popBackStack()
+                }
             }
         }
     }

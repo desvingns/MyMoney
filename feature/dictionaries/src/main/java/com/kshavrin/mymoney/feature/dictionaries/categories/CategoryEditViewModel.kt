@@ -26,8 +26,16 @@ class CategoryEditViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val categoryId: Long = savedStateHandle.get<Long>("id") ?: -1L
+    private val fromPicker: Boolean = savedStateHandle.get<Boolean>("fromPicker") ?: false
+    private val initialKind: CategoryKind? = savedStateHandle.get<String>("kind")
+        ?.let { runCatching { CategoryKind.fromString(it) }.getOrNull() }
 
-    private val _state = MutableStateFlow(CategoryEditState(isCreateMode = categoryId == -1L))
+    private val _state = MutableStateFlow(
+        CategoryEditState(
+            isCreateMode = categoryId == -1L,
+            kind = if (categoryId == -1L && initialKind != null) initialKind else CategoryKind.Expense,
+        ),
+    )
     val state: StateFlow<CategoryEditState> = _state.asStateFlow()
 
     private val _actions = MutableSharedFlow<CategoryEditAction>(extraBufferCapacity = 4)
@@ -76,7 +84,7 @@ class CategoryEditViewModel @Inject constructor(
         }
         viewModelScope.launch {
             try {
-                categoryRepository.upsert(
+                val newId = categoryRepository.upsert(
                     Category(
                         id = if (categoryId == -1L) 0L else categoryId,
                         name = s.name,
@@ -89,7 +97,11 @@ class CategoryEditViewModel @Inject constructor(
                         createdAt = Instant.now(),
                     ),
                 )
-                _actions.emit(CategoryEditAction.NavigateBack)
+                if (fromPicker && categoryId == -1L) {
+                    _actions.emit(CategoryEditAction.NavigateBackToPickerWithId(newId))
+                } else {
+                    _actions.emit(CategoryEditAction.NavigateBack)
+                }
             } catch (e: IllegalArgumentException) {
                 _state.value = s.copy(errorMessage = e.message ?: "save_failed")
             }
@@ -134,4 +146,5 @@ sealed interface CategoryEditEvent {
 
 sealed interface CategoryEditAction {
     data object NavigateBack : CategoryEditAction
+    data class NavigateBackToPickerWithId(val id: Long) : CategoryEditAction
 }

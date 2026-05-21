@@ -45,10 +45,10 @@ Implement the five interconnected forms that let the user log money: Add Expense
 
 - [x] Re-read TDD §4.6, §4.7, §4.8, §4.10, §4.26 + §2.3 (UDF pattern example).
 - [x] **Calculator engine** — pure Kotlin class `CalculatorEngine` in `:core:common`. Handles BR-7 (dot once per operand), BR-8 (operator chains: `5 + 3 + 2 = 10`), BR-9 (= terminates expression), BR-10 (backspace deletes last char), BR-11 (overflow protection). Unit-test thoroughly.
-- [ ] Wire `CalculatorEngine` into `AddExpenseViewModel`. Each `KeypadDigit` event mutates engine state; ViewModel emits `state.copy(amount = engine.currentValue, amountInput = engine.display, pendingOperator = engine.pendingOp)`.
-- [ ] Implement `MonefyKeypad` — the spring + haptic happens inside the Composable; sound playback is via injected `SoundPlayer` (interface; impl lands in PHASE_15).
-- [ ] Implement `MonefyAmountInput` — `headlineLarge` for current value, `bodySmall` grey for expression. Auto-shrink on long values (use `BasicTextField` measure pass or Compose `AutoSizeText` 3rd-party).
-- [ ] **Category-picker flow** (AS-4): when user from S09 taps "+ Add" → push S22 (category_edit, prefilled `kind = current_picker_kind`). On S22 save → pop to S06/S07 with the new category id passed back via `SavedStateHandle["pickedCategoryId"]`. **Skip S09 on return** — the caller picks up the saved id directly.
+- [x] Wire `CalculatorEngine` into `AddExpenseViewModel`. Each `KeypadDigit` event mutates engine state; ViewModel emits `state.copy(amount = engine.currentValue, amountInput = engine.display, pendingOperator = engine.pendingOp)`.
+- [x] Implement `MonefyKeypad` — the spring + haptic happens inside the Composable; sound playback is via injected `SoundPlayer` (interface; impl lands in PHASE_15).
+- [x] Implement `MonefyAmountInput` — `headlineLarge` for current value, `bodySmall` grey for expression. Auto-shrink on long values (use `BasicTextField` measure pass or Compose `AutoSizeText` 3rd-party).
+- [x] **Category-picker flow** (AS-4): when user from S09 taps "+ Add" → push S22 (category_edit, prefilled `kind = current_picker_kind`). On S22 save → pop to S06/S07 with the new category id passed back via `SavedStateHandle["pickedCategoryId"]`. **Skip S09 on return** — the caller picks up the saved id directly.
 - [ ] **Cross-currency transfer flow** (AS-6): in `TransferViewModel.onSaveClicked()`, call `TransferExecutor`. If returns `TransferError.RateMissing(fromId, toId)`, emit `Action.NavigateToRateSetup(fromId, toId)`. S27 saves rate → pops back to S03 → retry save.
 - [ ] **Single-row transfer** (AS-7): `TransferExecutor` writes one row with `kind = "transfer"`, both account ids, both amounts (source `amount`, dest `toAmount`), `exchangeRate`. Do NOT split into two rows.
 - [ ] Routing: add `"add_expense"`, `"add_income"`, `"transfer"`, `"category_picker?kind={kind}"`, `"currency_rate?fromId={x}&toId={y}"` to `MyMoneyNavHost`. Wire from dashboard FABs (PHASE_08).

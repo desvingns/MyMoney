@@ -14,4 +14,13 @@
     <string name="category_picker_title">Choose category</string>
     <string name="add_category_cta">+ ADD</string>
     <string name="category_picker_empty">No categories yet — tap + ADD</string>
+    <string name="new_transfer_title">New transfer</string>
+    <string name="source_label">From</string>
+    <string name="target_label">To</string>
+    <string name="accounts_have_to_be_different">Accounts have to be different</string>
+    <string name="currency_rate">Currency rate</string>
+    <string name="currency_rate_title">Currency rate</string>
+    <string name="currency_rate_save">Save</string>
+    <string name="transfer_change_rate_cta">Change</string>
+    <string name="currency_rate_invalid">Rate must be positive</string>
 </resources>

@@ -67,7 +67,7 @@ Implement biometric/PIN app lock — both the setup screen (S16) and the lock-ov
 ## Verification commands
 
 ```powershell
-cd D:\Pet\TDD_creater\MyMoney_app
+cd C:\Pet\MyMoney
 .\gradlew.bat :feature:lockscreen:assembleDebug
 .\gradlew.bat :feature:lockscreen:test
 .\gradlew.bat :app:installDebug

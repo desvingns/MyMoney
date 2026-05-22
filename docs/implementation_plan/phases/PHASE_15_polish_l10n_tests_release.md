@@ -101,7 +101,7 @@ Final phase. Implement the aesthetic gamification layer (sounds, haptics, confet
 ## Verification commands
 
 ```powershell
-cd D:\Pet\TDD_creater\MyMoney_app
+cd C:\Pet\MyMoney
 .\gradlew.bat :app:test
 .\gradlew.bat :app:connectedAndroidTest
 .\gradlew.bat :app:assembleRelease

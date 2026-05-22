@@ -369,7 +369,7 @@ Assisted progression through the 15-phase implementation plan. Wraps the `--feat
 3. Identify the first unchecked `- [ ]` task line. If none exist:
    - Report: "PHASE_<NN> has no remaining tasks. Run `/cmp --check` to verify completion criteria and update PROGRESS.md → status=done; advance the next phase to active. Then re-run `/cmp --phase`."
    - Stop.
-4. Re-read the TDD anchor line ranges cited at the top of the phase file (typically a "TDD anchors" block referencing `D:\Pet\TDD_creater\MyMoney\MyMoney_TDD.md` line ranges).
+4. Re-read the TDD anchor line ranges cited at the top of the phase file (typically a "TDD anchors" block referencing `C:\Pet\MyMoney\TDD\MyMoney\MyMoney_TDD.md` line ranges).
 5. Identify any AS-x decisions referenced in the phase file's task list or notes.
 
 ### Phase 2 — Synthesise SPEC
@@ -382,7 +382,7 @@ TASK: feature
 PLATFORM: android
 WHAT: [first unchecked task line, verbatim from PHASE_<NN>]
 LAYERS: [inferred from task language — see below]
-CHANGED_HINT: docs/implementation_plan/phases/PHASE_<NN>_*.md (this phase file); D:\Pet\TDD_creater\MyMoney\MyMoney_TDD.md lines [anchor ranges from phase file]; existing files mentioned in the task line if any
+CHANGED_HINT: docs/implementation_plan/phases/PHASE_<NN>_*.md (this phase file); C:\Pet\MyMoney\TDD\MyMoney\MyMoney_TDD.md lines [anchor ranges from phase file]; existing files mentioned in the task line if any
 TEST_TYPES: [inferred from task — typically `unit` for domain/data work, `unit dao` for Room work, `unit compose-ui` for presentation work]
 CONSTRAINTS: respect AS-x decisions cited in PHASE_<NN>; respect MyMoney conventions in CLAUDE.md and `.claude/cmp-mymoney/developer-extras.md`; English code identifiers; no comments unless WHY is non-obvious
 === END SPEC ===
@@ -453,7 +453,7 @@ Read-only validator. **Makes no changes.** Reports inconsistencies, exits.
    - `.claude/cmp-mymoney/{developer,reviewer,tester}-extras.md` all exist.
    - Each of `.claude/agents/cmp-{developer,reviewer,tester}-android.md` ends with the line `Read .claude/cmp-mymoney/<role>-extras.md before starting.`
    - `.claude/agents/cmp-docs.md` body contains the string `intentionally inert`.
-7. **Memory seed present.** Confirm `~/.claude/projects/D--Pet-TDD-creater-MyMoney_app/memory/MEMORY.md` exists and lists the `mymoney-*` memos.
+7. **Memory seed present.** Confirm `~/.claude/projects/C--Pet-MyMoney/memory/MEMORY.md` exists and lists the `mymoney-*` memos.
 
 ### Report format
 

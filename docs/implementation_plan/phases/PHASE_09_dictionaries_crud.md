@@ -66,7 +66,7 @@ Build full CRUD UI for the three reference data types: Categories (S21 list + S2
 ## Verification commands
 
 ```powershell
-cd D:\Pet\TDD_creater\MyMoney_app
+cd C:\Pet\MyMoney
 .\gradlew.bat :feature:dictionaries:assembleDebug
 .\gradlew.bat :feature:dictionaries:test
 .\gradlew.bat :core:domain:test

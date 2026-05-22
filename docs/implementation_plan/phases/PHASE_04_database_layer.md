@@ -59,7 +59,7 @@ Build the entire Room layer per TDD §7.1–§7.8: 9 entities (`CurrencyEntity`,
 ## Verification commands
 
 ```powershell
-cd D:\Pet\TDD_creater\MyMoney_app
+cd C:\Pet\MyMoney
 .\gradlew.bat :core:database:assembleDebug
 .\gradlew.bat :core:database:connectedAndroidTest    # requires emulator/device
 Get-ChildItem core\database\schemas -Recurse -Filter "*.json"

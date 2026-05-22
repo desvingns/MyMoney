@@ -81,7 +81,7 @@ Wire the two cloud-sync backends, the S17 cloud-sync UI, Sentry's full error pip
 ## Verification commands
 
 ```powershell
-cd D:\Pet\TDD_creater\MyMoney_app
+cd C:\Pet\MyMoney
 .\gradlew.bat :core:sync:assembleDebug
 .\gradlew.bat :feature:cloudsync:assembleDebug
 .\gradlew.bat :app:installDebug

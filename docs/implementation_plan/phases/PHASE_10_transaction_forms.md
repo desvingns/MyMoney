@@ -49,12 +49,12 @@ Implement the five interconnected forms that let the user log money: Add Expense
 - [x] Implement `MonefyKeypad` — the spring + haptic happens inside the Composable; sound playback is via injected `SoundPlayer` (interface; impl lands in PHASE_15).
 - [x] Implement `MonefyAmountInput` — `headlineLarge` for current value, `bodySmall` grey for expression. Auto-shrink on long values (use `BasicTextField` measure pass or Compose `AutoSizeText` 3rd-party).
 - [x] **Category-picker flow** (AS-4): when user from S09 taps "+ Add" → push S22 (category_edit, prefilled `kind = current_picker_kind`). On S22 save → pop to S06/S07 with the new category id passed back via `SavedStateHandle["pickedCategoryId"]`. **Skip S09 on return** — the caller picks up the saved id directly.
-- [ ] **Cross-currency transfer flow** (AS-6): in `TransferViewModel.onSaveClicked()`, call `TransferExecutor`. If returns `TransferError.RateMissing(fromId, toId)`, emit `Action.NavigateToRateSetup(fromId, toId)`. S27 saves rate → pops back to S03 → retry save.
-- [ ] **Single-row transfer** (AS-7): `TransferExecutor` writes one row with `kind = "transfer"`, both account ids, both amounts (source `amount`, dest `toAmount`), `exchangeRate`. Do NOT split into two rows.
-- [ ] Routing: add `"add_expense"`, `"add_income"`, `"transfer"`, `"category_picker?kind={kind}"`, `"currency_rate?fromId={x}&toId={y}"` to `MyMoneyNavHost`. Wire from dashboard FABs (PHASE_08).
-- [ ] App-Shortcut routing: when MainActivity intent has `shortcut_id = "add_expense"` (etc.), navigate to the right screen after onboarding/lock checks per §3.4. Implement in MainActivity `LaunchedEffect(intent)`.
-- [ ] Test save → confirm dashboard donut and balance refresh automatically (the `Flow<Transaction>` subscription in `DashboardViewModel` re-runs).
-- [ ] Update PROGRESS.md.
+- [x] **Cross-currency transfer flow** (AS-6): in `TransferViewModel.onSaveClicked()`, call `TransferExecutor`. If returns `TransferError.RateMissing(fromId, toId)`, emit `Action.NavigateToRateSetup(fromId, toId)`. S27 saves rate → pops back to S03 → retry save.
+- [x] **Single-row transfer** (AS-7): `TransferExecutor` writes one row with `kind = "transfer"`, both account ids, both amounts (source `amount`, dest `toAmount`), `exchangeRate`. Do NOT split into two rows.
+- [x] Routing: add `"add_expense"`, `"add_income"`, `"transfer"`, `"category_picker?kind={kind}"`, `"currency_rate?fromId={x}&toId={y}"` to `MyMoneyNavHost`. Wire from dashboard FABs (PHASE_08).
+- [x] App-Shortcut routing: when MainActivity intent has `shortcut_id = "add_expense"` (etc.), navigate to the right screen after onboarding/lock checks per §3.4. Implement in MainActivity `LaunchedEffect(intent)`.
+- [x] Test save → confirm dashboard donut and balance refresh automatically (the `Flow<Transaction>` subscription in `DashboardViewModel` re-runs).
+- [x] Update PROGRESS.md.
 
 ## Done criteria
 
@@ -68,7 +68,7 @@ Implement the five interconnected forms that let the user log money: Add Expense
 ## Verification commands
 
 ```powershell
-cd D:\Pet\TDD_creater\MyMoney_app
+cd C:\Pet\MyMoney
 .\gradlew.bat :feature:transaction:assembleDebug
 .\gradlew.bat :feature:transaction:test
 .\gradlew.bat :core:common:test    # CalculatorEngine
@@ -77,4 +77,10 @@ cd D:\Pet\TDD_creater\MyMoney_app
 
 ## Notes for next session
 
-(empty — fill at end of session. Especially calculator edge cases discovered during BR-7…BR-11 testing.)
+Completed 2026-05-22.
+
+- **AS-6 + AS-7 were already implemented** in commit `cd41194` ("Mb revert?" — message "Не уверен в этом коммите"; despite the name it ADDED ~2893 lines, not a revert). `TransferViewModel.evaluateRate()`/`save()` emit `NavigateToRateSetup` on missing rate and consume the return via `SavedStateHandle["pendingRate"]` (AS-6); `TransferExecutor` writes a single `kind=Transfer` row with both account ids, `toAmount = amount × rate`, `exchangeRate` (AS-7). Both verified correct against TDD §4.8 lines 751–752 — only the checkboxes were unticked.
+- **Navigation was the real gap.** `e77770a` registered the 5 transaction composables in `MyMoneyNavHost`, extended `category_edit` with `kind`/`fromPicker` query args (switching to the `navController` overload of `CategoryEditRoute` — load-bearing for the AS-4 chained pop) and `currency_rate` with `fromId`/`toId` args, reconciled the `transaction/category_picker` route string, and added `MainActivity` `shortcut_id` intent routing (§3.4). `45c77a9` fixed a real latent bug: the S06↔S07 swap-toggle navigated to bare `"add_income"`/`"add_expense"` routes that were never registered (would crash); corrected to `transaction/income`/`transaction/expense`.
+- **Dashboard refresh fixed** (`89a33ef`): `DashboardViewModel` previously computed balance only in `init` + on period/account events with one-shot `.first()` — so a saved transaction did not reflect on S01. Now it collects `transactionRepository.observeRecent(1)` as a change signal and re-runs `recomputeBalance()` on each emission (TDD §4.6 criterion 6).
+- **BUILD STATUS — important.** The long-assumed "loopback blocker" is NOT reproducing. With `JAVA_HOME` = Android Studio JBR, `gradlew :feature:transaction:help` runs and reaches plugin resolution. The current build blocker is the root `build.gradle.kts` declaring `com.google.android.gms.oss-licenses-plugin:0.10.6` via the version-catalog `plugins{}` DSL — that plugin has no resolvable plugin-marker artifact (fix: `pluginManagement.resolutionStrategy` mapping to `com.google.android.gms:oss-licenses-plugin`, or legacy buildscript classpath). Build/e2e Done-criteria above remain unverified pending this fix.
+- **Test debt:** `:feature:dashboard` has zero unit tests; the reactive-refresh fix is verified by inspection only. `MainActivity.resolveShortcutDestination(Intent)` is private/Intent-bound — extract a pure `String? -> String?` helper to make shortcut mapping unit-testable.

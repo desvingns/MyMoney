@@ -10,8 +10,8 @@ Copy-paste these into a new Claude session to resume work on MyMoney.
 Продолжай реализацию Android-приложения MyMoney по чек-листу.
 
 Стартовая последовательность:
-1. Прочитай D:\Pet\TDD_creater\MyMoney_app\docs\implementation_plan\PROGRESS.md — найди активную фазу.
-2. Прочитай D:\Pet\TDD_creater\MyMoney_app\docs\implementation_plan\README.md — §2 (Session protocol) и §4 (Conventions).
+1. Прочитай C:\Pet\MyMoney\docs\implementation_plan\PROGRESS.md — найди активную фазу.
+2. Прочитай C:\Pet\MyMoney\docs\implementation_plan\README.md — §2 (Session protocol) и §4 (Conventions).
 3. Открой phases\PHASE_NN_*.md (NN = активная фаза). Если её статус "in progress", прочитай "Notes for next session" внизу — там точка возобновления.
 4. Прочитай TDD-секции из "TDD anchors" фазы. Только эти диапазоны строк, не весь TDD (он 2855 строк, контекст не выдержит).
 5. Работай по Task checklist последовательно. При выполнении задачи меняй `- [ ]` → `- [x]` прямо в phase-файле.
@@ -23,7 +23,7 @@ Copy-paste these into a new Claude session to resume work on MyMoney.
 - Если фаза закрыта — переведи следующую в "active".
 - Остановись. Не начинай следующую фазу в этой же сессии.
 
-TDD: D:\Pet\TDD_creater\MyMoney\MyMoney_TDD.md. Глоссарий BR-/AS-/OQ- — README.md §5.
+TDD: C:\Pet\MyMoney\TDD\MyMoney\MyMoney_TDD.md. Глоссарий BR-/AS-/OQ- — README.md §5.
 Отвечай мне по-русски. Код и артефакты — на английском.
 ```
 

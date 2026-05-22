@@ -73,7 +73,7 @@ Build the centerpiece of the app: the main dashboard (S01 day-period, S05 year-p
   - "Pick a date" opens **two-date range picker** (AS-12).
   - Tapping the balance pill triggers a Toast (placeholder routing) until PHASE_11.
   - Tapping a slice triggers a Toast with the slice's category id.
-- [x] Visual QA: compare against `D:\Pet\TDD_creater\MyMoney\input\screenshots\01.jpg` and `05.jpg`. Mint background, mint primary, red negative, donut with category icons orbiting. (verified-by-inspection per `mymoney-windows-loopback-blocker.md`)
+- [x] Visual QA: compare against `C:\Pet\MyMoney\TDD\MyMoney\input\screenshots\01.jpg` and `05.jpg`. Mint background, mint primary, red negative, donut with category icons orbiting. (verified-by-inspection per `mymoney-windows-loopback-blocker.md`)
 - [x] Update PROGRESS.md.
 
 ## Done criteria
@@ -86,7 +86,7 @@ Build the centerpiece of the app: the main dashboard (S01 day-period, S05 year-p
 ## Verification commands
 
 ```powershell
-cd D:\Pet\TDD_creater\MyMoney_app
+cd C:\Pet\MyMoney
 .\gradlew.bat :feature:dashboard:assembleDebug
 .\gradlew.bat :feature:dashboard:test
 .\gradlew.bat :app:installDebug

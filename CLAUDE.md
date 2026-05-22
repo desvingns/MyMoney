@@ -4,7 +4,7 @@ Read first when joining this codebase. Project state lives in `docs/implementati
 
 ## What this project is
 
-MyMoney is an Android money-tracking app, structurally a re-implementation of Monefy v1.0 with intentional improvements. **Authoritative spec**: `D:\Pet\TDD_creater\MyMoney\MyMoney_TDD.md` (Russian, 2 850 lines). The spec is the source of truth — every design decision traces back to a TDD section.
+MyMoney is an Android money-tracking app, structurally a re-implementation of Monefy v1.0 with intentional improvements. **Authoritative spec**: `C:\Pet\MyMoney\TDD\MyMoney\MyMoney_TDD.md` (English prose + EN/RU string tables, 2409 lines). The spec is the source of truth — every design decision traces back to a TDD section.
 
 The implementation is broken into **15 sequential phases** under `docs/implementation_plan/phases/`. The current phase is recorded in `docs/implementation_plan/PROGRESS.md`. Every Claude session follows the **session protocol** documented in `docs/implementation_plan/README.md` §2 (read PROGRESS → open active phase → re-read TDD anchor lines → tick checkboxes → run verification → update PROGRESS → stop).
 
@@ -12,7 +12,7 @@ The implementation is broken into **15 sequential phases** under `docs/implement
 
 | Token | Meaning |
 |---|---|
-| **TDD** | `D:\Pet\TDD_creater\MyMoney\MyMoney_TDD.md` — authoritative spec. |
+| **TDD** | `C:\Pet\MyMoney\TDD\MyMoney\MyMoney_TDD.md` — authoritative spec. |
 | **Sxx** | Screen ID, e.g. `S01` = main dashboard day-period. Inventory: TDD §3.1, lines 265–298. |
 | **BR-x** | Business rule, e.g. `BR-7` = "calculator: dot allowed once per operand". Full list: TDD §5, lines 1172–1207. |
 | **AS-x** | Resolved decision (formerly assumption), e.g. `AS-12` = "Pick a date opens range picker". Full list: TDD §14.1, lines 2727–2750. |
@@ -139,9 +139,9 @@ The `cmp-docs` agent is **inert** in this project (`.claude/agents/cmp-docs.md` 
 | How to run a session | `docs/implementation_plan/README.md` §2 |
 | Phase task lists | `docs/implementation_plan/phases/PHASE_NN_*.md` |
 | Cross-phase reference table | `docs/implementation_plan/00_overview.md` |
-| Authoritative spec | `D:\Pet\TDD_creater\MyMoney\MyMoney_TDD.md` (cite line ranges, never paraphrase) |
+| Authoritative spec | `C:\Pet\MyMoney\TDD\MyMoney\MyMoney_TDD.md` (cite line ranges, never paraphrase) |
 | MyMoney-specific agent guidance | `.claude/cmp-mymoney/{developer,reviewer,tester}-extras.md` |
-| Cross-session memory | `C:\Users\k.shavrin\.claude\projects\D--Pet-TDD-creater-MyMoney_app\memory\` (MEMORY.md is the index, auto-loaded) |
+| Cross-session memory | `C:\Users\desvi\.claude\projects\C--Pet-MyMoney\memory\` (MEMORY.md is the index, auto-loaded) |
 
 ## JBR auto-detect snippet (Git Bash on Windows)
 

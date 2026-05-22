@@ -53,7 +53,7 @@ Implement `AppSettings` persistence (DataStore Preferences) and `SecureSettings`
 ## Verification commands
 
 ```powershell
-cd D:\Pet\TDD_creater\MyMoney_app
+cd C:\Pet\MyMoney
 .\gradlew.bat :core:datastore:test
 .\gradlew.bat :core:datastore:connectedAndroidTest
 adb shell run-as com.kshavrin.mymoney.debug ls -R files shared_prefs

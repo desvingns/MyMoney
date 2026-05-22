@@ -83,7 +83,7 @@ Add the domain layer (`:core:domain`) sitting between Room/DataStore and ViewMod
 ## Verification commands
 
 ```powershell
-cd D:\Pet\TDD_creater\MyMoney_app
+cd C:\Pet\MyMoney
 .\gradlew.bat :core:domain:test
 .\gradlew.bat :core:common:test
 .\gradlew.bat :core:database:assembleDebug   # confirm mappers don't break Room

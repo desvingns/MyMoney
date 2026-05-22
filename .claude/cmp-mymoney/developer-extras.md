@@ -4,7 +4,7 @@ Read this **after** `.claude/agents/cmp-developer-android.md`. These rules are M
 
 ## Source of truth
 
-- **Authoritative spec**: `D:\Pet\TDD_creater\MyMoney\MyMoney_TDD.md` (RU, 2 850 lines).
+- **Authoritative spec**: `C:\Pet\MyMoney\TDD\MyMoney\MyMoney_TDD.md` (RU, 2 850 lines).
 - **Cite TDD line ranges**, never paraphrase. Format: `TDD §6.2, lines 1234–1256`.
 - **Phase plan**: `docs/implementation_plan/phases/PHASE_NN_*.md` enumerates what to do; TDD enumerates *how it must look*.
 - If asked to implement something that contradicts the TDD, **stop and ask** before deviating. Don't silently "fix" Monefy v1.0 quirks — see AS-12 and AS-14 below.

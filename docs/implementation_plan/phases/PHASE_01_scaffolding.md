@@ -6,7 +6,7 @@ Turn the empty Android Studio template (`:app` only) into the 15-module project 
 
 ## TDD anchors (must re-read before starting)
 
-- §2.2 Module layout (Gradle) — lines 156–180 of `D:\Pet\TDD_creater\MyMoney\MyMoney_TDD.md`
+- §2.2 Module layout (Gradle) — lines 156–180 of `C:\Pet\MyMoney\TDD\MyMoney\MyMoney_TDD.md`
 - §8.1 Build configuration — lines 2000–2019
 - §8.4 R8 / ProGuard keep rules — lines 2058–2087
 - §9.3 Third-party SDKs (Gradle deps) — lines 2181–2233
@@ -57,7 +57,7 @@ Turn the empty Android Studio template (`:app` only) into the 15-module project 
 ## Verification commands
 
 ```powershell
-cd D:\Pet\TDD_creater\MyMoney_app
+cd C:\Pet\MyMoney
 .\gradlew.bat --version                                        # confirm Gradle 8.10+, Java 17
 .\gradlew.bat projects                                         # list all 18 modules
 .\gradlew.bat :app:assembleDebug

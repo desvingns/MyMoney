@@ -64,7 +64,7 @@ Build the settings root (S14) and its non-cloud children: Theme (S15), Language 
 ## Verification commands
 
 ```powershell
-cd D:\Pet\TDD_creater\MyMoney_app
+cd C:\Pet\MyMoney
 .\gradlew.bat :feature:settings:assembleDebug
 .\gradlew.bat :feature:settings:test
 .\gradlew.bat :app:installDebug

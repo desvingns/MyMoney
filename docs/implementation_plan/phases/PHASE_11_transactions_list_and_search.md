@@ -72,7 +72,7 @@ Build the history surfaces: paginated transactions list (S12) with swipe-to-dele
 ## Verification commands
 
 ```powershell
-cd D:\Pet\TDD_creater\MyMoney_app
+cd C:\Pet\MyMoney
 .\gradlew.bat :feature:transactionslist:assembleDebug
 .\gradlew.bat :feature:transactionslist:test
 .\gradlew.bat :app:installDebug

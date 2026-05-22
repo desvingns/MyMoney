@@ -59,7 +59,7 @@ Wire Hilt across all modules, create `MyMoneyApp` (the `@HiltAndroidApp` Applica
 ## Verification commands
 
 ```powershell
-cd D:\Pet\TDD_creater\MyMoney_app
+cd C:\Pet\MyMoney
 .\gradlew.bat :app:assembleDebug
 .\gradlew.bat :core:common:test
 .\gradlew.bat :app:installDebug

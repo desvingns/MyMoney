@@ -70,7 +70,7 @@ Stub the package only; full components arrive in PHASE_08 / PHASE_10. The packag
 ## Verification commands
 
 ```powershell
-cd D:\Pet\TDD_creater\MyMoney_app
+cd C:\Pet\MyMoney
 .\gradlew.bat :core:ui:assembleDebug
 .\gradlew.bat :core:designsystem:assembleDebug
 .\gradlew.bat :app:installDebug

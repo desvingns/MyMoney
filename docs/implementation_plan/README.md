@@ -2,7 +2,7 @@
 
 A resumable checklist that breaks the 2 850-line TDD into 15 sessions of work. Every new Claude session reads `PROGRESS.md`, opens the active phase file, executes its task list, and stops.
 
-The authoritative spec is `D:\Pet\TDD_creater\MyMoney\MyMoney_TDD.md`. This directory is the **how-to**, not the **what** — every `PHASE_NN_*.md` points back to the TDD sections that contain the source of truth.
+The authoritative spec is `C:\Pet\MyMoney\TDD\MyMoney\MyMoney_TDD.md`. This directory is the **how-to**, not the **what** — every `PHASE_NN_*.md` points back to the TDD sections that contain the source of truth.
 
 ---
 
@@ -21,9 +21,9 @@ The TDD is too large to implement in one shot. Each session that tries to load t
 
 Every new Claude session that picks up this project follows the same steps:
 
-1. **Read** `D:\Pet\TDD_creater\MyMoney_app\docs\implementation_plan\PROGRESS.md`. Find the row marked **active phase**.
+1. **Read** `C:\Pet\MyMoney\docs\implementation_plan\PROGRESS.md`. Find the row marked **active phase**.
 2. **Open** the corresponding `phases\PHASE_NN_<slug>.md`.
-3. **Re-read the TDD anchors** cited in that file (line ranges to `D:\Pet\TDD_creater\MyMoney\MyMoney_TDD.md`). Do not read the whole TDD — the line ranges are precise on purpose.
+3. **Re-read the TDD anchors** cited in that file (line ranges to `C:\Pet\MyMoney\TDD\MyMoney\MyMoney_TDD.md`). Do not read the whole TDD — the line ranges are precise on purpose.
 4. **Work through the task checklist** in order, ticking `- [ ]` → `- [x]` in the phase file as items finish.
 5. **Run verification commands** at the bottom of the phase file. Do not call the phase done unless they pass.
 6. **Update PROGRESS.md**:
@@ -83,7 +83,7 @@ If a phase finishes early:
 
 | Token | Meaning |
 |---|---|
-| **TDD** | `D:\Pet\TDD_creater\MyMoney\MyMoney_TDD.md` — the authoritative spec. |
+| **TDD** | `C:\Pet\MyMoney\TDD\MyMoney\MyMoney_TDD.md` — the authoritative spec. |
 | **Sxx** | Screen ID, e.g. `S01` = main dashboard day-period. Inventory: TDD §3.1, lines 265–298. |
 | **BR-x** | Business rule, e.g. `BR-7` = "calculator: dot allowed once per operand". Full list: TDD §5, lines 1172–1207. |
 | **AS-x** | Resolved decision (formerly assumption), e.g. `AS-12` = "Pick a date opens range picker". Full list: TDD §14.1, lines 2727–2750. |

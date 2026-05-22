@@ -67,7 +67,7 @@ Wire the single-activity NavHost in `:app`, implement the splash (S00) + 4-slide
 ## Verification commands
 
 ```powershell
-cd D:\Pet\TDD_creater\MyMoney_app
+cd C:\Pet\MyMoney
 .\gradlew.bat :feature:onboarding:assembleDebug
 .\gradlew.bat :app:installDebug
 adb shell am force-stop com.kshavrin.mymoney.debug

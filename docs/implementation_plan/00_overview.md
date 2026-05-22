@@ -218,14 +218,14 @@ One-liner per decision. Always cite by AS-id, never re-discuss.
 
 Read these only when a TDD section is ambiguous; the TDD is the primary source.
 
-- `D:\Pet\TDD_creater\MyMoney\pipeline\00_meta.yaml` — analysis run metadata.
-- `D:\Pet\TDD_creater\MyMoney\pipeline\01_play.md` — Google Play page scrape (mostly empty per TDD §0 metadata).
-- `D:\Pet\TDD_creater\MyMoney\pipeline\02_business.md` — screenshot business-logic analysis.
-- `D:\Pet\TDD_creater\MyMoney\pipeline\03_style.md` — screenshot visual-style analysis (subsumed by TDD §6).
-- `D:\Pet\TDD_creater\MyMoney\pipeline\04_navigation.md` — derived navigation graph.
-- `D:\Pet\TDD_creater\MyMoney\pipeline\05_data_model.md` — derived entities (subsumed by TDD §7).
-- `D:\Pet\TDD_creater\MyMoney\pipeline\06_backend_api.md` — derived integrations (subsumed by TDD §9).
-- `D:\Pet\TDD_creater\MyMoney\pipeline\07_apk.md` — APK ground truth (subsumed by TDD §6 colours, §9.2, §10.5 strings).
-- `D:\Pet\TDD_creater\MyMoney\pipeline\user_answers_qA…qE.yaml` — original Phase-0 user answers. Cited by Q-id when needed.
+- `C:\Pet\MyMoney\TDD\MyMoney\pipeline\00_meta.yaml` — analysis run metadata.
+- `C:\Pet\MyMoney\TDD\MyMoney\pipeline\01_play.md` — Google Play page scrape (mostly empty per TDD §0 metadata).
+- `C:\Pet\MyMoney\TDD\MyMoney\pipeline\02_business.md` — screenshot business-logic analysis.
+- `C:\Pet\MyMoney\TDD\MyMoney\pipeline\03_style.md` — screenshot visual-style analysis (subsumed by TDD §6).
+- `C:\Pet\MyMoney\TDD\MyMoney\pipeline\04_navigation.md` — derived navigation graph.
+- `C:\Pet\MyMoney\TDD\MyMoney\pipeline\05_data_model.md` — derived entities (subsumed by TDD §7).
+- `C:\Pet\MyMoney\TDD\MyMoney\pipeline\06_backend_api.md` — derived integrations (subsumed by TDD §9).
+- `C:\Pet\MyMoney\TDD\MyMoney\pipeline\07_apk.md` — APK ground truth (subsumed by TDD §6 colours, §9.2, §10.5 strings).
+- `C:\Pet\MyMoney\TDD\MyMoney\pipeline\user_answers_qA…qE.yaml` — original Phase-0 user answers. Cited by Q-id when needed.
 
-Input screenshots: `D:\Pet\TDD_creater\MyMoney\input\screenshots\01.jpg`…`10.jpg`. Useful for PHASE_08 (dashboard) and PHASE_10 (transaction forms) when you want to eyeball the original.
+Input screenshots: `C:\Pet\MyMoney\TDD\MyMoney\input\screenshots\01.jpg`…`10.jpg`. Useful for PHASE_08 (dashboard) and PHASE_10 (transaction forms) when you want to eyeball the original.

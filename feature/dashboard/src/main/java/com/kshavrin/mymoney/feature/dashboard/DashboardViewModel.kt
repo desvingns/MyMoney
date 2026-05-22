@@ -8,6 +8,7 @@ import com.kshavrin.mymoney.core.designsystem.donut.CategorySlice
 import com.kshavrin.mymoney.core.domain.model.BalanceSnapshot
 import com.kshavrin.mymoney.core.domain.repository.AccountRepository
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
+import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
 import com.kshavrin.mymoney.core.domain.usecase.BalanceCalculator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -29,6 +30,7 @@ class DashboardViewModel @Inject constructor(
     private val currencyRepository: CurrencyRepository,
     private val balanceCalculator: BalanceCalculator,
     private val appSettingsRepository: AppSettingsRepository,
+    private val transactionRepository: TransactionRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(DashboardState())
@@ -41,29 +43,39 @@ class DashboardViewModel @Inject constructor(
     val actions: SharedFlow<DashboardAction> = _actions.asSharedFlow()
 
     init {
-        observeAccountsAndCurrencies()
+        viewModelScope.launch {
+            observeAccountsAndCurrencies()
+            observeTransactionChanges()
+        }
     }
 
-    private fun observeAccountsAndCurrencies() {
+    private suspend fun observeAccountsAndCurrencies() {
+        val settings = appSettingsRepository.settings.first()
+        val accounts = accountRepository.observeActive().first()
+        val currencies = currencyRepository.observeActive().first()
+        val defaultAccount = if (settings.defaultAccountId >= 0) {
+            accounts.firstOrNull { it.id == settings.defaultAccountId }
+        } else null
+        val activeAccount = defaultAccount ?: accounts.firstOrNull()
+        val activeCurrency = activeAccount?.let { acc ->
+            currencies.firstOrNull { it.id == acc.currencyId }
+        }
+        _state.value = _state.value.copy(
+            accounts = accounts,
+            currencies = currencies,
+            currentAccount = activeAccount,
+            currentCurrency = activeCurrency,
+            isLoading = activeAccount == null,
+        )
+    }
+
+    // Room-backed Flow re-emits whenever the transaction table changes (e.g. a form
+    // saved a row and popped back to S01). The list payload is ignored — it is only a
+    // change signal; authoritative figures come from balanceCalculator. recomputeBalance()
+    // no-ops until an active account is set, so the first emission covers the initial load.
+    private fun observeTransactionChanges() {
         viewModelScope.launch {
-            val settings = appSettingsRepository.settings.first()
-            val accounts = accountRepository.observeActive().first()
-            val currencies = currencyRepository.observeActive().first()
-            val defaultAccount = if (settings.defaultAccountId >= 0) {
-                accounts.firstOrNull { it.id == settings.defaultAccountId }
-            } else null
-            val activeAccount = defaultAccount ?: accounts.firstOrNull()
-            val activeCurrency = activeAccount?.let { acc ->
-                currencies.firstOrNull { it.id == acc.currencyId }
-            }
-            _state.value = _state.value.copy(
-                accounts = accounts,
-                currencies = currencies,
-                currentAccount = activeAccount,
-                currentCurrency = activeCurrency,
-                isLoading = activeAccount == null,
-            )
-            if (activeAccount != null) {
+            transactionRepository.observeRecent(limit = 1).collect {
                 recomputeBalance()
             }
         }

@@ -60,8 +60,8 @@ fun AddExpenseRoute(
                 is AddExpenseAction.NavigateToCategoryPicker ->
                     navController.navigate("transaction/category_picker?kind=${action.kind.name}")
                 AddExpenseAction.NavigateToIncomeForm -> {
-                    navController.navigate("add_income") {
-                        popUpTo("add_expense") { inclusive = true }
+                    navController.navigate("transaction/income") {
+                        popUpTo("transaction/expense") { inclusive = true }
                     }
                 }
                 AddExpenseAction.ShowSavedConfetti,

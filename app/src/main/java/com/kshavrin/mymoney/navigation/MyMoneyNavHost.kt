@@ -18,13 +18,17 @@ import androidx.navigation.navArgument
 @Composable
 fun MyMoneyNavHost(
     navController: NavHostController = rememberNavController(),
+    shortcutDestination: String? = null,
 ) {
     NavHost(
         navController = navController,
         startDestination = Destinations.DECISION,
     ) {
         composable(Destinations.DECISION) {
-            DecisionRouter(navController = navController)
+            DecisionRouter(
+                navController = navController,
+                shortcutDestination = shortcutDestination,
+            )
         }
         composable(Destinations.SPLASH) {
             com.kshavrin.mymoney.feature.onboarding.SplashScreen(
@@ -76,6 +80,32 @@ fun MyMoneyNavHost(
                 },
             )
         }
+        composable(Destinations.ADD_EXPENSE) {
+            com.kshavrin.mymoney.feature.transaction.expense.AddExpenseRoute(navController = navController)
+        }
+        composable(Destinations.ADD_INCOME) {
+            com.kshavrin.mymoney.feature.transaction.income.AddIncomeRoute(navController = navController)
+        }
+        composable(Destinations.TRANSFER) {
+            com.kshavrin.mymoney.feature.transaction.transfer.TransferRoute(navController = navController)
+        }
+        composable(
+            route = "${Destinations.CATEGORY_PICKER}?kind={kind}",
+            arguments = listOf(
+                navArgument("kind") { type = NavType.StringType; nullable = true; defaultValue = null },
+            ),
+        ) {
+            com.kshavrin.mymoney.feature.transaction.picker.CategoryPickerRoute(navController = navController)
+        }
+        composable(
+            route = "${Destinations.CURRENCY_RATE}?fromId={fromId}&toId={toId}",
+            arguments = listOf(
+                navArgument("fromId") { type = NavType.LongType; defaultValue = -1L },
+                navArgument("toId") { type = NavType.LongType; defaultValue = -1L },
+            ),
+        ) {
+            com.kshavrin.mymoney.feature.transaction.rate.CurrencyRateRoute(navController = navController)
+        }
         composable(Destinations.CATEGORIES_LIST) {
             com.kshavrin.mymoney.feature.dictionaries.categories.CategoriesListRoute(
                 onAdd = { navController.navigate("${Destinations.CATEGORY_EDIT}/-1") },
@@ -84,11 +114,15 @@ fun MyMoneyNavHost(
             )
         }
         composable(
-            route = "${Destinations.CATEGORY_EDIT}/{id}",
-            arguments = listOf(navArgument("id") { type = NavType.LongType; defaultValue = -1L }),
+            route = "${Destinations.CATEGORY_EDIT}/{id}?kind={kind}&fromPicker={fromPicker}",
+            arguments = listOf(
+                navArgument("id") { type = NavType.LongType; defaultValue = -1L },
+                navArgument("kind") { type = NavType.StringType; nullable = true; defaultValue = null },
+                navArgument("fromPicker") { type = NavType.BoolType; defaultValue = false },
+            ),
         ) {
             com.kshavrin.mymoney.feature.dictionaries.categories.CategoryEditRoute(
-                onBack = { navController.popBackStack() },
+                navController = navController,
             )
         }
         composable(Destinations.ACCOUNTS_LIST) {
@@ -125,7 +159,10 @@ fun MyMoneyNavHost(
 }
 
 @Composable
-private fun DecisionRouter(navController: NavHostController) {
+private fun DecisionRouter(
+    navController: NavHostController,
+    shortcutDestination: String? = null,
+) {
     val viewModel: DecisionRouterViewModel = hiltViewModel()
     val state by viewModel.state.collectAsState()
     LaunchedEffect(state) {
@@ -134,8 +171,13 @@ private fun DecisionRouter(navController: NavHostController) {
             DecisionDestination.Splash -> navController.navigate(Destinations.SPLASH) {
                 popUpTo(Destinations.DECISION) { inclusive = true }
             }
-            DecisionDestination.Dashboard -> navController.navigate(Destinations.DASHBOARD) {
-                popUpTo(Destinations.DECISION) { inclusive = true }
+            DecisionDestination.Dashboard -> {
+                navController.navigate(Destinations.DASHBOARD) {
+                    popUpTo(Destinations.DECISION) { inclusive = true }
+                }
+                if (shortcutDestination != null) {
+                    navController.navigate(shortcutDestination)
+                }
             }
         }
     }

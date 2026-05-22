@@ -58,7 +58,7 @@ fun AddIncomeRoute(
             when (action) {
                 AddIncomeAction.NavigateBack -> navController.popBackStack()
                 is AddIncomeAction.NavigateToCategoryPicker ->
-                    navController.navigate("category_picker?kind=${action.kind.name}")
+                    navController.navigate("transaction/category_picker?kind=${action.kind.name}")
                 AddIncomeAction.NavigateToExpenseForm -> {
                     navController.navigate("add_expense") {
                         popUpTo("add_income") { inclusive = true }

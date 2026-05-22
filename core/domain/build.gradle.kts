@@ -9,6 +9,7 @@ kotlin {
 
 dependencies {
     implementation(libs.kotlinx.coroutines.core)
+    api(libs.androidx.paging.common)
     implementation(libs.hilt.core)
     ksp(libs.hilt.compiler)
     implementation(project(":core:common"))

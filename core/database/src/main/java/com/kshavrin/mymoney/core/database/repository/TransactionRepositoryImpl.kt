@@ -1,7 +1,12 @@
 package com.kshavrin.mymoney.core.database.repository
 
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
+import androidx.paging.PagingData
+import androidx.paging.map
 import com.kshavrin.mymoney.core.common.di.IoDispatcher
 import com.kshavrin.mymoney.core.database.dao.TransactionDao
+import com.kshavrin.mymoney.core.database.entity.TransactionEntity
 import com.kshavrin.mymoney.core.database.mapper.toDomain
 import com.kshavrin.mymoney.core.database.mapper.toEntity
 import com.kshavrin.mymoney.core.domain.model.Period
@@ -26,6 +31,16 @@ class TransactionRepositoryImpl @Inject constructor(
 
     override fun observeRecent(limit: Int): Flow<List<Transaction>> =
         dao.observeRecent(limit).map { list -> list.map { it.toDomain() } }
+
+    override fun paged(
+        accountId: Long,
+        categoryId: Long?,
+        from: Instant,
+        to: Instant,
+    ): Flow<PagingData<Transaction>> =
+        Pager(PagingConfig(pageSize = 50, prefetchDistance = 10)) {
+            dao.pagedByPeriod(accountId, categoryId, from.toEpochMilli(), to.toEpochMilli())
+        }.flow.map { pagingData -> pagingData.map(TransactionEntity::toDomain) }
 
     override suspend fun findById(id: Long): Transaction? = withContext(ioDispatcher) {
         dao.findById(id)?.toDomain()
@@ -62,6 +77,10 @@ class TransactionRepositoryImpl @Inject constructor(
 
     override suspend fun softDelete(id: Long, now: Instant) = withContext(ioDispatcher) {
         dao.softDelete(id, now.toEpochMilli())
+    }
+
+    override suspend fun restore(id: Long, now: Instant) = withContext(ioDispatcher) {
+        dao.restore(id, now.toEpochMilli())
     }
 
     override suspend fun pruneDeleted(before: Instant) = withContext(ioDispatcher) {

@@ -21,6 +21,16 @@ interface TransactionDao {
 
     @Query("""
         SELECT * FROM `transaction`
+        WHERE account_id = :accountId
+          AND occurred_at BETWEEN :from AND :to
+          AND is_deleted = 0
+          AND (:categoryId IS NULL OR category_id = :categoryId)
+        ORDER BY occurred_at DESC, created_at DESC
+    """)
+    fun pagedByPeriod(accountId: Long, categoryId: Long?, from: Long, to: Long): PagingSource<Int, TransactionEntity>
+
+    @Query("""
+        SELECT * FROM `transaction`
         WHERE is_deleted = 0
         ORDER BY occurred_at DESC, created_at DESC
         LIMIT :limit
@@ -59,6 +69,9 @@ interface TransactionDao {
 
     @Query("UPDATE `transaction` SET is_deleted = 1, updated_at = :now WHERE id = :id")
     suspend fun softDelete(id: Long, now: Long)
+
+    @Query("UPDATE `transaction` SET is_deleted = 0, updated_at = :now WHERE id = :id")
+    suspend fun restore(id: Long, now: Long)
 
     @Query("DELETE FROM `transaction` WHERE is_deleted = 1 AND updated_at < :before")
     suspend fun pruneDeleted(before: Long)

@@ -14,9 +14,11 @@ import com.kshavrin.mymoney.core.domain.repository.CategorySummary
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRateRepository
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
+import androidx.paging.PagingData
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flowOf
 import java.math.BigDecimal
 import java.time.Instant
 
@@ -120,6 +122,8 @@ class FakeTransactionRepository : TransactionRepository {
     }
 
     override fun observeRecent(limit: Int): Flow<List<Transaction>> = transactions.asStateFlow()
+    override fun paged(accountId: Long, categoryId: Long?, from: Instant, to: Instant): Flow<PagingData<Transaction>> =
+        flowOf(PagingData.empty())
     override suspend fun findById(id: Long) = transactions.value.firstOrNull { it.id == id }
     override suspend fun findByPeriod(accountId: Long, period: Period): List<Transaction> = emptyList()
     override suspend fun getCategorySummary(accountId: Long, period: Period, kind: TransactionKind): List<CategorySummary> =
@@ -132,6 +136,9 @@ class FakeTransactionRepository : TransactionRepository {
     }
     override suspend fun softDelete(id: Long, now: Instant) {
         transactions.value = transactions.value.map { if (it.id == id) it.copy(isDeleted = true, updatedAt = now) else it }
+    }
+    override suspend fun restore(id: Long, now: Instant) {
+        transactions.value = transactions.value.map { if (it.id == id) it.copy(isDeleted = false, updatedAt = now) else it }
     }
     override suspend fun pruneDeleted(before: Instant) {
         transactions.value = transactions.value.filterNot { it.isDeleted && it.updatedAt.isBefore(before) }

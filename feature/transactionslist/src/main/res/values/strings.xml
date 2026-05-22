@@ -1,0 +1,13 @@
+<resources>
+    <string name="transactions_list_title">Transactions</string>
+    <string name="transactions_list_filter_chip">Category: %1$s</string>
+    <string name="transactions_list_empty">No records for this period</string>
+    <string name="transactions_list_delete_undo">Transaction deleted</string>
+    <string name="transactions_list_undo_action">UNDO</string>
+    <string name="transactions_list_back">Back</string>
+    <string name="transactions_list_search">Search</string>
+    <string name="transactions_list_remove_filter">Remove filter</string>
+    <string name="transactions_list_delete">Delete</string>
+    <string name="transactions_list_transfer">Transfer</string>
+    <string name="transactions_list_open_detail">Open transaction</string>
+</resources>

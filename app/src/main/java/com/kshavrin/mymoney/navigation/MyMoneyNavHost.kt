@@ -80,6 +80,21 @@ fun MyMoneyNavHost(
                 },
             )
         }
+        composable(
+            route = "${Destinations.TRANSACTIONS_LIST}?accountId={accountId}&categoryId={categoryId}&from={from}&to={to}",
+            arguments = listOf(
+                navArgument("accountId") { type = NavType.LongType; defaultValue = -1L },
+                navArgument("categoryId") { type = NavType.LongType; defaultValue = -1L },
+                navArgument("from") { type = NavType.LongType; defaultValue = -1L },
+                navArgument("to") { type = NavType.LongType; defaultValue = -1L },
+            ),
+        ) {
+            com.kshavrin.mymoney.feature.transactionslist.list.TransactionsListRoute(
+                onOpenDetail = {},
+                onSearch = {},
+                onBack = { navController.popBackStack() },
+            )
+        }
         composable(Destinations.ADD_EXPENSE) {
             com.kshavrin.mymoney.feature.transaction.expense.AddExpenseRoute(navController = navController)
         }

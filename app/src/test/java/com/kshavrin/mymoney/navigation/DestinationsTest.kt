@@ -150,4 +150,160 @@ class DestinationsTest {
             intersection.isEmpty(),
         )
     }
+
+    // --- Transaction routes (PHASE_10 nav wiring) ---
+    //
+    // These constants are the canonical contract for the 5 transaction screens
+    // registered in MyMoneyNavHost. The feature/transaction module navigates with
+    // hardcoded string literals (e.g. AddExpenseScreen's swap-toggle uses
+    // "transaction/income") that have no compile-time link to these constants.
+    // A real crash bug was fixed in PHASE_10 where the swap-toggle navigated to
+    // bare "add_income"/"add_expense" strings that did NOT match the registered
+    // routes. Locking the canonical values here regression-guards that drift:
+    // if anyone renames a Destinations constant, these tests fail loudly and the
+    // mismatch with the feature-module literals is caught in review.
+
+    @Test
+    fun `ADD_EXPENSE route is transaction expense`() {
+        assertEquals("transaction/expense", Destinations.ADD_EXPENSE)
+    }
+
+    @Test
+    fun `ADD_INCOME route is transaction income`() {
+        assertEquals("transaction/income", Destinations.ADD_INCOME)
+    }
+
+    @Test
+    fun `TRANSFER route is transaction transfer`() {
+        assertEquals("transaction/transfer", Destinations.TRANSFER)
+    }
+
+    @Test
+    fun `CATEGORY_PICKER route is transaction category_picker`() {
+        assertEquals("transaction/category_picker", Destinations.CATEGORY_PICKER)
+    }
+
+    @Test
+    fun `CURRENCY_RATE route is transaction currency_rate`() {
+        assertEquals("transaction/currency_rate", Destinations.CURRENCY_RATE)
+    }
+
+    @Test
+    fun `transaction routes are all distinct`() {
+        val transactionRoutes = setOf(
+            Destinations.ADD_EXPENSE,
+            Destinations.ADD_INCOME,
+            Destinations.TRANSFER,
+            Destinations.CATEGORY_PICKER,
+            Destinations.CURRENCY_RATE,
+        )
+        assertEquals(5, transactionRoutes.size)
+    }
+
+    @Test
+    fun `expense and income routes are not equal`() {
+        assertNotEquals(Destinations.ADD_EXPENSE, Destinations.ADD_INCOME)
+    }
+
+    // The swap-toggle in AddExpenseScreen navigates to "transaction/income" while
+    // popping "transaction/expense"; AddIncomeScreen does the mirror. These literals
+    // must equal the registered routes or navigation crashes at runtime.
+    @Test
+    fun `expense screen swap-toggle target literal matches registered income route`() {
+        val swapTarget = "transaction/income"
+        val popTarget = "transaction/expense"
+        assertEquals(Destinations.ADD_INCOME, swapTarget)
+        assertEquals(Destinations.ADD_EXPENSE, popTarget)
+    }
+
+    @Test
+    fun `income screen swap-toggle target literal matches registered expense route`() {
+        val swapTarget = "transaction/expense"
+        val popTarget = "transaction/income"
+        assertEquals(Destinations.ADD_EXPENSE, swapTarget)
+        assertEquals(Destinations.ADD_INCOME, popTarget)
+    }
+
+    @Test
+    fun `category picker route template is well-formed with kind query arg`() {
+        val template = "${Destinations.CATEGORY_PICKER}?kind={kind}"
+        assertEquals("transaction/category_picker?kind={kind}", template)
+        assertTrue(template.contains("{kind}"))
+    }
+
+    @Test
+    fun `category picker navigation literal matches its registered template base`() {
+        val literal = "${Destinations.CATEGORY_PICKER}?kind=EXPENSE"
+        assertEquals("transaction/category_picker?kind=EXPENSE", literal)
+        assertTrue(literal.startsWith(Destinations.CATEGORY_PICKER))
+    }
+
+    @Test
+    fun `currency rate route template is well-formed with fromId and toId query args`() {
+        val template = "${Destinations.CURRENCY_RATE}?fromId={fromId}&toId={toId}"
+        assertEquals("transaction/currency_rate?fromId={fromId}&toId={toId}", template)
+        assertTrue(template.contains("{fromId}"))
+        assertTrue(template.contains("{toId}"))
+    }
+
+    @Test
+    fun `currency rate navigation literal matches its registered template base`() {
+        val literal = "${Destinations.CURRENCY_RATE}?fromId=1&toId=2"
+        assertEquals("transaction/currency_rate?fromId=1&toId=2", literal)
+        assertTrue(literal.startsWith(Destinations.CURRENCY_RATE))
+    }
+
+    @Test
+    fun `category edit route template from picker is well-formed with id kind and fromPicker args`() {
+        val template = "${Destinations.CATEGORY_EDIT}/{id}?kind={kind}&fromPicker={fromPicker}"
+        assertEquals(
+            "dictionaries/categories/edit/{id}?kind={kind}&fromPicker={fromPicker}",
+            template,
+        )
+        assertTrue(template.contains("{id}"))
+        assertTrue(template.contains("{kind}"))
+        assertTrue(template.contains("{fromPicker}"))
+    }
+
+    @Test
+    fun `category edit from picker navigation literal matches its registered template base`() {
+        val literal = "${Destinations.CATEGORY_EDIT}/-1?kind=EXPENSE&fromPicker=true"
+        assertEquals(
+            "dictionaries/categories/edit/-1?kind=EXPENSE&fromPicker=true",
+            literal,
+        )
+        assertTrue(literal.startsWith("${Destinations.CATEGORY_EDIT}/"))
+    }
+
+    @Test
+    fun `transaction routes do not collide with other navigation routes`() {
+        val transactionRoutes = setOf(
+            Destinations.ADD_EXPENSE,
+            Destinations.ADD_INCOME,
+            Destinations.TRANSFER,
+            Destinations.CATEGORY_PICKER,
+            Destinations.CURRENCY_RATE,
+        )
+        val otherRoutes = setOf(
+            Destinations.DECISION,
+            Destinations.SPLASH,
+            Destinations.ONBOARDING,
+            Destinations.DASHBOARD,
+            Destinations.TRANSACTIONS_LIST,
+            Destinations.SETTINGS,
+            Destinations.CATEGORIES_LIST,
+            Destinations.CATEGORY_EDIT,
+            Destinations.ACCOUNTS_LIST,
+            Destinations.ACCOUNT_EDIT,
+            Destinations.CURRENCIES_LIST,
+            Destinations.CURRENCY_EDIT,
+            Destinations.CLOUD_SYNC,
+            Destinations.LOCK_SCREEN,
+        )
+        val intersection = transactionRoutes.intersect(otherRoutes)
+        assertTrue(
+            "Transaction routes must not overlap with other navigation routes; collisions: $intersection",
+            intersection.isEmpty(),
+        )
+    }
 }

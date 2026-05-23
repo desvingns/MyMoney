@@ -27,4 +27,11 @@
     <string name="delete_transaction_body">This cannot be undone after 5 seconds.</string>
     <string name="delete_confirm">Delete</string>
     <string name="cancel">Cancel</string>
+    <string name="search_records_hint">Search records</string>
+    <string name="search_voice_cd">Voice search</string>
+    <string name="search_clear_cd">Clear search</string>
+    <string name="search_no_matches">No matches</string>
+    <string name="search_error">Something went wrong</string>
+    <string name="search_voice_unavailable">Voice search unavailable on this device</string>
+    <string name="search_voice_prompt">Speak to search</string>
 </resources>

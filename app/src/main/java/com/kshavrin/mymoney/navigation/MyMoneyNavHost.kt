@@ -59,7 +59,7 @@ fun MyMoneyNavHost(
                         com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateTransfer ->
                             navController.navigate(Destinations.TRANSFER)
                         com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateSearch ->
-                            navController.navigate(Destinations.TRANSACTIONS_LIST)
+                            navController.navigate(Destinations.SEARCH)
                         com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateSettings ->
                             navController.navigate(Destinations.SETTINGS)
                         com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateCategories ->
@@ -91,7 +91,13 @@ fun MyMoneyNavHost(
         ) {
             com.kshavrin.mymoney.feature.transactionslist.list.TransactionsListRoute(
                 onOpenDetail = { id -> navController.navigate("${Destinations.TRANSACTION_DETAIL}/$id") },
-                onSearch = {},
+                onSearch = { navController.navigate(Destinations.SEARCH) },
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(Destinations.SEARCH) {
+            com.kshavrin.mymoney.feature.transactionslist.search.SearchRoute(
+                onOpenDetail = { id -> navController.navigate("${Destinations.TRANSACTION_DETAIL}/$id") },
                 onBack = { navController.popBackStack() },
             )
         }

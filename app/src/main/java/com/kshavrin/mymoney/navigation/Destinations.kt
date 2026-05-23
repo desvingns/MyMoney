@@ -12,6 +12,7 @@ object Destinations {
     const val CATEGORY_PICKER = "transaction/category_picker"
     const val TRANSACTIONS_LIST = "transactions"
     const val TRANSACTION_DETAIL = "transaction_detail"
+    const val SEARCH = "search"
     const val SETTINGS = "settings"
     const val CATEGORIES_LIST = "dictionaries/categories"
     const val CATEGORY_EDIT = "dictionaries/categories/edit"

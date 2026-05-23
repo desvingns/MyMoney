@@ -27,6 +27,7 @@ dependencies {
     implementation(libs.bundles.compose)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.core.ktx)
+    implementation(project(":core:common"))
     implementation(project(":core:ui"))
 
     debugImplementation(libs.androidx.compose.ui.tooling)

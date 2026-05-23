@@ -1,4 +1,4 @@
-package com.kshavrin.mymoney.feature.transaction.shared
+package com.kshavrin.mymoney.core.designsystem.amountfield
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -19,11 +19,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.kshavrin.mymoney.core.designsystem.R
 import com.kshavrin.mymoney.core.designsystem.amountinput.MonefyAmountInput
 import com.kshavrin.mymoney.core.designsystem.keypad.KeypadEvent
 import com.kshavrin.mymoney.core.designsystem.keypad.MonefyKeypad
 import com.kshavrin.mymoney.core.ui.theme.Spacing
-import com.kshavrin.mymoney.feature.transaction.R
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -53,6 +53,8 @@ fun AmountFieldSection(
     state: AmountFieldState,
     onEvent: (AmountFieldEvent) -> Unit,
     modifier: Modifier = Modifier,
+    noteLabel: String = stringResource(R.string.amountfield_note_hint),
+    dateContentDescription: String = stringResource(R.string.amountfield_pick_date_cd),
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -86,7 +88,7 @@ fun AmountFieldSection(
                 leadingIcon = {
                     Icon(
                         Icons.Filled.CalendarToday,
-                        contentDescription = stringResource(R.string.pick_date),
+                        contentDescription = dateContentDescription,
                         modifier = Modifier.padding(2.dp),
                     )
                 },
@@ -96,7 +98,7 @@ fun AmountFieldSection(
         OutlinedTextField(
             value = state.note,
             onValueChange = { onEvent(AmountFieldEvent.NoteChanged(it)) },
-            label = { Text(stringResource(R.string.note_hint)) },
+            label = { Text(noteLabel) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )

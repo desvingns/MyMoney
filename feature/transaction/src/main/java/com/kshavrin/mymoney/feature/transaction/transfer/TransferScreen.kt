@@ -40,13 +40,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.kshavrin.mymoney.core.designsystem.amountfield.AmountFieldEvent
+import com.kshavrin.mymoney.core.designsystem.amountfield.AmountFieldSection
+import com.kshavrin.mymoney.core.designsystem.amountfield.AmountFieldState
 import com.kshavrin.mymoney.core.designsystem.keypad.KeypadEvent
 import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.feature.transaction.R
-import com.kshavrin.mymoney.feature.transaction.shared.AmountFieldEvent
-import com.kshavrin.mymoney.feature.transaction.shared.AmountFieldSection
-import com.kshavrin.mymoney.feature.transaction.shared.AmountFieldState
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.ZoneOffset

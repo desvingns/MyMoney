@@ -1,7 +1,6 @@
-package com.kshavrin.mymoney.feature.transaction
+package com.kshavrin.mymoney.core.designsystem.keypad
 
 import com.kshavrin.mymoney.core.common.calculator.CalculatorOperator
-import com.kshavrin.mymoney.core.designsystem.keypad.Operator
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test

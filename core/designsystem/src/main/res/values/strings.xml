@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="amountfield_note_hint">Note</string>
+    <string name="amountfield_pick_date_cd">Pick date</string>
+</resources>

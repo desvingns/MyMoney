@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.kshavrin.mymoney.core.common.calculator.CalculatorEngine
 import com.kshavrin.mymoney.core.common.exception.reportToSentry
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
+import com.kshavrin.mymoney.core.designsystem.keypad.toCalculator
+import com.kshavrin.mymoney.core.designsystem.keypad.toDesignsystem
 import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.repository.AccountRepository
@@ -15,8 +17,6 @@ import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
 import com.kshavrin.mymoney.core.domain.usecase.TransferExecutor
 import com.kshavrin.mymoney.core.domain.usecase.TransferResult
 import com.kshavrin.mymoney.feature.transaction.R
-import com.kshavrin.mymoney.feature.transaction.toCalculator
-import com.kshavrin.mymoney.feature.transaction.toDesignsystem
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow

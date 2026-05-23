@@ -10,4 +10,21 @@
     <string name="transactions_list_delete">Delete</string>
     <string name="transactions_list_transfer">Transfer</string>
     <string name="transactions_list_open_detail">Open transaction</string>
+    <string name="detail_title_expense">Edit expense</string>
+    <string name="detail_title_income">Edit income</string>
+    <string name="detail_title_transfer">Edit transfer</string>
+    <string name="detail_delete">Delete</string>
+    <string name="detail_save">Save</string>
+    <string name="detail_pick_date">Pick date</string>
+    <string name="detail_account_label">Account</string>
+    <string name="detail_source_label">From</string>
+    <string name="detail_target_label">To</string>
+    <string name="detail_rate_label">Exchange rate</string>
+    <string name="detail_error_enter_amount">Enter amount first</string>
+    <string name="detail_error_enter_rate">Enter a valid exchange rate</string>
+    <string name="detail_error_save_failed">Could not save. Please try again.</string>
+    <string name="delete_transaction_title">Delete this transaction?</string>
+    <string name="delete_transaction_body">This cannot be undone after 5 seconds.</string>
+    <string name="delete_confirm">Delete</string>
+    <string name="cancel">Cancel</string>
 </resources>

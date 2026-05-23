@@ -90,8 +90,18 @@ fun MyMoneyNavHost(
             ),
         ) {
             com.kshavrin.mymoney.feature.transactionslist.list.TransactionsListRoute(
-                onOpenDetail = {},
+                onOpenDetail = { id -> navController.navigate("${Destinations.TRANSACTION_DETAIL}/$id") },
                 onSearch = {},
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(
+            route = "${Destinations.TRANSACTION_DETAIL}/{transactionId}",
+            arguments = listOf(
+                navArgument("transactionId") { type = NavType.LongType },
+            ),
+        ) {
+            com.kshavrin.mymoney.feature.transactionslist.detail.TransactionDetailRoute(
                 onBack = { navController.popBackStack() },
             )
         }

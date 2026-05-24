@@ -186,6 +186,15 @@ fun MyMoneyNavHost(
                 onBack = { navController.popBackStack() },
             )
         }
+        composable(Destinations.SETTINGS) {
+            com.kshavrin.mymoney.feature.settings.root.SettingsRootRoute(
+                onOpenTheme = { navController.navigate(Destinations.SETTINGS_THEME) },
+                onOpenLanguage = { navController.navigate(Destinations.SETTINGS_LANGUAGE) },
+                onOpenBackup = { navController.navigate(Destinations.SETTINGS_BACKUP) },
+                onOpenAbout = { navController.navigate(Destinations.SETTINGS_ABOUT) },
+                onBack = { navController.popBackStack() },
+            )
+        }
         composable(Destinations.SETTINGS_THEME) {
             com.kshavrin.mymoney.feature.settings.theme.ThemeSettingsRoute(
                 onBack = { navController.popBackStack() },

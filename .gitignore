@@ -50,3 +50,6 @@ ehthumbs.db
 
 # --- CMP pipeline — has its own repo (github.com/desvingns/claude-mobile-pipeline) ----
 CMP/
+
+# --- Reference APK artefacts (decoded Monefy APK — local only, may contain 3rd-party secrets) ---
+TDD/MyMoney/input/apk_decoded/

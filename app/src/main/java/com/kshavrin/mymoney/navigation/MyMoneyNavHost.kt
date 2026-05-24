@@ -191,6 +191,11 @@ fun MyMoneyNavHost(
                 onBack = { navController.popBackStack() },
             )
         }
+        composable(Destinations.SETTINGS_LANGUAGE) {
+            com.kshavrin.mymoney.feature.settings.language.LanguageRoute(
+                onBack = { navController.popBackStack() },
+            )
+        }
     }
 }
 

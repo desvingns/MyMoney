@@ -15,6 +15,7 @@ object Destinations {
     const val SEARCH = "search"
     const val SETTINGS = "settings"
     const val SETTINGS_THEME = "settings_theme"
+    const val SETTINGS_LANGUAGE = "settings_language"
     const val CATEGORIES_LIST = "dictionaries/categories"
     const val CATEGORY_EDIT = "dictionaries/categories/edit"
     const val ACCOUNTS_LIST = "dictionaries/accounts"

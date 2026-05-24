@@ -70,6 +70,7 @@ dependencies {
     implementation(project(":feature:lockscreen"))
 
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.appcompat)
     implementation(libs.androidx.core.splashscreen)
 
     implementation(platform(libs.androidx.compose.bom))

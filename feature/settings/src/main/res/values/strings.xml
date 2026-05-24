@@ -3,5 +3,9 @@
     <string name="theme_system">Follow system</string>
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>
+    <string name="settings_language">Language</string>
+    <string name="language_system">Follow system</string>
+    <string name="language_en">English</string>
+    <string name="language_ru">Русский</string>
     <string name="settings_back">Back</string>
 </resources>

@@ -37,6 +37,18 @@ android {
     buildFeatures {
         buildConfig = true
     }
+
+    packaging {
+        resources {
+            excludes += listOf(
+                "META-INF/DEPENDENCIES",
+                "META-INF/INDEX.LIST",
+                "META-INF/LICENSE.md",
+                "META-INF/NOTICE.md",
+                "META-INF/*.kotlin_module",
+            )
+        }
+    }
 }
 
 dependencies {
@@ -53,6 +65,9 @@ dependencies {
     implementation(libs.kotlinx.coroutines.play.services)
 
     implementation(libs.dropbox.core.sdk)
+    implementation(libs.google.api.client.android)
+    implementation(libs.google.api.services.drive)
+    implementation(libs.play.services.auth)
 
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.config.ktx)

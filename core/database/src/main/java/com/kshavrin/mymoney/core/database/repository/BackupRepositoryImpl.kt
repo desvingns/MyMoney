@@ -69,6 +69,27 @@ class BackupRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun exportToFile(destAbsolutePath: String): Result<Unit> = withContext(ioDispatcher) {
+        runCatching {
+            checkpoint()
+            val dbFile = context.getDatabasePath(DATABASE_NAME)
+            dbFile.copyTo(File(destAbsolutePath), overwrite = true)
+            Unit
+        }
+    }
+
+    override suspend fun importFromFile(srcAbsolutePath: String): Result<Unit> = withContext(ioDispatcher) {
+        runCatching {
+            val src = File(srcAbsolutePath)
+            validateSqlite(src)
+
+            database.close()
+            val dbFile = context.getDatabasePath(DATABASE_NAME)
+            src.copyTo(dbFile, overwrite = true)
+            deleteSidecars(dbFile)
+        }
+    }
+
     override suspend fun listLocalBackups(treeUriString: String): List<BackupFile> = withContext(ioDispatcher) {
         val tree = DocumentFile.fromTreeUri(context, Uri.parse(treeUriString)) ?: return@withContext emptyList()
         listBackups(tree).sortedByDescending { it.lastModifiedEpochMs }

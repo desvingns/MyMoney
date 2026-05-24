@@ -7,6 +7,9 @@ interface BackupRepository {
     suspend fun importDb(documentUriString: String): Result<Unit>
     suspend fun listLocalBackups(treeUriString: String): List<BackupFile>
 
+    suspend fun exportToFile(destAbsolutePath: String): Result<Unit>
+    suspend fun importFromFile(srcAbsolutePath: String): Result<Unit>
+
     companion object {
         const val KEEP_NEWEST: Int = 3
 

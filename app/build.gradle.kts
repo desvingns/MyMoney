@@ -8,6 +8,12 @@ plugins {
     alias(libs.plugins.gms.oss.licenses)
 }
 
+// google-services is applied only when a google-services.json is present
+// (firebase.enabled=true); the default build ships without Firebase.
+if (providers.gradleProperty("firebase.enabled").orNull == "true") {
+    apply(plugin = libs.plugins.gms.google.services.get().pluginId)
+}
+
 android {
     namespace = "com.kshavrin.mymoney"
     compileSdk = 36
@@ -22,6 +28,16 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("String", "SENTRY_DSN", "\"${providers.gradleProperty("sentry.dsn").getOrElse("")}\"")
+        buildConfigField(
+            "boolean",
+            "HAS_FIREBASE",
+            (providers.gradleProperty("firebase.enabled").orNull == "true").toString(),
+        )
+        buildConfigField(
+            "boolean",
+            "SYNC_DISABLED",
+            (providers.gradleProperty("sync.enabled").orNull != "true").toString(),
+        )
     }
 
     buildTypes {

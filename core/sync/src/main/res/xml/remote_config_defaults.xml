@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<defaultsMap>
+    <entry>
+        <key>feature_recurring_templates_enabled</key>
+        <value>true</value>
+    </entry>
+    <entry>
+        <key>feature_budget_mode_enabled</key>
+        <value>true</value>
+    </entry>
+    <entry>
+        <key>dropbox_sync_enabled</key>
+        <value>false</value>
+    </entry>
+    <entry>
+        <key>gdrive_sync_enabled</key>
+        <value>false</value>
+    </entry>
+    <entry>
+        <key>min_supported_version_code</key>
+        <value>1</value>
+    </entry>
+    <entry>
+        <key>aesthetic_sound_pack</key>
+        <value>default</value>
+    </entry>
+</defaultsMap>

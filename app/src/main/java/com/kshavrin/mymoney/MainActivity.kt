@@ -5,7 +5,10 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
+import androidx.compose.runtime.getValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import com.kshavrin.mymoney.navigation.Destinations
 import com.kshavrin.mymoney.navigation.MyMoneyNavHost
@@ -13,13 +16,16 @@ import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    private val themeViewModel: AppThemeViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         val shortcutDestination = resolveShortcutDestination(intent)
         setContent {
-            MyMoneyTheme {
+            val themeMode by themeViewModel.themeMode.collectAsStateWithLifecycle()
+            MyMoneyTheme(themeMode = themeMode) {
                 MyMoneyNavHost(shortcutDestination = shortcutDestination)
             }
         }

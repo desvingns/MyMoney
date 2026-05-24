@@ -186,6 +186,11 @@ fun MyMoneyNavHost(
                 onBack = { navController.popBackStack() },
             )
         }
+        composable(Destinations.SETTINGS_THEME) {
+            com.kshavrin.mymoney.feature.settings.theme.ThemeSettingsRoute(
+                onBack = { navController.popBackStack() },
+            )
+        }
     }
 }
 

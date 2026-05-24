@@ -51,6 +51,10 @@ class DropboxRepository @Inject constructor(
         secureStorage.writeDropboxRefreshToken(serialized)
     }
 
+    override fun connect(payload: String) {
+        secureStorage.writeDropboxRefreshToken(payload)
+    }
+
     override fun isConnected(): Boolean = storedCredential() != null
 
     override fun disconnect() {

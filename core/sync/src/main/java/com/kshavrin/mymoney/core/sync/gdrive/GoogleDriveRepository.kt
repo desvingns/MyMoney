@@ -53,6 +53,10 @@ class GoogleDriveRepository @Inject constructor(
         secureStorage.writeGdriveAccountEmail(email)
     }
 
+    override fun connect(payload: String) {
+        secureStorage.writeGdriveAccountEmail(payload)
+    }
+
     override fun isConnected(): Boolean = storedEmail() != null
 
     override fun disconnect() {

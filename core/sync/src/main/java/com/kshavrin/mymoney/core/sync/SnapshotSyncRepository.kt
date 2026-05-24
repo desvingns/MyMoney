@@ -29,17 +29,24 @@ class SnapshotSyncRepository @Inject constructor(
     private val syncLog: SyncLogRepository,
     private val settings: AppSettingsRepository,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
-) {
+) : SnapshotSync {
 
     private fun backend(target: SyncTarget): CloudSyncBackend =
         backends.first { it.target == target }
 
-    fun isConnected(target: SyncTarget): Boolean = backend(target).isConnected()
+    override fun isConnected(target: SyncTarget): Boolean = backend(target).isConnected()
 
-    fun connectedTargets(): List<SyncTarget> =
+    override fun connectedTargets(): List<SyncTarget> =
         backends.filter { it.isConnected() }.map { it.target }
 
-    suspend fun syncNow(target: SyncTarget): Result<SyncOutcome> = withContext(ioDispatcher) {
+    override fun connect(target: SyncTarget, payload: String) = backend(target).connect(payload)
+
+    override fun disconnect(target: SyncTarget) = backend(target).disconnect()
+
+    override suspend fun accountLabel(target: SyncTarget): Result<String> =
+        backend(target).accountLabel()
+
+    override suspend fun syncNow(target: SyncTarget): Result<SyncOutcome> = withContext(ioDispatcher) {
         breadcrumb("syncNow target=$target")
         runCatching {
             val backend = backend(target)
@@ -60,9 +67,9 @@ class SnapshotSyncRepository @Inject constructor(
         runCatching { doPush(target) }.recoverFailure(target, EVENT_PUSH)
     }
 
-    suspend fun keepLocal(target: SyncTarget): Result<SyncOutcome> = push(target)
+    override suspend fun keepLocal(target: SyncTarget): Result<SyncOutcome> = push(target)
 
-    suspend fun keepRemote(target: SyncTarget): Result<SyncOutcome> = withContext(ioDispatcher) {
+    override suspend fun keepRemote(target: SyncTarget): Result<SyncOutcome> = withContext(ioDispatcher) {
         breadcrumb("keepRemote target=$target")
         runCatching {
             val backend = backend(target)

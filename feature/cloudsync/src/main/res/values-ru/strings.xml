@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sync_title">Облачная синхронизация</string>
+    <string name="sync_dropbox_section">Dropbox</string>
+    <string name="sync_gdrive_section">Google Drive</string>
+    <string name="sync_connect">Подключить</string>
+    <string name="sync_disconnect">Отключить</string>
+    <string name="sync_now">Синхронизировать</string>
+    <string name="sync_last_at">Последняя синхронизация: %s</string>
+    <string name="sync_in_progress">Синхронизация…</string>
+    <string name="sync_auto_toggle">Автоматическая синхронизация (каждые 6 ч)</string>
+    <string name="sync_conflict_title">Резервная копия в облаке новее</string>
+    <string name="sync_conflict_body">Заменить локальные данные облачной копией?</string>
+    <string name="sync_keep_remote">Из облака</string>
+    <string name="sync_keep_local">Локальные</string>
+    <string name="dropbox_sync_text">Позволяет использовать MyMoney на нескольких мобильных устройствах и вести общий учет финансов.</string>
+    <string name="sync_not_configured">Не настроено</string>
+    <string name="sync_err_network">Сеть недоступна. Синхронизация повторится позже.</string>
+    <string name="sync_err_auth">Подключение к облаку потеряно. Подключитесь снова.</string>
+    <string name="sync_err_quota">Облачное хранилище заполнено.</string>
+    <string name="sync_err_server">Не удалось синхронизироваться. Повторите позже.</string>
+    <string name="sync_err_unknown">Не удалось синхронизироваться. Повторите позже.</string>
+</resources>

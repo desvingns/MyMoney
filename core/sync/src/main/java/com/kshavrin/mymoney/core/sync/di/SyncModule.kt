@@ -2,6 +2,10 @@ package com.kshavrin.mymoney.core.sync.di
 
 import com.kshavrin.mymoney.core.domain.repository.RemoteConfigRepository
 import com.kshavrin.mymoney.core.sync.CloudSyncBackend
+import com.kshavrin.mymoney.core.sync.SnapshotSync
+import com.kshavrin.mymoney.core.sync.SnapshotSyncRepository
+import com.kshavrin.mymoney.core.sync.SyncScheduler
+import com.kshavrin.mymoney.core.sync.SyncSchedulerImpl
 import com.kshavrin.mymoney.core.sync.dropbox.DropboxRepository
 import com.kshavrin.mymoney.core.sync.gdrive.GoogleDriveRepository
 import com.kshavrin.mymoney.core.sync.remoteconfig.RemoteConfigRepositoryImpl
@@ -19,6 +23,14 @@ abstract class SyncModule {
     @Binds
     @Singleton
     abstract fun bindRemoteConfigRepository(impl: RemoteConfigRepositoryImpl): RemoteConfigRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindSnapshotSync(impl: SnapshotSyncRepository): SnapshotSync
+
+    @Binds
+    @Singleton
+    abstract fun bindSyncScheduler(impl: SyncSchedulerImpl): SyncScheduler
 
     @Binds
     @IntoSet

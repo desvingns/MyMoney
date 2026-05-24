@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sync_title">Cloud sync</string>
+    <string name="sync_dropbox_section">Dropbox</string>
+    <string name="sync_gdrive_section">Google Drive</string>
+    <string name="sync_connect">Connect</string>
+    <string name="sync_disconnect">Disconnect</string>
+    <string name="sync_now">Sync now</string>
+    <string name="sync_last_at">Last sync: %s</string>
+    <string name="sync_in_progress">Synchronization…</string>
+    <string name="sync_auto_toggle">Automatic sync (every 6 h)</string>
+    <string name="sync_conflict_title">Remote backup is newer</string>
+    <string name="sync_conflict_body">Replace local data with remote backup?</string>
+    <string name="sync_keep_remote">Keep remote</string>
+    <string name="sync_keep_local">Keep local</string>
+    <string name="dropbox_sync_text">Lets you use MyMoney on multiple devices and keep a shared ledger.</string>
+    <string name="sync_not_configured">Not configured</string>
+    <string name="sync_err_network">Network unavailable. Sync will retry.</string>
+    <string name="sync_err_auth">Cloud connection lost. Please reconnect.</string>
+    <string name="sync_err_quota">Cloud storage is full.</string>
+    <string name="sync_err_server">Sync failed. Please try again later.</string>
+    <string name="sync_err_unknown">Sync failed. Please try again.</string>
+</resources>

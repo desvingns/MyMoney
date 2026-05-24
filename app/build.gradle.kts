@@ -65,6 +65,18 @@ android {
         compose = true
         buildConfig = true
     }
+
+    packaging {
+        resources {
+            excludes += listOf(
+                "META-INF/DEPENDENCIES",
+                "META-INF/INDEX.LIST",
+                "META-INF/LICENSE.md",
+                "META-INF/NOTICE.md",
+                "META-INF/*.kotlin_module",
+            )
+        }
+    }
 }
 
 dependencies {
@@ -94,6 +106,7 @@ dependencies {
     implementation(libs.bundles.compose)
 
     implementation(libs.bundles.hilt)
+    implementation(libs.androidx.work.runtime.ktx)
     ksp(libs.hilt.compiler)
 
     implementation(libs.kotlinx.serialization.json)

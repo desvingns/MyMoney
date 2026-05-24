@@ -1,6 +1,7 @@
 package com.kshavrin.mymoney.core.database.di
 
 import com.kshavrin.mymoney.core.database.repository.AccountRepositoryImpl
+import com.kshavrin.mymoney.core.database.repository.BackupRepositoryImpl
 import com.kshavrin.mymoney.core.database.repository.BudgetRepositoryImpl
 import com.kshavrin.mymoney.core.database.repository.CategoryRepositoryImpl
 import com.kshavrin.mymoney.core.database.repository.CurrencyRateRepositoryImpl
@@ -10,6 +11,7 @@ import com.kshavrin.mymoney.core.database.repository.SearchHistoryRepositoryImpl
 import com.kshavrin.mymoney.core.database.repository.SyncLogRepositoryImpl
 import com.kshavrin.mymoney.core.database.repository.TransactionRepositoryImpl
 import com.kshavrin.mymoney.core.domain.repository.AccountRepository
+import com.kshavrin.mymoney.core.domain.repository.BackupRepository
 import com.kshavrin.mymoney.core.domain.repository.BudgetRepository
 import com.kshavrin.mymoney.core.domain.repository.CategoryRepository
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRateRepository
@@ -63,4 +65,8 @@ abstract class RepositoryBindingsModule {
     @Binds
     @Singleton
     abstract fun bindSearchHistoryRepository(impl: SearchHistoryRepositoryImpl): SearchHistoryRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindBackupRepository(impl: BackupRepositoryImpl): BackupRepository
 }

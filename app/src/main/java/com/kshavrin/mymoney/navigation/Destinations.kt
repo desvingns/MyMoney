@@ -19,6 +19,7 @@ object Destinations {
     const val SETTINGS_ABOUT = "settings_about"
     const val SETTINGS_ABOUT_PRIVACY = "settings_about_privacy"
     const val SETTINGS_ABOUT_HELP = "settings_about_help"
+    const val SETTINGS_BACKUP = "settings_backup"
     const val CATEGORIES_LIST = "dictionaries/categories"
     const val CATEGORY_EDIT = "dictionaries/categories/edit"
     const val ACCOUNTS_LIST = "dictionaries/accounts"

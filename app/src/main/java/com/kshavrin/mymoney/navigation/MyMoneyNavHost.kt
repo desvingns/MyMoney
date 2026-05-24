@@ -215,6 +215,11 @@ fun MyMoneyNavHost(
                 onBack = { navController.popBackStack() },
             )
         }
+        composable(Destinations.SETTINGS_BACKUP) {
+            com.kshavrin.mymoney.feature.settings.backup.BackupRestoreRoute(
+                onBack = { navController.popBackStack() },
+            )
+        }
     }
 }
 

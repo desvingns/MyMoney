@@ -16,4 +16,11 @@
     <string name="about_licences">Open-source licences</string>
     <string name="about_privacy_title">Privacy policy</string>
     <string name="about_help_title">Help</string>
+    <string name="backup_title">Backup &amp; Restore</string>
+    <string name="backup_export_db">Export database (.db)</string>
+    <string name="backup_import_db">Import database</string>
+    <string name="backup_size_label">Database size: %s</string>
+    <string name="backup_export_success">Backup saved</string>
+    <string name="backup_import_success">Restored, restart app</string>
+    <string name="backup_error">Backup failed</string>
 </resources>

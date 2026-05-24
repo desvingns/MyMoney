@@ -15,7 +15,8 @@ object MoneyFormatter {
         symbolPosition: SymbolPosition = SymbolPosition.BEFORE,
     ): String {
         val symbols = DecimalFormatSymbols.getInstance(locale)
-        val formatter = DecimalFormat("#,##0.${"0".repeat(decimalDigits)}", symbols).apply {
+        val pattern = if (decimalDigits > 0) "#,##0.${"0".repeat(decimalDigits)}" else "#,##0"
+        val formatter = DecimalFormat(pattern, symbols).apply {
             isGroupingUsed = true
             maximumFractionDigits = decimalDigits
             minimumFractionDigits = decimalDigits

@@ -29,8 +29,9 @@ class RecurringTemplateRepositoryImpl @Inject constructor(
     override suspend fun upsert(template: RecurringTemplate): Long = withContext(ioDispatcher) {
         require(template.amount.signum() > 0) { "amount must be > 0; got ${template.amount}" }
         require(template.interval >= 1) { "interval must be >= 1" }
-        if (template.endsAt != null) {
-            require(template.endsAt.isAfter(template.startsAt)) { "endsAt must be after startsAt" }
+        val endsAt = template.endsAt
+        if (endsAt != null) {
+            require(endsAt.isAfter(template.startsAt)) { "endsAt must be after startsAt" }
         }
         dao.upsert(template.toEntity())
     }

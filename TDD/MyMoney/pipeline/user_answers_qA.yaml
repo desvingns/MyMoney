@@ -1,0 +1,12 @@
+qA1_audience: gaming
+qA2_extra_sources: live_device_available
+qA3_depth: reference
+qA4_language: en
+qA1_notes: |
+  User picked "gaming" audience for a money-tracker. This is unusual — likely the user
+  wants the TDD to highlight gamification angles (animations, achievements, sound, fun
+  micro-interactions). Treat Monefy's existing whimsical UI (cartoon icons, hand-drawn
+  feel) as the gaming hook. Section 1 should call this out.
+qA2_notes: |
+  Live device available — user can hand-capture additional flows if Phase 1 produces
+  ambiguities[] that critically lack visual evidence. Note this in §14 (open questions).

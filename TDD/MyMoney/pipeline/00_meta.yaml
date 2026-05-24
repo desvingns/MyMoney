@@ -1,0 +1,106 @@
+app_short_name: MyMoney
+play_url: https://play.google.com/store/apps/details?id=com.monefy.app.lite
+original_apk_source: D:\Pet\TDD_creater\apk\
+apk_path: D:\Pet\TDD_creater\MyMoney\input\apk\app.apk
+apk_present: true
+apk_mode: base_apk_only
+apk_notes: |
+  Source was a split-APK bundle (base + ru locale + xxhdpi + arm64).
+  bundletool cannot merge raw splits without a toc.pb. Fell back to base.apk only,
+  which contains AndroidManifest, classes.dex (libraries), default strings,
+  default-density drawables, default theme/colors. Russian strings live in
+  split_config.ru.apk and will instead be captured from the 10 screenshots.
+screenshots_count: 10
+started_utc: 2026-05-17T17:42:00Z
+phases_completed:
+  - pre_install_jdk
+  - pre_download_bundletool
+  - phase0_folders
+  - phase0_screenshots
+  - qA
+phases_skipped:
+  - pre_merge_splits  # bundletool can't reverse splits without AAB
+  - phase1_play_scrape  # Chrome MCP not connected; APK + screenshots compensate
+ground_truth_summary:
+  package: com.monefy.app.lite
+  version_name: "1.22.10"
+  version_code: 2228
+  min_sdk: 21
+  target_sdk: 36
+  theme_parent: Theme.MaterialComponents.DayNight.DarkActionBar
+  theme_is_m3: false
+  exact_primary: "#7ac794"
+  exact_accent: "#f66561"
+  exact_background: "#f2fff7"
+  exact_dark_present: true
+  ui_framework: xml_views
+  architecture_original: MVP+AndroidAnnotations+Dagger
+  architecture_target: MVVM+Compose
+  monetization_detected:
+    - google_play_billing_7_0
+    - monefy_premium_iap
+    - ads_assumed_in_free_tier
+  cloud_sync_detected:
+    - dropbox
+    - google_drive
+  crash_reporting: sentry
+  remote_config: firebase_remote_config
+  biometric: true
+  recurring_records_premium_only: true
+  budget_mode: true
+  string_count_default: 566
+  string_count_ru: 486
+  drawable_total: 384
+phases_completed_addendum:
+  - phase1_business
+  - phase1_style
+  - phase1_apk
+  - qB
+  - qC
+  - phase2_navigation
+  - phase2_data_model
+  - qD
+  - qE
+  - phase3_backend_api
+  - phase4_aggregate
+  - phase5_report
+finished_utc: 2026-05-17T21:50:00Z
+final_artifact: D:\Pet\TDD_creater\MyMoney\MyMoney_TDD.md
+final_artifact_lines: 2788
+final_artifact_size_bytes: 187625
+v1_1_revision:
+  date_utc: 2026-05-18T18:30:00Z
+  doc_version: "1.1"
+  final_artifact_lines: 2868
+  resolved_decisions: 17    # AS-1..AS-15 + OQ-7 + OQ-8 (group A)
+  deferred_devops: 6        # OQ-1, OQ-2, OQ-3, OQ-5, OQ-9, OQ-10 (group B)
+  deferred_v1_1: 1          # OQ-6 (group C)
+  deviations:
+    - id: AS-12
+      summary: "Pick a date opens 2-date range picker, NOT single-day collapse"
+      affects: ["§4.4 S02", "BR-6"]
+    - id: AS-14
+      summary: "Donut % label threshold = 3 % (was 5 % default)"
+      affects: ["§6.5 MonefyDonutChart", "BR-5", "§4.3 S05"]
+  patched_sections: ["§0", "§4.2", "§4.4", "§4.6", "§4.7", "§4.8", "§4.10", "§4.11", "§4.15", "§4.16", "§4.17", "§4.19", "§4.22", "§5 BR-5", "§5 BR-27", "§6.5", "§6.7", "§6.8", "§7.3", "§7.7", "§7.8", "§7.9 (new)", "§11.1 US-4a (new)", "§11.2 US-6", "§11.4 US-10/US-11", "§11.5 US-18", "§11.8 US-25", "§13.1 week 8 note", "§13.1.1 (new — DevOps checklist)", "§13.2", "§14 (full rewrite)"]
+architectural_choices:
+  min_sdk: 31
+  target_sdk: 36
+  language: kotlin
+  ui: compose
+  design_system: material3
+  di: hilt
+  network: retrofit_okhttp_kotlinx_serialization
+  storage:
+    primary: room
+    settings: datastore_preferences
+    secrets: encrypted_shared_preferences
+  navigation: compose_navigation_2_8
+  push: none
+  offline: local_first_with_dropbox_gdrive_snapshot
+  languages: [en, ru]
+mode_depth: reference
+language: en
+audience: gaming
+extra_sources:
+  - live_device

@@ -1,0 +1,40 @@
+qD1_min_sdk: 31
+qD1_target_sdk: 36
+qD1_compile_sdk: 36
+qD1_notes: |
+  minSdk 31 (Android 12) means:
+  - Material You dynamic color is available (but disabled by default — palette is fixed
+    per qC1 except where user opts into "Use system color" in §6.1).
+  - SplashScreen API (androidx.core.splashscreen) is universally available.
+  - Notification trampolines blocked — irrelevant since qD3=no notifications.
+  - Foreground service types required — not used here.
+  - Approximate location is the default — not used here.
+  - Cutoff at Pixel 3 / Galaxy S8 era; still ~95% device coverage.
+
+qD2_offline_mode: local_first_with_snapshot_sync
+qD2_notes: |
+  Same as original Monefy architecture, just our re-implementation.
+  - All CRUD writes go to Room.
+  - Dropbox + Google Drive snapshot upload: WorkManager periodic job + manual trigger
+    in S17. Snapshot format: SQLite db file + small metadata JSON.
+  - No per-record delta sync — full DB snapshot push/pull. Simpler, consistent.
+  - Conflict resolution: last-write-wins by lastSyncAt timestamp; user prompted if
+    remote snapshot is newer than local.
+  - WorkManager constraints: requiresUnmeteredNetwork + requiresBatteryNotLow.
+
+qD3_push: none
+qD3_notes: |
+  No notifications at all. RecurringTemplate auto-creates transactions silently
+  (background WorkManager job, no user-facing alert). Budget overspend appears as a
+  badge on the dashboard balance card, not a system notification. Remove
+  POST_NOTIFICATIONS from manifest. The Settings → Sound/Haptic toggles (from qB4
+  aesthetic-only gamification) are NOT notifications.
+
+qD4_languages: [en, ru]
+qD4_default_locale: en
+qD4_notes: |
+  values/strings.xml (English, default — same as APK)
+  values-ru/strings.xml (Russian, ~486 strings)
+  Settings → Language: System (default) / English / Russian.
+  All user-facing literal strings in §4 (per-screen spec) will be cited with both
+  EN and RU values from the APK ground-truth (already extracted in 07_apk.md).

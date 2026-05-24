@@ -1,0 +1,43 @@
+qE1_di: hilt
+qE1_notes: |
+  Hilt (KSP, not kapt). Components: SingletonComponent (app-wide singletons —
+  Database, DataStore, OkHttpClient, EncryptedSharedPrefs, Dropbox client,
+  GDrive client). Standard @HiltViewModel for ViewModels. @AndroidEntryPoint
+  for MainActivity. WorkManager + Hilt integration via HiltWorkerFactory.
+
+qE2_network: okhttp_retrofit_kotlinx_serialization
+qE2_notes: |
+  Retrofit 2.11+, OkHttp 4.12+, Kotlinx Serialization 1.7+ (Retrofit converter:
+  retrofit2-kotlinx-serialization-converter). OkHttp interceptors: Auth headers
+  (Dropbox bearer + GDrive OAuth) + logging in debug. Connection pool managed
+  by OkHttp. Dropbox SDK and GDrive API client are wrapped in repository layer
+  (DropboxSyncRepository, GDriveSyncRepository) that calls their SDK methods.
+
+qE3_storage: room_datastore_encryptedprefs
+qE3_notes: |
+  Same plan as 05_data_model.md.
+  - Room: schema_v1 with 9 entities (Currency, CurrencyRate, Account, Category,
+    Transaction, Budget, RecurringTemplate, SyncLog, SearchHistory).
+  - DataStore Preferences: AppSettings (single document).
+  - EncryptedSharedPreferences: Dropbox refresh token, GDrive account email,
+    biometric-stored keys.
+
+qE4_navigation: compose_navigation_official
+qE4_notes: |
+  androidx.navigation:navigation-compose 2.8+ (stable). Use type-safe routes
+  via @Serializable data classes + kotlinx.serialization. NavHost in MainActivity.
+  ModalNavigationDrawer wraps NavHost at the root — drawer is NOT a nav
+  destination (per 04_navigation.md backstack strategy). Deep-links via
+  NavDeepLink for the three monefy:// shortcuts.
+  Reason for not picking Compose Navigation 3 (Iguana+): more stable ecosystem
+  in 2.8.x; can migrate later when Nav3 leaves preview.
+
+architectural_invariants:
+  - Single-activity (MainActivity)
+  - MVVM with ViewModel + StateFlow (NOT LiveData)
+  - UDF: ViewModel emits State, consumes Event, fires Action
+  - Sealed class hierarchies for State/Event/Action per screen
+  - Repository pattern between ViewModel and DAO/SyncClient
+  - UseCase only where the operation spans multiple repositories or has non-trivial
+    business logic (BalanceCalculator, BudgetEvaluator, TransferExecutor)
+  - kotlinx-coroutines for all async; Flow for streams; viewModelScope only in VM

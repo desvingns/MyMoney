@@ -1,0 +1,35 @@
+qC1_palette_strategy: keep_original_exact
+qC1_palette_tokens:
+  primary: "#7ac794"
+  primary_dark: "#50ab6f"
+  accent: "#f66561"
+  background: "#f2fff7"
+  surface: "#f2fff7"
+  on_primary: "#ffffff"
+  on_surface: "#ae000000"   # original uses ARGB 0xae black ~ 68% opacity
+  outline: "#a9e0bb"
+  error: "#f66561"
+  dark_background: "#424242"
+  dark_action_bar: "#616161"
+  dark_chart_inner: "#424242"
+
+qC2_dark_theme: both_system_and_manual_override
+qC2_notes: |
+  Default = follow system. Setting in Settings screen allows force-light / force-dark
+  / system. Map M3 ColorScheme via lightColorScheme()/darkColorScheme() builders.
+
+qC3_font: roboto_system
+qC3_notes: |
+  Use system Roboto. NOT custom font asset. Match original theme.
+  Logo wordmark "Monefy" remains a vector drawable (not text) to preserve handwriting.
+
+qC4_fidelity: close_to_original_on_m3_baseline
+qC4_notes: |
+  Color palette: exact APK values.
+  Iconography: hand-drawn outline category icons reproduced as vector drawables.
+  Donut chart with icon-spoke layout — keep this signature.
+  BUT: corner_radius 12dp (Material 3 medium) instead of 3dp.
+  Action bar 64dp (M3) instead of 38dp.
+  Button heights M3 standard.
+  Typography M3 scale (display/headline/title/body/label) instead of M2 small/medium/large.
+  Elevation and shadows M3 soft.

@@ -35,6 +35,7 @@ dependencies {
     implementation(project(":core:datastore"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
+    implementation(libs.play.services.oss.licenses)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

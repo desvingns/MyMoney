@@ -8,4 +8,12 @@
     <string name="language_en">English</string>
     <string name="language_ru">Русский</string>
     <string name="settings_back">Back</string>
+    <string name="about_title">About &amp; Help</string>
+    <string name="about_version">Version %1$s (%2$d)</string>
+    <string name="about_attribution">A free re-implementation of Monefy (see Help).</string>
+    <string name="about_privacy">Privacy policy</string>
+    <string name="about_help">Help</string>
+    <string name="about_licences">Open-source licences</string>
+    <string name="about_privacy_title">Privacy policy</string>
+    <string name="about_help_title">Help</string>
 </resources>

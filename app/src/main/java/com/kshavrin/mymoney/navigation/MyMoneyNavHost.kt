@@ -196,6 +196,25 @@ fun MyMoneyNavHost(
                 onBack = { navController.popBackStack() },
             )
         }
+        composable(Destinations.SETTINGS_ABOUT) {
+            com.kshavrin.mymoney.feature.settings.about.AboutHelpRoute(
+                versionName = com.kshavrin.mymoney.BuildConfig.VERSION_NAME,
+                versionCode = com.kshavrin.mymoney.BuildConfig.VERSION_CODE,
+                onOpenPrivacy = { navController.navigate(Destinations.SETTINGS_ABOUT_PRIVACY) },
+                onOpenHelp = { navController.navigate(Destinations.SETTINGS_ABOUT_HELP) },
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(Destinations.SETTINGS_ABOUT_PRIVACY) {
+            com.kshavrin.mymoney.feature.settings.about.PrivacyPolicyScreen(
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(Destinations.SETTINGS_ABOUT_HELP) {
+            com.kshavrin.mymoney.feature.settings.about.HelpScreen(
+                onBack = { navController.popBackStack() },
+            )
+        }
     }
 }
 

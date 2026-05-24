@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
+    alias(libs.plugins.gms.oss.licenses)
 }
 
 android {
@@ -82,6 +83,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.sentry.android)
+    implementation(libs.play.services.oss.licenses)
 
     testImplementation(project(":core:testing"))
     testImplementation(libs.junit)

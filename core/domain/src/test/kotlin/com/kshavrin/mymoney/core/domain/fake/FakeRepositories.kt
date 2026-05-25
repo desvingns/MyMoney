@@ -6,6 +6,7 @@ import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.CurrencyRate
 import com.kshavrin.mymoney.core.domain.model.Period
+import com.kshavrin.mymoney.core.domain.model.RecurringTemplate
 import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
 import com.kshavrin.mymoney.core.domain.repository.AccountRepository
@@ -13,6 +14,7 @@ import com.kshavrin.mymoney.core.domain.repository.CategoryRepository
 import com.kshavrin.mymoney.core.domain.repository.CategorySummary
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRateRepository
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
+import com.kshavrin.mymoney.core.domain.repository.RecurringTemplateRepository
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
 import androidx.paging.PagingData
 import kotlinx.coroutines.flow.Flow
@@ -121,6 +123,8 @@ class FakeTransactionRepository : TransactionRepository {
         incomeSummary = rows.toList()
     }
 
+    fun upserted(): List<Transaction> = transactions.value
+
     override fun observeRecent(limit: Int): Flow<List<Transaction>> = transactions.asStateFlow()
     override fun paged(accountId: Long, categoryId: Long?, from: Instant, to: Instant): Flow<PagingData<Transaction>> =
         flowOf(PagingData.empty())
@@ -149,4 +153,38 @@ class FakeTransactionRepository : TransactionRepository {
         transactions.value.count { !it.isDeleted && it.categoryId == id }
     override suspend fun countByCurrency(id: Long): Int =
         transactions.value.count { !it.isDeleted && it.currencyId == id }
+}
+
+class FakeRecurringTemplateRepository : RecurringTemplateRepository {
+    private val templates = MutableStateFlow<List<RecurringTemplate>>(emptyList())
+
+    val updateNextRunCalls = mutableListOf<Pair<Long, Instant>>()
+    val deactivateCalls = mutableListOf<Long>()
+
+    fun seed(vararg items: RecurringTemplate) {
+        templates.value = (templates.value + items).distinctBy { it.id }
+    }
+
+    fun stored(id: Long): RecurringTemplate? = templates.value.firstOrNull { it.id == id }
+
+    override suspend fun findDue(now: Instant): List<RecurringTemplate> =
+        templates.value.filter { !it.nextRunAt.isAfter(now) }
+
+    override fun observeAll(): Flow<List<RecurringTemplate>> = templates.asStateFlow()
+
+    override suspend fun upsert(template: RecurringTemplate): Long {
+        val id = if (template.id == 0L) (templates.value.maxOfOrNull { it.id } ?: 0L) + 1L else template.id
+        templates.value = templates.value.filterNot { it.id == id } + template.copy(id = id)
+        return id
+    }
+
+    override suspend fun updateNextRun(id: Long, nextRunAt: Instant) {
+        updateNextRunCalls += id to nextRunAt
+        templates.value = templates.value.map { if (it.id == id) it.copy(nextRunAt = nextRunAt) else it }
+    }
+
+    override suspend fun deactivate(id: Long) {
+        deactivateCalls += id
+        templates.value = templates.value.map { if (it.id == id) it.copy(isActive = false) else it }
+    }
 }

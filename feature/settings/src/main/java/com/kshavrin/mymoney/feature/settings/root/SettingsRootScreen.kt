@@ -13,7 +13,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
@@ -38,6 +37,7 @@ fun SettingsRootRoute(
     onOpenLanguage: () -> Unit,
     onOpenBackup: () -> Unit,
     onOpenCloudSync: () -> Unit,
+    onOpenBiometricLock: () -> Unit,
     onOpenAbout: () -> Unit,
     onBack: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel(),
@@ -51,6 +51,7 @@ fun SettingsRootRoute(
         onOpenLanguage = onOpenLanguage,
         onOpenBackup = onOpenBackup,
         onOpenCloudSync = onOpenCloudSync,
+        onOpenBiometricLock = onOpenBiometricLock,
         onOpenAbout = onOpenAbout,
         onOpenLicences = {
             context.startActivity(Intent(context, OssLicensesMenuActivity::class.java))
@@ -71,6 +72,7 @@ fun SettingsRootContent(
     onOpenLicences: () -> Unit,
     onBack: () -> Unit,
     onOpenCloudSync: () -> Unit = {},
+    onOpenBiometricLock: () -> Unit = {},
 ) {
     Scaffold(
         topBar = {
@@ -101,7 +103,10 @@ fun SettingsRootContent(
             )
 
             SectionHeader(stringResource(R.string.settings_section_security))
-            DisabledListItem(stringResource(R.string.settings_biometric_lock))
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.settings_biometric_lock)) },
+                modifier = Modifier.clickable(onClick = onOpenBiometricLock),
+            )
 
             SectionHeader(stringResource(R.string.settings_section_cloud))
             ListItem(
@@ -162,16 +167,6 @@ private fun SectionHeader(title: String) {
             end = Spacing.l,
             top = Spacing.l,
             bottom = Spacing.s,
-        ),
-    )
-}
-
-@Composable
-private fun DisabledListItem(title: String) {
-    ListItem(
-        headlineContent = { Text(title) },
-        colors = ListItemDefaults.colors(
-            headlineColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f),
         ),
     )
 }

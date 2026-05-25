@@ -192,12 +192,18 @@ fun MyMoneyNavHost(
                 onOpenLanguage = { navController.navigate(Destinations.SETTINGS_LANGUAGE) },
                 onOpenBackup = { navController.navigate(Destinations.SETTINGS_BACKUP) },
                 onOpenCloudSync = { navController.navigate(Destinations.CLOUD_SYNC) },
+                onOpenBiometricLock = { navController.navigate(Destinations.LOCK_SCREEN) },
                 onOpenAbout = { navController.navigate(Destinations.SETTINGS_ABOUT) },
                 onBack = { navController.popBackStack() },
             )
         }
         composable(Destinations.CLOUD_SYNC) {
             com.kshavrin.mymoney.feature.cloudsync.CloudSyncRoute(
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(Destinations.LOCK_SCREEN) {
+            com.kshavrin.mymoney.feature.lockscreen.setup.BiometricSetupRoute(
                 onBack = { navController.popBackStack() },
             )
         }

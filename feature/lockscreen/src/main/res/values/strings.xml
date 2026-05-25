@@ -15,4 +15,10 @@
     <string name="pin_setup_confirm">Re-enter the PIN to confirm</string>
     <string name="pin_setup_mismatch">PINs do not match, try again</string>
     <string name="lock_back">Back</string>
+    <string name="lock_prompt_title">Unlock MyMoney</string>
+    <string name="lock_prompt_subtitle">Confirm it\'s you to continue</string>
+    <string name="lock_prompt_cancel">Use PIN</string>
+    <string name="lock_locked">MyMoney is locked</string>
+    <string name="lock_pin_prompt">Enter your PIN</string>
+    <string name="lock_pin_wrong">Wrong PIN, try again</string>
 </resources>

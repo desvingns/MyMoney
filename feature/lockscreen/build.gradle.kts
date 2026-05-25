@@ -34,6 +34,8 @@ dependencies {
     implementation(project(":core:datastore"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.biometric)
+    implementation(libs.androidx.lifecycle.process)
+    implementation(libs.kotlinx.coroutines.core)
     implementation(libs.bundles.hilt)
     ksp(libs.hilt.compiler)
 

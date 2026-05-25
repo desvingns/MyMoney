@@ -4,8 +4,9 @@ import java.security.SecureRandom
 import java.util.Base64
 import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.PBEKeySpec
+import javax.inject.Inject
 
-class PinHasher {
+class PinHasher @Inject constructor() {
 
     fun hash(pin: String, salt: ByteArray = randomSalt()): String {
         val derived = derive(pin, salt)

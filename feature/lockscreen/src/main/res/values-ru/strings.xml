@@ -16,4 +16,10 @@
     <string name="pin_setup_confirm">Повторите PIN-код для подтверждения</string>
     <string name="pin_setup_mismatch">PIN-коды не совпадают, попробуйте снова</string>
     <string name="lock_back">Назад</string>
+    <string name="lock_prompt_title">Разблокировка MyMoney</string>
+    <string name="lock_prompt_subtitle">Подтвердите, что это вы</string>
+    <string name="lock_prompt_cancel">Ввести PIN-код</string>
+    <string name="lock_locked">MyMoney заблокирован</string>
+    <string name="lock_pin_prompt">Введите PIN-код</string>
+    <string name="lock_pin_wrong">Неверный PIN-код, попробуйте снова</string>
 </resources>

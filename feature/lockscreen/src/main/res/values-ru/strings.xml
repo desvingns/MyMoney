@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="biometric_section_title">Блокировка приложения</string>
+    <string name="biometric_enable_toggle">Запрашивать биометрию при открытии</string>
+    <string name="biometric_unavailable">Биометрия не поддерживается устройством</string>
+    <string name="biometric_enrol_required">Сначала добавьте биометрию в настройках системы</string>
+    <string name="biometric_idle_timeout_label">Блокировать после простоя</string>
+    <string name="biometric_idle_timeout_30s">30 с</string>
+    <string name="biometric_idle_timeout_1m">1 мин</string>
+    <string name="biometric_idle_timeout_2m">2 мин</string>
+    <string name="biometric_idle_timeout_5m">5 мин</string>
+    <string name="biometric_prompt_title">Подтвердите, что это вы</string>
+    <string name="biometric_prompt_cancel">Отмена</string>
+    <string name="pin_setup_title">Задайте PIN-код</string>
+    <string name="pin_setup_enter">Введите 4-значный PIN-код для запасного входа</string>
+    <string name="pin_setup_confirm">Повторите PIN-код для подтверждения</string>
+    <string name="pin_setup_mismatch">PIN-коды не совпадают, попробуйте снова</string>
+    <string name="lock_back">Назад</string>
+</resources>

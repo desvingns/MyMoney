@@ -1,0 +1,18 @@
+<resources>
+    <string name="biometric_section_title">App lock</string>
+    <string name="biometric_enable_toggle">Require biometric on open</string>
+    <string name="biometric_unavailable">Biometric hardware not available</string>
+    <string name="biometric_enrol_required">Add a fingerprint or face in system settings first</string>
+    <string name="biometric_idle_timeout_label">Lock after inactivity</string>
+    <string name="biometric_idle_timeout_30s">30 s</string>
+    <string name="biometric_idle_timeout_1m">1 min</string>
+    <string name="biometric_idle_timeout_2m">2 min</string>
+    <string name="biometric_idle_timeout_5m">5 min</string>
+    <string name="biometric_prompt_title">Confirm it\'s you</string>
+    <string name="biometric_prompt_cancel">Cancel</string>
+    <string name="pin_setup_title">Set a PIN</string>
+    <string name="pin_setup_enter">Enter a 4-digit PIN as a fallback</string>
+    <string name="pin_setup_confirm">Re-enter the PIN to confirm</string>
+    <string name="pin_setup_mismatch">PINs do not match, try again</string>
+    <string name="lock_back">Back</string>
+</resources>

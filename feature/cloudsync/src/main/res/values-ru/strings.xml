@@ -14,6 +14,9 @@
     <string name="sync_keep_remote">Из облака</string>
     <string name="sync_keep_local">Локальные</string>
     <string name="dropbox_sync_text">Позволяет использовать MyMoney на нескольких мобильных устройствах и вести общий учет финансов.</string>
+    <string name="sync_not_connected">Не подключено</string>
+    <string name="sync_dismiss">Закрыть</string>
+    <string name="sync_back">Назад</string>
     <string name="sync_not_configured">Не настроено</string>
     <string name="sync_err_network">Сеть недоступна. Синхронизация повторится позже.</string>
     <string name="sync_err_auth">Подключение к облаку потеряно. Подключитесь снова.</string>

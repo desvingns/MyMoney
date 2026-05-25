@@ -37,6 +37,7 @@ fun SettingsRootRoute(
     onOpenTheme: () -> Unit,
     onOpenLanguage: () -> Unit,
     onOpenBackup: () -> Unit,
+    onOpenCloudSync: () -> Unit,
     onOpenAbout: () -> Unit,
     onBack: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel(),
@@ -49,6 +50,7 @@ fun SettingsRootRoute(
         onOpenTheme = onOpenTheme,
         onOpenLanguage = onOpenLanguage,
         onOpenBackup = onOpenBackup,
+        onOpenCloudSync = onOpenCloudSync,
         onOpenAbout = onOpenAbout,
         onOpenLicences = {
             context.startActivity(Intent(context, OssLicensesMenuActivity::class.java))
@@ -68,6 +70,7 @@ fun SettingsRootContent(
     onOpenAbout: () -> Unit,
     onOpenLicences: () -> Unit,
     onBack: () -> Unit,
+    onOpenCloudSync: () -> Unit = {},
 ) {
     Scaffold(
         topBar = {
@@ -101,7 +104,10 @@ fun SettingsRootContent(
             DisabledListItem(stringResource(R.string.settings_biometric_lock))
 
             SectionHeader(stringResource(R.string.settings_section_cloud))
-            DisabledListItem(stringResource(R.string.settings_cloud_sync))
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.settings_cloud_sync)) },
+                modifier = Modifier.clickable(onClick = onOpenCloudSync),
+            )
             ListItem(
                 headlineContent = { Text(stringResource(R.string.settings_backup_restore)) },
                 modifier = Modifier.clickable(onClick = onOpenBackup),

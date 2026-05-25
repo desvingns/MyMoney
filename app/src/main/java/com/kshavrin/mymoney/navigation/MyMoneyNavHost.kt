@@ -191,7 +191,13 @@ fun MyMoneyNavHost(
                 onOpenTheme = { navController.navigate(Destinations.SETTINGS_THEME) },
                 onOpenLanguage = { navController.navigate(Destinations.SETTINGS_LANGUAGE) },
                 onOpenBackup = { navController.navigate(Destinations.SETTINGS_BACKUP) },
+                onOpenCloudSync = { navController.navigate(Destinations.CLOUD_SYNC) },
                 onOpenAbout = { navController.navigate(Destinations.SETTINGS_ABOUT) },
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(Destinations.CLOUD_SYNC) {
+            com.kshavrin.mymoney.feature.cloudsync.CloudSyncRoute(
                 onBack = { navController.popBackStack() },
             )
         }

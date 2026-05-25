@@ -14,6 +14,9 @@
     <string name="sync_keep_remote">Keep remote</string>
     <string name="sync_keep_local">Keep local</string>
     <string name="dropbox_sync_text">Lets you use MyMoney on multiple devices and keep a shared ledger.</string>
+    <string name="sync_not_connected">Not connected</string>
+    <string name="sync_dismiss">Dismiss</string>
+    <string name="sync_back">Back</string>
     <string name="sync_not_configured">Not configured</string>
     <string name="sync_err_network">Network unavailable. Sync will retry.</string>
     <string name="sync_err_auth">Cloud connection lost. Please reconnect.</string>

@@ -95,6 +95,16 @@ class BackupRepositoryImpl @Inject constructor(
         listBackups(tree).sortedByDescending { it.lastModifiedEpochMs }
     }
 
+    override suspend fun rotateBackups(treeUriString: String): Result<Unit> = withContext(ioDispatcher) {
+        runCatching {
+            val tree = DocumentFile.fromTreeUri(context, Uri.parse(treeUriString))
+                ?: throw IOException("Cannot open backup directory")
+            BackupRepository.backupsToDelete(listBackups(tree)).forEach { backup ->
+                DocumentFile.fromSingleUri(context, Uri.parse(backup.uriString))?.delete()
+            }
+        }
+    }
+
     private fun listBackups(tree: DocumentFile): List<BackupFile> =
         tree.listFiles()
             .filter { it.isFile && it.name?.let(::isBackupName) == true }

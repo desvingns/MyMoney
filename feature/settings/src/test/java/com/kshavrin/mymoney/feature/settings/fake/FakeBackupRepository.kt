@@ -9,6 +9,7 @@ class FakeBackupRepository : BackupRepository {
     val importedUris: MutableList<String> = mutableListOf()
     val exportedFilePaths: MutableList<String> = mutableListOf()
     val importedFilePaths: MutableList<String> = mutableListOf()
+    val rotatedUris: MutableList<String> = mutableListOf()
 
     private var exportResult: Result<Unit> = Result.success(Unit)
     private var importResult: Result<Unit> = Result.success(Unit)
@@ -37,6 +38,11 @@ class FakeBackupRepository : BackupRepository {
     }
 
     override suspend fun listLocalBackups(treeUriString: String): List<BackupFile> = localBackups
+
+    override suspend fun rotateBackups(treeUriString: String): Result<Unit> {
+        rotatedUris += treeUriString
+        return exportResult
+    }
 
     override suspend fun exportToFile(destAbsolutePath: String): Result<Unit> {
         exportedFilePaths += destAbsolutePath

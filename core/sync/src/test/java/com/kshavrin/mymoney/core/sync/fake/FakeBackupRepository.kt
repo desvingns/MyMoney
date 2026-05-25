@@ -39,4 +39,6 @@ class FakeBackupRepository : BackupRepository {
     override suspend fun importDb(documentUriString: String): Result<Unit> = Result.success(Unit)
 
     override suspend fun listLocalBackups(treeUriString: String): List<BackupFile> = emptyList()
+
+    override suspend fun rotateBackups(treeUriString: String): Result<Unit> = Result.success(Unit)
 }

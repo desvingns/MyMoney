@@ -32,6 +32,9 @@ class TransactionRepositoryImpl @Inject constructor(
     override fun observeRecent(limit: Int): Flow<List<Transaction>> =
         dao.observeRecent(limit).map { list -> list.map { it.toDomain() } }
 
+    override fun observeAll(): Flow<List<Transaction>> =
+        dao.observeAll().map { list -> list.map { it.toDomain() } }
+
     override fun paged(
         accountId: Long,
         categoryId: Long?,

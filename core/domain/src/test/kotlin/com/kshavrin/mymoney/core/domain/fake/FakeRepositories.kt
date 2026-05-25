@@ -126,6 +126,7 @@ class FakeTransactionRepository : TransactionRepository {
     fun upserted(): List<Transaction> = transactions.value
 
     override fun observeRecent(limit: Int): Flow<List<Transaction>> = transactions.asStateFlow()
+    override fun observeAll(): Flow<List<Transaction>> = transactions.asStateFlow()
     override fun paged(accountId: Long, categoryId: Long?, from: Instant, to: Instant): Flow<PagingData<Transaction>> =
         flowOf(PagingData.empty())
     override suspend fun findById(id: Long) = transactions.value.firstOrNull { it.id == id }

@@ -70,6 +70,7 @@ class FakeTransactionRepository : TransactionRepository {
     }
 
     override fun observeRecent(limit: Int): Flow<List<Transaction>> = page.asStateFlow()
+    override fun observeAll(): Flow<List<Transaction>> = page.asStateFlow()
     override suspend fun findById(id: Long): Transaction? = page.value.firstOrNull { it.id == id }
     override suspend fun findByPeriod(accountId: Long, period: Period): List<Transaction> = emptyList()
     override suspend fun getCategorySummary(

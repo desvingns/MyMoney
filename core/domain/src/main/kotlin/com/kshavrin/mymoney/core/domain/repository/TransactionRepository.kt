@@ -9,6 +9,7 @@ import java.time.Instant
 
 interface TransactionRepository {
     fun observeRecent(limit: Int): Flow<List<Transaction>>
+    fun observeAll(): Flow<List<Transaction>>
     fun paged(accountId: Long, categoryId: Long?, from: Instant, to: Instant): Flow<PagingData<Transaction>>
     suspend fun findById(id: Long): Transaction?
     suspend fun findByPeriod(accountId: Long, period: Period): List<Transaction>

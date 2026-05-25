@@ -38,6 +38,13 @@ interface TransactionDao {
     fun observeRecent(limit: Int): Flow<List<TransactionEntity>>
 
     @Query("""
+        SELECT * FROM `transaction`
+        WHERE is_deleted = 0
+        ORDER BY occurred_at DESC, created_at DESC
+    """)
+    fun observeAll(): Flow<List<TransactionEntity>>
+
+    @Query("""
         SELECT c.id AS categoryId, c.name AS categoryName, c.color_hex AS colorHex,
                SUM(t.amount) AS total
         FROM `transaction` t

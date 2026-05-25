@@ -151,6 +151,29 @@ class DestinationsTest {
         )
     }
 
+    // --- Settings sub-destinations (PHASE_13 S17 cloud sync, PHASE_14 S16 biometric lock) ---
+    //
+    // CLOUD_SYNC and LOCK_SCREEN are each registered as a top-level composable(...) in
+    // MyMoneyNavHost and reached from the Settings root rows (onOpenCloudSync / onOpenBiometricLock).
+    // Pin their canonical literal values so a rename of either constant fails loudly here rather than
+    // silently breaking the registered route / navigate() target, mirroring the transaction-route
+    // contract below.
+
+    @Test
+    fun `CLOUD_SYNC route is cloud_sync`() {
+        assertEquals("cloud_sync", Destinations.CLOUD_SYNC)
+    }
+
+    @Test
+    fun `LOCK_SCREEN route is lock_screen`() {
+        assertEquals("lock_screen", Destinations.LOCK_SCREEN)
+    }
+
+    @Test
+    fun `CLOUD_SYNC and LOCK_SCREEN routes are distinct`() {
+        assertNotEquals(Destinations.CLOUD_SYNC, Destinations.LOCK_SCREEN)
+    }
+
     // --- Transaction routes (PHASE_10 nav wiring) ---
     //
     // These constants are the canonical contract for the 5 transaction screens

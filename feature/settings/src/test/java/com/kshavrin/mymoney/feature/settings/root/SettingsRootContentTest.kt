@@ -52,6 +52,8 @@ import org.junit.Test
  *         onOpenAbout: () -> Unit = {},
  *         onOpenLicences: () -> Unit = {},
  *         onBack: () -> Unit = {},
+ *         onOpenCloudSync: () -> Unit = {},
+ *         onOpenBiometricLock: () -> Unit = {},
  *     ) {
  *         composeTestRule.setContent {
  *             MyMoneyTheme(themeMode = ThemeMode.System) {
@@ -64,6 +66,8 @@ import org.junit.Test
  *                     onOpenAbout = onOpenAbout,
  *                     onOpenLicences = onOpenLicences,
  *                     onBack = onBack,
+ *                     onOpenCloudSync = onOpenCloudSync,
+ *                     onOpenBiometricLock = onOpenBiometricLock,
  *                 )
  *             }
  *         }
@@ -90,10 +94,18 @@ import org.junit.Test
  *         composeTestRule.onNodeWithText("Русский").assertIsDisplayed()
  *     }
  *
- *     @Test fun `app lock and cloud sync rows are disabled`() {
- *         setContent()
- *         composeTestRule.onNodeWithText("App lock").assertIsNotEnabled()
- *         composeTestRule.onNodeWithText("Sync").assertIsNotEnabled()
+ *     @Test fun `tapping App lock invokes onOpenBiometricLock`() {
+ *         var opened = false
+ *         setContent(onOpenBiometricLock = { opened = true })
+ *         composeTestRule.onNodeWithText("App lock").performClick()
+ *         assertTrue(opened)
+ *     }
+ *
+ *     @Test fun `tapping Sync invokes onOpenCloudSync`() {
+ *         var opened = false
+ *         setContent(onOpenCloudSync = { opened = true })
+ *         composeTestRule.onNodeWithText("Sync").performClick()
+ *         assertTrue(opened)
  *     }
  *
  *     @Test fun `sound switch reflects state`() {
@@ -241,22 +253,26 @@ class SettingsRootContentTest {
     }
 
     /**
-     * Mirror of which rows render through [DisabledListItem] (greyed, no `clickable`). Only the two
-     * placeholder rows — App lock (Security) and Sync (Cloud) — are disabled.
+     * Mirror of which rows render as greyed placeholders with no `clickable`. As of the S16/S17
+     * wiring (App lock → BiometricSetup, Sync → CloudSync) every navigation row is live; no row is a
+     * disabled placeholder anymore.
      */
     private fun isDisabled(row: Row): Boolean = when (row) {
-        Row.AppLock, Row.Sync -> true
-        else -> false
+        Row.Theme, Row.AppLock, Row.Sync, Row.Backup, Row.Language,
+        Row.Sound, Row.Haptic, Row.About, Row.Licences,
+        -> false
     }
 
     /** Mirror of the per-row `Modifier.clickable(onClick = …)` wiring. */
     private fun callbackKeyForRowClick(row: Row): String? = when (row) {
         Row.Theme -> "onOpenTheme"
+        Row.AppLock -> "onOpenBiometricLock"
+        Row.Sync -> "onOpenCloudSync"
         Row.Language -> "onOpenLanguage"
         Row.Backup -> "onOpenBackup"
         Row.About -> "onOpenAbout"
         Row.Licences -> "onOpenLicences"
-        Row.AppLock, Row.Sync, Row.Sound, Row.Haptic -> null
+        Row.Sound, Row.Haptic -> null
     }
 
     /** Mirror of the private `ThemeMode.labelRes` mapping in SettingsRootScreen. */
@@ -323,16 +339,24 @@ class SettingsRootContentTest {
     }
 
     @Test
-    fun `exactly the app lock and sync rows render as disabled placeholders`() {
+    fun `no row renders as a disabled placeholder`() {
         val disabled = rows.filter { isDisabled(it) }
-        assertEquals(listOf(Row.AppLock, Row.Sync), disabled)
+        assertTrue(
+            "App lock and Sync are now live navigation rows; no row may be a disabled placeholder",
+            disabled.isEmpty(),
+        )
     }
 
     @Test
-    fun `disabled rows are never wired to a navigation callback`() {
-        for (row in rows.filter { isDisabled(it) }) {
-            assertNull(callbackKeyForRowClick(row))
-        }
+    fun `the app lock row is a live navigation row wired to onOpenBiometricLock`() {
+        assertFalse(isDisabled(Row.AppLock))
+        assertEquals("onOpenBiometricLock", callbackKeyForRowClick(Row.AppLock))
+    }
+
+    @Test
+    fun `the sync row is a live navigation row wired to onOpenCloudSync`() {
+        assertFalse(isDisabled(Row.Sync))
+        assertEquals("onOpenCloudSync", callbackKeyForRowClick(Row.Sync))
     }
 
     @Test
@@ -385,10 +409,18 @@ class SettingsRootContentTest {
     }
 
     @Test
-    fun `the five navigation rows each route to a distinct callback`() {
+    fun `the seven navigation rows each route to a distinct callback`() {
         val navRows = rows.filter { callbackKeyForRowClick(it) != null }
         assertEquals(
-            listOf(Row.Theme, Row.Backup, Row.Language, Row.About, Row.Licences),
+            listOf(
+                Row.Theme,
+                Row.AppLock,
+                Row.Sync,
+                Row.Backup,
+                Row.Language,
+                Row.About,
+                Row.Licences,
+            ),
             navRows,
         )
         val keys = navRows.map { callbackKeyForRowClick(it) }

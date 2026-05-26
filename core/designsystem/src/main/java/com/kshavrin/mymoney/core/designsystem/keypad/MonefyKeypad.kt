@@ -16,8 +16,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
-import com.kshavrin.mymoney.core.designsystem.sound.SoundKey
-import com.kshavrin.mymoney.core.designsystem.sound.SoundPlayer
 import com.kshavrin.mymoney.core.ui.feedback.LocalHapticPlayer
 import com.kshavrin.mymoney.core.ui.feedback.LocalSoundPlayer
 import com.kshavrin.mymoney.core.ui.haptic.HapticKind
@@ -29,14 +27,12 @@ import com.kshavrin.mymoney.core.ui.sound.SoundKey as UiSoundKey
 fun MonefyKeypad(
     onEvent: (KeypadEvent) -> Unit,
     modifier: Modifier = Modifier,
-    soundPlayer: SoundPlayer? = null,
 ) {
     val uiSoundPlayer = LocalSoundPlayer.current
     val hapticPlayer = LocalHapticPlayer.current
 
     val handlePress: (KeypadEvent) -> Unit = { event ->
         hapticPlayer.fire(HapticKind.SOFT)
-        soundPlayer?.play(SoundKey.KEYPAD_TAP)
         uiSoundPlayer.play(UiSoundKey.KEYPAD_TAP)
         onEvent(event)
     }

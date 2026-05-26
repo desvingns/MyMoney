@@ -114,6 +114,62 @@ MVVM + Unidirectional Data Flow.
 
 `JAVA_HOME` must point to a JDK 21 runtime. On Windows under Git Bash, prefer Android Studio's bundled JBR (see `~/.bashrc` snippet at end of this file).
 
+## Emulator access from the VirtualBox guest
+
+This repository may be driven from a Windows VirtualBox guest. Nested virtualization is
+not available in that guest, so start the emulator in Android Studio on the primary
+Windows host, not inside the guest.
+
+Verified on 2026-05-26:
+
+- Use host AVD `Pixel_5_API_34` (`Pixel 5`, Android 14 / API 34).
+- Guest `adb` discovers the host AVD as `emulator-5554` after a fresh server restart;
+  do not set `ADB_SERVER_SOCKET`.
+- Do not use `Pixel 10 Pro XL API 37` for current Compose instrumentation: the
+  Espresso input path fails on API 37 with an `InputManager.getInstance` lookup error.
+
+From Claude / Git Bash in the guest:
+
+```bash
+export JAVA_HOME="/c/Program Files/Android/Android Studio/jbr"
+export ANDROID_SDK_ROOT="$(cygpath -u "$LOCALAPPDATA")/Android/Sdk"
+export ANDROID_HOME="$ANDROID_SDK_ROOT"
+export PATH="$JAVA_HOME/bin:$ANDROID_SDK_ROOT/platform-tools:$ANDROID_SDK_ROOT/emulator:$PATH"
+
+adb kill-server
+adb start-server
+adb devices -l
+adb -s emulator-5554 shell getprop ro.boot.qemu.avd_name   # Pixel_5_API_34
+adb -s emulator-5554 shell getprop ro.build.version.sdk      # 34
+adb -s emulator-5554 shell getprop sys.boot_completed        # 1
+```
+
+Connected verification:
+
+```bash
+./gradlew --no-daemon :app:connectedDebugAndroidTest --console=plain
+./gradlew --no-daemon --continue \
+  :core:designsystem:connectedDebugAndroidTest \
+  :core:database:connectedDebugAndroidTest \
+  :core:datastore:connectedDebugAndroidTest \
+  --console=plain
+```
+
+Visual smoke check and screenshot capture:
+
+```bash
+./gradlew --no-daemon :app:installDebug --console=plain
+adb shell am force-stop com.kshavrin.mymoney
+adb shell am start -W -n com.kshavrin.mymoney/.MainActivity
+mkdir -p build/visual-check
+adb shell screencap -p /sdcard/mymoney-check.png
+adb pull /sdcard/mymoney-check.png build/visual-check/mymoney-check.png
+```
+
+If `adb devices -l` is empty, first confirm that `Pixel_5_API_34` is booted on
+the primary Windows host, then repeat the guest `adb kill-server` / `adb start-server`
+sequence.
+
 ## Testing stack (TDD §12, lines 2553–2661)
 
 - JUnit 4 + Turbine + `kotlinx-coroutines-test`.

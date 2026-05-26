@@ -70,7 +70,7 @@ If a phase finishes early:
 | Money | `BigDecimal` in domain, `Double` in Room (TypeConverters at the boundary). |
 | Time | `LocalDate` / `Instant` in domain, `Long` epoch-millis in Room. |
 | Errors | Domain ops return `Result<T>`. Repository boundary catches and remaps to `SyncException(SyncError)`. ViewModels translate to `state.errorBanner` string-res. All throwables → Sentry. |
-| Sentry | One init in `MyMoneyApp` via auto-installed ContentProvider. Manual breadcrumbs for sync flow. DSN comes from `BuildConfig.SENTRY_DSN` (set in CI; never committed). |
+| Sentry | One guarded init in `MyMoneyApp`; SDK ContentProvider auto-init is disabled so a blank local DSN is valid. Manual breadcrumbs for sync flow. DSN comes from `BuildConfig.SENTRY_DSN` (set in CI; never committed). |
 | Comments | Default to none. Only add a comment when the WHY is non-obvious. Never narrate WHAT — let names do that. |
 | Tests | JUnit 4 for unit + integration; Compose UI testing for screens. KSP `room-testing` for DB tests. |
 | Naming | Composables `PascalCase`, screens end in `Screen` (e.g. `DashboardScreen`); ViewModels end in `ViewModel`; UseCases end in `UseCase`; repository interfaces start with `I` are NOT used — interfaces use plain names like `TransactionRepository` and impls suffix with `Impl`. |

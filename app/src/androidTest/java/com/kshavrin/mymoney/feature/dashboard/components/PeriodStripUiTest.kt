@@ -1,7 +1,5 @@
 package com.kshavrin.mymoney.feature.dashboard.components
 
-import androidx.compose.ui.test.hasClickAction
-import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -16,6 +14,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.time.LocalDate
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 
 @RunWith(AndroidJUnit4::class)
 class PeriodStripUiTest {
@@ -26,6 +27,8 @@ class PeriodStripUiTest {
     @Test
     fun `pick a date emits a custom range after selecting two dates`() {
         var selectedPeriod: Period? = null
+        val firstDay = LocalDate.now(ZoneOffset.UTC).withDayOfMonth(1)
+        val secondDay = firstDay.plusDays(1)
 
         composeTestRule.setContent {
             MyMoneyTheme {
@@ -40,18 +43,24 @@ class PeriodStripUiTest {
             .onNodeWithText(targetString(R.string.period_pick_a_date))
             .performScrollTo()
             .performClick()
-        composeTestRule.onNode(hasText("1") and hasClickAction()).performClick()
-        composeTestRule.onNode(hasText("2") and hasClickAction()).performClick()
+        composeTestRule.onNodeWithText(dateLabel(firstDay)).performClick()
+        composeTestRule.onNodeWithText(dateLabel(secondDay)).performClick()
         composeTestRule.onNodeWithText(targetString(R.string.period_apply)).performClick()
 
         composeTestRule.runOnIdle {
             assertTrue(selectedPeriod is Period.CustomRange)
             val range = selectedPeriod as Period.CustomRange
-            assertEquals(1, range.start.dayOfMonth)
-            assertEquals(2, range.end.dayOfMonth)
+            assertEquals(firstDay, range.start)
+            assertEquals(secondDay, range.end)
         }
     }
 
     private fun targetString(resourceId: Int): String =
         InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)
+
+    private fun dateLabel(date: LocalDate): String {
+        val locale = InstrumentationRegistry.getInstrumentation()
+            .targetContext.resources.configuration.locales[0]
+        return date.format(DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy", locale))
+    }
 }

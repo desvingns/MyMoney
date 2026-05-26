@@ -28,6 +28,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -90,8 +91,9 @@ fun CurrencyEditContent(
             val codeLockedSupporting: @Composable (() -> Unit)? = if (state.isCodeLocked) {
                 {
                     Text(
-                        stringResource(
-                            R.string.currency_code_locked,
+                        pluralStringResource(
+                            R.plurals.currency_code_locked,
+                            state.dependentAccountCount,
                             state.dependentAccountCount,
                         ),
                     )

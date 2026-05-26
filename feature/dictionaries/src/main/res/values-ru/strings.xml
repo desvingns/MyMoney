@@ -43,7 +43,6 @@
     <string name="dictionaries_add">Добавить</string>
 
     <string name="dictionaries_blocked_delete_title">Невозможно удалить</string>
-    <string name="dictionaries_blocked_delete_message">Невозможно удалить %1$s: есть %2$d транзакций. Сначала перенесите или удалите их.</string>
 
     <string name="dictionaries_default_badge">Основной</string>
     <string name="dictionaries_archived_badge">В архиве</string>
@@ -57,6 +56,4 @@
     <string name="dictionaries_error_currency_required">Валюта обязательна</string>
     <string name="dictionaries_error_initial_balance_format">Начальный баланс должен быть числом</string>
     <string name="dictionaries_error_generic">Не удалось сохранить</string>
-
-    <string name="currency_code_locked">Нельзя изменить код: эту валюту используют %d счетов.</string>
 </resources>

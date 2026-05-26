@@ -43,7 +43,6 @@
     <string name="dictionaries_add">Add</string>
 
     <string name="dictionaries_blocked_delete_title">Cannot delete</string>
-    <string name="dictionaries_blocked_delete_message">Cannot delete %1$s: it has %2$d existing transactions. Move or delete them first.</string>
 
     <string name="dictionaries_default_badge">Default</string>
     <string name="dictionaries_archived_badge">Archived</string>
@@ -57,6 +56,4 @@
     <string name="dictionaries_error_currency_required">Currency is required</string>
     <string name="dictionaries_error_initial_balance_format">Initial balance must be a number</string>
     <string name="dictionaries_error_generic">Save failed</string>
-
-    <string name="currency_code_locked">Cannot edit code: %d accounts use this currency.</string>
 </resources>

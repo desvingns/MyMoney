@@ -1,0 +1,15 @@
+<resources>
+    <plurals name="dictionaries_blocked_delete_message">
+        <item quantity="one">Невозможно удалить %1$s: есть %2$d транзакция. Сначала перенесите или удалите её.</item>
+        <item quantity="few">Невозможно удалить %1$s: есть %2$d транзакции. Сначала перенесите или удалите их.</item>
+        <item quantity="many">Невозможно удалить %1$s: есть %2$d транзакций. Сначала перенесите или удалите их.</item>
+        <item quantity="other">Невозможно удалить %1$s: есть %2$d транзакции. Сначала перенесите или удалите их.</item>
+    </plurals>
+
+    <plurals name="currency_code_locked">
+        <item quantity="one">Нельзя изменить код: эту валюту использует %d счёт.</item>
+        <item quantity="few">Нельзя изменить код: эту валюту используют %d счёта.</item>
+        <item quantity="many">Нельзя изменить код: эту валюту используют %d счетов.</item>
+        <item quantity="other">Нельзя изменить код: эту валюту используют %d счёта.</item>
+    </plurals>
+</resources>

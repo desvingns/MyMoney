@@ -1,0 +1,6 @@
+<resources>
+    <plurals name="transactions_in_period">
+        <item quantity="one">%d transaction</item>
+        <item quantity="other">%d transactions</item>
+    </plurals>
+</resources>

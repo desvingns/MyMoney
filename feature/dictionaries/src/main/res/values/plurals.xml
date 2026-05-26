@@ -1,0 +1,11 @@
+<resources>
+    <plurals name="dictionaries_blocked_delete_message">
+        <item quantity="one">Cannot delete %1$s: it has %2$d existing transaction. Move or delete it first.</item>
+        <item quantity="other">Cannot delete %1$s: it has %2$d existing transactions. Move or delete them first.</item>
+    </plurals>
+
+    <plurals name="currency_code_locked">
+        <item quantity="one">Cannot edit code: %d account uses this currency.</item>
+        <item quantity="other">Cannot edit code: %d accounts use this currency.</item>
+    </plurals>
+</resources>

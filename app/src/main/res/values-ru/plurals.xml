@@ -1,0 +1,8 @@
+<resources>
+    <plurals name="transactions_in_period">
+        <item quantity="one">%d транзакция</item>
+        <item quantity="few">%d транзакции</item>
+        <item quantity="many">%d транзакций</item>
+        <item quantity="other">%d транзакции</item>
+    </plurals>
+</resources>

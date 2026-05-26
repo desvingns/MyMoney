@@ -36,6 +36,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.kshavrin.mymoney.core.designsystem.confetti.MonefyConfetti
 import com.kshavrin.mymoney.core.designsystem.donut.MonefyDonutChart
 import com.kshavrin.mymoney.core.designsystem.pill.MonefyBalancePill
+import com.kshavrin.mymoney.core.ui.feedback.LocalHapticPlayer
+import com.kshavrin.mymoney.core.ui.feedback.LocalSoundPlayer
+import com.kshavrin.mymoney.core.ui.haptic.HapticKind
+import com.kshavrin.mymoney.core.ui.sound.SoundKey
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.feature.dashboard.components.LeftDrawerContent
 import com.kshavrin.mymoney.feature.dashboard.components.PeriodStrip
@@ -68,12 +72,20 @@ fun DashboardContent(
     val leftDrawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val rightDrawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    val soundPlayer = LocalSoundPlayer.current
+    val hapticPlayer = LocalHapticPlayer.current
 
     LaunchedEffect(state.leftDrawerOpen) {
         if (state.leftDrawerOpen) leftDrawerState.open() else leftDrawerState.close()
     }
     LaunchedEffect(state.rightDrawerOpen) {
         if (state.rightDrawerOpen) rightDrawerState.open() else rightDrawerState.close()
+    }
+    LaunchedEffect(state.showConfetti) {
+        if (state.showConfetti) {
+            soundPlayer.play(SoundKey.MILESTONE)
+            hapticPlayer.fire(HapticKind.SUCCESS_SHIMMER)
+        }
     }
 
     ModalNavigationDrawer(
@@ -98,7 +110,10 @@ fun DashboardContent(
                     TopAppBar(
                         title = { Text(text = stringResource(R.string.dashboard_title)) },
                         navigationIcon = {
-                            IconButton(onClick = { scope.launch { leftDrawerState.open() } }) {
+                            IconButton(onClick = {
+                                hapticPlayer.fire(HapticKind.MEDIUM)
+                                scope.launch { leftDrawerState.open() }
+                            }) {
                                 Icon(
                                     Icons.Filled.Menu,
                                     contentDescription = stringResource(R.string.dashboard_menu),
@@ -118,7 +133,10 @@ fun DashboardContent(
                                     contentDescription = stringResource(R.string.dashboard_search),
                                 )
                             }
-                            IconButton(onClick = { scope.launch { rightDrawerState.open() } }) {
+                            IconButton(onClick = {
+                                hapticPlayer.fire(HapticKind.MEDIUM)
+                                scope.launch { rightDrawerState.open() }
+                            }) {
                                 Icon(
                                     Icons.Filled.Menu,
                                     contentDescription = stringResource(R.string.dashboard_settings_menu),
@@ -145,7 +163,11 @@ fun DashboardContent(
                     ) {
                         PeriodStrip(
                             currentPeriod = state.period,
-                            onPeriodChange = { p -> onEvent(DashboardEvent.PeriodChanged(p)) },
+                            onPeriodChange = { p ->
+                                soundPlayer.play(SoundKey.SWIPE)
+                                hapticPlayer.fire(HapticKind.SOFT)
+                                onEvent(DashboardEvent.PeriodChanged(p))
+                            },
                         )
                         Spacer(modifier = Modifier.height(Spacing.m))
 
@@ -177,8 +199,14 @@ fun DashboardContent(
                         Spacer(modifier = Modifier.height(Spacing.xl))
 
                         TwoFabLayout(
-                            onMinusClick = { onEvent(DashboardEvent.MinusFabClicked) },
-                            onPlusClick = { onEvent(DashboardEvent.PlusFabClicked) },
+                            onMinusClick = {
+                                hapticPlayer.fire(HapticKind.MEDIUM)
+                                onEvent(DashboardEvent.MinusFabClicked)
+                            },
+                            onPlusClick = {
+                                hapticPlayer.fire(HapticKind.MEDIUM)
+                                onEvent(DashboardEvent.PlusFabClicked)
+                            },
                             onTransferClick = { onEvent(DashboardEvent.TransferClicked) },
                         )
                     }

@@ -16,12 +16,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import com.kshavrin.mymoney.core.designsystem.sound.SoundKey
 import com.kshavrin.mymoney.core.designsystem.sound.SoundPlayer
+import com.kshavrin.mymoney.core.ui.feedback.LocalHapticPlayer
+import com.kshavrin.mymoney.core.ui.feedback.LocalSoundPlayer
+import com.kshavrin.mymoney.core.ui.haptic.HapticKind
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import kotlinx.coroutines.launch
+import com.kshavrin.mymoney.core.ui.sound.SoundKey as UiSoundKey
 
 @Composable
 fun MonefyKeypad(
@@ -29,11 +31,13 @@ fun MonefyKeypad(
     modifier: Modifier = Modifier,
     soundPlayer: SoundPlayer? = null,
 ) {
-    val haptic = LocalHapticFeedback.current
+    val uiSoundPlayer = LocalSoundPlayer.current
+    val hapticPlayer = LocalHapticPlayer.current
 
     val handlePress: (KeypadEvent) -> Unit = { event ->
-        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        hapticPlayer.fire(HapticKind.SOFT)
         soundPlayer?.play(SoundKey.KEYPAD_TAP)
+        uiSoundPlayer.play(UiSoundKey.KEYPAD_TAP)
         onEvent(event)
     }
 

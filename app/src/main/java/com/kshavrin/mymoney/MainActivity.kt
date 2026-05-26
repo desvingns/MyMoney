@@ -7,9 +7,14 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.Box
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.kshavrin.mymoney.core.ui.feedback.LocalHapticPlayer
+import com.kshavrin.mymoney.core.ui.feedback.LocalSoundPlayer
+import com.kshavrin.mymoney.core.ui.haptic.HapticPlayer
+import com.kshavrin.mymoney.core.ui.sound.SoundPlayer
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import com.kshavrin.mymoney.feature.lockscreen.overlay.LockController
 import com.kshavrin.mymoney.feature.lockscreen.overlay.LockOverlay
@@ -25,6 +30,12 @@ class MainActivity : AppCompatActivity() {
     @Inject
     lateinit var lockController: LockController
 
+    @Inject
+    lateinit var soundPlayer: SoundPlayer
+
+    @Inject
+    lateinit var hapticPlayer: HapticPlayer
+
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
@@ -35,10 +46,15 @@ class MainActivity : AppCompatActivity() {
             val themeMode by themeViewModel.themeMode.collectAsStateWithLifecycle()
             val locked by lockController.shouldShowLock.collectAsStateWithLifecycle()
             MyMoneyTheme(themeMode = themeMode) {
-                Box {
-                    MyMoneyNavHost(shortcutDestination = shortcutDestination)
-                    if (locked) {
-                        LockOverlay(onUnlocked = lockController::markUnlocked)
+                CompositionLocalProvider(
+                    LocalSoundPlayer provides soundPlayer,
+                    LocalHapticPlayer provides hapticPlayer,
+                ) {
+                    Box {
+                        MyMoneyNavHost(shortcutDestination = shortcutDestination)
+                        if (locked) {
+                            LockOverlay(onUnlocked = lockController::markUnlocked)
+                        }
                     }
                 }
             }

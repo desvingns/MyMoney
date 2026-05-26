@@ -19,6 +19,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import com.kshavrin.mymoney.core.ui.feedback.LocalSoundPlayer
+import com.kshavrin.mymoney.core.ui.sound.SoundKey
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.feature.transactionslist.R
 
@@ -30,9 +32,11 @@ fun SwipeToDelete(
     content: @Composable () -> Unit,
 ) {
     val dismissState = rememberSwipeToDismissBoxState()
+    val soundPlayer = LocalSoundPlayer.current
 
     LaunchedEffect(dismissState.currentValue) {
         if (dismissState.currentValue == SwipeToDismissBoxValue.EndToStart) {
+            soundPlayer.play(SoundKey.DELETE)
             onDelete()
             // The row stays soft-deleted only after the UNDO window lapses; reset the visual
             // so the same item position is reusable if the user taps UNDO and paging re-emits.

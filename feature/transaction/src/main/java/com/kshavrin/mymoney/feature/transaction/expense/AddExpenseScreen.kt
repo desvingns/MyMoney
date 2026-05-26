@@ -41,6 +41,10 @@ import com.kshavrin.mymoney.core.designsystem.amountfield.AmountFieldEvent
 import com.kshavrin.mymoney.core.designsystem.amountfield.AmountFieldSection
 import com.kshavrin.mymoney.core.designsystem.amountfield.AmountFieldState
 import com.kshavrin.mymoney.core.designsystem.keypad.KeypadEvent
+import com.kshavrin.mymoney.core.ui.feedback.LocalHapticPlayer
+import com.kshavrin.mymoney.core.ui.feedback.LocalSoundPlayer
+import com.kshavrin.mymoney.core.ui.haptic.HapticKind
+import com.kshavrin.mymoney.core.ui.sound.SoundKey
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.feature.transaction.R
 import java.math.BigDecimal
@@ -82,11 +86,22 @@ fun AddExpenseScreen(
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     var datePickerVisible by remember { mutableStateOf(false) }
+    val soundPlayer = LocalSoundPlayer.current
+    val hapticPlayer = LocalHapticPlayer.current
+
+    LaunchedEffect(state.savedSignal) {
+        if (state.savedSignal > 0L) {
+            soundPlayer.play(SoundKey.SAVE_OK)
+            hapticPlayer.fire(HapticKind.HEAVY)
+        }
+    }
 
     val errorRes = state.errorBannerRes
     val errorMessage = errorRes?.let { stringResource(it) }
     LaunchedEffect(errorRes) {
         if (errorMessage != null) {
+            soundPlayer.play(SoundKey.ERROR)
+            hapticPlayer.fire(HapticKind.WARNING)
             snackbarHostState.showSnackbar(errorMessage)
             onEvent(AddExpenseEvent.DismissError)
         }

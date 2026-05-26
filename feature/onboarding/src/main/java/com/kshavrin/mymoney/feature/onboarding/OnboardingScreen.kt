@@ -34,6 +34,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.kshavrin.mymoney.core.ui.feedback.LocalSoundPlayer
+import com.kshavrin.mymoney.core.ui.sound.SoundKey
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -46,9 +48,14 @@ fun OnboardingScreen(
     val state by viewModel.state.collectAsState()
     val pagerState = rememberPagerState(pageCount = { ONBOARDING_PAGE_COUNT })
     val coroutineScope = rememberCoroutineScope()
+    val soundPlayer = LocalSoundPlayer.current
 
     LaunchedEffect(state.completed) {
         if (state.completed) onComplete()
+    }
+
+    LaunchedEffect(pagerState.currentPage) {
+        soundPlayer.play(SoundKey.SWIPE)
     }
 
     OnboardingContent(

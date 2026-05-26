@@ -16,6 +16,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import com.kshavrin.mymoney.core.designsystem.R
 import com.kshavrin.mymoney.core.ui.feedback.LocalHapticPlayer
 import com.kshavrin.mymoney.core.ui.feedback.LocalSoundPlayer
 import com.kshavrin.mymoney.core.ui.haptic.HapticKind
@@ -49,7 +53,11 @@ fun MonefyKeypad(
             KeypadKey(label = "8", onPress = { handlePress(KeypadEvent.Digit(8)) })
             KeypadKey(label = "9", onPress = { handlePress(KeypadEvent.Digit(9)) })
             KeypadKey(label = "÷", onPress = { handlePress(KeypadEvent.Op(Operator.Divide)) })
-            KeypadKey(label = "⌫", onPress = { handlePress(KeypadEvent.Backspace) })
+            KeypadKey(
+                label = "⌫",
+                onPress = { handlePress(KeypadEvent.Backspace) },
+                contentDescription = stringResource(R.string.keypad_backspace_cd),
+            )
         }
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -85,9 +93,15 @@ fun MonefyKeypad(
 private fun RowScope.KeypadKey(
     label: String,
     onPress: () -> Unit,
+    contentDescription: String? = null,
 ) {
     val scale = remember { Animatable(1f) }
     val scope = rememberCoroutineScope()
+    val semanticsModifier = if (contentDescription != null) {
+        Modifier.clearAndSetSemantics { this.contentDescription = contentDescription }
+    } else {
+        Modifier
+    }
     Button(
         onClick = {
             scope.launch {
@@ -105,7 +119,8 @@ private fun RowScope.KeypadKey(
         modifier = Modifier
             .weight(1f)
             .aspectRatio(1f)
-            .scale(scale.value),
+            .scale(scale.value)
+            .then(semanticsModifier),
         shape = MaterialTheme.shapes.medium,
     ) {
         Text(text = label, style = MaterialTheme.typography.titleLarge)

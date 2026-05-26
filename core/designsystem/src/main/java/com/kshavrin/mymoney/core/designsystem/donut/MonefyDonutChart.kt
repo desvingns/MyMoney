@@ -17,12 +17,16 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kshavrin.mymoney.core.designsystem.R
 import java.math.BigDecimal
 import kotlin.math.cos
 import kotlin.math.min
@@ -50,7 +54,24 @@ fun MonefyDonutChart(
 
     val outlineColor = MaterialTheme.colorScheme.outline
 
-    Box(modifier = modifier) {
+    val chartHeader = stringResource(
+        R.string.donut_chart_cd,
+        income.toPlainString(),
+        expense.toPlainString(),
+    )
+    val sliceTemplate = stringResource(R.string.donut_chart_slice)
+    val chartDescription = remember(chartHeader, sliceTemplate, slices) {
+        val sliceText = slices.joinToString(separator = " ") { slice ->
+            String.format(sliceTemplate, slice.label, (slice.fraction * 100f).toInt())
+        }
+        if (sliceText.isEmpty()) chartHeader else "$chartHeader $sliceText"
+    }
+
+    Box(
+        modifier = modifier.semantics(mergeDescendants = true) {
+            contentDescription = chartDescription
+        },
+    ) {
         Canvas(
             modifier = Modifier
                 .fillMaxSize()

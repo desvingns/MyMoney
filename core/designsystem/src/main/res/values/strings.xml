@@ -2,4 +2,7 @@
 <resources>
     <string name="amountfield_note_hint">Note</string>
     <string name="amountfield_pick_date_cd">Pick date</string>
+    <string name="donut_chart_cd">Donut chart. Income %1$s, expense %2$s.</string>
+    <string name="donut_chart_slice">%1$s, %2$d%%</string>
+    <string name="keypad_backspace_cd">Backspace</string>
 </resources>

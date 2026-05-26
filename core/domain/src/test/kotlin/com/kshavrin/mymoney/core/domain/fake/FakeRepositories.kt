@@ -1,6 +1,7 @@
 package com.kshavrin.mymoney.core.domain.fake
 
 import com.kshavrin.mymoney.core.domain.model.Account
+import com.kshavrin.mymoney.core.domain.model.Budget
 import com.kshavrin.mymoney.core.domain.model.Category
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.core.domain.model.Currency
@@ -10,6 +11,7 @@ import com.kshavrin.mymoney.core.domain.model.RecurringTemplate
 import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
 import com.kshavrin.mymoney.core.domain.repository.AccountRepository
+import com.kshavrin.mymoney.core.domain.repository.BudgetRepository
 import com.kshavrin.mymoney.core.domain.repository.CategoryRepository
 import com.kshavrin.mymoney.core.domain.repository.CategorySummary
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRateRepository
@@ -88,6 +90,26 @@ class FakeAccountRepository : AccountRepository {
     }
     override suspend fun countByCurrency(currencyId: Long): Int =
         state.value.count { it.currencyId == currencyId && !it.isArchived }
+}
+
+class FakeBudgetRepository : BudgetRepository {
+    private val state = MutableStateFlow<List<Budget>>(emptyList())
+    fun seed(vararg budgets: Budget) {
+        state.value = (state.value + budgets).distinctBy { it.id }
+    }
+    override fun observeActive(): Flow<List<Budget>> = state.asStateFlow()
+    override suspend fun findForCategory(categoryId: Long) =
+        state.value.firstOrNull { it.categoryId == categoryId && it.isActive }
+    override suspend fun findTotalBudget() =
+        state.value.firstOrNull { it.categoryId == null && it.isActive }
+    override suspend fun upsert(budget: Budget): Long {
+        val id = if (budget.id == 0L) (state.value.maxOfOrNull { it.id } ?: 0L) + 1L else budget.id
+        state.value = state.value.filterNot { it.id == id } + budget.copy(id = id)
+        return id
+    }
+    override suspend fun deactivate(id: Long) {
+        state.value = state.value.map { if (it.id == id) it.copy(isActive = false) else it }
+    }
 }
 
 class FakeCategoryRepository : CategoryRepository {

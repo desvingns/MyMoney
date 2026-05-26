@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,7 +51,8 @@ fun ColorPicker(
                             Modifier
                         },
                     )
-                    .clickable { onColorSelected(hex) },
+                    .clickable { onColorSelected(hex) }
+                    .minimumInteractiveComponentSize(),
             )
         }
     }

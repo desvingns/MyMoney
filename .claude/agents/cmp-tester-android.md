@@ -243,7 +243,9 @@ class <Name>ScreenshotTest {
 ```
 
 Snapshots are stored in `app/src/test/snapshots/` (configured via `roborazzi { outputDir }` in `app/build.gradle.kts`).
-Set `screenshot_record_needed: true` in the return JSON — the Runner agent will run `recordRoborazziDebug` before `verifyRoborazziDebug`.
+Set `screenshot_record_needed: true` in the return JSON only when committed, user-reviewed
+baselines must be verified. Recording a new baseline is a separate manual approval action;
+the Runner must never record images as part of its gate.
 
 ---
 

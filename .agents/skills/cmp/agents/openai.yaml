@@ -1,0 +1,4 @@
+interface:
+  display_name: "MyMoney CMP Pipeline"
+  short_description: "Run the MyMoney delivery pipeline"
+  default_prompt: "Use $cmp --phase with native subagents for the active MyMoney phase."

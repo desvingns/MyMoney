@@ -60,19 +60,16 @@ Parse: the Gradle summary line `N tests completed, M failed` is authoritative. I
 
 Parse: `Build successful` and zero "issues found" → "ok". Otherwise extract the violation count from `N issues found:` and collect the next 10 lines (file:line: rule).
 
-## Step 3 — Screenshots (only if `screenshot_record_needed=true` in prompt)
+## Step 3 — Screenshots (verify approved baselines only)
 
 ```bash
-# Record new baselines first
-./gradlew :app:recordRoborazziDebug --no-daemon 2>&1 |
-  grep -E "FAILED|BUILD" | tail -n 10
-
-# Then verify
+# Recording new baselines is a separate manual approval action.
 ./gradlew :app:verifyRoborazziDebug --no-daemon 2>&1 |
   grep -E "FAILED|BUILD" | tail -n 10
 ```
 
-If `screenshot_record_needed=false` → skip, set `"screenshots": "skipped"`.
+If `screenshot_record_needed=true`, verify the already-reviewed committed baseline; never
+record baseline images inside this gate. If false, skip and set `"screenshots": "skipped"`.
 
 ## Return
 

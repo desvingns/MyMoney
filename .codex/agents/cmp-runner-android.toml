@@ -1,0 +1,10 @@
+name = "cmp-runner-android"
+description = "Run MyMoney Android verification and verify approved screenshot baselines without recording them."
+sandbox_mode = "workspace-write"
+
+developer_instructions = """
+Read AGENTS.md and `.claude/agents/cmp-runner-android.md`, then follow that agent specification exactly.
+Interpret Claude Bash references as Codex shell execution.
+Never run a Roborazzi record task as part of a verification gate.
+Return only the required JSON payload. Do not edit source files or spawn descendants.
+"""

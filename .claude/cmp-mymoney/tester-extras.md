@@ -53,7 +53,7 @@ The CMP seed memory `dao-test-config-trap.md` explains why. Reinforcing it here:
 If a SPEC includes `screenshot` in `TEST_TYPES` and the feature has a custom Compose component (e.g. `MonefyDonutChart`, `MonefyKeypad`):
 
 ```bash
-./gradlew :feature:dashboard:recordRoborazziDebug    # capture baseline (first time)
+./gradlew :feature:dashboard:recordRoborazziDebug    # manual capture after baseline approval only
 ./gradlew :feature:dashboard:verifyRoborazziDebug    # verify against baseline
 ```
 

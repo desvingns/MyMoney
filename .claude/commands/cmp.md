@@ -209,13 +209,22 @@ CHANGED_FILES:
 If Verifier returns `pass=false` → stop. Show `static_checks` failures to user and ask:
 "Fix and continue? Describe the fix or run `/cmp --bugfix`."
 
-If Verifier returns `pass=true` → print `manual_checklist` verbatim to the user, then ask:
-"Pre-push verification: run the checklist on emulator/device. Ready to push? (y/N)"
+If Verifier returns `pass=true` → print `manual_checklist` verbatim to the user. Do not
+push yet: tested files must be committed first.
 
-- If user answers **y** → proceed to Step 5 (Push).
-- If user answers **N** → stop. Do NOT push. Wait for user feedback before doing anything else.
+**Step 5** — Persist tests before the final push gate:
+```bash
+git add -- [each test_file returned by Tester]
+git diff --cached --quiet || git commit -m "test: cover [feature description]"
+```
 
-**Step 5** — Push to remote (via the `Bash` tool):
+**Step 6** — Final manual gate and push:
+
+Ask:
+"Pre-push verification: run the checklist on emulator/device. Ready to push all implementation and test commits? (y/N)"
+
+- If user answers **N** → stop. Do NOT push. Keep local commits for review.
+- If user answers **y** → push the complete branch:
 ```bash
 # Token is provided via the GITHUB_TOKEN env var (configured in ~/.claude/settings.json,
 # so it is available to every Bash invocation on all platforms).
@@ -223,9 +232,12 @@ If Verifier returns `pass=true` → print `manual_checklist` verbatim to the use
 remote_path=$(git remote get-url origin | sed -e 's#^https://[^/]*@#https://#' -e 's#^https://##')
 git push "https://x-access-token:${GITHUB_TOKEN}@${remote_path}" HEAD
 ```
-If push fails → show error to user and continue to Step 6 without blocking.
+If push fails → show the error and report that all commits remain local.
 
-**Step 6** — Docs step is **skipped in MyMoney**. The `cmp-docs` agent is inert (see `.claude/agents/cmp-docs.md`). State is owned by `docs/implementation_plan/PROGRESS.md`. If this run was invoked via `--phase`, the `--phase` workflow's post-pipeline hook will tick the PHASE_NN checkbox and append one line to PROGRESS.md. Otherwise no state file is touched — manual update to PROGRESS.md if desired.
+Docs remain **skipped in MyMoney**. The `cmp-docs` agent is inert (see
+`.claude/agents/cmp-docs.md`). State is owned by `docs/implementation_plan/PROGRESS.md`. If
+this run was invoked via `--phase`, the `--phase` workflow's post-pipeline hook ticks the
+PHASE_NN checkbox and appends one line to PROGRESS.md. Otherwise no state file is touched.
 
 ---
 
@@ -269,8 +281,8 @@ If the user passed `--tdd`, replace the default Step 1..Step 6 above with the re
 
 - **Step 6** — Auto-fix retry (same as default Step 4).
 - **Step 6.5** — Verifier (same as default Step 4.5).
-- **Step 7** — Push (same as default Step 5).
-- **Step 8** — Docs is **skipped in MyMoney** (cmp-docs is inert — see default Step 6 note).
+- **Step 7** — Persist tests (same as default Step 5).
+- **Step 8** — Final manual gate and Push (same as default Step 6; docs remain skipped).
 
 ### Phase 3 — Report
 
@@ -300,7 +312,7 @@ Skip questions if bug location is obvious.
 **Step 1 — Developer**:
 Spawn agent `cmp-developer-<platform>` with prompt:
 ```
-Fix bug per SPEC. Write regression test (red→green).
+Fix bug per SPEC. Do not write tests; the Tester step owns regression coverage.
 Return JSON: {"changed_files":[...], "commit":"hash"}
 
 SPEC:
@@ -310,20 +322,30 @@ WHAT: [root cause one sentence]
 LAYERS: [affected layers]
 CHANGED_HINT: [files to read]
 TEST_TYPES: unit
-CONSTRAINTS: regression test required, conventional commit fix:
+CONSTRAINTS: regression test required from Tester, conventional commit fix:
 ```
 
 **Step 1.5 — Reviewer** (if fix touches `presentation/` or `domain/`):
 Spawn agent `cmp-reviewer-<platform>` with the changed files from Step 1.
 If `pass=false` → stop, show violations.
 
-**Step 2 — Runner**:
+**Step 2 — Tester**:
+Spawn agent `cmp-tester-<platform>` with prompt:
+```
+Write regression tests for this bugfix and the changed production files.
+Return JSON: {"test_files":[...], "screenshot_record_needed": false}
+
+SPEC: [bugfix SPEC block]
+CHANGED_FILES: [output from Developer]
+```
+
+**Step 3 — Runner**:
 Spawn agent `cmp-runner-<platform>` with prompt:
 ```
 Run verification. screenshot_record_needed=false
 ```
 
-**Step 3** — If `pass=false`, attempt ONE automatic fix:
+**Step 4** — If `pass=false`, attempt ONE automatic fix:
 
 Spawn `cmp-developer-<platform>` with:
 ```
@@ -336,14 +358,22 @@ FAILED CHECKS: [errors from Runner]
 
 Then spawn `cmp-runner-<platform>` again. If still `pass=false` → stop, show failures to user.
 
-**Step 4** — Push to remote (via the `Bash` tool):
+**Step 5** — Persist regression tests:
+```bash
+git add -- [each test_file returned by Tester]
+git diff --cached --quiet || git commit -m "test: cover bugfix [description]"
+```
+
+**Step 6** — Confirm and push the complete bugfix branch:
+
+Ask the user whether to push all implementation and test commits. Push only on `y`:
 ```bash
 remote_path=$(git remote get-url origin | sed -e 's#^https://[^/]*@#https://#' -e 's#^https://##')
 git push "https://x-access-token:${GITHUB_TOKEN}@${remote_path}" HEAD
 ```
-If push fails → show error to user and continue without blocking.
+If push fails → show the error and report that all commits remain local.
 
-**Step 5 — Docs step is skipped in MyMoney** (cmp-docs is inert — see `--feature` Step 6 note).
+Docs remain skipped in MyMoney (`cmp-docs` is inert).
 
 ### Phase 3 — Report
 
@@ -409,9 +439,9 @@ Show the SPEC to the user and ask:
 
 ### Phase 3 — Run pipeline
 
-Execute the **default --feature pipeline** (Step 1 through Step 4.5 from the `--feature` workflow above) with the synthesised SPEC.
+Execute the **default --feature pipeline** (Step 1 through Step 5 from the `--feature` workflow above) with the synthesised SPEC.
 
-**Skip Step 5 (Push) by default** — pushing is per-phase, not per-task. Ask:
+**Skip Step 6 (Push) by default** — pushing is per-phase, not per-task. Ask:
 "Phase task complete. Push now? (y/N — default N, push at end of phase)"
 
 ### Phase 4 — Record progress
@@ -487,6 +517,7 @@ If `Status: CONSISTENT` → suggest next action: "Ready for `/cmp --phase` to wo
 - `cmp-reviewer-<platform>` runs after every Developer pass, before Tester. A reviewer violation blocks the chain.
 - Runner gets at most 2 runs per task (1 main + 1 retry after auto-fix). Never loop more than once.
 - `cmp-verifier-<platform>` runs after Runner pass on `--feature` and `--phase` only. A static_checks failure blocks the chain; on pass, push waits for explicit user `y` after the manual checklist is shown. (`--bugfix` skips Verifier — bugfixes rarely touch wiring.)
-- `--tdd` flag (only on `--feature`) reorders Phase 2: Tester writes failing unit tests first (`red_phase=true`), Runner verifies the red, then Developer implements until green (`green_phase=true`). Opt-in only; default order remains developer-first. `--bugfix` is unchanged — regression tests are written inline by the developer there.
+- Push happens exactly once and only after implementation and test commits are present.
+- `--tdd` flag (only on `--feature`) reorders Phase 2: Tester writes failing unit tests first (`red_phase=true`), Runner verifies the red, then Developer implements until green (`green_phase=true`). Opt-in only; default order remains developer-first. `--bugfix` delegates regression-test creation to Tester.
 - `cmp-docs` agent is **inert in MyMoney** (`.claude/agents/cmp-docs.md` body replaced). All `--feature`/`--bugfix`/`--phase`/`--tdd` workflows skip the docs step. State is owned by `docs/implementation_plan/PROGRESS.md` exclusively.
 - `--phase` and `--check` are MyMoney-specific extensions, not from CMP source. They will not be modified by `bash CMP/bootstrap.sh --upgrade`. Future CMP versions may add new flags — manually re-apply these two if a future upgrade overwrites this file.

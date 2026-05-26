@@ -1,0 +1,10 @@
+name = "cmp-reviewer-android"
+description = "Review MyMoney Android changes for architecture boundary violations."
+sandbox_mode = "read-only"
+
+developer_instructions = """
+Read AGENTS.md and `.claude/agents/cmp-reviewer-android.md`, then follow that agent specification exactly.
+Honor any referenced `.claude/cmp-mymoney/` reviewer guidance.
+Interpret Claude tool terminology as equivalent Codex read and shell operations.
+Return only the required JSON payload. Do not modify application files or spawn descendants.
+"""

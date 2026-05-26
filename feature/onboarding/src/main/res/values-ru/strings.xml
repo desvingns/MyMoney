@@ -1,0 +1,18 @@
+<resources>
+    <string name="onboarding_slide_1_headline">Учитывайте каждую копейку</string>
+    <string name="onboarding_slide_1_body">Добавляйте расходы и доходы за секунды одним нажатием. Ваш кошелёк — проще не бывает.</string>
+
+    <string name="onboarding_slide_2_headline">Видьте, куда уходят деньги</string>
+    <string name="onboarding_slide_2_body">Кольцевая диаграмма показывает ваши траты с первого взгляда. По категориям. По периодам.</string>
+
+    <string name="onboarding_slide_3_headline">Не выходите за рамки бюджета</string>
+    <string name="onboarding_slide_3_body">Задайте бюджет для любой категории, и мы предупредим вас, прежде чем вы его превысите.</string>
+
+    <string name="onboarding_slide_4_headline">Ваши данные на вашем устройстве</string>
+    <string name="onboarding_slide_4_body">Всё хранится на вашем телефоне. Резервная копия в Dropbox или Google Drive — по вашему выбору.</string>
+
+    <string name="onboarding_next">Далее</string>
+    <string name="onboarding_get_started">Начать</string>
+
+    <string name="splash_logo_content_description">Логотип MyMoney</string>
+</resources>

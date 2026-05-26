@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">MyMoney</string>
+
+    <string name="shortcut_add_expense_short">Расход</string>
+    <string name="shortcut_add_expense_long">Добавить расход</string>
+    <string name="shortcut_add_income_short">Доход</string>
+    <string name="shortcut_add_income_long">Добавить доход</string>
+    <string name="shortcut_transfer_short">Перевод</string>
+    <string name="shortcut_transfer_long">Перевод между счетами</string>
+</resources>

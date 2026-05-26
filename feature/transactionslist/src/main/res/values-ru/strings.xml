@@ -1,0 +1,37 @@
+<resources>
+    <string name="transactions_list_title">Транзакции</string>
+    <string name="transactions_list_filter_chip">Категория: %1$s</string>
+    <string name="transactions_list_empty">Нет записей за данный период</string>
+    <string name="transactions_list_delete_undo">Транзакция удалена</string>
+    <string name="transactions_list_undo_action">ОТМЕНИТЬ</string>
+    <string name="transactions_list_back">Назад</string>
+    <string name="transactions_list_search">Поиск</string>
+    <string name="transactions_list_remove_filter">Убрать фильтр</string>
+    <string name="transactions_list_delete">Удалить</string>
+    <string name="transactions_list_transfer">Перевод</string>
+    <string name="transactions_list_open_detail">Открыть транзакцию</string>
+    <string name="detail_title_expense">Изменить расход</string>
+    <string name="detail_title_income">Изменить доход</string>
+    <string name="detail_title_transfer">Изменить перевод</string>
+    <string name="detail_delete">Удалить</string>
+    <string name="detail_save">Сохранить</string>
+    <string name="detail_pick_date">Выбрать дату</string>
+    <string name="detail_account_label">Счёт</string>
+    <string name="detail_source_label">Откуда</string>
+    <string name="detail_target_label">Куда</string>
+    <string name="detail_rate_label">Обменный курс</string>
+    <string name="detail_error_enter_amount">Сначала введите сумму</string>
+    <string name="detail_error_enter_rate">Введите корректный обменный курс</string>
+    <string name="detail_error_save_failed">Не удалось сохранить. Повторите попытку.</string>
+    <string name="delete_transaction_title">Удалить эту транзакцию?</string>
+    <string name="delete_transaction_body">Это нельзя будет отменить через 5 секунд.</string>
+    <string name="delete_confirm">Удалить</string>
+    <string name="cancel">Отмена</string>
+    <string name="search_records_hint">Поиск записей</string>
+    <string name="search_voice_cd">Голосовой поиск</string>
+    <string name="search_clear_cd">Очистить поиск</string>
+    <string name="search_no_matches">Ничего не найдено</string>
+    <string name="search_error">Что-то пошло не так</string>
+    <string name="search_voice_unavailable">Голосовой поиск недоступен на этом устройстве</string>
+    <string name="search_voice_prompt">Произнесите запрос для поиска</string>
+</resources>

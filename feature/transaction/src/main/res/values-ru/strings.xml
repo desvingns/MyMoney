@@ -1,0 +1,26 @@
+<resources>
+    <string name="new_expense_title">Новый расход</string>
+    <string name="new_income_title">Новый доход</string>
+    <string name="amount_hint">0</string>
+    <string name="note_hint">Заметка</string>
+    <string name="choose_category_cta">ВЫБЕРИТЕ КАТЕГОРИЮ</string>
+    <string name="error_enter_amount_first">Сначала введите сумму</string>
+    <string name="error_choose_category_first">Выберите категорию</string>
+    <string name="error_save_failed">Не удалось сохранить. Повторите попытку.</string>
+    <string name="back">Назад</string>
+    <string name="swap_mode">Поменять</string>
+    <string name="dismiss">Закрыть</string>
+    <string name="pick_date">Выбрать дату</string>
+    <string name="category_picker_title">Выберите категорию</string>
+    <string name="add_category_cta">+ ДОБАВИТЬ</string>
+    <string name="category_picker_empty">Пока нет категорий — нажмите + ДОБАВИТЬ</string>
+    <string name="new_transfer_title">Новый перевод</string>
+    <string name="source_label">Откуда</string>
+    <string name="target_label">Куда</string>
+    <string name="accounts_have_to_be_different">Счета должны быть разные</string>
+    <string name="currency_rate">Курс валют</string>
+    <string name="currency_rate_title">Курс валют</string>
+    <string name="currency_rate_save">Сохранить</string>
+    <string name="transfer_change_rate_cta">Изменить</string>
+    <string name="currency_rate_invalid">Курс должен быть положительным</string>
+</resources>

@@ -1,0 +1,62 @@
+<resources>
+    <string name="dictionaries_categories_title">Категории</string>
+    <string name="dictionaries_accounts_title">Счета</string>
+    <string name="dictionaries_currencies_title">Валюты</string>
+    <string name="dictionaries_category_new">Новая категория</string>
+    <string name="dictionaries_category_edit">Изменить категорию</string>
+    <string name="dictionaries_account_new">Новый счёт</string>
+    <string name="dictionaries_account_edit">Изменить счёт</string>
+    <string name="dictionaries_currency_new">Новая валюта</string>
+    <string name="dictionaries_currency_edit">Изменить валюту</string>
+
+    <string name="dictionaries_section_expense">Расход</string>
+    <string name="dictionaries_section_income">Доход</string>
+
+    <string name="dictionaries_field_name">Название</string>
+    <string name="dictionaries_field_kind">Тип</string>
+    <string name="dictionaries_kind_expense">Расход</string>
+    <string name="dictionaries_kind_income">Доход</string>
+    <string name="dictionaries_field_icon">Иконка</string>
+    <string name="dictionaries_field_color">Цвет</string>
+    <string name="dictionaries_field_currency">Валюта</string>
+    <string name="dictionaries_field_initial_balance">Начальный баланс</string>
+    <string name="dictionaries_field_type">Тип</string>
+    <string name="dictionaries_field_set_default">Сделать основным</string>
+    <string name="dictionaries_field_code">Код</string>
+    <string name="dictionaries_field_symbol">Символ</string>
+    <string name="dictionaries_field_decimal_digits">Знаков после запятой</string>
+    <string name="dictionaries_field_is_active">Активна</string>
+
+    <string name="dictionaries_type_cash">Наличные</string>
+    <string name="dictionaries_type_card">Карта</string>
+    <string name="dictionaries_type_bank">Банк</string>
+    <string name="dictionaries_type_savings">Сбережения</string>
+
+    <string name="dictionaries_choose_icon">Выберите иконку</string>
+    <string name="dictionaries_choose_color">Выберите цвет</string>
+
+    <string name="dictionaries_save">Сохранить</string>
+    <string name="dictionaries_delete">Удалить</string>
+    <string name="dictionaries_cancel">Отмена</string>
+    <string name="dictionaries_ok">ОК</string>
+    <string name="dictionaries_back">Назад</string>
+    <string name="dictionaries_add">Добавить</string>
+
+    <string name="dictionaries_blocked_delete_title">Невозможно удалить</string>
+    <string name="dictionaries_blocked_delete_message">Невозможно удалить %1$s: есть %2$d транзакций. Сначала перенесите или удалите их.</string>
+
+    <string name="dictionaries_default_badge">Основной</string>
+    <string name="dictionaries_archived_badge">В архиве</string>
+    <string name="dictionaries_balance_label">Баланс</string>
+
+    <string name="dictionaries_error_name_required">Название обязательно (макс. 32 символа)</string>
+    <string name="dictionaries_error_code_format">Код должен состоять из 3 заглавных букв</string>
+    <string name="dictionaries_error_color_format">Цвет должен быть в формате #RRGGBB</string>
+    <string name="dictionaries_error_decimal_digits">Знаков после запятой должно быть 0–8</string>
+    <string name="dictionaries_error_symbol_required">Символ обязателен (макс. 4 символа)</string>
+    <string name="dictionaries_error_currency_required">Валюта обязательна</string>
+    <string name="dictionaries_error_initial_balance_format">Начальный баланс должен быть числом</string>
+    <string name="dictionaries_error_generic">Не удалось сохранить</string>
+
+    <string name="currency_code_locked">Нельзя изменить код: эту валюту используют %d счетов.</string>
+</resources>

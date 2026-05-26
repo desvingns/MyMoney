@@ -6,10 +6,12 @@ import androidx.lifecycle.viewModelScope
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
 import com.kshavrin.mymoney.core.designsystem.donut.CategorySlice
 import com.kshavrin.mymoney.core.domain.model.BalanceSnapshot
+import com.kshavrin.mymoney.core.domain.model.DomainEvent
 import com.kshavrin.mymoney.core.domain.repository.AccountRepository
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
 import com.kshavrin.mymoney.core.domain.usecase.BalanceCalculator
+import com.kshavrin.mymoney.core.domain.usecase.ObserveBudgetAlertsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.BufferOverflow
@@ -20,6 +22,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -31,6 +35,7 @@ class DashboardViewModel @Inject constructor(
     private val balanceCalculator: BalanceCalculator,
     private val appSettingsRepository: AppSettingsRepository,
     private val transactionRepository: TransactionRepository,
+    private val observeBudgetAlertsUseCase: ObserveBudgetAlertsUseCase,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(DashboardState())
@@ -42,10 +47,14 @@ class DashboardViewModel @Inject constructor(
     )
     val actions: SharedFlow<DashboardAction> = _actions.asSharedFlow()
 
+    private val budgetAlertSelection = MutableStateFlow<BudgetAlertSelection?>(null)
+
     init {
         viewModelScope.launch {
             observeAccountsAndCurrencies()
+            selectBudgetAlerts()
             observeTransactionChanges()
+            observeBudgetAlerts()
         }
     }
 
@@ -69,6 +78,44 @@ class DashboardViewModel @Inject constructor(
         )
     }
 
+    private fun observeBudgetAlerts() {
+        viewModelScope.launch {
+            budgetAlertSelection
+                .flatMapLatest { selection ->
+                    if (selection == null) {
+                        flowOf(emptyList())
+                    } else {
+                        observeBudgetAlertsUseCase(selection.accountId)
+                    }
+                }
+                .collect(::applyBudgetAlerts)
+        }
+    }
+
+    private fun selectBudgetAlerts() {
+        val selection = _state.value.currentAccount?.let {
+            BudgetAlertSelection(accountId = it.id)
+        }
+        if (selection == budgetAlertSelection.value) return
+        _state.value = _state.value.copy(
+            budgetAlertCategoryIds = emptySet(),
+            overBudgetAmount = null,
+            slices = _state.value.slices.map { it.copy(hasBudgetAlert = false) },
+        )
+        budgetAlertSelection.value = selection
+    }
+
+    private fun applyBudgetAlerts(alerts: List<DomainEvent.BudgetAlert>) {
+        val categoryIds = alerts.mapNotNull { it.categoryId }.toSet()
+        _state.value = _state.value.copy(
+            budgetAlertCategoryIds = categoryIds,
+            overBudgetAmount = alerts.mapNotNull { it.overage }.maxByOrNull { it.amount },
+            slices = _state.value.slices.map { slice ->
+                slice.copy(hasBudgetAlert = slice.categoryId in categoryIds)
+            },
+        )
+    }
+
     // Room-backed Flow re-emits whenever the transaction table changes (e.g. a form
     // saved a row and popped back to S01). The list payload is ignored — it is only a
     // change signal; authoritative figures come from balanceCalculator. recomputeBalance()
@@ -86,7 +133,7 @@ class DashboardViewModel @Inject constructor(
         val period = _state.value.period
         viewModelScope.launch {
             val snapshot = balanceCalculator(account.id, period)
-            val slices = snapshotToSlices(snapshot)
+            val slices = snapshotToSlices(snapshot, _state.value.budgetAlertCategoryIds)
             val settings = appSettingsRepository.settings.first()
             val firstPositive = !settings.firstPositiveSeen && snapshot.net.amount.signum() > 0
             _state.value = _state.value.copy(
@@ -101,13 +148,14 @@ class DashboardViewModel @Inject constructor(
         }
     }
 
-    private fun snapshotToSlices(snapshot: BalanceSnapshot): List<CategorySlice> {
+    private fun snapshotToSlices(snapshot: BalanceSnapshot, alertCategoryIds: Set<Long>): List<CategorySlice> {
         return snapshot.byCategory.map { catBal ->
             CategorySlice(
                 categoryId = catBal.categoryId,
                 color = parseHexColor(catBal.colorHex),
                 fraction = catBal.fraction,
                 label = catBal.categoryName,
+                hasBudgetAlert = catBal.categoryId in alertCategoryIds,
             )
         }
     }
@@ -135,6 +183,7 @@ class DashboardViewModel @Inject constructor(
                     },
                     leftDrawerOpen = false,
                 )
+                selectBudgetAlerts()
                 recomputeBalance()
                 viewModelScope.launch {
                     appSettingsRepository.update { it.copy(defaultAccountId = event.accountId) }
@@ -191,3 +240,7 @@ class DashboardViewModel @Inject constructor(
         viewModelScope.launch { _actions.emit(action) }
     }
 }
+
+private data class BudgetAlertSelection(
+    val accountId: Long,
+)

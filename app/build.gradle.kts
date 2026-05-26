@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -6,6 +8,23 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
     alias(libs.plugins.gms.oss.licenses)
+    alias(libs.plugins.androidx.baselineprofile)
+}
+
+val releaseSigningProperties = Properties().apply {
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.isFile) {
+        localPropertiesFile.inputStream().use(::load)
+    }
+}
+val releaseSigningKeys = listOf(
+    "keystore.path",
+    "keystore.pass",
+    "keystore.key.alias",
+    "keystore.key.pass",
+)
+val hasReleaseSigningConfig = releaseSigningKeys.all { key ->
+    !releaseSigningProperties.getProperty(key).isNullOrBlank()
 }
 
 // google-services is applied only when a google-services.json is present
@@ -40,6 +59,17 @@ android {
         )
     }
 
+    signingConfigs {
+        if (hasReleaseSigningConfig) {
+            create("release") {
+                storeFile = rootProject.file(releaseSigningProperties.getProperty("keystore.path"))
+                storePassword = releaseSigningProperties.getProperty("keystore.pass")
+                keyAlias = releaseSigningProperties.getProperty("keystore.key.alias")
+                keyPassword = releaseSigningProperties.getProperty("keystore.key.pass")
+            }
+        }
+    }
+
     buildTypes {
         debug {
         }
@@ -50,6 +80,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            if (hasReleaseSigningConfig) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
         create("staging") {
             initWith(getByName("release"))
@@ -77,6 +110,10 @@ android {
             )
         }
     }
+}
+
+baselineProfile {
+    automaticGenerationDuringBuild = false
 }
 
 dependencies {
@@ -111,8 +148,11 @@ dependencies {
 
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
-    implementation(libs.sentry.android)
+    implementation(libs.sentry.android.core)
     implementation(libs.play.services.oss.licenses)
+    implementation(libs.androidx.profileinstaller)
+
+    baselineProfile(project(":macrobenchmark"))
 
     testImplementation(project(":core:testing"))
     testImplementation(libs.junit)

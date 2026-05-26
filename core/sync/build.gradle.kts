@@ -73,7 +73,7 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.config.ktx)
 
-    implementation(libs.sentry.android)
+    implementation(libs.sentry.core)
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.hilt.work)
 

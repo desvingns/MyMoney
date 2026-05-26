@@ -4,6 +4,7 @@ import com.kshavrin.mymoney.core.designsystem.donut.CategorySlice
 import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.BalanceSnapshot
 import com.kshavrin.mymoney.core.domain.model.Currency
+import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.domain.model.Period
 import java.time.YearMonth
 
@@ -15,6 +16,8 @@ data class DashboardState(
     val currentCurrency: Currency? = null,
     val balanceSnapshot: BalanceSnapshot? = null,
     val slices: List<CategorySlice> = emptyList(),
+    val budgetAlertCategoryIds: Set<Long> = emptySet(),
+    val overBudgetAmount: Money? = null,
     val isLoading: Boolean = true,
     val leftDrawerOpen: Boolean = false,
     val rightDrawerOpen: Boolean = false,

@@ -29,10 +29,25 @@
     <string name="about_privacy_title">Privacy policy</string>
     <string name="about_help_title">Help</string>
     <string name="backup_title">Backup &amp; Restore</string>
+    <string name="backup_section_local_file">Local file</string>
+    <string name="backup_section_reset">Reset</string>
     <string name="backup_export_db">Export database (.db)</string>
     <string name="backup_import_db">Import database</string>
+    <string name="backup_export_csv">Export to CSV</string>
+    <string name="backup_import_csv">Import from CSV</string>
     <string name="backup_size_label">Database size: %s</string>
     <string name="backup_export_success">Backup saved</string>
+    <string name="backup_export_csv_success">CSV export saved</string>
+    <string name="backup_export_csv_error">CSV export failed</string>
+    <string name="backup_import_csv_success">CSV import completed</string>
+    <string name="backup_import_csv_error">CSV import failed</string>
     <string name="backup_import_success">Restored, restart app</string>
+    <string name="backup_reset_cta">Delete all data</string>
+    <string name="backup_reset_title">Delete all data?</string>
+    <string name="delete_database_message">Your data will be deleted completely including the data in Google Drive or Dropbox. Do you want to continue?</string>
+    <string name="backup_reset_confirm">Delete</string>
+    <string name="backup_reset_cancel">Cancel</string>
+    <string name="backup_reset_success">Data deleted, restart app</string>
+    <string name="backup_reset_error">Could not delete data</string>
     <string name="backup_error">Backup failed</string>
 </resources>

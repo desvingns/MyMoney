@@ -23,3 +23,10 @@
 
 # Compose stability
 -dontwarn androidx.compose.runtime.**
+
+# Optional transitive APIs not exercised by the app
+-dontwarn com.google.appengine.api.urlfetch.**
+-dontwarn com.squareup.okhttp.**
+-dontwarn jakarta.servlet.http.HttpSession
+-dontwarn javax.naming.**
+-dontwarn org.ietf.jgss.**

@@ -1,6 +1,6 @@
 package com.kshavrin.mymoney.core.designsystem.amountinput
 
-import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -35,7 +35,7 @@ fun MonefyAmountInput(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        Box(modifier = Modifier.fillMaxWidth()) {
             val fontSize: TextUnit = computeDisplayFontSize(display.length)
             val style: TextStyle = MaterialTheme.typography.headlineLarge.copy(
                 fontSize = fontSize,

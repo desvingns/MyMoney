@@ -7,12 +7,19 @@ class FakeBackupRepository : BackupRepository {
 
     val exportedUris: MutableList<String> = mutableListOf()
     val importedUris: MutableList<String> = mutableListOf()
+    val exportedCsvUris: MutableList<String> = mutableListOf()
+    val importedCsvUris: MutableList<String> = mutableListOf()
     val exportedFilePaths: MutableList<String> = mutableListOf()
     val importedFilePaths: MutableList<String> = mutableListOf()
     val rotatedUris: MutableList<String> = mutableListOf()
+    var clearDatabaseCalls: Int = 0
+        private set
 
     private var exportResult: Result<Unit> = Result.success(Unit)
     private var importResult: Result<Unit> = Result.success(Unit)
+    private var exportCsvResult: Result<Unit> = Result.success(Unit)
+    private var importCsvResult: Result<Unit> = Result.success(Unit)
+    private var clearDatabaseResult: Result<Unit> = Result.success(Unit)
     private var localBackups: List<BackupFile> = emptyList()
 
     fun simulateExportFailure(throwable: Throwable = RuntimeException("export failed")) {
@@ -21,6 +28,18 @@ class FakeBackupRepository : BackupRepository {
 
     fun simulateImportFailure(throwable: Throwable = RuntimeException("import failed")) {
         importResult = Result.failure(throwable)
+    }
+
+    fun simulateCsvExportFailure(throwable: Throwable = RuntimeException("csv export failed")) {
+        exportCsvResult = Result.failure(throwable)
+    }
+
+    fun simulateCsvImportFailure(throwable: Throwable = RuntimeException("csv import failed")) {
+        importCsvResult = Result.failure(throwable)
+    }
+
+    fun simulateClearDatabaseFailure(throwable: Throwable = RuntimeException("clear database failed")) {
+        clearDatabaseResult = Result.failure(throwable)
     }
 
     fun seedLocalBackups(backups: List<BackupFile>) {
@@ -42,6 +61,21 @@ class FakeBackupRepository : BackupRepository {
     override suspend fun rotateBackups(treeUriString: String): Result<Unit> {
         rotatedUris += treeUriString
         return exportResult
+    }
+
+    override suspend fun exportTransactionsCsv(documentUriString: String): Result<Unit> {
+        exportedCsvUris += documentUriString
+        return exportCsvResult
+    }
+
+    override suspend fun importTransactionsCsv(documentUriString: String): Result<Unit> {
+        importedCsvUris += documentUriString
+        return importCsvResult
+    }
+
+    override suspend fun clearDatabase(): Result<Unit> {
+        clearDatabaseCalls += 1
+        return clearDatabaseResult
     }
 
     override suspend fun exportToFile(destAbsolutePath: String): Result<Unit> {

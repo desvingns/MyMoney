@@ -29,10 +29,25 @@
     <string name="about_privacy_title">Политика конфиденциальности</string>
     <string name="about_help_title">Справка</string>
     <string name="backup_title">Резервное копирование</string>
+    <string name="backup_section_local_file">Локальный файл</string>
+    <string name="backup_section_reset">Сброс</string>
     <string name="backup_export_db">Экспорт базы данных (.db)</string>
     <string name="backup_import_db">Импорт базы данных</string>
+    <string name="backup_export_csv">Экспорт в CSV</string>
+    <string name="backup_import_csv">Импорт из CSV</string>
     <string name="backup_size_label">Размер базы данных: %s</string>
     <string name="backup_export_success">Резервная копия сохранена</string>
+    <string name="backup_export_csv_success">CSV-файл сохранён</string>
+    <string name="backup_export_csv_error">Не удалось экспортировать CSV</string>
+    <string name="backup_import_csv_success">Импорт CSV завершён</string>
+    <string name="backup_import_csv_error">Не удалось импортировать CSV</string>
     <string name="backup_import_success">Восстановлено, перезапустите приложение</string>
+    <string name="backup_reset_cta">Удалить все данные</string>
+    <string name="backup_reset_title">Удалить все данные?</string>
+    <string name="delete_database_message">Все данные будут удалены, включая данные в Google Drive или Dropbox. Продолжить?</string>
+    <string name="backup_reset_confirm">Удалить</string>
+    <string name="backup_reset_cancel">Отмена</string>
+    <string name="backup_reset_success">Данные удалены, перезапустите приложение</string>
+    <string name="backup_reset_error">Не удалось удалить данные</string>
     <string name="backup_error">Не удалось создать резервную копию</string>
 </resources>

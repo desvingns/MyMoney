@@ -4,6 +4,7 @@
     <string name="dashboard_transfer">Transfer</string>
     <string name="dashboard_search">Search</string>
     <string name="dashboard_settings_menu">Settings</string>
+    <string name="dashboard_over_budget">Over by %1$s</string>
 
     <string name="period_today">Today</string>
     <string name="period_week">Week</string>

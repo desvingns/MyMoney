@@ -95,4 +95,22 @@ class AppSettingsRepositoryTest {
         assertEquals(null, read.onboardingCompletedAt)
         assertEquals(null, read.lastSyncAt)
     }
+
+    @Test
+    fun `reset clears stored settings including the monotonic flag`() = runTest(UnconfinedTestDispatcher()) {
+        repository.update {
+            AppSettings(
+                language = "ru",
+                themeMode = "dark",
+                biometricLockEnabled = true,
+                lastSyncAt = 456L,
+                autoSyncEnabled = false,
+                firstPositiveSeen = true,
+            )
+        }
+
+        repository.reset()
+
+        assertEquals(AppSettings(), repository.settings.first())
+    }
 }

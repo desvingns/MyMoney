@@ -2,11 +2,13 @@ package com.kshavrin.mymoney.feature.dashboard
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
@@ -19,6 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -30,12 +33,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.kshavrin.mymoney.core.common.money.MoneyFormatter
 import com.kshavrin.mymoney.core.designsystem.confetti.MonefyConfetti
 import com.kshavrin.mymoney.core.designsystem.donut.MonefyDonutChart
 import com.kshavrin.mymoney.core.designsystem.pill.MonefyBalancePill
+import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.ui.feedback.LocalHapticPlayer
 import com.kshavrin.mymoney.core.ui.feedback.LocalSoundPlayer
 import com.kshavrin.mymoney.core.ui.haptic.HapticKind
@@ -47,6 +53,7 @@ import com.kshavrin.mymoney.feature.dashboard.components.RightDrawerContent
 import com.kshavrin.mymoney.feature.dashboard.components.TwoFabLayout
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -74,6 +81,7 @@ fun DashboardContent(
     val scope = rememberCoroutineScope()
     val soundPlayer = LocalSoundPlayer.current
     val hapticPlayer = LocalHapticPlayer.current
+    val resourceLocale = LocalConfiguration.current.locales[0]
 
     LaunchedEffect(state.leftDrawerOpen) {
         if (state.leftDrawerOpen) leftDrawerState.open() else leftDrawerState.close()
@@ -172,11 +180,30 @@ fun DashboardContent(
                         Spacer(modifier = Modifier.height(Spacing.m))
 
                         val balanceText = formatBalance(state)
-                        MonefyBalancePill(
-                            text = balanceText,
-                            isPositive = (state.balanceSnapshot?.net?.amount?.signum() ?: 1) >= 0,
-                            onClick = { onEvent(DashboardEvent.BalanceCardClicked) },
-                        )
+                        val overBudgetText = state.overBudgetAmount?.let { overage ->
+                            stringResource(R.string.dashboard_over_budget, formatMoney(overage, resourceLocale))
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            MonefyBalancePill(
+                                text = balanceText,
+                                isPositive = (state.balanceSnapshot?.net?.amount?.signum() ?: 1) >= 0,
+                                onClick = { onEvent(DashboardEvent.BalanceCardClicked) },
+                            )
+                            if (overBudgetText != null) {
+                                Spacer(modifier = Modifier.width(Spacing.s))
+                                Surface(
+                                    shape = MaterialTheme.shapes.extraLarge,
+                                    color = MaterialTheme.colorScheme.errorContainer,
+                                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                                ) {
+                                    Text(
+                                        text = overBudgetText,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                    )
+                                }
+                            }
+                        }
                         Spacer(modifier = Modifier.height(Spacing.l))
 
                         Box(
@@ -226,3 +253,10 @@ private fun formatBalance(state: DashboardState): String {
     val symbol = state.currentCurrency?.symbol ?: ""
     return "$symbol${net.amount.toPlainString()}"
 }
+
+private fun formatMoney(money: Money, locale: Locale): String = MoneyFormatter.format(
+    amount = money.amount,
+    currencySymbol = money.currency.symbol,
+    decimalDigits = money.currency.decimalDigits,
+    locale = locale,
+)

@@ -7,6 +7,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Category
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -15,7 +17,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -44,15 +49,19 @@ fun MonefyDonutChart(
     animationSpec: AnimationSpec<Float> = spring(dampingRatio = 0.7f, stiffness = 300f),
 ) {
     val arcs = remember(slices) { DonutGeometry.computeSliceArcs(slices) }
+    val animationKey = slices.map { it.categoryId to it.fraction }
     val progress = remember { Animatable(0f) }
     val textMeasurer = rememberTextMeasurer()
+    val categoryIconPainter = rememberVectorPainter(Icons.Filled.Category)
 
-    LaunchedEffect(slices) {
+    LaunchedEffect(animationKey) {
         progress.snapTo(0f)
         progress.animateTo(targetValue = 1f, animationSpec = animationSpec)
     }
 
     val outlineColor = MaterialTheme.colorScheme.outline
+    val budgetAlertColor = MaterialTheme.colorScheme.error
+    val badgeBorderColor = MaterialTheme.colorScheme.surface
 
     val chartHeader = stringResource(
         R.string.donut_chart_cd,
@@ -60,9 +69,11 @@ fun MonefyDonutChart(
         expense.toPlainString(),
     )
     val sliceTemplate = stringResource(R.string.donut_chart_slice)
-    val chartDescription = remember(chartHeader, sliceTemplate, slices) {
+    val budgetAlertLabel = stringResource(R.string.donut_chart_budget_alert)
+    val chartDescription = remember(chartHeader, sliceTemplate, budgetAlertLabel, slices) {
         val sliceText = slices.joinToString(separator = " ") { slice ->
-            String.format(sliceTemplate, slice.label, (slice.fraction * 100f).toInt())
+            val description = String.format(sliceTemplate, slice.label, (slice.fraction * 100f).toInt())
+            if (slice.hasBudgetAlert) "$description, $budgetAlertLabel" else description
         }
         if (sliceText.isEmpty()) chartHeader else "$chartHeader $sliceText"
     }
@@ -146,6 +157,7 @@ fun MonefyDonutChart(
                 val midRadians = DonutGeometry.midAngleRadians(arc)
                 val arcMidRadius = outerRadius - strokeWidth / 2f
                 val iconRadius = outerRadius + 24.dp.toPx()
+                val iconSize = 18.dp.toPx()
                 val arcMidPoint = Offset(
                     center.x + arcMidRadius * cos(midRadians),
                     center.y + arcMidRadius * sin(midRadians),
@@ -160,6 +172,33 @@ fun MonefyDonutChart(
                     end = iconCenter,
                     strokeWidth = 1.dp.toPx(),
                 )
+                translate(
+                    left = iconCenter.x - iconSize / 2f,
+                    top = iconCenter.y - iconSize / 2f,
+                ) {
+                    with(categoryIconPainter) {
+                        draw(
+                            size = Size(iconSize, iconSize),
+                            colorFilter = ColorFilter.tint(outlineColor),
+                        )
+                    }
+                }
+                if (arc.slice.hasBudgetAlert) {
+                    val badgeCenter = Offset(
+                        x = iconCenter.x + iconSize * 0.35f,
+                        y = iconCenter.y - iconSize * 0.35f,
+                    )
+                    drawCircle(
+                        color = badgeBorderColor,
+                        radius = 5.dp.toPx(),
+                        center = badgeCenter,
+                    )
+                    drawCircle(
+                        color = budgetAlertColor,
+                        radius = 3.5.dp.toPx(),
+                        center = badgeCenter,
+                    )
+                }
             }
         }
     }

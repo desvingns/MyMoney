@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kshavrin.mymoney.core.common.di.IoDispatcher
 import com.kshavrin.mymoney.core.common.exception.reportToSentry
+import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
+import com.kshavrin.mymoney.core.datastore.SecureStorage
 import com.kshavrin.mymoney.core.domain.repository.BackupRepository
 import com.kshavrin.mymoney.feature.settings.R
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -26,6 +28,8 @@ class BackupRestoreViewModel @Inject constructor(
     private val backupRepository: BackupRepository,
     @ApplicationContext private val context: Context,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+    private val appSettingsRepository: AppSettingsRepository,
+    private val secureStorage: SecureStorage,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(BackupRestoreState())
@@ -45,6 +49,17 @@ class BackupRestoreViewModel @Inject constructor(
         when (event) {
             is BackupRestoreEvent.ExportFolderPicked -> export(event.treeUriString)
             is BackupRestoreEvent.ImportFilePicked -> import(event.documentUriString)
+            is BackupRestoreEvent.ExportCsvFilePicked -> exportCsv(event.documentUriString)
+            is BackupRestoreEvent.ImportCsvFilePicked -> importCsv(event.documentUriString)
+            BackupRestoreEvent.ResetRequested -> {
+                _state.value = _state.value.copy(resetConfirmationVisible = true, errorBannerRes = null)
+            }
+            BackupRestoreEvent.ResetCancelled -> {
+                _state.value = _state.value.copy(resetConfirmationVisible = false)
+            }
+            BackupRestoreEvent.ResetConfirmed -> {
+                if (_state.value.resetConfirmationVisible) reset()
+            }
             BackupRestoreEvent.DismissError -> _state.value = _state.value.copy(errorBannerRes = null)
         }
     }
@@ -62,6 +77,30 @@ class BackupRestoreViewModel @Inject constructor(
         }
     }
 
+    private fun exportCsv(documentUriString: String) {
+        viewModelScope.launch {
+            _state.value = _state.value.copy(inProgress = true, errorBannerRes = null)
+            backupRepository.exportTransactionsCsv(documentUriString)
+                .onSuccess {
+                    _state.value = _state.value.copy(inProgress = false)
+                    _actions.emit(BackupRestoreAction.CsvExportSucceeded)
+                }
+                .onFailure { failure(it, R.string.backup_export_csv_error) }
+        }
+    }
+
+    private fun importCsv(documentUriString: String) {
+        viewModelScope.launch {
+            _state.value = _state.value.copy(inProgress = true, errorBannerRes = null)
+            backupRepository.importTransactionsCsv(documentUriString)
+                .onSuccess {
+                    _state.value = _state.value.copy(inProgress = false)
+                    _actions.emit(BackupRestoreAction.CsvImportSucceeded)
+                }
+                .onFailure { failure(it, R.string.backup_import_csv_error) }
+        }
+    }
+
     private fun import(documentUriString: String) {
         viewModelScope.launch {
             _state.value = _state.value.copy(inProgress = true, errorBannerRes = null)
@@ -74,9 +113,40 @@ class BackupRestoreViewModel @Inject constructor(
         }
     }
 
-    private fun failure(throwable: Throwable) {
+    private fun reset() {
+        viewModelScope.launch {
+            _state.value = _state.value.copy(
+                inProgress = true,
+                resetConfirmationVisible = false,
+                errorBannerRes = null,
+            )
+            val failures = mutableListOf<Throwable>()
+            runCatching { appSettingsRepository.reset() }
+                .exceptionOrNull()
+                ?.let(failures::add)
+            backupRepository.clearDatabase()
+                .exceptionOrNull()
+                ?.let(failures::add)
+            runCatching {
+                withContext(ioDispatcher) { secureStorage.clearAll() }
+            }.exceptionOrNull()
+                ?.let(failures::add)
+            failures.forEach { it.reportToSentry() }
+            _state.value = _state.value.copy(
+                inProgress = false,
+                errorBannerRes = if (failures.isEmpty()) null else R.string.backup_reset_error,
+            )
+            _actions.emit(BackupRestoreAction.RestartToOnboardingAfterReset(hadFailures = failures.isNotEmpty()))
+        }
+    }
+
+    private fun failure(throwable: Throwable, errorBannerRes: Int = R.string.backup_error) {
         throwable.reportToSentry()
-        _state.value = _state.value.copy(inProgress = false, errorBannerRes = R.string.backup_error)
+        _state.value = _state.value.copy(
+            inProgress = false,
+            resetConfirmationVisible = false,
+            errorBannerRes = errorBannerRes,
+        )
     }
 
     private fun refreshSize() {
@@ -97,15 +167,24 @@ data class BackupRestoreState(
     val dbSizeBytes: Long = 0L,
     val inProgress: Boolean = false,
     val errorBannerRes: Int? = null,
+    val resetConfirmationVisible: Boolean = false,
 )
 
 sealed interface BackupRestoreEvent {
     data class ExportFolderPicked(val treeUriString: String) : BackupRestoreEvent
     data class ImportFilePicked(val documentUriString: String) : BackupRestoreEvent
+    data class ExportCsvFilePicked(val documentUriString: String) : BackupRestoreEvent
+    data class ImportCsvFilePicked(val documentUriString: String) : BackupRestoreEvent
+    data object ResetRequested : BackupRestoreEvent
+    data object ResetCancelled : BackupRestoreEvent
+    data object ResetConfirmed : BackupRestoreEvent
     data object DismissError : BackupRestoreEvent
 }
 
 sealed interface BackupRestoreAction {
     data object ExportSucceeded : BackupRestoreAction
+    data object CsvExportSucceeded : BackupRestoreAction
+    data object CsvImportSucceeded : BackupRestoreAction
     data object RestartAfterRestore : BackupRestoreAction
+    data class RestartToOnboardingAfterReset(val hadFailures: Boolean) : BackupRestoreAction
 }

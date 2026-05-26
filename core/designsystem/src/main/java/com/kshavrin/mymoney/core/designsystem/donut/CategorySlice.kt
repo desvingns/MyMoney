@@ -7,4 +7,5 @@ data class CategorySlice(
     val color: Color,
     val fraction: Float,
     val label: String,
+    val hasBudgetAlert: Boolean = false,
 )

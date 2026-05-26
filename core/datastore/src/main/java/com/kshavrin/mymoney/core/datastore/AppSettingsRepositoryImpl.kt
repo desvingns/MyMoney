@@ -30,6 +30,10 @@ class AppSettingsRepositoryImpl @Inject constructor(
             next.writeTo(prefs)
         }
     }
+
+    override suspend fun reset() {
+        dataStore.edit { prefs -> prefs.clear() }
+    }
 }
 
 internal fun Preferences.toAppSettings(): AppSettings = AppSettings(

@@ -55,7 +55,7 @@ class SecureStorageImpl @Inject constructor(
     }
 
     override fun clearAll() {
-        prefs.edit().clear().apply()
+        check(prefs.edit().clear().commit()) { "Unable to clear secure storage" }
     }
 
     private companion object {

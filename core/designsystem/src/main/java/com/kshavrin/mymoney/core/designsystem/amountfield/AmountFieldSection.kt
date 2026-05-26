@@ -15,8 +15,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.kshavrin.mymoney.core.designsystem.R
@@ -26,7 +28,6 @@ import com.kshavrin.mymoney.core.designsystem.keypad.MonefyKeypad
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 data class AmountFieldState(
     val display: String,
@@ -45,8 +46,6 @@ sealed interface AmountFieldEvent {
     data object DateChipClicked : AmountFieldEvent
 }
 
-private val DATE_FORMAT = DateTimeFormatter.ofPattern("EEEE, d MMMM", Locale.getDefault())
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AmountFieldSection(
@@ -56,6 +55,9 @@ fun AmountFieldSection(
     noteLabel: String = stringResource(R.string.amountfield_note_hint),
     dateContentDescription: String = stringResource(R.string.amountfield_pick_date_cd),
 ) {
+    val locale = LocalConfiguration.current.locales[0]
+    val dateFormat = remember(locale) { DateTimeFormatter.ofPattern("EEEE, d MMMM", locale) }
+
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(Spacing.m),
@@ -84,7 +86,7 @@ fun AmountFieldSection(
             )
             AssistChip(
                 onClick = { onEvent(AmountFieldEvent.DateChipClicked) },
-                label = { Text(state.occurredAt.format(DATE_FORMAT)) },
+                label = { Text(state.occurredAt.format(dateFormat)) },
                 leadingIcon = {
                     Icon(
                         Icons.Filled.CalendarToday,

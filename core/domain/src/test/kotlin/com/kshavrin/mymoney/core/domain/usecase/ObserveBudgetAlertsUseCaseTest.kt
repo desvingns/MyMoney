@@ -18,6 +18,8 @@ import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.math.BigDecimal
@@ -130,7 +132,7 @@ class ObserveBudgetAlertsUseCaseTest {
         budgetRepo.seed(categoryBudget(alertThresholdPct = 80))
 
         val useCase = createUseCase(testScheduler)
-        useCase(accountId, period).test {
+        useCase(accountId, currentMonth = { period.yearMonth }).test {
             assertEquals(emptyList<DomainEvent.BudgetAlert>(), awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
@@ -142,22 +144,42 @@ class ObserveBudgetAlertsUseCaseTest {
         budgetRepo.seed(categoryBudget(id = 1L, categoryId = 100L, amount = "100.00", alertThresholdPct = 80))
 
         val useCase = createUseCase(testScheduler)
-        useCase(accountId, period).test {
-            val alerts = awaitItem()
-            assertEquals(listOf(DomainEvent.BudgetAlert(budgetId = 1L, categoryId = 100L, over = false)), alerts)
+        useCase(accountId, currentMonth = { period.yearMonth }).test {
+            val alert = awaitItem().single()
+            assertEquals(DomainEvent.BudgetAlert(budgetId = 1L, categoryId = 100L, over = false), alert)
+            assertNull(alert.overage)
             cancelAndIgnoreRemainingEvents()
         }
     }
 
     @Test
-    fun `emits an over alert when spending reaches the limit`() = runTest {
+    fun `emits a zero overage when spending reaches the limit`() = runTest {
         transactionRepo.seedExpenseSummary(expense(categoryId = 100L, total = "100.00"))
         budgetRepo.seed(categoryBudget(id = 1L, categoryId = 100L, amount = "100.00", alertThresholdPct = 80))
 
         val useCase = createUseCase(testScheduler)
-        useCase(accountId, period).test {
-            val alerts = awaitItem()
-            assertEquals(listOf(DomainEvent.BudgetAlert(budgetId = 1L, categoryId = 100L, over = true)), alerts)
+        useCase(accountId, currentMonth = { period.yearMonth }).test {
+            val alert = awaitItem().single()
+            assertTrue(alert.over)
+            assertNotNull(alert.overage)
+            assertEquals(currency, alert.overage!!.currency)
+            assertEquals(0, BigDecimal.ZERO.compareTo(alert.overage!!.amount))
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `emits spent minus limit as overage in the account currency when spending exceeds the limit`() = runTest {
+        transactionRepo.seedExpenseSummary(expense(categoryId = 100L, total = "125.50"))
+        budgetRepo.seed(categoryBudget(id = 1L, categoryId = 100L, amount = "100.00", alertThresholdPct = 80))
+
+        val useCase = createUseCase(testScheduler)
+        useCase(accountId, currentMonth = { period.yearMonth }).test {
+            val alert = awaitItem().single()
+            assertTrue(alert.over)
+            assertNotNull(alert.overage)
+            assertEquals(currency, alert.overage!!.currency)
+            assertEquals(0, BigDecimal("25.50").compareTo(alert.overage!!.amount))
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -176,7 +198,7 @@ class ObserveBudgetAlertsUseCaseTest {
         )
 
         val useCase = createUseCase(testScheduler)
-        useCase(accountId, period).test {
+        useCase(accountId, currentMonth = { period.yearMonth }).test {
             val alerts = awaitItem()
             assertEquals(listOf(DomainEvent.BudgetAlert(budgetId = 2L, categoryId = 101L, over = false)), alerts)
             cancelAndIgnoreRemainingEvents()
@@ -193,7 +215,7 @@ class ObserveBudgetAlertsUseCaseTest {
         budgetRepo.seed(totalBudget(id = 5L, amount = "100.00", alertThresholdPct = 80))
 
         val useCase = createUseCase(testScheduler)
-        useCase(accountId, period).test {
+        useCase(accountId, currentMonth = { period.yearMonth }).test {
             val alerts = awaitItem()
             assertEquals(listOf(DomainEvent.BudgetAlert(budgetId = 5L, categoryId = null, over = false)), alerts)
             cancelAndIgnoreRemainingEvents()
@@ -206,7 +228,7 @@ class ObserveBudgetAlertsUseCaseTest {
         budgetRepo.seed(categoryBudget(id = 1L, categoryId = 100L, amount = "100.00", alertThresholdPct = 80))
 
         val useCase = createUseCase(testScheduler)
-        useCase(accountId, period).test {
+        useCase(accountId, currentMonth = { period.yearMonth }).test {
             assertEquals(
                 listOf(DomainEvent.BudgetAlert(budgetId = 1L, categoryId = 100L, over = false)),
                 awaitItem(),
@@ -216,10 +238,11 @@ class ObserveBudgetAlertsUseCaseTest {
             transactionRepo.seedExpenseSummary(expense(categoryId = 100L, total = "120.00"))
             transactionRepo.upsert(transaction(id = 0L, amount = "35.00"))
 
-            assertEquals(
-                listOf(DomainEvent.BudgetAlert(budgetId = 1L, categoryId = 100L, over = true)),
-                awaitItem(),
-            )
+            val alert = awaitItem().single()
+            assertTrue(alert.over)
+            assertNotNull(alert.overage)
+            assertEquals(currency, alert.overage!!.currency)
+            assertEquals(0, BigDecimal("20.00").compareTo(alert.overage!!.amount))
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -230,7 +253,7 @@ class ObserveBudgetAlertsUseCaseTest {
         budgetRepo.seed(categoryBudget(id = 1L, categoryId = 100L, amount = "100.00", alertThresholdPct = 80))
 
         val useCase = createUseCase(testScheduler)
-        useCase(accountId, period).test {
+        useCase(accountId, currentMonth = { period.yearMonth }).test {
             assertEquals(
                 listOf(DomainEvent.BudgetAlert(budgetId = 1L, categoryId = 100L, over = false)),
                 awaitItem(),

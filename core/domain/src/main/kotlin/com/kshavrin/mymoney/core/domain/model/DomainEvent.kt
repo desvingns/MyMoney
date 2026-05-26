@@ -5,5 +5,6 @@ sealed interface DomainEvent {
         val budgetId: Long,
         val categoryId: Long?,
         val over: Boolean,
+        val overage: Money? = null,
     ) : DomainEvent
 }

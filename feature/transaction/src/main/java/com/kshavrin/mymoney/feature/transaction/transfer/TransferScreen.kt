@@ -1,6 +1,7 @@
 package com.kshavrin.mymoney.feature.transaction.transfer
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -38,6 +39,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.changedToUp
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -88,6 +96,8 @@ fun TransferScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var datePickerVisible by remember { mutableStateOf(false) }
     var keypadVisible by remember { mutableStateOf(false) }
+    val amountFocusRequester = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
     val soundPlayer = LocalSoundPlayer.current
     val hapticPlayer = LocalHapticPlayer.current
 
@@ -146,7 +156,17 @@ fun TransferScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .padding(Spacing.l)
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(rememberScrollState())
+                .pointerInput(Unit) {
+                    awaitPointerEventScope {
+                        while (true) {
+                            val event = awaitPointerEvent(PointerEventPass.Final)
+                            if (event.changes.any { it.changedToUp() }) {
+                                focusManager.clearFocus()
+                            }
+                        }
+                    }
+                },
             verticalArrangement = Arrangement.spacedBy(Spacing.m),
         ) {
             Card(modifier = Modifier.fillMaxWidth()) {
@@ -162,9 +182,18 @@ fun TransferScreen(
                             state.sourceCurrency?.code,
                         ),
                     ),
-                    onEvent = { e -> dispatchAmountEvent(e, onEvent) { datePickerVisible = true } },
+                    onEvent = { e ->
+                        if (e is AmountFieldEvent.AccountChipClicked || e is AmountFieldEvent.DateChipClicked) {
+                            focusManager.clearFocus()
+                        }
+                        dispatchAmountEvent(e, onEvent) { datePickerVisible = true }
+                    },
                     modifier = Modifier.padding(Spacing.m),
-                    amountInputModifier = Modifier.clickable { keypadVisible = true },
+                    amountInputModifier = Modifier
+                        .focusRequester(amountFocusRequester)
+                        .onFocusChanged { keypadVisible = it.isFocused }
+                        .focusable()
+                        .clickable { amountFocusRequester.requestFocus() },
                     showKeypad = keypadVisible,
                 )
             }
@@ -173,6 +202,7 @@ fun TransferScreen(
                 label = stringResource(R.string.source_label),
                 selected = state.sourceAccount,
                 options = state.accounts,
+                onOpen = { focusManager.clearFocus() },
                 onSelected = { onEvent(TransferEvent.SourceAccountChanged(it.id)) },
             )
 
@@ -180,6 +210,7 @@ fun TransferScreen(
                 label = stringResource(R.string.target_label),
                 selected = state.targetAccount,
                 options = state.accounts,
+                onOpen = { focusManager.clearFocus() },
                 onSelected = { onEvent(TransferEvent.TargetAccountChanged(it.id)) },
             )
 
@@ -207,7 +238,10 @@ fun TransferScreen(
                             text = state.ratePreviewText,
                             style = MaterialTheme.typography.titleMedium,
                         )
-                        TextButton(onClick = { onEvent(TransferEvent.ChangeRateClicked) }) {
+                        TextButton(onClick = {
+                            focusManager.clearFocus()
+                            onEvent(TransferEvent.ChangeRateClicked)
+                        }) {
                             Text(stringResource(R.string.transfer_change_rate_cta))
                         }
                     }
@@ -248,6 +282,7 @@ private fun AccountDropdown(
     label: String,
     selected: Account?,
     options: List<Account>,
+    onOpen: () -> Unit,
     onSelected: (Account) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -257,7 +292,10 @@ private fun AccountDropdown(
             style = MaterialTheme.typography.labelMedium,
         )
         OutlinedButton(
-            onClick = { expanded = true },
+            onClick = {
+                onOpen()
+                expanded = true
+            },
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text(

@@ -110,6 +110,23 @@ class TransferScreenUiTest {
         }
     }
 
+    @Test
+    fun `note focus hides revealed transfer keypad`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                TransferScreen(
+                    state = TransferState(),
+                    onEvent = {},
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText("0").performClick()
+        composeTestRule.onNodeWithText("1").assertIsDisplayed()
+        composeTestRule.onNodeWithText(targetString(DesignSystemR.string.amountfield_note_hint)).performClick()
+        composeTestRule.onNodeWithText("1").assertDoesNotExist()
+    }
+
     private fun targetString(resourceId: Int): String =
         InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)
 }

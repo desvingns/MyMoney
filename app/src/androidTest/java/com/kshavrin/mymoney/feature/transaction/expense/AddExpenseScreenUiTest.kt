@@ -62,6 +62,29 @@ class AddExpenseScreenUiTest {
     }
 
     @Test
+    fun `keypad backspace emits expense backspace event`() {
+        val capturedEvents = mutableListOf<AddExpenseEvent>()
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                AddExpenseScreen(
+                    state = AddExpenseState(),
+                    onEvent = { event -> capturedEvents += event },
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithContentDescription(targetString(DesignSystemR.string.keypad_backspace_cd))
+            .performScrollTo()
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(AddExpenseEvent.KeypadBackspace), capturedEvents)
+        }
+    }
+
+    @Test
     fun `top bar controls emit back then swap events in order`() {
         val capturedEvents = mutableListOf<AddExpenseEvent>()
 

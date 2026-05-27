@@ -2,8 +2,11 @@ package com.kshavrin.mymoney.feature.onboarding
 
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasStateDescription
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
@@ -78,6 +81,34 @@ class OnboardingContentUiTest {
     }
 
     @Test
+    fun `pager indicator describes the selected page after tapping next`() {
+        composeTestRule.setContent {
+            val pagerState = rememberPagerState(initialPage = 0, pageCount = { 4 })
+            val coroutineScope = rememberCoroutineScope()
+
+            MyMoneyTheme {
+                OnboardingContent(
+                    pagerState = pagerState,
+                    currentPage = pagerState.currentPage,
+                    coroutineScope = coroutineScope,
+                    onGetStarted = {},
+                )
+            }
+        }
+
+        val indicatorDescription = targetString(R.string.onboarding_pager_indicator_description)
+        composeTestRule
+            .onNodeWithContentDescription(indicatorDescription)
+            .assert(hasStateDescription(targetString(R.string.onboarding_pager_indicator_state, 1, 4)))
+
+        composeTestRule.onNodeWithText(targetString(R.string.onboarding_next)).performClick()
+
+        composeTestRule
+            .onNodeWithContentDescription(indicatorDescription)
+            .assert(hasStateDescription(targetString(R.string.onboarding_pager_indicator_state, 2, 4)))
+    }
+
+    @Test
     fun `swiping from the first slide advances without completing onboarding`() {
         var completionCalls = 0
 
@@ -135,6 +166,6 @@ class OnboardingContentUiTest {
         }
     }
 
-    private fun targetString(resourceId: Int): String =
-        InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)
+    private fun targetString(resourceId: Int, vararg formatArgs: Any): String =
+        InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId, *formatArgs)
 }

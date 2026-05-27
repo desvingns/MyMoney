@@ -31,7 +31,7 @@ worker test backlog across sessions.
 | 2026-05-27 | S02 period controls green, 2/2 suite | `PeriodStripUiTest` confirms `Today`, `Week`, `Month`, `Year`, `All`, plus AS-12 custom range selection on `Pixel_5_API_34`. |
 | 2026-05-27 | S06 stable direct controls green, 7/7 | `AddExpenseScreenUiTest` confirms keypad taps, backspace, category CTA disabled/enabled behavior, Back/Swap events, date selection, and note input on `Pixel_5_API_34`. |
 | 2026-05-27 | S07 stable direct controls green, 7/7 | `AddIncomeScreenUiTest` confirms keypad taps, backspace, category CTA disabled/enabled behavior, Back/Swap events, date selection, and note input on `Pixel_5_API_34`. |
-| 2026-05-27 | S03 keypad/note/date controls green, 7/7 | `TransferScreenUiTest` confirms Back, initial disabled Save, amount-press keypad reveal/digit, revealed backspace, note-focus dismissal/input, and date selection with keypad dismissal on `Pixel_5_API_34`; the complete BR-23 fix is in `9dea4d7`. |
+| 2026-05-27 | S03 keypad/form controls green, 8/8 | `TransferScreenUiTest` confirms Back, initial disabled Save, keypad reveal/digit/backspace, note-focus dismissal/input, date selection, and source-account selection with keypad dismissal on `Pixel_5_API_34`; the complete BR-23 fix is in `9dea4d7`. |
 | 2026-05-27 | UTP-safe device runner established | Direct remote serial causes AGP 8.7.3 UTP profile-path failure; `scripts/run_connected_test_on_host_avd.ps1` proxies host ADB so Gradle uses `emulator-5554` and waits 60 seconds after each run. |
 
 ## Delivery Order
@@ -40,7 +40,7 @@ worker test backlog across sessions.
 |---|---|---|---|
 | 0 | Pattern A infrastructure: Hilt runner, isolated database/settings, `MainActivity` launch gate | Pending | - |
 | 1 | S00/S11/S01/S06 critical flow: onboarding -> dashboard -> add expense -> updated balance | In progress | S11 5/5; S01/S04 + AS-2 7/7; S02 2/2; S06 stable controls 7/7 green 2026-05-27; account/error seams and Pattern A pending |
-| 2 | Transaction forms S07/S03/S09/S27, including AS-4 and AS-6 paths | In progress | S07 stable controls 7/7; S03 keypad/note/date controls 7/7 green 2026-05-27; S03 dropdown/rate/save-valid controls, S09/S27, AS-4/AS-6, and error seams pending |
+| 2 | Transaction forms S07/S03/S09/S27, including AS-4 and AS-6 paths | In progress | S07 stable controls 7/7; S03 keypad/form controls 8/8 green 2026-05-27; S03 target dropdown/rate/save-valid controls, S09/S27, AS-4/AS-6, and error seams pending |
 | 3 | Dictionaries S21-S26 CRUD and validation controls | Pending | - |
 | 4 | List/detail/search/settings/lock/sync/backup plus worker instrumentation | Pending | - |
 | 5 | Manual QA, minified release walk, macrobenchmark/Baseline Profile | Pending | - |
@@ -59,7 +59,7 @@ entry identifies coverage already recorded before this tracker was created.
 | S04 Right drawer | Categories, Accounts, Currencies, Settings/About tiles | Green: five rows covered | n/a | n/a | `DashboardContentUiTest` right-drawer group green 2026-05-27 |
 | S06 Add expense | back, swap, date, note, keypad keys/backspace, choose category | Partial green: stable controls 7/7 | Zero-amount category disabled green | Blocked by missing retry UI | `AddExpenseScreenUiTest` 7/7 green 2026-05-27; account-chip event seam missing; critical E2E pending |
 | S07 Add income | back, swap, date, note, keypad/backspace, choose category | Partial green: stable controls 7/7 | Zero-amount category disabled green | Blocked by missing retry UI | `AddIncomeScreenUiTest` 7/7 green 2026-05-27; account-chip event seam missing; AS-4 E2E pending |
-| S03 Transfer | back, account pickers, keypad, rate/change, save | Partial green: Back, initial disabled Save, keypad reveal/digit/backspace, note focus/input, date selection 7/7 | Pending | Pending | `TransferScreenUiTest` 7/7 green 2026-05-27; BR-23 focus-dismissal defect fixed in `9dea4d7` and re-reviewed green; account pickers/rate/save-valid controls and AS-6/AS-7 E2E pending |
+| S03 Transfer | back, account pickers, keypad, rate/change, save | Partial green: Back, initial disabled Save, keypad reveal/digit/backspace, note focus/input, date, source account 8/8 | Pending | Pending | `TransferScreenUiTest` 8/8 green 2026-05-27; BR-23 focus-dismissal defect fixed in `9dea4d7` and re-reviewed green; target account/rate/save-valid controls and AS-6/AS-7 E2E pending |
 | S09 Category picker | category cell, add, back, context actions | Pending | Pending | n/a | AS-4 pending |
 | S27 Currency rate | amount input, save, back | Pending | n/a | Pending | Slice 2 |
 | S08 Search | back, query/clear, voice affordance, result row, chips | Pending | Pending | Pending | Slice 4 |
@@ -161,17 +161,21 @@ entry identifies coverage already recorded before this tracker was created.
   retry action is not present in the S07 UI/event contract; AS-4 navigation
   remains an E2E slice.
 - Continued S03 form coverage in `7d70c4d`, `35fa5df`, `b8924e2`,
-  `17b2117`, `9e624bf`, `9dea4d7`, `8525ac2`, and `7e26544`: Back dispatches
+  `17b2117`, `9e624bf`, `9dea4d7`, `8525ac2`, `7e26544`, `62e9c85`,
+  and `7c93b50`: Back dispatches
   `TransferEvent.BackClicked`, Save is disabled for the empty initial state,
   amount focus reveals keypad digit/backspace controls, and moving focus to
   the note field hides the keypad and typing there emits
   `TransferEvent.NoteChanged`; selecting a date hides a revealed keypad and
-  emits `TransferEvent.DateChanged`. Native review caught that the first
+  emits `TransferEvent.DateChanged`; selecting a source account hides the
+  keypad and emits `TransferEvent.SourceAccountChanged`. Native review caught that the first
   visibility fix was a one-way latch against BR-23; `9dea4d7` replaces it
   with amount-focus state plus dismissal for alternative form interactions,
   and the reviewer rechecked it without findings. Scoped
-  `TransferScreenUiTest` passed `7/7`, and S06/S07 shared-component
+  `TransferScreenUiTest` passed `8/8`, and S06/S07 shared-component
   regression reruns passed `7/7` each, all with `0` failed/skipped on
   `Pixel_5_API_34`. An earlier S03 compile attempt failed due to an invalid
-  assertion import; `17b2117` corrected it, and every attempt still
-  completed the helper's required 60-second pause.
+  assertion imports; `17b2117` and `7c93b50` corrected them. The first
+  8-test device execution hit an emulator `HardwareRenderer` teardown
+  watchdog in an unchanged previously green test; an unchanged rerun passed
+  `8/8`. Every attempt still completed the helper's required 60-second pause.

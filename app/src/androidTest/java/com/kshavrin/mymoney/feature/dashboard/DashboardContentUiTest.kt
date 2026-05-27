@@ -1,10 +1,12 @@
 package com.kshavrin.mymoney.feature.dashboard
 
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -114,6 +116,51 @@ class DashboardContentUiTest {
 
         composeTestRule.runOnIdle {
             assertEquals(listOf(DashboardEvent.SearchClicked), capturedEvents)
+        }
+    }
+
+    @Test
+    fun `right drawer rows display and emit their destination events`() {
+        val capturedEvents = mutableListOf<DashboardEvent>()
+        val drawerRows = listOf(
+            R.string.right_drawer_settings,
+            R.string.right_drawer_categories,
+            R.string.right_drawer_accounts,
+            R.string.right_drawer_currencies,
+            R.string.right_drawer_about,
+        )
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state = DashboardState(isLoading = false),
+                    onEvent = { event -> capturedEvents += event },
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.dashboard_settings_menu))
+            .performClick()
+
+        drawerRows.forEach { resourceId ->
+            composeTestRule.onNodeWithText(targetString(resourceId)).assertIsDisplayed()
+        }
+        drawerRows.forEach { resourceId ->
+            composeTestRule.onNodeWithText(targetString(resourceId)).performClick()
+        }
+
+        composeTestRule.runOnIdle {
+            assertEquals(
+                listOf(
+                    DashboardEvent.SettingsClicked,
+                    DashboardEvent.CategoriesClicked,
+                    DashboardEvent.AccountsClicked,
+                    DashboardEvent.CurrenciesClicked,
+                    DashboardEvent.AboutClicked,
+                ),
+                capturedEvents,
+            )
         }
     }
 

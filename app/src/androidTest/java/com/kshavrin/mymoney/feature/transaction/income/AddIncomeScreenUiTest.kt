@@ -8,6 +8,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
@@ -138,6 +139,28 @@ class AddIncomeScreenUiTest {
 
         composeTestRule.runOnIdle {
             assertEquals(listOf(AddIncomeEvent.DateChanged(chosenDate)), capturedEvents)
+        }
+    }
+
+    @Test
+    fun `entering a note emits income note changed event`() {
+        val capturedEvents = mutableListOf<AddIncomeEvent>()
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                AddIncomeScreen(
+                    state = AddIncomeState(),
+                    onEvent = { event -> capturedEvents += event },
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithText(targetString(DesignSystemR.string.amountfield_note_hint))
+            .performTextInput("Salary")
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(AddIncomeEvent.NoteChanged("Salary")), capturedEvents)
         }
     }
 

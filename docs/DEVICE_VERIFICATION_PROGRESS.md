@@ -27,6 +27,8 @@ worker test backlog across sessions.
 | 2026-05-27 | Device access recovered | Verified `adb connect 10.0.2.2:5555` from the NAT-only guest; serial `10.0.2.2:5555` reports `Pixel_5_API_34`, API 34, boot complete. |
 | 2026-05-27 | S11 interaction coverage green, 5/5 | `OnboardingContentUiTest` covers `Skip`, `Next`, `Get Started`, pager swipe, and indicator state on `Pixel_5_API_34`; report: `app/build/reports/androidTests/connected/debug/index.html`. |
 | 2026-05-27 | S01/S04 empty-state controls green, 6/6 | `DashboardContentUiTest` confirms enabled Add Expense, Add Income, both Transfer affordances, Search, all five right-drawer destinations, and left-drawer Manage accounts on `Pixel_5_API_34`; report: `app/build/reports/androidTests/connected/debug/index.html`. |
+| 2026-05-27 | S01 AS-2 balance card green, 7/7 suite | `DashboardContentUiTest` now confirms a populated balance pill emits `BalanceCardClicked`; full dashboard suite passed `7/7` on `Pixel_5_API_34`. |
+| 2026-05-27 | S02 period controls green, 2/2 suite | `PeriodStripUiTest` confirms `Today`, `Week`, `Month`, `Year`, `All`, plus AS-12 custom range selection on `Pixel_5_API_34`. |
 | 2026-05-27 | UTP-safe device runner established | Direct remote serial causes AGP 8.7.3 UTP profile-path failure; `scripts/run_connected_test_on_host_avd.ps1` proxies host ADB so Gradle uses `emulator-5554` and waits 60 seconds after each run. |
 
 ## Delivery Order
@@ -34,7 +36,7 @@ worker test backlog across sessions.
 | Slice | Scope | Status | Device run/report |
 |---|---|---|---|
 | 0 | Pattern A infrastructure: Hilt runner, isolated database/settings, `MainActivity` launch gate | Pending | - |
-| 1 | S00/S11/S01/S06 critical flow: onboarding -> dashboard -> add expense -> updated balance | In progress | S11 complete 5/5; S01/S04 empty-state controls 6/6 green 2026-05-27; data-driven controls and Pattern A pending |
+| 1 | S00/S11/S01/S06 critical flow: onboarding -> dashboard -> add expense -> updated balance | In progress | S11 complete 5/5; S01/S04 controls + AS-2 balance 7/7; S02 period controls 2/2 green 2026-05-27; remaining data controls and Pattern A pending |
 | 2 | Transaction forms S07/S03/S09/S27, including AS-4 and AS-6 paths | Pending | - |
 | 3 | Dictionaries S21-S26 CRUD and validation controls | Pending | - |
 | 4 | List/detail/search/settings/lock/sync/backup plus worker instrumentation | Pending | - |
@@ -49,8 +51,8 @@ entry identifies coverage already recorded before this tracker was created.
 |---|---|:---:|:---:|:---:|---|
 | S00 Splash | startup routing | Pending | n/a | Pending | Slice 0/1 |
 | S11 Onboarding | Skip, Next, Get Started, pager | Green: 5/5 | n/a | n/a | `OnboardingContentUiTest`, 5/5 green 2026-05-27; indicator semantic state added in `c3f74b1`, regression in `a0a53ea` |
-| S01/S05 Dashboard | expense/income FABs, search, transfer, balance, donut slice, drawers | Partial green: empty-state controls 6/6 | Empty-state controls green | Pending | `DashboardContentUiTest` 6/6 green 2026-05-27; donut semantics existing green 2026-05-26 in `:core:designsystem` |
-| S02 Period drawer | period choices, Pick a date, apply range | Existing green 2026-05-26 | n/a | Pending | AS-12 covered by `PeriodStripUiTest` |
+| S01/S05 Dashboard | expense/income FABs, search, transfer, balance, donut slice, drawers | Partial green: controls + balance 7/7 | Empty-state controls green | Pending | `DashboardContentUiTest` 7/7 green 2026-05-27; AS-2 balance pill covered; donut semantics existing green 2026-05-26 in `:core:designsystem` |
+| S02 Period drawer | period choices, Pick a date, apply range | Green: 2/2 suite | n/a | Pending | `PeriodStripUiTest` covers ordinary chips plus AS-12 custom range on 2026-05-27 |
 | S04 Right drawer | Categories, Accounts, Currencies, Settings/About tiles | Green: five rows covered | n/a | n/a | `DashboardContentUiTest` right-drawer group green 2026-05-27 |
 | S06 Add expense | back, swap, date, keypad keys/backspace, choose category | Pending | Pending | Pending | Critical E2E pending |
 | S07 Add income | back, swap, date, keypad, choose category | Pending | Pending | Pending | Slice 2 |
@@ -128,3 +130,11 @@ entry identifies coverage already recorded before this tracker was created.
   `b972ef2`,
   with `0` failed/skipped on `Pixel_5_API_34`, after the helper completed its
   required 60-second pause. Data-driven controls are pending.
+- Added populated-dashboard AS-2 coverage in `49868ca`: tapping the visible
+  balance pill emits `DashboardEvent.BalanceCardClicked`. The scoped
+  `DashboardContentUiTest` suite passed `7/7` with `0` failed/skipped on
+  `Pixel_5_API_34`, after the helper completed its required 60-second pause.
+- Added the five ordinary S02 period-chip callbacks in `4f35410` alongside the
+  existing AS-12 `Pick a date` range selection test. Scoped `PeriodStripUiTest`
+  execution passed `2/2` with `0` failed/skipped on `Pixel_5_API_34`, after
+  the helper completed its required 60-second pause.

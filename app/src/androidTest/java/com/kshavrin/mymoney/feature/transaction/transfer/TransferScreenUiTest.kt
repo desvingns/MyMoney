@@ -8,6 +8,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
@@ -125,6 +126,28 @@ class TransferScreenUiTest {
         composeTestRule.onNodeWithText("1").assertIsDisplayed()
         composeTestRule.onNodeWithText(targetString(DesignSystemR.string.amountfield_note_hint)).performClick()
         composeTestRule.onNodeWithText("1").assertDoesNotExist()
+    }
+
+    @Test
+    fun `entering a note emits transfer note changed event`() {
+        val capturedEvents = mutableListOf<TransferEvent>()
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                TransferScreen(
+                    state = TransferState(),
+                    onEvent = { event -> capturedEvents += event },
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithText(targetString(DesignSystemR.string.amountfield_note_hint))
+            .performTextInput("Move funds")
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(TransferEvent.NoteChanged("Move funds")), capturedEvents)
+        }
     }
 
     private fun targetString(resourceId: Int): String =

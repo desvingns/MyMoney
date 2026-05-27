@@ -61,6 +61,36 @@ class AddIncomeScreenUiTest {
     }
 
     @Test
+    fun `top bar controls emit back then swap events in order`() {
+        val capturedEvents = mutableListOf<AddIncomeEvent>()
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                AddIncomeScreen(
+                    state = AddIncomeState(),
+                    onEvent = { event -> capturedEvents += event },
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.back))
+            .assertIsEnabled()
+            .performClick()
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.swap_mode))
+            .assertIsEnabled()
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(
+                listOf(AddIncomeEvent.BackClicked, AddIncomeEvent.SwapMode),
+                capturedEvents,
+            )
+        }
+    }
+
+    @Test
     fun `keypad backspace emits income backspace event`() {
         val capturedEvents = mutableListOf<AddIncomeEvent>()
 

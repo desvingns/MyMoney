@@ -3,6 +3,7 @@ package com.kshavrin.mymoney.feature.transaction.expense
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -52,6 +53,36 @@ class AddExpenseScreenUiTest {
                     AddExpenseEvent.KeypadDigit(3),
                     AddExpenseEvent.KeypadEquals,
                 ),
+                capturedEvents,
+            )
+        }
+    }
+
+    @Test
+    fun `top bar controls emit back then swap events in order`() {
+        val capturedEvents = mutableListOf<AddExpenseEvent>()
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                AddExpenseScreen(
+                    state = AddExpenseState(),
+                    onEvent = { event -> capturedEvents += event },
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.back))
+            .assertIsEnabled()
+            .performClick()
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.swap_mode))
+            .assertIsEnabled()
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(
+                listOf(AddExpenseEvent.BackClicked, AddExpenseEvent.SwapMode),
                 capturedEvents,
             )
         }

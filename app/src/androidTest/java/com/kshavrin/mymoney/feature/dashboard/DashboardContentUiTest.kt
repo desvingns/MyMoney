@@ -1,7 +1,9 @@
 package com.kshavrin.mymoney.feature.dashboard
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -61,6 +63,34 @@ class DashboardContentUiTest {
 
         composeTestRule.runOnIdle {
             assertEquals(listOf(DashboardEvent.PlusFabClicked), capturedEvents)
+        }
+    }
+
+    @Test
+    fun `both transfer buttons stay enabled in empty dashboard and emit transfer events`() {
+        val capturedEvents = mutableListOf<DashboardEvent>()
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state = DashboardState(isLoading = false),
+                    onEvent = { event -> capturedEvents += event },
+                )
+            }
+        }
+
+        val transferButtons = composeTestRule
+            .onAllNodesWithContentDescription(targetString(R.string.dashboard_transfer))
+
+        transferButtons.assertCountEquals(2)
+        transferButtons[0].assertIsEnabled().performClick()
+        transferButtons[1].assertIsEnabled().performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(
+                listOf(DashboardEvent.TransferClicked, DashboardEvent.TransferClicked),
+                capturedEvents,
+            )
         }
     }
 

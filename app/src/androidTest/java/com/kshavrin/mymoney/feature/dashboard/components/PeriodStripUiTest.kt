@@ -14,7 +14,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
@@ -52,6 +54,39 @@ class PeriodStripUiTest {
             val range = selectedPeriod as Period.CustomRange
             assertEquals(firstDay, range.start)
             assertEquals(secondDay, range.end)
+        }
+    }
+
+    @Test
+    fun `ordinary period chips emit each corresponding period in order`() {
+        val currentDate = LocalDate.now()
+        val selectedPeriods = mutableListOf<Period>()
+        val expectedSelections = listOf(
+            R.string.period_today to Period.Day(currentDate),
+            R.string.period_week to Period.Week(currentDate.with(DayOfWeek.MONDAY)),
+            R.string.period_month to Period.Month(YearMonth.from(currentDate)),
+            R.string.period_year to Period.Year(currentDate.year),
+            R.string.period_all to Period.All,
+        )
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                PeriodStrip(
+                    currentPeriod = Period.All,
+                    onPeriodChange = { selectedPeriods += it },
+                )
+            }
+        }
+
+        expectedSelections.forEach { (resourceId, _) ->
+            composeTestRule
+                .onNodeWithText(targetString(resourceId))
+                .performScrollTo()
+                .performClick()
+        }
+
+        composeTestRule.runOnIdle {
+            assertEquals(expectedSelections.map { it.second }, selectedPeriods)
         }
     }
 

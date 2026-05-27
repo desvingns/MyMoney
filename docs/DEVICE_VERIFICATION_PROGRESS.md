@@ -29,6 +29,7 @@ worker test backlog across sessions.
 | 2026-05-27 | S01/S04 empty-state controls green, 6/6 | `DashboardContentUiTest` confirms enabled Add Expense, Add Income, both Transfer affordances, Search, all five right-drawer destinations, and left-drawer Manage accounts on `Pixel_5_API_34`; report: `app/build/reports/androidTests/connected/debug/index.html`. |
 | 2026-05-27 | S01 AS-2 balance card green, 7/7 suite | `DashboardContentUiTest` now confirms a populated balance pill emits `BalanceCardClicked`; full dashboard suite passed `7/7` on `Pixel_5_API_34`. |
 | 2026-05-27 | S02 period controls green, 2/2 suite | `PeriodStripUiTest` confirms `Today`, `Week`, `Month`, `Year`, `All`, plus AS-12 custom range selection on `Pixel_5_API_34`. |
+| 2026-05-27 | S06 keypad event path green, 1/1 | `AddExpenseScreenUiTest` confirms keypad taps `1`, `2`, `+`, `3`, `=` dispatch the expected expense input events on `Pixel_5_API_34`. |
 | 2026-05-27 | UTP-safe device runner established | Direct remote serial causes AGP 8.7.3 UTP profile-path failure; `scripts/run_connected_test_on_host_avd.ps1` proxies host ADB so Gradle uses `emulator-5554` and waits 60 seconds after each run. |
 
 ## Delivery Order
@@ -36,7 +37,7 @@ worker test backlog across sessions.
 | Slice | Scope | Status | Device run/report |
 |---|---|---|---|
 | 0 | Pattern A infrastructure: Hilt runner, isolated database/settings, `MainActivity` launch gate | Pending | - |
-| 1 | S00/S11/S01/S06 critical flow: onboarding -> dashboard -> add expense -> updated balance | In progress | S11 complete 5/5; S01/S04 controls + AS-2 balance 7/7; S02 period controls 2/2 green 2026-05-27; remaining data controls and Pattern A pending |
+| 1 | S00/S11/S01/S06 critical flow: onboarding -> dashboard -> add expense -> updated balance | In progress | S11 5/5; S01/S04 + AS-2 7/7; S02 2/2; S06 keypad 1/1 green 2026-05-27; remaining form/data controls and Pattern A pending |
 | 2 | Transaction forms S07/S03/S09/S27, including AS-4 and AS-6 paths | Pending | - |
 | 3 | Dictionaries S21-S26 CRUD and validation controls | Pending | - |
 | 4 | List/detail/search/settings/lock/sync/backup plus worker instrumentation | Pending | - |
@@ -54,7 +55,7 @@ entry identifies coverage already recorded before this tracker was created.
 | S01/S05 Dashboard | expense/income FABs, search, transfer, balance, donut slice, drawers | Partial green: controls + balance 7/7 | Empty-state controls green | Pending | `DashboardContentUiTest` 7/7 green 2026-05-27; AS-2 balance pill covered; donut semantics existing green 2026-05-26 in `:core:designsystem` |
 | S02 Period drawer | period choices, Pick a date, apply range | Green: 2/2 suite | n/a | Pending | `PeriodStripUiTest` covers ordinary chips plus AS-12 custom range on 2026-05-27 |
 | S04 Right drawer | Categories, Accounts, Currencies, Settings/About tiles | Green: five rows covered | n/a | n/a | `DashboardContentUiTest` right-drawer group green 2026-05-27 |
-| S06 Add expense | back, swap, date, keypad keys/backspace, choose category | Pending | Pending | Pending | Critical E2E pending |
+| S06 Add expense | back, swap, date, keypad keys/backspace, choose category | Partial green: keypad sequence 1/1 | Pending | Pending | `AddExpenseScreenUiTest` keypad event path green 2026-05-27; critical E2E pending |
 | S07 Add income | back, swap, date, keypad, choose category | Pending | Pending | Pending | Slice 2 |
 | S03 Transfer | account pickers, keypad, rate/change, save | Pending | Pending | Pending | AS-6/AS-7 E2E pending |
 | S09 Category picker | category cell, add, back, context actions | Pending | Pending | n/a | AS-4 pending |
@@ -138,3 +139,8 @@ entry identifies coverage already recorded before this tracker was created.
   existing AS-12 `Pick a date` range selection test. Scoped `PeriodStripUiTest`
   execution passed `2/2` with `0` failed/skipped on `Pixel_5_API_34`, after
   the helper completed its required 60-second pause.
+- Started S06 form coverage in `b7b77d3`: direct keypad taps for
+  `1`, `2`, `+`, `3`, and `=` dispatch the expected `AddExpenseEvent`
+  sequence. Scoped `AddExpenseScreenUiTest` passed `1/1` with `0`
+  failed/skipped on `Pixel_5_API_34`, after the helper completed its required
+  60-second pause.

@@ -10,6 +10,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import com.kshavrin.mymoney.feature.transaction.R
 import org.junit.Assert.assertEquals
@@ -82,6 +83,30 @@ class TransferScreenUiTest {
 
         composeTestRule.runOnIdle {
             assertEquals(listOf(TransferEvent.KeypadDigit(1)), capturedEvents)
+        }
+    }
+
+    @Test
+    fun `revealed keypad backspace emits transfer backspace event`() {
+        val capturedEvents = mutableListOf<TransferEvent>()
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                TransferScreen(
+                    state = TransferState(),
+                    onEvent = { event -> capturedEvents += event },
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText("0").performClick()
+        composeTestRule
+            .onNodeWithContentDescription(targetString(DesignSystemR.string.keypad_backspace_cd))
+            .performScrollTo()
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(TransferEvent.KeypadBackspace), capturedEvents)
         }
     }
 

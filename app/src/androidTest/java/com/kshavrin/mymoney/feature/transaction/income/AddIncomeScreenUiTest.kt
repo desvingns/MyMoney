@@ -4,11 +4,13 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
 import com.kshavrin.mymoney.core.designsystem.keypad.Operator
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import com.kshavrin.mymoney.feature.transaction.R
@@ -55,6 +57,29 @@ class AddIncomeScreenUiTest {
                 ),
                 capturedEvents,
             )
+        }
+    }
+
+    @Test
+    fun `keypad backspace emits income backspace event`() {
+        val capturedEvents = mutableListOf<AddIncomeEvent>()
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                AddIncomeScreen(
+                    state = AddIncomeState(),
+                    onEvent = { event -> capturedEvents += event },
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithContentDescription(targetString(DesignSystemR.string.keypad_backspace_cd))
+            .performScrollTo()
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(AddIncomeEvent.KeypadBackspace), capturedEvents)
         }
     }
 

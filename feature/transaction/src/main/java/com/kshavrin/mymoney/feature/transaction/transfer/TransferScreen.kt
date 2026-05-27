@@ -124,6 +124,16 @@ fun TransferScreen(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.new_transfer_title)) },
+                modifier = Modifier.pointerInput(Unit) {
+                    awaitPointerEventScope {
+                        while (true) {
+                            val event = awaitPointerEvent(PointerEventPass.Initial)
+                            if (event.changes.any { it.pressed }) {
+                                focusManager.clearFocus()
+                            }
+                        }
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = {
                         focusManager.clearFocus()

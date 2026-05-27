@@ -3,6 +3,7 @@ package com.kshavrin.mymoney.feature.transaction.transfer
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -11,6 +12,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTouchInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
@@ -305,6 +307,32 @@ class TransferScreenUiTest {
 
         composeTestRule.runOnIdle {
             assertEquals(listOf(TransferEvent.SaveClicked), capturedEvents)
+        }
+    }
+
+    @Test
+    fun `disabled save tap hides keypad without emitting transfer event`() {
+        val capturedEvents = mutableListOf<TransferEvent>()
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                TransferScreen(
+                    state = TransferState(),
+                    onEvent = { event -> capturedEvents += event },
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText("0").performClick()
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.currency_rate_save))
+            .assertIsNotEnabled()
+            .performTouchInput { click() }
+        composeTestRule.onNodeWithContentDescription(targetString(DesignSystemR.string.keypad_backspace_cd))
+            .assertDoesNotExist()
+
+        composeTestRule.runOnIdle {
+            assertEquals(emptyList<TransferEvent>(), capturedEvents)
         }
     }
 

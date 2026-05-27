@@ -1,12 +1,15 @@
 package com.kshavrin.mymoney.feature.transaction.expense
 
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.designsystem.keypad.Operator
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
+import com.kshavrin.mymoney.feature.transaction.R
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -51,4 +54,24 @@ class AddExpenseScreenUiTest {
             )
         }
     }
+
+    @Test
+    fun `choose category stays disabled while amount is zero`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                AddExpenseScreen(
+                    state = AddExpenseState(),
+                    onEvent = {},
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithText(targetString(R.string.choose_category_cta))
+            .performScrollTo()
+            .assertIsNotEnabled()
+    }
+
+    private fun targetString(resourceId: Int): String =
+        InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)
 }

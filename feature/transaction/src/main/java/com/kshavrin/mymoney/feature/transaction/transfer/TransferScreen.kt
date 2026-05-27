@@ -125,7 +125,10 @@ fun TransferScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.new_transfer_title)) },
                 navigationIcon = {
-                    IconButton(onClick = { onEvent(TransferEvent.BackClicked) }) {
+                    IconButton(onClick = {
+                        focusManager.clearFocus()
+                        onEvent(TransferEvent.BackClicked)
+                    }) {
                         Icon(
                             Icons.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.back),
@@ -134,7 +137,10 @@ fun TransferScreen(
                 },
                 actions = {
                     IconButton(
-                        onClick = { onEvent(TransferEvent.SaveClicked) },
+                        onClick = {
+                            focusManager.clearFocus()
+                            onEvent(TransferEvent.SaveClicked)
+                        },
                         enabled = isSaveEnabled(state),
                     ) {
                         Icon(

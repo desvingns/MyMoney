@@ -272,6 +272,42 @@ class TransferScreenUiTest {
         }
     }
 
+    @Test
+    fun `valid transfer save hides keypad and emits transfer event`() {
+        val capturedEvents = mutableListOf<TransferEvent>()
+        val sourceAccount = account(id = 10L, name = "Primary wallet")
+        val targetAccount = account(id = 20L, name = "Savings account")
+        val currency = currency(id = 1L, code = "USD")
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                TransferScreen(
+                    state = TransferState(
+                        sourceAccount = sourceAccount,
+                        targetAccount = targetAccount,
+                        sourceCurrency = currency,
+                        targetCurrency = currency,
+                        amount = BigDecimal.ONE,
+                        amountInput = "1",
+                    ),
+                    onEvent = { event -> capturedEvents += event },
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText("1").performClick()
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.currency_rate_save))
+            .assertIsEnabled()
+            .performClick()
+        composeTestRule.onNodeWithContentDescription(targetString(DesignSystemR.string.keypad_backspace_cd))
+            .assertDoesNotExist()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(TransferEvent.SaveClicked), capturedEvents)
+        }
+    }
+
     private fun targetString(resourceId: Int): String =
         InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)
 

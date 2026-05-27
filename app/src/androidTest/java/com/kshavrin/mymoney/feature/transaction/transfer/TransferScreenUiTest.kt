@@ -2,6 +2,7 @@ package com.kshavrin.mymoney.feature.transaction.transfer
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -43,6 +44,22 @@ class TransferScreenUiTest {
         composeTestRule.runOnIdle {
             assertEquals(listOf(TransferEvent.BackClicked), capturedEvents)
         }
+    }
+
+    @Test
+    fun `save button stays disabled until transfer is valid`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                TransferScreen(
+                    state = TransferState(),
+                    onEvent = {},
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.currency_rate_save))
+            .assertIsNotEnabled()
     }
 
     private fun targetString(resourceId: Int): String =

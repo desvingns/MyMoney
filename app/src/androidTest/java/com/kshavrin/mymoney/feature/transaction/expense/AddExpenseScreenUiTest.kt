@@ -9,10 +9,13 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
 import com.kshavrin.mymoney.core.designsystem.keypad.Operator
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import com.kshavrin.mymoney.feature.transaction.R
 import java.math.BigDecimal
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -89,6 +92,32 @@ class AddExpenseScreenUiTest {
     }
 
     @Test
+    fun `picking a different date emits only the changed date event`() {
+        val capturedEvents = mutableListOf<AddExpenseEvent>()
+        val initialDate = LocalDate.of(2026, 5, 17)
+        val chosenDate = initialDate.plusDays(1)
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                AddExpenseScreen(
+                    state = AddExpenseState(occurredAt = initialDate),
+                    onEvent = { event -> capturedEvents += event },
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithContentDescription(targetString(DesignSystemR.string.amountfield_pick_date_cd))
+            .performClick()
+        composeTestRule.onNodeWithText(dateLabel(chosenDate)).performClick()
+        composeTestRule.onNodeWithText(targetString(R.string.pick_date)).performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(AddExpenseEvent.DateChanged(chosenDate)), capturedEvents)
+        }
+    }
+
+    @Test
     fun `choose category stays disabled while amount is zero`() {
         composeTestRule.setContent {
             MyMoneyTheme {
@@ -131,4 +160,10 @@ class AddExpenseScreenUiTest {
 
     private fun targetString(resourceId: Int): String =
         InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)
+
+    private fun dateLabel(date: LocalDate): String {
+        val locale = InstrumentationRegistry.getInstrumentation()
+            .targetContext.resources.configuration.locales[0]
+        return date.format(DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy", locale))
+    }
 }

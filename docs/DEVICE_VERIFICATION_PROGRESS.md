@@ -30,6 +30,7 @@ worker test backlog across sessions.
 | 2026-05-27 | S01 AS-2 balance card green, 7/7 suite | `DashboardContentUiTest` now confirms a populated balance pill emits `BalanceCardClicked`; full dashboard suite passed `7/7` on `Pixel_5_API_34`. |
 | 2026-05-27 | S02 period controls green, 2/2 suite | `PeriodStripUiTest` confirms `Today`, `Week`, `Month`, `Year`, `All`, plus AS-12 custom range selection on `Pixel_5_API_34`. |
 | 2026-05-27 | S06 stable direct controls green, 5/5 | `AddExpenseScreenUiTest` confirms keypad taps, category CTA disabled/enabled behavior, Back/Swap events, and date selection on `Pixel_5_API_34`. |
+| 2026-05-27 | S07 stable direct controls green, 7/7 | `AddIncomeScreenUiTest` confirms keypad taps, backspace, category CTA disabled/enabled behavior, Back/Swap events, date selection, and note input on `Pixel_5_API_34`. |
 | 2026-05-27 | UTP-safe device runner established | Direct remote serial causes AGP 8.7.3 UTP profile-path failure; `scripts/run_connected_test_on_host_avd.ps1` proxies host ADB so Gradle uses `emulator-5554` and waits 60 seconds after each run. |
 
 ## Delivery Order
@@ -38,7 +39,7 @@ worker test backlog across sessions.
 |---|---|---|---|
 | 0 | Pattern A infrastructure: Hilt runner, isolated database/settings, `MainActivity` launch gate | Pending | - |
 | 1 | S00/S11/S01/S06 critical flow: onboarding -> dashboard -> add expense -> updated balance | In progress | S11 5/5; S01/S04 + AS-2 7/7; S02 2/2; S06 stable controls 5/5 green 2026-05-27; account/error seams and Pattern A pending |
-| 2 | Transaction forms S07/S03/S09/S27, including AS-4 and AS-6 paths | Pending | - |
+| 2 | Transaction forms S07/S03/S09/S27, including AS-4 and AS-6 paths | In progress | S07 stable controls 7/7 green 2026-05-27; S03/S09/S27, AS-4/AS-6, account/error seams pending |
 | 3 | Dictionaries S21-S26 CRUD and validation controls | Pending | - |
 | 4 | List/detail/search/settings/lock/sync/backup plus worker instrumentation | Pending | - |
 | 5 | Manual QA, minified release walk, macrobenchmark/Baseline Profile | Pending | - |
@@ -56,7 +57,7 @@ entry identifies coverage already recorded before this tracker was created.
 | S02 Period drawer | period choices, Pick a date, apply range | Green: 2/2 suite | n/a | Pending | `PeriodStripUiTest` covers ordinary chips plus AS-12 custom range on 2026-05-27 |
 | S04 Right drawer | Categories, Accounts, Currencies, Settings/About tiles | Green: five rows covered | n/a | n/a | `DashboardContentUiTest` right-drawer group green 2026-05-27 |
 | S06 Add expense | back, swap, date, keypad keys/backspace, choose category | Partial green: stable controls 5/5 | Zero-amount category disabled green | Blocked by missing retry UI | `AddExpenseScreenUiTest` 5/5 green 2026-05-27; account-chip event seam missing; critical E2E pending |
-| S07 Add income | back, swap, date, keypad, choose category | Pending | Pending | Pending | Slice 2 |
+| S07 Add income | back, swap, date, note, keypad/backspace, choose category | Partial green: stable controls 7/7 | Zero-amount category disabled green | Blocked by missing retry UI | `AddIncomeScreenUiTest` 7/7 green 2026-05-27; account-chip event seam missing; AS-4 E2E pending |
 | S03 Transfer | account pickers, keypad, rate/change, save | Pending | Pending | Pending | AS-6/AS-7 E2E pending |
 | S09 Category picker | category cell, add, back, context actions | Pending | Pending | n/a | AS-4 pending |
 | S27 Currency rate | amount input, save, back | Pending | n/a | Pending | Slice 2 |
@@ -149,3 +150,12 @@ entry identifies coverage already recorded before this tracker was created.
   60-second pause. The shared account chip currently maps to `Unit`, and the
   specified error retry action is not present in the S06 UI/event contract;
   those require production decisions before they can be marked green.
+- Added S07 form coverage in `0f7512f`, `71525f7`, `0d4528b`, `64ca338`,
+  `9550631`, `bcb127f`, and `e06289a`: direct keypad taps and backspace,
+  disabled/enabled `Choose category`, Back/Swap, date selection, and note
+  input emit the expected `AddIncomeEvent` contracts. Scoped
+  `AddIncomeScreenUiTest` passed `7/7` with `0` failed/skipped on
+  `Pixel_5_API_34`, after the helper completed its required 60-second pauses.
+  The shared account chip currently maps to `Unit`, and the specified error
+  retry action is not present in the S07 UI/event contract; AS-4 navigation
+  remains an E2E slice.

@@ -11,11 +11,15 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.kshavrin.mymoney.core.domain.model.BalanceSnapshot
+import com.kshavrin.mymoney.core.domain.model.Currency
+import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.math.BigDecimal
 
 @RunWith(AndroidJUnit4::class)
 class DashboardContentUiTest {
@@ -117,6 +121,47 @@ class DashboardContentUiTest {
 
         composeTestRule.runOnIdle {
             assertEquals(listOf(DashboardEvent.SearchClicked), capturedEvents)
+        }
+    }
+
+    @Test
+    fun `balance pill in populated dashboard emits balance card event`() {
+        val capturedEvents = mutableListOf<DashboardEvent>()
+        val usd = Currency(
+            id = 1L,
+            code = "USD",
+            symbol = "$",
+            name = "US Dollar",
+            decimalDigits = 2,
+            isActive = true,
+            sortOrder = 0,
+        )
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state = DashboardState(
+                        currentCurrency = usd,
+                        balanceSnapshot = BalanceSnapshot(
+                            income = Money(BigDecimal("125.00"), usd),
+                            expense = Money(BigDecimal("75.00"), usd),
+                            net = Money(BigDecimal("50.00"), usd),
+                            byCategory = emptyList(),
+                        ),
+                        isLoading = false,
+                    ),
+                    onEvent = { event -> capturedEvents += event },
+                )
+            }
+        }
+
+        composeTestRule
+            .onNode(hasText("\$50.00") and hasClickAction())
+            .assertIsDisplayed()
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(DashboardEvent.BalanceCardClicked), capturedEvents)
         }
     }
 

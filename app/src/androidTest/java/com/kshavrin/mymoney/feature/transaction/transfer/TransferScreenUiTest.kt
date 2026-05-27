@@ -16,6 +16,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
 import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.AccountType
+import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import com.kshavrin.mymoney.feature.transaction.R
 import java.math.BigDecimal
@@ -240,6 +241,37 @@ class TransferScreenUiTest {
         }
     }
 
+    @Test
+    fun `changing a visible rate hides keypad and emits transfer event`() {
+        val capturedEvents = mutableListOf<TransferEvent>()
+        val sourceCurrency = currency(id = 1L, code = "USD")
+        val targetCurrency = currency(id = 2L, code = "EUR")
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                TransferScreen(
+                    state = TransferState(
+                        sourceCurrency = sourceCurrency,
+                        targetCurrency = targetCurrency,
+                        ratePreviewText = "1 USD = 0.92 EUR",
+                    ),
+                    onEvent = { event -> capturedEvents += event },
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText("0").performClick()
+        composeTestRule
+            .onNodeWithText(targetString(R.string.transfer_change_rate_cta))
+            .performScrollTo()
+            .performClick()
+        composeTestRule.onNodeWithText("1").assertDoesNotExist()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(TransferEvent.ChangeRateClicked), capturedEvents)
+        }
+    }
+
     private fun targetString(resourceId: Int): String =
         InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)
 
@@ -266,4 +298,14 @@ class TransferScreenUiTest {
             isArchived = false,
         )
     }
+
+    private fun currency(id: Long, code: String): Currency = Currency(
+        id = id,
+        code = code,
+        symbol = code,
+        name = code,
+        decimalDigits = 2,
+        isActive = true,
+        sortOrder = 0,
+    )
 }

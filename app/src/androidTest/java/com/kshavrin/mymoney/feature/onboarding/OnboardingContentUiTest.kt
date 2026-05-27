@@ -75,6 +75,34 @@ class OnboardingContentUiTest {
         }
     }
 
+    @Test
+    fun `tapping get started from the fourth slide invokes completion once`() {
+        var completionCalls = 0
+
+        composeTestRule.setContent {
+            val pagerState = rememberPagerState(initialPage = 3, pageCount = { 4 })
+            val coroutineScope = rememberCoroutineScope()
+
+            MyMoneyTheme {
+                OnboardingContent(
+                    pagerState = pagerState,
+                    currentPage = pagerState.currentPage,
+                    coroutineScope = coroutineScope,
+                    onGetStarted = { completionCalls += 1 },
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithText(targetString(R.string.onboarding_get_started))
+            .assertIsDisplayed()
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(1, completionCalls)
+        }
+    }
+
     private fun targetString(resourceId: Int): String =
         InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)
 }

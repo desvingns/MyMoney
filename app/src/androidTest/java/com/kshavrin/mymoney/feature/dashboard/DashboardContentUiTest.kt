@@ -169,6 +169,34 @@ class DashboardContentUiTest {
         }
     }
 
+    @Test
+    fun `left drawer manage accounts row stays enabled in empty dashboard and emits accounts event`() {
+        val capturedEvents = mutableListOf<DashboardEvent>()
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state = DashboardState(isLoading = false),
+                    onEvent = { event -> capturedEvents += event },
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.dashboard_menu))
+            .performClick()
+
+        composeTestRule
+            .onNode(hasText(targetString(R.string.left_drawer_manage_accounts)) and hasClickAction())
+            .assertIsDisplayed()
+            .assertIsEnabled()
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(DashboardEvent.AccountsClicked), capturedEvents)
+        }
+    }
+
     private fun targetString(resourceId: Int): String =
         InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)
 }

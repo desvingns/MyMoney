@@ -11,6 +11,7 @@
     <string name="onboarding_slide_4_headline">Ваши данные на вашем устройстве</string>
     <string name="onboarding_slide_4_body">Всё хранится на вашем телефоне. Резервная копия в Dropbox или Google Drive — по вашему выбору.</string>
 
+    <string name="onboarding_skip">Пропустить</string>
     <string name="onboarding_next">Далее</string>
     <string name="onboarding_get_started">Начать</string>
 

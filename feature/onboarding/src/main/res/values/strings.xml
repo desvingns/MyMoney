@@ -11,6 +11,7 @@
     <string name="onboarding_slide_4_headline">Your data, your device</string>
     <string name="onboarding_slide_4_body">Everything lives on your phone. Optional cloud backup to Dropbox or Google Drive — your choice.</string>
 
+    <string name="onboarding_skip">Skip</string>
     <string name="onboarding_next">Next</string>
     <string name="onboarding_get_started">Get started</string>
 

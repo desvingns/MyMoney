@@ -41,6 +41,29 @@ class DashboardContentUiTest {
         }
     }
 
+    @Test
+    fun `income fab stays enabled in empty dashboard and emits plus event`() {
+        val capturedEvents = mutableListOf<DashboardEvent>()
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state = DashboardState(isLoading = false),
+                    onEvent = { event -> capturedEvents += event },
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.fab_income))
+            .assertIsEnabled()
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(DashboardEvent.PlusFabClicked), capturedEvents)
+        }
+    }
+
     private fun targetString(resourceId: Int): String =
         InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)
 }

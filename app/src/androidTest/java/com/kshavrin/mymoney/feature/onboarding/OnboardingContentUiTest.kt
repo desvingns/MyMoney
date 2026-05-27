@@ -1,0 +1,52 @@
+package com.kshavrin.mymoney.feature.onboarding
+
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
+import com.kshavrin.mymoney.feature.onboarding.R
+import org.junit.Assert.assertEquals
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+
+@RunWith(AndroidJUnit4::class)
+class OnboardingContentUiTest {
+
+    @get:Rule
+    val composeTestRule = createComposeRule()
+
+    @Test
+    fun `tapping skip from the first slide invokes completion once`() {
+        var completionCalls = 0
+
+        composeTestRule.setContent {
+            val pagerState = rememberPagerState(initialPage = 0, pageCount = { 4 })
+            val coroutineScope = rememberCoroutineScope()
+
+            MyMoneyTheme {
+                OnboardingContent(
+                    pagerState = pagerState,
+                    currentPage = 0,
+                    coroutineScope = coroutineScope,
+                    onGetStarted = { completionCalls += 1 },
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText(targetString(R.string.onboarding_next)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(targetString(R.string.onboarding_skip)).performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(1, completionCalls)
+        }
+    }
+
+    private fun targetString(resourceId: Int): String =
+        InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)
+}

@@ -6,6 +6,8 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeLeft
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
@@ -66,6 +68,36 @@ class OnboardingContentUiTest {
         }
 
         composeTestRule.onNodeWithText(targetString(R.string.onboarding_next)).performClick()
+        composeTestRule
+            .onNodeWithText(targetString(R.string.onboarding_slide_2_headline))
+            .assertIsDisplayed()
+
+        composeTestRule.runOnIdle {
+            assertEquals(0, completionCalls)
+        }
+    }
+
+    @Test
+    fun `swiping from the first slide advances without completing onboarding`() {
+        var completionCalls = 0
+
+        composeTestRule.setContent {
+            val pagerState = rememberPagerState(initialPage = 0, pageCount = { 4 })
+            val coroutineScope = rememberCoroutineScope()
+
+            MyMoneyTheme {
+                OnboardingContent(
+                    pagerState = pagerState,
+                    currentPage = pagerState.currentPage,
+                    coroutineScope = coroutineScope,
+                    onGetStarted = { completionCalls += 1 },
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithText(targetString(R.string.onboarding_slide_1_body))
+            .performTouchInput { swipeLeft() }
         composeTestRule
             .onNodeWithText(targetString(R.string.onboarding_slide_2_headline))
             .assertIsDisplayed()

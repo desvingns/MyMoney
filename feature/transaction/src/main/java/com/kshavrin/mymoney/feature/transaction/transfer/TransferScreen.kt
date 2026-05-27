@@ -1,5 +1,6 @@
 package com.kshavrin.mymoney.feature.transaction.transfer
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -86,6 +87,7 @@ fun TransferScreen(
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     var datePickerVisible by remember { mutableStateOf(false) }
+    var keypadVisible by remember { mutableStateOf(false) }
     val soundPlayer = LocalSoundPlayer.current
     val hapticPlayer = LocalHapticPlayer.current
 
@@ -162,6 +164,8 @@ fun TransferScreen(
                     ),
                     onEvent = { e -> dispatchAmountEvent(e, onEvent) { datePickerVisible = true } },
                     modifier = Modifier.padding(Spacing.m),
+                    amountInputModifier = Modifier.clickable { keypadVisible = true },
+                    showKeypad = keypadVisible,
                 )
             }
 

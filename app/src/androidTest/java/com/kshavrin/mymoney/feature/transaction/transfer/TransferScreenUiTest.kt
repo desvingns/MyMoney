@@ -1,5 +1,6 @@
 package com.kshavrin.mymoney.feature.transaction.transfer
 
+import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -7,6 +8,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
@@ -60,6 +62,28 @@ class TransferScreenUiTest {
         composeTestRule
             .onNodeWithContentDescription(targetString(R.string.currency_rate_save))
             .assertIsNotEnabled()
+    }
+
+    @Test
+    fun `amount press reveals keypad and digit emits transfer event`() {
+        val capturedEvents = mutableListOf<TransferEvent>()
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                TransferScreen(
+                    state = TransferState(),
+                    onEvent = { event -> capturedEvents += event },
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText("1").assertDoesNotExist()
+        composeTestRule.onNodeWithText("0").performClick()
+        composeTestRule.onNodeWithText("1").performScrollTo().performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(TransferEvent.KeypadDigit(1)), capturedEvents)
+        }
     }
 
     private fun targetString(resourceId: Int): String =

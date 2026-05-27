@@ -52,6 +52,8 @@ fun AmountFieldSection(
     state: AmountFieldState,
     onEvent: (AmountFieldEvent) -> Unit,
     modifier: Modifier = Modifier,
+    amountInputModifier: Modifier = Modifier,
+    showKeypad: Boolean = true,
     noteLabel: String = stringResource(R.string.amountfield_note_hint),
     dateContentDescription: String = stringResource(R.string.amountfield_pick_date_cd),
 ) {
@@ -66,7 +68,7 @@ fun AmountFieldSection(
             display = state.display,
             expression = state.expression,
             currencyCode = state.currencyCode,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = amountInputModifier.fillMaxWidth(),
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -104,9 +106,11 @@ fun AmountFieldSection(
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
-        MonefyKeypad(
-            onEvent = { keypadEvent -> onEvent(AmountFieldEvent.Keypad(keypadEvent)) },
-            modifier = Modifier.fillMaxWidth(),
-        )
+        if (showKeypad) {
+            MonefyKeypad(
+                onEvent = { keypadEvent -> onEvent(AmountFieldEvent.Keypad(keypadEvent)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
     }
 }

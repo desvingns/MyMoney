@@ -94,6 +94,29 @@ class DashboardContentUiTest {
         }
     }
 
+    @Test
+    fun `search button stays enabled in empty dashboard and emits search event`() {
+        val capturedEvents = mutableListOf<DashboardEvent>()
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state = DashboardState(isLoading = false),
+                    onEvent = { event -> capturedEvents += event },
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.dashboard_search))
+            .assertIsEnabled()
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(DashboardEvent.SearchClicked), capturedEvents)
+        }
+    }
+
     private fun targetString(resourceId: Int): String =
         InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)
 }

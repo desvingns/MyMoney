@@ -1,5 +1,6 @@
 package com.kshavrin.mymoney.feature.transaction.expense
 
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -10,6 +11,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.designsystem.keypad.Operator
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import com.kshavrin.mymoney.feature.transaction.R
+import java.math.BigDecimal
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -70,6 +72,30 @@ class AddExpenseScreenUiTest {
             .onNodeWithText(targetString(R.string.choose_category_cta))
             .performScrollTo()
             .assertIsNotEnabled()
+    }
+
+    @Test
+    fun `choose category emits event when amount is positive`() {
+        val capturedEvents = mutableListOf<AddExpenseEvent>()
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                AddExpenseScreen(
+                    state = AddExpenseState(amount = BigDecimal("1"), amountInput = "1"),
+                    onEvent = { event -> capturedEvents += event },
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithText(targetString(R.string.choose_category_cta))
+            .performScrollTo()
+            .assertIsEnabled()
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(AddExpenseEvent.ChooseCategoryClicked), capturedEvents)
+        }
     }
 
     private fun targetString(resourceId: Int): String =

@@ -30,8 +30,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -166,8 +170,19 @@ private fun PagerDotsIndicator(
     currentPage: Int,
     modifier: Modifier = Modifier,
 ) {
+    val indicatorDescription = stringResource(id = R.string.onboarding_pager_indicator_description)
+    val indicatorState = stringResource(
+        id = R.string.onboarding_pager_indicator_state,
+        currentPage + 1,
+        pageCount,
+    )
     Row(
-        modifier = modifier,
+        modifier = modifier
+            .testTag(ONBOARDING_PAGER_INDICATOR_TAG)
+            .semantics {
+                contentDescription = indicatorDescription
+                stateDescription = indicatorState
+            },
         horizontalArrangement = Arrangement.spacedBy(Spacing.s),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -189,6 +204,7 @@ private fun PagerDotsIndicator(
 }
 
 private const val ONBOARDING_PAGE_COUNT = 4
+private const val ONBOARDING_PAGER_INDICATOR_TAG = "onboarding_pager_indicator"
 
 private data class OnboardingSlideRes(
     @DrawableRes val heroRes: Int,

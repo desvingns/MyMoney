@@ -14,6 +14,8 @@
     <string name="onboarding_skip">Пропустить</string>
     <string name="onboarding_next">Далее</string>
     <string name="onboarding_get_started">Начать</string>
+    <string name="onboarding_pager_indicator_description">Индикатор страницы знакомства</string>
+    <string name="onboarding_pager_indicator_state">Страница %1$d из %2$d</string>
 
     <string name="splash_logo_content_description">Логотип MyMoney</string>
 </resources>

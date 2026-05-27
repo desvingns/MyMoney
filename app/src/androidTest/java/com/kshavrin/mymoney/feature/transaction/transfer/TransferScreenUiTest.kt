@@ -213,6 +213,33 @@ class TransferScreenUiTest {
         }
     }
 
+    @Test
+    fun `choosing a target account hides keypad and emits transfer event`() {
+        val capturedEvents = mutableListOf<TransferEvent>()
+        val targetAccount = account(id = 20L, name = "Savings account")
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                TransferScreen(
+                    state = TransferState(accounts = listOf(targetAccount)),
+                    onEvent = { event -> capturedEvents += event },
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText("0").performClick()
+        composeTestRule
+            .onNode(hasText(targetString(R.string.target_label)) and hasClickAction())
+            .performScrollTo()
+            .performClick()
+        composeTestRule.onNodeWithText(targetAccount.name).performClick()
+        composeTestRule.onNodeWithText("1").assertDoesNotExist()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(TransferEvent.TargetAccountChanged(targetAccount.id)), capturedEvents)
+        }
+    }
+
     private fun targetString(resourceId: Int): String =
         InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)
 

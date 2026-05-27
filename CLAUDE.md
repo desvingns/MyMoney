@@ -120,11 +120,19 @@ This repository may be driven from a Windows VirtualBox guest. Nested virtualiza
 not available in that guest, so start the emulator in Android Studio on the primary
 Windows host, not inside the guest.
 
-Verified on 2026-05-26:
+Verified on 2026-05-27:
 
 - Use host AVD `Pixel_5_API_34` (`Pixel 5`, Android 14 / API 34).
-- Guest `adb` discovers the host AVD as `emulator-5554` after a fresh server restart;
-  do not set `ADB_SERVER_SOCKET`.
+- For manual ADB/screenshot commands, reach the primary Windows host through the
+  VirtualBox NAT gateway with `adb connect 10.0.2.2:5555`; the guest reports
+  that attachment under serial `10.0.2.2:5555`.
+- For Gradle `connected*AndroidTest`, do not use the remote serial directly.
+  AGP 8.7.3 UTP writes a profile filename containing that serial and fails on
+  Windows with `java.io.FileNotFoundException: Invalid file path`. Use
+  `scripts/run_connected_test_on_host_avd.ps1`, which proxies localhost ADB to
+  the host ADB server so UTP sees safe serial `emulator-5554`.
+- Setting `ADB_SERVER_SOCKET` alone is insufficient for Gradle: the CLI sees
+  `emulator-5554`, but UTP/DDMLib still selects the guest ADB server.
 - Do not use `Pixel 10 Pro XL API 37` for current Compose instrumentation: the
   Espresso input path fails on API 37 with an `InputManager.getInstance` lookup error.
 
@@ -135,40 +143,46 @@ export JAVA_HOME="/c/Program Files/Android/Android Studio/jbr"
 export ANDROID_SDK_ROOT="$(cygpath -u "$LOCALAPPDATA")/Android/Sdk"
 export ANDROID_HOME="$ANDROID_SDK_ROOT"
 export PATH="$JAVA_HOME/bin:$ANDROID_SDK_ROOT/platform-tools:$ANDROID_SDK_ROOT/emulator:$PATH"
+device="10.0.2.2:5555"
 
 adb kill-server
 adb start-server
+adb connect "$device"
 adb devices -l
-adb -s emulator-5554 shell getprop ro.boot.qemu.avd_name   # Pixel_5_API_34
-adb -s emulator-5554 shell getprop ro.build.version.sdk      # 34
-adb -s emulator-5554 shell getprop sys.boot_completed        # 1
+adb -s "$device" shell getprop ro.boot.qemu.avd_name   # Pixel_5_API_34
+adb -s "$device" shell getprop ro.build.version.sdk     # 34
+adb -s "$device" shell getprop sys.boot_completed       # 1
 ```
 
 Connected verification:
 
-```bash
-./gradlew --no-daemon :app:connectedDebugAndroidTest --console=plain
-./gradlew --no-daemon --continue \
-  :core:designsystem:connectedDebugAndroidTest \
-  :core:database:connectedDebugAndroidTest \
-  :core:datastore:connectedDebugAndroidTest \
-  --console=plain
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run_connected_test_on_host_avd.ps1 -Tasks ':app:connectedDebugAndroidTest'
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run_connected_test_on_host_avd.ps1 -Tasks ':core:designsystem:connectedDebugAndroidTest'
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run_connected_test_on_host_avd.ps1 -Tasks ':core:database:connectedDebugAndroidTest'
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run_connected_test_on_host_avd.ps1 -Tasks ':core:datastore:connectedDebugAndroidTest'
 ```
+
+The `-ExecutionPolicy Bypass` applies to this signed-off local helper invocation
+only; the machine policy otherwise blocks `.ps1` scripts. The helper waits 60
+seconds after every Gradle instrumented-test run, as required by the current
+device-remediation task.
 
 Visual smoke check and screenshot capture:
 
 ```bash
 ./gradlew --no-daemon :app:installDebug --console=plain
-adb shell am force-stop com.kshavrin.mymoney
-adb shell am start -W -n com.kshavrin.mymoney/.MainActivity
+adb -s "$device" shell am force-stop com.kshavrin.mymoney
+adb -s "$device" shell am start -W -n com.kshavrin.mymoney/.MainActivity
 mkdir -p build/visual-check
-adb shell screencap -p /sdcard/mymoney-check.png
-adb pull /sdcard/mymoney-check.png build/visual-check/mymoney-check.png
+adb -s "$device" shell screencap -p /sdcard/mymoney-check.png
+adb -s "$device" pull /sdcard/mymoney-check.png build/visual-check/mymoney-check.png
 ```
 
-If `adb devices -l` is empty, first confirm that `Pixel_5_API_34` is booted on
-the primary Windows host, then repeat the guest `adb kill-server` / `adb start-server`
-sequence.
+If a manual ADB command has no device, first confirm that `Pixel_5_API_34` is
+booted on the primary Windows host, then repeat the guest `adb kill-server` /
+`adb start-server` / `adb connect 10.0.2.2:5555` sequence. For Gradle
+instrumented tests, use the helper instead of that remote attachment.
 
 ## Testing stack (TDD §12, lines 2553–2661)
 

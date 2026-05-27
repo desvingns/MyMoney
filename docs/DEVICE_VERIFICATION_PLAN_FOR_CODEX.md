@@ -73,25 +73,41 @@ $env:JAVA_HOME = "<path to Android Studio>\jbr"      # do NOT hardcode if alread
 $env:PATH = "$env:JAVA_HOME\bin;$env:PATH"
 java -version                                         # must report 17
 
-# 2. Boot the AVD (background) and wait for it.
-emulator -avd Pixel_5_API_34 -no-snapshot-save -no-boot-anim
-adb wait-for-device
+# 2. Boot `Pixel_5_API_34` in Android Studio on the primary Windows host.
+#    This direct remote attachment is suitable for manual ADB commands.
+$adb = Join-Path $env:LOCALAPPDATA 'Android\Sdk\platform-tools\adb.exe'
+$device = '10.0.2.2:5555'
+& $adb kill-server
+& $adb start-server
+& $adb connect $device
+& $adb devices -l
+& $adb -s $device shell getprop ro.boot.qemu.avd_name  # Pixel_5_API_34
 # poll until boot completed:
-while ((adb shell getprop sys.boot_completed 2>$null).Trim() -ne "1") { Start-Sleep -Seconds 2 }
-adb shell input keyevent 82                            # dismiss keyguard
+while ((& $adb -s $device shell getprop sys.boot_completed 2>$null).Trim() -ne "1") { Start-Sleep -Seconds 2 }
+& $adb -s $device shell input keyevent 82               # dismiss keyguard
 
-# 3. Run instrumented tests (whole app, or a single class while iterating):
-.\gradlew.bat :app:connectedDebugAndroidTest
-.\gradlew.bat :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.kshavrin.mymoney.<Pkg>.<TestClass>
-.\gradlew.bat :core:database:connectedDebugAndroidTest   # per-module when relevant
+# 3. Run instrumented tests through the host-AVD helper. AGP 8.7.3 UTP cannot
+#    profile a Windows remote serial containing ":" (`10.0.2.2:5555`); the helper
+#    exposes the host ADB server locally so UTP uses serial `emulator-5554`.
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run_connected_test_on_host_avd.ps1 -Tasks ':app:connectedDebugAndroidTest'
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run_connected_test_on_host_avd.ps1 -Tasks ':app:connectedDebugAndroidTest' -TestClass 'com.kshavrin.mymoney.<Pkg>.<TestClass>'
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run_connected_test_on_host_avd.ps1 -Tasks ':core:database:connectedDebugAndroidTest'
 ```
 
 Reports: `app/build/reports/androidTests/connected/debug/index.html` and
 `app/build/outputs/androidTest-results/connected/`. Read the report on every run; do not trust "BUILD
 SUCCESSFUL" alone — confirm the test count and that 0 failed/0 skipped.
 
-If the emulator is flaky: cold-boot it, `adb logcat -c` before a run, and capture `adb logcat` on a
-crash. Never make a test pass by retrying a broken emulator — fix the root cause.
+After a host or guest reboot, repeat `adb connect 10.0.2.2:5555` only for
+manual ADB interaction. For Gradle tests run the helper; setting
+`ADB_SERVER_SOCKET` alone does not redirect AGP's DDMLib provider. Use the
+one-process `-ExecutionPolicy Bypass` invocation shown above because this guest
+blocks local `.ps1` execution by default. The helper also waits 60 real seconds
+after every instrumented-test invocation for this remediation run.
+
+If the emulator is flaky: cold-boot it, `& $adb -s $device logcat -c` before a run, and capture
+`& $adb -s $device logcat` on a crash. Never make a test pass by retrying a broken emulator — fix
+the root cause.
 
 ## 3. Test architecture
 

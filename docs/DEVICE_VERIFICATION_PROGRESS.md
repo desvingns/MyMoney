@@ -25,7 +25,8 @@ worker test backlog across sessions.
 | 2026-05-26 | `:core:datastore` connected tests green, 5/5 | Recorded in `PROGRESS.md`. |
 | 2026-05-27 | New remediation session started | `adb` server starts, but no `emulator-5554` is currently listed; new test rows remain pending a real AVD run. |
 | 2026-05-27 | Device access recovered | Verified `adb connect 10.0.2.2:5555` from the NAT-only guest; serial `10.0.2.2:5555` reports `Pixel_5_API_34`, API 34, boot complete. |
-| 2026-05-27 | S11 interaction coverage green, 4/4 | `OnboardingContentUiTest` covers `Skip`, `Next`, `Get Started`, and pager swipe on `Pixel_5_API_34`; report: `app/build/reports/androidTests/connected/debug/index.html`. |
+| 2026-05-27 | S11 interaction coverage green, 5/5 | `OnboardingContentUiTest` covers `Skip`, `Next`, `Get Started`, pager swipe, and indicator state on `Pixel_5_API_34`; report: `app/build/reports/androidTests/connected/debug/index.html`. |
+| 2026-05-27 | S01 empty-state expense FAB green, 1/1 | `DashboardContentUiTest` confirms the enabled Add Expense FAB emits `MinusFabClicked` on `Pixel_5_API_34`; report: `app/build/reports/androidTests/connected/debug/index.html`. |
 | 2026-05-27 | UTP-safe device runner established | Direct remote serial causes AGP 8.7.3 UTP profile-path failure; `scripts/run_connected_test_on_host_avd.ps1` proxies host ADB so Gradle uses `emulator-5554` and waits 60 seconds after each run. |
 
 ## Delivery Order
@@ -33,7 +34,7 @@ worker test backlog across sessions.
 | Slice | Scope | Status | Device run/report |
 |---|---|---|---|
 | 0 | Pattern A infrastructure: Hilt runner, isolated database/settings, `MainActivity` launch gate | Pending | - |
-| 1 | S00/S11/S01/S06 critical flow: onboarding -> dashboard -> add expense -> updated balance | In progress | S11 buttons and pager swipe 4/4 green 2026-05-27; indicator semantics and Pattern A pending |
+| 1 | S00/S11/S01/S06 critical flow: onboarding -> dashboard -> add expense -> updated balance | In progress | S11 complete 5/5; S01 Add Expense FAB 1/1 green 2026-05-27; remaining dashboard controls and Pattern A pending |
 | 2 | Transaction forms S07/S03/S09/S27, including AS-4 and AS-6 paths | Pending | - |
 | 3 | Dictionaries S21-S26 CRUD and validation controls | Pending | - |
 | 4 | List/detail/search/settings/lock/sync/backup plus worker instrumentation | Pending | - |
@@ -47,8 +48,8 @@ entry identifies coverage already recorded before this tracker was created.
 | Screen / surface | Primary controls to exercise | Happy | Empty | Error | E2E / notes |
 |---|---|:---:|:---:|:---:|---|
 | S00 Splash | startup routing | Pending | n/a | Pending | Slice 0/1 |
-| S11 Onboarding | Skip, Next, Get Started, pager | Partial green: buttons + swipe 4/4 | n/a | n/a | `OnboardingContentUiTest`, 4/4 green 2026-05-27; dot-state semantics are not exposed yet |
-| S01/S05 Dashboard | expense/income FABs, search, transfer, balance, donut slice, drawers | Pending | Pending | Pending | Donut semantics: Existing green 2026-05-26 in `:core:designsystem` |
+| S11 Onboarding | Skip, Next, Get Started, pager | Green: 5/5 | n/a | n/a | `OnboardingContentUiTest`, 5/5 green 2026-05-27; indicator semantic state added in `c3f74b1`, regression in `a0a53ea` |
+| S01/S05 Dashboard | expense/income FABs, search, transfer, balance, donut slice, drawers | Partial green: Add Expense FAB 1/1 | Add Expense FAB green | Pending | `DashboardContentUiTest` 1/1 green 2026-05-27; donut semantics existing green 2026-05-26 in `:core:designsystem` |
 | S02 Period drawer | period choices, Pick a date, apply range | Existing green 2026-05-26 | n/a | Pending | AS-12 covered by `PeriodStripUiTest` |
 | S04 Right drawer | Categories, Accounts, Currencies, Settings tiles | Pending | n/a | n/a | Slice 1/3 |
 | S06 Add expense | back, swap, date, keypad keys/backspace, choose category | Pending | Pending | Pending | Critical E2E pending |
@@ -111,3 +112,14 @@ entry identifies coverage already recorded before this tracker was created.
   was observed on each execution. The pager-dot visual state is not
   semantically addressable yet; cover it when the accessibility/testability
   contract is defined.
+- Added an accessible semantic contract for the pager indicator in `c3f74b1`
+  (localized current-page state, visuals unchanged) and a single AC3
+  instrumentation regression in `a0a53ea`. Scoped connected execution through
+  the host-AVD helper passed `5/5` with `0` failed/skipped on
+  `Pixel_5_API_34`; the required 60-second post-run pause completed. S11 is
+  green for its listed interactive/indicator contract.
+- Started S01/S05 Pattern B coverage in `78f6646` with a direct-render
+  empty-dashboard test for the enabled Add Expense FAB and its
+  `MinusFabClicked` event. Scoped device execution passed `1/1` with `0`
+  failed/skipped on `Pixel_5_API_34`, after the helper completed its required
+  60-second pause. Remaining dashboard buttons are still pending.

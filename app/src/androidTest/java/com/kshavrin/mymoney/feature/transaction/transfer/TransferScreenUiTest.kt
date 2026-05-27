@@ -14,6 +14,8 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import com.kshavrin.mymoney.feature.transaction.R
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -150,6 +152,40 @@ class TransferScreenUiTest {
         }
     }
 
+    @Test
+    fun `picking a date hides keypad and emits transfer date changed event`() {
+        val capturedEvents = mutableListOf<TransferEvent>()
+        val initialDate = LocalDate.of(2026, 5, 17)
+        val chosenDate = initialDate.plusDays(1)
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                TransferScreen(
+                    state = TransferState(occurredAt = initialDate),
+                    onEvent = { event -> capturedEvents += event },
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText("0").performClick()
+        composeTestRule
+            .onNodeWithContentDescription(targetString(DesignSystemR.string.amountfield_pick_date_cd))
+            .performClick()
+        composeTestRule.onNodeWithText(dateLabel(chosenDate)).performClick()
+        composeTestRule.onNodeWithText(targetString(R.string.pick_date)).performClick()
+        composeTestRule.onNodeWithText("1").assertDoesNotExist()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(TransferEvent.DateChanged(chosenDate)), capturedEvents)
+        }
+    }
+
     private fun targetString(resourceId: Int): String =
         InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)
+
+    private fun dateLabel(date: LocalDate): String {
+        val locale = InstrumentationRegistry.getInstrumentation()
+            .targetContext.resources.configuration.locales[0]
+        return date.format(DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy", locale))
+    }
 }

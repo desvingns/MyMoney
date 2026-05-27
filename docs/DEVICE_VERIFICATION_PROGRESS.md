@@ -31,7 +31,7 @@ worker test backlog across sessions.
 | 2026-05-27 | S02 period controls green, 2/2 suite | `PeriodStripUiTest` confirms `Today`, `Week`, `Month`, `Year`, `All`, plus AS-12 custom range selection on `Pixel_5_API_34`. |
 | 2026-05-27 | S06 stable direct controls green, 7/7 | `AddExpenseScreenUiTest` confirms keypad taps, backspace, category CTA disabled/enabled behavior, Back/Swap events, date selection, and note input on `Pixel_5_API_34`. |
 | 2026-05-27 | S07 stable direct controls green, 7/7 | `AddIncomeScreenUiTest` confirms keypad taps, backspace, category CTA disabled/enabled behavior, Back/Swap events, date selection, and note input on `Pixel_5_API_34`. |
-| 2026-05-27 | S03 initial top-bar controls green, 2/2 | `TransferScreenUiTest` confirms Back dispatch and the initially disabled Save action on `Pixel_5_API_34`; keypad coverage is blocked by a visibility defect. |
+| 2026-05-27 | S03 initial/direct controls green, 3/3 | `TransferScreenUiTest` confirms Back dispatch, the initially disabled Save action, and amount-press keypad reveal plus digit dispatch on `Pixel_5_API_34`; the keypad visibility defect was fixed in `b8924e2`. |
 | 2026-05-27 | UTP-safe device runner established | Direct remote serial causes AGP 8.7.3 UTP profile-path failure; `scripts/run_connected_test_on_host_avd.ps1` proxies host ADB so Gradle uses `emulator-5554` and waits 60 seconds after each run. |
 
 ## Delivery Order
@@ -40,7 +40,7 @@ worker test backlog across sessions.
 |---|---|---|---|
 | 0 | Pattern A infrastructure: Hilt runner, isolated database/settings, `MainActivity` launch gate | Pending | - |
 | 1 | S00/S11/S01/S06 critical flow: onboarding -> dashboard -> add expense -> updated balance | In progress | S11 5/5; S01/S04 + AS-2 7/7; S02 2/2; S06 stable controls 7/7 green 2026-05-27; account/error seams and Pattern A pending |
-| 2 | Transaction forms S07/S03/S09/S27, including AS-4 and AS-6 paths | In progress | S07 stable controls 7/7; S03 top-bar controls 2/2 green 2026-05-27; S03 keypad visibility bug, S09/S27, AS-4/AS-6, and error seams pending |
+| 2 | Transaction forms S07/S03/S09/S27, including AS-4 and AS-6 paths | In progress | S07 stable controls 7/7; S03 initial controls/keypad reveal 3/3 green 2026-05-27; S03 dropdown/rate/date/note/save-valid controls, S09/S27, AS-4/AS-6, and error seams pending |
 | 3 | Dictionaries S21-S26 CRUD and validation controls | Pending | - |
 | 4 | List/detail/search/settings/lock/sync/backup plus worker instrumentation | Pending | - |
 | 5 | Manual QA, minified release walk, macrobenchmark/Baseline Profile | Pending | - |
@@ -59,7 +59,7 @@ entry identifies coverage already recorded before this tracker was created.
 | S04 Right drawer | Categories, Accounts, Currencies, Settings/About tiles | Green: five rows covered | n/a | n/a | `DashboardContentUiTest` right-drawer group green 2026-05-27 |
 | S06 Add expense | back, swap, date, note, keypad keys/backspace, choose category | Partial green: stable controls 7/7 | Zero-amount category disabled green | Blocked by missing retry UI | `AddExpenseScreenUiTest` 7/7 green 2026-05-27; account-chip event seam missing; critical E2E pending |
 | S07 Add income | back, swap, date, note, keypad/backspace, choose category | Partial green: stable controls 7/7 | Zero-amount category disabled green | Blocked by missing retry UI | `AddIncomeScreenUiTest` 7/7 green 2026-05-27; account-chip event seam missing; AS-4 E2E pending |
-| S03 Transfer | back, account pickers, keypad, rate/change, save | Partial green: Back + initial disabled Save 2/2 | Pending | Pending | `TransferScreenUiTest` 2/2 green 2026-05-27; keypad is incorrectly visible initially despite TDD section 4.8 lines 737-744; AS-6/AS-7 E2E pending |
+| S03 Transfer | back, account pickers, keypad, rate/change, save | Partial green: Back, initial disabled Save, keypad reveal/digit 3/3 | Pending | Pending | `TransferScreenUiTest` 3/3 green 2026-05-27; initial-keypad visibility defect fixed in `b8924e2`; account pickers/rate/date/note/save-valid controls and AS-6/AS-7 E2E pending |
 | S09 Category picker | category cell, add, back, context actions | Pending | Pending | n/a | AS-4 pending |
 | S27 Currency rate | amount input, save, back | Pending | n/a | Pending | Slice 2 |
 | S08 Search | back, query/clear, voice affordance, result row, chips | Pending | Pending | Pending | Slice 4 |
@@ -160,11 +160,14 @@ entry identifies coverage already recorded before this tracker was created.
   The shared account chip currently maps to `Unit`, and the specified error
   retry action is not present in the S07 UI/event contract; AS-4 navigation
   remains an E2E slice.
-- Started S03 form coverage in `7d70c4d` and `35fa5df`: Back dispatches
-  `TransferEvent.BackClicked`, and Save is disabled for the empty initial
-  state. Scoped `TransferScreenUiTest` passed `2/2` with `0` failed/skipped
-  on `Pixel_5_API_34`, after the helper completed its required 60-second
-  pauses. A production defect blocks honest keypad coverage: TDD section 4.8
-  lines 737-744 requires the keypad to be hidden until the amount field is
-  focused, but `TransferScreen` currently renders the shared keypad
-  unconditionally.
+- Continued S03 form coverage in `7d70c4d`, `35fa5df`, `b8924e2`, and
+  `17b2117`: Back dispatches `TransferEvent.BackClicked`, Save is disabled
+  for the empty initial state, and pressing the amount area reveals the
+  keypad before a digit emits `TransferEvent.KeypadDigit`. The production
+  defect against TDD section 4.8 lines 737-744 is fixed by opt-in keypad
+  visibility in Transfer while S06/S07 retain the shared default behavior.
+  Scoped `TransferScreenUiTest` passed `3/3`, and S06/S07 regression reruns
+  passed `7/7` each, all with `0` failed/skipped on `Pixel_5_API_34`. The
+  first S03 bugfix attempt failed Android-test compilation due to an invalid
+  assertion import; `17b2117` corrected it, and every attempt still
+  completed the helper's required 60-second pause.

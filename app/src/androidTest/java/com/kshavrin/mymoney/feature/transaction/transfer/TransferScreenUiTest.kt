@@ -3,7 +3,10 @@ package com.kshavrin.mymoney.feature.transaction.transfer
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNode
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -12,8 +15,12 @@ import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
+import com.kshavrin.mymoney.core.domain.model.Account
+import com.kshavrin.mymoney.core.domain.model.AccountType
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import com.kshavrin.mymoney.feature.transaction.R
+import java.math.BigDecimal
+import java.time.Instant
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import org.junit.Assert.assertEquals
@@ -180,6 +187,33 @@ class TransferScreenUiTest {
         }
     }
 
+    @Test
+    fun `choosing a source account hides keypad and emits transfer event`() {
+        val capturedEvents = mutableListOf<TransferEvent>()
+        val sourceAccount = account(id = 10L, name = "Primary wallet")
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                TransferScreen(
+                    state = TransferState(accounts = listOf(sourceAccount)),
+                    onEvent = { event -> capturedEvents += event },
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText("0").performClick()
+        composeTestRule
+            .onNode(hasText(targetString(R.string.source_label)) and hasClickAction())
+            .performScrollTo()
+            .performClick()
+        composeTestRule.onNodeWithText(sourceAccount.name).performClick()
+        composeTestRule.onNodeWithText("1").assertDoesNotExist()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(TransferEvent.SourceAccountChanged(sourceAccount.id)), capturedEvents)
+        }
+    }
+
     private fun targetString(resourceId: Int): String =
         InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)
 
@@ -187,5 +221,23 @@ class TransferScreenUiTest {
         val locale = InstrumentationRegistry.getInstrumentation()
             .targetContext.resources.configuration.locales[0]
         return date.format(DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy", locale))
+    }
+
+    private fun account(id: Long, name: String): Account {
+        val now = Instant.parse("2026-05-27T00:00:00Z")
+        return Account(
+            id = id,
+            name = name,
+            currencyId = 1L,
+            initialBalance = BigDecimal.ZERO,
+            type = AccountType.Cash,
+            colorHex = "#7AC794",
+            iconKey = "ic_acc_cash",
+            isDefault = false,
+            sortOrder = 0,
+            createdAt = now,
+            updatedAt = now,
+            isArchived = false,
+        )
     }
 }

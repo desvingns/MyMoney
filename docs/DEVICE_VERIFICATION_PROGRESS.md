@@ -36,6 +36,7 @@ worker test backlog across sessions.
 | 2026-05-28 | S09 direct controls green, 3/3 | `CategoryPickerContentUiTest` covers Back, accessible `+ ADD`, and category selection with amount preview; FAB accessibility/layout and top-centre amount preview fixed in `14c683c`; native reviewer pass. |
 | 2026-05-28 | S27 direct controls green, 5/5 | `CurrencyRateScreenUiTest` covers Back, disabled/enabled Save, rate input, valid preview/Save, invalid inline error, From/To rows, and localized preview; fixes are in `b269a67`; native reviewer pass. |
 | 2026-05-28 | S08 direct controls green, 8/8 | `SearchContentUiTest` covers Back, query input, Clear, deterministic Voice launch, history chip, result row tap, empty-results, and error states; first run exposed a `FocusRequester` crash fixed in `SearchContent`; result row tap fixed to match TDD S08 AC4. |
+| 2026-05-28 | S12 direct controls green, 5/5 | `TransactionsListContentUiTest` covers Back, Search, empty-state copy, category filter chip, and whole-row tap; row tap fixed to match TDD S12, and `:app` androidTest now has direct `paging-compose` for Pattern B tests. |
 | 2026-05-27 | UTP-safe device runner established | Direct remote serial causes AGP 8.7.3 UTP profile-path failure; `scripts/run_connected_test_on_host_avd.ps1` proxies host ADB so Gradle uses `emulator-5554` and waits 60 seconds after each run. |
 
 ## Delivery Order
@@ -46,7 +47,7 @@ worker test backlog across sessions.
 | 1 | S00/S11/S01/S06 critical flow: onboarding -> dashboard -> add expense -> updated balance | In progress | S11 5/5; S01/S04 + AS-2 7/7; S02 2/2; S06 stable controls 7/7 green 2026-05-27; account/error seams and Pattern A pending |
 | 2 | Transaction forms S07/S03/S09/S27, including AS-4 and AS-6 paths | In progress | S07 stable controls 7/7; S03 stable direct controls 12/12, S09 direct controls 3/3, and S27 direct controls 5/5 green on `Pixel_5_API_34`; AS-4/AS-6/AS-7 E2E, S09 long-press context actions, and transaction error seams pending |
 | 3 | Dictionaries S21-S26 CRUD and validation controls | Pending | - |
-| 4 | List/detail/search/settings/lock/sync/backup plus worker instrumentation | In progress | S08 direct controls 8/8 green 2026-05-28; S12/S13/settings/lock/sync/backup and worker instrumentation pending |
+| 4 | List/detail/search/settings/lock/sync/backup plus worker instrumentation | In progress | S08 direct controls 8/8 and S12 direct controls 5/5 green 2026-05-28; S12 loading/error/filter-removal/undo, S13/settings/lock/sync/backup, and worker instrumentation pending |
 | 5 | Manual QA, minified release walk, macrobenchmark/Baseline Profile | Pending | - |
 
 ## Screen Matrix
@@ -67,7 +68,7 @@ entry identifies coverage already recorded before this tracker was created.
 | S09 Category picker | category cell, add, back, context actions | Green: Back/+ADD/category cell 3/3 | Add visible in empty state green | n/a | `CategoryPickerContentUiTest` 3/3 green 2026-05-28; long-press Edit/Archive and AS-4 E2E pending |
 | S27 Currency rate | amount input, save, back | Green: rate input/save/back 5/5 | n/a | Inline invalid-rate error green | `CurrencyRateScreenUiTest` 5/5 green 2026-05-28; localized preview and read-only From/To rows green; AS-6 return/inverse-rate E2E pending |
 | S08 Search | back, query/clear, voice affordance, result row, chips | Green: back/query/clear/voice/chip/result row 8/8 | Empty-results green | Error message green | `SearchContentUiTest` 8/8 green 2026-05-28; focus crash and row-click TDD AC4 defect fixed; debounce remains JVM-covered |
-| S12 Transactions list | search, filters, row, swipe/undo | Existing partial green 2026-05-26 | Pending | Pending | `SwipeToDeleteUiTest` covers delete callback only |
+| S12 Transactions list | search, filters, row, swipe/undo | Green: Back/Search/category chip/row tap 5/5 plus swipe 1/1 | Empty-state copy green | Pending | `TransactionsListContentUiTest` 5/5 green 2026-05-28; `SwipeToDeleteUiTest` existing green; whole-row tap fixed; loading/error/filter-removal/undo pending |
 | S13 Detail/edit | back, delete/confirm/undo, edit/save, rate | Pending | n/a | Pending | Slice 4 |
 | S14 Settings root | all destination rows, sound/haptic toggles | Pending | n/a | Pending | Slice 4 |
 | S15 Theme | System, Light, Dark rows | Pending | n/a | n/a | Slice 4 |
@@ -226,3 +227,22 @@ entry identifies coverage already recorded before this tracker was created.
   the trailing chevron. The final scoped `SearchContentUiTest` run passed `8/8`
   with `0` failed/skipped on `Pixel_5_API_34`; every run used the host-AVD
   helper and completed its required 60-second pause.
+
+### 2026-05-28 - S12 transactions-list direct controls
+
+- Added `TransactionsListContentUiTest` for S12 Pattern B coverage: Back invokes
+  the route callback, Search invokes the search callback, empty-state copy is
+  visible, a category filter chip is rendered above rows, and tapping the row
+  content emits `TransactionsListEvent.RowClicked`.
+- Fixed a real TDD S12 row-tap gap by making the whole transaction row
+  clickable, not only the trailing chevron. `:app` androidTest now declares
+  direct `paging-compose` access so Pattern B tests can collect
+  `LazyPagingItems`.
+- Early attempts exposed two test-harness issues: missing androidTest
+  `paging-compose` on the app classpath, and an empty `PagingData.from` source
+  that never settled in instrumentation. The final helper uses a small
+  `Pager`/`PagingSource` and the scoped run passed `5/5` with `0`
+  failed/skipped on `Pixel_5_API_34`.
+- S12 remaining gaps: visible loading/error states, filter-removal behavior,
+  and AS-9 undo snackbar routing still need production/testability seams or a
+  Pattern A test.

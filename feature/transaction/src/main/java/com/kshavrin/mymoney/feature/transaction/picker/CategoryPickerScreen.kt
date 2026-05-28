@@ -113,60 +113,67 @@ fun CategoryPickerContent(
                 },
             )
         },
+        floatingActionButton = {
+            ExtendedFloatingActionButton(
+                text = { Text(stringResource(R.string.add_category_cta)) },
+                icon = {
+                    Icon(
+                        Icons.Filled.Add,
+                        contentDescription = stringResource(R.string.add_category_cta),
+                    )
+                },
+                onClick = { onEvent(CategoryPickerEvent.AddCategoryClicked) },
+            )
+        },
     ) { innerPadding ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
         ) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                if (state.amountPreview != null) {
+            if (state.amountPreview != null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = Spacing.s),
+                    contentAlignment = Alignment.Center,
+                ) {
                     AssistChip(
                         onClick = {},
                         label = { Text(state.amountPreview) },
-                        modifier = Modifier.padding(horizontal = Spacing.l, vertical = Spacing.s),
                     )
-                }
-
-                if (state.categories.isEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(Spacing.l),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = stringResource(R.string.category_picker_empty),
-                            style = MaterialTheme.typography.bodyMedium,
-                            textAlign = TextAlign.Center,
-                        )
-                    }
-                } else {
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(3),
-                        contentPadding = PaddingValues(Spacing.l),
-                        verticalArrangement = Arrangement.spacedBy(Spacing.m),
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.m),
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        items(state.categories, key = { it.id }) { cat ->
-                            CategoryCell(
-                                category = cat,
-                                onClick = { onEvent(CategoryPickerEvent.CategoryClicked(cat.id)) },
-                            )
-                        }
-                    }
                 }
             }
 
-            ExtendedFloatingActionButton(
-                text = { Text(stringResource(R.string.add_category_cta)) },
-                icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                onClick = { onEvent(CategoryPickerEvent.AddCategoryClicked) },
-                modifier = Modifier
-                    .padding(Spacing.l)
-                    .align(Alignment.BottomEnd),
-            )
+            if (state.categories.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(Spacing.l),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = stringResource(R.string.category_picker_empty),
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            } else {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(3),
+                    contentPadding = PaddingValues(Spacing.l),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.m),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.m),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    items(state.categories, key = { it.id }) { cat ->
+                        CategoryCell(
+                            category = cat,
+                            onClick = { onEvent(CategoryPickerEvent.CategoryClicked(cat.id)) },
+                        )
+                    }
+                }
+            }
         }
     }
 }

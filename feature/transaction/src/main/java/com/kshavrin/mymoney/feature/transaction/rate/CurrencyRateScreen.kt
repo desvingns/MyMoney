@@ -2,6 +2,7 @@ package com.kshavrin.mymoney.feature.transaction.rate
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -65,6 +66,7 @@ fun CurrencyRateScreen(
     modifier: Modifier = Modifier,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
+    val showRateError = state.rateInput.isNotBlank() && !state.isValid
 
     val errorRes = state.errorBannerRes
     val errorMessage = errorRes?.let { stringResource(it) }
@@ -104,6 +106,14 @@ fun CurrencyRateScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(Spacing.m),
         ) {
+            CurrencyRow(
+                label = stringResource(R.string.source_label),
+                code = state.fromCurrency?.code ?: "?",
+            )
+            CurrencyRow(
+                label = stringResource(R.string.target_label),
+                code = state.toCurrency?.code ?: "?",
+            )
             Text(
                 text = buildPreview(state),
                 style = MaterialTheme.typography.headlineSmall,
@@ -113,6 +123,12 @@ fun CurrencyRateScreen(
                 onValueChange = { onEvent(CurrencyRateEvent.RateInputChanged(it)) },
                 label = { Text(stringResource(R.string.currency_rate)) },
                 singleLine = true,
+                isError = showRateError,
+                supportingText = {
+                    if (showRateError) {
+                        Text(stringResource(R.string.currency_rate_invalid))
+                    }
+                },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -127,9 +143,25 @@ fun CurrencyRateScreen(
     }
 }
 
+@Composable
+private fun CurrencyRow(
+    label: String,
+    code: String,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(text = label, style = MaterialTheme.typography.bodyMedium)
+        Text(text = code, style = MaterialTheme.typography.bodyLarge)
+    }
+}
+
+@Composable
 private fun buildPreview(state: CurrencyRateState): String {
     val fromCode = state.fromCurrency?.code ?: "?"
     val toCode = state.toCurrency?.code ?: "?"
     val rateText = state.rateInput.ifBlank { "?" }
-    return "1 $fromCode = $rateText $toCode"
+    return stringResource(R.string.currency_rate_pattern, fromCode, rateText, toCode)
 }

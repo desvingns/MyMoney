@@ -21,10 +21,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.kshavrin.mymoney.core.ui.theme.Spacing
+import com.kshavrin.mymoney.feature.lockscreen.R
 
 const val PIN_LENGTH = 4
+private const val PIN_BACKSPACE_TAG = "pin_keypad_backspace"
 
 @Composable
 fun PinKeypad(
@@ -91,9 +95,13 @@ private fun RowScope.BackspaceKey(onBackspace: () -> Unit) {
         onClick = onBackspace,
         modifier = Modifier
             .weight(1f)
-            .aspectRatio(1.4f),
+            .aspectRatio(1.4f)
+            .testTag(PIN_BACKSPACE_TAG),
     ) {
-        Icon(imageVector = Icons.AutoMirrored.Filled.Backspace, contentDescription = null)
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.Backspace,
+            contentDescription = stringResource(R.string.lock_pin_backspace),
+        )
     }
 }
 

@@ -42,6 +42,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.core.content.ContextCompat
@@ -54,6 +55,8 @@ import com.kshavrin.mymoney.feature.lockscreen.overlay.PinKeypad
 
 private val IDLE_TIMEOUT_OPTIONS = listOf(30, 60, 120, 300)
 private val BIOMETRIC_ERROR_COLOR = Color(0xFFFF5722)
+private const val LOCK_SETUP_ENABLE_TAG = "lock_setup_enable"
+private const val LOCK_SETUP_IDLE_TIMEOUT_TAG = "lock_setup_idle_timeout"
 
 @Composable
 fun BiometricSetupRoute(
@@ -125,6 +128,7 @@ fun BiometricSetupContent(
                 headlineContent = { Text(stringResource(R.string.biometric_enable_toggle)) },
                 trailingContent = {
                     Switch(
+                        modifier = Modifier.testTag(LOCK_SETUP_ENABLE_TAG),
                         checked = state.enabled,
                         enabled = state.toggleEnabled,
                         onCheckedChange = { onEvent(BiometricSetupEvent.ToggleChanged(it)) },
@@ -197,7 +201,9 @@ private fun IdleTimeoutRow(
                     Icon(Icons.Filled.ArrowDropDown, contentDescription = null)
                 }
             },
-            modifier = Modifier.clickable { expanded = true },
+            modifier = Modifier
+                .testTag(LOCK_SETUP_IDLE_TIMEOUT_TAG)
+                .clickable { expanded = true },
         )
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             IDLE_TIMEOUT_OPTIONS.forEach { seconds ->

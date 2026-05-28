@@ -22,4 +22,5 @@
     <string name="lock_locked">MyMoney заблокирован</string>
     <string name="lock_pin_prompt">Введите PIN-код</string>
     <string name="lock_pin_wrong">Неверный PIN-код, попробуйте снова</string>
+    <string name="lock_pin_backspace">Стереть</string>
 </resources>

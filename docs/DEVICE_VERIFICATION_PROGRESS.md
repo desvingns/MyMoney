@@ -44,6 +44,7 @@ worker test backlog across sessions.
 | 2026-05-28 | S19 direct controls green, 2/2 | `LanguageContentUiTest` covers Back plus System, English, and Russian selectable rows with selected-state and event assertions on `Pixel_5_API_34`. |
 | 2026-05-28 | S20 direct controls green, 2/2 | `AboutHelpContentUiTest` covers Back, visible version/attribution copy, and Privacy/Help/Licences callbacks on `Pixel_5_API_34`. |
 | 2026-05-28 | S17 direct controls green, 6/6 | `CloudSyncContentUiTest` covers Back, provider Connect/Disconnect/Sync now states, auto-sync switch, error dismissal, and conflict timestamps plus Keep remote/Keep local buttons on `Pixel_5_API_34`; providers stay credential-gated. |
+| 2026-05-28 | S16 setup direct controls green, 6/6 | `BiometricSetupContentUiTest` covers Back, enable switch, unavailable/not-enrolled states, idle-timeout menu, PIN setup keypad confirmation, and PIN backspace on `Pixel_5_API_34`; BiometricPrompt and runtime overlay remain route/runtime gaps. |
 | 2026-05-27 | UTP-safe device runner established | Direct remote serial causes AGP 8.7.3 UTP profile-path failure; `scripts/run_connected_test_on_host_avd.ps1` proxies host ADB so Gradle uses `emulator-5554` and waits 60 seconds after each run. |
 
 ## Delivery Order
@@ -54,7 +55,7 @@ worker test backlog across sessions.
 | 1 | S00/S11/S01/S06 critical flow: onboarding -> dashboard -> add expense -> updated balance | In progress | S11 5/5; S01/S04 + AS-2 7/7; S02 2/2; S06 stable controls 7/7 green 2026-05-27; account/error seams and Pattern A pending |
 | 2 | Transaction forms S07/S03/S09/S27, including AS-4 and AS-6 paths | In progress | S07 stable controls 7/7; S03 stable direct controls 12/12, S09 direct controls 3/3, and S27 direct controls 5/5 green on `Pixel_5_API_34`; AS-4/AS-6/AS-7 E2E, S09 long-press context actions, and transaction error seams pending |
 | 3 | Dictionaries S21-S26 CRUD and validation controls | Pending | - |
-| 4 | List/detail/search/settings/lock/sync/backup plus worker instrumentation | In progress | S08 direct controls 8/8, S12 direct controls 5/5, S13 direct controls 11/11, S14 direct controls 3/3, S15 direct controls 2/2, S17 direct controls 6/6, S18 direct controls 5/5, S19 direct controls 2/2, and S20 direct controls 2/2 green 2026-05-28; S12 loading/error/filter-removal/undo, S16 lock setup/overlay, provider/OAuth E2E, and worker instrumentation pending |
+| 4 | List/detail/search/settings/lock/sync/backup plus worker instrumentation | In progress | S08 direct controls 8/8, S12 direct controls 5/5, S13 direct controls 11/11, S14 direct controls 3/3, S15 direct controls 2/2, S16 setup direct controls 6/6, S17 direct controls 6/6, S18 direct controls 5/5, S19 direct controls 2/2, and S20 direct controls 2/2 green 2026-05-28; S12 loading/error/filter-removal/undo, S16 BiometricPrompt/overlay runtime, provider/OAuth E2E, and worker instrumentation pending |
 | 5 | Manual QA, minified release walk, macrobenchmark/Baseline Profile | Pending | - |
 
 ## Screen Matrix
@@ -79,7 +80,7 @@ entry identifies coverage already recorded before this tracker was created.
 | S13 Detail/edit | back, delete/confirm/undo, edit/save, rate | Green: direct controls 11/11 | n/a | Snackbar error green | `TransactionDetailContentUiTest` 11/11 green 2026-05-28; covers pre-populated edit controls, delete dialog, inline transfer rate, and error dismissal; S13/S12 undo snackbar routing remains Pattern A |
 | S14 Settings root | all destination rows, sound/haptic toggles | Green: direct controls 3/3 | n/a | n/a | `SettingsRootContentUiTest` 3/3 green 2026-05-28; covers Back, seven destination rows, current labels, Sound/Haptic switches |
 | S15 Theme | System, Light, Dark rows | Green: direct controls 2/2 | n/a | n/a | `ThemeSettingsContentUiTest` 2/2 green 2026-05-28; covers Back, selected Dark row semantics, and System/Light/Dark selection events |
-| S16 Lock setup/overlay | enable, timeout, PIN fallback, back blocking | Pending | Pending | Pending | AS-5 pending |
+| S16 Lock setup/overlay | enable, timeout, PIN fallback, back blocking | Green: setup direct controls 6/6 | Unavailable/not-enrolled setup states green | Pending | `BiometricSetupContentUiTest` 6/6 green 2026-05-28; covers Back, enable switch, system-settings CTA, idle-timeout dropdown, PIN confirmation and backspace; BiometricPrompt launch/callbacks and runtime `LockOverlay` remain route/runtime instrumentation gaps |
 | S17 Cloud sync | connect/disconnect, sync, auto-sync, conflict actions | Green: direct controls 6/6 | Provider-gated disconnected state green | Error dismissal green | `CloudSyncContentUiTest` 6/6 green 2026-05-28; covers Back, Connect enabled/disabled, disconnected Sync-now disabled, connected Disconnect/Sync-now, auto-sync switch, error dismiss, and conflict remote/local timestamps plus Keep remote/Keep local; OAuth/live cloud round-trips remain OQ-2/OQ-3 and worker sync-no-op remains integration |
 | S18 Backup/Restore | export/import DB, export/import CSV, reset confirm | Green: direct controls 5/5 | n/a | Error banner green | `BackupRestoreContentUiTest` 5/5 green 2026-05-28; covers Back, DB/CSV export-import callbacks, reset request, disabled in-progress state, reset confirm/cancel, size label, and error banner; SAF picker and real file IO remain route/integration |
 | S19 Language | System, English, Russian rows | Green: direct controls 2/2 | n/a | n/a | `LanguageContentUiTest` 2/2 green 2026-05-28; covers Back, selected Russian row semantics, and System/English/Russian selection events |
@@ -359,3 +360,21 @@ entry identifies coverage already recorded before this tracker was created.
 - Remaining S17 gaps: provider credentials/OAuth and live cloud round-trips
   remain OQ-2/OQ-3; sync-worker no-op behavior remains a WorkManager
   integration test.
+
+### 2026-05-28 - S16 lock setup direct controls
+
+- Added `BiometricSetupContentUiTest` for S16 setup Pattern B coverage: Back
+  invokes the setup callback; the available enable switch emits
+  `ToggleChanged(true)`; no-hardware and not-enrolled states disable the switch;
+  the not-enrolled text opens system settings; the idle-timeout row opens the
+  menu and emits `IdleTimeoutSelected(120)`; and the PIN setup dialog confirms a
+  four-digit PIN while the backspace key participates in the entered value.
+- Added stable test tags for the setup switch and timeout row, plus an
+  accessible content description for the PIN keypad backspace control. The
+  first scoped run passed `1/1`; after expanding coverage, the scoped suite
+  passed `6/6` with `0` failed/skipped on `Pixel_5_API_34` through the
+  host-AVD helper. `:feature:lockscreen:testDebugUnitTest
+  :feature:lockscreen:assembleDebug` also passed locally; unit reports show
+  46 tests, 0 failures.
+- Remaining S16 gaps: real `BiometricPrompt` launch/callback behavior and
+  runtime `LockOverlay` unlock/back-blocking need route/runtime instrumentation.

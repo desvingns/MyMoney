@@ -182,6 +182,8 @@ Driven via `/cmp --phase` (Developer→Reviewer→Tester→Runner→Verifier per
 
 - **Device coverage slice S15 direct controls (2026-05-28)** - Added `ThemeSettingsContentUiTest` for direct theme-settings coverage. The scoped suite passed **2/2, 0 failed, 0 skipped** on `Pixel_5_API_34`, covering Back, selected-row semantics, and System/Light/Dark `ModeSelected` events. Native reviewer passed with no violations; one earlier scoped attempt caught and corrected a bad androidTest import before execution.
 
+- **Device coverage slice S18 direct controls (2026-05-28)** - Added `BackupRestoreContentUiTest` for direct backup/restore coverage. The scoped suite passed **5/5, 0 failed, 0 skipped** on `Pixel_5_API_34`, covering Back, DB/CSV export-import callbacks, reset request, disabled in-progress state, reset confirm/cancel dialog, size label, and error banner. Native reviewer passed with no violations; SAF picker and real file IO remain route/integration gaps.
+
 - **Device coverage slice S19 direct controls (2026-05-28)** - Added `LanguageContentUiTest` for direct language-settings coverage. The scoped suite passed **2/2, 0 failed, 0 skipped** on `Pixel_5_API_34`, covering Back, selected-row semantics, and System/English/Russian `LanguageSelected` events. Native reviewer passed with no violations.
 
 - **Device coverage slice S20 direct controls (2026-05-28)** - Added `AboutHelpContentUiTest` for direct about/help coverage. The scoped suite passed **2/2, 0 failed, 0 skipped** on `Pixel_5_API_34`, covering Back, version/attribution copy, and Privacy/Help/Licences callbacks. Native reviewer passed with no violations; AS-15 bundled WebView routing remains a Pattern A/E2E gap.

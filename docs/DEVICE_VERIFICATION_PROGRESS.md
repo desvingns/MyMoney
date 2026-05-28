@@ -37,6 +37,7 @@ worker test backlog across sessions.
 | 2026-05-28 | S27 direct controls green, 5/5 | `CurrencyRateScreenUiTest` covers Back, disabled/enabled Save, rate input, valid preview/Save, invalid inline error, From/To rows, and localized preview; fixes are in `b269a67`; native reviewer pass. |
 | 2026-05-28 | S08 direct controls green, 8/8 | `SearchContentUiTest` covers Back, query input, Clear, deterministic Voice launch, history chip, result row tap, empty-results, and error states; first run exposed a `FocusRequester` crash fixed in `SearchContent`; result row tap fixed to match TDD S08 AC4. |
 | 2026-05-28 | S12 direct controls green, 5/5 | `TransactionsListContentUiTest` covers Back, Search, empty-state copy, category filter chip, and whole-row tap; row tap fixed to match TDD S12, and `:app` androidTest now has direct `paging-compose` for Pattern B tests. |
+| 2026-05-28 | S13 direct controls green, 11/11 | `TransactionDetailContentUiTest` covers Back, hidden/visible Save, Delete, delete confirm/cancel, keypad/backspace/note edits, date selection, account selection, cross-currency target/rate edits, and snackbar error dismissal on `Pixel_5_API_34`. |
 | 2026-05-27 | UTP-safe device runner established | Direct remote serial causes AGP 8.7.3 UTP profile-path failure; `scripts/run_connected_test_on_host_avd.ps1` proxies host ADB so Gradle uses `emulator-5554` and waits 60 seconds after each run. |
 
 ## Delivery Order
@@ -47,7 +48,7 @@ worker test backlog across sessions.
 | 1 | S00/S11/S01/S06 critical flow: onboarding -> dashboard -> add expense -> updated balance | In progress | S11 5/5; S01/S04 + AS-2 7/7; S02 2/2; S06 stable controls 7/7 green 2026-05-27; account/error seams and Pattern A pending |
 | 2 | Transaction forms S07/S03/S09/S27, including AS-4 and AS-6 paths | In progress | S07 stable controls 7/7; S03 stable direct controls 12/12, S09 direct controls 3/3, and S27 direct controls 5/5 green on `Pixel_5_API_34`; AS-4/AS-6/AS-7 E2E, S09 long-press context actions, and transaction error seams pending |
 | 3 | Dictionaries S21-S26 CRUD and validation controls | Pending | - |
-| 4 | List/detail/search/settings/lock/sync/backup plus worker instrumentation | In progress | S08 direct controls 8/8 and S12 direct controls 5/5 green 2026-05-28; S12 loading/error/filter-removal/undo, S13/settings/lock/sync/backup, and worker instrumentation pending |
+| 4 | List/detail/search/settings/lock/sync/backup plus worker instrumentation | In progress | S08 direct controls 8/8, S12 direct controls 5/5, and S13 direct controls 11/11 green 2026-05-28; S12 loading/error/filter-removal/undo, settings/lock/sync/backup, and worker instrumentation pending |
 | 5 | Manual QA, minified release walk, macrobenchmark/Baseline Profile | Pending | - |
 
 ## Screen Matrix
@@ -69,7 +70,7 @@ entry identifies coverage already recorded before this tracker was created.
 | S27 Currency rate | amount input, save, back | Green: rate input/save/back 5/5 | n/a | Inline invalid-rate error green | `CurrencyRateScreenUiTest` 5/5 green 2026-05-28; localized preview and read-only From/To rows green; AS-6 return/inverse-rate E2E pending |
 | S08 Search | back, query/clear, voice affordance, result row, chips | Green: back/query/clear/voice/chip/result row 8/8 | Empty-results green | Error message green | `SearchContentUiTest` 8/8 green 2026-05-28; focus crash and row-click TDD AC4 defect fixed; debounce remains JVM-covered |
 | S12 Transactions list | search, filters, row, swipe/undo | Green: Back/Search/category chip/row tap 5/5 plus swipe 1/1 | Empty-state copy green | Pending | `TransactionsListContentUiTest` 5/5 green 2026-05-28; `SwipeToDeleteUiTest` existing green; whole-row tap fixed; loading/error/filter-removal/undo pending |
-| S13 Detail/edit | back, delete/confirm/undo, edit/save, rate | Pending | n/a | Pending | Slice 4 |
+| S13 Detail/edit | back, delete/confirm/undo, edit/save, rate | Green: direct controls 11/11 | n/a | Snackbar error green | `TransactionDetailContentUiTest` 11/11 green 2026-05-28; covers pre-populated edit controls, delete dialog, inline transfer rate, and error dismissal; S13/S12 undo snackbar routing remains Pattern A |
 | S14 Settings root | all destination rows, sound/haptic toggles | Pending | n/a | Pending | Slice 4 |
 | S15 Theme | System, Light, Dark rows | Pending | n/a | n/a | Slice 4 |
 | S16 Lock setup/overlay | enable, timeout, PIN fallback, back blocking | Pending | Pending | Pending | AS-5 pending |
@@ -246,3 +247,22 @@ entry identifies coverage already recorded before this tracker was created.
 - S12 remaining gaps: visible loading/error states, filter-removal behavior,
   and AS-9 undo snackbar routing still need production/testability seams or a
   Pattern A test.
+
+### 2026-05-28 - S13 transaction-detail direct controls
+
+- Added `TransactionDetailContentUiTest` for S13 Pattern B coverage: Back,
+  hidden Save for a clean detail, visible Save for a dirty detail, Delete,
+  delete confirm/cancel, keypad digit/backspace, note input, date selection,
+  account selection, cross-currency transfer target selection, inline rate
+  input, and snackbar error dismissal are covered.
+- Early scoped attempts exposed harness-only issues: two invalid Compose test
+  imports, a double `setContent` call in one test, a target-account dropdown
+  matcher that opened the wrong row, and a snackbar assertion that could hold
+  Compose idleness until timeout. The final harness captures and dismisses the
+  snackbar while asserting both the message and `DismissError`.
+- Scoped `TransactionDetailContentUiTest` passed `11/11` with `0`
+  failed/skipped on `Pixel_5_API_34` through the host-AVD helper; the helper
+  completed its required 60-second pause. Native reviewer recheck passed
+  without findings.
+- Remaining S13 gap: the S13 delete undo snackbar is shared with S12 behavior
+  and still belongs to a Pattern A route/snackbar-host test.

@@ -53,6 +53,15 @@ In addition to layer boundaries, check Gradle-module boundaries:
 - Comments referencing the current PR / task / commit hash → violation (this rots; belongs in commit message, not code).
 - Single-line comments explaining a non-obvious WHY → fine.
 
+## Device-test seam scope (when reviewing a `--device` slice)
+
+When the SPEC is a `--device` slice, the production diff must be a **seam only** — see
+`.claude/cmp-mymoney/device-extras.md`. Block the chain if a device-slice diff adds anything beyond a
+single `Modifier.testTag(...)`, a `contentDescription`, or a `<Screen>Content` visibility change to
+`public`. New events, ViewModel methods, navigation, branches, or UI in a `--device` diff are a
+violation (`rule: "device-seam scope"`) — a weaker model must not smuggle invented behaviour in under
+the guise of a test seam.
+
 ## Output format
 
 Standard reviewer output: `{"pass": bool, "violations": [...]}`. Each violation entry should cite the file:line and the rule. Example:

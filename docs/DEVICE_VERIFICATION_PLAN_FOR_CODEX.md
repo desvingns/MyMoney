@@ -1,5 +1,11 @@
 # MyMoney — On-Device Test Coverage Remediation — Execution Plan for Codex (GPT-5.5)
 
+> **SUPERSEDED for execution (2026-05-28).** Active execution now follows
+> `docs/DEVICE_VERIFICATION_PLAN_FOR_SONNET.md` (a step-by-step runbook for Claude Sonnet 4.6). The
+> live, authoritative progress tracker is `docs/DEVICE_VERIFICATION_PROGRESS.md` — the coverage
+> numbers in *this* document are stale (it predates the ~18 screens already covered). Kept for
+> historical context and the original rationale only.
+
 > **Why this document exists.** `MyMoney_TDD.md` was implemented here (27 screens, multi-module
 > Kotlin/Compose/Hilt/Room). Because of a process mistake, features were built **without on-device
 > verification**: there are **655 green JVM unit tests** but **only ~8 instrumented (`androidTest`)

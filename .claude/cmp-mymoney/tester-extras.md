@@ -48,6 +48,26 @@ The CMP seed memory `dao-test-config-trap.md` explains why. Reinforcing it here:
 - Use **test-tags** sparingly — prefer matching on `onNodeWithText(stringResource(R.string.…))` so localization issues surface. Test-tags only for things that have no semantic text (icons, decorative).
 - Don't use `Thread.sleep` — use `composeTestRule.waitUntil { … }` with a timeout.
 
+## Instrumented Compose UI on device (`--device` / the runbook)
+
+For on-device screen coverage (`connectedDebugAndroidTest` on `Pixel_5_API_34`), read
+`.claude/cmp-mymoney/device-extras.md` and follow the canonical Pattern B template in
+`docs/DEVICE_VERIFICATION_PLAN_FOR_SONNET.md` §5 verbatim (it is copied from the already-green
+`app/src/androidTest/.../dashboard/DashboardContentUiTest.kt`).
+
+- **Write exactly ONE `@Test` per `--device` slice** (or one new `@Test` in the screen's existing
+  `*ContentUiTest`). Never batch device tests — they run one-at-a-time and get marked in the tracker
+  one-at-a-time.
+- Render the public `<Screen>Content(state, onEvent)` directly inside `MyMoneyTheme { }` with
+  `createComposeRule()`; capture events into a `mutableListOf<…Event>()` and assert with
+  `runOnIdle { assertEquals(listOf(Event.X), captured) }`.
+- Prefer `onNodeWithContentDescription(targetString(R.string.…))` / visible-text matchers over test
+  tags; resolve strings via the `targetString(...)` helper, never a literal.
+- **Missing-seam policy:** if a control has no event/seam, you may only request a
+  testTag/contentDescription/`public` seam from the developer — never invent UI or events. If the
+  feature genuinely isn't in production, do not write the test; report the gap so it is logged in the
+  tracker. Never weaken a test to get green.
+
 ## Roborazzi (optional)
 
 If a SPEC includes `screenshot` in `TEST_TYPES` and the feature has a custom Compose component (e.g. `MonefyDonutChart`, `MonefyKeypad`):

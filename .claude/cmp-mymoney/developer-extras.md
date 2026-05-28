@@ -104,3 +104,16 @@ When invoked via `/cmp --feature` directly (not through `--phase`), there is no 
 ```
 
 JBR auto-detect snippet for Git Bash on Windows lives in `CLAUDE.md`.
+
+## Device-test seams (when invoked from `--device` / the runbook)
+
+When the SPEC asks you to "expose a seam" for an on-device Compose-UI test, the allowed change set is
+**deliberately tiny** — see `.claude/cmp-mymoney/device-extras.md`:
+
+- You may add ONLY a `Modifier.testTag("…")`, a `contentDescription`, or change a `<Screen>Content`
+  composable's visibility to `public`. Cite the exact control the seam is for.
+- You must NOT add new UI, events, ViewModel methods, navigation, or behaviour to make a test
+  possible. A `--device` slice is not a feature slice. If the control genuinely doesn't exist, do not
+  invent it — return that no seam is appropriate so the tester logs the gap.
+- Prefer `contentDescription` (also helps accessibility) over `testTag`. Keep the diff to the one
+  screen named in the SPEC.

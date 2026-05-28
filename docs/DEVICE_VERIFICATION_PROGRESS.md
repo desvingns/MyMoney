@@ -1,9 +1,11 @@
 # Device Verification Coverage Progress
 
-This is the resumable tracker for the on-device remediation defined in
-`docs/DEVICE_VERIFICATION_PLAN_FOR_CODEX.md`. `docs/implementation_plan/PROGRESS.md`
-continues to own phase status; this file tracks the fine-grained UI/control and
-worker test backlog across sessions.
+This is the resumable tracker for the on-device remediation. The active execution
+runbook is `docs/DEVICE_VERIFICATION_PLAN_FOR_SONNET.md` (step-by-step, for Claude
+Sonnet 4.6); the original `docs/DEVICE_VERIFICATION_PLAN_FOR_CODEX.md` is kept for
+historical rationale only. `docs/implementation_plan/PROGRESS.md` continues to own
+phase status; this file tracks the fine-grained UI/control and worker test backlog
+across sessions, and is updated one green test at a time (`/cmp --device <Sxx>` or by hand).
 
 ## Rules
 

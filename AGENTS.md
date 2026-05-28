@@ -120,6 +120,13 @@ Codex runs against this checkout from a Windows VirtualBox guest. Nested virtual
 is not available in that guest, so start the emulator in Android Studio on the primary
 Windows host, not inside the guest.
 
+**A connected test device is mandatory for any instrumented (`connectedDebugAndroidTest`) run — never
+run, or claim to run, on-device tests without one.** Use the connection recorded in this section (the
+verified default below). If `adb devices` is empty, the AVD is wrong, or the attachment was lost
+mid-session, STOP and ask the user where/how the test device is connected now (address / serial /
+method), then update this section with their answer so it is not asked again while it keeps working.
+(Claude keeps the same fact in its `mymoney-device-connection` memory memo.)
+
 Verified on 2026-05-27:
 
 - Use host AVD `Pixel_5_API_34` (`Pixel 5`, Android 14 / API 34).
@@ -235,11 +242,18 @@ done
 ## Native Codex Pipeline
 
 - Invoke `$cmp --phase`, `$cmp --feature <description>`, `$cmp --bugfix <description>`,
-  `$cmp --discuss <topic>`, or `$cmp --check`.
+  `$cmp --discuss <topic>`, `$cmp --check`, or `$cmp --device <Sxx>`.
+- `$cmp --device <Sxx>` runs one on-device instrumented-test slice for a single control: it reads
+  `docs/DEVICE_VERIFICATION_PROGRESS.md` (the device tracker) and the runbook
+  `docs/DEVICE_VERIFICATION_PLAN_FOR_SONNET.md`, writes one Compose-UI test, runs it on
+  `Pixel_5_API_34` via `cmp-runner-instrumented-android` + `scripts/run_connected_test_on_host_avd.ps1`,
+  then updates the tracker. One control per run; never pushes. MyMoney-specific.
 - `$cmp` is a project-local Codex skill in `.agents/skills/cmp/SKILL.md`. It follows the
   customized canonical workflow in `.claude/commands/cmp.md`, including the MyMoney-only
   `--phase` and `--check` modes.
-- When subagents are requested, use native specialists from `.codex/agents/*.toml`.
+- When subagents are requested, use native specialists from `.codex/agents/*.toml`. The
+  `cmp-runner-instrumented-android` specialist is the only one allowed to invoke PowerShell, and only
+  for the host-AVD helper; `cmp-runner-android` stays JVM-only.
 - Keep `docs/implementation_plan/PROGRESS.md` as the only project-state writer. The
   `cmp-docs` step remains disabled for this project.
 - Push only after tested files are committed and the user explicitly approves the final gate.

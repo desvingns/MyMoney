@@ -13,6 +13,7 @@ Usage:
   /cmp --discuss <topic>               — brainstorm options before committing to a SPEC (read-only, no code)
   /cmp --phase                         — assisted phase progression: read PROGRESS.md, pick next unchecked task from the active PHASE_NN, synthesise SPEC, run the --feature pipeline, then tick the checkbox and append to PROGRESS log. MyMoney-specific.
   /cmp --check                         — read-only state validator: PROGRESS↔PHASE_NN↔TDD consistency. Makes no changes. MyMoney-specific.
+  /cmp --device <Sxx>                  — one on-device test slice: pick the next un-green control for screen Sxx from DEVICE_VERIFICATION_PROGRESS.md, write ONE instrumented test, run it on Pixel_5_API_34 via the host-AVD helper, then update the tracker. MyMoney-specific.
 
 ## Platform resolution
 
@@ -507,6 +508,95 @@ If `Status: CONSISTENT` → suggest next action: "Ready for `/cmp --phase` to wo
 
 ---
 
+## Workflow: --device (MyMoney-specific)
+
+One on-device instrumented-test slice for a single control. This is the device analogue of
+`--bugfix`: it swaps the JVM runner (`cmp-runner-android`) for the device runner
+(`cmp-runner-instrumented-android`) and ends by updating the device tracker. **One control per
+invocation** — this enforces the runbook's "write one test → run on AVD → green → STOP" loop for a
+less-capable model.
+
+The authoritative runbook is `docs/DEVICE_VERIFICATION_PLAN_FOR_SONNET.md`; the live progress tracker
+is `docs/DEVICE_VERIFICATION_PROGRESS.md`. Read both before starting.
+
+### Phase 1 — Load context
+
+1. Read `docs/DEVICE_VERIFICATION_PROGRESS.md`. For screen `<Sxx>` (the argument), find the next
+   control whose cell is `Pending` (or the next un-green control listed in its row's notes). If the
+   screen has no remaining un-green control → report that and stop.
+2. Open the matching **slice card** in `docs/DEVICE_VERIFICATION_PLAN_FOR_SONNET.md` §8. It names the
+   `*Content` composable, the `State`/`Event` types and paths, the controls→events mapping, any
+   seams/skips, and the test-class FQN.
+3. **Ensure a test device is connected — mandatory, never run without one.** Take the connection
+   from the `mymoney-device-connection` memory memo (default: host AVD `Pixel_5_API_34` via
+   `adb connect 10.0.2.2:5555`) and run the runbook §3 preflight. If `adb devices` is empty, the AVD
+   is wrong, or the connection was lost → **STOP and ask the user (AskUserQuestion) where/how the test
+   device is connected now** (address / serial / method), **write their answer to the
+   `mymoney-device-connection` memo**, then retry the preflight. Do not spawn any agent until a device
+   is confirmed connected and booted.
+
+### Phase 2 — Add a seam only if the card says one is needed
+
+If (and only if) the card flags a missing seam that policy permits closing (a `testTag`, a
+`contentDescription`, or making a `*Content` public), spawn `cmp-developer-android`:
+```
+Add ONLY the minimal test seam below. Do NOT add UI, events, or behaviour. Return JSON: {"changed_files":[...], "commit":"hash"}
+
+SPEC:
+TASK: bugfix
+PLATFORM: android
+WHAT: expose <seam> on <Screen> for an instrumented test (testTag/contentDescription/public visibility only)
+CHANGED_HINT: <Screen>Screen.kt
+TEST_TYPES: compose-ui
+CONSTRAINTS: device-test seam only — see .claude/cmp-mymoney/device-extras.md missing-seam policy; no new UI/events
+```
+Then spawn `cmp-reviewer-android` on the changed files. If `pass=false` → stop, show violations.
+If the card says the control has **no** production seam → do NOT add one; record the gap in the
+tracker notes (`<control> — no production seam, escalated`) and stop.
+
+### Phase 3 — Write ONE test
+
+Spawn `cmp-tester-android`:
+```
+Write exactly ONE instrumented Compose-UI @Test for the control below, using the canonical Pattern B template in docs/DEVICE_VERIFICATION_PLAN_FOR_SONNET.md §5. New file or one new @Test in the screen's existing *ContentUiTest. No batching. Return JSON: {"test_files":[...], "screenshot_record_needed": false}
+
+CONTROL: <control + expected event/state from the slice card>
+TEST CLASS: <FQN from the card>
+```
+
+### Phase 4 — Run it on the AVD
+
+Spawn `cmp-runner-instrumented-android`:
+```
+Run this one instrumented test class on Pixel_5_API_34 and return parsed JSON.
+TEST_CLASS: <FQN>
+TASK: :app:connectedDebugAndroidTest
+```
+
+### Phase 5 — Record or recover
+
+- **Green** (`pass=true`, `failures=0`, `skipped=0`): commit the test (`git commit -m "test: cover
+  <Sxx> <control>"`); any seam from Phase 2 stays in its own `feat/fix:` commit. Then in
+  `docs/DEVICE_VERIFICATION_PROGRESS.md` flip the screen's matrix cell to `Green: <control> N/N` and
+  append one dated *Session Log* line. **Do not push** (device coverage pushes per session, not per
+  control — same as `--phase`).
+- **Red** (`pass=false`): if it's a real defect, spawn `cmp-developer-android` once for a minimal fix,
+  then `cmp-runner-instrumented-android` once more. Still red → STOP, show the report, and write the
+  gap in the tracker notes. Never weaken the test.
+
+### Phase 6 — Report and stop
+
+```
+device: <Sxx> — <control> <green N/N | red | escalated>
+   Test: <FQN>::<method>
+   Commit: <hash> (test) [+ <hash> seam]
+   Tracker: updated (matrix + session log)
+   Next un-green control: <suggestion from the card / tracker>
+```
+Stop. Do not start the next control in the same run.
+
+---
+
 ## Rules
 
 - Orchestrator NEVER writes mobile production code (Kotlin/Swift/Compose/Gradle/Xcode build scripts) or tests.
@@ -520,4 +610,6 @@ If `Status: CONSISTENT` → suggest next action: "Ready for `/cmp --phase` to wo
 - Push happens exactly once and only after implementation and test commits are present.
 - `--tdd` flag (only on `--feature`) reorders Phase 2: Tester writes failing unit tests first (`red_phase=true`), Runner verifies the red, then Developer implements until green (`green_phase=true`). Opt-in only; default order remains developer-first. `--bugfix` delegates regression-test creation to Tester.
 - `cmp-docs` agent is **inert in MyMoney** (`.claude/agents/cmp-docs.md` body replaced). All `--feature`/`--bugfix`/`--phase`/`--tdd` workflows skip the docs step. State is owned by `docs/implementation_plan/PROGRESS.md` exclusively.
-- `--phase` and `--check` are MyMoney-specific extensions, not from CMP source. They will not be modified by `bash CMP/bootstrap.sh --upgrade`. Future CMP versions may add new flags — manually re-apply these two if a future upgrade overwrites this file.
+- `cmp-runner-instrumented-android` runs the on-device suite (`connectedDebugAndroidTest`) for **one** test class via `scripts/run_connected_test_on_host_avd.ps1`. It is the **only** agent permitted to invoke PowerShell, and only for that helper — every other agent stays Bash-only. It trusts the parsed connected report, never "BUILD SUCCESSFUL". `cmp-runner-android` remains JVM-only and unchanged.
+- `--device` slices update `docs/DEVICE_VERIFICATION_PROGRESS.md` (the device tracker), never `PROGRESS.md`. They never push. One control per invocation.
+- `--phase`, `--check`, and `--device` are MyMoney-specific extensions, not from CMP source. They will not be modified by `bash CMP/bootstrap.sh --upgrade`. Future CMP versions may add new flags — manually re-apply these three (and the `cmp-runner-instrumented-android` agent) if a future upgrade overwrites this file.

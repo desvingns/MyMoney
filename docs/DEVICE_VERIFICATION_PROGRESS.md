@@ -43,6 +43,7 @@ worker test backlog across sessions.
 | 2026-05-28 | S18 direct controls green, 5/5 | `BackupRestoreContentUiTest` covers Back, DB/CSV export-import buttons, reset request, disabled in-progress state, reset confirm/cancel dialog, size label, and error banner on `Pixel_5_API_34`. |
 | 2026-05-28 | S19 direct controls green, 2/2 | `LanguageContentUiTest` covers Back plus System, English, and Russian selectable rows with selected-state and event assertions on `Pixel_5_API_34`. |
 | 2026-05-28 | S20 direct controls green, 2/2 | `AboutHelpContentUiTest` covers Back, visible version/attribution copy, and Privacy/Help/Licences callbacks on `Pixel_5_API_34`. |
+| 2026-05-28 | S17 direct controls green, 6/6 | `CloudSyncContentUiTest` covers Back, provider Connect/Disconnect/Sync now states, auto-sync switch, error dismissal, and conflict timestamps plus Keep remote/Keep local buttons on `Pixel_5_API_34`; providers stay credential-gated. |
 | 2026-05-27 | UTP-safe device runner established | Direct remote serial causes AGP 8.7.3 UTP profile-path failure; `scripts/run_connected_test_on_host_avd.ps1` proxies host ADB so Gradle uses `emulator-5554` and waits 60 seconds after each run. |
 
 ## Delivery Order
@@ -53,7 +54,7 @@ worker test backlog across sessions.
 | 1 | S00/S11/S01/S06 critical flow: onboarding -> dashboard -> add expense -> updated balance | In progress | S11 5/5; S01/S04 + AS-2 7/7; S02 2/2; S06 stable controls 7/7 green 2026-05-27; account/error seams and Pattern A pending |
 | 2 | Transaction forms S07/S03/S09/S27, including AS-4 and AS-6 paths | In progress | S07 stable controls 7/7; S03 stable direct controls 12/12, S09 direct controls 3/3, and S27 direct controls 5/5 green on `Pixel_5_API_34`; AS-4/AS-6/AS-7 E2E, S09 long-press context actions, and transaction error seams pending |
 | 3 | Dictionaries S21-S26 CRUD and validation controls | Pending | - |
-| 4 | List/detail/search/settings/lock/sync/backup plus worker instrumentation | In progress | S08 direct controls 8/8, S12 direct controls 5/5, S13 direct controls 11/11, S14 direct controls 3/3, S15 direct controls 2/2, S18 direct controls 5/5, S19 direct controls 2/2, and S20 direct controls 2/2 green 2026-05-28; S12 loading/error/filter-removal/undo, remaining settings sub-screens/lock/sync/backup, and worker instrumentation pending |
+| 4 | List/detail/search/settings/lock/sync/backup plus worker instrumentation | In progress | S08 direct controls 8/8, S12 direct controls 5/5, S13 direct controls 11/11, S14 direct controls 3/3, S15 direct controls 2/2, S17 direct controls 6/6, S18 direct controls 5/5, S19 direct controls 2/2, and S20 direct controls 2/2 green 2026-05-28; S12 loading/error/filter-removal/undo, S16 lock setup/overlay, provider/OAuth E2E, and worker instrumentation pending |
 | 5 | Manual QA, minified release walk, macrobenchmark/Baseline Profile | Pending | - |
 
 ## Screen Matrix
@@ -79,7 +80,7 @@ entry identifies coverage already recorded before this tracker was created.
 | S14 Settings root | all destination rows, sound/haptic toggles | Green: direct controls 3/3 | n/a | n/a | `SettingsRootContentUiTest` 3/3 green 2026-05-28; covers Back, seven destination rows, current labels, Sound/Haptic switches |
 | S15 Theme | System, Light, Dark rows | Green: direct controls 2/2 | n/a | n/a | `ThemeSettingsContentUiTest` 2/2 green 2026-05-28; covers Back, selected Dark row semantics, and System/Light/Dark selection events |
 | S16 Lock setup/overlay | enable, timeout, PIN fallback, back blocking | Pending | Pending | Pending | AS-5 pending |
-| S17 Cloud sync | connect/disconnect, sync, auto-sync, conflict actions | Pending | Pending | Pending | Keep providers gated off |
+| S17 Cloud sync | connect/disconnect, sync, auto-sync, conflict actions | Green: direct controls 6/6 | Provider-gated disconnected state green | Error dismissal green | `CloudSyncContentUiTest` 6/6 green 2026-05-28; covers Back, Connect enabled/disabled, disconnected Sync-now disabled, connected Disconnect/Sync-now, auto-sync switch, error dismiss, and conflict remote/local timestamps plus Keep remote/Keep local; OAuth/live cloud round-trips remain OQ-2/OQ-3 and worker sync-no-op remains integration |
 | S18 Backup/Restore | export/import DB, export/import CSV, reset confirm | Green: direct controls 5/5 | n/a | Error banner green | `BackupRestoreContentUiTest` 5/5 green 2026-05-28; covers Back, DB/CSV export-import callbacks, reset request, disabled in-progress state, reset confirm/cancel, size label, and error banner; SAF picker and real file IO remain route/integration |
 | S19 Language | System, English, Russian rows | Green: direct controls 2/2 | n/a | n/a | `LanguageContentUiTest` 2/2 green 2026-05-28; covers Back, selected Russian row semantics, and System/English/Russian selection events |
 | S20 About/Help | privacy, help, licences, back | Green: direct controls 2/2 | n/a | Pending | `AboutHelpContentUiTest` 2/2 green 2026-05-28; covers Back, version/attribution copy, and Privacy/Help/Licences callbacks; AS-15 bundled WebView route remains Pattern A/E2E |
@@ -335,3 +336,26 @@ entry identifies coverage already recorded before this tracker was created.
   helper. Native reviewer passed with no violations.
 - Remaining S20 gap: AS-15 bundled privacy/help WebView routing and asset
   loading still needs a route-level Pattern A/E2E test.
+
+### 2026-05-28 - S17 cloud sync direct controls
+
+- Added `CloudSyncContentUiTest` for S17 Pattern B coverage: Back emits
+  `CloudSyncEvent.BackClicked`; disconnected provider cards cover enabled and
+  disabled Connect plus disabled Sync now; connected provider cards cover
+  Disconnect and Sync now for Dropbox and Google Drive; the auto-sync switch
+  emits `AutoSyncToggled`; the error banner close button emits `DismissError`;
+  and the conflict dialog renders remote/local timestamps and emits Keep remote
+  / Keep local.
+- The first scoped run passed `1/1`; the expanded run first caught a bad
+  androidTest import before execution, then the corrected scoped run passed
+  `6/6` with `0` failed/skipped on `Pixel_5_API_34` through the host-AVD
+  helper. Native reviewer caught the missing US-17 AC1 timestamps; after the
+  production/test fix, the scoped suite passed `6/6` again and
+  `:feature:cloudsync:testDebugUnitTest :feature:cloudsync:assembleDebug`
+  passed locally. Reviewer-noted selector fragility was removed with
+  provider-specific test tags for duplicate Connect/Disconnect/Sync-now labels
+  and the auto-sync switch. Re-review subagent was unavailable due usage limits,
+  so the corrected slice was locally reviewed.
+- Remaining S17 gaps: provider credentials/OAuth and live cloud round-trips
+  remain OQ-2/OQ-3; sync-worker no-op behavior remains a WorkManager
+  integration test.

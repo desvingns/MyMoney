@@ -11,6 +11,8 @@
     <string name="sync_auto_toggle">Automatic sync (every 6 h)</string>
     <string name="sync_conflict_title">Remote backup is newer</string>
     <string name="sync_conflict_body">Replace local data with remote backup?</string>
+    <string name="sync_conflict_remote">Remote: %s</string>
+    <string name="sync_conflict_local">Local: %s</string>
     <string name="sync_keep_remote">Keep remote</string>
     <string name="sync_keep_local">Keep local</string>
     <string name="dropbox_sync_text">Lets you use MyMoney on multiple devices and keep a shared ledger.</string>

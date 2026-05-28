@@ -30,6 +30,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -115,6 +116,7 @@ fun CloudSyncContent(
                     modifier = Modifier.weight(1f),
                 )
                 Switch(
+                    modifier = Modifier.testTag(CLOUD_SYNC_AUTO_SYNC_TAG),
                     checked = state.autoSyncEnabled,
                     onCheckedChange = { onEvent(CloudSyncEvent.AutoSyncToggled(it)) },
                 )
@@ -142,8 +144,10 @@ fun CloudSyncContent(
         }
     }
 
-    state.conflict?.let {
+    state.conflict?.let { prompt ->
         ConflictResolutionDialog(
+            remoteTimestamp = formatTimestamp(prompt.remoteMs),
+            localTimestamp = formatTimestamp(prompt.localMs),
             onKeepRemote = { onEvent(CloudSyncEvent.ConflictKeepRemote) },
             onKeepLocal = { onEvent(CloudSyncEvent.ConflictKeepLocal) },
             onDismiss = { onEvent(CloudSyncEvent.DismissConflict) },
@@ -184,11 +188,15 @@ private fun TargetCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (card.connected) {
-                    OutlinedButton(onClick = { onEvent(CloudSyncEvent.DisconnectClicked(card.target)) }) {
+                    OutlinedButton(
+                        modifier = Modifier.testTag(card.target.controlTag("disconnect")),
+                        onClick = { onEvent(CloudSyncEvent.DisconnectClicked(card.target)) },
+                    ) {
                         Text(stringResource(R.string.sync_disconnect))
                     }
                 } else {
                     Button(
+                        modifier = Modifier.testTag(card.target.controlTag("connect")),
                         onClick = { onEvent(CloudSyncEvent.ConnectClicked(card.target)) },
                         enabled = card.enabled,
                     ) {
@@ -196,6 +204,7 @@ private fun TargetCard(
                     }
                 }
                 Button(
+                    modifier = Modifier.testTag(card.target.controlTag("sync_now")),
                     onClick = { onEvent(CloudSyncEvent.SyncNowClicked(card.target)) },
                     enabled = card.connected && !card.syncing,
                 ) {
@@ -241,3 +250,10 @@ private val TIMESTAMP_FORMAT: DateTimeFormatter =
 
 private fun formatTimestamp(epochMillis: Long): String =
     TIMESTAMP_FORMAT.format(Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()))
+
+private const val CLOUD_SYNC_AUTO_SYNC_TAG = "cloud_sync_auto_sync"
+
+private fun SyncTarget.controlTag(control: String): String = when (this) {
+    SyncTarget.Dropbox -> "cloud_sync_dropbox_$control"
+    SyncTarget.GoogleDrive -> "cloud_sync_google_drive_$control"
+}

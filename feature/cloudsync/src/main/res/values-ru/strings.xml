@@ -11,6 +11,8 @@
     <string name="sync_auto_toggle">Автоматическая синхронизация (каждые 6 ч)</string>
     <string name="sync_conflict_title">Резервная копия в облаке новее</string>
     <string name="sync_conflict_body">Заменить локальные данные облачной копией?</string>
+    <string name="sync_conflict_remote">Облако: %s</string>
+    <string name="sync_conflict_local">Локально: %s</string>
     <string name="sync_keep_remote">Из облака</string>
     <string name="sync_keep_local">Локальные</string>
     <string name="dropbox_sync_text">Позволяет использовать MyMoney на нескольких мобильных устройствах и вести общий учет финансов.</string>

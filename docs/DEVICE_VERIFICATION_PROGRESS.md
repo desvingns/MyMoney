@@ -32,6 +32,9 @@ worker test backlog across sessions.
 | 2026-05-27 | S06 stable direct controls green, 7/7 | `AddExpenseScreenUiTest` confirms keypad taps, backspace, category CTA disabled/enabled behavior, Back/Swap events, date selection, and note input on `Pixel_5_API_34`. |
 | 2026-05-27 | S07 stable direct controls green, 7/7 | `AddIncomeScreenUiTest` confirms keypad taps, backspace, category CTA disabled/enabled behavior, Back/Swap events, date selection, and note input on `Pixel_5_API_34`. |
 | 2026-05-27 | S03 direct-form controls green, 10/10 | `TransferScreenUiTest` confirms Back, initial disabled Save, keypad reveal/digit/backspace, note-focus dismissal/input, date selection, both account dropdowns, and visible rate `Change`, with keypad dismissal on alternative controls on `Pixel_5_API_34`; the complete BR-23 fix is in `9dea4d7`. |
+| 2026-05-28 | S03 direct-form controls green, 12/12 | `TransferScreenUiTest` additionally covers enabled Save and tapping disabled Save to dismiss the keypad without emitting a transfer event; BR-23/save fixes are in `9dea4d7`, `4875891`, and `f831477`; native reviewer pass. |
+| 2026-05-28 | S09 direct controls green, 3/3 | `CategoryPickerContentUiTest` covers Back, accessible `+ ADD`, and category selection with amount preview; FAB accessibility/layout and top-centre amount preview fixed in `14c683c`; native reviewer pass. |
+| 2026-05-28 | S27 direct controls green, 5/5 | `CurrencyRateScreenUiTest` covers Back, disabled/enabled Save, rate input, valid preview/Save, invalid inline error, From/To rows, and localized preview; fixes are in `b269a67`; native reviewer pass. |
 | 2026-05-27 | UTP-safe device runner established | Direct remote serial causes AGP 8.7.3 UTP profile-path failure; `scripts/run_connected_test_on_host_avd.ps1` proxies host ADB so Gradle uses `emulator-5554` and waits 60 seconds after each run. |
 
 ## Delivery Order
@@ -40,7 +43,7 @@ worker test backlog across sessions.
 |---|---|---|---|
 | 0 | Pattern A infrastructure: Hilt runner, isolated database/settings, `MainActivity` launch gate | Pending | - |
 | 1 | S00/S11/S01/S06 critical flow: onboarding -> dashboard -> add expense -> updated balance | In progress | S11 5/5; S01/S04 + AS-2 7/7; S02 2/2; S06 stable controls 7/7 green 2026-05-27; account/error seams and Pattern A pending |
-| 2 | Transaction forms S07/S03/S09/S27, including AS-4 and AS-6 paths | In progress | S07 stable controls 7/7; S03 direct-form controls 10/10 green 2026-05-27; S03 enabled-save control, S09/S27, AS-4/AS-6, and error seams pending |
+| 2 | Transaction forms S07/S03/S09/S27, including AS-4 and AS-6 paths | In progress | S07 stable controls 7/7; S03 stable direct controls 12/12, S09 direct controls 3/3, and S27 direct controls 5/5 green on `Pixel_5_API_34`; AS-4/AS-6/AS-7 E2E, S09 long-press context actions, and transaction error seams pending |
 | 3 | Dictionaries S21-S26 CRUD and validation controls | Pending | - |
 | 4 | List/detail/search/settings/lock/sync/backup plus worker instrumentation | Pending | - |
 | 5 | Manual QA, minified release walk, macrobenchmark/Baseline Profile | Pending | - |
@@ -59,9 +62,9 @@ entry identifies coverage already recorded before this tracker was created.
 | S04 Right drawer | Categories, Accounts, Currencies, Settings/About tiles | Green: five rows covered | n/a | n/a | `DashboardContentUiTest` right-drawer group green 2026-05-27 |
 | S06 Add expense | back, swap, date, note, keypad keys/backspace, choose category | Partial green: stable controls 7/7 | Zero-amount category disabled green | Blocked by missing retry UI | `AddExpenseScreenUiTest` 7/7 green 2026-05-27; account-chip event seam missing; critical E2E pending |
 | S07 Add income | back, swap, date, note, keypad/backspace, choose category | Partial green: stable controls 7/7 | Zero-amount category disabled green | Blocked by missing retry UI | `AddIncomeScreenUiTest` 7/7 green 2026-05-27; account-chip event seam missing; AS-4 E2E pending |
-| S03 Transfer | back, account pickers, keypad, rate/change, save | Partial green: Back, initial disabled Save, keypad reveal/digit/backspace, note focus/input, date, both account dropdowns, rate Change 10/10 | Pending | Pending | `TransferScreenUiTest` 10/10 green 2026-05-27; BR-23 focus-dismissal defect fixed in `9dea4d7` and re-reviewed green; enabled-save control and AS-6/AS-7 E2E pending |
-| S09 Category picker | category cell, add, back, context actions | Pending | Pending | n/a | AS-4 pending |
-| S27 Currency rate | amount input, save, back | Pending | n/a | Pending | Slice 2 |
+| S03 Transfer | back, account pickers, keypad, rate/change, save | Green: stable direct controls 12/12 | Disabled Save green | Pending | `TransferScreenUiTest` 12/12 green 2026-05-28; BR-23/save behavior fixed in `9dea4d7`, `4875891`, and `f831477` and re-reviewed green; AS-6/AS-7 E2E pending |
+| S09 Category picker | category cell, add, back, context actions | Green: Back/+ADD/category cell 3/3 | Add visible in empty state green | n/a | `CategoryPickerContentUiTest` 3/3 green 2026-05-28; long-press Edit/Archive and AS-4 E2E pending |
+| S27 Currency rate | amount input, save, back | Green: rate input/save/back 5/5 | n/a | Inline invalid-rate error green | `CurrencyRateScreenUiTest` 5/5 green 2026-05-28; localized preview and read-only From/To rows green; AS-6 return/inverse-rate E2E pending |
 | S08 Search | back, query/clear, voice affordance, result row, chips | Pending | Pending | Pending | Slice 4 |
 | S12 Transactions list | search, filters, row, swipe/undo | Existing partial green 2026-05-26 | Pending | Pending | `SwipeToDeleteUiTest` covers delete callback only |
 | S13 Detail/edit | back, delete/confirm/undo, edit/save, rate | Pending | n/a | Pending | Slice 4 |
@@ -182,3 +185,28 @@ entry identifies coverage already recorded before this tracker was created.
   8-test device execution hit an emulator `HardwareRenderer` teardown
   watchdog in an unchanged previously green test; an unchanged rerun passed
   `8/8`. Every attempt still completed the helper's required 60-second pause.
+
+### 2026-05-28 - Transaction-form direct controls
+
+- Closed remaining S03 direct-control gaps in `4875891` and `f831477`:
+  enabled Save now emits `TransferEvent.SaveClicked`, and tapping disabled Save
+  dismisses a revealed keypad without emitting a transfer event. Scoped
+  `TransferScreenUiTest` passed `12/12` with `0` failed/skipped on
+  `Pixel_5_API_34`; the helper completed its required 60-second pause.
+- Added S09 direct controls in `14c683c`: Back emits its event, the
+  accessible `+ ADD` action emits `AddCategoryClicked`, and a category cell
+  preserves the top-centre amount preview while emitting `CategoryClicked`.
+  Native review caught the amount-preview alignment after moving the FAB into
+  the `Scaffold` slot; the follow-up fix was re-reviewed without findings.
+  Scoped `CategoryPickerContentUiTest` passed `3/3` with `0` failed/skipped on
+  `Pixel_5_API_34`; the helper completed its required 60-second pause.
+- Added S27 direct controls in `b269a67`: Back, disabled Save, rate input,
+  valid preview/Save, invalid inline error, read-only From/To rows, and the
+  localized rate pattern are covered. Native review caught the missing
+  From/To rows and hardcoded preview pattern; both were fixed and re-reviewed
+  without findings. Scoped `CurrencyRateScreenUiTest` passed `5/5` with `0`
+  failed/skipped on `Pixel_5_API_34`; one earlier invalid-import compile
+  attempt also completed the mandatory 60-second pause.
+- Remaining transaction-form gaps: AS-4 navigation E2E, AS-6/AS-7 transfer/rate
+  E2E, S09 long-press Edit/Archive context actions, and transaction error
+  retry seams that are not exposed in the current screen contracts.

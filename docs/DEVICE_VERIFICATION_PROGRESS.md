@@ -40,6 +40,7 @@ worker test backlog across sessions.
 | 2026-05-28 | S13 direct controls green, 11/11 | `TransactionDetailContentUiTest` covers Back, hidden/visible Save, Delete, delete confirm/cancel, keypad/backspace/note edits, date selection, account selection, cross-currency target/rate edits, and snackbar error dismissal on `Pixel_5_API_34`. |
 | 2026-05-28 | S14 direct controls green, 3/3 | `SettingsRootContentUiTest` covers Back, all seven destination rows, current Theme/Language labels, and Sound/Haptic switches on `Pixel_5_API_34`. |
 | 2026-05-28 | S15 direct controls green, 2/2 | `ThemeSettingsContentUiTest` covers Back plus System, Light, and Dark selectable rows with selected-state and event assertions on `Pixel_5_API_34`. |
+| 2026-05-28 | S19 direct controls green, 2/2 | `LanguageContentUiTest` covers Back plus System, English, and Russian selectable rows with selected-state and event assertions on `Pixel_5_API_34`. |
 | 2026-05-27 | UTP-safe device runner established | Direct remote serial causes AGP 8.7.3 UTP profile-path failure; `scripts/run_connected_test_on_host_avd.ps1` proxies host ADB so Gradle uses `emulator-5554` and waits 60 seconds after each run. |
 
 ## Delivery Order
@@ -50,7 +51,7 @@ worker test backlog across sessions.
 | 1 | S00/S11/S01/S06 critical flow: onboarding -> dashboard -> add expense -> updated balance | In progress | S11 5/5; S01/S04 + AS-2 7/7; S02 2/2; S06 stable controls 7/7 green 2026-05-27; account/error seams and Pattern A pending |
 | 2 | Transaction forms S07/S03/S09/S27, including AS-4 and AS-6 paths | In progress | S07 stable controls 7/7; S03 stable direct controls 12/12, S09 direct controls 3/3, and S27 direct controls 5/5 green on `Pixel_5_API_34`; AS-4/AS-6/AS-7 E2E, S09 long-press context actions, and transaction error seams pending |
 | 3 | Dictionaries S21-S26 CRUD and validation controls | Pending | - |
-| 4 | List/detail/search/settings/lock/sync/backup plus worker instrumentation | In progress | S08 direct controls 8/8, S12 direct controls 5/5, S13 direct controls 11/11, S14 direct controls 3/3, and S15 direct controls 2/2 green 2026-05-28; S12 loading/error/filter-removal/undo, remaining settings sub-screens/lock/sync/backup, and worker instrumentation pending |
+| 4 | List/detail/search/settings/lock/sync/backup plus worker instrumentation | In progress | S08 direct controls 8/8, S12 direct controls 5/5, S13 direct controls 11/11, S14 direct controls 3/3, S15 direct controls 2/2, and S19 direct controls 2/2 green 2026-05-28; S12 loading/error/filter-removal/undo, remaining settings sub-screens/lock/sync/backup, and worker instrumentation pending |
 | 5 | Manual QA, minified release walk, macrobenchmark/Baseline Profile | Pending | - |
 
 ## Screen Matrix
@@ -78,7 +79,7 @@ entry identifies coverage already recorded before this tracker was created.
 | S16 Lock setup/overlay | enable, timeout, PIN fallback, back blocking | Pending | Pending | Pending | AS-5 pending |
 | S17 Cloud sync | connect/disconnect, sync, auto-sync, conflict actions | Pending | Pending | Pending | Keep providers gated off |
 | S18 Backup/Restore | export/import DB, export/import CSV, reset confirm | Pending | Pending | Pending | Slice 4 |
-| S19 Language | System, English, Russian rows | Pending | n/a | n/a | Slice 4 |
+| S19 Language | System, English, Russian rows | Green: direct controls 2/2 | n/a | n/a | `LanguageContentUiTest` 2/2 green 2026-05-28; covers Back, selected Russian row semantics, and System/English/Russian selection events |
 | S20 About/Help | privacy, help, licences, back | Pending | n/a | Pending | AS-15 pending |
 | S21 Categories | tabs, row/edit/archive, add, drag | Pending | Pending | Pending | Slice 3 |
 | S22 Category edit | name, icon, colour, kind, save | Pending | Pending | Pending | Slice 3 |
@@ -294,3 +295,14 @@ entry identifies coverage already recorded before this tracker was created.
   androidTest import before execution, then the corrected scoped run passed
   `2/2` with `0` failed/skipped on `Pixel_5_API_34` through the host-AVD
   helper. Native reviewer passed with no violations.
+
+### 2026-05-28 - S19 language direct controls
+
+- Added `LanguageContentUiTest` for S19 Pattern B coverage: Back invokes the
+  language-settings back callback; the Russian row is selected from a controlled
+  state while English/System are unselected; and tapping System, English, and
+  Russian emits `LanguageEvent.LanguageSelected` with the expected
+  `AppLanguage`.
+- The first scoped run passed `1/1`; after adding the row-selection test, the
+  scoped run passed `2/2` with `0` failed/skipped on `Pixel_5_API_34` through
+  the host-AVD helper. Native reviewer passed with no violations.

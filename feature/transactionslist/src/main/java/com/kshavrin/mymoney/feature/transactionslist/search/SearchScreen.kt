@@ -7,6 +7,7 @@ import android.content.Intent
 import android.speech.RecognizerIntent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,6 +42,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -117,13 +119,18 @@ fun SearchContent(
     onEvent: (SearchEvent) -> Unit,
     onLaunchVoice: () -> Unit,
     modifier: Modifier = Modifier,
+    voiceSearchAvailable: Boolean? = null,
 ) {
     val context = LocalContext.current
     val focusRequester = remember { FocusRequester() }
     // BR-18: open with the text field focused and the soft keyboard visible.
-    LaunchedEffect(Unit) { focusRequester.requestFocus() }
+    LaunchedEffect(Unit) {
+        withFrameNanos { }
+        focusRequester.requestFocus()
+    }
 
-    val voiceAvailable = remember { isVoiceSearchAvailable(context) }
+    val detectedVoiceAvailable = remember(context) { isVoiceSearchAvailable(context) }
+    val voiceAvailable = voiceSearchAvailable ?: detectedVoiceAvailable
 
     Scaffold(
         modifier = modifier,
@@ -267,6 +274,7 @@ private fun SearchResultRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .clickable(onClick = onClick)
             .padding(horizontal = Spacing.l, vertical = Spacing.m),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.m),

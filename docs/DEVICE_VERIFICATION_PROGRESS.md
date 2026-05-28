@@ -35,6 +35,7 @@ worker test backlog across sessions.
 | 2026-05-28 | S03 direct-form controls green, 12/12 | `TransferScreenUiTest` additionally covers enabled Save and tapping disabled Save to dismiss the keypad without emitting a transfer event; BR-23/save fixes are in `9dea4d7`, `4875891`, and `f831477`; native reviewer pass. |
 | 2026-05-28 | S09 direct controls green, 3/3 | `CategoryPickerContentUiTest` covers Back, accessible `+ ADD`, and category selection with amount preview; FAB accessibility/layout and top-centre amount preview fixed in `14c683c`; native reviewer pass. |
 | 2026-05-28 | S27 direct controls green, 5/5 | `CurrencyRateScreenUiTest` covers Back, disabled/enabled Save, rate input, valid preview/Save, invalid inline error, From/To rows, and localized preview; fixes are in `b269a67`; native reviewer pass. |
+| 2026-05-28 | S08 direct controls green, 8/8 | `SearchContentUiTest` covers Back, query input, Clear, deterministic Voice launch, history chip, result row tap, empty-results, and error states; first run exposed a `FocusRequester` crash fixed in `SearchContent`; result row tap fixed to match TDD S08 AC4. |
 | 2026-05-27 | UTP-safe device runner established | Direct remote serial causes AGP 8.7.3 UTP profile-path failure; `scripts/run_connected_test_on_host_avd.ps1` proxies host ADB so Gradle uses `emulator-5554` and waits 60 seconds after each run. |
 
 ## Delivery Order
@@ -45,7 +46,7 @@ worker test backlog across sessions.
 | 1 | S00/S11/S01/S06 critical flow: onboarding -> dashboard -> add expense -> updated balance | In progress | S11 5/5; S01/S04 + AS-2 7/7; S02 2/2; S06 stable controls 7/7 green 2026-05-27; account/error seams and Pattern A pending |
 | 2 | Transaction forms S07/S03/S09/S27, including AS-4 and AS-6 paths | In progress | S07 stable controls 7/7; S03 stable direct controls 12/12, S09 direct controls 3/3, and S27 direct controls 5/5 green on `Pixel_5_API_34`; AS-4/AS-6/AS-7 E2E, S09 long-press context actions, and transaction error seams pending |
 | 3 | Dictionaries S21-S26 CRUD and validation controls | Pending | - |
-| 4 | List/detail/search/settings/lock/sync/backup plus worker instrumentation | Pending | - |
+| 4 | List/detail/search/settings/lock/sync/backup plus worker instrumentation | In progress | S08 direct controls 8/8 green 2026-05-28; S12/S13/settings/lock/sync/backup and worker instrumentation pending |
 | 5 | Manual QA, minified release walk, macrobenchmark/Baseline Profile | Pending | - |
 
 ## Screen Matrix
@@ -65,7 +66,7 @@ entry identifies coverage already recorded before this tracker was created.
 | S03 Transfer | back, account pickers, keypad, rate/change, save | Green: stable direct controls 12/12 | Disabled Save green | Pending | `TransferScreenUiTest` 12/12 green 2026-05-28; BR-23/save behavior fixed in `9dea4d7`, `4875891`, and `f831477` and re-reviewed green; AS-6/AS-7 E2E pending |
 | S09 Category picker | category cell, add, back, context actions | Green: Back/+ADD/category cell 3/3 | Add visible in empty state green | n/a | `CategoryPickerContentUiTest` 3/3 green 2026-05-28; long-press Edit/Archive and AS-4 E2E pending |
 | S27 Currency rate | amount input, save, back | Green: rate input/save/back 5/5 | n/a | Inline invalid-rate error green | `CurrencyRateScreenUiTest` 5/5 green 2026-05-28; localized preview and read-only From/To rows green; AS-6 return/inverse-rate E2E pending |
-| S08 Search | back, query/clear, voice affordance, result row, chips | Pending | Pending | Pending | Slice 4 |
+| S08 Search | back, query/clear, voice affordance, result row, chips | Green: back/query/clear/voice/chip/result row 8/8 | Empty-results green | Error message green | `SearchContentUiTest` 8/8 green 2026-05-28; focus crash and row-click TDD AC4 defect fixed; debounce remains JVM-covered |
 | S12 Transactions list | search, filters, row, swipe/undo | Existing partial green 2026-05-26 | Pending | Pending | `SwipeToDeleteUiTest` covers delete callback only |
 | S13 Detail/edit | back, delete/confirm/undo, edit/save, rate | Pending | n/a | Pending | Slice 4 |
 | S14 Settings root | all destination rows, sound/haptic toggles | Pending | n/a | Pending | Slice 4 |
@@ -210,3 +211,18 @@ entry identifies coverage already recorded before this tracker was created.
 - Remaining transaction-form gaps: AS-4 navigation E2E, AS-6/AS-7 transfer/rate
   E2E, S09 long-press Edit/Archive context actions, and transaction error
   retry seams that are not exposed in the current screen contracts.
+
+### 2026-05-28 - S08 search direct controls
+
+- Added `SearchContentUiTest` for S08 Pattern B coverage: Back emits
+  `SearchEvent.BackClicked`, typing emits `QueryChanged`, Clear emits
+  `QueryCleared`, the deterministic voice affordance launches the supplied
+  voice callback, a history chip emits `SuggestionClicked`, tapping a result
+  row emits `ResultClicked`, and empty-results/error copy is visible.
+- The first scoped device run failed `8/8` with `FocusRequester is not
+  initialized`; `SearchContent` now requests focus after the first frame, which
+  preserves BR-18 while avoiding the launch-time crash.
+- The slice also fixed TDD S08 AC4: the whole result row is clickable, not only
+  the trailing chevron. The final scoped `SearchContentUiTest` run passed `8/8`
+  with `0` failed/skipped on `Pixel_5_API_34`; every run used the host-AVD
+  helper and completed its required 60-second pause.

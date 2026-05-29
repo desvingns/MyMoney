@@ -123,8 +123,11 @@ fun MyMoneyNavHost(
                 backStackEntry = entry,
             )
         }
-        composable(Destinations.TRANSFER) {
-            com.kshavrin.mymoney.feature.transaction.transfer.TransferRoute(navController = navController)
+        composable(Destinations.TRANSFER) { entry ->
+            com.kshavrin.mymoney.feature.transaction.transfer.TransferRoute(
+                navController = navController,
+                backStackEntry = entry,
+            )
         }
         composable(
             route = "${Destinations.CATEGORY_PICKER}?kind={kind}",

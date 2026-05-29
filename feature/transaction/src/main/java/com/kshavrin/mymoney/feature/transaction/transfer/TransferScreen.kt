@@ -48,6 +48,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
 import com.kshavrin.mymoney.core.designsystem.amountfield.AmountFieldEvent
 import com.kshavrin.mymoney.core.designsystem.amountfield.AmountFieldSection
@@ -67,9 +68,25 @@ import java.time.ZoneOffset
 @Composable
 fun TransferRoute(
     navController: NavController,
+    backStackEntry: NavBackStackEntry,
     viewModel: TransferViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
+
+    // S27 writes the saved rate signal into THIS destination's NavBackStackEntry savedStateHandle
+    // (its previousBackStackEntry), which is a different instance from the one Hilt injects into the
+    // ViewModel. Observe it here on the entry and forward as an event so the form re-reads the rate.
+    val pendingRate by backStackEntry.savedStateHandle
+        .getStateFlow(TransferViewModel.KEY_PENDING_RATE, TransferViewModel.NO_PENDING_RATE)
+        .collectAsState()
+    LaunchedEffect(pendingRate) {
+        if (pendingRate > 0.0) {
+            viewModel.onEvent(TransferEvent.PendingRateResolved)
+            backStackEntry.savedStateHandle[TransferViewModel.KEY_PENDING_RATE] =
+                TransferViewModel.NO_PENDING_RATE
+        }
+    }
+
     LaunchedEffect(viewModel) {
         viewModel.actions.collect { action ->
             when (action) {

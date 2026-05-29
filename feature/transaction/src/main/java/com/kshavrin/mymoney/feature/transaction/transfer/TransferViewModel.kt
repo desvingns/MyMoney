@@ -26,8 +26,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.time.Instant
@@ -59,7 +57,6 @@ class TransferViewModel @Inject constructor(
 
     init {
         loadInitialContext()
-        observePendingRate()
     }
 
     private fun loadInitialContext() {
@@ -81,17 +78,6 @@ class TransferViewModel @Inject constructor(
                 sourceCurrency = sourceCurrency,
             )
         }
-    }
-
-    private fun observePendingRate() {
-        savedStateHandle.getStateFlow(KEY_PENDING_RATE, NO_PENDING_RATE)
-            .onEach { rate ->
-                if (rate > 0.0) {
-                    refreshCurrentRate()
-                    savedStateHandle[KEY_PENDING_RATE] = NO_PENDING_RATE
-                }
-            }
-            .launchIn(viewModelScope)
     }
 
     fun onEvent(event: TransferEvent) {
@@ -123,6 +109,7 @@ class TransferViewModel @Inject constructor(
             is TransferEvent.SourceAccountChanged -> onSourceAccountChanged(event.accountId)
             is TransferEvent.TargetAccountChanged -> onTargetAccountChanged(event.accountId)
             TransferEvent.ChangeRateClicked -> onChangeRateClicked()
+            TransferEvent.PendingRateResolved -> refreshCurrentRate()
             TransferEvent.SaveClicked -> save()
             TransferEvent.BackClicked -> emit(TransferAction.NavigateBack)
             TransferEvent.DismissError ->

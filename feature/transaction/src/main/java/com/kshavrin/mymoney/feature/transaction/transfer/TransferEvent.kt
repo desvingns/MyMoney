@@ -14,6 +14,7 @@ sealed interface TransferEvent {
     data class SourceAccountChanged(val accountId: Long) : TransferEvent
     data class TargetAccountChanged(val accountId: Long) : TransferEvent
     data object ChangeRateClicked : TransferEvent
+    data object PendingRateResolved : TransferEvent
     data object SaveClicked : TransferEvent
     data object BackClicked : TransferEvent
     data object DismissError : TransferEvent

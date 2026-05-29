@@ -14,6 +14,7 @@ Usage:
   /cmp --phase                         — assisted phase progression: read PROGRESS.md, pick next unchecked task from the active PHASE_NN, synthesise SPEC, run the --feature pipeline, then tick the checkbox and append to PROGRESS log. MyMoney-specific.
   /cmp --check                         — read-only state validator: PROGRESS↔PHASE_NN↔TDD consistency. Makes no changes. MyMoney-specific.
   /cmp --device <Sxx>                  — one on-device test slice: pick the next un-green control for screen Sxx from DEVICE_VERIFICATION_PROGRESS.md, write ONE instrumented test, run it on Pixel_5_API_34 via the host-AVD helper, then update the tracker. MyMoney-specific.
+  /cmp --plan [--sync|--bootstrap|--phase NN] — design→plan bridge: turn an /app-spec-creator spec bundle (or the TDD + 00_overview spine) into phases/*.md + PROGRESS/00_overview deltas via cmp-planner-android, behind a y/d/n write gate; migrates line-anchors to content-addressed (slug+hash). MyMoney-specific.
 
 ## Platform resolution
 
@@ -479,7 +480,7 @@ Read-only validator. **Makes no changes.** Reports inconsistencies, exits.
 2. **Phase file exists.** Confirm `docs/implementation_plan/phases/PHASE_<NN>_*.md` exists and is readable.
 3. **Phase has unchecked tasks.** Confirm PHASE_<NN> has ≥1 line matching `^- \[ \]`. If zero → phase is complete; warn user.
 4. **Previous phase done.** If `<NN>` > 01 → confirm PHASE_<NN-1> row in PROGRESS.md has status `done` AND PHASE_<NN-1>_*.md has zero `^- \[ \]` lines (all checkboxes ticked).
-5. **TDD anchors resolve.** For each line-range citation in PHASE_<NN>_*.md (pattern: `lines NNN-MMM` referring to `MyMoney_TDD.md`), confirm the cited range falls within the current TDD file's line count.
+5. **TDD anchors resolve (content-addressed).** Prefer the new anchor form `slug:<slug> h:<hash>` emitted by `/cmp --plan`: if the TDD is reachable, confirm a heading with that `slug` exists and recompute the section's content hash — on mismatch report `§X.Y drifted since plan — run /cmp --plan --sync` (not a hard fail). For phase files still on the legacy `lines NNN-MMM` form, do the old range-within-line-count check. **If the TDD is not reachable on this host** (it lives at `C:\Pet\MyMoney\TDD\MyMoney\MyMoney_TDD.md`, which may be off-machine), report Check 5 as `skipped (TDD off-host)` rather than a false pass/fail — the slug form is what makes the rest of the plan host-independent.
 6. **No drift in customisation layer.** Confirm:
    - `.claude/cmp-mymoney/{developer,reviewer,tester}-extras.md` all exist.
    - Each of `.claude/agents/cmp-{developer,reviewer,tester}-android.md` ends with the line `Read .claude/cmp-mymoney/<role>-extras.md before starting.`
@@ -597,6 +598,45 @@ Stop. Do not start the next control in the same run.
 
 ---
 
+## Workflow: --plan (MyMoney-specific)
+
+The design→implementation bridge. Turns a design source — an `/app-spec-creator` `spec/` bundle, or the legacy TDD + the `00_overview.md` phase spine — into the `phases/PHASE_NN_*.md` files + `PROGRESS.md`/`00_overview.md` deltas that `--phase` consumes. The orchestrator never authors these by hand: `cmp-planner-android` proposes, you approve, the orchestrator writes. Closes the formerly-manual TDD→phase gap and migrates fragile line-anchors to content-addressed (slug+hash) anchors.
+
+### Modes
+- `--plan --sync` (default) — reconcile the existing 15-phase plan with the current design: re-derive anchors, append/flag drift, **never** clobber `done` phases or ticked checkboxes.
+- `--plan --bootstrap` — greenfield: generate the whole `phases/` tree from a readable design bundle (or an existing §1 phase map). Refused if neither is available.
+- `--plan --phase NN` — regenerate ONE phase file (the common, safe case).
+
+### Phase 1 — Plan
+Spawn `cmp-planner-android` with:
+```
+mode: [sync|bootstrap|phase]      (add phase: "NN" when --phase NN)
+design_source: [bundle dir or TDD path; default C:\Pet\MyMoney\TDD\MyMoney\MyMoney_TDD.md]
+repo_root: [git rev-parse --show-toplevel]
+```
+Stamp `generated` with today's date in the prompt (the agent has no clock). It returns one `=== PLAN ===` block — parse it, do not summarise.
+
+### Phase 2 — Preview + gate
+Print a preview: files to create/merge, per-file merge summary (`preserved/updated/added/conflict`), the PROGRESS/00_overview deltas, and every `warnings[]` entry. Then ask:
+"Plan выглядит ок? Записать/смёржить N файлов фаз + PROGRESS/overview deltas? (y / d — полный diff / n — отмена)"
+- **d** → dump each `rendered_markdown` + a unified diff vs the on-disk file, then re-ask.
+- **n** → stop, write nothing.
+- **y** → Phase 3.
+
+### Phase 3 — Gated write (orchestrator — the ONLY writes allowed here)
+For each phase in the PLAN, merge `rendered_markdown` into `phases/PHASE_NN_*.md` honouring the sentinels: regenerate `<!-- cmp:plan:gen … -->` regions only, **never** touch `## Notes for next session`, and preserve checkbox state by `TASK-NN.k`. If a human edited inside a gen region (region hash ≠ stored `hash=`) → write the proposal to `phases/.proposed/PHASE_NN.md` instead and report it. Append the `progress_delta` rows + the one decisions-log line to `PROGRESS.md` (append-only — never rewrite prose or existing session-log lines). Apply the `overview_delta` to `00_overview.md`. Write nothing else — no source code, no TDD edits. (This write-set is exactly what the orchestrator is already permitted to touch under Rules.)
+
+### Phase 4 — Report
+```
+plan: <mode> — <N> phase files (<created>/<merged>/<conflict→.proposed>)
+   Anchors: content-addressed (slug+hash); <K> sections; drift: <none|list>
+   PROGRESS: +<rows> rows, +1 decisions line    00_overview: +<edges>
+   Conflicts to review: phases/.proposed/PHASE_*.md (if any)
+   Next: /cmp --check, then /cmp --phase
+```
+
+---
+
 ## Rules
 
 - Orchestrator NEVER writes mobile production code (Kotlin/Swift/Compose/Gradle/Xcode build scripts) or tests.
@@ -612,4 +652,4 @@ Stop. Do not start the next control in the same run.
 - `cmp-docs` agent is **inert in MyMoney** (`.claude/agents/cmp-docs.md` body replaced). All `--feature`/`--bugfix`/`--phase`/`--tdd` workflows skip the docs step. State is owned by `docs/implementation_plan/PROGRESS.md` exclusively.
 - `cmp-runner-instrumented-android` runs the on-device suite (`connectedDebugAndroidTest`) for **one** test class via `scripts/run_connected_test_on_host_avd.ps1`. It is the **only** agent permitted to invoke PowerShell, and only for that helper — every other agent stays Bash-only. It trusts the parsed connected report, never "BUILD SUCCESSFUL". `cmp-runner-android` remains JVM-only and unchanged.
 - `--device` slices update `docs/DEVICE_VERIFICATION_PROGRESS.md` (the device tracker), never `PROGRESS.md`. They never push. One control per invocation.
-- `--phase`, `--check`, and `--device` are MyMoney-specific extensions, not from CMP source. They will not be modified by `bash CMP/bootstrap.sh --upgrade`. Future CMP versions may add new flags — manually re-apply these three (and the `cmp-runner-instrumented-android` agent) if a future upgrade overwrites this file.
+- `--phase`, `--check`, `--device`, and `--plan` are MyMoney-specific extensions, not from CMP source. They will not be modified by `bash CMP/bootstrap.sh --upgrade`. Future CMP versions may add new flags — manually re-apply these four (and the `cmp-runner-instrumented-android` + `cmp-planner-android` agents) if a future upgrade overwrites this file.

@@ -57,3 +57,7 @@ CMP/
 
 # --- Reference APK artefacts (decoded Monefy APK — local only, may contain 3rd-party secrets) ---
 TDD/MyMoney/input/apk_decoded/
+
+# secrets / per-machine — never commit
+.claude/settings.json
+.gradle-local/

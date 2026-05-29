@@ -79,8 +79,8 @@ found inline.
 - [x] B-S22-error: `errorMessage` set → inline error visible; `blockedDeleteCount=n` (edit mode) → blocked dialog + `BlockedDeleteDismissed`. Green.
 
 ### S23 Accounts list — `AccountsListContentUiTest`
-- [ ] B-S23-happy: FAB → `AddClicked`; row → `ItemClicked(id)`; back → `BackClicked`; populated row shows name+balance+currency.
-- [ ] B-S23-empty: `rows=[]` renders, FAB enabled. (Default-account chip / delete are not on this list → SKIP + log.)
+- [x] B-S23-happy: FAB → `AddClicked`; row → `ItemClicked(id)`; back → `BackClicked`; populated row shows name+balance+default badge. Green. (Row tap: click the name via `useUnmergedTree` — merged-row centre lands on the trailing AssistChip.)
+- [x] B-S23-empty: `rows=[]` renders, FAB enabled. Green. (Default-account chip / delete are not on this list → SKIP + log.)
 
 ### S24 Account edit — `AccountEditContentUiTest` (AS-13)
 - [ ] B-S24-fields: name → `NameChanged`; currency dropdown → `CurrencyChanged(id)`; initial balance → `InitialBalanceChanged`; type → `TypeChanged`; default toggle → `IsDefaultChanged`; Save → `SaveClicked`.

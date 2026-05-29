@@ -57,7 +57,7 @@ across sessions, and is updated one green test at a time (`/cmp --device <Sxx>` 
 | 1 | S00/S11/S01/S06 critical flow: onboarding -> dashboard -> add expense -> updated balance | **Done (core E2E)** | J1 Pattern A E2E green 1/1 2026-05-29 (`5e42f8d`); S11 5/5; S01/S04 + AS-2 7/7; S02 2/2; S06 stable controls 7/7. Two real defects fixed (`6767a58`, `5388264`). Error-banner seams remain Pattern B gaps. |
 | 2 | Transaction forms S07/S03/S09/S27, including AS-4 and AS-6 paths | **Done (E2E)** | J2 cross-currency transfer (AS-6/AS-7) and J3 create-category (AS-4) E2E green 2026-05-29 (`cc8c30f`, `210c1f4`); S07 7/7, S03 12/12, S09 3/3, S27 5/5. Two real defects fixed (`beb64c0`, `566e8c4`). S09 long-press context actions + error seams remain Pattern B gaps. |
 | 3 | Dictionaries S21-S26 CRUD and validation controls | Pending | - |
-| 4 | List/detail/search/settings/lock/sync/backup plus worker instrumentation | In progress | S08 direct controls 8/8, S12 direct controls 5/5, S13 direct controls 11/11, S14 direct controls 3/3, S15 direct controls 2/2, S16 setup direct controls 6/6, S17 direct controls 6/6, S18 direct controls 5/5, S19 direct controls 2/2, and S20 direct controls 2/2 green 2026-05-28; S12 loading/error/filter-removal/undo, S16 BiometricPrompt/overlay runtime, provider/OAuth E2E, and worker instrumentation pending |
+| 4 | List/detail/search/settings/lock/sync/backup plus worker instrumentation | In progress | S08 direct controls 8/8, S12 direct controls 5/5, S13 direct controls 11/11, S14 direct controls 3/3, S15 direct controls 2/2, S16 setup direct controls 6/6, S17 direct controls 6/6, S18 direct controls 5/5, S19 direct controls 2/2, and S20 direct controls 2/2 green 2026-05-28; S12 loading/error/filter-removal/undo, S16 BiometricPrompt/overlay runtime, provider/OAuth E2E pending. **Worker instrumentation done 4/4 (`155a5b2`).** |
 | 5 | Manual QA, minified release walk, macrobenchmark/Baseline Profile | Pending | - |
 
 ## Screen Matrix
@@ -88,14 +88,28 @@ entry identifies coverage already recorded before this tracker was created.
 | S19 Language | System, English, Russian rows | Green: direct controls 2/2 | n/a | n/a | `LanguageContentUiTest` 2/2 green 2026-05-28; covers Back, selected Russian row semantics, and System/English/Russian selection events |
 | S20 About/Help | privacy, help, licences, back | Green: direct controls 2/2 | n/a | Pending | `AboutHelpContentUiTest` 2/2 green 2026-05-28; covers Back, version/attribution copy, and Privacy/Help/Licences callbacks; AS-15 bundled WebView route remains Pattern A/E2E |
 | S21 Categories | tabs, row/edit/archive, add, drag | Pending | Pending | Pending | Slice 3 |
-| S22 Category edit | name, icon, colour, kind, save | Pending | Pending | Pending | Slice 3 |
+| S22 Category edit | name, icon, colour, kind, save | Back control green | Pending | Pending | back-arrow defect fixed + tested (`90879bd`); ColorPicker render crash fixed (`566e8c4`); J3 creates a category here via S22; remaining field/save controls are Slice 3 Pattern B |
 | S23 Accounts | row/edit/archive/delete/default, add | Pending | Pending | Pending | AS-13 pending |
-| S24 Account edit | fields, currency, default, save | Pending | Pending | Pending | Slice 3 |
+| S24 Account edit | fields, currency, default, save | Back control green | Pending | Pending | back-arrow defect fixed + tested (`90879bd`); remaining controls + AS-13 are Slice 3 Pattern B |
 | S25 Currencies | toggle, edit, manage rate, add | Pending | Pending | Pending | Slice 3 |
-| S26 Currency edit | code/symbol/digits/active/save | Pending | Pending | Pending | Slice 3 |
-| Workers | recurring, prune, rotation, sync no-op | Pending | n/a | Pending | WorkManager instrumentation pending |
+| S26 Currency edit | code/symbol/digits/active/save | Back control green | Pending | Pending | back-arrow defect fixed + tested (`90879bd`); remaining controls are Slice 3 Pattern B |
+| Workers | recurring, prune, rotation, sync no-op | Green: 4/4 | n/a | Rotation guard green | `core:sync` `WorkerInstrumentationTest` 4/4 green 2026-05-29 (`155a5b2`): Recurring Room effect, Prune 30-day Room effect, Sync gated no-op, BackupRotation missing-URI failure; rotation success path needs real SAF |
 
 ## Session Log
+
+### 2026-05-29 - Worker instrumentation + back-arrow escalation resolved (Opus)
+
+- **All four daily workers green 4/4** (`core:sync` `WorkerInstrumentationTest`, `155a5b2`) via
+  `HiltWorkerFactory` + `TestListenableWorkerBuilder` on a fresh in-memory DB (new `:core:sync`
+  androidTest infra): RecurringWorker (a due active template generates one occurrence in Room,
+  silent AS-11), PruneDeletedWorker (>30-day soft-deleted pruned, recent kept), SyncWorker
+  (gated off ⇒ success no-op), BackupRotationWorker (missing tree URI ⇒ failure guard). The
+  BackupRotation success/rotation path needs a real SAF tree and remains an integration gap.
+- **Escalation resolved — back-arrow defect on S22/S24/S26 (`1a534c2`, test `90879bd`).** The edit
+  screens' TopAppBar back-arrow emitted `SaveClicked` (silently persisting edits / tripping
+  validation). Added a dedicated `BackClicked` event that emits `NavigateBack` without saving;
+  `EditScreenBackControlUiTest` green 3/3 on `Pixel_5_API_34`. Memo `mymoney-edit-screen-backarrow-quirk`
+  marked resolved.
 
 ### 2026-05-29 - J2 + J3 E2E green + two more real defects fixed (Opus)
 

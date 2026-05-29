@@ -87,13 +87,13 @@ found inline.
 - [x] B-S24-error: **AS-13** `blockedDeleteCount=2` → dialog, OK → `BlockedDeleteDismissed`, no `DeleteClicked` re-fire (asserted events == [BlockedDeleteDismissed]); `currency_required` `errorMessage` inline. Green.
 
 ### S25 Currencies list — `CurrenciesListContentUiTest`
-- [ ] B-S25-happy: FAB → `AddClicked`; row → `ItemClicked(id)`; active switch → `ActiveToggled(id,active)`; back → `BackClicked`; seeded list shows code/symbol/name.
-- [ ] B-S25-empty: `currencies=[]` renders. (In-use-cannot-disable is VM logic; if no Content seam → SKIP + log.)
+- [x] B-S25-happy: FAB → `AddClicked`; row → `ItemClicked(id)`; active switch → `ActiveToggled(id,active)`; back → `BackClicked`; seeded list shows code/symbol/name. Green. (Switch via `isToggleable()`; row tap via `useUnmergedTree` code text.)
+- [x] B-S25-empty: `currencies=[]` renders, FAB enabled. Green. (In-use-cannot-disable is VM logic with no Content seam → SKIP at Content level; covered by VM/JVM tests.)
 
 ### S26 Currency edit — `CurrencyEditContentUiTest`
-- [ ] B-S26-fields: code → `CodeChanged`; symbol → `SymbolChanged`; name → `NameChanged`; decimals → `DecimalDigitsChanged`; active toggle → `IsActiveChanged`; Save → `SaveClicked`.
-- [ ] B-S26-locked: `isCodeLocked=true` → code field disabled/read-only (PHASE_09 code-lock).
-- [ ] B-S26-error: invalid `^[A-Z]{3}$` `errorMessage` inline; `blockedDeleteCount` → blocked dialog + `BlockedDeleteDismissed`.
+- [x] B-S26-fields: code → `CodeChanged`; symbol → `SymbolChanged`; name → `NameChanged`; decimals → `DecimalDigitsChanged`; active toggle → `IsActiveChanged`; Save → `SaveClicked`. Green. (Stateful holder; decimals matched by editable text "2"; Switch via `isToggleable()`.)
+- [x] B-S26-locked: `isCodeLocked=true` → code field `assertIsNotEnabled` (PHASE_09 code-lock). Green.
+- [x] B-S26-error: invalid-code `errorMessage="code_format"` inline; `blockedDeleteCount` → blocked dialog + `BlockedDeleteDismissed` (no DeleteClicked re-fire). Green.
 
 ## Phase C — close remaining seam gaps where a production seam exists
 
@@ -138,6 +138,12 @@ as open bugs.
 ## Progress log (append dated one-liners)
 
 - 2026-05-29 — plan created; Phase A audit A1/A2 verified clean. Starting A3/A4 then Phase B.
+- 2026-05-29 — **Phase B complete (S21–S26).** S23 accounts 2/2, S24 account-edit 2/2 (AS-13), S25
+  currencies 2/2, S26 currency-edit 3/3 — all green on `Pixel_5_API_34`. Reusable seams discovered:
+  rows with a trailing control (AssistChip/Switch) need `useUnmergedTree` name-text taps (merged-row
+  centre hits the control); the lone `Switch` is found via `isToggleable()`; fields with a default
+  value (balance "0", decimals "2") are matched by editable text + `performTextReplacement`; edit
+  screens use a stateful state-holder so controlled fields settle. Next: Phase C seam gaps.
 - 2026-05-29 — B-S22 green 3/3 (`CategoryEditContentUiTest`: fields/icon/error). Test-authoring lesson:
   `performScrollTo()` on a `LazyVerticalGrid` item (ColorPicker swatch) nested in `Column(verticalScroll)`
   deadlocks `waitForIdle` (nested-scroll measure loop) → click the always-visible first swatch directly.

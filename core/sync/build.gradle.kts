@@ -11,6 +11,7 @@ android {
 
     defaultConfig {
         minSdk = 31
+        testInstrumentationRunner = "com.kshavrin.mymoney.core.sync.HiltTestRunner"
 
         buildConfigField(
             "boolean",
@@ -79,4 +80,13 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+
+    androidTestImplementation(libs.androidx.test.junit)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.kotlinx.coroutines.test)
+    androidTestImplementation(libs.hilt.android.testing)
+    kspAndroidTest(libs.hilt.compiler)
+    androidTestImplementation(libs.androidx.work.testing)
+    androidTestImplementation(libs.androidx.room.runtime)
+    androidTestImplementation(libs.androidx.datastore.preferences)
 }

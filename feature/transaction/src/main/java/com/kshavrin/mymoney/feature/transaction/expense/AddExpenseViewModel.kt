@@ -24,8 +24,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.time.Instant
@@ -55,7 +53,6 @@ class AddExpenseViewModel @Inject constructor(
 
     init {
         loadInitialContext()
-        observePickedCategory()
     }
 
     private fun loadInitialContext() {
@@ -77,17 +74,6 @@ class AddExpenseViewModel @Inject constructor(
                 currency = activeCurrency,
             )
         }
-    }
-
-    private fun observePickedCategory() {
-        savedStateHandle.getStateFlow(KEY_PICKED_CATEGORY_ID, -1L)
-            .onEach { id ->
-                if (id != -1L) {
-                    onCategoryPicked(id)
-                    savedStateHandle[KEY_PICKED_CATEGORY_ID] = -1L
-                }
-            }
-            .launchIn(viewModelScope)
     }
 
     fun onEvent(event: AddExpenseEvent) {

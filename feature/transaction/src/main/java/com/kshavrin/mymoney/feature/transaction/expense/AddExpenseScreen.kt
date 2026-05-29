@@ -36,6 +36,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
 import com.kshavrin.mymoney.core.designsystem.amountfield.AmountFieldEvent
 import com.kshavrin.mymoney.core.designsystem.amountfield.AmountFieldSection
@@ -54,9 +55,25 @@ import java.time.ZoneOffset
 @Composable
 fun AddExpenseRoute(
     navController: NavController,
+    backStackEntry: NavBackStackEntry,
     viewModel: AddExpenseViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
+
+    // The category picker writes its result into THIS destination's NavBackStackEntry
+    // savedStateHandle (its previousBackStackEntry). That handle is a different instance from the
+    // one Hilt injects into the ViewModel, so the result must be observed here on the entry and
+    // forwarded as an event — not read from the ViewModel's SavedStateHandle.
+    val pickedCategoryId by backStackEntry.savedStateHandle
+        .getStateFlow(AddExpenseViewModel.KEY_PICKED_CATEGORY_ID, -1L)
+        .collectAsState()
+    LaunchedEffect(pickedCategoryId) {
+        if (pickedCategoryId != -1L) {
+            viewModel.onEvent(AddExpenseEvent.CategoryPicked(pickedCategoryId))
+            backStackEntry.savedStateHandle[AddExpenseViewModel.KEY_PICKED_CATEGORY_ID] = -1L
+        }
+    }
+
     LaunchedEffect(viewModel) {
         viewModel.actions.collect { action ->
             when (action) {

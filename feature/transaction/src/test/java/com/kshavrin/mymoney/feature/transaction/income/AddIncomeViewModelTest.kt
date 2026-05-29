@@ -97,11 +97,11 @@ class AddIncomeViewModelTest {
     )
 
     @Test
-    fun `picker return saves an income transaction with picked category and matching amount`() = runTest {
+    fun `CategoryPicked event saves an income transaction with picked category and matching amount`() = runTest {
         val viewModel = buildViewModel()
         viewModel.onEvent(AddIncomeEvent.KeypadDigit(9))
 
-        savedStateHandle[AddIncomeViewModel.KEY_PICKED_CATEGORY_ID] = salaryCategory.id
+        viewModel.onEvent(AddIncomeEvent.CategoryPicked(salaryCategory.id))
 
         assertEquals(1, transactionRepo.upserted.size)
         val saved = transactionRepo.upserted.single()

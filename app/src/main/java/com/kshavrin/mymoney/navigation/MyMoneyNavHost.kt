@@ -111,11 +111,17 @@ fun MyMoneyNavHost(
                 onBack = { navController.popBackStack() },
             )
         }
-        composable(Destinations.ADD_EXPENSE) {
-            com.kshavrin.mymoney.feature.transaction.expense.AddExpenseRoute(navController = navController)
+        composable(Destinations.ADD_EXPENSE) { entry ->
+            com.kshavrin.mymoney.feature.transaction.expense.AddExpenseRoute(
+                navController = navController,
+                backStackEntry = entry,
+            )
         }
-        composable(Destinations.ADD_INCOME) {
-            com.kshavrin.mymoney.feature.transaction.income.AddIncomeRoute(navController = navController)
+        composable(Destinations.ADD_INCOME) { entry ->
+            com.kshavrin.mymoney.feature.transaction.income.AddIncomeRoute(
+                navController = navController,
+                backStackEntry = entry,
+            )
         }
         composable(Destinations.TRANSFER) {
             com.kshavrin.mymoney.feature.transaction.transfer.TransferRoute(navController = navController)

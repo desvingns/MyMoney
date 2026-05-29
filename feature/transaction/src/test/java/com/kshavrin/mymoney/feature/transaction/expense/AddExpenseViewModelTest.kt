@@ -227,11 +227,11 @@ class AddExpenseViewModelTest {
     }
 
     @Test
-    fun `picker return via savedStateHandle saves expense transaction with picked categoryId and matching amount`() = runTest {
+    fun `CategoryPicked event saves expense transaction with picked categoryId and matching amount`() = runTest {
         val viewModel = buildViewModel()
         viewModel.onEvent(AddExpenseEvent.KeypadDigit(7))
 
-        savedStateHandle[AddExpenseViewModel.KEY_PICKED_CATEGORY_ID] = 10L
+        viewModel.onEvent(AddExpenseEvent.CategoryPicked(10L))
 
         assertEquals(1, transactionRepo.upserted.size)
         val saved = transactionRepo.upserted.single()

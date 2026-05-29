@@ -34,6 +34,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -188,6 +189,7 @@ fun DashboardContent(
                                 text = balanceText,
                                 isPositive = (state.balanceSnapshot?.net?.amount?.signum() ?: 1) >= 0,
                                 onClick = { onEvent(DashboardEvent.BalanceCardClicked) },
+                                modifier = Modifier.testTag("dashboard_balance_pill"),
                             )
                             if (overBudgetText != null) {
                                 Spacer(modifier = Modifier.width(Spacing.s))

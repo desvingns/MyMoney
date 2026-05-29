@@ -53,7 +53,7 @@ across sessions, and is updated one green test at a time (`/cmp --device <Sxx>` 
 
 | Slice | Scope | Status | Device run/report |
 |---|---|---|---|
-| 0 | Pattern A infrastructure: Hilt runner, isolated database/settings, `MainActivity` launch gate | Pending | - |
+| 0 | Pattern A infrastructure: Hilt runner, isolated database/settings, `MainActivity` launch gate | **Done** | `MainActivityLaunchTest` 1/1 green on `Pixel_5_API_34` 2026-05-29 (`e94d985`) |
 | 1 | S00/S11/S01/S06 critical flow: onboarding -> dashboard -> add expense -> updated balance | In progress | S11 5/5; S01/S04 + AS-2 7/7; S02 2/2; S06 stable controls 7/7 green 2026-05-27; account/error seams and Pattern A pending |
 | 2 | Transaction forms S07/S03/S09/S27, including AS-4 and AS-6 paths | In progress | S07 stable controls 7/7; S03 stable direct controls 12/12, S09 direct controls 3/3, and S27 direct controls 5/5 green on `Pixel_5_API_34`; AS-4/AS-6/AS-7 E2E, S09 long-press context actions, and transaction error seams pending |
 | 3 | Dictionaries S21-S26 CRUD and validation controls | Pending | - |
@@ -67,7 +67,7 @@ entry identifies coverage already recorded before this tracker was created.
 
 | Screen / surface | Primary controls to exercise | Happy | Empty | Error | E2E / notes |
 |---|---|:---:|:---:|:---:|---|
-| S00 Splash | startup routing | Pending | n/a | Pending | Slice 0/1 |
+| S00 Splash | startup routing | Green via gate | n/a | n/a | `MainActivityLaunchTest` (Slice 0 gate) launches on fresh in-memory DB and routes Splash→Onboarding 1/1 green 2026-05-29; full J1 routing pending |
 | S11 Onboarding | Skip, Next, Get Started, pager | Green: 5/5 | n/a | n/a | `OnboardingContentUiTest`, 5/5 green 2026-05-27; indicator semantic state added in `c3f74b1`, regression in `a0a53ea` |
 | S01/S05 Dashboard | expense/income FABs, search, transfer, balance, donut slice, drawers | Partial green: controls + balance 7/7 | Empty-state controls green | Pending | `DashboardContentUiTest` 7/7 green 2026-05-27; AS-2 balance pill covered; donut semantics existing green 2026-05-26 in `:core:designsystem` |
 | S02 Period drawer | period choices, Pick a date, apply range | Green: 2/2 suite | n/a | Pending | `PeriodStripUiTest` covers ordinary chips plus AS-12 custom range on 2026-05-27 |
@@ -96,6 +96,38 @@ entry identifies coverage already recorded before this tracker was created.
 | Workers | recurring, prune, rotation, sync no-op | Pending | n/a | Pending | WorkManager instrumentation pending |
 
 ## Session Log
+
+### 2026-05-29 - Single-machine migration, loopback blocker resolved, Slice 0 gate green (Opus)
+
+- **Run vehicle migrated to single machine.** VirtualBox is retired (user confirmed). The
+  `Pixel_5_API_34` AVD now runs locally in Android Studio and appears directly as `emulator-5554`;
+  the old `10.0.2.2:5037` NAT proxy is dead. `scripts/run_connected_test_on_host_avd.ps1` was
+  rewritten to run Gradle directly against `emulator-5554` (no proxy; the serial has no `:` so the
+  AGP UTP path bug does not apply). `mymoney-device-connection` memo updated.
+- **The "Windows loopback blocker" is RESOLVED — it was never corporate AV.** Root cause: the JDK
+  NIO selector self-pipe binds an AF_UNIX socket under `java.io.tmpdir`; the default `%TEMP%`
+  resolves to the 8.3 short name `C:\Users\K020B~1.SHA\...` (the dot in username `k.shavrin` forces a
+  short name), and AF_UNIX `connect()` to a socket file there fails with WSAEINVAL → Gradle "Unable
+  to establish loopback connection". Proven in pure JDK with a 4-line `Selector.open()` program on
+  JBR 21 and JDK 17. Fix: point `TMP`/`TEMP`/`jdk.net.unixdomain.tmpdir` at a clean short dir
+  (`D:\gradletmp`); baked into the helper. `gradle help` then `BUILD SUCCESSFUL`. Local builds/tests
+  now run for real on this host (PHASE_01–09 inspection-only ticks can be reconfirmed when touched).
+  Also pinned the local Microsoft JDK 17 toolchain path for the `jvmToolchain(17)` JVM modules
+  (foojay auto-download fails on this host). Env facts: JBR 21 `D:\For_work\AS\jbr`, Studio
+  `D:\For_work\AS`, SDK `%LOCALAPPDATA%\Android\Sdk`.
+- **Slice 0 Pattern A infrastructure built and gate is green (`e94d985`).** Added
+  `hilt-android-testing`/`navigation-testing`/`work-testing` to the version catalog;
+  `testInstrumentationRunner = HiltTestRunner`; androidTest deps (hilt-android-testing + kspAndroidTest
+  hilt-compiler, navigation/work-testing, coroutines-test, turbine, datastore-preferences,
+  room-runtime, projects core:{database,datastore,domain,common}). `HiltTestRunner` swaps in
+  `HiltTestApplication`; `TestDatabaseModule` (`@TestInstallIn` replacing `DatabaseModule`) provides an
+  in-memory `MoneyDatabase` mirroring every real DAO `@Provides`; `TestDataStoreModule` replaces the
+  DataStore provider with a UUID-named per-run file (fresh `onboardingCompletedAt` per test).
+  `MainActivityLaunchTest` (`@HiltAndroidTest` + `createAndroidComposeRule<MainActivity>()`) launches
+  the app on a fresh in-memory DB and asserts the onboarding root (`Skip`) renders. JUnit XML:
+  `tests=1 failures=0 errors=0 skipped=0` on `Pixel_5_API_34`. WorkManager is not touched by the gate
+  (manifest removes the default initializer; `MyMoneyApp.onCreate` does not run under
+  `HiltTestApplication`) — Worker instrumentation will init test WorkManager separately.
 
 ### 2026-05-27 - Setup and audit
 

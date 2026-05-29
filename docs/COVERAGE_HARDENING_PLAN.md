@@ -55,11 +55,12 @@ adding more tests.
 - [x] **A2. Lazy-in-verticalScroll crash.** Cross-checked the 9 Lazy files vs 11 `verticalScroll`
   files: only `ColorPicker` overlapped (fixed `566e8c4`); list screens use a root `LazyColumn`;
   `IconPickerSheet` is sheet-bounded (confirm render in B-S22-icon).
-- [ ] **A3. Runtime-permission APIs vs manifest.** Audit `getSystemService`/`Vibrator`/`BiometricPrompt`/
-  camera/record usages and confirm each needed permission is declared (VIBRATE done `6767a58`).
-  Fix any missing declaration inline. Record result here.
-- [ ] **A4. Unsafe `!!` / `.first()` on possibly-empty flows in UI/VM init paths** that could crash on a
-  fresh DB. List suspects; fix only genuine crash risks with a minimal guard. Record result.
+- [x] **A3. Runtime-permission APIs vs manifest.** Only `Vibrator` (→ `VIBRATE`, declared `6767a58`)
+  and `BiometricPrompt` (→ `USE_BIOMETRIC`, already declared) are permission-gated; no camera/record.
+  Clean 2026-05-29.
+- [x] **A4. Unsafe `!!` / `.first()` on possibly-empty flows.** `grep '!!'` across all `**/src/main`
+  → 0 matches; `.first()` usages are `Flow.first()` (return the emitted list, safe on empty DB).
+  No crash-risk found 2026-05-29.
 
 ## Phase B — Dictionaries CRUD device coverage (S21–S26): the biggest untested block
 
@@ -68,14 +69,14 @@ may need 2–3 tests for happy/empty/error — split as needed and add sub-check
 found inline.
 
 ### S21 Categories list — `CategoriesListContentUiTest`
-- [ ] B-S21-happy: FAB `dictionaries_add` → `AddClicked`; a category row → `ItemClicked(id)`; back → `BackClicked`; expense/income tab switch shows the right list.
-- [ ] B-S21-empty: `expense=[],income=[]` renders, FAB enabled.
-- [ ] B-S21-skip: archive/unarchive + drag-`Reordered` — confirm seam; if none, SKIP + log (drag stays JVM-covered).
+- [x] B-S21-happy: FAB `dictionaries_add` → `AddClicked`; a category row → `ItemClicked(id)`; back → `BackClicked`; both Expense+Income sections render (no tabs — sections stacked). Green 2/2.
+- [x] B-S21-empty: `expense=[],income=[]` renders, FAB enabled. Green.
+- [x] B-S21-skip: SKIP+log — `CategoriesListEvent` has no archive/unarchive (archive lives on S22 edit); drag-`Reordered` stays JVM-covered (PHASE_09 reorder tests).
 
 ### S22 Category edit — `CategoryEditContentUiTest`
-- [ ] B-S22-fields: name → `NameChanged`; kind chip → `KindChanged`; colour swatch → `ColorChanged`; Save → `SaveClicked`.
-- [ ] B-S22-icon: open icon button → `IconPickerSheet` renders (verify no Lazy-in-scroll crash) → pick → `IconChanged`.
-- [ ] B-S22-error: `errorMessage` set → inline error visible; `blockedDeleteCount=n` (edit mode) → blocked dialog + `BlockedDeleteDismissed`.
+- [x] B-S22-fields: name → `NameChanged`; kind chip → `KindChanged`; colour swatch → `ColorChanged`; Save → `SaveClicked`. Green 3/3.
+- [x] B-S22-icon: open icon button → `IconPickerSheet` renders (no Lazy-in-scroll crash confirmed) → pick → `IconChanged`. Green.
+- [x] B-S22-error: `errorMessage` set → inline error visible; `blockedDeleteCount=n` (edit mode) → blocked dialog + `BlockedDeleteDismissed`. Green.
 
 ### S23 Accounts list — `AccountsListContentUiTest`
 - [ ] B-S23-happy: FAB → `AddClicked`; row → `ItemClicked(id)`; back → `BackClicked`; populated row shows name+balance+currency.
@@ -137,3 +138,8 @@ as open bugs.
 ## Progress log (append dated one-liners)
 
 - 2026-05-29 — plan created; Phase A audit A1/A2 verified clean. Starting A3/A4 then Phase B.
+- 2026-05-29 — B-S22 green 3/3 (`CategoryEditContentUiTest`: fields/icon/error). Test-authoring lesson:
+  `performScrollTo()` on a `LazyVerticalGrid` item (ColorPicker swatch) nested in `Column(verticalScroll)`
+  deadlocks `waitForIdle` (nested-scroll measure loop) → click the always-visible first swatch directly.
+  Applies to S24/S26 (same `ColorPicker`). Also gave the fields test a stateful state-holder so the
+  controlled `OutlinedTextField` settles. No production defect — the UI scrolls fine for real users.

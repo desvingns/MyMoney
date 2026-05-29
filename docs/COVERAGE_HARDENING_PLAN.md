@@ -83,8 +83,8 @@ found inline.
 - [x] B-S23-empty: `rows=[]` renders, FAB enabled. Green. (Default-account chip / delete are not on this list → SKIP + log.)
 
 ### S24 Account edit — `AccountEditContentUiTest` (AS-13)
-- [ ] B-S24-fields: name → `NameChanged`; currency dropdown → `CurrencyChanged(id)`; initial balance → `InitialBalanceChanged`; type → `TypeChanged`; default toggle → `IsDefaultChanged`; Save → `SaveClicked`.
-- [ ] B-S24-error: **AS-13** `blockedDeleteCount=2` → dialog with count, OK → `BlockedDeleteDismissed`, no `DeleteClicked` re-fire; currency-locked `errorMessage` inline.
+- [x] B-S24-fields: name → `NameChanged`; currency dropdown → `CurrencyChanged(id)`; initial balance → `InitialBalanceChanged`; type → `TypeChanged`; default toggle → `IsDefaultChanged`; Save → `SaveClicked`. Green. (Currency dropdown driven first with keyboard down; Switch found via `isToggleable()`; colour picker untouched so no lazy-grid scroll.)
+- [x] B-S24-error: **AS-13** `blockedDeleteCount=2` → dialog, OK → `BlockedDeleteDismissed`, no `DeleteClicked` re-fire (asserted events == [BlockedDeleteDismissed]); `currency_required` `errorMessage` inline. Green.
 
 ### S25 Currencies list — `CurrenciesListContentUiTest`
 - [ ] B-S25-happy: FAB → `AddClicked`; row → `ItemClicked(id)`; active switch → `ActiveToggled(id,active)`; back → `BackClicked`; seeded list shows code/symbol/name.

@@ -18,6 +18,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -43,6 +45,7 @@ fun ColorPicker(
             Box(
                 modifier = Modifier
                     .size(40.dp)
+                    .semantics { contentDescription = hex }
                     .clip(CircleShape)
                     .background(color)
                     .then(

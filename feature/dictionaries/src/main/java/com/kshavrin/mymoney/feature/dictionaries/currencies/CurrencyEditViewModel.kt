@@ -71,6 +71,8 @@ class CurrencyEditViewModel @Inject constructor(
             is CurrencyEditEvent.IsActiveChanged ->
                 _state.value = _state.value.copy(isActive = event.value)
             CurrencyEditEvent.SaveClicked -> save()
+            CurrencyEditEvent.BackClicked ->
+                viewModelScope.launch { _actions.emit(CurrencyEditAction.NavigateBack) }
             CurrencyEditEvent.DeleteClicked -> attemptDelete()
             CurrencyEditEvent.BlockedDeleteDismissed ->
                 _state.value = _state.value.copy(blockedDeleteCount = null)
@@ -151,6 +153,7 @@ sealed interface CurrencyEditEvent {
     data class DecimalDigitsChanged(val value: String) : CurrencyEditEvent
     data class IsActiveChanged(val value: Boolean) : CurrencyEditEvent
     data object SaveClicked : CurrencyEditEvent
+    data object BackClicked : CurrencyEditEvent
     data object DeleteClicked : CurrencyEditEvent
     data object BlockedDeleteDismissed : CurrencyEditEvent
 }

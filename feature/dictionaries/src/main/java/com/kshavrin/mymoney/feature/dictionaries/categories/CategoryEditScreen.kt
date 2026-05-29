@@ -100,7 +100,7 @@ fun CategoryEditContent(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { onEvent(CategoryEditEvent.SaveClicked) }) {
+                    IconButton(onClick = { onEvent(CategoryEditEvent.BackClicked) }) {
                         Icon(
                             Icons.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.dictionaries_back),

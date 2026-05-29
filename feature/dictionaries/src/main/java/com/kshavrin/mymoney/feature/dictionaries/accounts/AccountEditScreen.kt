@@ -83,7 +83,7 @@ fun AccountEditContent(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { onEvent(AccountEditEvent.SaveClicked) }) {
+                    IconButton(onClick = { onEvent(AccountEditEvent.BackClicked) }) {
                         Icon(
                             Icons.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.dictionaries_back),

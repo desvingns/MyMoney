@@ -81,6 +81,8 @@ class AccountEditViewModel @Inject constructor(
             is AccountEditEvent.IsDefaultChanged ->
                 _state.value = _state.value.copy(isDefault = event.value)
             AccountEditEvent.SaveClicked -> save()
+            AccountEditEvent.BackClicked ->
+                viewModelScope.launch { _actions.emit(AccountEditAction.NavigateBack) }
             AccountEditEvent.DeleteClicked -> attemptDelete()
             AccountEditEvent.BlockedDeleteDismissed ->
                 _state.value = _state.value.copy(blockedDeleteCount = null)
@@ -169,6 +171,7 @@ sealed interface AccountEditEvent {
     data class IconChanged(val value: String) : AccountEditEvent
     data class IsDefaultChanged(val value: Boolean) : AccountEditEvent
     data object SaveClicked : AccountEditEvent
+    data object BackClicked : AccountEditEvent
     data object DeleteClicked : AccountEditEvent
     data object BlockedDeleteDismissed : AccountEditEvent
 }

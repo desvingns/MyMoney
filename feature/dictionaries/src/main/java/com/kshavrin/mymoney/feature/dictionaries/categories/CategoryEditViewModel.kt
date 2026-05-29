@@ -70,6 +70,8 @@ class CategoryEditViewModel @Inject constructor(
             is CategoryEditEvent.ColorChanged ->
                 _state.value = _state.value.copy(colorHex = event.value)
             CategoryEditEvent.SaveClicked -> save()
+            CategoryEditEvent.BackClicked ->
+                viewModelScope.launch { _actions.emit(CategoryEditAction.NavigateBack) }
             CategoryEditEvent.DeleteClicked -> attemptDelete()
             CategoryEditEvent.BlockedDeleteDismissed ->
                 _state.value = _state.value.copy(blockedDeleteCount = null)
@@ -140,6 +142,7 @@ sealed interface CategoryEditEvent {
     data class IconChanged(val value: String) : CategoryEditEvent
     data class ColorChanged(val value: String) : CategoryEditEvent
     data object SaveClicked : CategoryEditEvent
+    data object BackClicked : CategoryEditEvent
     data object DeleteClicked : CategoryEditEvent
     data object BlockedDeleteDismissed : CategoryEditEvent
 }

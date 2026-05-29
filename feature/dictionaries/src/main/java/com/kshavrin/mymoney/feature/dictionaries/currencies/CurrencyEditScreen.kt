@@ -70,7 +70,7 @@ fun CurrencyEditContent(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { onEvent(CurrencyEditEvent.SaveClicked) }) {
+                    IconButton(onClick = { onEvent(CurrencyEditEvent.BackClicked) }) {
                         Icon(
                             Icons.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.dictionaries_back),

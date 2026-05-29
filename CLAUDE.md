@@ -114,75 +114,21 @@ MVVM + Unidirectional Data Flow.
 
 `JAVA_HOME` must point to a JDK 21 runtime. On Windows under Git Bash, prefer Android Studio's bundled JBR (see `~/.bashrc` snippet at end of this file).
 
-## Emulator access from the VirtualBox guest
+## On-device / emulator testing
 
-This repository may be driven from a Windows VirtualBox guest. Nested virtualization is
-not available in that guest, so start the emulator in Android Studio on the primary
-Windows host, not inside the guest.
-
-Verified on 2026-05-27:
-
-- Use host AVD `Pixel_5_API_34` (`Pixel 5`, Android 14 / API 34).
-- For manual ADB/screenshot commands, reach the primary Windows host through the
-  VirtualBox NAT gateway with `adb connect 10.0.2.2:5555`; the guest reports
-  that attachment under serial `10.0.2.2:5555`.
-- For Gradle `connected*AndroidTest`, do not use the remote serial directly.
-  AGP 8.7.3 UTP writes a profile filename containing that serial and fails on
-  Windows with `java.io.FileNotFoundException: Invalid file path`. Use
-  `scripts/run_connected_test_on_host_avd.ps1`, which proxies localhost ADB to
-  the host ADB server so UTP sees safe serial `emulator-5554`.
-- Setting `ADB_SERVER_SOCKET` alone is insufficient for Gradle: the CLI sees
-  `emulator-5554`, but UTP/DDMLib still selects the guest ADB server.
-- Do not use `Pixel 10 Pro XL API 37` for current Compose instrumentation: the
-  Espresso input path fails on API 37 with an `InputManager.getInstance` lookup error.
-
-From Claude / Git Bash in the guest:
+Single machine: run the emulator in Android Studio (or attach a device over USB),
+then call the instrumentation task directly — no NAT bridge, proxy, or helper script.
 
 ```bash
-export JAVA_HOME="/c/Program Files/Android/Android Studio/jbr"
-export ANDROID_SDK_ROOT="$(cygpath -u "$LOCALAPPDATA")/Android/Sdk"
-export ANDROID_HOME="$ANDROID_SDK_ROOT"
-export PATH="$JAVA_HOME/bin:$ANDROID_SDK_ROOT/platform-tools:$ANDROID_SDK_ROOT/emulator:$PATH"
-device="10.0.2.2:5555"
-
-adb kill-server
-adb start-server
-adb connect "$device"
-adb devices -l
-adb -s "$device" shell getprop ro.boot.qemu.avd_name   # Pixel_5_API_34
-adb -s "$device" shell getprop ro.build.version.sdk     # 34
-adb -s "$device" shell getprop sys.boot_completed       # 1
+adb devices                                    # confirm the emulator/device is listed
+./gradlew :app:connectedDebugAndroidTest
+./gradlew :core:designsystem:connectedDebugAndroidTest
+./gradlew :core:database:connectedDebugAndroidTest
+./gradlew :core:datastore:connectedDebugAndroidTest
 ```
 
-Connected verification:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run_connected_test_on_host_avd.ps1 -Tasks ':app:connectedDebugAndroidTest'
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run_connected_test_on_host_avd.ps1 -Tasks ':core:designsystem:connectedDebugAndroidTest'
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run_connected_test_on_host_avd.ps1 -Tasks ':core:database:connectedDebugAndroidTest'
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run_connected_test_on_host_avd.ps1 -Tasks ':core:datastore:connectedDebugAndroidTest'
-```
-
-The `-ExecutionPolicy Bypass` applies to this signed-off local helper invocation
-only; the machine policy otherwise blocks `.ps1` scripts. The helper waits 60
-seconds after every Gradle instrumented-test run, as required by the current
-device-remediation task.
-
-Visual smoke check and screenshot capture:
-
-```bash
-./gradlew --no-daemon :app:installDebug --console=plain
-adb -s "$device" shell am force-stop com.kshavrin.mymoney
-adb -s "$device" shell am start -W -n com.kshavrin.mymoney/.MainActivity
-mkdir -p build/visual-check
-adb -s "$device" shell screencap -p /sdcard/mymoney-check.png
-adb -s "$device" pull /sdcard/mymoney-check.png build/visual-check/mymoney-check.png
-```
-
-If a manual ADB command has no device, first confirm that `Pixel_5_API_34` is
-booted on the primary Windows host, then repeat the guest `adb kill-server` /
-`adb start-server` / `adb connect 10.0.2.2:5555` sequence. For Gradle
-instrumented tests, use the helper instead of that remote attachment.
+A connected, booted device is **mandatory** before any on-device run — never fake or
+skip it. If `adb devices` is empty, start the AVD and retry.
 
 ## Testing stack (TDD §12, lines 2553–2661)
 
@@ -194,6 +140,14 @@ instrumented tests, use the helper instead of that remote attachment.
 ## Comments policy
 
 Default to **zero comments**. Only add when WHY is non-obvious — a hidden constraint, subtle invariant, workaround for a specific bug. Never narrate WHAT (well-named identifiers do that). Don't reference the current task/PR/issue — those belong in commit messages.
+
+## Token-efficient Claude workflow
+
+Keep sessions cheap without lowering rigor:
+
+- **Code search → `Explore` subagent.** When a question means sweeping many files/dirs (find a symbol, trace a convention, locate call-sites), delegate to `Explore` and keep only its conclusion — don't fan raw file dumps into the main context. Use direct `Grep`/`Read` only for a known file or a single targeted lookup.
+- **Model routing.** Mechanical work (renames, small/boilerplate edits, formatting) → Sonnet/Haiku. Reserve Opus for architecture, ambiguous design, and hard debugging.
+- `/clear` between unrelated tasks; run Gradle with `--console=plain` and grep logs instead of dumping full build output into context.
 
 ## Project state files — important note
 

@@ -54,7 +54,7 @@ across sessions, and is updated one green test at a time (`/cmp --device <Sxx>` 
 | Slice | Scope | Status | Device run/report |
 |---|---|---|---|
 | 0 | Pattern A infrastructure: Hilt runner, isolated database/settings, `MainActivity` launch gate | **Done** | `MainActivityLaunchTest` 1/1 green on `Pixel_5_API_34` 2026-05-29 (`e94d985`) |
-| 1 | S00/S11/S01/S06 critical flow: onboarding -> dashboard -> add expense -> updated balance | In progress | S11 5/5; S01/S04 + AS-2 7/7; S02 2/2; S06 stable controls 7/7 green 2026-05-27; account/error seams and Pattern A pending |
+| 1 | S00/S11/S01/S06 critical flow: onboarding -> dashboard -> add expense -> updated balance | **Done (core E2E)** | J1 Pattern A E2E green 1/1 2026-05-29 (`5e42f8d`); S11 5/5; S01/S04 + AS-2 7/7; S02 2/2; S06 stable controls 7/7. Two real defects fixed (`6767a58`, `5388264`). Error-banner seams remain Pattern B gaps. |
 | 2 | Transaction forms S07/S03/S09/S27, including AS-4 and AS-6 paths | In progress | S07 stable controls 7/7; S03 stable direct controls 12/12, S09 direct controls 3/3, and S27 direct controls 5/5 green on `Pixel_5_API_34`; AS-4/AS-6/AS-7 E2E, S09 long-press context actions, and transaction error seams pending |
 | 3 | Dictionaries S21-S26 CRUD and validation controls | Pending | - |
 | 4 | List/detail/search/settings/lock/sync/backup plus worker instrumentation | In progress | S08 direct controls 8/8, S12 direct controls 5/5, S13 direct controls 11/11, S14 direct controls 3/3, S15 direct controls 2/2, S16 setup direct controls 6/6, S17 direct controls 6/6, S18 direct controls 5/5, S19 direct controls 2/2, and S20 direct controls 2/2 green 2026-05-28; S12 loading/error/filter-removal/undo, S16 BiometricPrompt/overlay runtime, provider/OAuth E2E, and worker instrumentation pending |
@@ -96,6 +96,25 @@ entry identifies coverage already recorded before this tracker was created.
 | Workers | recurring, prune, rotation, sync no-op | Pending | n/a | Pending | WorkManager instrumentation pending |
 
 ## Session Log
+
+### 2026-05-29 - J1 critical E2E green + two real product defects fixed (Opus)
+
+- **J1 (highest-value E2E) green 1/1 on `Pixel_5_API_34`** (`MainActivityAddExpenseJourneyTest`,
+  `5e42f8d`): onboarding Skip → dashboard → `−` expense FAB → calculator `1 2 + 3 =` (⇒15) →
+  Choose category → seeded "Food" → auto-save → pops to dashboard → balance pill shows the 15
+  expense (AS-2, AS-4, TDD §4.6 AC6). Pill matched via a new `dashboard_balance_pill` testTag seam.
+- **Real defect #1 — missing VIBRATE permission (`6767a58`).** `HapticPlayer.vibrate()` runs with
+  `hapticEnabled=true` by default, but the manifest never declared `android.permission.VIBRATE`, so
+  the first haptic (expense FAB tap) crashed with `SecurityException` on device. Declared the normal
+  permission. This would crash the real app on first FAB tap.
+- **Real defect #2 — category-picker result never delivered (`5388264`).** S09 writes the picked
+  (and AS-4 created) category id into `previousBackStackEntry.savedStateHandle`, but `AddExpense`/
+  `AddIncome` observed their **ViewModel-injected** `SavedStateHandle` — a different instance from the
+  `NavBackStackEntry`'s — so the id never arrived and **choosing a category never saved the
+  transaction** on a real device (core flow + AS-4 broken; never caught because it was only ever
+  built/JVM-tested). Fixed by observing the result in the route on the destination
+  `NavBackStackEntry` and forwarding the existing `CategoryPicked` event; VM unit tests now drive that
+  event path. This unblocks J3 (AS-4) too.
 
 ### 2026-05-29 - Single-machine migration, loopback blocker resolved, Slice 0 gate green (Opus)
 

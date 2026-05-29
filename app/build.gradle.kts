@@ -44,7 +44,7 @@ android {
         versionCode = 1
         versionName = "1.0"
 
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner = "com.kshavrin.mymoney.HiltTestRunner"
 
         buildConfigField("String", "SENTRY_DSN", "\"${providers.gradleProperty("sentry.dsn").getOrElse("")}\"")
         buildConfigField(
@@ -164,6 +164,18 @@ dependencies {
     androidTestImplementation(libs.androidx.paging.compose)
     androidTestImplementation(libs.androidx.test.junit)
     androidTestImplementation(libs.androidx.test.espresso.core)
+    androidTestImplementation(libs.hilt.android.testing)
+    kspAndroidTest(libs.hilt.compiler)
+    androidTestImplementation(libs.androidx.navigation.testing)
+    androidTestImplementation(libs.androidx.work.testing)
+    androidTestImplementation(libs.kotlinx.coroutines.test)
+    androidTestImplementation(libs.turbine)
+    androidTestImplementation(project(":core:database"))
+    androidTestImplementation(project(":core:datastore"))
+    androidTestImplementation(project(":core:domain"))
+    androidTestImplementation(project(":core:common"))
+    androidTestImplementation(libs.androidx.datastore.preferences)
+    androidTestImplementation(libs.androidx.room.runtime)
 
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)

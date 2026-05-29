@@ -55,7 +55,7 @@ across sessions, and is updated one green test at a time (`/cmp --device <Sxx>` 
 |---|---|---|---|
 | 0 | Pattern A infrastructure: Hilt runner, isolated database/settings, `MainActivity` launch gate | **Done** | `MainActivityLaunchTest` 1/1 green on `Pixel_5_API_34` 2026-05-29 (`e94d985`) |
 | 1 | S00/S11/S01/S06 critical flow: onboarding -> dashboard -> add expense -> updated balance | **Done (core E2E)** | J1 Pattern A E2E green 1/1 2026-05-29 (`5e42f8d`); S11 5/5; S01/S04 + AS-2 7/7; S02 2/2; S06 stable controls 7/7. Two real defects fixed (`6767a58`, `5388264`). Error-banner seams remain Pattern B gaps. |
-| 2 | Transaction forms S07/S03/S09/S27, including AS-4 and AS-6 paths | In progress | S07 stable controls 7/7; S03 stable direct controls 12/12, S09 direct controls 3/3, and S27 direct controls 5/5 green on `Pixel_5_API_34`; AS-4/AS-6/AS-7 E2E, S09 long-press context actions, and transaction error seams pending |
+| 2 | Transaction forms S07/S03/S09/S27, including AS-4 and AS-6 paths | **Done (E2E)** | J2 cross-currency transfer (AS-6/AS-7) and J3 create-category (AS-4) E2E green 2026-05-29 (`cc8c30f`, `210c1f4`); S07 7/7, S03 12/12, S09 3/3, S27 5/5. Two real defects fixed (`beb64c0`, `566e8c4`). S09 long-press context actions + error seams remain Pattern B gaps. |
 | 3 | Dictionaries S21-S26 CRUD and validation controls | Pending | - |
 | 4 | List/detail/search/settings/lock/sync/backup plus worker instrumentation | In progress | S08 direct controls 8/8, S12 direct controls 5/5, S13 direct controls 11/11, S14 direct controls 3/3, S15 direct controls 2/2, S16 setup direct controls 6/6, S17 direct controls 6/6, S18 direct controls 5/5, S19 direct controls 2/2, and S20 direct controls 2/2 green 2026-05-28; S12 loading/error/filter-removal/undo, S16 BiometricPrompt/overlay runtime, provider/OAuth E2E, and worker instrumentation pending |
 | 5 | Manual QA, minified release walk, macrobenchmark/Baseline Profile | Pending | - |
@@ -96,6 +96,27 @@ entry identifies coverage already recorded before this tracker was created.
 | Workers | recurring, prune, rotation, sync no-op | Pending | n/a | Pending | WorkManager instrumentation pending |
 
 ## Session Log
+
+### 2026-05-29 - J2 + J3 E2E green + two more real defects fixed (Opus)
+
+- **J2 (cross-currency transfer) green 1/1** (`MainActivityTransferJourneyTest`,
+  `cc8c30f`): with a second account in a different currency (inserted via repo after seeding),
+  selecting the target auto-navigates to S27, the rate is captured, the form returns to S03, and
+  saving stores the transfer as exactly ONE row carrying both legs (source/target accounts, amount,
+  converted `toAmount`, `exchangeRate`) — AS-6 + AS-7, TDD §4.8.
+- **J3 (create-category-from-picker, AS-4) green 1/1** (`MainActivityCreateCategoryJourneyTest`,
+  `210c1f4`): from the expense form with amount 9 entered → Choose category → S09 → + ADD → S22
+  create → Save returns past S09 with the new category pre-selected and the amount preserved → the
+  saved expense carries the new category and amount 9.
+- **Real defect #3 — transfer rate result not delivered (`beb64c0`).** Same root as the picker
+  defect: S27 writes the rate signal into `previousBackStackEntry.savedStateHandle` but
+  `TransferViewModel` observed its Hilt-injected handle, so the S03 rate preview never refreshed.
+  Fixed by observing `pendingRate` in `TransferRoute` on the entry and forwarding a new
+  `TransferEvent.PendingRateResolved`.
+- **Real defect #4 — CategoryEdit (S22) crashed on render (`566e8c4`).** `ColorPicker` is a
+  `LazyVerticalGrid` inside `Column(verticalScroll)`; an unbounded lazy grid in a vertical scroll is
+  measured with infinite height → `IllegalStateException`, crashing S22/S24/S26 on open. Capped the
+  grid's max height. Found by J3.
 
 ### 2026-05-29 - J1 critical E2E green + two real product defects fixed (Opus)
 

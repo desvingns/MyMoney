@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -30,7 +31,11 @@ fun ColorPicker(
         columns = GridCells.Adaptive(minSize = 48.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = modifier.fillMaxWidth(),
+        // Bounded max height: this grid is hosted inside a Column(verticalScroll) (e.g. CategoryEdit
+        // S22), where an unbounded LazyVerticalGrid is measured with infinite height and crashes.
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(max = 240.dp),
     ) {
         items(palette) { hex ->
             val color = parseHexColor(hex)

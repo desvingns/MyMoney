@@ -108,24 +108,25 @@ found inline.
 Record each with the reason it cannot be device-tested without external setup. These are NOT counted
 as open bugs.
 
-- [ ] D1. S16 real `BiometricPrompt` launch/callbacks + runtime `LockOverlay` unlock/back-blocking — needs enrolled biometric + runtime overlay harness.
-- [ ] D2. S17 provider OAuth + live Dropbox/Drive round-trips — needs OQ-2/OQ-3 credentials.
-- [ ] D3. BackupRotation success/rotation + S18 SAF picker + real DB/CSV IO — needs a real SAF tree.
-- [ ] D4. S20 AS-15 bundled privacy/help WebView route + asset load — Pattern A route test (optional follow-up).
-- [ ] D5. S13/S12 undo snackbar routing — Pattern A route/snackbar-host test (optional follow-up).
+- [x] D1. S16 real `BiometricPrompt` launch/callbacks + runtime `LockOverlay` unlock/back-blocking — needs enrolled biometric + runtime overlay harness. **DEFERRED — external resource; not a bug (recorded).**
+- [x] D2. S17 provider OAuth + live Dropbox/Drive round-trips — needs OQ-2/OQ-3 credentials. **DEFERRED — external resource; not a bug (recorded).**
+- [x] D3. BackupRotation success/rotation + S18 SAF picker + real DB/CSV IO — needs a real SAF tree. **DEFERRED — external resource; not a bug (recorded).**
+- [x] D4. S20 AS-15 bundled privacy/help WebView route + asset load — Pattern A route test (optional follow-up). **DEFERRED — optional follow-up; not a bug (recorded).**
+- [x] D5. S13/S12 undo snackbar routing — Pattern A route/snackbar-host test (optional follow-up). **DEFERRED — optional follow-up; not a bug (recorded).**
 
 ## Phase E — FINAL FULL RUN (do last; everything must be green)
 
-- [ ] E1. All JVM unit tests, every module: `gradlew testDebugUnitTest` (+ pure-JVM `:core:domain:test :core:common:test`). Parse every report; record total `tests/failures`.
-- [ ] E2. All instrumented suites on `Pixel_5_API_34`, every module with androidTest: `:app`, `:core:designsystem`, `:core:database`, `:core:datastore`, `:core:sync`. Parse every report.
-- [ ] E3. Explicitly re-run ALL E2E journeys + gate green together: `MainActivityLaunchTest`, `MainActivityAddExpenseJourneyTest` (J1), `MainActivityTransferJourneyTest` (J2), `MainActivityCreateCategoryJourneyTest` (J3), `WorkerInstrumentationTest`.
-- [ ] E4. Record the final totals in §Final Full Run; update `DEVICE_VERIFICATION_PROGRESS.md` + `PHASE_15`; write the end summary.
+- [x] E1. All JVM unit tests, every module: `gradlew testDebugUnitTest` (+ pure-JVM `:core:domain:test :core:common:test`). Parse every report; record total `tests/failures`. **Green: 67 reports, 655 tests, 0 failures, 0 errors, 0 skipped** (re-confirmed at E4 if any prod code changes during E2/E3).
+- [x] E2. All instrumented suites on `Pixel_5_API_34`, every module with androidTest: `:app`, `:core:designsystem`, `:core:database`, `:core:datastore`, `:core:sync`. Parse every report. **Green: designsystem 3 + datastore 5 + sync 4 + database 20 + app 122 = 154 instrumented, 0 fail/err/skip** (on a health-checked 60-FPS emulator after Cold Boot; `:app` run as fresh-JVM batches/per-class to survive emulator instability — a single monolithic run is too heavy and crashed the AVD).
+- [x] E3. Explicitly re-run ALL E2E journeys + gate green together: `MainActivityLaunchTest`, `MainActivityAddExpenseJourneyTest` (J1), `MainActivityTransferJourneyTest` (J2), `MainActivityCreateCategoryJourneyTest` (J3), `WorkerInstrumentationTest`. **Green together: Launch 1 + J1 1 + J2 1 + J3 1 (gC, one `:app` run) + Worker 4 = 8, 0 fail.**
+- [x] E4. Record the final totals in §Final Full Run; update `DEVICE_VERIFICATION_PROGRESS.md` + `PHASE_15`; write the end summary. **Done 2026-05-30.**
 
 ---
 
 ## Defects fixed (append one line each)
 
 - (from prior session) VIBRATE permission `6767a58`; picker nav-result `5388264`; transfer rate nav-result `beb64c0`; ColorPicker crash `566e8c4`; edit back-arrow `1a534c2`.
+- 2026-05-30 — Phase E: **0 new product defects.** The two device failures (J3 `ComposeTimeoutException`, `SwipeToDeleteUiTest`) were emulator-FPS flakes, both green after Cold Boot + health-check; no code changed.
 
 ## Re-escalations (append one line each, with reason)
 
@@ -144,7 +145,32 @@ as open bugs.
 
 ## Final Full Run (filled in at E4)
 
-- (pending)
+**2026-05-30 — ALL GREEN: 809 autotests, 0 failures / 0 errors / 0 skipped.** Run on a health-checked
+`Pixel_5_API_34` (NVIDIA RTX 5060 hardware GL, 60 FPS after Cold Boot).
+
+| Layer | Suites | tests | fail | err | skip |
+|---|---|---:|---:|---:|---:|
+| E1 — JVM unit | all modules (67 reports) | 655 | 0 | 0 | 0 |
+| E2 — instrumented | designsystem 3, datastore 5, sync 4, database 20, **app 122** | 154 | 0 | 0 | 0 |
+| **TOTAL** | | **809** | **0** | **0** | **0** |
+
+E3 — E2E journeys gated green together on the healthy device: `MainActivityLaunchTest` 1, J1
+`MainActivityAddExpenseJourneyTest` 1, J2 `MainActivityTransferJourneyTest` 1, J3
+`MainActivityCreateCategoryJourneyTest` 1, `WorkerInstrumentationTest` 4 — all 0-fail.
+
+**Real product defects found this phase: 0.** Two device "failures" surfaced and were both proven to be
+emulator-GPU flakes (not bugs): J3 `ComposeTimeoutException` and `SwipeToDeleteUiTest` — both passed on
+the health-checked 60-FPS emulator after a Cold Boot, with no code change. The earlier chaos (a 64-min
+`:app` "hang", an `INSTRUMENTATION_ABORTED: System has crashed`, `Failed to install split APK`, `Unable
+to resolve activity` for 26 settings tests) was entirely a **~2-FPS emulator GPU/snapshot regression**,
+not product or test defects — every test that ran on a healthy device went green.
+
+**New tooling:** `scripts/preflight_device_health.ps1` — a pre-flight gate (adb present + boot complete +
+hardware GL, not SwiftShader + a timed `MainActivityLaunchTest` smoke). Run it BEFORE any full
+instrumented suite so a 2-FPS / unhealthy AVD is caught in ~40 s instead of wrecking a multi-hour run.
+**Runner lesson:** never run all 122 `:app` tests in one `connectedDebugAndroidTest` invocation — split
+into fresh-JVM batches (`--no-daemon`, per the helper) with a per-batch watchdog; one heavy monolithic
+run exhausts/crashes the AVD.
 
 ## Progress log (append dated one-liners)
 
@@ -165,3 +191,11 @@ as open bugs.
   deadlocks `waitForIdle` (nested-scroll measure loop) → click the always-visible first swatch directly.
   Applies to S24/S26 (same `ColorPicker`). Also gave the fields test a stateful state-holder so the
   controlled `OutlinedTextField` settles. No production defect — the UI scrolls fine for real users.
+- 2026-05-30 — **Phase E FINAL FULL RUN complete — 809 tests, 0 failures** (E1 655 unit + E2 154
+  instrumented; E3 E2E gate green together). **0 real product defects.** A first monolithic `:app`
+  connected run hung 64 min and crashed the emulator (`INSTRUMENTATION_ABORTED`); diagnosed the root
+  cause as a **~2-FPS emulator GPU/snapshot regression** (NVIDIA RTX 5060 laptop), NOT product/test
+  bugs — proven by re-running batched/per-class on a Cold-Booted 60-FPS device, where every test (incl.
+  the J3 `ComposeTimeout` + `SwipeToDelete` "failures") went green. Switched runner strategy to fresh-JVM
+  batches with watchdogs; added `scripts/preflight_device_health.ps1` health gate (run before every full
+  suite). 0 production changes this phase; new files (health script + doc updates) are LOCAL, not pushed.

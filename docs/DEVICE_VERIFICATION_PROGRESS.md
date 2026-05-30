@@ -56,7 +56,7 @@ across sessions, and is updated one green test at a time (`/cmp --device <Sxx>` 
 | 0 | Pattern A infrastructure: Hilt runner, isolated database/settings, `MainActivity` launch gate | **Done** | `MainActivityLaunchTest` 1/1 green on `Pixel_5_API_34` 2026-05-29 (`e94d985`) |
 | 1 | S00/S11/S01/S06 critical flow: onboarding -> dashboard -> add expense -> updated balance | **Done (core E2E)** | J1 Pattern A E2E green 1/1 2026-05-29 (`5e42f8d`); S11 5/5; S01/S04 + AS-2 7/7; S02 2/2; S06 stable controls 7/7. Two real defects fixed (`6767a58`, `5388264`). Error-banner seams remain Pattern B gaps. |
 | 2 | Transaction forms S07/S03/S09/S27, including AS-4 and AS-6 paths | **Done (E2E)** | J2 cross-currency transfer (AS-6/AS-7) and J3 create-category (AS-4) E2E green 2026-05-29 (`cc8c30f`, `210c1f4`); S07 7/7, S03 12/12, S09 3/3, S27 5/5. Two real defects fixed (`beb64c0`, `566e8c4`). S09 long-press context actions + error seams remain Pattern B gaps. |
-| 3 | Dictionaries S21-S26 CRUD and validation controls | Pending | - |
+| 3 | Dictionaries S21-S26 CRUD and validation controls | **Done** | S21-S26 Content tests green on `Pixel_5_API_34` (Phase B of `COVERAGE_HARDENING_PLAN.md`); re-confirmed in the 2026-05-30 final full run |
 | 4 | List/detail/search/settings/lock/sync/backup plus worker instrumentation | In progress | S08 direct controls 8/8, S12 direct controls 5/5, S13 direct controls 11/11, S14 direct controls 3/3, S15 direct controls 2/2, S16 setup direct controls 6/6, S17 direct controls 6/6, S18 direct controls 5/5, S19 direct controls 2/2, and S20 direct controls 2/2 green 2026-05-28; S12 loading/error/filter-removal/undo, S16 BiometricPrompt/overlay runtime, provider/OAuth E2E pending. **Worker instrumentation done 4/4 (`155a5b2`).** |
 | 5 | Manual QA, minified release walk, macrobenchmark/Baseline Profile | Pending | - |
 
@@ -96,6 +96,23 @@ entry identifies coverage already recorded before this tracker was created.
 | Workers | recurring, prune, rotation, sync no-op | Green: 4/4 | n/a | Rotation guard green | `core:sync` `WorkerInstrumentationTest` 4/4 green 2026-05-29 (`155a5b2`): Recurring Room effect, Prune 30-day Room effect, Sync gated no-op, BackupRotation missing-URI failure; rotation success path needs real SAF |
 
 ## Session Log
+
+### 2026-05-30 - Phase E final full run GREEN + emulator-FPS root cause + health gate (Opus)
+
+- **Final full run is GREEN: 809 autotests, 0 failures** (E1 655 JVM unit across 67 reports + E2 154
+  instrumented: designsystem 3 / datastore 5 / sync 4 / database 20 / **app 122**). E3 E2E journeys green
+  together on the healthy device: `MainActivityLaunchTest`, J1, J2, J3, and `WorkerInstrumentationTest` 4.
+  **Dictionaries S21-S26 (Slice 3) and all settings Content tests are now confirmed green on-device.**
+- **Root cause of a 64-min `:app` "hang" + `INSTRUMENTATION_ABORTED: System has crashed` + `Failed to
+  install split APK` + `Unable to resolve activity` (26 settings tests): a ~2-FPS emulator GPU/snapshot
+  regression**, NOT product or test bugs. A Cold Boot restored 60 FPS (NVIDIA RTX 5060 hardware GL) and
+  every test went green — including the two "honest" failures (J3 `ComposeTimeoutException`,
+  `SwipeToDeleteUiTest`), which were pure FPS flakes. **0 real product defects; 0 production changes.**
+- **New pre-flight gate `scripts/preflight_device_health.ps1`** (adb + boot + hardware-GL, not SwiftShader
+  + a timed `MainActivityLaunchTest` smoke) — run before any full instrumented suite to catch a
+  2-FPS/unhealthy AVD in ~40 s. **Runner lesson:** never run all 122 `:app` tests in one
+  `connectedDebugAndroidTest` invocation — split into fresh-JVM (`--no-daemon`) batches with per-batch
+  watchdogs; a monolithic run exhausts/crashes the AVD.
 
 ### 2026-05-29 - Worker instrumentation + back-arrow escalation resolved (Opus)
 

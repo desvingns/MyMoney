@@ -115,6 +115,19 @@ Get-Item app\build\outputs\apk\release\app-release.apk | Select-Object Name, @{n
 
 Driven via `/cmp --phase` (Developer→Reviewer→Tester→Runner→Verifier per task). Commits are LOCAL (Decision 2; push deferred to phase end).
 
+- **Tests — FINAL FULL RUN (2026-05-30, Opus)** — **GREEN: 809 autotests, 0 failures / 0 errors / 0 skipped**
+  (E1 655 JVM unit across 67 reports + E2 154 instrumented: designsystem 3 / datastore 5 / sync 4 /
+  database 20 / **app 122**). E3 E2E journeys gated green together on `Pixel_5_API_34`:
+  `MainActivityLaunchTest`, J1, J2, J3, `WorkerInstrumentationTest` 4. **0 real product defects; 0
+  production changes.** A first monolithic `:app:connectedDebugAndroidTest` (all 122) hung 64 min and
+  crashed the AVD (`INSTRUMENTATION_ABORTED`); root cause was a **~2-FPS emulator GPU/snapshot regression**
+  (Cold Boot restored 60 FPS, NVIDIA RTX 5060 hardware GL), NOT product/test bugs — the two "honest"
+  failures (J3 `ComposeTimeoutException`, `SwipeToDeleteUiTest`) were FPS flakes and passed on the healthy
+  device. Added `scripts/preflight_device_health.ps1` (pre-flight device-health gate: adb + boot +
+  hardware-GL + timed launch smoke) and a fresh-JVM-batches + watchdog runner strategy (never run all 122
+  `:app` tests in one invocation). Full detail: `docs/COVERAGE_HARDENING_PLAN.md` §Final Full Run +
+  `docs/DEVICE_VERIFICATION_PROGRESS.md`. New files are LOCAL, not pushed.
+
 - **Sound + haptic + confetti** — DONE. `:core:ui` `SoundPlayer`/`SoundPoolImpl` + `HapticPlayer` (gated on `AppSettings.soundEnabled`/`hapticEnabled`; raw clips resolved BY NAME via `Resources.getIdentifier`, graceful no-op when `soundId==0`), real `MonefyConfetti` Canvas burst (~1500 ms), all wired through `LocalSoundPlayer`/`LocalHapticPlayer` provided once in `MainActivity` (no ViewModel/action-stream churn → existing Turbine tests intact). Commits: `bf7084e` impl+wiring, `3575d1f` collapse keypad to a single sound path, `a67927d` `:core:ui` test deps, `c97c16f` tests (166 unit green; `:app:assembleDebug` green; Verifier `hilt_graph=ok`).
   - **DEFERRED (device):** the 6 Ogg assets (`tap/kaching/swipe/pop/confetti/buzz`) are now present under `:core:ui` and pass `OggS` header validation; auditory fit, haptic feel API 31–32 vs 33+, and confetti rendering on first positive balance (AS-10) still require device QA.
   - **NOTE / TDD deviation:** `VibrationEffect.Composition.PRIMITIVE_SHIMMER` (named in TDD §6.9 line 1471) does NOT exist in the Android SDK at any API level → `SUCCESS_SHIMMER` uses `PRIMITIVE_SPIN` on API 33+ with the spec's `TICK×3` fallback on 31–32.
@@ -134,7 +147,7 @@ Driven via `/cmp --phase` (Developer→Reviewer→Tester→Runner→Verifier per
 
 - **Tests — integration** — Room half DONE, Worker half DEFERRED (device/CI). **Room instrumentation executed on `Pixel_5_API_34`: `:core:database:connectedDebugAndroidTest` passed 20/20 tests and `:core:datastore:connectedDebugAndroidTest` passed 5/5 tests.** The core Android libraries required explicit `AndroidJUnitRunner` configuration plus the runner dependency; without it Gradle reported zero tests and then could not instantiate the runner. Worker WorkManager instrumentation (`WorkManagerTestInitHelper`) is NOT added: all 4 workers (`SyncWorker`/`RecurringWorker`/`PruneDeletedWorker`/`BackupRotationWorker`) are `@HiltWorker`, `:core:sync` has no androidTest infra, and `work-testing` isn't in the version catalog. The worker LOGIC is already JVM-unit-tested (`GenerateDueRecurringUseCaseTest`, `BackupRotationTest`, prune/budget use-case tests). **Device/CI test plan (deferred):** init `WorkManagerTestInitHelper.initializeTestWorkManager(ctx)` with a `SynchronousExecutor`, build each worker via `TestListenableWorkerBuilder<W>` + a `HiltWorkerFactory`, enqueue, assert `Result.success()` and expected Room side-effects.
 
-- **Tests — UI** — IN PROGRESS. Added instrumentation coverage for `MonefyDonutChart` accessibility semantics, AS-12 `PeriodStrip` custom-range entry, and S12 swipe-delete affordance. Executed on `Pixel_5_API_34`: `:core:designsystem:connectedDebugAndroidTest` passed 3/3 and `:app:connectedDebugAndroidTest` passed 3/3. The range-picker test now targets the date cells' localized semantics labels rather than ambiguous day numbers. The `createAndroidComposeRule<MainActivity>()` onboarding -> dashboard -> add expense critical path remains open.
+- **Tests — UI** — IN PROGRESS. Added instrumentation coverage for `MonefyDonutChart` accessibility semantics, AS-12 `PeriodStrip` custom-range entry, and S12 swipe-delete affordance. Executed on `Pixel_5_API_34`: `:core:designsystem:connectedDebugAndroidTest` passed 3/3 and `:app:connectedDebugAndroidTest` passed 3/3. The range-picker test now targets the date cells' localized semantics labels rather than ambiguous day numbers. **UPDATE (2026-05-30): the `createAndroidComposeRule<MainActivity>()` onboarding → dashboard → add-expense critical path is now GREEN (J1 `MainActivityAddExpenseJourneyTest`), and the full `:app` instrumented suite is 122/122 green in the 2026-05-30 final full run — see the FINAL FULL RUN session-log entry above.**
 
 - **US-26 budget alerts** — IMPLEMENTED. `ObserveBudgetAlertsUseCase` now evaluates the current calendar month and refreshes across month rollover; dashboard state consumes the alert to render the over-budget balance chip and the donut renders a red badge on alerted categories. `DashboardViewModelTest` and updated domain tests pass. The donut currently uses the available generic category glyph; category-specific icon asset mapping is a v1.1 design follow-up.
 

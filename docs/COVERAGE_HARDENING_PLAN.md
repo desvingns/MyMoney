@@ -97,11 +97,11 @@ found inline.
 
 ## Phase C — close remaining seam gaps where a production seam exists
 
-- [ ] C1. **S00 Splash content** — `SplashContentUiTest`: `SplashContent()` renders logo/progress (routing is covered by J1).
-- [ ] C2. **S12 loading/error states** — if `TransactionsListState` exposes loading/error, cover them in `TransactionsListContentUiTest`; else SKIP + log.
-- [ ] C3. **S12 filter-removal** — if a remove-filter control/event exists, cover it; else SKIP + log.
-- [ ] C4. **S09 long-press Edit/Archive** — confirm a `CategoryPickerEvent` seam; if none, SKIP + log (escalate).
-- [ ] C5. **S06/S07 account chip** — currently maps to `Unit` (no event). No seam → SKIP + log (escalate as a missing feature, not a bug).
+- [x] C1. **S00 Splash content** — `SplashContentUiTest.splashRendersLogo`: `SplashContent()` renders the logo Image (asserted via `splash_logo_content_description`). Green. (No progress indicator in production — logo only.)
+- [x] C2. **S12 loading/error states** — SKIP + log: `TransactionsListUiState` = {accountId, categoryId, categoryFilter, currency} — NO `isLoading`/`errorMessage`. Loading/empty are `LazyPagingItems` load-states, not UiState → no Content seam to assert. (Paging load-states would need a hand-built `PagingData`; out of scope for a Content event test.)
+- [x] C3. **S12 filter-removal** — SKIP + log: the active-filter `FilterChip` has `onClick = {}` and there is no `FilterRemoved`/`ClearFilter` event. No seam. (See §Re-escalations.)
+- [x] C4. **S09 long-press Edit/Archive** — SKIP + log: `CategoryPickerEvent` = {CategoryClicked, AddCategoryClicked, BackClicked} — no long-press/edit/archive seam (see §Re-escalations). NOTE: picker happy-path is ALREADY covered by the pre-existing `CategoryPickerContentUiTest` (back/add/category-cell+amountPreview), so no new test needed here.
+- [x] C5. **S06/S07 account chip** — SKIP + log (escalate): `AmountFieldEvent.AccountChipClicked -> Unit` (no-op). The `AddExpenseEvent.AccountChanged(accountId)` event EXISTS but is never dispatched from the chip. No seam → missing feature, not a bug (see §Re-escalations).
 
 ## Phase D — re-escalations (genuinely need external resources; NOT fixable inline here)
 
@@ -129,7 +129,18 @@ as open bugs.
 
 ## Re-escalations (append one line each, with reason)
 
-- (none yet)
+- **C5 (S06/S07 account chip is a dead control).** `AmountFieldEvent.AccountChipClicked -> Unit` in
+  `AddExpenseScreen.dispatchAmountEvent` (and the income twin): the account chip renders a label but
+  tapping it does nothing, even though `AddExpenseEvent.AccountChanged(accountId)` + `state.accounts`
+  already exist. Not device-testable (no event); fixing it = building an account-picker sheet/dropdown
+  (a feature + UX decision), so it's escalated, not patched inline. Borderline UX bug (tappable-looking
+  no-op) — recommend wiring `AccountChipClicked` to an account picker that emits `AccountChanged`.
+- **C3 (S12 cannot clear an active filter).** The active-filter `FilterChip` has `onClick = {}` and no
+  `FilterRemoved`/`ClearFilter` event exists — once filtered by category/account the user has no in-UI
+  way to clear it. Missing feature, not a bug; needs a clear-filter event + chip close affordance.
+- **C4 (S09 no long-press Edit/Archive on a category).** `CategoryPickerEvent` exposes no
+  edit/archive/long-press seam. Category edit/archive lives on S22 (reachable via dictionaries), so this
+  is a convenience gap, not a blocker. Needs a `CategoryLongPressed`/context-menu event if desired.
 
 ## Final Full Run (filled in at E4)
 
@@ -138,6 +149,11 @@ as open bugs.
 ## Progress log (append dated one-liners)
 
 - 2026-05-29 — plan created; Phase A audit A1/A2 verified clean. Starting A3/A4 then Phase B.
+- 2026-05-29 — **Phase C complete.** C1 Splash render green (`SplashContentUiTest` 1/1). C2/C3/C4/C5
+  resolved as SKIP+log (no Content seam) — see §Re-escalations for the 3 genuine feature gaps
+  (S06/S07 account chip is a dead no-op control; S12 has no clear-filter; S09 has no long-press menu).
+  S09 picker happy-path already covered by the pre-existing `CategoryPickerContentUiTest`. Next: Phase D
+  review (all external-resource items) then Phase E final full run.
 - 2026-05-29 — **Phase B complete (S21–S26).** S23 accounts 2/2, S24 account-edit 2/2 (AS-13), S25
   currencies 2/2, S26 currency-edit 3/3 — all green on `Pixel_5_API_34`. Reusable seams discovered:
   rows with a trailing control (AssistChip/Switch) need `useUnmergedTree` name-text taps (merged-row

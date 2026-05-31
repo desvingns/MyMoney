@@ -1,7 +1,7 @@
 # Dashboard donut ring icons (S01/S05)
 Epic: redesign-monefy-fidelity
 Order: 02 of 05
-Status: active
+Status: done
 Depends-on: 01 (categoryIcon registry)
 Date: 2026-05-30
 
@@ -24,7 +24,7 @@ CONSTRAINTS:
 MonefyDonutChart.kt:55 hardcodes one `categoryIconPainter` (Icons.Filled.Category) and draws it for all slices (line 179). `CategorySlice` carries `color` but no `iconKey`.
 
 ## Implementation links
-- commit: 65c08c7
+- commit: 65c08c7 (feat) + 8a9d5ec (test)
 - files:
   - core/designsystem/src/main/java/com/kshavrin/mymoney/core/designsystem/donut/CategorySlice.kt
   - core/designsystem/src/main/java/com/kshavrin/mymoney/core/designsystem/donut/MonefyDonutChart.kt

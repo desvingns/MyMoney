@@ -3,7 +3,10 @@
     <string name="dashboard_menu">Открыть меню</string>
     <string name="dashboard_transfer">Перевод</string>
     <string name="dashboard_search">Поиск</string>
+    <string name="dashboard_overflow_menu">Другие действия</string>
     <string name="dashboard_settings_menu">Настройки</string>
+    <string name="dashboard_balance">Баланс</string>
+    <string name="dashboard_balance_unavailable">Баланс &#8212;</string>
     <string name="dashboard_over_budget">Превышение на %1$s</string>
 
     <string name="period_today">Сегодня</string>

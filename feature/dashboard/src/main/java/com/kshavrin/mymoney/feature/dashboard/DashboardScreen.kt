@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.DrawerValue
@@ -36,6 +37,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kshavrin.mymoney.core.common.money.MoneyFormatter
@@ -117,7 +120,12 @@ fun DashboardContent(
             Scaffold(
                 topBar = {
                     TopAppBar(
-                        title = { Text(text = stringResource(R.string.dashboard_title)) },
+                        title = {
+                            DashboardTopBarTitle(
+                                title = stringResource(R.string.dashboard_title),
+                                subtitle = state.currentCurrency?.name,
+                            )
+                        },
                         navigationIcon = {
                             IconButton(onClick = {
                                 hapticPlayer.fire(HapticKind.MEDIUM)
@@ -130,16 +138,16 @@ fun DashboardContent(
                             }
                         },
                         actions = {
-                            IconButton(onClick = { onEvent(DashboardEvent.TransferClicked) }) {
-                                Icon(
-                                    Icons.Filled.SwapHoriz,
-                                    contentDescription = stringResource(R.string.dashboard_transfer),
-                                )
-                            }
                             IconButton(onClick = { onEvent(DashboardEvent.SearchClicked) }) {
                                 Icon(
                                     Icons.Filled.Search,
                                     contentDescription = stringResource(R.string.dashboard_search),
+                                )
+                            }
+                            IconButton(onClick = { onEvent(DashboardEvent.TransferClicked) }) {
+                                Icon(
+                                    Icons.Filled.SwapHoriz,
+                                    contentDescription = stringResource(R.string.dashboard_transfer),
                                 )
                             }
                             IconButton(onClick = {
@@ -147,8 +155,8 @@ fun DashboardContent(
                                 scope.launch { rightDrawerState.open() }
                             }) {
                                 Icon(
-                                    Icons.Filled.Menu,
-                                    contentDescription = stringResource(R.string.dashboard_settings_menu),
+                                    Icons.Filled.MoreVert,
+                                    contentDescription = stringResource(R.string.dashboard_overflow_menu),
                                 )
                             }
                         },
@@ -180,7 +188,12 @@ fun DashboardContent(
                         )
                         Spacer(modifier = Modifier.height(Spacing.m))
 
-                        val balanceText = formatBalance(state)
+                        val balanceText = formatBalance(
+                            state = state,
+                            label = stringResource(R.string.dashboard_balance),
+                            unavailableText = stringResource(R.string.dashboard_balance_unavailable),
+                            locale = resourceLocale,
+                        )
                         val overBudgetText = state.overBudgetAmount?.let { overage ->
                             stringResource(R.string.dashboard_over_budget, formatMoney(overage, resourceLocale))
                         }
@@ -236,7 +249,6 @@ fun DashboardContent(
                                 hapticPlayer.fire(HapticKind.MEDIUM)
                                 onEvent(DashboardEvent.PlusFabClicked)
                             },
-                            onTransferClick = { onEvent(DashboardEvent.TransferClicked) },
                         )
                     }
 
@@ -250,10 +262,42 @@ fun DashboardContent(
     }
 }
 
-private fun formatBalance(state: DashboardState): String {
-    val net = state.balanceSnapshot?.net ?: return "—"
-    val symbol = state.currentCurrency?.symbol ?: ""
-    return "$symbol${net.amount.toPlainString()}"
+@Composable
+private fun DashboardTopBarTitle(
+    title: String,
+    subtitle: String?,
+) {
+    Column {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.headlineSmall,
+            fontFamily = FontFamily.Cursive,
+            fontWeight = FontWeight.Bold,
+        )
+        if (!subtitle.isNullOrBlank()) {
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
+    }
+}
+
+private fun formatBalance(
+    state: DashboardState,
+    label: String,
+    unavailableText: String,
+    locale: Locale,
+): String {
+    val net = state.balanceSnapshot?.net ?: return unavailableText
+    val formatted = MoneyFormatter.format(
+        amount = net.amount,
+        currencySymbol = net.currency.symbol,
+        decimalDigits = net.currency.decimalDigits,
+        locale = locale,
+        symbolPosition = MoneyFormatter.SymbolPosition.AFTER,
+    )
+    return "$label $formatted"
 }
 
 private fun formatMoney(money: Money, locale: Locale): String = MoneyFormatter.format(

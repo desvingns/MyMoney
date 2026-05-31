@@ -1,5 +1,6 @@
 package com.kshavrin.mymoney.feature.dashboard.components
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -9,10 +10,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -26,38 +26,57 @@ import com.kshavrin.mymoney.feature.dashboard.R
 fun TwoFabLayout(
     onMinusClick: () -> Unit,
     onPlusClick: () -> Unit,
-    onTransferClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = Spacing.xl, vertical = Spacing.l),
-        horizontalArrangement = Arrangement.SpaceBetween,
+        horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        val expenseColor = MaterialTheme.colorScheme.tertiary
+        val incomeColor = MaterialTheme.colorScheme.primary
+        val containerColor = MaterialTheme.colorScheme.onPrimary
+
         FloatingActionButton(
             onClick = onMinusClick,
-            containerColor = MaterialTheme.colorScheme.tertiary,
-            contentColor = MaterialTheme.colorScheme.onTertiary,
+            containerColor = containerColor,
+            contentColor = expenseColor,
             shape = CircleShape,
-            modifier = Modifier.size(56.dp),
+            elevation = FloatingActionButtonDefaults.elevation(
+                defaultElevation = 0.dp,
+                pressedElevation = 0.dp,
+            ),
+            modifier = Modifier
+                .size(72.dp)
+                .border(width = 6.dp, color = expenseColor, shape = CircleShape),
         ) {
-            Icon(Icons.Filled.Remove, contentDescription = stringResource(R.string.fab_expense))
-        }
-
-        IconButton(onClick = onTransferClick) {
-            Icon(Icons.Filled.SwapHoriz, contentDescription = stringResource(R.string.fab_transfer))
+            Icon(
+                Icons.Filled.Remove,
+                contentDescription = stringResource(R.string.fab_expense),
+                modifier = Modifier.size(36.dp),
+            )
         }
 
         FloatingActionButton(
             onClick = onPlusClick,
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary,
+            containerColor = containerColor,
+            contentColor = incomeColor,
             shape = CircleShape,
-            modifier = Modifier.size(56.dp),
+            elevation = FloatingActionButtonDefaults.elevation(
+                defaultElevation = 0.dp,
+                pressedElevation = 0.dp,
+            ),
+            modifier = Modifier
+                .size(72.dp)
+                .border(width = 6.dp, color = incomeColor, shape = CircleShape),
         ) {
-            Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.fab_income))
+            Icon(
+                Icons.Filled.Add,
+                contentDescription = stringResource(R.string.fab_income),
+                modifier = Modifier.size(36.dp),
+            )
         }
     }
 }

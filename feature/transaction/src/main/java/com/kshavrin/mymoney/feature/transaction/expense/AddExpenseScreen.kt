@@ -1,23 +1,21 @@
 package com.kshavrin.mymoney.feature.transaction.expense
 
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.weight
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.SwapHoriz
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
@@ -26,6 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -42,13 +41,15 @@ import com.kshavrin.mymoney.core.designsystem.amountfield.AmountFieldEvent
 import com.kshavrin.mymoney.core.designsystem.amountfield.AmountFieldSection
 import com.kshavrin.mymoney.core.designsystem.amountfield.AmountFieldState
 import com.kshavrin.mymoney.core.designsystem.keypad.KeypadEvent
+import com.kshavrin.mymoney.core.designsystem.keypad.MonefyKeypad
+import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.core.ui.feedback.LocalHapticPlayer
 import com.kshavrin.mymoney.core.ui.feedback.LocalSoundPlayer
 import com.kshavrin.mymoney.core.ui.haptic.HapticKind
 import com.kshavrin.mymoney.core.ui.sound.SoundKey
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.feature.transaction.R
-import java.math.BigDecimal
+import com.kshavrin.mymoney.feature.transaction.categorygrid.CategoryGrid
 import java.time.Instant
 import java.time.ZoneOffset
 
@@ -60,17 +61,16 @@ fun AddExpenseRoute(
 ) {
     val state by viewModel.state.collectAsState()
 
-    // The category picker writes its result into THIS destination's NavBackStackEntry
-    // savedStateHandle (its previousBackStackEntry). That handle is a different instance from the
-    // one Hilt injects into the ViewModel, so the result must be observed here on the entry and
-    // forwarded as an event — not read from the ViewModel's SavedStateHandle.
-    val pickedCategoryId by backStackEntry.savedStateHandle
-        .getStateFlow(AddExpenseViewModel.KEY_PICKED_CATEGORY_ID, -1L)
+    // CategoryEdit (fromPicker) writes the created id into THIS entry's savedStateHandle (its
+    // previousBackStackEntry). That handle is a different instance from the one Hilt injects into the
+    // ViewModel, so observe it here and forward as an event — one-tap commit then closes the form.
+    val createdCategoryId by backStackEntry.savedStateHandle
+        .getStateFlow(AddExpenseViewModel.KEY_CREATED_CATEGORY_ID, -1L)
         .collectAsState()
-    LaunchedEffect(pickedCategoryId) {
-        if (pickedCategoryId != -1L) {
-            viewModel.onEvent(AddExpenseEvent.CategoryPicked(pickedCategoryId))
-            backStackEntry.savedStateHandle[AddExpenseViewModel.KEY_PICKED_CATEGORY_ID] = -1L
+    LaunchedEffect(createdCategoryId) {
+        if (createdCategoryId != -1L) {
+            viewModel.onEvent(AddExpenseEvent.CategoryPicked(createdCategoryId))
+            backStackEntry.savedStateHandle[AddExpenseViewModel.KEY_CREATED_CATEGORY_ID] = -1L
         }
     }
 
@@ -78,8 +78,10 @@ fun AddExpenseRoute(
         viewModel.actions.collect { action ->
             when (action) {
                 AddExpenseAction.NavigateBack -> navController.popBackStack()
-                is AddExpenseAction.NavigateToCategoryPicker ->
-                    navController.navigate("transaction/category_picker?kind=${action.kind.name}")
+                AddExpenseAction.NavigateToCreateCategory ->
+                    navController.navigate(
+                        "dictionaries/categories/edit/-1?kind=${CategoryKind.Expense.name}&fromPicker=true",
+                    )
                 AddExpenseAction.NavigateToIncomeForm -> {
                     navController.navigate("transaction/income") {
                         popUpTo("transaction/expense") { inclusive = true }
@@ -103,6 +105,7 @@ fun AddExpenseScreen(
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     var datePickerVisible by remember { mutableStateOf(false) }
+    val keypadSheetState = rememberModalBottomSheetState()
     val soundPlayer = LocalSoundPlayer.current
     val hapticPlayer = LocalHapticPlayer.current
 
@@ -157,9 +160,7 @@ fun AddExpenseScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(Spacing.m)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(Spacing.m),
+                .padding(Spacing.m),
         ) {
             Card(modifier = Modifier.fillMaxWidth()) {
                 AmountFieldSection(
@@ -172,20 +173,35 @@ fun AddExpenseScreen(
                         accountChipLabel = buildAccountChipLabel(state.account?.name, state.currency?.code),
                     ),
                     onEvent = { e -> dispatchAmountEvent(e, onEvent) { datePickerVisible = true } },
-                    modifier = Modifier.padding(Spacing.m),
+                    showKeypad = false,
+                    modifier = Modifier
+                        .clickable { onEvent(AddExpenseEvent.AmountClicked) }
+                        .padding(Spacing.m),
                 )
             }
 
-            Button(
-                onClick = { onEvent(AddExpenseEvent.ChooseCategoryClicked) },
-                enabled = state.amount > BigDecimal.ZERO && !state.isSaving,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(
-                    text = state.category?.name ?: stringResource(R.string.choose_category_cta),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-            }
+            CategoryGrid(
+                categories = state.categories,
+                onCategoryClick = { onEvent(AddExpenseEvent.CategoryPicked(it)) },
+                onAddClick = { onEvent(AddExpenseEvent.AddCategoryClicked) },
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(top = Spacing.m),
+            )
+        }
+    }
+
+    if (state.keypadVisible) {
+        ModalBottomSheet(
+            onDismissRequest = { onEvent(AddExpenseEvent.KeypadDismissed) },
+            sheetState = keypadSheetState,
+        ) {
+            MonefyKeypad(
+                onEvent = { e -> dispatchKeypadEvent(e, onEvent) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(Spacing.m),
+            )
         }
     }
 
@@ -227,16 +243,23 @@ private fun dispatchAmountEvent(
     onDateChipClicked: () -> Unit,
 ) {
     when (e) {
-        is AmountFieldEvent.Keypad -> when (val k = e.event) {
-            is KeypadEvent.Digit -> onEvent(AddExpenseEvent.KeypadDigit(k.d))
-            is KeypadEvent.Op -> onEvent(AddExpenseEvent.KeypadOperator(k.op))
-            KeypadEvent.Dot -> onEvent(AddExpenseEvent.KeypadDot)
-            KeypadEvent.Backspace -> onEvent(AddExpenseEvent.KeypadBackspace)
-            KeypadEvent.Equals -> onEvent(AddExpenseEvent.KeypadEquals)
-        }
+        is AmountFieldEvent.Keypad -> dispatchKeypadEvent(e.event, onEvent)
         is AmountFieldEvent.NoteChanged -> onEvent(AddExpenseEvent.NoteChanged(e.text))
         is AmountFieldEvent.DateChanged -> onEvent(AddExpenseEvent.DateChanged(e.date))
         AmountFieldEvent.AccountChipClicked -> Unit
         AmountFieldEvent.DateChipClicked -> onDateChipClicked()
+    }
+}
+
+private fun dispatchKeypadEvent(
+    k: KeypadEvent,
+    onEvent: (AddExpenseEvent) -> Unit,
+) {
+    when (k) {
+        is KeypadEvent.Digit -> onEvent(AddExpenseEvent.KeypadDigit(k.d))
+        is KeypadEvent.Op -> onEvent(AddExpenseEvent.KeypadOperator(k.op))
+        KeypadEvent.Dot -> onEvent(AddExpenseEvent.KeypadDot)
+        KeypadEvent.Backspace -> onEvent(AddExpenseEvent.KeypadBackspace)
+        KeypadEvent.Equals -> onEvent(AddExpenseEvent.KeypadEquals)
     }
 }

@@ -130,14 +130,6 @@ fun MyMoneyNavHost(
             )
         }
         composable(
-            route = "${Destinations.CATEGORY_PICKER}?kind={kind}",
-            arguments = listOf(
-                navArgument("kind") { type = NavType.StringType; nullable = true; defaultValue = null },
-            ),
-        ) {
-            com.kshavrin.mymoney.feature.transaction.picker.CategoryPickerRoute(navController = navController)
-        }
-        composable(
             route = "${Destinations.CURRENCY_RATE}?fromId={fromId}&toId={toId}",
             arguments = listOf(
                 navArgument("fromId") { type = NavType.LongType; defaultValue = -1L },

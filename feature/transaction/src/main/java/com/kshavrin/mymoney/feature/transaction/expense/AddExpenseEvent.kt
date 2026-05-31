@@ -12,7 +12,9 @@ sealed interface AddExpenseEvent {
     data class NoteChanged(val text: String) : AddExpenseEvent
     data class DateChanged(val date: LocalDate) : AddExpenseEvent
     data class AccountChanged(val accountId: Long) : AddExpenseEvent
-    data object ChooseCategoryClicked : AddExpenseEvent
+    data object AmountClicked : AddExpenseEvent
+    data object KeypadDismissed : AddExpenseEvent
+    data object AddCategoryClicked : AddExpenseEvent
     data class CategoryPicked(val categoryId: Long) : AddExpenseEvent
     data object SaveClicked : AddExpenseEvent
     data object SwapMode : AddExpenseEvent

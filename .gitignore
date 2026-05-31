@@ -61,3 +61,6 @@ TDD/MyMoney/input/apk_decoded/
 # secrets / per-machine — never commit
 .claude/settings.json
 .gradle-local/
+
+# --- Graphify generated output (knowledge-graph cache — local only) ---------
+graphify-out/

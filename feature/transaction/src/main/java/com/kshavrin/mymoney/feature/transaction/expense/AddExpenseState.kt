@@ -24,5 +24,7 @@ data class AddExpenseState(
     val errorBannerRes: Int? = null,
     val accounts: List<Account> = emptyList(),
     val currencies: List<Currency> = emptyList(),
+    val categories: List<Category> = emptyList(),
+    val keypadVisible: Boolean = false,
     val categoryPickerKind: TransactionKind = TransactionKind.Expense,
 )

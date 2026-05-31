@@ -8,6 +8,7 @@ import com.kshavrin.mymoney.core.common.exception.reportToSentry
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
 import com.kshavrin.mymoney.core.designsystem.keypad.toCalculator
 import com.kshavrin.mymoney.core.designsystem.keypad.toDesignsystem
+import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
 import com.kshavrin.mymoney.core.domain.repository.AccountRepository
@@ -53,6 +54,7 @@ class AddExpenseViewModel @Inject constructor(
 
     init {
         loadInitialContext()
+        observeCategories()
     }
 
     private fun loadInitialContext() {
@@ -73,6 +75,18 @@ class AddExpenseViewModel @Inject constructor(
                 account = activeAccount,
                 currency = activeCurrency,
             )
+        }
+    }
+
+    private fun observeCategories() {
+        viewModelScope.launch {
+            categoryRepository.observeAll().collect { all ->
+                _state.value = _state.value.copy(
+                    categories = all
+                        .filter { it.kind == CategoryKind.Expense && !it.isArchived }
+                        .sortedBy { it.sortOrder },
+                )
+            }
         }
     }
 
@@ -107,7 +121,11 @@ class AddExpenseViewModel @Inject constructor(
                 val cur = _state.value.currencies.firstOrNull { it.id == acc.currencyId }
                 _state.value = _state.value.copy(account = acc, currency = cur)
             }
-            AddExpenseEvent.ChooseCategoryClicked -> onChooseCategoryClicked()
+            AddExpenseEvent.AmountClicked ->
+                _state.value = _state.value.copy(keypadVisible = true)
+            AddExpenseEvent.KeypadDismissed ->
+                _state.value = _state.value.copy(keypadVisible = false)
+            AddExpenseEvent.AddCategoryClicked -> emit(AddExpenseAction.NavigateToCreateCategory)
             is AddExpenseEvent.CategoryPicked -> onCategoryPicked(event.categoryId)
             AddExpenseEvent.SaveClicked -> save()
             AddExpenseEvent.SwapMode -> emit(AddExpenseAction.NavigateToIncomeForm)
@@ -126,16 +144,13 @@ class AddExpenseViewModel @Inject constructor(
         )
     }
 
-    private fun onChooseCategoryClicked() {
-        val s = _state.value
-        if (s.amount <= BigDecimal.ZERO) {
-            _state.value = s.copy(errorBannerRes = R.string.error_enter_amount_first)
+    private fun onCategoryPicked(categoryId: Long) {
+        // A grid tap commits in one shot, but only once an amount exists. With no amount yet,
+        // reveal the keypad instead of silently dropping the tap (save() keeps its own backstop).
+        if (_state.value.amount <= BigDecimal.ZERO) {
+            _state.value = _state.value.copy(keypadVisible = true)
             return
         }
-        emit(AddExpenseAction.NavigateToCategoryPicker(TransactionKind.Expense))
-    }
-
-    private fun onCategoryPicked(categoryId: Long) {
         viewModelScope.launch {
             val category = categoryRepository.findById(categoryId) ?: return@launch
             _state.value = _state.value.copy(category = category, errorBannerRes = null)
@@ -197,6 +212,8 @@ class AddExpenseViewModel @Inject constructor(
     }
 
     companion object {
-        const val KEY_PICKED_CATEGORY_ID = "pickedCategoryId"
+        // CategoryEdit (fromPicker) writes the freshly created id here on its previousBackStackEntry,
+        // which — now that the picker route is retired — is THIS form's own entry. AS-4 round-trip.
+        const val KEY_CREATED_CATEGORY_ID = "createdCategoryId"
     }
 }

@@ -1,7 +1,7 @@
 # Dashboard donut ring icons (S01/S05)
 Epic: redesign-monefy-fidelity
 Order: 02 of 05
-Status: backlog
+Status: active
 Depends-on: 01 (categoryIcon registry)
 Date: 2026-05-30
 
@@ -24,5 +24,25 @@ CONSTRAINTS:
 MonefyDonutChart.kt:55 hardcodes one `categoryIconPainter` (Icons.Filled.Category) and draws it for all slices (line 179). `CategorySlice` carries `color` but no `iconKey`.
 
 ## Implementation links
-- commit: (pending)
-- files:  (pending)
+- commit: 65c08c7
+- files:
+  - core/designsystem/src/main/java/com/kshavrin/mymoney/core/designsystem/donut/CategorySlice.kt
+  - core/designsystem/src/main/java/com/kshavrin/mymoney/core/designsystem/donut/MonefyDonutChart.kt
+  - feature/dashboard/src/main/java/com/kshavrin/mymoney/feature/dashboard/DashboardViewModel.kt
+  - core/domain/src/main/kotlin/com/kshavrin/mymoney/core/domain/model/BalanceSnapshot.kt
+  - core/domain/src/main/kotlin/com/kshavrin/mymoney/core/domain/repository/TransactionRepository.kt
+  - core/domain/src/main/kotlin/com/kshavrin/mymoney/core/domain/usecase/BalanceCalculator.kt
+  - core/database/src/main/java/com/kshavrin/mymoney/core/database/dao/TransactionDao.kt
+  - core/database/src/main/java/com/kshavrin/mymoney/core/database/mapper/Mappers.kt
+  - core/database/src/main/java/com/kshavrin/mymoney/core/database/projection/CategorySummaryRow.kt
+
+## Deviation note
+SPEC constraint said "populate iconKey from the domain Category ... NO new use case / repository
+change" assuming `iconKey` was already one hop from the slice mapping. In fact the dashboard maps
+`CategoryBalance` (from `BalanceCalculator`), which carried `colorHex` but NOT `iconKey`. The
+perimeter-glyph goal is unreachable without `iconKey` on the slice, so `iconKey` was threaded
+additively through the existing aggregate chain (DAO SELECT -> CategorySummaryRow -> CategorySummary
+-> CategoryBalance -> CategorySlice). New fields default to "" so no test construction broke and no
+test file was touched. No new method, interface, repository, or use case was added; only an existing
+column was carried. Alternative (inject CategoryRepository into the ViewModel) was rejected as more
+invasive: a new VM dependency that breaks the locked DashboardViewModelTest constructor.

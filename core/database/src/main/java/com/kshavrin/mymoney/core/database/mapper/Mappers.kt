@@ -235,4 +235,5 @@ internal fun CategorySummaryRow.toDomain(): CategorySummary = CategorySummary(
     categoryName = categoryName,
     colorHex = colorHex,
     total = BigDecimal.valueOf(total),
+    iconKey = iconKey,
 )

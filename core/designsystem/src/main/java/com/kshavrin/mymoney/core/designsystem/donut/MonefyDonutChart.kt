@@ -7,8 +7,6 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Category
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -32,6 +30,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kshavrin.mymoney.core.designsystem.R
+import com.kshavrin.mymoney.core.designsystem.icon.categoryIcon
 import java.math.BigDecimal
 import kotlin.math.cos
 import kotlin.math.min
@@ -52,7 +51,9 @@ fun MonefyDonutChart(
     val animationKey = slices.map { it.categoryId to it.fraction }
     val progress = remember { Animatable(0f) }
     val textMeasurer = rememberTextMeasurer()
-    val categoryIconPainter = rememberVectorPainter(Icons.Filled.Category)
+    val iconPainters = slices
+        .distinctBy { it.iconKey }
+        .associate { it.iconKey to rememberVectorPainter(categoryIcon(it.iconKey)) }
 
     LaunchedEffect(animationKey) {
         progress.snapTo(0f)
@@ -172,15 +173,18 @@ fun MonefyDonutChart(
                     end = iconCenter,
                     strokeWidth = 1.dp.toPx(),
                 )
-                translate(
-                    left = iconCenter.x - iconSize / 2f,
-                    top = iconCenter.y - iconSize / 2f,
-                ) {
-                    with(categoryIconPainter) {
-                        draw(
-                            size = Size(iconSize, iconSize),
-                            colorFilter = ColorFilter.tint(outlineColor),
-                        )
+                val iconPainter = iconPainters[arc.slice.iconKey]
+                if (iconPainter != null) {
+                    translate(
+                        left = iconCenter.x - iconSize / 2f,
+                        top = iconCenter.y - iconSize / 2f,
+                    ) {
+                        with(iconPainter) {
+                            draw(
+                                size = Size(iconSize, iconSize),
+                                colorFilter = ColorFilter.tint(arc.slice.color),
+                            )
+                        }
                     }
                 }
                 if (arc.slice.hasBudgetAlert) {

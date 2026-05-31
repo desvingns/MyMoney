@@ -29,4 +29,5 @@ data class CategorySummary(
     val categoryName: String,
     val colorHex: String,
     val total: java.math.BigDecimal,
+    val iconKey: String = "",
 )

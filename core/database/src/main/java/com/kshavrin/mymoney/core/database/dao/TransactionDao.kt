@@ -46,7 +46,7 @@ interface TransactionDao {
 
     @Query("""
         SELECT c.id AS categoryId, c.name AS categoryName, c.color_hex AS colorHex,
-               SUM(t.amount) AS total
+               c.icon_key AS iconKey, SUM(t.amount) AS total
         FROM `transaction` t
         INNER JOIN category c ON c.id = t.category_id
         WHERE t.account_id = :accountId

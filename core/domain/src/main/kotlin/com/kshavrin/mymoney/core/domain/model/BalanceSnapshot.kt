@@ -13,4 +13,5 @@ data class CategoryBalance(
     val colorHex: String,
     val total: Money,
     val fraction: Float,
+    val iconKey: String = "",
 )

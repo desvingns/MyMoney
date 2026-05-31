@@ -42,6 +42,7 @@ class BalanceCalculator @Inject constructor(
                 colorHex = summary.colorHex,
                 total = Money(summary.total, currency),
                 fraction = fraction,
+                iconKey = summary.iconKey,
             )
         }
 

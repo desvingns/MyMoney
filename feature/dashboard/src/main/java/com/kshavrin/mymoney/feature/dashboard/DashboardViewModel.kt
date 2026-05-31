@@ -155,6 +155,7 @@ class DashboardViewModel @Inject constructor(
                 color = parseHexColor(catBal.colorHex),
                 fraction = catBal.fraction,
                 label = catBal.categoryName,
+                iconKey = catBal.iconKey,
                 hasBudgetAlert = catBal.categoryId in alertCategoryIds,
             )
         }

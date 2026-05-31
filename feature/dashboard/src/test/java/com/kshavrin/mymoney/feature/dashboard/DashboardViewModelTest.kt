@@ -173,6 +173,28 @@ class DashboardViewModelTest {
         }
     }
 
+    @Test
+    fun `donut slices carry the iconKey copied from each category balance`() = runTest {
+        transactionRepository.seedExpenseSummary(
+            cash.id,
+            initialPeriod,
+            summary(categoryId = 10L, amount = "85.00", iconKey = "food"),
+            summary(categoryId = 20L, amount = "112.00", iconKey = "transport"),
+        )
+
+        val (viewModel, store) = buildViewModel()
+        try {
+            runCurrent()
+
+            val slices = viewModel.state.value.slices
+            assertEquals("food", slices.single { it.categoryId == 10L }.iconKey)
+            assertEquals("transport", slices.single { it.categoryId == 20L }.iconKey)
+        } finally {
+            store.clear()
+            runCurrent()
+        }
+    }
+
     private fun buildViewModel(): Pair<DashboardViewModel, ViewModelStore> {
         val dispatcher = mainDispatcherRule.testDispatcher
         val calculator = BalanceCalculator(
@@ -203,11 +225,12 @@ class DashboardViewModelTest {
         return ViewModelProvider(store, factory)[DashboardViewModel::class.java] to store
     }
 
-    private fun summary(categoryId: Long, amount: String) = CategorySummary(
+    private fun summary(categoryId: Long, amount: String, iconKey: String = "") = CategorySummary(
         categoryId = categoryId,
         categoryName = "category-$categoryId",
         colorHex = "#FF8888",
         total = BigDecimal(amount),
+        iconKey = iconKey,
     )
 
     private fun budget(id: Long, categoryId: Long) = Budget(

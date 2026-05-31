@@ -24,14 +24,14 @@ User decisions (2026-05-30):
 | 03 | `-03-form-chrome.md` | Add/transfer form chrome (S03/S06/S07) | — (icons help) | backlog |
 | 04 | `-04-dashboard-chrome.md` | Top bar + balance pill + ± FABs (S01) | — | backlog |
 | 05 | `-05-drawers.md` | Left/right drawers (S02/S04) | 01 (icons) | backlog |
-| 06 | `-06-embed-grid.md` | Embed grid into add-form, drop picker route (S06/S07) | 01 | 🚧 **active** (→ `active/`) |
+| 06 | `-06-embed-grid.md` | Embed grid into add-form, drop picker route (S06/S07) | 01 | ✅ **done** (→ `done/`) |
 
 Recommended order: 01 → 02 → 03 → 04 → 05. SPEC 02 hard-depends on SPEC 01's registry; 03/04/05
 are independent of each other. **SPEC 06** was promoted from divergence #3 below once the embed work
 went in flight; it depends on 01 and supersedes 01's separate-route choice (reusing 01's registry).
 
-> Status as of 2026-05-31: **01 shipped & pushed** (`078a269`/`25bb66e`/`73ab68d`); **06 in progress**
-> (uncommitted working tree); **02–05 not started** (their target components still match each SPEC's gap).
+> Status as of 2026-05-31: **01 shipped & pushed** (`078a269`/`25bb66e`/`73ab68d`); **06 shipped locally**
+> (`b94abb7`); **02–05 not started** (their target components still match each SPEC's gap).
 
 ## Cross-cutting divergences (behavioural, NOT pure design — flagged, do NOT change silently)
 1. **Left drawer content** — reference shows currency + period-type; MyMoney shows accounts. SPEC 05
@@ -40,9 +40,8 @@ went in flight; it depends on 01 and supersedes 01's separate-route choice (reus
    left drawer; MyMoney uses Today/Week/Month/Year/All FilterChips. A full match is a behavioural
    change, out of this design pass.
 3. **Category picker route** — reference embeds the grid into the add-transaction screen (replaces
-   the keypad); MyMoney shipped SPEC 01 with a separate route. **Now in progress as SPEC 06** — the
-   embed/nav-refactor is no longer "optional, later"; it removes the separate route and moves the
-   keypad into a modal sheet (uncommitted as of 2026-05-31).
+   the keypad); MyMoney shipped SPEC 01 with a separate route. **Completed in SPEC 06** — the
+   separate picker route is retired and the keypad now opens from the amount field in a modal sheet.
 
 ## Reference
 Screenshots 01–10 (Monefy v1.0); TDD `TDD\MyMoney\pipeline\03_style.md` (esp. L124–177).

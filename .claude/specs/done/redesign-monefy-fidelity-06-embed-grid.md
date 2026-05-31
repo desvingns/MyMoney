@@ -1,7 +1,7 @@
 # Embed category grid into the add-form; drop the separate picker route (S06/S07)
 Epic: redesign-monefy-fidelity
 Order: 06 of 06
-Status: active
+Status: done
 Depends-on: 01 (categoryIcon registry + flat-card grid)
 Date: 2026-05-31
 
@@ -32,5 +32,5 @@ now actively in flight. As of 2026-05-31 the work is **uncommitted** in the work
 yet touched) — the refactor is mid-flight, not finished.
 
 ## Implementation links
-- commit: (in progress — uncommitted working tree as of 2026-05-31; commit pending)
-- files:  feature/transaction/.../categorygrid/CategoryGrid.kt (new, untracked); expense/{AddExpenseScreen,AddExpenseState,AddExpenseEvent,AddExpenseAction,AddExpenseViewModel}.kt; income/{AddIncomeScreen,AddIncomeState,AddIncomeAction,AddIncomeViewModel}.kt; picker/CategoryPickerScreen.kt; app/.../navigation/MyMoneyNavHost.kt
+- commit: b94abb7
+- files:  app/navigation/Destinations.kt; app androidTest add-form/E2E/category-grid tests; app navigation tests; feature/transaction categorygrid + expense/income form state/event/viewmodel/screen; removed feature/transaction picker route/screen/viewmodel/tests; transaction EN/RU strings

@@ -62,5 +62,8 @@ TDD/MyMoney/input/apk_decoded/
 .claude/settings.json
 .gradle-local/
 
-# --- Graphify generated output (knowledge-graph cache — local only) ---------
+# Graphify generated knowledge graph (local; rebuild: graphify update .)
 graphify-out/
+
+# Self-improvement loop: raw telemetry (retro digests + lessons.md are tracked)
+selfimprove/runs/*.jsonl

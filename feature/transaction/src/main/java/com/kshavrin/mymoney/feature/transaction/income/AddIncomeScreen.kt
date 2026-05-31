@@ -14,6 +14,7 @@ import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
@@ -22,6 +23,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -47,6 +49,7 @@ import com.kshavrin.mymoney.core.ui.feedback.LocalSoundPlayer
 import com.kshavrin.mymoney.core.ui.haptic.HapticKind
 import com.kshavrin.mymoney.core.ui.sound.SoundKey
 import com.kshavrin.mymoney.core.ui.theme.Spacing
+import com.kshavrin.mymoney.feature.transaction.DateHeader
 import com.kshavrin.mymoney.feature.transaction.R
 import com.kshavrin.mymoney.feature.transaction.categorygrid.CategoryGrid
 import java.time.Instant
@@ -144,6 +147,12 @@ fun AddIncomeScreen(
                         )
                     }
                 },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                ),
             )
         },
         snackbarHost = {
@@ -158,18 +167,25 @@ fun AddIncomeScreen(
                 .padding(innerPadding)
                 .padding(Spacing.m),
         ) {
+            DateHeader(
+                date = state.occurredAt,
+                onClick = { datePickerVisible = true },
+            )
+
             Card(modifier = Modifier.fillMaxWidth()) {
                 AmountFieldSection(
                     state = AmountFieldState(
                         display = state.amountInput,
                         expression = state.expression,
                         currencyCode = state.currency?.code,
+                        currencySymbol = state.currency?.symbol,
                         note = state.note,
                         occurredAt = state.occurredAt,
                         accountChipLabel = buildAccountChipLabel(state.account?.name, state.currency?.code),
                     ),
                     onEvent = { e -> dispatchAmountEvent(e, onEvent) { datePickerVisible = true } },
                     showKeypad = false,
+                    showAccountDateRow = false,
                     amountInputModifier = Modifier.clickable { onEvent(AddIncomeEvent.AmountClicked) },
                     modifier = Modifier
                         .padding(Spacing.m),

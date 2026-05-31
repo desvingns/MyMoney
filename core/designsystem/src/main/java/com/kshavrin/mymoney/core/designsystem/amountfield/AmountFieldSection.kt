@@ -36,6 +36,7 @@ data class AmountFieldState(
     val note: String,
     val occurredAt: LocalDate,
     val accountChipLabel: String,
+    val currencySymbol: String? = null,
 )
 
 sealed interface AmountFieldEvent {
@@ -54,8 +55,10 @@ fun AmountFieldSection(
     modifier: Modifier = Modifier,
     amountInputModifier: Modifier = Modifier,
     showKeypad: Boolean = true,
+    showAccountDateRow: Boolean = true,
     noteLabel: String = stringResource(R.string.amountfield_note_hint),
     dateContentDescription: String = stringResource(R.string.amountfield_pick_date_cd),
+    clearContentDescription: String = stringResource(R.string.keypad_backspace_cd),
 ) {
     val locale = LocalConfiguration.current.locales[0]
     val dateFormat = remember(locale) { DateTimeFormatter.ofPattern("EEEE, d MMMM", locale) }
@@ -68,36 +71,41 @@ fun AmountFieldSection(
             display = state.display,
             expression = state.expression,
             currencyCode = state.currencyCode,
+            currencySymbol = state.currencySymbol,
+            onClear = { onEvent(AmountFieldEvent.Keypad(KeypadEvent.Backspace)) },
+            clearContentDescription = clearContentDescription,
             modifier = amountInputModifier.fillMaxWidth(),
         )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.s),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            AssistChip(
-                onClick = { onEvent(AmountFieldEvent.AccountChipClicked) },
-                label = { Text(state.accountChipLabel) },
-                leadingIcon = {
-                    Icon(
-                        Icons.Outlined.AccountBalanceWallet,
-                        contentDescription = null,
-                        modifier = Modifier.padding(2.dp),
-                    )
-                },
-            )
-            AssistChip(
-                onClick = { onEvent(AmountFieldEvent.DateChipClicked) },
-                label = { Text(state.occurredAt.format(dateFormat)) },
-                leadingIcon = {
-                    Icon(
-                        Icons.Filled.CalendarToday,
-                        contentDescription = dateContentDescription,
-                        modifier = Modifier.padding(2.dp),
-                    )
-                },
-                colors = AssistChipDefaults.assistChipColors(),
-            )
+        if (showAccountDateRow) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.s),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                AssistChip(
+                    onClick = { onEvent(AmountFieldEvent.AccountChipClicked) },
+                    label = { Text(state.accountChipLabel) },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Outlined.AccountBalanceWallet,
+                            contentDescription = null,
+                            modifier = Modifier.padding(2.dp),
+                        )
+                    },
+                )
+                AssistChip(
+                    onClick = { onEvent(AmountFieldEvent.DateChipClicked) },
+                    label = { Text(state.occurredAt.format(dateFormat)) },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Filled.CalendarToday,
+                            contentDescription = dateContentDescription,
+                            modifier = Modifier.padding(2.dp),
+                        )
+                    },
+                    colors = AssistChipDefaults.assistChipColors(),
+                )
+            }
         }
         OutlinedTextField(
             value = state.note,

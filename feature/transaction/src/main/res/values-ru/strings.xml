@@ -21,4 +21,6 @@
     <string name="transfer_change_rate_cta">Изменить</string>
     <string name="currency_rate_invalid">Курс должен быть положительным</string>
     <string name="currency_rate_pattern">1 %1$s = %2$s %3$s</string>
+    <string name="transfer_direction_cd">Направление перевода</string>
+    <string name="transfer_open_keypad_cd">Открыть клавиатуру</string>
 </resources>

@@ -1,28 +1,35 @@
 package com.kshavrin.mymoney.feature.transaction.transfer
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Dialpad
+import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
@@ -30,7 +37,9 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -38,15 +47,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.changedToUp
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
@@ -54,12 +58,15 @@ import com.kshavrin.mymoney.core.designsystem.amountfield.AmountFieldEvent
 import com.kshavrin.mymoney.core.designsystem.amountfield.AmountFieldSection
 import com.kshavrin.mymoney.core.designsystem.amountfield.AmountFieldState
 import com.kshavrin.mymoney.core.designsystem.keypad.KeypadEvent
+import com.kshavrin.mymoney.core.designsystem.keypad.MonefyKeypad
 import com.kshavrin.mymoney.core.domain.model.Account
+import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.ui.feedback.LocalHapticPlayer
 import com.kshavrin.mymoney.core.ui.feedback.LocalSoundPlayer
 import com.kshavrin.mymoney.core.ui.haptic.HapticKind
 import com.kshavrin.mymoney.core.ui.sound.SoundKey
 import com.kshavrin.mymoney.core.ui.theme.Spacing
+import com.kshavrin.mymoney.feature.transaction.DateHeader
 import com.kshavrin.mymoney.feature.transaction.R
 import java.math.BigDecimal
 import java.time.Instant
@@ -113,8 +120,7 @@ fun TransferScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var datePickerVisible by remember { mutableStateOf(false) }
     var keypadVisible by remember { mutableStateOf(false) }
-    val amountFocusRequester = remember { FocusRequester() }
-    val focusManager = LocalFocusManager.current
+    val keypadSheetState = rememberModalBottomSheetState()
     val soundPlayer = LocalSoundPlayer.current
     val hapticPlayer = LocalHapticPlayer.current
 
@@ -141,21 +147,8 @@ fun TransferScreen(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.new_transfer_title)) },
-                modifier = Modifier.pointerInput(Unit) {
-                    awaitPointerEventScope {
-                        while (true) {
-                            val event = awaitPointerEvent(PointerEventPass.Initial)
-                            if (event.changes.any { it.pressed }) {
-                                focusManager.clearFocus()
-                            }
-                        }
-                    }
-                },
                 navigationIcon = {
-                    IconButton(onClick = {
-                        focusManager.clearFocus()
-                        onEvent(TransferEvent.BackClicked)
-                    }) {
+                    IconButton(onClick = { onEvent(TransferEvent.BackClicked) }) {
                         Icon(
                             Icons.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.back),
@@ -164,10 +157,7 @@ fun TransferScreen(
                 },
                 actions = {
                     IconButton(
-                        onClick = {
-                            focusManager.clearFocus()
-                            onEvent(TransferEvent.SaveClicked)
-                        },
+                        onClick = { onEvent(TransferEvent.SaveClicked) },
                         enabled = isSaveEnabled(state),
                     ) {
                         Icon(
@@ -176,7 +166,25 @@ fun TransferScreen(
                         )
                     }
                 },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                ),
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { keypadVisible = true },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+            ) {
+                Icon(
+                    Icons.Filled.Dialpad,
+                    contentDescription = stringResource(R.string.transfer_open_keypad_cd),
+                )
+            }
         },
         snackbarHost = {
             SnackbarHost(snackbarHostState) { data ->
@@ -189,61 +197,58 @@ fun TransferScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .padding(Spacing.l)
-                .verticalScroll(rememberScrollState())
-                .pointerInput(Unit) {
-                    awaitPointerEventScope {
-                        while (true) {
-                            val event = awaitPointerEvent(PointerEventPass.Final)
-                            if (event.changes.any { it.changedToUp() }) {
-                                focusManager.clearFocus()
-                            }
-                        }
-                    }
-                },
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(Spacing.m),
         ) {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                AmountFieldSection(
-                    state = AmountFieldState(
-                        display = state.amountInput,
-                        expression = state.expression,
-                        currencyCode = state.sourceCurrency?.code,
-                        note = state.note,
-                        occurredAt = state.occurredAt,
-                        accountChipLabel = buildAccountChipLabel(
-                            state.sourceAccount?.name,
-                            state.sourceCurrency?.code,
-                        ),
-                    ),
-                    onEvent = { e ->
-                        if (e is AmountFieldEvent.AccountChipClicked || e is AmountFieldEvent.DateChipClicked) {
-                            focusManager.clearFocus()
-                        }
-                        dispatchAmountEvent(e, onEvent) { datePickerVisible = true }
-                    },
-                    modifier = Modifier.padding(Spacing.m),
-                    amountInputModifier = Modifier
-                        .focusRequester(amountFocusRequester)
-                        .onFocusChanged { keypadVisible = it.isFocused }
-                        .focusable()
-                        .clickable { amountFocusRequester.requestFocus() },
-                    showKeypad = keypadVisible,
-                )
-            }
+            DateHeader(
+                date = state.occurredAt,
+                onClick = { datePickerVisible = true },
+            )
 
-            AccountDropdown(
-                label = stringResource(R.string.source_label),
-                selected = state.sourceAccount,
+            AmountFieldSection(
+                state = AmountFieldState(
+                    display = state.amountInput,
+                    expression = state.expression,
+                    currencyCode = state.sourceCurrency?.code,
+                    currencySymbol = state.sourceCurrency?.symbol,
+                    note = state.note,
+                    occurredAt = state.occurredAt,
+                    accountChipLabel = buildAccountChipLabel(
+                        state.sourceAccount?.name,
+                        state.sourceCurrency?.code,
+                    ),
+                ),
+                onEvent = { e -> dispatchAmountEvent(e, onEvent) { datePickerVisible = true } },
+                showKeypad = false,
+                showAccountDateRow = false,
+            )
+
+            AccountCard(
+                account = state.sourceAccount,
+                currencyCode = state.sourceCurrency?.code
+                    ?: currencyCodeFor(state.sourceAccount, state.currencies),
+                placeholder = stringResource(R.string.source_label),
                 options = state.accounts,
-                onOpen = { focusManager.clearFocus() },
+                currencies = state.currencies,
                 onSelected = { onEvent(TransferEvent.SourceAccountChanged(it.id)) },
             )
 
-            AccountDropdown(
-                label = stringResource(R.string.target_label),
-                selected = state.targetAccount,
+            Icon(
+                imageVector = Icons.Filled.ArrowDownward,
+                contentDescription = stringResource(R.string.transfer_direction_cd),
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .size(32.dp),
+            )
+
+            AccountCard(
+                account = state.targetAccount,
+                currencyCode = state.targetCurrency?.code
+                    ?: currencyCodeFor(state.targetAccount, state.currencies),
+                placeholder = stringResource(R.string.target_label),
                 options = state.accounts,
-                onOpen = { focusManager.clearFocus() },
+                currencies = state.currencies,
                 onSelected = { onEvent(TransferEvent.TargetAccountChanged(it.id)) },
             )
 
@@ -271,15 +276,28 @@ fun TransferScreen(
                             text = state.ratePreviewText,
                             style = MaterialTheme.typography.titleMedium,
                         )
-                        TextButton(onClick = {
-                            focusManager.clearFocus()
-                            onEvent(TransferEvent.ChangeRateClicked)
-                        }) {
+                        TextButton(onClick = { onEvent(TransferEvent.ChangeRateClicked) }) {
                             Text(stringResource(R.string.transfer_change_rate_cta))
                         }
                     }
                 }
             }
+        }
+    }
+
+    if (keypadVisible) {
+        ModalBottomSheet(
+            onDismissRequest = { keypadVisible = false },
+            sheetState = keypadSheetState,
+        ) {
+            MonefyKeypad(
+                onEvent = { e ->
+                    dispatchAmountEvent(AmountFieldEvent.Keypad(e), onEvent) { datePickerVisible = true }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(Spacing.m),
+            )
         }
     }
 
@@ -311,47 +329,78 @@ fun TransferScreen(
 }
 
 @Composable
-private fun AccountDropdown(
-    label: String,
-    selected: Account?,
+private fun AccountCard(
+    account: Account?,
+    currencyCode: String?,
+    placeholder: String,
     options: List<Account>,
-    onOpen: () -> Unit,
+    currencies: List<Currency>,
     onSelected: (Account) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-        )
-        OutlinedButton(
-            onClick = {
-                onOpen()
-                expanded = true
-            },
-            modifier = Modifier.fillMaxWidth(),
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { expanded = true },
+        colors = CardDefaults.outlinedCardColors(),
+        border = CardDefaults.outlinedCardBorder(),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(Spacing.m),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.m),
         ) {
-            Text(
-                text = selected?.name ?: label,
-                modifier = Modifier.weight(1f),
+            Icon(
+                imageVector = Icons.Outlined.AccountBalanceWallet,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.secondary,
             )
-            Icon(Icons.Filled.ArrowDropDown, contentDescription = null)
-        }
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-        ) {
-            options.forEach { account ->
-                DropdownMenuItem(
-                    text = { Text(account.name) },
-                    onClick = {
-                        onSelected(account)
-                        expanded = false
-                    },
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = account?.name ?: placeholder,
+                    style = MaterialTheme.typography.titleMedium,
                 )
+                if (currencyCode != null) {
+                    Text(
+                        text = currencyCode,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            Icon(
+                imageVector = Icons.Filled.ArrowDropDown,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.secondary,
+            )
+        }
+        Box {
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+            ) {
+                options.forEach { option ->
+                    DropdownMenuItem(
+                        text = {
+                            val code = currencyCodeFor(option, currencies)
+                            Text(if (code != null) "${option.name} · $code" else option.name)
+                        },
+                        onClick = {
+                            onSelected(option)
+                            expanded = false
+                        },
+                    )
+                }
             }
         }
     }
+}
+
+private fun currencyCodeFor(account: Account?, currencies: List<Currency>): String? {
+    if (account == null) return null
+    return currencies.find { it.id == account.currencyId }?.code
 }
 
 private fun isSaveEnabled(state: TransferState): Boolean {

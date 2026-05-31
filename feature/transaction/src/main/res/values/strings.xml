@@ -21,4 +21,6 @@
     <string name="transfer_change_rate_cta">Change</string>
     <string name="currency_rate_invalid">Rate must be positive</string>
     <string name="currency_rate_pattern">1 %1$s = %2$s %3$s</string>
+    <string name="transfer_direction_cd">Transfer direction</string>
+    <string name="transfer_open_keypad_cd">Open keypad</string>
 </resources>

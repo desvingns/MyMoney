@@ -2,24 +2,24 @@ package com.kshavrin.mymoney.core.designsystem.keypad
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.contentDescription
-import com.kshavrin.mymoney.core.designsystem.R
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import com.kshavrin.mymoney.core.ui.feedback.LocalHapticPlayer
 import com.kshavrin.mymoney.core.ui.feedback.LocalSoundPlayer
 import com.kshavrin.mymoney.core.ui.haptic.HapticKind
@@ -49,15 +49,10 @@ fun MonefyKeypad(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
-            KeypadKey(label = "7", onPress = { handlePress(KeypadEvent.Digit(7)) })
-            KeypadKey(label = "8", onPress = { handlePress(KeypadEvent.Digit(8)) })
-            KeypadKey(label = "9", onPress = { handlePress(KeypadEvent.Digit(9)) })
-            KeypadKey(label = "÷", onPress = { handlePress(KeypadEvent.Op(Operator.Divide)) })
-            KeypadKey(
-                label = "⌫",
-                onPress = { handlePress(KeypadEvent.Backspace) },
-                contentDescription = stringResource(R.string.keypad_backspace_cd),
-            )
+            KeypadKey(label = "1", onPress = { handlePress(KeypadEvent.Digit(1)) })
+            KeypadKey(label = "2", onPress = { handlePress(KeypadEvent.Digit(2)) })
+            KeypadKey(label = "3", onPress = { handlePress(KeypadEvent.Digit(3)) })
+            KeypadKey(label = "+", onPress = { handlePress(KeypadEvent.Op(Operator.Plus)) }, operator = true)
         }
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -66,25 +61,25 @@ fun MonefyKeypad(
             KeypadKey(label = "4", onPress = { handlePress(KeypadEvent.Digit(4)) })
             KeypadKey(label = "5", onPress = { handlePress(KeypadEvent.Digit(5)) })
             KeypadKey(label = "6", onPress = { handlePress(KeypadEvent.Digit(6)) })
-            KeypadKey(label = "×", onPress = { handlePress(KeypadEvent.Op(Operator.Multiply)) })
+            KeypadKey(label = "−", onPress = { handlePress(KeypadEvent.Op(Operator.Minus)) }, operator = true)
         }
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
-            KeypadKey(label = "1", onPress = { handlePress(KeypadEvent.Digit(1)) })
-            KeypadKey(label = "2", onPress = { handlePress(KeypadEvent.Digit(2)) })
-            KeypadKey(label = "3", onPress = { handlePress(KeypadEvent.Digit(3)) })
-            KeypadKey(label = "−", onPress = { handlePress(KeypadEvent.Op(Operator.Minus)) })
+            KeypadKey(label = "7", onPress = { handlePress(KeypadEvent.Digit(7)) })
+            KeypadKey(label = "8", onPress = { handlePress(KeypadEvent.Digit(8)) })
+            KeypadKey(label = "9", onPress = { handlePress(KeypadEvent.Digit(9)) })
+            KeypadKey(label = "×", onPress = { handlePress(KeypadEvent.Op(Operator.Multiply)) }, operator = true)
         }
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
-            KeypadKey(label = "0", onPress = { handlePress(KeypadEvent.Digit(0)) })
             KeypadKey(label = ".", onPress = { handlePress(KeypadEvent.Dot) })
-            KeypadKey(label = "=", onPress = { handlePress(KeypadEvent.Equals) })
-            KeypadKey(label = "+", onPress = { handlePress(KeypadEvent.Op(Operator.Plus)) })
+            KeypadKey(label = "0", onPress = { handlePress(KeypadEvent.Digit(0)) })
+            KeypadKey(label = "=", onPress = { handlePress(KeypadEvent.Equals) }, operator = true)
+            KeypadKey(label = "÷", onPress = { handlePress(KeypadEvent.Op(Operator.Divide)) }, operator = true)
         }
     }
 }
@@ -93,16 +88,21 @@ fun MonefyKeypad(
 private fun RowScope.KeypadKey(
     label: String,
     onPress: () -> Unit,
-    contentDescription: String? = null,
+    operator: Boolean = false,
 ) {
     val scale = remember { Animatable(1f) }
     val scope = rememberCoroutineScope()
-    val semanticsModifier = if (contentDescription != null) {
-        Modifier.clearAndSetSemantics { this.contentDescription = contentDescription }
+    val container: Color = if (operator) {
+        MaterialTheme.colorScheme.surfaceVariant
     } else {
-        Modifier
+        MaterialTheme.colorScheme.surface
     }
-    Button(
+    val content: Color = if (operator) {
+        MaterialTheme.colorScheme.secondary
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
+    OutlinedButton(
         onClick = {
             scope.launch {
                 scale.animateTo(
@@ -119,9 +119,13 @@ private fun RowScope.KeypadKey(
         modifier = Modifier
             .weight(1f)
             .aspectRatio(1f)
-            .scale(scale.value)
-            .then(semanticsModifier),
+            .scale(scale.value),
         shape = MaterialTheme.shapes.medium,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        colors = ButtonDefaults.outlinedButtonColors(
+            containerColor = container,
+            contentColor = content,
+        ),
     ) {
         Text(text = label, style = MaterialTheme.typography.titleLarge)
     }

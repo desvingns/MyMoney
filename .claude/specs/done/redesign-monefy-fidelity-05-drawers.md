@@ -1,7 +1,7 @@
 # Dashboard drawers: left (S02) + right (S04)
 Epic: redesign-monefy-fidelity
 Order: 05 of 05
-Status: backlog
+Status: done
 Depends-on: 01 (categoryIcon registry for drawer icons)
 Date: 2026-05-30
 
@@ -23,5 +23,5 @@ CONSTRAINTS:
 RightDrawerContent is text-only NavigationDrawerItem rows (no icons; reference is a centered icon-over-label list). LeftDrawerContent shows accounts (reference shows currency + period-type — a behavioural divergence, restyle only).
 
 ## Implementation links
-- commit: (pending)
-- files:  (pending)
+- commit: f4a2b4e (implementation), 1aa8391 (tests/fix)
+- files:  feature/dashboard/src/main/java/com/kshavrin/mymoney/feature/dashboard/components/LeftDrawerContent.kt; feature/dashboard/src/main/java/com/kshavrin/mymoney/feature/dashboard/components/RightDrawerContent.kt; app/src/androidTest/java/com/kshavrin/mymoney/feature/dashboard/components/DashboardDrawerContentUiTest.kt; app/src/androidTest/java/com/kshavrin/mymoney/feature/dashboard/DashboardContentUiTest.kt

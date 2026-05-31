@@ -1,16 +1,22 @@
 package com.kshavrin.mymoney.feature.dashboard
 
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertDoesNotExist
+import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.kshavrin.mymoney.core.common.money.MoneyFormatter
 import com.kshavrin.mymoney.core.domain.model.BalanceSnapshot
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Money
@@ -43,6 +49,8 @@ class DashboardContentUiTest {
         composeTestRule
             .onNodeWithContentDescription(targetString(R.string.fab_expense))
             .assertIsEnabled()
+            .assertWidthIsAtLeast(64.dp)
+            .assertHeightIsAtLeast(64.dp)
             .performClick()
 
         composeTestRule.runOnIdle {
@@ -66,6 +74,8 @@ class DashboardContentUiTest {
         composeTestRule
             .onNodeWithContentDescription(targetString(R.string.fab_income))
             .assertIsEnabled()
+            .assertWidthIsAtLeast(64.dp)
+            .assertHeightIsAtLeast(64.dp)
             .performClick()
 
         composeTestRule.runOnIdle {
@@ -74,7 +84,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `both transfer buttons stay enabled in empty dashboard and emit transfer events`() {
+    fun `top bar transfer button stays enabled in empty dashboard and emits transfer event`() {
         val capturedEvents = mutableListOf<DashboardEvent>()
 
         composeTestRule.setContent {
@@ -89,15 +99,11 @@ class DashboardContentUiTest {
         val transferButtons = composeTestRule
             .onAllNodesWithContentDescription(targetString(R.string.dashboard_transfer))
 
-        transferButtons.assertCountEquals(2)
+        transferButtons.assertCountEquals(1)
         transferButtons[0].assertIsEnabled().performClick()
-        transferButtons[1].assertIsEnabled().performClick()
 
         composeTestRule.runOnIdle {
-            assertEquals(
-                listOf(DashboardEvent.TransferClicked, DashboardEvent.TransferClicked),
-                capturedEvents,
-            )
+            assertEquals(listOf(DashboardEvent.TransferClicked), capturedEvents)
         }
     }
 
@@ -125,7 +131,32 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `balance pill in populated dashboard emits balance card event`() {
+    fun `top bar renders wordmark title and currency subtitle`() {
+        val usd = Currency(
+            id = 1L,
+            code = "USD",
+            symbol = "$",
+            name = "US Dollar",
+            decimalDigits = 2,
+            isActive = true,
+            sortOrder = 0,
+        )
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state = DashboardState(currentCurrency = usd, isLoading = false),
+                    onEvent = {},
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText(targetString(R.string.dashboard_title)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(usd.name).assertIsDisplayed()
+    }
+
+    @Test
+    fun `balance pill formats grouped balance with label and emits balance card event`() {
         val capturedEvents = mutableListOf<DashboardEvent>()
         val usd = Currency(
             id = 1L,
@@ -143,9 +174,9 @@ class DashboardContentUiTest {
                     state = DashboardState(
                         currentCurrency = usd,
                         balanceSnapshot = BalanceSnapshot(
-                            income = Money(BigDecimal("125.00"), usd),
-                            expense = Money(BigDecimal("75.00"), usd),
-                            net = Money(BigDecimal("50.00"), usd),
+                            income = Money(BigDecimal("20000.00"), usd),
+                            expense = Money(BigDecimal("7654.33"), usd),
+                            net = Money(BigDecimal("12345.67"), usd),
                             byCategory = emptyList(),
                         ),
                         isLoading = false,
@@ -155,10 +186,23 @@ class DashboardContentUiTest {
             }
         }
 
+        val expectedBalanceText = "${targetString(R.string.dashboard_balance)} ${
+            MoneyFormatter.format(
+                amount = BigDecimal("12345.67"),
+                currencySymbol = usd.symbol,
+                decimalDigits = usd.decimalDigits,
+                locale = targetLocale(),
+                symbolPosition = MoneyFormatter.SymbolPosition.AFTER,
+            )
+        }"
+
         composeTestRule
-            .onNode(hasText("\$50.00") and hasClickAction())
+            .onNode(hasText(expectedBalanceText) and hasClickAction())
             .assertIsDisplayed()
             .performClick()
+        composeTestRule
+            .onNodeWithText("${targetString(R.string.dashboard_balance)} 12345.67", substring = true)
+            .assertDoesNotExist()
 
         composeTestRule.runOnIdle {
             assertEquals(listOf(DashboardEvent.BalanceCardClicked), capturedEvents)
@@ -186,7 +230,7 @@ class DashboardContentUiTest {
         }
 
         composeTestRule
-            .onNodeWithContentDescription(targetString(R.string.dashboard_settings_menu))
+            .onNodeWithContentDescription(targetString(R.string.dashboard_overflow_menu))
             .performClick()
 
         drawerRows.forEach { resourceId ->
@@ -244,4 +288,7 @@ class DashboardContentUiTest {
 
     private fun targetString(resourceId: Int): String =
         InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)
+
+    private fun targetLocale() = InstrumentationRegistry.getInstrumentation()
+        .targetContext.resources.configuration.locales[0]
 }

@@ -27,8 +27,11 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestDispatcher
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -190,6 +193,63 @@ class DashboardViewModelTest {
             assertEquals("food", slices.single { it.categoryId == 10L }.iconKey)
             assertEquals("transport", slices.single { it.categoryId == 20L }.iconKey)
         } finally {
+            store.clear()
+            runCurrent()
+        }
+    }
+
+    @Test
+    fun `dashboard chrome navigation events emit their actions`() = runTest {
+        val (viewModel, store) = buildViewModel()
+        val actions = mutableListOf<DashboardAction>()
+        val collector = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.actions.toList(actions)
+        }
+
+        try {
+            runCurrent()
+
+            viewModel.onEvent(DashboardEvent.MinusFabClicked)
+            viewModel.onEvent(DashboardEvent.PlusFabClicked)
+            viewModel.onEvent(DashboardEvent.TransferClicked)
+            viewModel.onEvent(DashboardEvent.SearchClicked)
+
+            runCurrent()
+
+            assertEquals(
+                listOf(
+                    DashboardAction.NavigateAddExpense,
+                    DashboardAction.NavigateAddIncome,
+                    DashboardAction.NavigateTransfer,
+                    DashboardAction.NavigateSearch,
+                ),
+                actions,
+            )
+        } finally {
+            collector.cancel()
+            store.clear()
+            runCurrent()
+        }
+    }
+
+    @Test
+    fun `balance card event emits unfiltered transactions action for active account`() = runTest {
+        val (viewModel, store) = buildViewModel()
+        val actions = mutableListOf<DashboardAction>()
+        val collector = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.actions.toList(actions)
+        }
+
+        try {
+            runCurrent()
+
+            viewModel.onEvent(DashboardEvent.BalanceCardClicked)
+
+            runCurrent()
+
+            assertEquals(listOf(DashboardAction.NavigateTransactionsByAccount(cash.id)), actions)
+        } finally {
+            collector.cancel()
             store.clear()
             runCurrent()
         }

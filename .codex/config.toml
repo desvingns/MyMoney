@@ -7,5 +7,5 @@ project_doc_max_bytes = 65536
 network_access = false
 
 [agents]
-max_threads = 4
+max_threads = 6
 max_depth = 1

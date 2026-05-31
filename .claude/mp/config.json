@@ -1,0 +1,9 @@
+{
+  "projectName": "MyMoney",
+  "package": "com.kshavrin.mymoney",
+  "packagePath": "com/kshavrin/mymoney",
+  "platforms": ["android"],
+  "sourceRoot": "app/src/main/java/com/kshavrin/mymoney",
+  "stack": "Kotlin 2.0.21 · Compose BoM 2024.10+ Material3 · Hilt 2.52 (KSP) · Room 2.6.1 · DataStore 1.1.1 · Navigation-Compose 2.8.4 · Coroutines 1.9 · multi-module (:core:*, :feature:*)",
+  "uiLang": "en"
+}

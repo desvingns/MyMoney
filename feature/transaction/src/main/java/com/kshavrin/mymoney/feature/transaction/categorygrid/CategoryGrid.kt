@@ -24,6 +24,8 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.kshavrin.mymoney.core.designsystem.icon.categoryIcon
@@ -31,9 +33,10 @@ import com.kshavrin.mymoney.core.domain.model.Category
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.feature.transaction.R
 
-const val CATEGORY_GRID_ADD_CELL_TAG = "category_picker_add_cell"
+const val CATEGORY_GRID_ADD_CELL_TAG = "category_grid_add_cell"
+const val CATEGORY_GRID_TAG = "category_grid"
 
-private const val ADD_CELL_KEY = "category_picker_add_cell"
+private const val ADD_CELL_KEY = "category_grid_add_cell"
 
 @Composable
 fun CategoryGrid(
@@ -47,7 +50,9 @@ fun CategoryGrid(
         contentPadding = PaddingValues(Spacing.l),
         verticalArrangement = Arrangement.spacedBy(Spacing.m),
         horizontalArrangement = Arrangement.spacedBy(Spacing.m),
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag(CATEGORY_GRID_TAG),
     ) {
         items(categories, key = { it.id }) { cat ->
             CategoryCell(
@@ -107,7 +112,9 @@ private fun GridCard(
     modifier: Modifier = Modifier,
 ) {
     Card(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .semantics { this.contentDescription = contentDescription },
         onClick = onClick,
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -124,7 +131,7 @@ private fun GridCard(
         ) {
             Icon(
                 imageVector = icon,
-                contentDescription = contentDescription,
+                contentDescription = null,
                 tint = iconTint,
                 modifier = Modifier.size(32.dp),
             )

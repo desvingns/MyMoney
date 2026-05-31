@@ -16,6 +16,7 @@ import com.kshavrin.mymoney.feature.transaction.fake.FakeTransactionRepository
 import com.kshavrin.mymoney.feature.transaction.util.MainDispatcherRule
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -61,12 +62,34 @@ class AddIncomeViewModelTest {
         isArchived = false,
     )
 
-    private val salaryCategory = Category(
+    private val salaryCategory = incomeCategory(
         id = 20L,
         name = "Salary",
+    )
+
+    private fun incomeCategory(
+        id: Long,
+        name: String,
+        sortOrder: Int = 0,
+        isArchived: Boolean = false,
+    ) = Category(
+        id = id,
+        name = name,
         kind = CategoryKind.Income,
-        iconKey = "ic_cat_salary",
+        iconKey = "ic_cat_${name.lowercase()}",
         colorHex = "#88FF88",
+        sortOrder = sortOrder,
+        isDefault = false,
+        isArchived = isArchived,
+        createdAt = now,
+    )
+
+    private fun expenseCategory(id: Long, name: String) = Category(
+        id = id,
+        name = name,
+        kind = CategoryKind.Expense,
+        iconKey = "ic_cat_${name.lowercase()}",
+        colorHex = "#FF8888",
         sortOrder = 0,
         isDefault = false,
         isArchived = false,
@@ -95,6 +118,55 @@ class AddIncomeViewModelTest {
         appSettingsRepository = settingsRepo,
         savedStateHandle = savedStateHandle,
     )
+
+    @Test
+    fun `state categories include only unarchived income categories sorted by sortOrder`() = runTest {
+        categoryRepo.seed(
+            incomeCategory(id = 21L, name = "Gifts", sortOrder = 2),
+            incomeCategory(id = 22L, name = "Bonus", sortOrder = -1),
+            incomeCategory(id = 23L, name = "Old", sortOrder = -2, isArchived = true),
+            expenseCategory(id = 10L, name = "Food"),
+        )
+
+        val viewModel = buildViewModel()
+
+        val categories = viewModel.state.value.categories
+        assertEquals(listOf(22L, 20L, 21L), categories.map { it.id })
+        assertTrue(categories.all { it.kind == CategoryKind.Income && !it.isArchived })
+    }
+
+    @Test
+    fun `AmountClicked shows keypad and KeypadDismissed hides it`() = runTest {
+        val viewModel = buildViewModel()
+
+        viewModel.onEvent(AddIncomeEvent.AmountClicked)
+        assertTrue(viewModel.state.value.keypadVisible)
+
+        viewModel.onEvent(AddIncomeEvent.KeypadDismissed)
+        assertEquals(false, viewModel.state.value.keypadVisible)
+    }
+
+    @Test
+    fun `AddCategoryClicked emits NavigateToCreateCategory`() = runTest {
+        val viewModel = buildViewModel()
+
+        viewModel.actions.test {
+            viewModel.onEvent(AddIncomeEvent.AddCategoryClicked)
+
+            assertEquals(AddIncomeAction.NavigateToCreateCategory, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `CategoryPicked with zero amount opens keypad and does not save`() = runTest {
+        val viewModel = buildViewModel()
+
+        viewModel.onEvent(AddIncomeEvent.CategoryPicked(salaryCategory.id))
+
+        assertTrue(viewModel.state.value.keypadVisible)
+        assertEquals(0, transactionRepo.upserted.size)
+    }
 
     @Test
     fun `CategoryPicked event saves an income transaction with picked category and matching amount`() = runTest {

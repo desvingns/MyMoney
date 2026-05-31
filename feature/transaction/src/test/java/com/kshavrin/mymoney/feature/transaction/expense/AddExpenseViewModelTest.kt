@@ -66,15 +66,20 @@ class AddExpenseViewModelTest {
         isArchived = false,
     )
 
-    private fun expenseCategory(id: Long, name: String) = Category(
+    private fun expenseCategory(
+        id: Long,
+        name: String,
+        sortOrder: Int = 0,
+        isArchived: Boolean = false,
+    ) = Category(
         id = id,
         name = name,
         kind = CategoryKind.Expense,
         iconKey = "ic_cat_${name.lowercase()}",
         colorHex = "#FF8888",
-        sortOrder = 0,
+        sortOrder = sortOrder,
         isDefault = false,
-        isArchived = false,
+        isArchived = isArchived,
         createdAt = now,
     )
 
@@ -127,6 +132,21 @@ class AddExpenseViewModelTest {
         assertEquals(0, BigDecimal.ZERO.compareTo(state.amount))
         assertNull(state.pendingOperator)
         assertEquals("", state.expression)
+    }
+
+    @Test
+    fun `state categories include only unarchived expense categories sorted by sortOrder`() = runTest {
+        categoryRepo.seed(
+            expenseCategory(id = 12L, name = "Cafe", sortOrder = -1),
+            expenseCategory(id = 13L, name = "Old", sortOrder = -2, isArchived = true),
+            incomeCategory(id = 22L, name = "Bonus"),
+        )
+
+        val viewModel = buildViewModel()
+
+        val categories = viewModel.state.value.categories
+        assertEquals(listOf(12L, 10L, 11L), categories.map { it.id })
+        assertTrue(categories.all { it.kind == CategoryKind.Expense && !it.isArchived })
     }
 
     @Test
@@ -194,36 +214,36 @@ class AddExpenseViewModelTest {
     }
 
     @Test
-    fun `ChooseCategoryClicked with zero amount sets error banner and emits no navigation`() = runTest {
+    fun `AmountClicked shows keypad and KeypadDismissed hides it`() = runTest {
+        val viewModel = buildViewModel()
+
+        viewModel.onEvent(AddExpenseEvent.AmountClicked)
+        assertTrue(viewModel.state.value.keypadVisible)
+
+        viewModel.onEvent(AddExpenseEvent.KeypadDismissed)
+        assertEquals(false, viewModel.state.value.keypadVisible)
+    }
+
+    @Test
+    fun `AddCategoryClicked emits NavigateToCreateCategory`() = runTest {
         val viewModel = buildViewModel()
 
         viewModel.actions.test {
-            viewModel.onEvent(AddExpenseEvent.ChooseCategoryClicked)
+            viewModel.onEvent(AddExpenseEvent.AddCategoryClicked)
 
-            val state = viewModel.state.value
-            assertEquals(R.string.error_enter_amount_first, state.errorBannerRes)
-            expectNoEvents()
+            assertEquals(AddExpenseAction.NavigateToCreateCategory, awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
     }
 
     @Test
-    fun `ChooseCategoryClicked with positive amount emits NavigateToCategoryPicker EXPENSE and no error banner`() = runTest {
+    fun `CategoryPicked with zero amount opens keypad and does not save`() = runTest {
         val viewModel = buildViewModel()
-        viewModel.onEvent(AddExpenseEvent.KeypadDigit(5))
 
-        viewModel.actions.test {
-            viewModel.onEvent(AddExpenseEvent.ChooseCategoryClicked)
+        viewModel.onEvent(AddExpenseEvent.CategoryPicked(10L))
 
-            val action = awaitItem()
-            assertTrue(
-                "expected NavigateToCategoryPicker(Expense) but was $action",
-                action is AddExpenseAction.NavigateToCategoryPicker &&
-                    action.kind == TransactionKind.Expense,
-            )
-            assertNull(viewModel.state.value.errorBannerRes)
-            cancelAndIgnoreRemainingEvents()
-        }
+        assertTrue(viewModel.state.value.keypadVisible)
+        assertEquals(0, transactionRepo.upserted.size)
     }
 
     @Test
@@ -268,7 +288,7 @@ class AddExpenseViewModelTest {
     @Test
     fun `DismissError clears errorBannerRes`() = runTest {
         val viewModel = buildViewModel()
-        viewModel.onEvent(AddExpenseEvent.ChooseCategoryClicked)
+        viewModel.onEvent(AddExpenseEvent.SaveClicked)
         assertEquals(R.string.error_enter_amount_first, viewModel.state.value.errorBannerRes)
 
         viewModel.onEvent(AddExpenseEvent.DismissError)

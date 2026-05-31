@@ -3,7 +3,6 @@
     <string name="new_income_title">New income</string>
     <string name="amount_hint">0</string>
     <string name="note_hint">Note</string>
-    <string name="choose_category_cta">CHOOSE CATEGORY</string>
     <string name="error_enter_amount_first">Enter amount first</string>
     <string name="error_choose_category_first">Choose a category</string>
     <string name="error_save_failed">Could not save. Please try again.</string>
@@ -11,9 +10,7 @@
     <string name="swap_mode">Swap</string>
     <string name="dismiss">Dismiss</string>
     <string name="pick_date">Pick date</string>
-    <string name="category_picker_title">Choose category</string>
     <string name="add_category_cta">+ ADD</string>
-    <string name="category_picker_empty">No categories yet — tap + ADD</string>
     <string name="new_transfer_title">New transfer</string>
     <string name="source_label">From</string>
     <string name="target_label">To</string>

@@ -4,7 +4,6 @@ import com.kshavrin.mymoney.core.designsystem.keypad.Operator
 import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.Category
 import com.kshavrin.mymoney.core.domain.model.Currency
-import com.kshavrin.mymoney.core.domain.model.TransactionKind
 import java.math.BigDecimal
 import java.time.LocalDate
 
@@ -26,5 +25,4 @@ data class AddIncomeState(
     val currencies: List<Currency> = emptyList(),
     val categories: List<Category> = emptyList(),
     val keypadVisible: Boolean = false,
-    val categoryPickerKind: TransactionKind = TransactionKind.Income,
 )

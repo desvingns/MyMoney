@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.weight
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.SwapHoriz
@@ -61,9 +60,6 @@ fun AddIncomeRoute(
 ) {
     val state by viewModel.state.collectAsState()
 
-    // See AddExpenseRoute: CategoryEdit (fromPicker) writes the created id into this entry's
-    // savedStateHandle, which is not the instance Hilt injects into the ViewModel. Observe it here
-    // and forward as an event — one-tap commit then closes the form.
     val createdCategoryId by backStackEntry.savedStateHandle
         .getStateFlow(AddIncomeViewModel.KEY_CREATED_CATEGORY_ID, -1L)
         .collectAsState()
@@ -174,8 +170,8 @@ fun AddIncomeScreen(
                     ),
                     onEvent = { e -> dispatchAmountEvent(e, onEvent) { datePickerVisible = true } },
                     showKeypad = false,
+                    amountInputModifier = Modifier.clickable { onEvent(AddIncomeEvent.AmountClicked) },
                     modifier = Modifier
-                        .clickable { onEvent(AddIncomeEvent.AmountClicked) }
                         .padding(Spacing.m),
                 )
             }
@@ -197,7 +193,9 @@ fun AddIncomeScreen(
             sheetState = keypadSheetState,
         ) {
             MonefyKeypad(
-                onEvent = { e -> dispatchKeypadEvent(e, onEvent) },
+                onEvent = { e ->
+                    dispatchAmountEvent(AmountFieldEvent.Keypad(e), onEvent) { datePickerVisible = true }
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(Spacing.m),

@@ -176,7 +176,7 @@ class DestinationsTest {
 
     // --- Transaction routes (PHASE_10 nav wiring) ---
     //
-    // These constants are the canonical contract for the 5 transaction screens
+    // These constants are the canonical contract for the transaction screens
     // registered in MyMoneyNavHost. The feature/transaction module navigates with
     // hardcoded string literals (e.g. AddExpenseScreen's swap-toggle uses
     // "transaction/income") that have no compile-time link to these constants.
@@ -202,11 +202,6 @@ class DestinationsTest {
     }
 
     @Test
-    fun `CATEGORY_PICKER route is transaction category_picker`() {
-        assertEquals("transaction/category_picker", Destinations.CATEGORY_PICKER)
-    }
-
-    @Test
     fun `CURRENCY_RATE route is transaction currency_rate`() {
         assertEquals("transaction/currency_rate", Destinations.CURRENCY_RATE)
     }
@@ -217,10 +212,9 @@ class DestinationsTest {
             Destinations.ADD_EXPENSE,
             Destinations.ADD_INCOME,
             Destinations.TRANSFER,
-            Destinations.CATEGORY_PICKER,
             Destinations.CURRENCY_RATE,
         )
-        assertEquals(5, transactionRoutes.size)
+        assertEquals(4, transactionRoutes.size)
     }
 
     @Test
@@ -245,20 +239,6 @@ class DestinationsTest {
         val popTarget = "transaction/income"
         assertEquals(Destinations.ADD_EXPENSE, swapTarget)
         assertEquals(Destinations.ADD_INCOME, popTarget)
-    }
-
-    @Test
-    fun `category picker route template is well-formed with kind query arg`() {
-        val template = "${Destinations.CATEGORY_PICKER}?kind={kind}"
-        assertEquals("transaction/category_picker?kind={kind}", template)
-        assertTrue(template.contains("{kind}"))
-    }
-
-    @Test
-    fun `category picker navigation literal matches its registered template base`() {
-        val literal = "${Destinations.CATEGORY_PICKER}?kind=EXPENSE"
-        assertEquals("transaction/category_picker?kind=EXPENSE", literal)
-        assertTrue(literal.startsWith(Destinations.CATEGORY_PICKER))
     }
 
     @Test
@@ -290,12 +270,24 @@ class DestinationsTest {
 
     @Test
     fun `category edit from picker navigation literal matches its registered template base`() {
-        val literal = "${Destinations.CATEGORY_EDIT}/-1?kind=EXPENSE&fromPicker=true"
+        val literal = "${Destinations.CATEGORY_EDIT}/-1?kind=Expense&fromPicker=true"
         assertEquals(
-            "dictionaries/categories/edit/-1?kind=EXPENSE&fromPicker=true",
+            "dictionaries/categories/edit/-1?kind=Expense&fromPicker=true",
             literal,
         )
         assertTrue(literal.startsWith("${Destinations.CATEGORY_EDIT}/"))
+    }
+
+    @Test
+    fun `destinations do not expose retired category picker route`() {
+        val routeValues = Destinations::class.java.declaredFields
+            .filter { it.type == String::class.java }
+            .map { field ->
+                field.isAccessible = true
+                field.get(null) as String
+            }
+
+        assertTrue("Category picker route must stay retired", "transaction/category_picker" !in routeValues)
     }
 
     @Test
@@ -304,7 +296,6 @@ class DestinationsTest {
             Destinations.ADD_EXPENSE,
             Destinations.ADD_INCOME,
             Destinations.TRANSFER,
-            Destinations.CATEGORY_PICKER,
             Destinations.CURRENCY_RATE,
         )
         val otherRoutes = setOf(

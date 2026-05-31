@@ -38,7 +38,7 @@ class AddIncomeViewModel @Inject constructor(
     private val currencyRepository: CurrencyRepository,
     private val categoryRepository: CategoryRepository,
     private val appSettingsRepository: AppSettingsRepository,
-    private val savedStateHandle: SavedStateHandle,
+    savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
     private val engine = CalculatorEngine()
@@ -145,8 +145,6 @@ class AddIncomeViewModel @Inject constructor(
     }
 
     private fun onCategoryPicked(categoryId: Long) {
-        // A grid tap commits in one shot, but only once an amount exists. With no amount yet,
-        // reveal the keypad instead of silently dropping the tap (save() keeps its own backstop).
         if (_state.value.amount <= BigDecimal.ZERO) {
             _state.value = _state.value.copy(keypadVisible = true)
             return
@@ -212,8 +210,6 @@ class AddIncomeViewModel @Inject constructor(
     }
 
     companion object {
-        // CategoryEdit (fromPicker) writes the freshly created id here on its previousBackStackEntry,
-        // which — now that the picker route is retired — is THIS form's own entry. AS-4 round-trip.
         const val KEY_CREATED_CATEGORY_ID = "createdCategoryId"
     }
 }

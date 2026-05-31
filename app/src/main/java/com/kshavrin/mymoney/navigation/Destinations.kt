@@ -9,7 +9,6 @@ object Destinations {
     const val ADD_INCOME = "transaction/income"
     const val TRANSFER = "transaction/transfer"
     const val CURRENCY_RATE = "transaction/currency_rate"
-    const val CATEGORY_PICKER = "transaction/category_picker"
     const val TRANSACTIONS_LIST = "transactions"
     const val TRANSACTION_DETAIL = "transaction_detail"
     const val SEARCH = "search"

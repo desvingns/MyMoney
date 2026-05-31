@@ -1,21 +1,28 @@
 package com.kshavrin.mymoney.feature.transaction.income
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
-import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
+import androidx.test.espresso.Espresso.pressBack
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
 import com.kshavrin.mymoney.core.designsystem.keypad.Operator
+import com.kshavrin.mymoney.core.domain.model.Category
+import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import com.kshavrin.mymoney.feature.transaction.R
-import java.math.BigDecimal
+import com.kshavrin.mymoney.feature.transaction.categorygrid.CATEGORY_GRID_ADD_CELL_TAG
+import com.kshavrin.mymoney.feature.transaction.categorygrid.CATEGORY_GRID_TAG
+import java.time.Instant
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import org.junit.Assert.assertEquals
@@ -30,7 +37,29 @@ class AddIncomeScreenUiTest {
     val composeTestRule = createComposeRule()
 
     @Test
-    fun `keypad calculation buttons emit income input events in order`() {
+    fun `default income form embeds category grid and keeps keypad hidden`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                AddIncomeScreen(
+                    state = AddIncomeState(categories = listOf(category(id = 20L, name = "Salary"))),
+                    onEvent = {},
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithTag(CATEGORY_GRID_TAG)
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithContentDescription("Salary")
+            .assertIsDisplayed()
+        composeTestRule
+            .onAllNodes(hasText("7") and hasClickAction())
+            .assertCountEquals(0)
+    }
+
+    @Test
+    fun `amount field emits income amount clicked event`() {
         val capturedEvents = mutableListOf<AddIncomeEvent>()
 
         composeTestRule.setContent {
@@ -42,10 +71,31 @@ class AddIncomeScreenUiTest {
             }
         }
 
+        composeTestRule
+            .onNode(hasText("0") and hasClickAction())
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(AddIncomeEvent.AmountClicked), capturedEvents)
+        }
+    }
+
+    @Test
+    fun `keypad calculation buttons emit income input events in order`() {
+        val capturedEvents = mutableListOf<AddIncomeEvent>()
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                AddIncomeScreen(
+                    state = AddIncomeState(keypadVisible = true),
+                    onEvent = { event -> capturedEvents += event },
+                )
+            }
+        }
+
         listOf("1", "2", "+", "3", "=").forEach { label ->
             composeTestRule
-                .onNodeWithText(label)
-                .performScrollTo()
+                .onNode(hasText(label) and hasClickAction())
                 .performClick()
         }
 
@@ -57,6 +107,61 @@ class AddIncomeScreenUiTest {
                     AddIncomeEvent.KeypadOperator(Operator.Plus),
                     AddIncomeEvent.KeypadDigit(3),
                     AddIncomeEvent.KeypadEquals,
+                ),
+                capturedEvents,
+            )
+        }
+    }
+
+    @Test
+    fun `dismissing keypad sheet emits income keypad dismissed event`() {
+        val capturedEvents = mutableListOf<AddIncomeEvent>()
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                AddIncomeScreen(
+                    state = AddIncomeState(keypadVisible = true),
+                    onEvent = { event -> capturedEvents += event },
+                )
+            }
+        }
+
+        composeTestRule
+            .onNode(hasText("1") and hasClickAction())
+            .assertIsDisplayed()
+        pressBack()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(AddIncomeEvent.KeypadDismissed), capturedEvents)
+        }
+    }
+
+    @Test
+    fun `keypad operator buttons emit the full income keypad contract`() {
+        val capturedEvents = mutableListOf<AddIncomeEvent>()
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                AddIncomeScreen(
+                    state = AddIncomeState(keypadVisible = true),
+                    onEvent = { event -> capturedEvents += event },
+                )
+            }
+        }
+
+        listOf(".", "\u2212", "\u00D7", "\u00F7").forEach { label ->
+            composeTestRule
+                .onNode(hasText(label) and hasClickAction())
+                .performClick()
+        }
+
+        composeTestRule.runOnIdle {
+            assertEquals(
+                listOf(
+                    AddIncomeEvent.KeypadDot,
+                    AddIncomeEvent.KeypadOperator(Operator.Minus),
+                    AddIncomeEvent.KeypadOperator(Operator.Multiply),
+                    AddIncomeEvent.KeypadOperator(Operator.Divide),
                 ),
                 capturedEvents,
             )
@@ -100,7 +205,7 @@ class AddIncomeScreenUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 AddIncomeScreen(
-                    state = AddIncomeState(),
+                    state = AddIncomeState(keypadVisible = true),
                     onEvent = { event -> capturedEvents += event },
                 )
             }
@@ -108,7 +213,6 @@ class AddIncomeScreenUiTest {
 
         composeTestRule
             .onNodeWithContentDescription(targetString(DesignSystemR.string.keypad_backspace_cd))
-            .performScrollTo()
             .performClick()
 
         composeTestRule.runOnIdle {
@@ -165,48 +269,62 @@ class AddIncomeScreenUiTest {
     }
 
     @Test
-    fun `income choose category stays disabled while amount is zero`() {
-        composeTestRule.setContent {
-            MyMoneyTheme {
-                AddIncomeScreen(
-                    state = AddIncomeState(),
-                    onEvent = {},
-                )
-            }
-        }
-
-        composeTestRule
-            .onNodeWithText(targetString(R.string.new_income_title))
-            .assertIsDisplayed()
-        composeTestRule
-            .onNodeWithText(targetString(R.string.choose_category_cta))
-            .performScrollTo()
-            .assertIsNotEnabled()
-    }
-
-    @Test
-    fun `income choose category emits event when amount is positive`() {
+    fun `income category cell emits picked event`() {
         val capturedEvents = mutableListOf<AddIncomeEvent>()
 
         composeTestRule.setContent {
             MyMoneyTheme {
                 AddIncomeScreen(
-                    state = AddIncomeState(amount = BigDecimal("1"), amountInput = "1"),
+                    state = AddIncomeState(categories = listOf(category(id = 20L, name = "Salary"))),
                     onEvent = { event -> capturedEvents += event },
                 )
             }
         }
 
         composeTestRule
-            .onNodeWithText(targetString(R.string.choose_category_cta))
-            .performScrollTo()
-            .assertIsEnabled()
+            .onNodeWithContentDescription("Salary")
+            .assertIsDisplayed()
             .performClick()
 
         composeTestRule.runOnIdle {
-            assertEquals(listOf(AddIncomeEvent.ChooseCategoryClicked), capturedEvents)
+            assertEquals(listOf(AddIncomeEvent.CategoryPicked(20L)), capturedEvents)
         }
     }
+
+    @Test
+    fun `income add category cell emits add event`() {
+        val capturedEvents = mutableListOf<AddIncomeEvent>()
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                AddIncomeScreen(
+                    state = AddIncomeState(categories = listOf(category(id = 20L, name = "Salary"))),
+                    onEvent = { event -> capturedEvents += event },
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithTag(CATEGORY_GRID_ADD_CELL_TAG)
+            .assertIsDisplayed()
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(AddIncomeEvent.AddCategoryClicked), capturedEvents)
+        }
+    }
+
+    private fun category(id: Long, name: String): Category = Category(
+        id = id,
+        name = name,
+        kind = CategoryKind.Income,
+        iconKey = "ic_cat_salary",
+        colorHex = "#7AC794",
+        sortOrder = 0,
+        isDefault = false,
+        isArchived = false,
+        createdAt = Instant.parse("2026-05-27T00:00:00Z"),
+    )
 
     private fun targetString(resourceId: Int): String =
         InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)

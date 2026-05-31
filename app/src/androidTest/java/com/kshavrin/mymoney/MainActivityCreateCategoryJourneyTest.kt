@@ -1,15 +1,20 @@
 package com.kshavrin.mymoney
 
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
+import androidx.test.espresso.Espresso.pressBack
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.domain.repository.CategoryRepository
@@ -18,6 +23,8 @@ import com.kshavrin.mymoney.feature.dashboard.R as DashboardR
 import com.kshavrin.mymoney.feature.dictionaries.R as DictionariesR
 import com.kshavrin.mymoney.feature.onboarding.R as OnboardingR
 import com.kshavrin.mymoney.feature.transaction.R as TransactionR
+import com.kshavrin.mymoney.feature.transaction.categorygrid.CATEGORY_GRID_ADD_CELL_TAG
+import com.kshavrin.mymoney.feature.transaction.categorygrid.CATEGORY_GRID_TAG
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import kotlinx.coroutines.flow.first
@@ -32,9 +39,9 @@ import javax.inject.Inject
 /**
  * J3 — create-a-category round trip preserves the amount and applies the new category (AS-4).
  *
- * From the expense form with an amount already entered: Choose category -> S09 picker -> "+ ADD" ->
- * S22 create -> Save. The flow returns PAST S09 with the freshly created category pre-selected and
- * the amount preserved, so the saved expense carries the new category and the original amount.
+ * From the expense form with an amount already entered: embedded "+ ADD" -> S22 create -> Save.
+ * The flow returns to S06 with the amount preserved, so the saved expense carries the new category
+ * and the original amount.
  */
 @HiltAndroidTest
 @RunWith(AndroidJUnit4::class)
@@ -53,7 +60,7 @@ class MainActivityCreateCategoryJourneyTest {
     lateinit var categoryRepository: CategoryRepository
 
     @Test
-    fun createCategoryFromPickerPreservesAmountAndAppliesNewCategory() {
+    fun createCategoryFromEmbeddedGridPreservesAmountAndAppliesNewCategory() {
         hiltRule.inject()
 
         // Onboarding -> Dashboard
@@ -66,18 +73,19 @@ class MainActivityCreateCategoryJourneyTest {
         waitForContentDescription(expenseFab)
         composeRule.onNodeWithContentDescription(expenseFab).performClick()
 
-        // Enter amount 9 then Choose category.
-        val chooseCategory = targetString(TransactionR.string.choose_category_cta)
-        waitForText(chooseCategory)
+        waitForText(targetString(TransactionR.string.new_expense_title))
+        composeRule.onNode(hasText("0") and hasClickAction()).performClick()
         composeRule.onNode(hasText("9") and hasClickAction()).performClick()
-        composeRule.onNode(hasText(chooseCategory) and hasClickAction()).performClick()
+        pressBack()
 
-        // S09 picker -> "+ ADD" -> S22 create
-        val addCta = targetString(TransactionR.string.add_category_cta)
-        waitForContentDescription(addCta)
-        composeRule.onNodeWithContentDescription(addCta).performClick()
+        composeRule
+            .onNodeWithTag(CATEGORY_GRID_TAG)
+            .performScrollToNode(hasTestTag(CATEGORY_GRID_ADD_CELL_TAG))
+        composeRule
+            .onNodeWithTag(CATEGORY_GRID_ADD_CELL_TAG)
+            .performScrollTo()
+            .performClick()
 
-        // S22: name the new category and save; the flow cascades back past S09 and S06 auto-saves.
         waitForText(targetString(DictionariesR.string.dictionaries_field_name))
         composeRule.onNode(hasSetTextAction()).performTextInput(NEW_CATEGORY)
         composeRule.onNodeWithText(targetString(DictionariesR.string.dictionaries_save)).performClick()

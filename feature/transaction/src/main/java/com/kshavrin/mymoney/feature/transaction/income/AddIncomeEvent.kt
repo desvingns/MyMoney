@@ -12,7 +12,9 @@ sealed interface AddIncomeEvent {
     data class NoteChanged(val text: String) : AddIncomeEvent
     data class DateChanged(val date: LocalDate) : AddIncomeEvent
     data class AccountChanged(val accountId: Long) : AddIncomeEvent
-    data object ChooseCategoryClicked : AddIncomeEvent
+    data object AmountClicked : AddIncomeEvent
+    data object KeypadDismissed : AddIncomeEvent
+    data object AddCategoryClicked : AddIncomeEvent
     data class CategoryPicked(val categoryId: Long) : AddIncomeEvent
     data object SaveClicked : AddIncomeEvent
     data object SwapMode : AddIncomeEvent

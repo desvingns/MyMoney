@@ -23,7 +23,11 @@ import org.junit.Test
  * What we CAN pin at the JVM level right now:
  *
  *   1. KeypadEvent sealed-interface shape — every variant the keypad
- *      can emit must be representable and distinguishable.
+ *      can emit must be representable and distinguishable. Note that
+ *      `Backspace` stays part of the sealed contract even though the
+ *      ⌫ key was removed from the keypad grid (form-chrome restyle):
+ *      the amount box's trailing ✕ clear affordance now emits it via
+ *      `MonefyAmountInput.onClear` → `KeypadEvent.Backspace`.
  *   2. Operator enum coverage — the four operators that appear on the
  *      keypad map to four distinct enum entries.
  *   3. SoundKey enum coverage — KEYPAD_TAP and SAVED must exist; the
@@ -228,8 +232,22 @@ class MonefyKeypadContractTest {
     }
 
     @Test
-    fun `pressing backspace label maps to Backspace`() {
-        assertEquals(KeypadEvent.Backspace, simulatePress("⌫"))
+    fun `the keypad has no standalone backspace key`() {
+        // Form-chrome restyle: the ⌫ key was removed from the keypad grid.
+        // Backspace now lives in the amount box (✕ clear affordance), so the
+        // keypad's own label → event map must NOT recognise "⌫".
+        assertNull(
+            "the ⌫ key was removed from the keypad — it must not map to any keypad event",
+            simulatePress("⌫"),
+        )
+    }
+
+    @Test
+    fun `Backspace event stays in the sealed contract despite the key removal`() {
+        // Even though no keypad key emits it, the type must remain constructible:
+        // MonefyAmountInput.onClear emits KeypadEvent.Backspace from the amount box.
+        val event: KeypadEvent = KeypadEvent.Backspace
+        assertTrue("Backspace must remain a KeypadEvent variant", event is KeypadEvent.Backspace)
     }
 
     @Test
@@ -238,14 +256,15 @@ class MonefyKeypadContractTest {
     }
 
     @Test
-    fun `the seventeen visible labels are exhaustively covered`() {
-        // SPEC: digits 0..9 (10) + operators (4) + dot + equals + backspace = 17
+    fun `the sixteen visible keypad labels are exhaustively covered`() {
+        // SPEC (form-chrome restyle): digits 0..9 (10) + operators (4) + dot + equals = 16.
+        // Backspace (⌫) is NO LONGER on the keypad — it moved to the amount box.
         val labels = listOf(
             "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
             "+", "−", "×", "÷",
-            ".", "=", "⌫",
+            ".", "=",
         )
-        assertEquals(17, labels.size)
+        assertEquals(16, labels.size)
         for (label in labels) {
             assertNotNull("label '$label' must map to an event", simulatePress(label))
         }
@@ -257,8 +276,13 @@ class MonefyKeypadContractTest {
      * Keep this in lock-step with MonefyKeypad.kt. If the production
      * wiring changes (e.g. a label string is altered or a button is
      * added/removed) and this function is not updated, the
-     * "seventeen visible labels are exhaustively covered" or
+     * "sixteen visible keypad labels are exhaustively covered" or
      * "pressing each digit label" tests will fail.
+     *
+     * NOTE: there is intentionally no "⌫" branch — the backspace key was
+     * removed from the keypad grid in the form-chrome restyle. The amount
+     * box owns backspace now (its ✕ clear affordance emits
+     * KeypadEvent.Backspace via MonefyAmountInput.onClear).
      */
     private fun simulatePress(label: String): KeypadEvent? = when (label) {
         "0" -> KeypadEvent.Digit(0)
@@ -277,7 +301,6 @@ class MonefyKeypadContractTest {
         "÷" -> KeypadEvent.Op(Operator.Divide)
         "." -> KeypadEvent.Dot
         "=" -> KeypadEvent.Equals
-        "⌫" -> KeypadEvent.Backspace
         else -> null
     }
 
@@ -294,7 +317,6 @@ class MonefyKeypadContractTest {
             simulatePress("+")
             simulatePress(".")
             simulatePress("=")
-            simulatePress("⌫")
         } catch (t: Throwable) {
             fail("simulatePress threw on a known label: ${t.message}")
         }

@@ -33,16 +33,20 @@ import org.junit.Test
  *
  * # What the real test must cover
  *
- * Total visible buttons: 17.
+ * Total visible buttons: 16 (the ⌫ backspace key was REMOVED in the
+ * form-chrome restyle — backspace now lives in the amount box).
  *   - Digits 0..9                                  -> 10
  *   - Operators +, −, ×, ÷                          ->  4
- *   - Dot ".", Equals "=", Backspace "⌫"            ->  3
+ *   - Dot ".", Equals "="                           ->  2
  *
- * Layout (from MonefyKeypad.kt):
- *   - Row 1 (5 cells): "7" "8" "9" "÷" "⌫"
- *   - Row 2 (4 cells): "4" "5" "6" "×"
- *   - Row 3 (4 cells): "1" "2" "3" "−"
- *   - Row 4 (4 cells): "0" "." "=" "+"
+ * Layout (from MonefyKeypad.kt — a 4×4 grid):
+ *   - Row 1 (4 cells): "1" "2" "3" "+"
+ *   - Row 2 (4 cells): "4" "5" "6" "−"
+ *   - Row 3 (4 cells): "7" "8" "9" "×"
+ *   - Row 4 (4 cells): "." "0" "=" "÷"
+ *
+ * There must be NO "⌫" node anywhere in the keypad tree. The Compose-UI
+ * test should assert `onNodeWithText("⌫").assertDoesNotExist()`.
  *
  * # Expected test code (template for PHASE_15)
  *
@@ -98,7 +102,7 @@ import org.junit.Test
  *         assertEquals(KeypadEvent.Op(Operator.Divide), events.last())
  *     }
  *
- *     // ---- dot / equals / backspace ----
+ *     // ---- dot / equals ----
  *
  *     @Test fun `tapping dot emits Dot`() {
  *         composeTestRule.onNodeWithText(".", useUnmergedTree = true).performClick()
@@ -108,9 +112,8 @@ import org.junit.Test
  *         composeTestRule.onNodeWithText("=", useUnmergedTree = true).performClick()
  *         assertEquals(KeypadEvent.Equals, events.last())
  *     }
- *     @Test fun `tapping backspace emits Backspace`() {
- *         composeTestRule.onNodeWithText("⌫", useUnmergedTree = true).performClick()
- *         assertEquals(KeypadEvent.Backspace, events.last())
+ *     @Test fun `there is no backspace key on the keypad`() {
+ *         composeTestRule.onNodeWithText("⌫", useUnmergedTree = true).assertDoesNotExist()
  *     }
  *
  *     // ---- cross-cutting ----
@@ -119,7 +122,7 @@ import org.junit.Test
  *         val labels = listOf(
  *             "0","1","2","3","4","5","6","7","8","9",
  *             "+","−","×","÷",
- *             ".","=","⌫",
+ *             ".","=",
  *         )
  *         labels.forEach { label ->
  *             composeTestRule.onNodeWithText(label, useUnmergedTree = true).performClick()

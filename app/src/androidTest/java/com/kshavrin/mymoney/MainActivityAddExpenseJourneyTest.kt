@@ -32,7 +32,7 @@ import org.junit.runner.RunWith
  *
  * Fresh in-memory DB + cleared DataStore => app starts at onboarding. Skip to the dashboard,
  * tap the expense FAB, key `1 2 + 3 =` (=> 15) in the keypad sheet, tap a seeded category,
- * and confirm the populated dashboard balance pill reflects the new expense.
+ * and confirm the populated dashboard balance bar reflects the new expense.
  *
  * Seeded category names are English literals in InitialDataSeeder regardless of locale, so
  * "Food" is a stable matcher; every localized control is looked up via targetString.
@@ -78,16 +78,16 @@ class MainActivityAddExpenseJourneyTest {
             composeRule.onAllNodes(hasContentDescription(expenseFab)).fetchSemanticsNodes().isNotEmpty()
         }
 
-        // The balance pill now reflects the 15 expense (net = -15).
+        // The balance bar now reflects the 15 expense (net = -15).
         composeRule.waitUntil(TIMEOUT) {
-            composeRule.onAllNodesWithTag(BALANCE_PILL_TAG)
+            composeRule.onAllNodesWithTag(BALANCE_BAR_TAG)
                 .fetchSemanticsNodes()
                 .any { node ->
                     node.config.getOrNull(SemanticsProperties.Text)
                         ?.any { it.text.contains("15") } == true
                 }
         }
-        composeRule.onNodeWithTag(BALANCE_PILL_TAG)
+        composeRule.onNodeWithTag(BALANCE_BAR_TAG)
             .assertIsDisplayed()
             .assertTextContains("15", substring = true)
     }
@@ -103,6 +103,6 @@ class MainActivityAddExpenseJourneyTest {
 
     private companion object {
         const val TIMEOUT = 20_000L
-        const val BALANCE_PILL_TAG = "dashboard_balance_pill"
+        const val BALANCE_BAR_TAG = "dashboard_balance_bar"
     }
 }

@@ -1,26 +1,31 @@
 package com.kshavrin.mymoney.feature.dashboard
 
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.common.money.MoneyFormatter
+import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
 import com.kshavrin.mymoney.core.domain.model.BalanceSnapshot
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -155,7 +160,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `balance pill formats grouped balance with label and emits balance card event`() {
+    fun `balance bar formats grouped net balance with label and emits balance card event`() {
         val capturedEvents = mutableListOf<DashboardEvent>()
         val usd = Currency(
             id = 1L,
@@ -185,7 +190,7 @@ class DashboardContentUiTest {
             }
         }
 
-        val expectedBalanceText = "${targetString(R.string.dashboard_balance)} ${
+        val expectedBalanceText = "${targetString(DesignSystemR.string.balance_bar_label)} ${
             MoneyFormatter.format(
                 amount = BigDecimal("12345.67"),
                 currencySymbol = usd.symbol,
@@ -196,16 +201,67 @@ class DashboardContentUiTest {
         }"
 
         composeTestRule
-            .onNode(hasText(expectedBalanceText) and hasClickAction())
+            .onNodeWithTag(BALANCE_BAR_TAG)
             .assertIsDisplayed()
-            .performClick()
+            .assertHasClickAction()
         composeTestRule
-            .onNodeWithText("${targetString(R.string.dashboard_balance)} 12345.67", substring = true)
+            .onNode(hasText(expectedBalanceText))
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText("${targetString(DesignSystemR.string.balance_bar_label)} 12345.67", substring = true)
             .assertDoesNotExist()
+
+        composeTestRule.onNodeWithTag(BALANCE_BAR_TAG).performClick()
 
         composeTestRule.runOnIdle {
             assertEquals(listOf(DashboardEvent.BalanceCardClicked), capturedEvents)
         }
+    }
+
+    @Test
+    fun `balance bar sits between the donut and the expense fab`() {
+        val usd = Currency(
+            id = 1L,
+            code = "USD",
+            symbol = "$",
+            name = "US Dollar",
+            decimalDigits = 2,
+            isActive = true,
+            sortOrder = 0,
+        )
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state = DashboardState(
+                        currentCurrency = usd,
+                        balanceSnapshot = BalanceSnapshot(
+                            income = Money(BigDecimal("20000.00"), usd),
+                            expense = Money(BigDecimal("7654.33"), usd),
+                            net = Money(BigDecimal("12345.67"), usd),
+                            byCategory = emptyList(),
+                        ),
+                        isLoading = false,
+                    ),
+                    onEvent = {},
+                )
+            }
+        }
+
+        val barTop = composeTestRule.onNodeWithTag(BALANCE_BAR_TAG)
+            .fetchSemanticsNode().boundsInRoot.top
+        // The donut announces its income/expense totals; match on the localized prefix
+        // ahead of the format placeholders so the chart node is uniquely located.
+        val donutCdPrefix = targetString(DesignSystemR.string.donut_chart_cd).substringBefore('%').trim()
+        val donutTop = composeTestRule
+            .onNode(hasContentDescription(donutCdPrefix, substring = true))
+            .fetchSemanticsNode().boundsInRoot.top
+        val expenseFabTop = composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.fab_expense))
+            .fetchSemanticsNode().boundsInRoot.top
+
+        assertTrue("balance bar must sit below the donut", barTop > donutTop)
+        assertTrue("balance bar must sit above the expense fab", barTop < expenseFabTop)
     }
 
     @Test
@@ -290,4 +346,8 @@ class DashboardContentUiTest {
 
     private fun targetLocale() = InstrumentationRegistry.getInstrumentation()
         .targetContext.resources.configuration.locales[0]
+
+    private companion object {
+        const val BALANCE_BAR_TAG = "dashboard_balance_bar"
+    }
 }

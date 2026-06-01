@@ -1,5 +1,6 @@
 package com.kshavrin.mymoney.feature.dashboard
 
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -32,7 +33,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
@@ -100,6 +103,7 @@ fun DashboardContent(
 
     ModalNavigationDrawer(
         drawerState = leftDrawerState,
+        gesturesEnabled = false,
         drawerContent = {
             ModalDrawerSheet(modifier = Modifier.width(drawerWidth)) {
                 LeftDrawerContent(state = state, onEvent = onEvent)
@@ -167,10 +171,28 @@ fun DashboardContent(
                     )
                 },
             ) { innerPadding ->
+                val swipeThresholdPx = with(LocalDensity.current) { 56.dp.toPx() }
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(innerPadding),
+                        .padding(innerPadding)
+                        .pointerInput(Unit) {
+                            var totalDrag = 0f
+                            detectHorizontalDragGestures(
+                                onDragStart = { totalDrag = 0f },
+                                onDragEnd = {
+                                    if (totalDrag <= -swipeThresholdPx) {
+                                        soundPlayer.play(SoundKey.SWIPE)
+                                        hapticPlayer.fire(HapticKind.SOFT)
+                                        onEvent(DashboardEvent.NextPeriod)
+                                    } else if (totalDrag >= swipeThresholdPx) {
+                                        soundPlayer.play(SoundKey.SWIPE)
+                                        hapticPlayer.fire(HapticKind.SOFT)
+                                        onEvent(DashboardEvent.PreviousPeriod)
+                                    }
+                                },
+                            ) { _, dragAmount -> totalDrag += dragAmount }
+                        },
                 ) {
                     Column(
                         modifier = Modifier.fillMaxSize(),

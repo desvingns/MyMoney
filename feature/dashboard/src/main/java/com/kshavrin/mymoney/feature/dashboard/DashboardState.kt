@@ -27,6 +27,8 @@ data class DashboardState(
 
 sealed interface DashboardEvent {
     data class PeriodChanged(val period: Period) : DashboardEvent
+    data object PreviousPeriod : DashboardEvent
+    data object NextPeriod : DashboardEvent
     data class AccountChanged(val accountId: Long) : DashboardEvent
     data object LeftDrawerToggled : DashboardEvent
     data object RightDrawerToggled : DashboardEvent

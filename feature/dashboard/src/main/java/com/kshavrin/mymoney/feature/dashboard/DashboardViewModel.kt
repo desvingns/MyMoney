@@ -208,6 +208,14 @@ class DashboardViewModel @Inject constructor(
                 _state.value = _state.value.copy(period = event.period)
                 recomputeBalance()
             }
+            DashboardEvent.PreviousPeriod -> {
+                _state.value = _state.value.copy(period = _state.value.period.previous())
+                recomputeBalance()
+            }
+            DashboardEvent.NextPeriod -> {
+                _state.value = _state.value.copy(period = _state.value.period.next())
+                recomputeBalance()
+            }
             is DashboardEvent.AccountChanged -> {
                 val acc = _state.value.accounts.firstOrNull { it.id == event.accountId }
                 _state.value = _state.value.copy(

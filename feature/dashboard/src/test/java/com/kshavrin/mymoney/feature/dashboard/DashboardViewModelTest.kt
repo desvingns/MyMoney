@@ -250,6 +250,71 @@ class DashboardViewModelTest {
     }
 
     @Test
+    fun `NextPeriod advances the displayed period and recomputes balances for the next period`() = runTest {
+        val nextMonth = Period.Month(YearMonth.now().plusMonths(1))
+        transactionRepository.seedExpenseSummary(cash.id, initialPeriod, summary(categoryId = 10L, amount = "30.00"))
+        transactionRepository.seedExpenseSummary(cash.id, nextMonth, summary(categoryId = 20L, amount = "70.00"))
+
+        val (viewModel, store) = buildViewModel()
+        try {
+            runCurrent()
+            assertEquals(initialPeriod, viewModel.state.value.period)
+
+            viewModel.onEvent(DashboardEvent.NextPeriod)
+
+            runCurrent()
+            assertEquals(nextMonth, viewModel.state.value.period)
+            assertEquals(listOf(20L), viewModel.state.value.slices.map { it.categoryId })
+            assertEquals(0, BigDecimal("70.00").compareTo(viewModel.state.value.balanceSnapshot!!.expense.amount))
+        } finally {
+            store.clear()
+            runCurrent()
+        }
+    }
+
+    @Test
+    fun `PreviousPeriod steps the displayed period back and recomputes balances for the prior period`() = runTest {
+        val prevMonth = Period.Month(YearMonth.now().minusMonths(1))
+        transactionRepository.seedExpenseSummary(cash.id, initialPeriod, summary(categoryId = 10L, amount = "30.00"))
+        transactionRepository.seedExpenseSummary(cash.id, prevMonth, summary(categoryId = 40L, amount = "55.00"))
+
+        val (viewModel, store) = buildViewModel()
+        try {
+            runCurrent()
+            assertEquals(initialPeriod, viewModel.state.value.period)
+
+            viewModel.onEvent(DashboardEvent.PreviousPeriod)
+
+            runCurrent()
+            assertEquals(prevMonth, viewModel.state.value.period)
+            assertEquals(listOf(40L), viewModel.state.value.slices.map { it.categoryId })
+            assertEquals(0, BigDecimal("55.00").compareTo(viewModel.state.value.balanceSnapshot!!.expense.amount))
+        } finally {
+            store.clear()
+            runCurrent()
+        }
+    }
+
+    @Test
+    fun `NextPeriod then PreviousPeriod returns to the original displayed period`() = runTest {
+        val (viewModel, store) = buildViewModel()
+        try {
+            runCurrent()
+            assertEquals(initialPeriod, viewModel.state.value.period)
+
+            viewModel.onEvent(DashboardEvent.NextPeriod)
+            runCurrent()
+            viewModel.onEvent(DashboardEvent.PreviousPeriod)
+            runCurrent()
+
+            assertEquals(initialPeriod, viewModel.state.value.period)
+        } finally {
+            store.clear()
+            runCurrent()
+        }
+    }
+
+    @Test
     fun `donut slices carry the iconKey copied from each category balance`() = runTest {
         transactionRepository.seedExpenseSummary(
             cash.id,

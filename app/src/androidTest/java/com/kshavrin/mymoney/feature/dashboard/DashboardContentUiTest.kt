@@ -16,6 +16,9 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeLeft
+import androidx.compose.ui.test.swipeRight
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -385,6 +388,136 @@ class DashboardContentUiTest {
             minimum = 0.60f,
             maximum = 0.68f,
         )
+    }
+
+    @Test
+    fun `swiping the dashboard left emits next period`() {
+        val capturedEvents = mutableListOf<DashboardEvent>()
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state = DashboardState(period = Period.Month(YearMonth.of(2026, 4)), isLoading = false),
+                    onEvent = { event -> capturedEvents += event },
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithTag(BALANCE_BAR_TAG)
+            .performTouchInput { swipeLeft() }
+
+        composeTestRule.runOnIdle {
+            assertTrue(
+                "a left swipe must request the next period",
+                capturedEvents.contains(DashboardEvent.NextPeriod),
+            )
+            assertTrue(
+                "a left swipe must not request the previous period",
+                !capturedEvents.contains(DashboardEvent.PreviousPeriod),
+            )
+        }
+    }
+
+    @Test
+    fun `swiping the dashboard right emits previous period`() {
+        val capturedEvents = mutableListOf<DashboardEvent>()
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state = DashboardState(period = Period.Month(YearMonth.of(2026, 4)), isLoading = false),
+                    onEvent = { event -> capturedEvents += event },
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithTag(BALANCE_BAR_TAG)
+            .performTouchInput { swipeRight() }
+
+        composeTestRule.runOnIdle {
+            assertTrue(
+                "a right swipe must request the previous period",
+                capturedEvents.contains(DashboardEvent.PreviousPeriod),
+            )
+            assertTrue(
+                "a right swipe must not request the next period",
+                !capturedEvents.contains(DashboardEvent.NextPeriod),
+            )
+        }
+    }
+
+    @Test
+    fun `horizontal swipe does not open the left drawer`() {
+        val capturedEvents = mutableListOf<DashboardEvent>()
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state = DashboardState(period = Period.Month(YearMonth.of(2026, 4)), isLoading = false),
+                    onEvent = { event -> capturedEvents += event },
+                )
+            }
+        }
+
+        // A rightward swipe from the left edge is the drawer-open gesture in Monefy; with the
+        // left drawer gesturesEnabled=false it must navigate the period instead of toggling the drawer.
+        composeTestRule
+            .onNodeWithTag(BALANCE_BAR_TAG)
+            .performTouchInput { swipeRight() }
+
+        composeTestRule.runOnIdle {
+            assertTrue(
+                "a horizontal swipe must not toggle the left drawer",
+                !capturedEvents.contains(DashboardEvent.LeftDrawerToggled),
+            )
+        }
+    }
+
+    @Test
+    fun `hamburger button still opens the left drawer`() {
+        val capturedEvents = mutableListOf<DashboardEvent>()
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state = DashboardState(isLoading = false),
+                    onEvent = { event -> capturedEvents += event },
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.dashboard_menu))
+            .assertIsEnabled()
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(DashboardEvent.LeftDrawerToggled), capturedEvents)
+        }
+    }
+
+    @Test
+    fun `period label peeks the adjacent periods around the current one`() {
+        val current = Period.Month(YearMonth.of(2026, 4))
+        val pattern = DateTimeFormatter.ofPattern("LLLL yyyy", targetLocale())
+        val currentLabel = YearMonth.of(2026, 4).atDay(1).format(pattern)
+        val previousLabel = YearMonth.of(2026, 3).atDay(1).format(pattern)
+        val nextLabel = YearMonth.of(2026, 5).atDay(1).format(pattern)
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state = DashboardState(period = current, isLoading = false),
+                    onEvent = {},
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText(currentLabel).assertIsDisplayed()
+        composeTestRule.onNodeWithText(previousLabel).assertIsDisplayed()
+        composeTestRule.onNodeWithText(nextLabel).assertIsDisplayed()
     }
 
     private fun targetString(resourceId: Int): String =

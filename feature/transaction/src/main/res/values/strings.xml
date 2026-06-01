@@ -10,6 +10,8 @@
     <string name="swap_mode">Swap</string>
     <string name="dismiss">Dismiss</string>
     <string name="pick_date">Pick date</string>
+    <string name="apply">Apply</string>
+    <string name="cancel">Cancel</string>
     <string name="choose_category_button">CHOOSE CATEGORY</string>
     <string name="add_category_cta">+ ADD</string>
     <string name="new_transfer_title">New transfer</string>

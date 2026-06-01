@@ -10,8 +10,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.Button
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -22,10 +20,8 @@ import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -49,10 +45,9 @@ import com.kshavrin.mymoney.core.ui.sound.SoundKey
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.feature.transaction.DateHeader
 import com.kshavrin.mymoney.feature.transaction.R
+import com.kshavrin.mymoney.feature.transaction.TransactionDateRangePickerDialog
 import com.kshavrin.mymoney.feature.transaction.categorygrid.CategoryGrid
 import java.math.BigDecimal
-import java.time.Instant
-import java.time.ZoneOffset
 import com.kshavrin.mymoney.core.designsystem.R as DesignsystemR
 
 @Composable
@@ -219,29 +214,11 @@ fun AddExpenseScreen(
     }
 
     if (datePickerVisible) {
-        val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = state.occurredAt.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
+        TransactionDateRangePickerDialog(
+            initialDate = state.occurredAt,
+            onDatePicked = { onEvent(AddExpenseEvent.DateChanged(it)) },
+            onDismiss = { datePickerVisible = false },
         )
-        DatePickerDialog(
-            onDismissRequest = { datePickerVisible = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    val millis = datePickerState.selectedDateMillis
-                    if (millis != null) {
-                        val picked = Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate()
-                        onEvent(AddExpenseEvent.DateChanged(picked))
-                    }
-                    datePickerVisible = false
-                }) { Text(stringResource(R.string.pick_date)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { datePickerVisible = false }) {
-                    Text(stringResource(R.string.dismiss))
-                }
-            },
-        ) {
-            DatePicker(state = datePickerState)
-        }
     }
 }
 

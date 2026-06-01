@@ -3,6 +3,7 @@ package com.kshavrin.mymoney.feature.transaction.expense
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -20,6 +21,7 @@ import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import com.kshavrin.mymoney.feature.transaction.R
 import com.kshavrin.mymoney.feature.transaction.categorygrid.CATEGORY_GRID_ADD_CELL_TAG
+import com.kshavrin.mymoney.feature.transaction.categorygrid.CATEGORY_GRID_TAG
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
@@ -49,6 +51,16 @@ class AddExpenseScreenUiTest {
         composeTestRule
             .onAllNodes(hasText("7") and hasClickAction())
             .assertCountEquals(1)
+        composeTestRule
+            .onNodeWithText(targetString(R.string.note_hint))
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText(targetString(R.string.choose_category_button))
+            .assertIsDisplayed()
+            .assertIsNotEnabled()
+        composeTestRule
+            .onNodeWithTag(CATEGORY_GRID_ADD_CELL_TAG)
+            .assertDoesNotExist()
     }
 
     @Test
@@ -66,6 +78,7 @@ class AddExpenseScreenUiTest {
 
         composeTestRule
             .onNodeWithText(targetString(R.string.choose_category_button))
+            .assertIsEnabled()
             .performClick()
 
         composeTestRule.runOnIdle {
@@ -167,12 +180,24 @@ class AddExpenseScreenUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 AddExpenseScreen(
-                    state = AddExpenseState(categoryStep = true),
+                    state = AddExpenseState(
+                        categories = listOf(category(id = 10L, name = "Food")),
+                        categoryStep = true,
+                    ),
                     onEvent = { event -> capturedEvents += event },
                 )
             }
         }
 
+        composeTestRule
+            .onNodeWithTag(CATEGORY_GRID_TAG)
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithContentDescription("Food")
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithTag(CATEGORY_GRID_ADD_CELL_TAG)
+            .assertIsDisplayed()
         composeTestRule
             .onNode(hasText("0") and hasClickAction())
             .performClick()

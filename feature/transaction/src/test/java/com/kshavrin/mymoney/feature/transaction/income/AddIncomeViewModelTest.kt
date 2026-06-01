@@ -17,6 +17,8 @@ import com.kshavrin.mymoney.feature.transaction.fake.FakeTransactionRepository
 import com.kshavrin.mymoney.feature.transaction.util.MainDispatcherRule
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -147,6 +149,33 @@ class AddIncomeViewModelTest {
     }
 
     @Test
+    fun `SelectCategoryClicked with zero amount keeps income in amount step and shows amount error`() = runTest {
+        val viewModel = buildViewModel()
+
+        viewModel.onEvent(AddIncomeEvent.SelectCategoryClicked)
+
+        assertFalse(viewModel.state.value.categoryStep)
+        assertEquals(R.string.error_enter_amount_first, viewModel.state.value.errorBannerRes)
+        assertEquals(0, transactionRepo.upserted.size)
+    }
+
+    @Test
+    fun `BackToAmount leaves income category step and clears error banner`() = runTest {
+        val viewModel = buildViewModel()
+        viewModel.onEvent(AddIncomeEvent.KeypadDigit(6))
+        viewModel.onEvent(AddIncomeEvent.SelectCategoryClicked)
+        viewModel.onEvent(AddIncomeEvent.SaveClicked)
+
+        assertTrue(viewModel.state.value.categoryStep)
+        assertEquals(R.string.error_choose_category_first, viewModel.state.value.errorBannerRes)
+
+        viewModel.onEvent(AddIncomeEvent.BackToAmount)
+
+        assertFalse(viewModel.state.value.categoryStep)
+        assertNull(viewModel.state.value.errorBannerRes)
+    }
+
+    @Test
     fun `AddCategoryClicked emits NavigateToCreateCategory`() = runTest {
         val viewModel = buildViewModel()
 
@@ -183,6 +212,21 @@ class AddIncomeViewModelTest {
         assertEquals(salaryCategory.id, saved.categoryId)
         assertEquals(cashAccount.id, saved.accountId)
         assertEquals(usd.id, saved.currencyId)
+    }
+
+    @Test
+    fun `CategoryPicked emits NavigateBack and increments income saved signal`() = runTest {
+        val viewModel = buildViewModel()
+        viewModel.onEvent(AddIncomeEvent.KeypadDigit(9))
+        viewModel.onEvent(AddIncomeEvent.SelectCategoryClicked)
+
+        viewModel.actions.test {
+            viewModel.onEvent(AddIncomeEvent.CategoryPicked(salaryCategory.id))
+
+            assertEquals(AddIncomeAction.NavigateBack, awaitItem())
+            assertEquals(1L, viewModel.state.value.savedSignal)
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 
     @Test

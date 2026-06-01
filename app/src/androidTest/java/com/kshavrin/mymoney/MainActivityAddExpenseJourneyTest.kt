@@ -15,7 +15,6 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
-import androidx.test.espresso.Espresso.pressBack
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.feature.dashboard.R as DashboardR
@@ -68,7 +67,7 @@ class MainActivityAddExpenseJourneyTest {
             composeRule.onNode(hasText(label) and hasClickAction()).performClick()
         }
 
-        pressBack()
+        composeRule.onNodeWithText(targetString(TransactionR.string.choose_category_button)).performClick()
         composeRule
             .onNodeWithTag(CATEGORY_GRID_TAG)
             .performScrollToNode(hasContentDescription("Food"))

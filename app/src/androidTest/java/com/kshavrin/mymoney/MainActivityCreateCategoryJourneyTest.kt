@@ -14,7 +14,6 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
-import androidx.test.espresso.Espresso.pressBack
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.domain.repository.CategoryRepository
@@ -76,7 +75,7 @@ class MainActivityCreateCategoryJourneyTest {
         waitForText(targetString(TransactionR.string.new_expense_title))
         composeRule.onNode(hasText("0") and hasClickAction()).performClick()
         composeRule.onNode(hasText("9") and hasClickAction()).performClick()
-        pressBack()
+        composeRule.onNodeWithText(targetString(TransactionR.string.choose_category_button)).performClick()
 
         composeRule
             .onNodeWithTag(CATEGORY_GRID_TAG)

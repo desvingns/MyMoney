@@ -18,6 +18,7 @@ import com.kshavrin.mymoney.feature.transaction.fake.FakeTransactionRepository
 import com.kshavrin.mymoney.feature.transaction.util.MainDispatcherRule
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -225,6 +226,33 @@ class AddExpenseViewModelTest {
     }
 
     @Test
+    fun `SelectCategoryClicked with zero amount keeps amount step and shows amount error`() = runTest {
+        val viewModel = buildViewModel()
+
+        viewModel.onEvent(AddExpenseEvent.SelectCategoryClicked)
+
+        assertFalse(viewModel.state.value.categoryStep)
+        assertEquals(R.string.error_enter_amount_first, viewModel.state.value.errorBannerRes)
+        assertEquals(0, transactionRepo.upserted.size)
+    }
+
+    @Test
+    fun `BackToAmount leaves category step and clears error banner`() = runTest {
+        val viewModel = buildViewModel()
+        viewModel.onEvent(AddExpenseEvent.KeypadDigit(5))
+        viewModel.onEvent(AddExpenseEvent.SelectCategoryClicked)
+        viewModel.onEvent(AddExpenseEvent.SaveClicked)
+
+        assertTrue(viewModel.state.value.categoryStep)
+        assertEquals(R.string.error_choose_category_first, viewModel.state.value.errorBannerRes)
+
+        viewModel.onEvent(AddExpenseEvent.BackToAmount)
+
+        assertFalse(viewModel.state.value.categoryStep)
+        assertNull(viewModel.state.value.errorBannerRes)
+    }
+
+    @Test
     fun `AddCategoryClicked emits NavigateToCreateCategory`() = runTest {
         val viewModel = buildViewModel()
 
@@ -263,6 +291,21 @@ class AddExpenseViewModelTest {
         assertEquals(usd.id, saved.currencyId)
         assertNotNull(viewModel.state.value.category)
         assertEquals(10L, viewModel.state.value.category?.id)
+    }
+
+    @Test
+    fun `CategoryPicked emits NavigateBack and increments saved signal`() = runTest {
+        val viewModel = buildViewModel()
+        viewModel.onEvent(AddExpenseEvent.KeypadDigit(7))
+        viewModel.onEvent(AddExpenseEvent.SelectCategoryClicked)
+
+        viewModel.actions.test {
+            viewModel.onEvent(AddExpenseEvent.CategoryPicked(10L))
+
+            assertEquals(AddExpenseAction.NavigateBack, awaitItem())
+            assertEquals(1L, viewModel.state.value.savedSignal)
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 
     @Test

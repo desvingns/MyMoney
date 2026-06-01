@@ -53,6 +53,7 @@ import org.junit.rules.TestWatcher
 import org.junit.runner.Description
 import java.math.BigDecimal
 import java.time.Instant
+import java.time.LocalDate
 import java.time.YearMonth
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -71,6 +72,15 @@ class DashboardViewModelTest {
         decimalDigits = 2,
         isActive = true,
         sortOrder = 0,
+    )
+    private val eur = Currency(
+        id = 2L,
+        code = "EUR",
+        symbol = "EUR",
+        name = "Euro",
+        decimalDigits = 2,
+        isActive = true,
+        sortOrder = 1,
     )
     private val cash = account(id = 1L, name = "Cash", isDefault = true)
     private val card = account(id = 2L, name = "Card", isDefault = false)
@@ -177,6 +187,62 @@ class DashboardViewModelTest {
             assertNotNull(viewModel.state.value.overBudgetAmount)
             assertEquals(0, BigDecimal("12.00").compareTo(viewModel.state.value.overBudgetAmount!!.amount))
             assertTrue(viewModel.state.value.slices.single { it.categoryId == 20L }.hasBudgetAlert)
+        } finally {
+            store.clear()
+            runCurrent()
+        }
+    }
+
+    @Test
+    fun `changing account updates the current currency and persists the selected account id`() = runTest {
+        val euroCard = account(id = 3L, name = "Euro card", isDefault = false, currencyId = eur.id)
+        accountRepository.seed(cash, euroCard)
+        currencyRepository.seed(usd, eur)
+
+        val (viewModel, store) = buildViewModel()
+        try {
+            runCurrent()
+
+            viewModel.onEvent(DashboardEvent.AccountChanged(euroCard.id))
+
+            runCurrent()
+            assertEquals(euroCard, viewModel.state.value.currentAccount)
+            assertEquals(eur, viewModel.state.value.currentCurrency)
+            assertEquals(euroCard.id, settingsRepository.currentSettings().defaultAccountId)
+        } finally {
+            store.clear()
+            runCurrent()
+        }
+    }
+
+    @Test
+    fun `custom range period change stores the range and recomputes dashboard balances`() = runTest {
+        val customRange = Period.CustomRange(
+            start = LocalDate.of(2026, 4, 10),
+            end = LocalDate.of(2026, 4, 11),
+        )
+        transactionRepository.seedExpenseSummary(
+            cash.id,
+            customRange,
+            summary(categoryId = 10L, amount = "40.00"),
+        )
+        transactionRepository.seedIncomeSummary(
+            cash.id,
+            customRange,
+            summary(categoryId = 200L, amount = "100.00"),
+        )
+
+        val (viewModel, store) = buildViewModel()
+        try {
+            runCurrent()
+
+            viewModel.onEvent(DashboardEvent.PeriodChanged(customRange))
+
+            runCurrent()
+            assertEquals(customRange, viewModel.state.value.period)
+            assertNotNull(viewModel.state.value.balanceSnapshot)
+            assertEquals(0, BigDecimal("40.00").compareTo(viewModel.state.value.balanceSnapshot!!.expense.amount))
+            assertEquals(listOf(10L), viewModel.state.value.slices.map { it.categoryId })
         } finally {
             store.clear()
             runCurrent()
@@ -463,10 +529,10 @@ class DashboardViewModelTest {
         createdAt = Instant.EPOCH,
     )
 
-    private fun account(id: Long, name: String, isDefault: Boolean) = Account(
+    private fun account(id: Long, name: String, isDefault: Boolean, currencyId: Long = usd.id) = Account(
         id = id,
         name = name,
-        currencyId = usd.id,
+        currencyId = currencyId,
         initialBalance = BigDecimal.ZERO,
         type = AccountType.Cash,
         colorHex = "#7AC794",
@@ -483,6 +549,8 @@ private class FakeDashboardAppSettingsRepository(initial: AppSettings) : AppSett
     private val state = MutableStateFlow(initial)
 
     override val settings: Flow<AppSettings> = state.asStateFlow()
+
+    fun currentSettings(): AppSettings = state.value
 
     override suspend fun update(transform: (AppSettings) -> AppSettings) {
         state.value = transform(state.value)

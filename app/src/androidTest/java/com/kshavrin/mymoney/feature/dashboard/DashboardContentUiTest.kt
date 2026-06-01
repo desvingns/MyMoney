@@ -11,6 +11,7 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -23,6 +24,7 @@ import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
 import com.kshavrin.mymoney.core.domain.model.BalanceSnapshot
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Money
+import com.kshavrin.mymoney.core.domain.model.Period
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import org.junit.Assert.assertEquals
@@ -31,6 +33,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.math.BigDecimal
+import java.time.YearMonth
+import java.time.format.DateTimeFormatter
 
 @RunWith(AndroidJUnit4::class)
 class DashboardContentUiTest {
@@ -209,8 +213,11 @@ class DashboardContentUiTest {
             .onNode(hasText(expectedBalanceText))
             .assertIsDisplayed()
         composeTestRule
-            .onNodeWithText("${targetString(DesignSystemR.string.balance_bar_label)} 12345.67", substring = true)
-            .assertDoesNotExist()
+            .onAllNodesWithText(
+                "${targetString(DesignSystemR.string.balance_bar_label)} 12345.67",
+                substring = true,
+            )
+            .assertCountEquals(0)
 
         composeTestRule.onNodeWithTag(BALANCE_BAR_TAG).performClick()
 
@@ -315,31 +322,25 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `left drawer manage accounts row stays enabled in empty dashboard and emits accounts event`() {
-        val capturedEvents = mutableListOf<DashboardEvent>()
+    fun `dashboard shows the current period as a static localized label`() {
+        val period = Period.Month(YearMonth.of(2026, 4))
+        val expectedLabel = YearMonth.of(2026, 4)
+            .atDay(1)
+            .format(DateTimeFormatter.ofPattern("LLLL yyyy", targetLocale()))
 
         composeTestRule.setContent {
             MyMoneyTheme {
                 DashboardContent(
-                    state = DashboardState(isLoading = false),
-                    onEvent = { event -> capturedEvents += event },
+                    state = DashboardState(period = period, isLoading = false),
+                    onEvent = {},
                 )
             }
         }
 
+        composeTestRule.onNodeWithText(expectedLabel).assertIsDisplayed()
         composeTestRule
-            .onNodeWithContentDescription(targetString(R.string.dashboard_menu))
-            .performClick()
-
-        composeTestRule
-            .onNode(hasText(targetString(R.string.left_drawer_manage_accounts)) and hasClickAction())
-            .assertIsDisplayed()
-            .assertIsEnabled()
-            .performClick()
-
-        composeTestRule.runOnIdle {
-            assertEquals(listOf(DashboardEvent.AccountsClicked), capturedEvents)
-        }
+            .onAllNodes(hasText(expectedLabel) and hasClickAction())
+            .assertCountEquals(0)
     }
 
     @Test
@@ -358,7 +359,7 @@ class DashboardContentUiTest {
             .performClick()
 
         assertDrawerWidthRatio(
-            drawerLabel = targetString(R.string.left_drawer_manage_accounts),
+            drawerLabel = targetString(R.string.period_day),
             minimum = 0.60f,
             maximum = 0.68f,
         )
@@ -400,7 +401,8 @@ class DashboardContentUiTest {
         val drawerRow = composeTestRule.onNode(hasText(drawerLabel) and hasClickAction())
         drawerRow.assertIsDisplayed()
 
-        val rootWidth = composeTestRule.onRoot().fetchSemanticsNode().boundsInRoot.width
+        val rootWidth = InstrumentationRegistry.getInstrumentation()
+            .targetContext.resources.displayMetrics.widthPixels.toFloat()
         val rowWidth = drawerRow.fetchSemanticsNode().boundsInRoot.width
         val horizontalPadding = with(composeTestRule.density) { (Spacing.l * 2).toPx() }
         val ratio = (rowWidth + horizontalPadding) / rootWidth

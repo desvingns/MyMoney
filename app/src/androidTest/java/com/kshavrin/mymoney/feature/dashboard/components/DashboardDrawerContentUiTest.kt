@@ -1,12 +1,15 @@
 package com.kshavrin.mymoney.feature.dashboard.components
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -63,7 +66,7 @@ class DashboardDrawerContentUiTest {
     }
 
     @Test
-    fun `left drawer account rows keep selection currency header and callbacks`() {
+    fun `left drawer currency header expands to account selection and keeps all accounts disabled`() {
         val capturedEvents = mutableListOf<DashboardEvent>()
         val currency = currency()
         val cash = account(id = 1L, name = "Cash")
@@ -74,6 +77,7 @@ class DashboardDrawerContentUiTest {
                 LeftDrawerContent(
                     state = DashboardState(
                         accounts = listOf(cash, card),
+                        currencies = listOf(currency),
                         currentAccount = cash,
                         currentCurrency = currency,
                         isLoading = false,
@@ -83,7 +87,19 @@ class DashboardDrawerContentUiTest {
             }
         }
 
+        composeTestRule.onNode(hasText(currency.name) and hasClickAction()).assertIsDisplayed()
         composeTestRule.onNodeWithText(currency.code).assertIsDisplayed()
+        composeTestRule.onAllNodesWithText(cash.name).assertCountEquals(0)
+
+        composeTestRule.onNode(hasText(currency.name) and hasClickAction()).performClick()
+
+        composeTestRule
+            .onNodeWithText(targetString(R.string.left_drawer_all_accounts))
+            .assertIsDisplayed()
+            .assertIsNotEnabled()
+        composeTestRule
+            .onAllNodesWithText(targetString(R.string.left_drawer_manage_accounts))
+            .assertCountEquals(0)
         accountRow(cash.name)
             .assertIsDisplayed()
             .assertIsSelected()
@@ -91,20 +107,13 @@ class DashboardDrawerContentUiTest {
             .assertIsDisplayed()
             .assertIsNotSelected()
             .performClick()
-        drawerRow(R.string.left_drawer_manage_accounts)
-            .assertIsDisplayed()
-            .assertIsEnabled()
-            .assertIsNotSelected()
-            .performClick()
+        composeTestRule
+            .onAllNodesWithText(targetString(R.string.left_drawer_all_accounts))
+            .assertCountEquals(0)
+        composeTestRule.onAllNodesWithText(card.name).assertCountEquals(0)
 
         composeTestRule.runOnIdle {
-            assertEquals(
-                listOf(
-                    DashboardEvent.AccountChanged(card.id),
-                    DashboardEvent.AccountsClicked,
-                ),
-                capturedEvents,
-            )
+            assertEquals(listOf(DashboardEvent.AccountChanged(card.id)), capturedEvents)
         }
     }
 

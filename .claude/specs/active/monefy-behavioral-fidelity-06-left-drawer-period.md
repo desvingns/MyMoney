@@ -1,7 +1,7 @@
 # Left drawer: account dropdown + period selector; remove dashboard period strip (S01/S02)
 Epic: monefy-behavioral-fidelity
 Order: 06 of 09
-Status: draft
+Status: active
 Depends-on: —
 Date: 2026-06-01
 

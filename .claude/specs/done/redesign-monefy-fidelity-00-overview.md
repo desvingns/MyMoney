@@ -1,7 +1,7 @@
 # Redesign to Monefy v1.0 visual fidelity — epic overview
 Epic: redesign-monefy-fidelity
 Order: 00 (index)
-Status: backlog
+Status: done
 Date: 2026-05-30
 
 ## Goal
@@ -22,18 +22,19 @@ User decisions (2026-05-30):
 | 01 | `-01-category-icons.md` | Icon registry + category-picker grid (S09/S10) | — | ✅ **done** (→ `done/`) |
 | 02 | `-02-donut-ring.md` | Donut perimeter icons (S01/S05) | 01 | ✅ **done** (→ `done/`) |
 | 03 | `-03-form-chrome.md` | Add/transfer form chrome (S03/S06/S07) | — (icons help) | ✅ **done** (→ `done/`) |
-| 04 | `-04-dashboard-chrome.md` | Top bar + balance pill + ± FABs (S01) | — | backlog |
-| 05 | `-05-drawers.md` | Left/right drawers (S02/S04) | 01 (icons) | backlog |
+| 04 | `-04-dashboard-chrome.md` | Top bar + balance pill + ± FABs (S01) | — | ✅ **done** (→ `done/`) |
+| 05 | `-05-drawers.md` | Left/right drawers (S02/S04) | 01 (icons) | ✅ **done** (→ `done/`) |
 | 06 | `-06-embed-grid.md` | Embed grid into add-form, drop picker route (S06/S07) | 01 | ✅ **done** (→ `done/`) |
 
 Recommended order: 01 → 02 → 03 → 04 → 05. SPEC 02 hard-depends on SPEC 01's registry; 03/04/05
 are independent of each other. **SPEC 06** was promoted from divergence #3 below once the embed work
 went in flight; it depends on 01 and supersedes 01's separate-route choice (reusing 01's registry).
 
-> Status as of 2026-05-31: **01/02/03/06 shipped & pushed to origin/main** — 01 (`078a269`/`25bb66e`/`73ab68d`),
-> 06 (`b94abb7`), 02 (`65c08c7`/`8a9d5ec`), 03 (`90ad3eb`/`08db651`). SPEC 03 dropped its category-bar
-> constraint #4 (SPEC 06 already embedded the grid — divergence #3). **04, 05 not started** (their target
-> components still match each SPEC's gap). Recommended next: **04** (dashboard chrome) or **05** (drawers).
+> Status as of 2026-06-01: **EPIC COMPLETE — all 6 SPECs shipped & pushed to origin/main.**
+> 01 (`078a269`/`25bb66e`/`73ab68d`), 06 (`b94abb7`), 02 (`65c08c7`/`8a9d5ec`), 03 (`90ad3eb`/`08db651`),
+> 04 (`9c430cf`/`7e251d3`), 05 (`f4a2b4e`/`1aa8391`, closed `cf16605`). SPEC 03 dropped its
+> category-bar constraint #4 (SPEC 06 already embedded the grid — divergence #3). All SPEC files and
+> this index are in `done/`.
 
 ## Cross-cutting divergences (behavioural, NOT pure design — flagged, do NOT change silently)
 1. **Left drawer content** — reference shows currency + period-type; MyMoney shows accounts. SPEC 05

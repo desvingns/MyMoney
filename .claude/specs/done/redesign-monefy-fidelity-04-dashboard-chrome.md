@@ -1,7 +1,7 @@
 # Dashboard chrome: top bar, balance pill, two ± FABs (S01)
 Epic: redesign-monefy-fidelity
 Order: 04 of 05
-Status: backlog
+Status: done
 Depends-on: —
 Date: 2026-05-30
 
@@ -24,5 +24,12 @@ CONSTRAINTS:
 TwoFabLayout uses solid-filled FABs 56dp (reference is the inverse: white fill + coloured ring + coloured icon, larger); the top bar is a plain title (no wordmark/currency subtitle, right uses a hamburger not an overflow); the balance pill lacks the "Баланс" label + grouped formatting.
 
 ## Implementation links
-- commit: (pending)
-- files:  (pending)
+- commit: `9c430cf` (feat: restyle dashboard chrome) + `7e251d3` (test: cover dashboard chrome restyle). Local, not pushed.
+- files:
+  - core/designsystem/src/main/java/com/kshavrin/mymoney/core/designsystem/pill/MonefyBalancePill.kt
+  - feature/dashboard/src/main/java/com/kshavrin/mymoney/feature/dashboard/DashboardScreen.kt
+  - feature/dashboard/src/main/java/com/kshavrin/mymoney/feature/dashboard/components/TwoFabLayout.kt
+  - feature/dashboard/src/main/res/values/strings.xml
+  - feature/dashboard/src/main/res/values-ru/strings.xml
+  - app/src/androidTest/java/com/kshavrin/mymoney/feature/dashboard/DashboardContentUiTest.kt
+  - feature/dashboard/src/test/java/com/kshavrin/mymoney/feature/dashboard/DashboardViewModelTest.kt

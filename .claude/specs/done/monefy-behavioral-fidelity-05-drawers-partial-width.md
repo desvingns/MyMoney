@@ -1,7 +1,7 @@
 # Both navigation drawers open as partial-width panels (S02/S04)
 Epic: monefy-behavioral-fidelity
 Order: 05 of 09
-Status: draft
+Status: done
 Depends-on: —
 Date: 2026-06-01
 
@@ -25,4 +25,8 @@ near-full-width sheet that covers almost the whole window. The reference shows ~
 with the dashboard dimmed behind.
 
 ## Implementation links
-(pending — fill commit + changed files after `/cmp --feature --next`)
+- commit: 46784bfee40fdfa3a872aed8fde7c552f6b2e804
+- tests: b518816d98f27691d6a922cd2ab0922ca90a6242
+- files:
+  - feature/dashboard/src/main/java/com/kshavrin/mymoney/feature/dashboard/DashboardScreen.kt
+  - app/src/androidTest/java/com/kshavrin/mymoney/feature/dashboard/DashboardContentUiTest.kt

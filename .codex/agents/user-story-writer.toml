@@ -1,4 +1,6 @@
 name = "user-story-writer"
+model = "gpt-5.4"
+model_reasoning_effort = "high"
 description = "MP Spec author: write user stories linked to requirements."
 sandbox_mode = "workspace-write"
 

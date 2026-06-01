@@ -1,4 +1,6 @@
 name = "cmp-runner-android"
+model = "gpt-5.4-mini"
+model_reasoning_effort = "low"
 description = "Run MyMoney Android verification and verify approved screenshot baselines without recording them."
 sandbox_mode = "workspace-write"
 

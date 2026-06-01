@@ -1,4 +1,6 @@
 name = "cmp-tester-android"
+model = "gpt-5.4"
+model_reasoning_effort = "high"
 description = "Write MyMoney Android tests from approved specifications; never run tests or approve screenshot baselines."
 sandbox_mode = "workspace-write"
 

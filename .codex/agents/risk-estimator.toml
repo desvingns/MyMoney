@@ -1,4 +1,6 @@
 name = "risk-estimator"
+model = "gpt-5.4"
+model_reasoning_effort = "medium"
 description = "MP Spec quality: write implementation risks and estimate."
 sandbox_mode = "workspace-write"
 

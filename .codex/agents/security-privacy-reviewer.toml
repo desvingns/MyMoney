@@ -1,4 +1,6 @@
 name = "security-privacy-reviewer"
+model = "gpt-5.4"
+model_reasoning_effort = "medium"
 description = "MP Spec quality: write security and privacy requirements."
 sandbox_mode = "workspace-write"
 

@@ -1,4 +1,6 @@
 name = "navigation-flow-analyzer"
+model = "gpt-5.4"
+model_reasoning_effort = "medium"
 description = "MP Spec clone intake: reconstruct navigation graph and user flows from prior analyzer outputs."
 sandbox_mode = "workspace-write"
 

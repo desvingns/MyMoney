@@ -1,4 +1,6 @@
 name = "requirements-author"
+model = "gpt-5.4"
+model_reasoning_effort = "high"
 description = "MP Spec author: write EARS requirements from confirmed inventory."
 sandbox_mode = "workspace-write"
 

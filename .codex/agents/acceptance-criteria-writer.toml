@@ -1,4 +1,6 @@
 name = "acceptance-criteria-writer"
+model = "gpt-5.4"
+model_reasoning_effort = "high"
 description = "MP Spec author: write UI-agnostic Gherkin acceptance criteria."
 sandbox_mode = "workspace-write"
 

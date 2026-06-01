@@ -1,4 +1,6 @@
 name = "play-store-scraper"
+model = "gpt-5.4-mini"
+model_reasoning_effort = "low"
 description = "MP Spec clone intake: summarize Google Play listing evidence as structured JSON."
 sandbox_mode = "workspace-write"
 

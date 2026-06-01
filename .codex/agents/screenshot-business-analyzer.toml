@@ -1,4 +1,6 @@
 name = "screenshot-business-analyzer"
+model = "gpt-5.5"
+model_reasoning_effort = "high"
 description = "MP Spec clone intake: infer screens, features, rules, and ambiguities from screenshots."
 sandbox_mode = "workspace-write"
 

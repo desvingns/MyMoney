@@ -1,4 +1,6 @@
 name = "data-model-extractor"
+model = "gpt-5.4"
+model_reasoning_effort = "high"
 description = "MP Spec clone intake: infer entities, relationships, persistence needs, and sync/offline signals."
 sandbox_mode = "workspace-write"
 

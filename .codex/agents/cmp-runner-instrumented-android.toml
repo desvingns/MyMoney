@@ -1,4 +1,6 @@
 name = "cmp-runner-instrumented-android"
+model = "gpt-5.4-mini"
+model_reasoning_effort = "low"
 description = "Run ONE MyMoney instrumented test class on the Pixel_5_API_34 AVD via the host-AVD helper and report parsed pass/fail. Device suite only — not JVM unit tests."
 sandbox_mode = "workspace-write"
 

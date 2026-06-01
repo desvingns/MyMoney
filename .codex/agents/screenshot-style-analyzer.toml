@@ -1,4 +1,6 @@
 name = "screenshot-style-analyzer"
+model = "gpt-5.5"
+model_reasoning_effort = "high"
 description = "MP Spec clone intake: extract visual system, layout, typography, colors, and interaction style from screenshots."
 sandbox_mode = "workspace-write"
 

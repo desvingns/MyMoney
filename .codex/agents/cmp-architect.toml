@@ -1,4 +1,6 @@
 name = "cmp-architect"
+model = "gpt-5.4"
+model_reasoning_effort = "high"
 description = "Brainstorm MyMoney approaches before an approved SPEC and return a BRAINSTORM block."
 sandbox_mode = "read-only"
 

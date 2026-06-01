@@ -1,4 +1,6 @@
 name = "spec-evaluator"
+model = "gpt-5.5"
+model_reasoning_effort = "xhigh"
 description = "MP Spec evaluator: check consistency, grounding, completeness, and traceability."
 sandbox_mode = "workspace-write"
 

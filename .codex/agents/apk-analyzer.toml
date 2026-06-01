@@ -1,4 +1,6 @@
 name = "apk-analyzer"
+model = "gpt-5.4"
+model_reasoning_effort = "medium"
 description = "MP Spec clone intake: inspect APK-derived facts such as manifest, resources, permissions, strings, SDKs, and package metadata."
 sandbox_mode = "workspace-write"
 

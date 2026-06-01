@@ -1,4 +1,6 @@
 name = "nfr-analyzer"
+model = "gpt-5.4"
+model_reasoning_effort = "medium"
 description = "MP Spec quality: write measurable non-functional requirements."
 sandbox_mode = "workspace-write"
 

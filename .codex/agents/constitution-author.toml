@@ -1,4 +1,6 @@
 name = "constitution-author"
+model = "gpt-5.4-mini"
+model_reasoning_effort = "medium"
 description = "MP Spec author: write the spec constitution from project conventions and intake evidence."
 sandbox_mode = "workspace-write"
 

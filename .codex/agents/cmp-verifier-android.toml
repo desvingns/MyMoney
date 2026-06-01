@@ -1,4 +1,6 @@
 name = "cmp-verifier-android"
+model = "gpt-5.4-mini"
+model_reasoning_effort = "medium"
 description = "Verify MyMoney Android wiring and produce the manual pre-push checklist."
 sandbox_mode = "read-only"
 

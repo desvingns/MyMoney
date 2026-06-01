@@ -1,4 +1,6 @@
 name = "cmp-reviewer-android"
+model = "gpt-5.4-mini"
+model_reasoning_effort = "medium"
 description = "Review MyMoney Android changes for architecture boundary violations."
 sandbox_mode = "read-only"
 

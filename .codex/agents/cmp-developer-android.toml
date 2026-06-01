@@ -1,4 +1,6 @@
 name = "cmp-developer-android"
+model = "gpt-5.5"
+model_reasoning_effort = "high"
 description = "Implement approved MyMoney Android feature or bugfix specifications without writing tests."
 sandbox_mode = "workspace-write"
 

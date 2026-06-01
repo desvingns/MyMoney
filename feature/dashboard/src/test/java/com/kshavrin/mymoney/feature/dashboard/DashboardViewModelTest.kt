@@ -9,12 +9,15 @@ import com.kshavrin.mymoney.core.datastore.model.AppSettings
 import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.AccountType
 import com.kshavrin.mymoney.core.domain.model.Budget
+import com.kshavrin.mymoney.core.domain.model.Category
+import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Period
 import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
 import com.kshavrin.mymoney.core.domain.repository.AccountRepository
 import com.kshavrin.mymoney.core.domain.repository.BudgetRepository
+import com.kshavrin.mymoney.core.domain.repository.CategoryRepository
 import com.kshavrin.mymoney.core.domain.repository.CategorySummary
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
@@ -27,6 +30,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -75,6 +79,7 @@ class DashboardViewModelTest {
     private lateinit var transactionRepository: FakeDashboardTransactionRepository
     private lateinit var budgetRepository: FakeDashboardBudgetRepository
     private lateinit var settingsRepository: FakeDashboardAppSettingsRepository
+    private lateinit var categoryRepository: FakeDashboardCategoryRepository
 
     @Before
     fun setUp() {
@@ -85,6 +90,7 @@ class DashboardViewModelTest {
         settingsRepository = FakeDashboardAppSettingsRepository(
             AppSettings(defaultAccountId = cash.id, firstPositiveSeen = true),
         )
+        categoryRepository = FakeDashboardCategoryRepository()
     }
 
     @Test
@@ -334,6 +340,7 @@ class DashboardViewModelTest {
                 appSettingsRepository = settingsRepository,
                 transactionRepository = transactionRepository,
                 observeBudgetAlertsUseCase = alerts,
+                categoryRepository = categoryRepository,
             ) as T
         }
         return ViewModelProvider(store, factory)[DashboardViewModel::class.java] to store
@@ -429,6 +436,23 @@ private class FakeDashboardBudgetRepository : BudgetRepository {
     override suspend fun findTotalBudget(): Budget? = state.value.firstOrNull { it.categoryId == null }
     override suspend fun upsert(budget: Budget): Long = budget.id
     override suspend fun deactivate(id: Long) = Unit
+}
+
+private class FakeDashboardCategoryRepository : CategoryRepository {
+    private val state = MutableStateFlow<List<Category>>(emptyList())
+
+    fun seed(vararg categories: Category) {
+        state.value = categories.toList()
+    }
+
+    override fun observeByKind(kind: CategoryKind): Flow<List<Category>> =
+        state.map { list -> list.filter { it.kind == kind } }
+
+    override fun observeAll(): Flow<List<Category>> = state.asStateFlow()
+    override suspend fun findById(id: Long): Category? = state.value.firstOrNull { it.id == id }
+    override suspend fun upsert(category: Category): Long = category.id
+    override suspend fun upsertAll(categories: List<Category>) = Unit
+    override suspend fun archive(id: Long) = Unit
 }
 
 private class FakeDashboardTransactionRepository : TransactionRepository {

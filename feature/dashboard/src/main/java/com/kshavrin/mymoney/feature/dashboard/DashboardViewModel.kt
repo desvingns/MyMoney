@@ -6,8 +6,11 @@ import androidx.lifecycle.viewModelScope
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
 import com.kshavrin.mymoney.core.designsystem.donut.CategorySlice
 import com.kshavrin.mymoney.core.domain.model.BalanceSnapshot
+import com.kshavrin.mymoney.core.domain.model.Category
+import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.core.domain.model.DomainEvent
 import com.kshavrin.mymoney.core.domain.repository.AccountRepository
+import com.kshavrin.mymoney.core.domain.repository.CategoryRepository
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
 import com.kshavrin.mymoney.core.domain.usecase.BalanceCalculator
@@ -36,6 +39,7 @@ class DashboardViewModel @Inject constructor(
     private val appSettingsRepository: AppSettingsRepository,
     private val transactionRepository: TransactionRepository,
     private val observeBudgetAlertsUseCase: ObserveBudgetAlertsUseCase,
+    private val categoryRepository: CategoryRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(DashboardState())
@@ -55,8 +59,29 @@ class DashboardViewModel @Inject constructor(
             selectBudgetAlerts()
             observeTransactionChanges()
             observeBudgetAlerts()
+            observeExpenseCategories()
         }
     }
+
+    private fun observeExpenseCategories() {
+        viewModelScope.launch {
+            categoryRepository.observeByKind(CategoryKind.Expense).collect { categories ->
+                _state.value = _state.value.copy(
+                    expenseCategoryPlaceholders = categories
+                        .sortedBy { it.sortOrder }
+                        .map(::categoryToPlaceholder),
+                )
+            }
+        }
+    }
+
+    private fun categoryToPlaceholder(category: Category): CategorySlice = CategorySlice(
+        categoryId = category.id,
+        color = parseHexColor(category.colorHex),
+        fraction = 0f,
+        label = category.name,
+        iconKey = category.iconKey,
+    )
 
     private suspend fun observeAccountsAndCurrencies() {
         val settings = appSettingsRepository.settings.first()

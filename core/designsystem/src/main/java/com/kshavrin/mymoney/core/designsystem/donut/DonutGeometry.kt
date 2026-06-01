@@ -16,6 +16,12 @@ object DonutGeometry {
         }
     }
 
+    fun evenAngles(count: Int): List<Float> {
+        if (count <= 0) return emptyList()
+        val step = 360f / count
+        return (0 until count).map { -90f + it * step }
+    }
+
     fun midAngleRadians(arc: SliceArc): Float {
         val midDegrees = arc.startAngleDegrees + arc.sweepDegrees / 2f
         return Math.toRadians(midDegrees.toDouble()).toFloat()

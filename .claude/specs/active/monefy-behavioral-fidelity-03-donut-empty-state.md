@@ -1,7 +1,7 @@
 # Empty-state donut: gray ring + expense-category icons + 0/0 center (S01)
 Epic: monefy-behavioral-fidelity
 Order: 03 of 09
-Status: draft
+Status: active
 Depends-on: 02 (center renderer + isExpense)
 Date: 2026-06-01
 

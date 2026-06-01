@@ -234,6 +234,7 @@ fun DashboardContent(
                                 modifier = Modifier.fillMaxSize(),
                                 currencySymbol = state.currentCurrency?.symbol ?: "",
                                 decimalDigits = state.currentCurrency?.decimalDigits ?: 2,
+                                emptyStateIcons = state.expenseCategoryPlaceholders,
                                 onSliceClick = { slice ->
                                     onEvent(DashboardEvent.SliceClicked(slice.categoryId))
                                 },

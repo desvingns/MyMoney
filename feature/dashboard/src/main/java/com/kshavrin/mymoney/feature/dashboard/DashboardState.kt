@@ -16,6 +16,7 @@ data class DashboardState(
     val currentCurrency: Currency? = null,
     val balanceSnapshot: BalanceSnapshot? = null,
     val slices: List<CategorySlice> = emptyList(),
+    val expenseCategoryPlaceholders: List<CategorySlice> = emptyList(),
     val budgetAlertCategoryIds: Set<Long> = emptySet(),
     val overBudgetAmount: Money? = null,
     val isLoading: Boolean = true,

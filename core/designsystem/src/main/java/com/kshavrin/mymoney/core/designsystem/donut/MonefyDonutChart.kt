@@ -16,8 +16,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.vector.VectorPainter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
@@ -48,14 +50,16 @@ fun MonefyDonutChart(
     modifier: Modifier = Modifier,
     currencySymbol: String = "",
     decimalDigits: Int = 2,
+    emptyStateIcons: List<CategorySlice> = emptyList(),
     onSliceClick: ((CategorySlice) -> Unit)? = null,
+    onEmptyCategoryClick: ((CategorySlice) -> Unit)? = null,
     animationSpec: AnimationSpec<Float> = spring(dampingRatio = 0.7f, stiffness = 300f),
 ) {
     val arcs = remember(slices) { DonutGeometry.computeSliceArcs(slices) }
     val animationKey = slices.map { it.categoryId to it.fraction }
     val progress = remember { Animatable(0f) }
     val textMeasurer = rememberTextMeasurer()
-    val iconPainters = slices
+    val iconPainters = (slices + emptyStateIcons)
         .distinctBy { it.iconKey }
         .associate { it.iconKey to rememberVectorPainter(categoryIcon(it.iconKey)) }
 
@@ -132,6 +136,37 @@ fun MonefyDonutChart(
             val outerRadius = min(size.width, size.height) / 2f * 0.75f
             val strokeWidth = outerRadius * 0.3f
 
+            if (slices.isEmpty()) {
+                drawArc(
+                    color = outlineColor,
+                    startAngle = 0f,
+                    sweepAngle = 360f,
+                    useCenter = false,
+                    topLeft = Offset(
+                        center.x - outerRadius + strokeWidth / 2f,
+                        center.y - outerRadius + strokeWidth / 2f,
+                    ),
+                    size = Size(
+                        (outerRadius - strokeWidth / 2f) * 2f,
+                        (outerRadius - strokeWidth / 2f) * 2f,
+                    ),
+                    style = Stroke(width = strokeWidth),
+                )
+                val angles = DonutGeometry.evenAngles(emptyStateIcons.size)
+                emptyStateIcons.forEachIndexed { index, slice ->
+                    val angleRadians = Math.toRadians(angles[index].toDouble()).toFloat()
+                    drawCategoryIcon(
+                        center = center,
+                        outerRadius = outerRadius,
+                        strokeWidth = strokeWidth,
+                        angleRadians = angleRadians,
+                        leaderColor = outlineColor,
+                        tintColor = slice.color,
+                        iconPainter = iconPainters[slice.iconKey],
+                    )
+                }
+            }
+
             arcs.forEach { arc ->
                 val animatedSweep = arc.sweepDegrees * progress.value
                 drawArc(
@@ -178,37 +213,16 @@ fun MonefyDonutChart(
             arcs.forEach { arc ->
                 if (progress.value < 1f) return@forEach
                 val midRadians = DonutGeometry.midAngleRadians(arc)
-                val arcMidRadius = outerRadius - strokeWidth / 2f
-                val iconRadius = outerRadius + 24.dp.toPx()
+                val iconCenter = drawCategoryIcon(
+                    center = center,
+                    outerRadius = outerRadius,
+                    strokeWidth = strokeWidth,
+                    angleRadians = midRadians,
+                    leaderColor = outlineColor,
+                    tintColor = arc.slice.color,
+                    iconPainter = iconPainters[arc.slice.iconKey],
+                )
                 val iconSize = 18.dp.toPx()
-                val arcMidPoint = Offset(
-                    center.x + arcMidRadius * cos(midRadians),
-                    center.y + arcMidRadius * sin(midRadians),
-                )
-                val iconCenter = Offset(
-                    center.x + iconRadius * cos(midRadians),
-                    center.y + iconRadius * sin(midRadians),
-                )
-                drawLine(
-                    color = outlineColor,
-                    start = arcMidPoint,
-                    end = iconCenter,
-                    strokeWidth = 1.dp.toPx(),
-                )
-                val iconPainter = iconPainters[arc.slice.iconKey]
-                if (iconPainter != null) {
-                    translate(
-                        left = iconCenter.x - iconSize / 2f,
-                        top = iconCenter.y - iconSize / 2f,
-                    ) {
-                        with(iconPainter) {
-                            draw(
-                                size = Size(iconSize, iconSize),
-                                colorFilter = ColorFilter.tint(arc.slice.color),
-                            )
-                        }
-                    }
-                }
                 if (arc.slice.hasBudgetAlert) {
                     val badgeCenter = Offset(
                         x = iconCenter.x + iconSize * 0.35f,
@@ -249,4 +263,46 @@ fun MonefyDonutChart(
             )
         }
     }
+}
+
+private fun DrawScope.drawCategoryIcon(
+    center: Offset,
+    outerRadius: Float,
+    strokeWidth: Float,
+    angleRadians: Float,
+    leaderColor: Color,
+    tintColor: Color,
+    iconPainter: VectorPainter?,
+): Offset {
+    val arcMidRadius = outerRadius - strokeWidth / 2f
+    val iconRadius = outerRadius + 24.dp.toPx()
+    val iconSize = 18.dp.toPx()
+    val arcMidPoint = Offset(
+        center.x + arcMidRadius * cos(angleRadians),
+        center.y + arcMidRadius * sin(angleRadians),
+    )
+    val iconCenter = Offset(
+        center.x + iconRadius * cos(angleRadians),
+        center.y + iconRadius * sin(angleRadians),
+    )
+    drawLine(
+        color = leaderColor,
+        start = arcMidPoint,
+        end = iconCenter,
+        strokeWidth = 1.dp.toPx(),
+    )
+    if (iconPainter != null) {
+        translate(
+            left = iconCenter.x - iconSize / 2f,
+            top = iconCenter.y - iconSize / 2f,
+        ) {
+            with(iconPainter) {
+                draw(
+                    size = Size(iconSize, iconSize),
+                    colorFilter = ColorFilter.tint(tintColor),
+                )
+            }
+        }
+    }
+    return iconCenter
 }

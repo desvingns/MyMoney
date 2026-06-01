@@ -7,6 +7,7 @@
     <string name="dashboard_settings_menu">Settings</string>
     <string name="dashboard_balance">Balance</string>
     <string name="dashboard_balance_unavailable">Balance &#8212;</string>
+    <string name="dashboard_balance_unavailable_amount">&#8212;</string>
     <string name="dashboard_over_budget">Over by %1$s</string>
 
     <string name="period_today">Today</string>

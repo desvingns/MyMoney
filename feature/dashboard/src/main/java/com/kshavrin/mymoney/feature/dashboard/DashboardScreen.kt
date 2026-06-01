@@ -2,13 +2,11 @@ package com.kshavrin.mymoney.feature.dashboard
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
@@ -44,7 +42,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.kshavrin.mymoney.core.common.money.MoneyFormatter
 import com.kshavrin.mymoney.core.designsystem.confetti.MonefyConfetti
 import com.kshavrin.mymoney.core.designsystem.donut.MonefyDonutChart
-import com.kshavrin.mymoney.core.designsystem.pill.MonefyBalancePill
+import com.kshavrin.mymoney.core.designsystem.balancebar.MonefyBalanceBar
 import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.ui.feedback.LocalHapticPlayer
 import com.kshavrin.mymoney.core.ui.feedback.LocalSoundPlayer
@@ -188,38 +186,14 @@ fun DashboardContent(
                         )
                         Spacer(modifier = Modifier.height(Spacing.m))
 
-                        val balanceText = formatBalance(
+                        val balanceAmount = formatBalanceAmount(
                             state = state,
-                            label = stringResource(R.string.dashboard_balance),
-                            unavailableText = stringResource(R.string.dashboard_balance_unavailable),
+                            unavailableText = stringResource(R.string.dashboard_balance_unavailable_amount),
                             locale = resourceLocale,
                         )
                         val overBudgetText = state.overBudgetAmount?.let { overage ->
                             stringResource(R.string.dashboard_over_budget, formatMoney(overage, resourceLocale))
                         }
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            MonefyBalancePill(
-                                text = balanceText,
-                                isPositive = (state.balanceSnapshot?.net?.amount?.signum() ?: 1) >= 0,
-                                onClick = { onEvent(DashboardEvent.BalanceCardClicked) },
-                                modifier = Modifier.testTag("dashboard_balance_pill"),
-                            )
-                            if (overBudgetText != null) {
-                                Spacer(modifier = Modifier.width(Spacing.s))
-                                Surface(
-                                    shape = MaterialTheme.shapes.extraLarge,
-                                    color = MaterialTheme.colorScheme.errorContainer,
-                                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                                ) {
-                                    Text(
-                                        text = overBudgetText,
-                                        style = MaterialTheme.typography.labelMedium,
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                                    )
-                                }
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(Spacing.l))
 
                         Box(
                             modifier = Modifier
@@ -239,6 +213,32 @@ fun DashboardContent(
                                     onEvent(DashboardEvent.SliceClicked(slice.categoryId))
                                 },
                             )
+                        }
+
+                        Spacer(modifier = Modifier.height(Spacing.l))
+
+                        MonefyBalanceBar(
+                            amount = balanceAmount,
+                            isPositive = (state.balanceSnapshot?.net?.amount?.signum() ?: 1) >= 0,
+                            onClick = { onEvent(DashboardEvent.BalanceCardClicked) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = Spacing.xl)
+                                .testTag("dashboard_balance_bar"),
+                        )
+                        if (overBudgetText != null) {
+                            Spacer(modifier = Modifier.height(Spacing.s))
+                            Surface(
+                                shape = MaterialTheme.shapes.extraLarge,
+                                color = MaterialTheme.colorScheme.errorContainer,
+                                contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                            ) {
+                                Text(
+                                    text = overBudgetText,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                )
+                            }
                         }
 
                         Spacer(modifier = Modifier.height(Spacing.xl))
@@ -286,21 +286,19 @@ private fun DashboardTopBarTitle(
     }
 }
 
-private fun formatBalance(
+private fun formatBalanceAmount(
     state: DashboardState,
-    label: String,
     unavailableText: String,
     locale: Locale,
 ): String {
     val net = state.balanceSnapshot?.net ?: return unavailableText
-    val formatted = MoneyFormatter.format(
+    return MoneyFormatter.format(
         amount = net.amount,
         currencySymbol = net.currency.symbol,
         decimalDigits = net.currency.decimalDigits,
         locale = locale,
         symbolPosition = MoneyFormatter.SymbolPosition.AFTER,
     )
-    return "$label $formatted"
 }
 
 private fun formatMoney(money: Money, locale: Locale): String = MoneyFormatter.format(

@@ -1,7 +1,7 @@
 # Balance bar with triple-line glyphs, above the ± buttons (S01)
 Epic: monefy-behavioral-fidelity
 Order: 04 of 09
-Status: draft
+Status: done
 Depends-on: —
 Date: 2026-06-01
 
@@ -27,4 +27,14 @@ User note #7 (part b). MonefyBalancePill is rendered in a Row ABOVE the chart
 list. After SPEC-02 the donut center carries the income/expense totals, so the bar needs only net.
 
 ## Implementation links
-(pending — fill commit + changed files after `/cmp --feature --next`)
+Commits:
+- `9befee3` feat — MonefyBalanceBar (:core:designsystem) + DashboardScreen relayout (pill row removed; period → donut → bar → ± FABs; over-budget chip moved below bar; BalanceCardClicked kept); EN+RU strings.
+- `491cfb5` fix — drop invalid `assertDoesNotExist` import in MonefyDonutChartUiTest (unblocked :core:designsystem androidTest compile).
+- `b15eb6d` test — MonefyBalanceBarUiTest (new) + migrated DashboardContentUiTest & MainActivityAddExpenseJourneyTest from `dashboard_balance_pill` → `dashboard_balance_bar`.
+
+Changed files:
+- core/designsystem/.../balancebar/MonefyBalanceBar.kt (NEW), core/designsystem res values + values-ru (balance_bar_label).
+- feature/dashboard/.../DashboardScreen.kt, feature/dashboard res values + values-ru.
+- core/designsystem/.../balancebar/MonefyBalanceBarUiTest.kt (NEW); app androidTest DashboardContentUiTest.kt, MainActivityAddExpenseJourneyTest.kt; core/designsystem androidTest MonefyDonutChartUiTest.kt (import fix).
+
+Verification: 141 unit tests pass, lintDebug ok; androidTest compiles (:core:designsystem, :app). Instrumented compose-ui tests are device-run (defer to `/cmp --device` slice). MonefyBalancePill.kt left unused (no callers) per file-safety rule.

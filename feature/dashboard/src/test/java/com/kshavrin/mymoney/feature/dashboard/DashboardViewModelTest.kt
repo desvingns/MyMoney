@@ -199,6 +199,60 @@ class DashboardViewModelTest {
     }
 
     @Test
+    fun `donut slices contain only expense categories with fractions over total expense summing to one`() = runTest {
+        transactionRepository.seedExpenseSummary(
+            cash.id,
+            initialPeriod,
+            summary(categoryId = 10L, amount = "30.00"),
+            summary(categoryId = 20L, amount = "70.00"),
+        )
+        transactionRepository.seedIncomeSummary(
+            cash.id,
+            initialPeriod,
+            summary(categoryId = 200L, amount = "500.00"),
+        )
+
+        val (viewModel, store) = buildViewModel()
+        try {
+            runCurrent()
+
+            val slices = viewModel.state.value.slices
+            assertEquals(setOf(10L, 20L), slices.map { it.categoryId }.toSet())
+            assertFalse(slices.any { it.categoryId == 200L })
+
+            val totalFraction = slices.sumOf { it.fraction.toDouble() }
+            assertEquals(1.0, totalFraction, 0.0001)
+
+            assertEquals(0.30f, slices.single { it.categoryId == 10L }.fraction, 0.0001f)
+            assertEquals(0.70f, slices.single { it.categoryId == 20L }.fraction, 0.0001f)
+        } finally {
+            store.clear()
+            runCurrent()
+        }
+    }
+
+    @Test
+    fun `donut slices are empty when there are no expenses even if income exists`() = runTest {
+        transactionRepository.seedIncomeSummary(
+            cash.id,
+            initialPeriod,
+            summary(categoryId = 200L, amount = "500.00"),
+        )
+
+        val (viewModel, store) = buildViewModel()
+        try {
+            runCurrent()
+
+            assertTrue(viewModel.state.value.slices.isEmpty())
+            assertEquals(0, BigDecimal("0.00").compareTo(viewModel.state.value.balanceSnapshot!!.expense.amount))
+            assertEquals(0, BigDecimal("500.00").compareTo(viewModel.state.value.balanceSnapshot!!.income.amount))
+        } finally {
+            store.clear()
+            runCurrent()
+        }
+    }
+
+    @Test
     fun `dashboard chrome navigation events emit their actions`() = runTest {
         val (viewModel, store) = buildViewModel()
         val actions = mutableListOf<DashboardAction>()
@@ -380,9 +434,14 @@ private class FakeDashboardBudgetRepository : BudgetRepository {
 private class FakeDashboardTransactionRepository : TransactionRepository {
     private val state = MutableStateFlow<List<Transaction>>(emptyList())
     private val expenseSummaries = mutableMapOf<Pair<Long, Period>, List<CategorySummary>>()
+    private val incomeSummaries = mutableMapOf<Pair<Long, Period>, List<CategorySummary>>()
 
     fun seedExpenseSummary(accountId: Long, period: Period, vararg summaries: CategorySummary) {
         expenseSummaries[accountId to period] = summaries.toList()
+    }
+
+    fun seedIncomeSummary(accountId: Long, period: Period, vararg summaries: CategorySummary) {
+        incomeSummaries[accountId to period] = summaries.toList()
     }
 
     override fun observeRecent(limit: Int): Flow<List<Transaction>> = state.asStateFlow()
@@ -398,7 +457,7 @@ private class FakeDashboardTransactionRepository : TransactionRepository {
     ): List<CategorySummary> = if (kind == TransactionKind.Expense) {
         expenseSummaries[accountId to period].orEmpty()
     } else {
-        emptyList()
+        incomeSummaries[accountId to period].orEmpty()
     }
     override suspend fun searchByNote(query: String, limit: Int): List<Transaction> = emptyList()
     override suspend fun upsert(transaction: Transaction): Long = transaction.id

@@ -78,6 +78,33 @@ class MonefyDonutChartUiTest {
             .assertExists()
     }
 
+    @Test
+    fun `center totals expose both income and expense figures when a currency symbol is supplied`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                MonefyDonutChart(
+                    income = BigDecimal("500.00"),
+                    expense = BigDecimal("124.00"),
+                    slices = listOf(slice(label = "Food", fraction = 1.0f)),
+                    modifier = Modifier.size(240.dp),
+                    currencySymbol = "$",
+                    decimalDigits = 2,
+                    animationSpec = snap(),
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithContentDescription(
+                expectedDescription(
+                    income = "500.00",
+                    expense = "124.00",
+                    slices = listOf("Food" to 100),
+                ),
+            )
+            .assertExists()
+    }
+
     private fun setChart(
         income: BigDecimal,
         expense: BigDecimal,

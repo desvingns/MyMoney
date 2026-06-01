@@ -3,6 +3,7 @@ package com.kshavrin.mymoney.feature.transaction.income
 import com.kshavrin.mymoney.core.designsystem.amountfield.AmountFieldEvent
 import com.kshavrin.mymoney.core.designsystem.keypad.KeypadEvent
 import com.kshavrin.mymoney.core.designsystem.keypad.Operator
+import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -69,6 +70,16 @@ class AddIncomeScreenContractTest {
         assertEquals(
             AddIncomeEvent.NoteChanged("salary"),
             dispatch(AmountFieldEvent.NoteChanged("salary")),
+        )
+    }
+
+    @Test
+    fun `date change routes to DateChanged with the selected start date`() {
+        val startDate = LocalDate.of(2026, 5, 17)
+
+        assertEquals(
+            AddIncomeEvent.DateChanged(startDate),
+            dispatch(AmountFieldEvent.DateChanged(startDate)),
         )
     }
 

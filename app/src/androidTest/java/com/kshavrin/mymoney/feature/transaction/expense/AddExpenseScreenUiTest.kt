@@ -11,7 +11,6 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
-import androidx.test.espresso.Espresso.pressBack
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
@@ -21,7 +20,7 @@ import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import com.kshavrin.mymoney.feature.transaction.R
 import com.kshavrin.mymoney.feature.transaction.categorygrid.CATEGORY_GRID_ADD_CELL_TAG
-import com.kshavrin.mymoney.feature.transaction.categorygrid.CATEGORY_GRID_TAG
+import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -37,7 +36,7 @@ class AddExpenseScreenUiTest {
     val composeTestRule = createComposeRule()
 
     @Test
-    fun `default form embeds category grid and keeps keypad hidden`() {
+    fun `default amount step shows keypad and hides category grid`() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 AddExpenseScreen(
@@ -48,35 +47,29 @@ class AddExpenseScreenUiTest {
         }
 
         composeTestRule
-            .onNodeWithTag(CATEGORY_GRID_TAG)
-            .assertIsDisplayed()
-        composeTestRule
-            .onNodeWithContentDescription("Food")
-            .assertIsDisplayed()
-        composeTestRule
             .onAllNodes(hasText("7") and hasClickAction())
-            .assertCountEquals(0)
+            .assertCountEquals(1)
     }
 
     @Test
-    fun `amount field emits amount clicked event`() {
+    fun `choose category emits select category event`() {
         val capturedEvents = mutableListOf<AddExpenseEvent>()
 
         composeTestRule.setContent {
             MyMoneyTheme {
                 AddExpenseScreen(
-                    state = AddExpenseState(),
+                    state = AddExpenseState(amount = BigDecimal.ONE, amountInput = "1"),
                     onEvent = { event -> capturedEvents += event },
                 )
             }
         }
 
         composeTestRule
-            .onNode(hasText("0") and hasClickAction())
+            .onNodeWithText(targetString(R.string.choose_category_button))
             .performClick()
 
         composeTestRule.runOnIdle {
-            assertEquals(listOf(AddExpenseEvent.AmountClicked), capturedEvents)
+            assertEquals(listOf(AddExpenseEvent.SelectCategoryClicked), capturedEvents)
         }
     }
 
@@ -87,7 +80,7 @@ class AddExpenseScreenUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 AddExpenseScreen(
-                    state = AddExpenseState(keypadVisible = true),
+                    state = AddExpenseState(),
                     onEvent = { event -> capturedEvents += event },
                 )
             }
@@ -120,7 +113,7 @@ class AddExpenseScreenUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 AddExpenseScreen(
-                    state = AddExpenseState(keypadVisible = true),
+                    state = AddExpenseState(),
                     onEvent = { event -> capturedEvents += event },
                 )
             }
@@ -152,7 +145,7 @@ class AddExpenseScreenUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 AddExpenseScreen(
-                    state = AddExpenseState(keypadVisible = true),
+                    state = AddExpenseState(),
                     onEvent = { event -> capturedEvents += event },
                 )
             }
@@ -168,25 +161,24 @@ class AddExpenseScreenUiTest {
     }
 
     @Test
-    fun `dismissing keypad sheet emits expense keypad dismissed event`() {
+    fun `category step amount field emits back to amount event`() {
         val capturedEvents = mutableListOf<AddExpenseEvent>()
 
         composeTestRule.setContent {
             MyMoneyTheme {
                 AddExpenseScreen(
-                    state = AddExpenseState(keypadVisible = true),
+                    state = AddExpenseState(categoryStep = true),
                     onEvent = { event -> capturedEvents += event },
                 )
             }
         }
 
         composeTestRule
-            .onNode(hasText("1") and hasClickAction())
-            .assertIsDisplayed()
-        pressBack()
+            .onNode(hasText("0") and hasClickAction())
+            .performClick()
 
         composeTestRule.runOnIdle {
-            assertEquals(listOf(AddExpenseEvent.KeypadDismissed), capturedEvents)
+            assertEquals(listOf(AddExpenseEvent.BackToAmount), capturedEvents)
         }
     }
 
@@ -221,10 +213,10 @@ class AddExpenseScreenUiTest {
     }
 
     @Test
-    fun `picking a different date emits only the changed date event`() {
+    fun `applying a range emits the selected start date event`() {
         val capturedEvents = mutableListOf<AddExpenseEvent>()
         val initialDate = LocalDate.of(2026, 5, 17)
-        val chosenDate = initialDate.plusDays(1)
+        val rangeEndDate = initialDate.plusDays(1)
 
         composeTestRule.setContent {
             MyMoneyTheme {
@@ -238,11 +230,11 @@ class AddExpenseScreenUiTest {
         composeTestRule
             .onNodeWithContentDescription(targetString(DesignSystemR.string.amountfield_pick_date_cd))
             .performClick()
-        composeTestRule.onNodeWithText(dateLabel(chosenDate)).performClick()
-        composeTestRule.onNodeWithText(targetString(R.string.pick_date)).performClick()
+        composeTestRule.onNodeWithText(dateLabel(rangeEndDate)).performClick()
+        composeTestRule.onNodeWithText(targetString(R.string.apply)).performClick()
 
         composeTestRule.runOnIdle {
-            assertEquals(listOf(AddExpenseEvent.DateChanged(chosenDate)), capturedEvents)
+            assertEquals(listOf(AddExpenseEvent.DateChanged(initialDate)), capturedEvents)
         }
     }
 
@@ -275,7 +267,10 @@ class AddExpenseScreenUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 AddExpenseScreen(
-                    state = AddExpenseState(categories = listOf(category(id = 10L, name = "Food"))),
+                    state = AddExpenseState(
+                        categories = listOf(category(id = 10L, name = "Food")),
+                        categoryStep = true,
+                    ),
                     onEvent = { event -> capturedEvents += event },
                 )
             }
@@ -298,7 +293,10 @@ class AddExpenseScreenUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 AddExpenseScreen(
-                    state = AddExpenseState(categories = listOf(category(id = 10L, name = "Food"))),
+                    state = AddExpenseState(
+                        categories = listOf(category(id = 10L, name = "Food")),
+                        categoryStep = true,
+                    ),
                     onEvent = { event -> capturedEvents += event },
                 )
             }

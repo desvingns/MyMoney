@@ -3,6 +3,7 @@ package com.kshavrin.mymoney.feature.transaction.expense
 import com.kshavrin.mymoney.core.designsystem.amountfield.AmountFieldEvent
 import com.kshavrin.mymoney.core.designsystem.keypad.KeypadEvent
 import com.kshavrin.mymoney.core.designsystem.keypad.Operator
+import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -15,8 +16,7 @@ import org.junit.Test
  *
  *   - the embedded [com.kshavrin.mymoney.feature.transaction.categorygrid.CategoryGrid]
  *     (a 3-column grid INSIDE the form, not a category bar / single button);
- *   - the amount box (rendered via `AmountFieldSection`, keypad shown in a
- *     bottom sheet on `AmountClicked`);
+ *   - the amount box and embedded keypad in the amount-entry step;
  *   - the amount-box ✕ clear affordance mapping to `KeypadBackspace`;
  *   - the keypad digit/operator/dot/equals routing into the form events.
  *
@@ -64,8 +64,8 @@ import org.junit.Test
  *         composeTestRule.runOnIdle { assertTrue(events.any { it is AddExpenseEvent.CategoryPicked }) }
  *     }
  *
- *     @Test fun `keypad is shown in a sheet when keypadVisible`() {
- *         setContent(loaded().copy(keypadVisible = true))
+ *     @Test fun `keypad is shown in the amount-entry step`() {
+ *         setContent(loaded().copy(categoryStep = false))
  *         composeTestRule.onNodeWithText("7").assertIsDisplayed()
  *     }
  * }
@@ -112,6 +112,16 @@ class AddExpenseScreenContractTest {
         assertEquals(
             AddExpenseEvent.NoteChanged("groceries"),
             dispatch(AmountFieldEvent.NoteChanged("groceries")),
+        )
+    }
+
+    @Test
+    fun `date change routes to DateChanged with the selected start date`() {
+        val startDate = LocalDate.of(2026, 5, 17)
+
+        assertEquals(
+            AddExpenseEvent.DateChanged(startDate),
+            dispatch(AmountFieldEvent.DateChanged(startDate)),
         )
     }
 

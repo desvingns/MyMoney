@@ -8,6 +8,7 @@ import com.kshavrin.mymoney.core.domain.model.Category
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
+import com.kshavrin.mymoney.feature.transaction.R
 import com.kshavrin.mymoney.feature.transaction.fake.FakeAccountRepository
 import com.kshavrin.mymoney.feature.transaction.fake.FakeAppSettingsRepository
 import com.kshavrin.mymoney.feature.transaction.fake.FakeCategoryRepository
@@ -136,14 +137,13 @@ class AddIncomeViewModelTest {
     }
 
     @Test
-    fun `AmountClicked shows keypad and KeypadDismissed hides it`() = runTest {
+    fun `SelectCategoryClicked with positive amount opens income category step`() = runTest {
         val viewModel = buildViewModel()
 
-        viewModel.onEvent(AddIncomeEvent.AmountClicked)
-        assertTrue(viewModel.state.value.keypadVisible)
+        viewModel.onEvent(AddIncomeEvent.KeypadDigit(6))
+        viewModel.onEvent(AddIncomeEvent.SelectCategoryClicked)
 
-        viewModel.onEvent(AddIncomeEvent.KeypadDismissed)
-        assertEquals(false, viewModel.state.value.keypadVisible)
+        assertTrue(viewModel.state.value.categoryStep)
     }
 
     @Test
@@ -159,12 +159,13 @@ class AddIncomeViewModelTest {
     }
 
     @Test
-    fun `CategoryPicked with zero amount opens keypad and does not save`() = runTest {
+    fun `CategoryPicked with zero amount returns to amount step and does not save`() = runTest {
         val viewModel = buildViewModel()
 
         viewModel.onEvent(AddIncomeEvent.CategoryPicked(salaryCategory.id))
 
-        assertTrue(viewModel.state.value.keypadVisible)
+        assertEquals(false, viewModel.state.value.categoryStep)
+        assertEquals(R.string.error_enter_amount_first, viewModel.state.value.errorBannerRes)
         assertEquals(0, transactionRepo.upserted.size)
     }
 

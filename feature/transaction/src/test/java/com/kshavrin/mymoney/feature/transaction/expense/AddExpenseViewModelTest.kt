@@ -214,14 +214,14 @@ class AddExpenseViewModelTest {
     }
 
     @Test
-    fun `AmountClicked shows keypad and KeypadDismissed hides it`() = runTest {
+    fun `SelectCategoryClicked with positive amount opens category step`() = runTest {
         val viewModel = buildViewModel()
 
-        viewModel.onEvent(AddExpenseEvent.AmountClicked)
-        assertTrue(viewModel.state.value.keypadVisible)
+        viewModel.onEvent(AddExpenseEvent.KeypadDigit(5))
+        viewModel.onEvent(AddExpenseEvent.SelectCategoryClicked)
 
-        viewModel.onEvent(AddExpenseEvent.KeypadDismissed)
-        assertEquals(false, viewModel.state.value.keypadVisible)
+        assertTrue(viewModel.state.value.categoryStep)
+        assertNull(viewModel.state.value.errorBannerRes)
     }
 
     @Test
@@ -237,12 +237,13 @@ class AddExpenseViewModelTest {
     }
 
     @Test
-    fun `CategoryPicked with zero amount opens keypad and does not save`() = runTest {
+    fun `CategoryPicked with zero amount returns to amount step and does not save`() = runTest {
         val viewModel = buildViewModel()
 
         viewModel.onEvent(AddExpenseEvent.CategoryPicked(10L))
 
-        assertTrue(viewModel.state.value.keypadVisible)
+        assertEquals(false, viewModel.state.value.categoryStep)
+        assertEquals(R.string.error_enter_amount_first, viewModel.state.value.errorBannerRes)
         assertEquals(0, transactionRepo.upserted.size)
     }
 

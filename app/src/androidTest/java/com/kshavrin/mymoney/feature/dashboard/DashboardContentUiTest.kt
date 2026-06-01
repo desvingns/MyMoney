@@ -23,6 +23,7 @@ import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
 import com.kshavrin.mymoney.core.domain.model.BalanceSnapshot
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Money
+import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -341,11 +342,74 @@ class DashboardContentUiTest {
         }
     }
 
+    @Test
+    fun `left drawer opens as a partial panel instead of a near full width sheet`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state = DashboardState(isLoading = false),
+                    onEvent = {},
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.dashboard_menu))
+            .performClick()
+
+        assertDrawerWidthRatio(
+            drawerLabel = targetString(R.string.left_drawer_manage_accounts),
+            minimum = 0.60f,
+            maximum = 0.68f,
+        )
+    }
+
+    @Test
+    fun `right drawer opens as a partial panel instead of a near full width sheet`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state = DashboardState(isLoading = false),
+                    onEvent = {},
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.dashboard_overflow_menu))
+            .performClick()
+
+        assertDrawerWidthRatio(
+            drawerLabel = targetString(R.string.right_drawer_settings),
+            minimum = 0.60f,
+            maximum = 0.68f,
+        )
+    }
+
     private fun targetString(resourceId: Int): String =
         InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)
 
     private fun targetLocale() = InstrumentationRegistry.getInstrumentation()
         .targetContext.resources.configuration.locales[0]
+
+    private fun assertDrawerWidthRatio(
+        drawerLabel: String,
+        minimum: Float,
+        maximum: Float,
+    ) {
+        val drawerRow = composeTestRule.onNode(hasText(drawerLabel) and hasClickAction())
+        drawerRow.assertIsDisplayed()
+
+        val rootWidth = composeTestRule.onRoot().fetchSemanticsNode().boundsInRoot.width
+        val rowWidth = drawerRow.fetchSemanticsNode().boundsInRoot.width
+        val horizontalPadding = with(composeTestRule.density) { (Spacing.l * 2).toPx() }
+        val ratio = (rowWidth + horizontalPadding) / rootWidth
+
+        assertTrue(
+            "drawer width ratio $ratio must stay within [$minimum, $maximum]",
+            ratio in minimum..maximum,
+        )
+    }
 
     private companion object {
         const val BALANCE_BAR_TAG = "dashboard_balance_bar"

@@ -19,6 +19,7 @@ import com.kshavrin.mymoney.core.domain.model.TransactionKind
 import com.kshavrin.mymoney.core.domain.repository.AccountRepository
 import com.kshavrin.mymoney.core.domain.repository.BudgetRepository
 import com.kshavrin.mymoney.core.domain.repository.CategoryRepository
+import com.kshavrin.mymoney.core.domain.repository.CategoryGroup
 import com.kshavrin.mymoney.core.domain.repository.CategorySummary
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
@@ -714,6 +715,7 @@ private class FakeDashboardTransactionRepository : TransactionRepository {
     } else {
         incomeSummaries[accountId to period].orEmpty()
     }
+    override suspend fun getCategoryGroups(accountId: Long, period: Period): List<CategoryGroup> = emptyList()
     override suspend fun searchByNote(query: String, limit: Int): List<Transaction> = emptyList()
     override suspend fun upsert(transaction: Transaction): Long = transaction.id
     override suspend fun softDelete(id: Long, now: Instant) = Unit

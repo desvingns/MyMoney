@@ -1,6 +1,7 @@
 package com.kshavrin.mymoney.core.domain.repository
 
 import androidx.paging.PagingData
+import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.core.domain.model.Period
 import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
@@ -14,6 +15,7 @@ interface TransactionRepository {
     suspend fun findById(id: Long): Transaction?
     suspend fun findByPeriod(accountId: Long, period: Period): List<Transaction>
     suspend fun getCategorySummary(accountId: Long, period: Period, kind: TransactionKind): List<CategorySummary>
+    suspend fun getCategoryGroups(accountId: Long, period: Period): List<CategoryGroup>
     suspend fun searchByNote(query: String, limit: Int = 200): List<Transaction>
     suspend fun upsert(transaction: Transaction): Long
     suspend fun softDelete(id: Long, now: Instant)
@@ -30,4 +32,14 @@ data class CategorySummary(
     val colorHex: String,
     val total: java.math.BigDecimal,
     val iconKey: String = "",
+)
+
+data class CategoryGroup(
+    val categoryId: Long,
+    val name: String,
+    val iconKey: String,
+    val colorHex: String,
+    val kind: CategoryKind,
+    val total: java.math.BigDecimal,
+    val count: Int,
 )

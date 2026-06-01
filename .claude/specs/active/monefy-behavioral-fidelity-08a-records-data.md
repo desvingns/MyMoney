@@ -1,7 +1,7 @@
 # Records data layer: category-grouped query + use case (S01 -> records)
 Epic: monefy-behavioral-fidelity
 Order: 08a of 09
-Status: draft
+Status: active
 Depends-on: —
 Date: 2026-06-01
 

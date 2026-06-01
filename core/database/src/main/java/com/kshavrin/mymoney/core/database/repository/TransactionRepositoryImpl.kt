@@ -12,6 +12,7 @@ import com.kshavrin.mymoney.core.database.mapper.toEntity
 import com.kshavrin.mymoney.core.domain.model.Period
 import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
+import com.kshavrin.mymoney.core.domain.repository.CategoryGroup
 import com.kshavrin.mymoney.core.domain.repository.CategorySummary
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
 import com.kshavrin.mymoney.core.domain.time.PeriodArithmetic
@@ -49,17 +50,19 @@ class TransactionRepositoryImpl @Inject constructor(
         dao.findById(id)?.toDomain()
     }
 
-    // Placeholder: TransactionDao only exposes PagingSource for the by-account+period query and
-    // observeRecent for the global feed. A dedicated non-paged period query lands in PHASE_11
-    // (List + search). Until then BalanceCalculator collects observeRecent(limit=10_000).first()
-    // and filters by accountId + period in memory.
     override suspend fun findByPeriod(accountId: Long, period: Period): List<Transaction> = withContext(ioDispatcher) {
-        emptyList()
+        val range = PeriodArithmetic.toEpochMillisRange(period)
+        dao.listByPeriod(accountId, range.first, range.last).map { it.toDomain() }
     }
 
     override suspend fun getCategorySummary(accountId: Long, period: Period, kind: TransactionKind): List<CategorySummary> = withContext(ioDispatcher) {
         val range = PeriodArithmetic.toEpochMillisRange(period)
         dao.getCategorySummary(accountId, range.first, range.last, kind.name.lowercase()).map { it.toDomain() }
+    }
+
+    override suspend fun getCategoryGroups(accountId: Long, period: Period): List<CategoryGroup> = withContext(ioDispatcher) {
+        val range = PeriodArithmetic.toEpochMillisRange(period)
+        dao.getCategoryGroups(accountId, range.first, range.last).map { it.toDomain() }
     }
 
     override suspend fun searchByNote(query: String, limit: Int): List<Transaction> = withContext(ioDispatcher) {

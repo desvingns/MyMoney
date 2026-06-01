@@ -8,6 +8,7 @@ import com.kshavrin.mymoney.core.database.entity.CurrencyRateEntity
 import com.kshavrin.mymoney.core.database.entity.RecurringTemplateEntity
 import com.kshavrin.mymoney.core.database.entity.SyncLogEntity
 import com.kshavrin.mymoney.core.database.entity.TransactionEntity
+import com.kshavrin.mymoney.core.database.projection.CategoryGroupRow
 import com.kshavrin.mymoney.core.database.projection.CategorySummaryRow
 import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.AccountType
@@ -20,6 +21,7 @@ import com.kshavrin.mymoney.core.domain.model.RecurringTemplate
 import com.kshavrin.mymoney.core.domain.model.SyncLogEntry
 import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
+import com.kshavrin.mymoney.core.domain.repository.CategoryGroup
 import com.kshavrin.mymoney.core.domain.repository.CategorySummary
 import java.math.BigDecimal
 import java.time.Instant
@@ -236,4 +238,14 @@ internal fun CategorySummaryRow.toDomain(): CategorySummary = CategorySummary(
     colorHex = colorHex,
     total = BigDecimal.valueOf(total),
     iconKey = iconKey,
+)
+
+internal fun CategoryGroupRow.toDomain(): CategoryGroup = CategoryGroup(
+    categoryId = categoryId,
+    name = name,
+    iconKey = iconKey,
+    colorHex = colorHex,
+    kind = CategoryKind.fromString(kind),
+    total = BigDecimal.valueOf(total),
+    count = txCount,
 )

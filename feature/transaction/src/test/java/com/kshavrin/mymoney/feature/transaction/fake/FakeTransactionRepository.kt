@@ -4,6 +4,7 @@ import androidx.paging.PagingData
 import com.kshavrin.mymoney.core.domain.model.Period
 import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
+import com.kshavrin.mymoney.core.domain.repository.CategoryGroup
 import com.kshavrin.mymoney.core.domain.repository.CategorySummary
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
 import kotlinx.coroutines.flow.Flow
@@ -35,6 +36,7 @@ class FakeTransactionRepository : TransactionRepository {
         period: Period,
         kind: TransactionKind,
     ): List<CategorySummary> = emptyList()
+    override suspend fun getCategoryGroups(accountId: Long, period: Period): List<CategoryGroup> = emptyList()
     override suspend fun searchByNote(query: String, limit: Int): List<Transaction> = emptyList()
 
     override suspend fun upsert(transaction: Transaction): Long {

@@ -5,6 +5,7 @@ import androidx.room.Dao
 import androidx.room.Query
 import androidx.room.Upsert
 import com.kshavrin.mymoney.core.database.entity.TransactionEntity
+import com.kshavrin.mymoney.core.database.projection.CategoryGroupRow
 import com.kshavrin.mymoney.core.database.projection.CategorySummaryRow
 import kotlinx.coroutines.flow.Flow
 
@@ -57,6 +58,30 @@ interface TransactionDao {
         ORDER BY total DESC
     """)
     suspend fun getCategorySummary(accountId: Long, from: Long, to: Long, kind: String): List<CategorySummaryRow>
+
+    @Query("""
+        SELECT c.id AS categoryId, c.name AS name, c.icon_key AS iconKey,
+               c.color_hex AS colorHex, c.kind AS kind,
+               SUM(t.amount) AS total, COUNT(t.id) AS txCount
+        FROM `transaction` t
+        INNER JOIN category c ON c.id = t.category_id
+        WHERE t.account_id = :accountId
+          AND t.occurred_at BETWEEN :from AND :to
+          AND t.kind IN ('expense', 'income')
+          AND t.is_deleted = 0
+        GROUP BY c.id
+        ORDER BY total DESC
+    """)
+    suspend fun getCategoryGroups(accountId: Long, from: Long, to: Long): List<CategoryGroupRow>
+
+    @Query("""
+        SELECT * FROM `transaction`
+        WHERE account_id = :accountId
+          AND occurred_at BETWEEN :from AND :to
+          AND is_deleted = 0
+        ORDER BY occurred_at DESC, created_at DESC
+    """)
+    suspend fun listByPeriod(accountId: Long, from: Long, to: Long): List<TransactionEntity>
 
     @Query("""
         SELECT * FROM `transaction`

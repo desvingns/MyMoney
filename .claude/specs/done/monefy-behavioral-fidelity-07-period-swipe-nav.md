@@ -1,7 +1,7 @@
 # Dashboard period swipe navigation + peeking label; disable left-drawer swipe-to-open (S01)
 Epic: monefy-behavioral-fidelity
 Order: 07 of 09
-Status: draft
+Status: done
 Depends-on: 06 (PeriodStrip removed; PeriodLabel exists)
 Date: 2026-06-01
 
@@ -27,4 +27,13 @@ intercepts right-swipes — so today a right-swipe opens the menu. The reference
 to move through periods and shows a peeking previous/current/next label at the top.
 
 ## Implementation links
-(pending — fill commit + changed files after `/cmp --feature --next`)
+- Implementation: `f91f55d` — feat: swipe dashboard to change period with peeking label
+- Tests: `c42d616` — test: cover dashboard period swipe nav + peeking label
+- Changed files:
+  - `core/domain/.../model/Period.kt` (pure `next()`/`previous()` via `shift(direction)`; All no-op; CustomRange shifts by `(end-start+1)` days)
+  - `feature/dashboard/.../DashboardState.kt` (+ `DashboardEvent.PreviousPeriod` / `NextPeriod`)
+  - `feature/dashboard/.../DashboardViewModel.kt` (handle both → `period.previous()/next()` → `recomputeBalance()`)
+  - `feature/dashboard/.../DashboardScreen.kt` (LEFT drawer `gesturesEnabled=false`; `detectHorizontalDragGestures` 56.dp threshold; left→Next, right→Prev; `SoundKey.SWIPE`+`HapticKind.SOFT`)
+  - `feature/dashboard/.../components/PeriodLabel.kt` (3-up peeking label)
+- Tests: `core/domain/.../time/PeriodNavigationTest.kt` (19), `feature/dashboard/.../DashboardViewModelTest.kt` (+3), `app/src/androidTest/.../dashboard/DashboardContentUiTest.kt` (+5 compose-ui, instrumented — runs on device)
+- JVM verification: 108 passed / 0 failed; lint ok; Reviewer + Verifier green.

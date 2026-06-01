@@ -1,7 +1,7 @@
 # Left drawer: account dropdown + period selector; remove dashboard period strip (S01/S02)
 Epic: monefy-behavioral-fidelity
 Order: 06 of 09
-Status: active
+Status: done
 Depends-on: —
 Date: 2026-06-01
 
@@ -29,4 +29,18 @@ accounts behind a tappable currency dropdown (14.jpg). This is the prior epic's 
 #1 and #2 (`done/redesign-monefy-fidelity-00-overview.md` lines 40-44).
 
 ## Implementation links
-(pending — fill commit + changed files after `/cmp --feature --next`)
+(completed via `/cmp --feature --next`)
+
+- commits:
+  - 95350c8 feat: rework dashboard left drawer
+  - 7da414b fix: make dashboard android tests compile
+- files:
+  - feature/dashboard/src/main/java/com/kshavrin/mymoney/feature/dashboard/DashboardScreen.kt
+  - feature/dashboard/src/main/java/com/kshavrin/mymoney/feature/dashboard/components/LeftDrawerContent.kt
+  - feature/dashboard/src/main/java/com/kshavrin/mymoney/feature/dashboard/components/PeriodLabel.kt
+  - feature/dashboard/src/main/res/values/strings.xml
+  - feature/dashboard/src/main/res/values-ru/strings.xml
+  - feature/dashboard/src/test/java/com/kshavrin/mymoney/feature/dashboard/DashboardViewModelTest.kt
+  - app/src/androidTest/java/com/kshavrin/mymoney/feature/dashboard/DashboardContentUiTest.kt
+  - app/src/androidTest/java/com/kshavrin/mymoney/feature/dashboard/components/DashboardDrawerContentUiTest.kt
+  - app/src/androidTest/java/com/kshavrin/mymoney/feature/dashboard/components/LeftDrawerPeriodSelectorUiTest.kt

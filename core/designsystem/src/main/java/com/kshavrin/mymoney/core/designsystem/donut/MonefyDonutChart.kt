@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -29,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kshavrin.mymoney.core.common.money.MoneyFormatter
 import com.kshavrin.mymoney.core.designsystem.R
 import com.kshavrin.mymoney.core.designsystem.icon.categoryIcon
 import java.math.BigDecimal
@@ -44,6 +46,8 @@ fun MonefyDonutChart(
     expense: BigDecimal,
     slices: List<CategorySlice>,
     modifier: Modifier = Modifier,
+    currencySymbol: String = "",
+    decimalDigits: Int = 2,
     onSliceClick: ((CategorySlice) -> Unit)? = null,
     animationSpec: AnimationSpec<Float> = spring(dampingRatio = 0.7f, stiffness = 300f),
 ) {
@@ -63,6 +67,24 @@ fun MonefyDonutChart(
     val outlineColor = MaterialTheme.colorScheme.outline
     val budgetAlertColor = MaterialTheme.colorScheme.error
     val badgeBorderColor = MaterialTheme.colorScheme.surface
+    val incomeColor = MaterialTheme.colorScheme.primary
+    val expenseColor = MaterialTheme.colorScheme.tertiary
+
+    val locale = LocalConfiguration.current.locales[0]
+    val incomeText = MoneyFormatter.format(
+        amount = income,
+        currencySymbol = currencySymbol,
+        decimalDigits = decimalDigits,
+        locale = locale,
+        symbolPosition = MoneyFormatter.SymbolPosition.AFTER,
+    )
+    val expenseText = MoneyFormatter.format(
+        amount = expense,
+        currencySymbol = currencySymbol,
+        decimalDigits = decimalDigits,
+        locale = locale,
+        symbolPosition = MoneyFormatter.SymbolPosition.AFTER,
+    )
 
     val chartHeader = stringResource(
         R.string.donut_chart_cd,
@@ -204,6 +226,27 @@ fun MonefyDonutChart(
                     )
                 }
             }
+
+            val centerTextStyle = TextStyle(
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+            val incomeLayout = textMeasurer.measure(text = incomeText, style = centerTextStyle)
+            val expenseLayout = textMeasurer.measure(text = expenseText, style = centerTextStyle)
+            val lineGap = 4.dp.toPx()
+            val totalHeight = incomeLayout.size.height + lineGap + expenseLayout.size.height
+            val incomeTop = center.y - totalHeight / 2f
+            val expenseTop = incomeTop + incomeLayout.size.height + lineGap
+            drawText(
+                textLayoutResult = incomeLayout,
+                color = incomeColor,
+                topLeft = Offset(center.x - incomeLayout.size.width / 2f, incomeTop),
+            )
+            drawText(
+                textLayoutResult = expenseLayout,
+                color = expenseColor,
+                topLeft = Offset(center.x - expenseLayout.size.width / 2f, expenseTop),
+            )
         }
     }
 }

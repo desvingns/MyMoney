@@ -232,6 +232,8 @@ fun DashboardContent(
                                 expense = state.balanceSnapshot?.expense?.amount ?: BigDecimal.ZERO,
                                 slices = state.slices,
                                 modifier = Modifier.fillMaxSize(),
+                                currencySymbol = state.currentCurrency?.symbol ?: "",
+                                decimalDigits = state.currentCurrency?.decimalDigits ?: 2,
                                 onSliceClick = { slice ->
                                     onEvent(DashboardEvent.SliceClicked(slice.categoryId))
                                 },

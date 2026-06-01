@@ -33,18 +33,20 @@ class BalanceCalculator @Inject constructor(
         val totalIncome = incomeSummary.sumOf { it.total }
         val net = totalIncome.subtract(totalExpense)
 
-        val byCategory = (expenseSummary + incomeSummary).map { summary ->
-            val combined = totalIncome.add(totalExpense)
-            val fraction = if (combined.signum() == 0) 0f else summary.total.toFloat() / combined.toFloat()
-            CategoryBalance(
-                categoryId = summary.categoryId,
-                categoryName = summary.categoryName,
-                colorHex = summary.colorHex,
-                total = Money(summary.total, currency),
-                fraction = fraction,
-                iconKey = summary.iconKey,
-            )
-        }
+        val combined = totalIncome.add(totalExpense)
+        val byCategory = (expenseSummary.map { it to true } + incomeSummary.map { it to false })
+            .map { (summary, isExpense) ->
+                val fraction = if (combined.signum() == 0) 0f else summary.total.toFloat() / combined.toFloat()
+                CategoryBalance(
+                    categoryId = summary.categoryId,
+                    categoryName = summary.categoryName,
+                    colorHex = summary.colorHex,
+                    total = Money(summary.total, currency),
+                    fraction = fraction,
+                    iconKey = summary.iconKey,
+                    isExpense = isExpense,
+                )
+            }
 
         BalanceSnapshot(
             income = Money(totalIncome, currency),

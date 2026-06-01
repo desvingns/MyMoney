@@ -149,16 +149,24 @@ class DashboardViewModel @Inject constructor(
     }
 
     private fun snapshotToSlices(snapshot: BalanceSnapshot, alertCategoryIds: Set<Long>): List<CategorySlice> {
-        return snapshot.byCategory.map { catBal ->
-            CategorySlice(
-                categoryId = catBal.categoryId,
-                color = parseHexColor(catBal.colorHex),
-                fraction = catBal.fraction,
-                label = catBal.categoryName,
-                iconKey = catBal.iconKey,
-                hasBudgetAlert = catBal.categoryId in alertCategoryIds,
-            )
-        }
+        val totalExpense = snapshot.expense.amount
+        return snapshot.byCategory
+            .filter { it.isExpense }
+            .map { catBal ->
+                val fraction = if (totalExpense.signum() == 0) {
+                    0f
+                } else {
+                    catBal.total.amount.toFloat() / totalExpense.toFloat()
+                }
+                CategorySlice(
+                    categoryId = catBal.categoryId,
+                    color = parseHexColor(catBal.colorHex),
+                    fraction = fraction,
+                    label = catBal.categoryName,
+                    iconKey = catBal.iconKey,
+                    hasBudgetAlert = catBal.categoryId in alertCategoryIds,
+                )
+            }
     }
 
     private fun parseHexColor(hex: String): Color = try {

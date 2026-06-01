@@ -14,4 +14,5 @@ data class CategoryBalance(
     val total: Money,
     val fraction: Float,
     val iconKey: String = "",
+    val isExpense: Boolean = true,
 )

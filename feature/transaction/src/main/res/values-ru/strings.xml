@@ -10,6 +10,7 @@
     <string name="swap_mode">Поменять</string>
     <string name="dismiss">Закрыть</string>
     <string name="pick_date">Выбрать дату</string>
+    <string name="choose_category_button">ВЫБОР КАТЕГОРИИ</string>
     <string name="add_category_cta">+ ДОБАВИТЬ</string>
     <string name="new_transfer_title">Новый перевод</string>
     <string name="source_label">Откуда</string>

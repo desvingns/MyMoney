@@ -1,6 +1,7 @@
 package com.kshavrin.mymoney.feature.transaction.expense
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -8,14 +9,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.SwapHoriz
-import androidx.compose.material3.Card
+import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
@@ -25,7 +26,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -38,9 +38,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
-import com.kshavrin.mymoney.core.designsystem.amountfield.AmountFieldEvent
-import com.kshavrin.mymoney.core.designsystem.amountfield.AmountFieldSection
-import com.kshavrin.mymoney.core.designsystem.amountfield.AmountFieldState
+import com.kshavrin.mymoney.core.designsystem.amountinput.MonefyAmountInput
 import com.kshavrin.mymoney.core.designsystem.keypad.KeypadEvent
 import com.kshavrin.mymoney.core.designsystem.keypad.MonefyKeypad
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
@@ -52,8 +50,10 @@ import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.feature.transaction.DateHeader
 import com.kshavrin.mymoney.feature.transaction.R
 import com.kshavrin.mymoney.feature.transaction.categorygrid.CategoryGrid
+import java.math.BigDecimal
 import java.time.Instant
 import java.time.ZoneOffset
+import com.kshavrin.mymoney.core.designsystem.R as DesignsystemR
 
 @Composable
 fun AddExpenseRoute(
@@ -104,7 +104,6 @@ fun AddExpenseScreen(
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     var datePickerVisible by remember { mutableStateOf(false) }
-    val keypadSheetState = rememberModalBottomSheetState()
     val soundPlayer = LocalSoundPlayer.current
     val hapticPlayer = LocalHapticPlayer.current
 
@@ -172,50 +171,50 @@ fun AddExpenseScreen(
                 onClick = { datePickerVisible = true },
             )
 
-            Card(modifier = Modifier.fillMaxWidth()) {
-                AmountFieldSection(
-                    state = AmountFieldState(
-                        display = state.amountInput,
-                        expression = state.expression,
-                        currencyCode = state.currency?.code,
-                        currencySymbol = state.currency?.symbol,
-                        note = state.note,
-                        occurredAt = state.occurredAt,
-                        accountChipLabel = buildAccountChipLabel(state.account?.name, state.currency?.code),
-                    ),
-                    onEvent = { e -> dispatchAmountEvent(e, onEvent) { datePickerVisible = true } },
-                    showKeypad = false,
-                    showAccountDateRow = false,
-                    amountInputModifier = Modifier.clickable { onEvent(AddExpenseEvent.AmountClicked) },
-                    modifier = Modifier
-                        .padding(Spacing.m),
-                )
-            }
-
-            CategoryGrid(
-                categories = state.categories,
-                onCategoryClick = { onEvent(AddExpenseEvent.CategoryPicked(it)) },
-                onAddClick = { onEvent(AddExpenseEvent.AddCategoryClicked) },
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(top = Spacing.m),
-            )
-        }
-    }
-
-    if (state.keypadVisible) {
-        ModalBottomSheet(
-            onDismissRequest = { onEvent(AddExpenseEvent.KeypadDismissed) },
-            sheetState = keypadSheetState,
-        ) {
-            MonefyKeypad(
-                onEvent = { e ->
-                    dispatchAmountEvent(AmountFieldEvent.Keypad(e), onEvent) { datePickerVisible = true }
+            AmountEntrySection(
+                state = state,
+                onEvent = onEvent,
+                showNote = !state.categoryStep,
+                amountInputModifier = if (state.categoryStep) {
+                    Modifier.clickable { onEvent(AddExpenseEvent.BackToAmount) }
+                } else {
+                    Modifier
                 },
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(Spacing.m),
+                    .padding(top = Spacing.m),
             )
+
+            if (state.categoryStep) {
+                CategoryGrid(
+                    categories = state.categories,
+                    onCategoryClick = { onEvent(AddExpenseEvent.CategoryPicked(it)) },
+                    onAddClick = { onEvent(AddExpenseEvent.AddCategoryClicked) },
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(top = Spacing.m),
+                )
+            } else {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(top = Spacing.m),
+                    verticalArrangement = Arrangement.Bottom,
+                ) {
+                    MonefyKeypad(
+                        onEvent = { e -> dispatchKeypadEvent(e, onEvent) },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Button(
+                        onClick = { onEvent(AddExpenseEvent.SelectCategoryClicked) },
+                        enabled = state.amount > BigDecimal.ZERO,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = Spacing.s),
+                    ) {
+                        Text(stringResource(R.string.choose_category_button))
+                    }
+                }
+            }
         }
     }
 
@@ -246,22 +245,36 @@ fun AddExpenseScreen(
     }
 }
 
-private fun buildAccountChipLabel(name: String?, code: String?): String {
-    if (name == null) return ""
-    return if (code != null) "$name · $code" else name
-}
-
-private fun dispatchAmountEvent(
-    e: AmountFieldEvent,
+@Composable
+private fun AmountEntrySection(
+    state: AddExpenseState,
     onEvent: (AddExpenseEvent) -> Unit,
-    onDateChipClicked: () -> Unit,
+    showNote: Boolean,
+    amountInputModifier: Modifier,
+    modifier: Modifier = Modifier,
 ) {
-    when (e) {
-        is AmountFieldEvent.Keypad -> dispatchKeypadEvent(e.event, onEvent)
-        is AmountFieldEvent.NoteChanged -> onEvent(AddExpenseEvent.NoteChanged(e.text))
-        is AmountFieldEvent.DateChanged -> onEvent(AddExpenseEvent.DateChanged(e.date))
-        AmountFieldEvent.AccountChipClicked -> Unit
-        AmountFieldEvent.DateChipClicked -> onDateChipClicked()
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(Spacing.m),
+    ) {
+        MonefyAmountInput(
+            display = state.amountInput,
+            expression = state.expression,
+            currencyCode = state.currency?.code,
+            currencySymbol = state.currency?.symbol,
+            onClear = { onEvent(AddExpenseEvent.KeypadBackspace) },
+            clearContentDescription = stringResource(DesignsystemR.string.keypad_backspace_cd),
+            modifier = amountInputModifier.fillMaxWidth(),
+        )
+        if (showNote) {
+            OutlinedTextField(
+                value = state.note,
+                onValueChange = { onEvent(AddExpenseEvent.NoteChanged(it)) },
+                label = { Text(stringResource(R.string.note_hint)) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
     }
 }
 

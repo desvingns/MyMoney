@@ -24,5 +24,5 @@ data class AddIncomeState(
     val accounts: List<Account> = emptyList(),
     val currencies: List<Currency> = emptyList(),
     val categories: List<Category> = emptyList(),
-    val keypadVisible: Boolean = false,
+    val categoryStep: Boolean = false,
 )

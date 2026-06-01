@@ -34,3 +34,6 @@ yet touched) — the refactor is mid-flight, not finished.
 ## Implementation links
 - commit: b94abb7
 - files:  app/navigation/Destinations.kt; app androidTest add-form/E2E/category-grid tests; app navigation tests; feature/transaction categorygrid + expense/income form state/event/viewmodel/screen; removed feature/transaction picker route/screen/viewmodel/tests; transaction EN/RU strings
+
+## Follow-up
+- 2026-06-01: superseded the modal-keypad ordering with the active Monefy behavioural fidelity SPEC: S06/S07 now open on the inline keypad step first, then swap to the embedded category grid after amount entry.

@@ -121,10 +121,9 @@ class AddExpenseViewModel @Inject constructor(
                 val cur = _state.value.currencies.firstOrNull { it.id == acc.currencyId }
                 _state.value = _state.value.copy(account = acc, currency = cur)
             }
-            AddExpenseEvent.AmountClicked ->
-                _state.value = _state.value.copy(keypadVisible = true)
-            AddExpenseEvent.KeypadDismissed ->
-                _state.value = _state.value.copy(keypadVisible = false)
+            AddExpenseEvent.SelectCategoryClicked -> onSelectCategoryClicked()
+            AddExpenseEvent.BackToAmount ->
+                _state.value = _state.value.copy(categoryStep = false, errorBannerRes = null)
             AddExpenseEvent.AddCategoryClicked -> emit(AddExpenseAction.NavigateToCreateCategory)
             is AddExpenseEvent.CategoryPicked -> onCategoryPicked(event.categoryId)
             AddExpenseEvent.SaveClicked -> save()
@@ -144,9 +143,21 @@ class AddExpenseViewModel @Inject constructor(
         )
     }
 
+    private fun onSelectCategoryClicked() {
+        val s = _state.value
+        if (s.amount <= BigDecimal.ZERO) {
+            _state.value = s.copy(errorBannerRes = R.string.error_enter_amount_first)
+            return
+        }
+        _state.value = s.copy(categoryStep = true, errorBannerRes = null)
+    }
+
     private fun onCategoryPicked(categoryId: Long) {
         if (_state.value.amount <= BigDecimal.ZERO) {
-            _state.value = _state.value.copy(keypadVisible = true)
+            _state.value = _state.value.copy(
+                categoryStep = false,
+                errorBannerRes = R.string.error_enter_amount_first,
+            )
             return
         }
         viewModelScope.launch {

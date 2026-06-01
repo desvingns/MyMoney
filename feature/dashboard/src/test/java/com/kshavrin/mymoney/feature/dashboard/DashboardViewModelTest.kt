@@ -1,5 +1,6 @@
 package com.kshavrin.mymoney.feature.dashboard
 
+import androidx.compose.ui.graphics.Color
 import androidx.paging.PagingData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -259,6 +260,84 @@ class DashboardViewModelTest {
     }
 
     @Test
+    fun `expense category placeholders are built from observeByKind Expense sorted by sortOrder`() = runTest {
+        categoryRepository.seed(
+            category(id = 30L, name = "Home", kind = CategoryKind.Expense, sortOrder = 2, iconKey = "home", colorHex = "#112233"),
+            category(id = 10L, name = "Food", kind = CategoryKind.Expense, sortOrder = 0, iconKey = "food", colorHex = "#FF0000"),
+            category(id = 20L, name = "Transport", kind = CategoryKind.Expense, sortOrder = 1, iconKey = "transport", colorHex = "#00FF00"),
+            category(id = 200L, name = "Salary", kind = CategoryKind.Income, sortOrder = 0, iconKey = "salary", colorHex = "#0000FF"),
+        )
+
+        val (viewModel, store) = buildViewModel()
+        try {
+            runCurrent()
+
+            val placeholders = viewModel.state.value.expenseCategoryPlaceholders
+            assertEquals(listOf(10L, 20L, 30L), placeholders.map { it.categoryId })
+            assertEquals(listOf("Food", "Transport", "Home"), placeholders.map { it.label })
+            assertEquals(listOf("food", "transport", "home"), placeholders.map { it.iconKey })
+        } finally {
+            store.clear()
+            runCurrent()
+        }
+    }
+
+    @Test
+    fun `expense category placeholders all carry zero fraction`() = runTest {
+        categoryRepository.seed(
+            category(id = 10L, name = "Food", kind = CategoryKind.Expense, sortOrder = 0, iconKey = "food", colorHex = "#FF0000"),
+            category(id = 20L, name = "Transport", kind = CategoryKind.Expense, sortOrder = 1, iconKey = "transport", colorHex = "#00FF00"),
+        )
+
+        val (viewModel, store) = buildViewModel()
+        try {
+            runCurrent()
+
+            val placeholders = viewModel.state.value.expenseCategoryPlaceholders
+            assertEquals(2, placeholders.size)
+            assertTrue(placeholders.all { it.fraction == 0f })
+        } finally {
+            store.clear()
+            runCurrent()
+        }
+    }
+
+    @Test
+    fun `expense category placeholders parse the category colour from hex`() = runTest {
+        categoryRepository.seed(
+            category(id = 10L, name = "Food", kind = CategoryKind.Expense, sortOrder = 0, iconKey = "food", colorHex = "#FF8800"),
+        )
+
+        val (viewModel, store) = buildViewModel()
+        try {
+            runCurrent()
+
+            val placeholder = viewModel.state.value.expenseCategoryPlaceholders.single()
+            assertEquals(Color(0xFFFF8800), placeholder.color)
+        } finally {
+            store.clear()
+            runCurrent()
+        }
+    }
+
+    @Test
+    fun `expense category placeholders exclude income categories`() = runTest {
+        categoryRepository.seed(
+            category(id = 200L, name = "Salary", kind = CategoryKind.Income, sortOrder = 0, iconKey = "salary", colorHex = "#0000FF"),
+        )
+
+        val (viewModel, store) = buildViewModel()
+        try {
+            runCurrent()
+
+            assertTrue(viewModel.state.value.expenseCategoryPlaceholders.isEmpty())
+        } finally {
+            store.clear()
+            runCurrent()
+        }
+    }
+
+    @Test
     fun `dashboard chrome navigation events emit their actions`() = runTest {
         val (viewModel, store) = buildViewModel()
         val actions = mutableListOf<DashboardAction>()
@@ -363,6 +442,25 @@ class DashboardViewModelTest {
         currencyId = usd.id,
         alertThresholdPct = 80,
         isActive = true,
+    )
+
+    private fun category(
+        id: Long,
+        name: String,
+        kind: CategoryKind,
+        sortOrder: Int,
+        iconKey: String,
+        colorHex: String,
+    ) = Category(
+        id = id,
+        name = name,
+        kind = kind,
+        iconKey = iconKey,
+        colorHex = colorHex,
+        sortOrder = sortOrder,
+        isDefault = false,
+        isArchived = false,
+        createdAt = Instant.EPOCH,
     )
 
     private fun account(id: Long, name: String, isDefault: Boolean) = Account(

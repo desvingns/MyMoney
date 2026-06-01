@@ -31,6 +31,41 @@ class DonutGeometryTest {
     }
 
     @Test
+    fun evenAngles_zeroCount_returnsEmpty() {
+        assertEquals(emptyList<Float>(), DonutGeometry.evenAngles(0))
+    }
+
+    @Test
+    fun evenAngles_negativeCount_returnsEmpty() {
+        assertEquals(emptyList<Float>(), DonutGeometry.evenAngles(-3))
+    }
+
+    @Test
+    fun evenAngles_singleCount_startsAtMinusNinety() {
+        assertEquals(listOf(-90f), DonutGeometry.evenAngles(1))
+    }
+
+    @Test
+    fun evenAngles_fourCount_quartersFromMinusNinety() {
+        val angles = DonutGeometry.evenAngles(4)
+        assertEquals(4, angles.size)
+        assertEquals(-90f, angles[0], 0.001f)
+        assertEquals(0f, angles[1], 0.001f)
+        assertEquals(90f, angles[2], 0.001f)
+        assertEquals(180f, angles[3], 0.001f)
+    }
+
+    @Test
+    fun evenAngles_stepIsThreeSixtyOverCount() {
+        val angles = DonutGeometry.evenAngles(5)
+        assertEquals(5, angles.size)
+        val step = 360f / 5
+        angles.forEachIndexed { index, angle ->
+            assertEquals(-90f + index * step, angle, 0.001f)
+        }
+    }
+
+    @Test
     fun hitTest_insideAnnulus_returnsSlice() {
         val arcs = DonutGeometry.computeSliceArcs(listOf(slice(1, 0.5f), slice(2, 0.5f)))
         val hit = DonutGeometry.hitTest(

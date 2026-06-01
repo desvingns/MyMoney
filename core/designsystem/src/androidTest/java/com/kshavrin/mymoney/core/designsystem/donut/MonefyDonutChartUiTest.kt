@@ -4,6 +4,7 @@ import androidx.compose.animation.core.snap
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.unit.dp
@@ -100,6 +101,83 @@ class MonefyDonutChartUiTest {
                     income = "500.00",
                     expense = "124.00",
                     slices = listOf("Food" to 100),
+                ),
+            )
+            .assertExists()
+    }
+
+    @Test
+    fun `empty period with placeholder icons still announces zero totals`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                MonefyDonutChart(
+                    income = BigDecimal.ZERO,
+                    expense = BigDecimal.ZERO,
+                    slices = emptyList(),
+                    modifier = Modifier.size(240.dp),
+                    emptyStateIcons = listOf(
+                        slice(label = "Food", fraction = 0f),
+                        slice(label = "Transport", fraction = 0f),
+                        slice(label = "Home", fraction = 0f),
+                    ),
+                    animationSpec = snap(),
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithContentDescription(expectedDescription(income = "0", expense = "0"))
+            .assertExists()
+    }
+
+    @Test
+    fun `empty state icons do not add slice descriptions to semantics`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                MonefyDonutChart(
+                    income = BigDecimal.ZERO,
+                    expense = BigDecimal.ZERO,
+                    slices = emptyList(),
+                    modifier = Modifier.size(240.dp),
+                    emptyStateIcons = listOf(slice(label = "Food", fraction = 0f)),
+                    animationSpec = snap(),
+                )
+            }
+        }
+
+        // Placeholder icons are drawn on the Canvas only; they must NOT leak into the
+        // slice portion of the accessibility description (that is reserved for real slices).
+        composeTestRule
+            .onNodeWithContentDescription(
+                expectedDescription(income = "0", expense = "0", slices = listOf("Food" to 0)),
+            )
+            .assertDoesNotExist()
+    }
+
+    @Test
+    fun `populated chart ignores empty state icons and keeps slice semantics`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                MonefyDonutChart(
+                    income = BigDecimal("450.00"),
+                    expense = BigDecimal("124.00"),
+                    slices = listOf(
+                        slice(label = "Food", fraction = 0.50f),
+                        slice(label = "Transport", fraction = 0.50f),
+                    ),
+                    modifier = Modifier.size(240.dp),
+                    emptyStateIcons = listOf(slice(label = "Placeholder", fraction = 0f)),
+                    animationSpec = snap(),
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithContentDescription(
+                expectedDescription(
+                    income = "450.00",
+                    expense = "124.00",
+                    slices = listOf("Food" to 50, "Transport" to 50),
                 ),
             )
             .assertExists()

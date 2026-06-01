@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
@@ -83,7 +84,9 @@ fun DashboardContent(
     val scope = rememberCoroutineScope()
     val soundPlayer = LocalSoundPlayer.current
     val hapticPlayer = LocalHapticPlayer.current
-    val resourceLocale = LocalConfiguration.current.locales[0]
+    val configuration = LocalConfiguration.current
+    val resourceLocale = configuration.locales[0]
+    val drawerWidth = configuration.screenWidthDp.dp * 0.62f
 
     LaunchedEffect(state.leftDrawerOpen) {
         if (state.leftDrawerOpen) leftDrawerState.open() else leftDrawerState.close()
@@ -101,7 +104,7 @@ fun DashboardContent(
     ModalNavigationDrawer(
         drawerState = leftDrawerState,
         drawerContent = {
-            ModalDrawerSheet {
+            ModalDrawerSheet(modifier = Modifier.width(drawerWidth)) {
                 LeftDrawerContent(state = state, onEvent = onEvent)
             }
         },
@@ -109,7 +112,7 @@ fun DashboardContent(
         ModalNavigationDrawer(
             drawerState = rightDrawerState,
             drawerContent = {
-                ModalDrawerSheet {
+                ModalDrawerSheet(modifier = Modifier.width(drawerWidth)) {
                     RightDrawerContent(onEvent = onEvent)
                 }
             },

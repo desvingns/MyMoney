@@ -11,6 +11,7 @@
     <string name="dashboard_over_budget">Over by %1$s</string>
 
     <string name="period_today">Today</string>
+    <string name="period_day">Day</string>
     <string name="period_week">Week</string>
     <string name="period_month">Month</string>
     <string name="period_year">Year</string>
@@ -24,6 +25,7 @@
     <string name="fab_transfer">Transfer</string>
 
     <string name="left_drawer_accounts">Accounts</string>
+    <string name="left_drawer_all_accounts">All accounts</string>
     <string name="left_drawer_manage_accounts">Manage accounts</string>
 
     <string name="right_drawer_settings">Settings</string>

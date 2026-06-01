@@ -11,11 +11,12 @@
     <string name="dashboard_over_budget">Превышение на %1$s</string>
 
     <string name="period_today">Сегодня</string>
+    <string name="period_day">День</string>
     <string name="period_week">Неделя</string>
     <string name="period_month">Месяц</string>
     <string name="period_year">Год</string>
     <string name="period_all">Все</string>
-    <string name="period_pick_a_date">Выбрать дату</string>
+    <string name="period_pick_a_date">Выбор даты</string>
     <string name="period_apply">Применить</string>
     <string name="period_cancel">Отмена</string>
 
@@ -24,6 +25,7 @@
     <string name="fab_transfer">Перевод</string>
 
     <string name="left_drawer_accounts">Счета</string>
+    <string name="left_drawer_all_accounts">Все счета</string>
     <string name="left_drawer_manage_accounts">Управление счетами</string>
 
     <string name="right_drawer_settings">Настройки</string>

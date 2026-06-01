@@ -30,7 +30,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
@@ -51,10 +50,9 @@ import com.kshavrin.mymoney.core.ui.haptic.HapticKind
 import com.kshavrin.mymoney.core.ui.sound.SoundKey
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.feature.dashboard.components.LeftDrawerContent
-import com.kshavrin.mymoney.feature.dashboard.components.PeriodStrip
+import com.kshavrin.mymoney.feature.dashboard.components.PeriodLabel
 import com.kshavrin.mymoney.feature.dashboard.components.RightDrawerContent
 import com.kshavrin.mymoney.feature.dashboard.components.TwoFabLayout
-import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.util.Locale
 
@@ -81,7 +79,6 @@ fun DashboardContent(
 ) {
     val leftDrawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val rightDrawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
     val soundPlayer = LocalSoundPlayer.current
     val hapticPlayer = LocalHapticPlayer.current
     val configuration = LocalConfiguration.current
@@ -130,7 +127,7 @@ fun DashboardContent(
                         navigationIcon = {
                             IconButton(onClick = {
                                 hapticPlayer.fire(HapticKind.MEDIUM)
-                                scope.launch { leftDrawerState.open() }
+                                onEvent(DashboardEvent.LeftDrawerToggled)
                             }) {
                                 Icon(
                                     Icons.Filled.Menu,
@@ -153,7 +150,7 @@ fun DashboardContent(
                             }
                             IconButton(onClick = {
                                 hapticPlayer.fire(HapticKind.MEDIUM)
-                                scope.launch { rightDrawerState.open() }
+                                onEvent(DashboardEvent.RightDrawerToggled)
                             }) {
                                 Icon(
                                     Icons.Filled.MoreVert,
@@ -179,13 +176,9 @@ fun DashboardContent(
                         modifier = Modifier.fillMaxSize(),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        PeriodStrip(
-                            currentPeriod = state.period,
-                            onPeriodChange = { p ->
-                                soundPlayer.play(SoundKey.SWIPE)
-                                hapticPlayer.fire(HapticKind.SOFT)
-                                onEvent(DashboardEvent.PeriodChanged(p))
-                            },
+                        PeriodLabel(
+                            period = state.period,
+                            modifier = Modifier.padding(top = Spacing.m),
                         )
                         Spacer(modifier = Modifier.height(Spacing.m))
 

@@ -7,6 +7,7 @@ import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -26,9 +27,11 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import kotlin.math.abs
 
 @RunWith(AndroidJUnit4::class)
 class TransferScreenUiTest {
@@ -58,6 +61,86 @@ class TransferScreenUiTest {
         composeTestRule.runOnIdle {
             assertEquals(listOf(TransferEvent.BackClicked), capturedEvents)
         }
+    }
+
+    @Test
+    fun `selector stack keeps source row above arrow and target row below it`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                TransferScreen(
+                    state = TransferState(),
+                    onEvent = {},
+                )
+            }
+        }
+
+        val sourceBounds = composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.source_label))
+            .fetchSemanticsNode()
+            .boundsInRoot
+        val arrowBounds = composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.transfer_direction_cd))
+            .fetchSemanticsNode()
+            .boundsInRoot
+        val targetBounds = composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.target_label))
+            .fetchSemanticsNode()
+            .boundsInRoot
+
+        assertTrue("source selector must stay above the arrow", sourceBounds.bottom <= arrowBounds.top)
+        assertTrue("target selector must stay below the arrow", arrowBounds.bottom <= targetBounds.top)
+        assertTrue(
+            "arrow must stay centered between the selector rows",
+            abs(((arrowBounds.left + arrowBounds.right) / 2f) - ((sourceBounds.left + sourceBounds.right) / 2f)) < 2f,
+        )
+    }
+
+    @Test
+    fun `source selector row shows selected account and currency code`() {
+        val sourceAccount = account(id = 10L, name = "Primary wallet", currencyId = 1L)
+        val sourceCurrency = currency(id = 1L, code = "USD")
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                TransferScreen(
+                    state = TransferState(
+                        currencies = listOf(sourceCurrency),
+                        sourceAccount = sourceAccount,
+                    ),
+                    onEvent = {},
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.source_label))
+            .assertIsDisplayed()
+        composeTestRule.onNodeWithText(sourceAccount.name).assertIsDisplayed()
+        composeTestRule.onNodeWithText(sourceCurrency.code).assertIsDisplayed()
+    }
+
+    @Test
+    fun `target selector row shows selected account and currency code`() {
+        val targetAccount = account(id = 20L, name = "Savings account", currencyId = 2L)
+        val targetCurrency = currency(id = 2L, code = "EUR")
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                TransferScreen(
+                    state = TransferState(
+                        targetAccount = targetAccount,
+                        targetCurrency = targetCurrency,
+                    ),
+                    onEvent = {},
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.target_label))
+            .assertIsDisplayed()
+        composeTestRule.onNodeWithText(targetAccount.name).assertIsDisplayed()
+        composeTestRule.onNodeWithText(targetCurrency.code).assertIsDisplayed()
     }
 
     @Test
@@ -96,6 +179,30 @@ class TransferScreenUiTest {
         composeTestRule.runOnIdle {
             assertEquals(listOf(TransferEvent.KeypadDigit(1)), capturedEvents)
         }
+    }
+
+    @Test
+    fun `dialpad fab still opens the keypad sheet`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                TransferScreen(
+                    state = TransferState(),
+                    onEvent = {},
+                )
+            }
+        }
+
+        assertTrue(
+            "keypad digits must start hidden",
+            composeTestRule.onAllNodesWithText("1").fetchSemanticsNodes().isEmpty(),
+        )
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.transfer_open_keypad_cd))
+            .assertIsDisplayed()
+            .performClick()
+        composeTestRule
+            .onNodeWithContentDescription(targetString(DesignSystemR.string.keypad_backspace_cd))
+            .assertIsDisplayed()
     }
 
     @Test
@@ -275,6 +382,43 @@ class TransferScreenUiTest {
     }
 
     @Test
+    fun `cross currency transfer keeps the rate panel and keypad fab visible`() {
+        val sourceAccount = account(id = 10L, name = "Primary wallet", currencyId = 1L)
+        val targetAccount = account(id = 20L, name = "Savings account", currencyId = 2L)
+        val sourceCurrency = currency(id = 1L, code = "USD")
+        val targetCurrency = currency(id = 2L, code = "EUR")
+        val ratePreview = "1 USD = 0.92 EUR"
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                TransferScreen(
+                    state = TransferState(
+                        sourceAccount = sourceAccount,
+                        targetAccount = targetAccount,
+                        sourceCurrency = sourceCurrency,
+                        targetCurrency = targetCurrency,
+                        ratePreviewText = ratePreview,
+                    ),
+                    onEvent = {},
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.source_label))
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.target_label))
+            .assertIsDisplayed()
+        composeTestRule.onNodeWithText(targetString(R.string.currency_rate)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(ratePreview).assertIsDisplayed()
+        composeTestRule.onNodeWithText(targetString(R.string.transfer_change_rate_cta)).assertIsDisplayed()
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.transfer_open_keypad_cd))
+            .assertIsDisplayed()
+    }
+
+    @Test
     fun `valid transfer save hides keypad and emits transfer event`() {
         val capturedEvents = mutableListOf<TransferEvent>()
         val sourceAccount = account(id = 10L, name = "Primary wallet")
@@ -345,12 +489,12 @@ class TransferScreenUiTest {
         return date.format(DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy", locale))
     }
 
-    private fun account(id: Long, name: String): Account {
+    private fun account(id: Long, name: String, currencyId: Long = 1L): Account {
         val now = Instant.parse("2026-05-27T00:00:00Z")
         return Account(
             id = id,
             name = name,
-            currencyId = 1L,
+            currencyId = currencyId,
             initialBalance = BigDecimal.ZERO,
             type = AccountType.Cash,
             colorHex = "#7AC794",

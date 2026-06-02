@@ -1,7 +1,7 @@
 # Rework transactions list into category-grouped, expandable "all records" (S11/S12)
 Epic: monefy-behavioral-fidelity
 Order: 08b of 09
-Status: draft
+Status: done
 Depends-on: 08a (query + use case), 04 (balance bar entry point)
 Date: 2026-06-01
 
@@ -30,4 +30,22 @@ this REWORKS the existing screen (so the donut slice-tap path also becomes categ
 than adding a new screen; the balance bar (SPEC-04) is the primary entry point.
 
 ## Implementation links
-(pending — fill commit + changed files after `/cmp --feature --next`)
+Shipped 2026-06-02 via `/cmp --feature --next` (Developer→Reviewer→Tester→Runner→Verifier all green).
+
+- Production: `b62ec52` — feat: rework transactions list into category-grouped expandable records
+- Tests: `ffed6ea` — test: cover category-grouped records screen rework (S11/S12)
+
+Changed files (production):
+- `feature/transactionslist/.../list/TransactionsListViewModel.kt` — dropped Paging; eager `GetCategoryRecordsUseCase` + `BalanceCalculator` net header; `expandedCategoryIds: Set<Long>` (categoryId nav arg pre-expands); `SortClicked` (total asc/desc) + `CategoryClicked` toggle over loaded data; swipe-delete/undo preserved via `softDelete`/`restore` + reload.
+- `feature/transactionslist/.../list/TransactionsListUiState.kt` — new shape: `groups`, `expandedCategoryIds`, `sort`, `net`, `currency`, `isLoading` + derived `sortedGroups`/`isEmpty`.
+- `feature/transactionslist/.../list/TransactionsListEvent.kt` — added `CategoryClicked`, `SortClicked`.
+- `feature/transactionslist/.../list/TransactionListItem.kt` — repurposed to `RecordSort` enum + `RecordsTestTags` constants.
+- `feature/transactionslist/.../list/TransactionsListScreen.kt` — balance-bar header + sort IconButton; category-header rows (chevron/tinted icon/name/count badge/total green=income/red=expense, total-desc); expandable leaf rows (dot + amount + "d MMM" date) with swipe-to-delete + tap→OpenDetail.
+- `feature/transactionslist/src/main/res/values{,-ru}/strings.xml` — new keys (sort/expand/collapse/count), EN+RU parity.
+
+Tests: rewrote `TransactionsListViewModelTest.kt` (category grouping, sort, expand, swipe/undo, pre-expansion, empty), `TransactionsListContentTest.kt` (contract-pin + PHASE_15 Compose template), extended `FakeTransactionRepository.kt`. `:feature:transactionslist:testDebugUnitTest` 68/68 green; lint clean.
+
+Deferred (out of slice scope):
+- `app/src/androidTest/.../transactionslist/list/TransactionsListContentUiTest.kt` references the OLD paged `TransactionsListContent(state, items, …)` API → will fail to compile `:app:connectedDebugAndroidTest` until reworked. Needs a `/cmp --device` slice (one @Test per control, booted device).
+- True module-local Compose-UI test deferred (module lacks `ui-test-junit4`/Robolectric on its test classpath — module convention).
+- Unused `PagingSnapshot.kt` (`firstSnapshot`) left in place per the no-delete rule; remove manually if a cleanup is wanted.

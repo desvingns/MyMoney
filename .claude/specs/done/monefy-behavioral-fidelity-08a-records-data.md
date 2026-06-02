@@ -1,7 +1,7 @@
 # Records data layer: category-grouped query + use case (S01 -> records)
 Epic: monefy-behavioral-fidelity
 Order: 08a of 09
-Status: active
+Status: done
 Depends-on: —
 Date: 2026-06-01
 
@@ -27,4 +27,18 @@ staying empty). The records screen (12/13) needs per-category totals + counts fo
 the underlying transactions to reveal on expand.
 
 ## Implementation links
-(pending — fill commit + changed files after `/cmp --feature --next`)
+- Production: `c5b81d5` "feat: add category-grouped records domain and data"
+- Tests: `6aa5603` "test: cover category-grouped records DAO query + GetCategoryRecordsUseCase"
+- Changed (production):
+  - `core/domain/.../model/CategoryRecordGroup.kt` (NEW)
+  - `core/domain/.../usecase/GetCategoryRecordsUseCase.kt` (NEW)
+  - `core/domain/.../repository/TransactionRepository.kt` (+getCategoryGroups, +CategoryGroup, findByPeriod impl)
+  - `core/database/.../projection/CategoryGroupRow.kt` (NEW)
+  - `core/database/.../dao/TransactionDao.kt` (+getCategoryGroups, +listByPeriod)
+  - `core/database/.../mapper/Mappers.kt` (+CategoryGroupRow.toDomain)
+  - `core/database/.../repository/TransactionRepositoryImpl.kt` (impl)
+  - 5 test-fake overrides: core/domain FakeRepositories (+seedCategoryGroups/seedPeriodTransactions seams), feature dashboard/dictionaries/transaction/transactionslist fakes
+- Tests added:
+  - `core/database/src/androidTest/.../TransactionDaoCategoryGroupsTest.kt` (instrumented, device-gated)
+  - `core/domain/src/test/.../usecase/GetCategoryRecordsUseCaseTest.kt` (JVM)
+- Verification: Reviewer pass; Runner 269 JVM tests / 0 failed; Verifier hilt_graph=ok (nav/room/strings n/a — data-only slice)

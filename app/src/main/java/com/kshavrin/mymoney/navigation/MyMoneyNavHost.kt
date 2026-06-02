@@ -6,6 +6,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
@@ -49,36 +52,49 @@ fun MyMoneyNavHost(
             )
         }
         composable(Destinations.DASHBOARD) {
-            com.kshavrin.mymoney.feature.dashboard.DashboardRoute(
-                onAction = { action ->
-                    when (action) {
-                        com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateAddExpense ->
-                            navController.navigate(Destinations.ADD_EXPENSE)
-                        com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateAddIncome ->
-                            navController.navigate(Destinations.ADD_INCOME)
-                        com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateTransfer ->
-                            navController.navigate(Destinations.TRANSFER)
-                        com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateSearch ->
-                            navController.navigate(Destinations.SEARCH)
-                        com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateSettings ->
-                            navController.navigate(Destinations.SETTINGS)
-                        com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateCategories ->
-                            navController.navigate(Destinations.CATEGORIES_LIST)
-                        com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateAccounts ->
-                            navController.navigate(Destinations.ACCOUNTS_LIST)
-                        com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateCurrencies ->
-                            navController.navigate(Destinations.CURRENCIES_LIST)
-                        is com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateTransactionsByAccount ->
-                            navController.navigate("${Destinations.TRANSACTIONS_LIST}?accountId=${action.accountId}")
-                        is com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateTransactionsByCategory ->
-                            navController.navigate(
-                                "${Destinations.TRANSACTIONS_LIST}?accountId=${action.accountId}&categoryId=${action.categoryId}",
-                            )
-                        com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateAbout ->
-                            navController.navigate(Destinations.SETTINGS)
-                    }
-                },
-            )
+            var searchOverlayOpen by rememberSaveable { mutableStateOf(false) }
+            Box(modifier = Modifier.fillMaxSize()) {
+                com.kshavrin.mymoney.feature.dashboard.DashboardRoute(
+                    onAction = { action ->
+                        when (action) {
+                            com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateAddExpense ->
+                                navController.navigate(Destinations.ADD_EXPENSE)
+                            com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateAddIncome ->
+                                navController.navigate(Destinations.ADD_INCOME)
+                            com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateTransfer ->
+                                navController.navigate(Destinations.TRANSFER)
+                            com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateSearch ->
+                                searchOverlayOpen = true
+                            com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateSettings ->
+                                navController.navigate(Destinations.SETTINGS)
+                            com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateCategories ->
+                                navController.navigate(Destinations.CATEGORIES_LIST)
+                            com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateAccounts ->
+                                navController.navigate(Destinations.ACCOUNTS_LIST)
+                            com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateCurrencies ->
+                                navController.navigate(Destinations.CURRENCIES_LIST)
+                            is com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateTransactionsByAccount ->
+                                navController.navigate("${Destinations.TRANSACTIONS_LIST}?accountId=${action.accountId}")
+                            is com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateTransactionsByCategory ->
+                                navController.navigate(
+                                    "${Destinations.TRANSACTIONS_LIST}?accountId=${action.accountId}&categoryId=${action.categoryId}",
+                                )
+                            com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateAbout ->
+                                navController.navigate(Destinations.SETTINGS)
+                        }
+                    },
+                )
+                if (searchOverlayOpen) {
+                    com.kshavrin.mymoney.feature.transactionslist.search.SearchRoute(
+                        onOpenDetail = { id ->
+                            searchOverlayOpen = false
+                            navController.navigate("${Destinations.TRANSACTION_DETAIL}/$id")
+                        },
+                        onBack = { searchOverlayOpen = false },
+                        contextualOverlay = true,
+                    )
+                }
+            }
         }
         composable(
             route = "${Destinations.TRANSACTIONS_LIST}?accountId={accountId}&categoryId={categoryId}&from={from}&to={to}",

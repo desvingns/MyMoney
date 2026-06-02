@@ -5,8 +5,10 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.speech.RecognizerIntent
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,10 +16,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.CompareArrows
@@ -26,16 +33,13 @@ import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SearchBar
-import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SuggestionChip
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -47,9 +51,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kshavrin.mymoney.core.common.money.MoneyFormatter
 import com.kshavrin.mymoney.core.domain.model.Currency
@@ -67,6 +75,7 @@ import java.util.Locale
 fun SearchRoute(
     onOpenDetail: (Long) -> Unit,
     onBack: () -> Unit,
+    contextualOverlay: Boolean = false,
     viewModel: SearchViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -108,10 +117,10 @@ fun SearchRoute(
                 viewModel.onEvent(SearchEvent.VoiceUnavailable)
             }
         },
+        contextualOverlay = contextualOverlay,
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchContent(
     state: SearchState,
@@ -120,71 +129,133 @@ fun SearchContent(
     onLaunchVoice: () -> Unit,
     modifier: Modifier = Modifier,
     voiceSearchAvailable: Boolean? = null,
+    contextualOverlay: Boolean = false,
 ) {
     val context = LocalContext.current
     val focusRequester = remember { FocusRequester() }
-    // BR-18: open with the text field focused and the soft keyboard visible.
+    val keyboardController = LocalSoftwareKeyboardController.current
     LaunchedEffect(Unit) {
         withFrameNanos { }
         focusRequester.requestFocus()
+        keyboardController?.show()
     }
 
     val detectedVoiceAvailable = remember(context) { isVoiceSearchAvailable(context) }
     val voiceAvailable = voiceSearchAvailable ?: detectedVoiceAvailable
+    val bodyTakesOver = !contextualOverlay || state.phase != SearchPhase.Empty
 
-    Scaffold(
-        modifier = modifier,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-    ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-        ) {
-            SearchBar(
-                inputField = {
-                    SearchBarDefaults.InputField(
-                        modifier = Modifier.focusRequester(focusRequester),
-                        query = state.query,
-                        onQueryChange = { onEvent(SearchEvent.QueryChanged(it)) },
-                        onSearch = { onEvent(SearchEvent.QuerySubmitted) },
-                        expanded = true,
-                        onExpandedChange = {},
-                        placeholder = { Text(stringResource(R.string.search_records_hint)) },
-                        leadingIcon = {
-                            IconButton(onClick = { onEvent(SearchEvent.BackClicked) }) {
-                                Icon(
-                                    Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = stringResource(R.string.transactions_list_back),
-                                )
-                            }
+    BackHandler { onEvent(SearchEvent.BackClicked) }
+
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            MonefySearchTopBar(
+                query = state.query,
+                voiceAvailable = voiceAvailable,
+                focusRequester = focusRequester,
+                onQueryChange = { onEvent(SearchEvent.QueryChanged(it)) },
+                onSearch = { onEvent(SearchEvent.QuerySubmitted) },
+                onBack = { onEvent(SearchEvent.BackClicked) },
+                onClear = { onEvent(SearchEvent.QueryCleared) },
+                onLaunchVoice = onLaunchVoice,
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .then(
+                        if (bodyTakesOver) {
+                            Modifier.background(MaterialTheme.colorScheme.surface)
+                        } else {
+                            Modifier
                         },
-                        trailingIcon = {
-                            if (state.query.isEmpty()) {
-                                if (voiceAvailable) {
-                                    IconButton(onClick = onLaunchVoice) {
-                                        Icon(
-                                            Icons.Filled.Mic,
-                                            contentDescription = stringResource(R.string.search_voice_cd),
-                                        )
-                                    }
-                                }
-                            } else {
-                                IconButton(onClick = { onEvent(SearchEvent.QueryCleared) }) {
-                                    Icon(
-                                        Icons.Filled.Close,
-                                        contentDescription = stringResource(R.string.search_clear_cd),
-                                    )
-                                }
-                            }
-                        },
-                    )
-                },
-                expanded = true,
-                onExpandedChange = {},
-                modifier = Modifier.fillMaxWidth(),
+                    ),
             ) {
                 SearchBody(state = state, onEvent = onEvent)
+            }
+        }
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter),
+        )
+    }
+}
+
+@Composable
+private fun MonefySearchTopBar(
+    query: String,
+    voiceAvailable: Boolean,
+    focusRequester: FocusRequester,
+    onQueryChange: (String) -> Unit,
+    onSearch: () -> Unit,
+    onBack: () -> Unit,
+    onClear: () -> Unit,
+    onLaunchVoice: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.primary,
+        contentColor = MaterialTheme.colorScheme.onPrimary,
+        shadowElevation = 0.dp,
+    ) {
+        Column(modifier = Modifier.statusBarsPadding()) {
+            Row(
+                modifier = Modifier
+                    .height(64.dp)
+                    .fillMaxWidth()
+                    .padding(horizontal = Spacing.xs),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = stringResource(R.string.transactions_list_back),
+                    )
+                }
+                BasicTextField(
+                    value = query,
+                    onValueChange = onQueryChange,
+                    modifier = Modifier
+                        .weight(1f)
+                        .focusRequester(focusRequester),
+                    singleLine = true,
+                    textStyle = MaterialTheme.typography.headlineSmall.copy(
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    ),
+                    cursorBrush = SolidColor(MaterialTheme.colorScheme.onPrimary),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { onSearch() }),
+                    decorationBox = { innerTextField ->
+                        Box(contentAlignment = Alignment.CenterStart) {
+                            if (query.isEmpty()) {
+                                Text(
+                                    text = stringResource(R.string.search_records_hint),
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.72f),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                            innerTextField()
+                        }
+                    },
+                )
+                if (query.isEmpty()) {
+                    if (voiceAvailable) {
+                        IconButton(onClick = onLaunchVoice) {
+                            Icon(
+                                Icons.Filled.Mic,
+                                contentDescription = stringResource(R.string.search_voice_cd),
+                            )
+                        }
+                    }
+                } else {
+                    IconButton(onClick = onClear) {
+                        Icon(
+                            Icons.Filled.Close,
+                            contentDescription = stringResource(R.string.search_clear_cd),
+                        )
+                    }
+                }
             }
         }
     }

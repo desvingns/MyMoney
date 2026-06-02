@@ -3,6 +3,7 @@ package com.kshavrin.mymoney.feature.transactionslist.search
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -57,6 +58,17 @@ class SearchContentUiTest {
         composeTestRule.runOnIdle {
             assertTrue(capturedEvents.contains(SearchEvent.QueryChanged("coffee")))
         }
+    }
+
+    @Test
+    fun `search field requests focus when opened`() {
+        setContent()
+
+        composeTestRule.waitForIdle()
+
+        composeTestRule
+            .onNode(hasSetTextAction())
+            .assertIsFocused()
     }
 
     @Test

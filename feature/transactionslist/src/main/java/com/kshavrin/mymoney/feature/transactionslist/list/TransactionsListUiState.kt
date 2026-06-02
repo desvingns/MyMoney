@@ -5,7 +5,8 @@ import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Money
 
 data class TransactionsListUiState(
-    val accountId: Long = -1L,
+    val accountId: Long? = null,
+    val currencyId: Long? = null,
     val categoryId: Long? = null,
     val groups: List<CategoryRecordGroup> = emptyList(),
     val expandedCategoryIds: Set<Long> = emptySet(),

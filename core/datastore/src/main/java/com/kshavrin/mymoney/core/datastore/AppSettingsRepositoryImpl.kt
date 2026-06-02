@@ -44,6 +44,7 @@ internal fun Preferences.toAppSettings(): AppSettings = AppSettings(
     soundEnabled = this[AppSettingsKeys.SOUND_ENABLED] ?: true,
     hapticEnabled = this[AppSettingsKeys.HAPTIC_ENABLED] ?: true,
     defaultAccountId = this[AppSettingsKeys.DEFAULT_ACCOUNT_ID] ?: -1L,
+    dashboardSelectionMode = this[AppSettingsKeys.DASHBOARD_SELECTION_MODE] ?: "specific_account",
     defaultPeriod = this[AppSettingsKeys.DEFAULT_PERIOD] ?: "month",
     dateFirstDayOfWeek = this[AppSettingsKeys.DATE_FIRST_DAY_OF_WEEK] ?: 1,
     currencySymbolPosition = this[AppSettingsKeys.CURRENCY_SYMBOL_POSITION] ?: "before",
@@ -62,6 +63,7 @@ internal fun AppSettings.writeTo(prefs: androidx.datastore.preferences.core.Muta
     prefs[AppSettingsKeys.SOUND_ENABLED] = soundEnabled
     prefs[AppSettingsKeys.HAPTIC_ENABLED] = hapticEnabled
     prefs[AppSettingsKeys.DEFAULT_ACCOUNT_ID] = defaultAccountId
+    prefs[AppSettingsKeys.DASHBOARD_SELECTION_MODE] = dashboardSelectionMode
     prefs[AppSettingsKeys.DEFAULT_PERIOD] = defaultPeriod
     prefs[AppSettingsKeys.DATE_FIRST_DAY_OF_WEEK] = dateFirstDayOfWeek
     prefs[AppSettingsKeys.CURRENCY_SYMBOL_POSITION] = currencySymbolPosition

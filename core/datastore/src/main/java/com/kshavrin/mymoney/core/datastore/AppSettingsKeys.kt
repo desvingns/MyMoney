@@ -13,6 +13,7 @@ internal object AppSettingsKeys {
     val SOUND_ENABLED = booleanPreferencesKey("sound_enabled")
     val HAPTIC_ENABLED = booleanPreferencesKey("haptic_enabled")
     val DEFAULT_ACCOUNT_ID = longPreferencesKey("default_account_id")
+    val DASHBOARD_SELECTION_MODE = stringPreferencesKey("dashboard_selection_mode")
     val DEFAULT_PERIOD = stringPreferencesKey("default_period")
     val DATE_FIRST_DAY_OF_WEEK = intPreferencesKey("date_first_day_of_week")
     val CURRENCY_SYMBOL_POSITION = stringPreferencesKey("currency_symbol_position")

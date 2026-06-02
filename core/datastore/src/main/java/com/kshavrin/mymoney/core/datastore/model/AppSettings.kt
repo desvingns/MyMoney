@@ -8,6 +8,7 @@ data class AppSettings(
     val soundEnabled: Boolean = true,
     val hapticEnabled: Boolean = true,
     val defaultAccountId: Long = -1L,
+    val dashboardSelectionMode: String = "specific_account",
     val defaultPeriod: String = "month",
     val dateFirstDayOfWeek: Int = 1,
     val currencySymbolPosition: String = "before",

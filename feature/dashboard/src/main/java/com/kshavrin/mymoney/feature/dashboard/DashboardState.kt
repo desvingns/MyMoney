@@ -12,8 +12,7 @@ data class DashboardState(
     val period: Period = Period.Month(YearMonth.now()),
     val accounts: List<Account> = emptyList(),
     val currencies: List<Currency> = emptyList(),
-    val currentAccount: Account? = null,
-    val currentCurrency: Currency? = null,
+    val dashboardSelection: DashboardSelection? = null,
     val balanceSnapshot: BalanceSnapshot? = null,
     val slices: List<CategorySlice> = emptyList(),
     val expenseCategoryPlaceholders: List<CategorySlice> = emptyList(),
@@ -23,13 +22,29 @@ data class DashboardState(
     val leftDrawerOpen: Boolean = false,
     val rightDrawerOpen: Boolean = false,
     val showConfetti: Boolean = false,
-)
+) {
+    val currentAccount: Account?
+        get() = (dashboardSelection as? DashboardSelection.SpecificAccount)?.account
+
+    val currentCurrency: Currency?
+        get() = when (val selection = dashboardSelection) {
+            is DashboardSelection.AllAccounts -> selection.currency
+            is DashboardSelection.SpecificAccount -> currencies.firstOrNull { it.id == selection.account.currencyId }
+            null -> null
+        }
+}
+
+sealed interface DashboardSelection {
+    data class SpecificAccount(val account: Account) : DashboardSelection
+    data class AllAccounts(val currency: Currency) : DashboardSelection
+}
 
 sealed interface DashboardEvent {
     data class PeriodChanged(val period: Period) : DashboardEvent
     data object PreviousPeriod : DashboardEvent
     data object NextPeriod : DashboardEvent
-    data class AccountChanged(val accountId: Long) : DashboardEvent
+    data class AccountSelected(val accountId: Long) : DashboardEvent
+    data object AllAccountsSelected : DashboardEvent
     data object LeftDrawerToggled : DashboardEvent
     data object RightDrawerToggled : DashboardEvent
     data object DrawerDismissed : DashboardEvent

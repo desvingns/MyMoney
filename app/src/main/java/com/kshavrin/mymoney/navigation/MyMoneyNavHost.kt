@@ -75,9 +75,17 @@ fun MyMoneyNavHost(
                                 navController.navigate(Destinations.CURRENCIES_LIST)
                             is com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateTransactionsByAccount ->
                                 navController.navigate("${Destinations.TRANSACTIONS_LIST}?accountId=${action.accountId}")
+                            is com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateTransactionsByCurrency ->
+                                navController.navigate("${Destinations.TRANSACTIONS_LIST}?currencyId=${action.currencyId}")
                             is com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateTransactionsByCategory ->
                                 navController.navigate(
-                                    "${Destinations.TRANSACTIONS_LIST}?accountId=${action.accountId}&categoryId=${action.categoryId}",
+                                    buildString {
+                                        append("${Destinations.TRANSACTIONS_LIST}?")
+                                        if (action.accountId != null) {
+                                            append("accountId=${action.accountId}&")
+                                        }
+                                        append("currencyId=${action.currencyId}&categoryId=${action.categoryId}")
+                                    },
                                 )
                             com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateAbout ->
                                 navController.navigate(Destinations.SETTINGS)
@@ -97,9 +105,10 @@ fun MyMoneyNavHost(
             }
         }
         composable(
-            route = "${Destinations.TRANSACTIONS_LIST}?accountId={accountId}&categoryId={categoryId}&from={from}&to={to}",
+            route = "${Destinations.TRANSACTIONS_LIST}?accountId={accountId}&currencyId={currencyId}&categoryId={categoryId}&from={from}&to={to}",
             arguments = listOf(
                 navArgument("accountId") { type = NavType.LongType; defaultValue = -1L },
+                navArgument("currencyId") { type = NavType.LongType; defaultValue = -1L },
                 navArgument("categoryId") { type = NavType.LongType; defaultValue = -1L },
                 navArgument("from") { type = NavType.LongType; defaultValue = -1L },
                 navArgument("to") { type = NavType.LongType; defaultValue = -1L },

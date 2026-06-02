@@ -91,15 +91,17 @@ class DashboardViewModel @Inject constructor(
             accounts.firstOrNull { it.id == settings.defaultAccountId }
         } else null
         val activeAccount = defaultAccount ?: accounts.firstOrNull()
-        val activeCurrency = activeAccount?.let { acc ->
-            currencies.firstOrNull { it.id == acc.currencyId }
+        val activeCurrency = activeAccount?.let { acc -> currencies.firstOrNull { it.id == acc.currencyId } }
+        val selection = if (settings.dashboardSelectionMode == DASHBOARD_SELECTION_ALL) {
+            activeCurrency?.let(DashboardSelection::AllAccounts)
+        } else {
+            activeAccount?.let(DashboardSelection::SpecificAccount)
         }
         _state.value = _state.value.copy(
             accounts = accounts,
             currencies = currencies,
-            currentAccount = activeAccount,
-            currentCurrency = activeCurrency,
-            isLoading = activeAccount == null,
+            dashboardSelection = selection,
+            isLoading = selection == null,
         )
     }
 
@@ -118,8 +120,10 @@ class DashboardViewModel @Inject constructor(
     }
 
     private fun selectBudgetAlerts() {
-        val selection = _state.value.currentAccount?.let {
-            BudgetAlertSelection(accountId = it.id)
+        val selection = when (val dashboardSelection = _state.value.dashboardSelection) {
+            is DashboardSelection.SpecificAccount -> BudgetAlertSelection(accountId = dashboardSelection.account.id)
+            is DashboardSelection.AllAccounts,
+            null -> null
         }
         if (selection == budgetAlertSelection.value) return
         _state.value = _state.value.copy(
@@ -154,10 +158,18 @@ class DashboardViewModel @Inject constructor(
     }
 
     private fun recomputeBalance() {
-        val account = _state.value.currentAccount ?: return
+        val state = _state.value
+        val selection = state.dashboardSelection ?: return
         val period = _state.value.period
         viewModelScope.launch {
-            val snapshot = balanceCalculator(account.id, period)
+            val snapshot = when (selection) {
+                is DashboardSelection.SpecificAccount -> balanceCalculator(selection.account.id, period)
+                is DashboardSelection.AllAccounts -> balanceCalculator.forAccounts(
+                    accounts = state.accounts.filter { it.currencyId == selection.currency.id },
+                    currency = selection.currency,
+                    period = period,
+                )
+            }
             val slices = snapshotToSlices(snapshot, _state.value.budgetAlertCategoryIds)
             val settings = appSettingsRepository.settings.first()
             val firstPositive = !settings.firstPositiveSeen && snapshot.net.amount.signum() > 0
@@ -216,19 +228,33 @@ class DashboardViewModel @Inject constructor(
                 _state.value = _state.value.copy(period = _state.value.period.next())
                 recomputeBalance()
             }
-            is DashboardEvent.AccountChanged -> {
-                val acc = _state.value.accounts.firstOrNull { it.id == event.accountId }
+            is DashboardEvent.AccountSelected -> {
+                val acc = _state.value.accounts.firstOrNull { it.id == event.accountId } ?: return
                 _state.value = _state.value.copy(
-                    currentAccount = acc,
-                    currentCurrency = acc?.let { a ->
-                        _state.value.currencies.firstOrNull { it.id == a.currencyId }
-                    },
+                    dashboardSelection = DashboardSelection.SpecificAccount(acc),
                     leftDrawerOpen = false,
                 )
                 selectBudgetAlerts()
                 recomputeBalance()
                 viewModelScope.launch {
-                    appSettingsRepository.update { it.copy(defaultAccountId = event.accountId) }
+                    appSettingsRepository.update {
+                        it.copy(
+                            defaultAccountId = event.accountId,
+                            dashboardSelectionMode = DASHBOARD_SELECTION_SPECIFIC,
+                        )
+                    }
+                }
+            }
+            DashboardEvent.AllAccountsSelected -> {
+                val currency = _state.value.currentCurrency ?: return
+                _state.value = _state.value.copy(
+                    dashboardSelection = DashboardSelection.AllAccounts(currency),
+                    leftDrawerOpen = false,
+                )
+                selectBudgetAlerts()
+                recomputeBalance()
+                viewModelScope.launch {
+                    appSettingsRepository.update { it.copy(dashboardSelectionMode = DASHBOARD_SELECTION_ALL) }
                 }
             }
             DashboardEvent.LeftDrawerToggled ->
@@ -262,11 +288,22 @@ class DashboardViewModel @Inject constructor(
                 emit(DashboardAction.NavigateAbout)
             }
             DashboardEvent.BalanceCardClicked -> {
-                _state.value.currentAccount?.let { emit(DashboardAction.NavigateTransactionsByAccount(it.id)) }
+                when (val selection = _state.value.dashboardSelection) {
+                    is DashboardSelection.SpecificAccount -> emit(DashboardAction.NavigateTransactionsByAccount(selection.account.id))
+                    is DashboardSelection.AllAccounts -> emit(DashboardAction.NavigateTransactionsByCurrency(selection.currency.id))
+                    null -> Unit
+                }
             }
             is DashboardEvent.SliceClicked -> {
-                _state.value.currentAccount?.let { acc ->
-                    emit(DashboardAction.NavigateTransactionsByCategory(acc.id, event.categoryId))
+                when (val selection = _state.value.dashboardSelection) {
+                    is DashboardSelection.SpecificAccount -> {
+                        val currency = _state.value.currencies.firstOrNull { it.id == selection.account.currencyId } ?: return
+                        emit(DashboardAction.NavigateTransactionsByCategory(selection.account.id, currency.id, event.categoryId))
+                    }
+                    is DashboardSelection.AllAccounts -> {
+                        emit(DashboardAction.NavigateTransactionsByCategory(null, selection.currency.id, event.categoryId))
+                    }
+                    null -> Unit
                 }
             }
             DashboardEvent.ConfettiAcknowledged ->
@@ -286,3 +323,6 @@ class DashboardViewModel @Inject constructor(
 private data class BudgetAlertSelection(
     val accountId: Long,
 )
+
+private const val DASHBOARD_SELECTION_SPECIFIC = "specific_account"
+private const val DASHBOARD_SELECTION_ALL = "all_accounts"

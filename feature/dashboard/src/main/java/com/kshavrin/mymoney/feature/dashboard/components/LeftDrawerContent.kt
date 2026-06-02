@@ -51,6 +51,7 @@ import com.kshavrin.mymoney.core.ui.haptic.HapticKind
 import com.kshavrin.mymoney.core.ui.sound.SoundKey
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.feature.dashboard.DashboardEvent
+import com.kshavrin.mymoney.feature.dashboard.DashboardSelection
 import com.kshavrin.mymoney.feature.dashboard.DashboardState
 import com.kshavrin.mymoney.feature.dashboard.R
 import java.time.DayOfWeek
@@ -94,10 +95,14 @@ fun LeftDrawerContent(
             AccountDropdown(
                 accounts = state.accounts,
                 currencies = state.currencies,
-                selectedAccountId = state.currentAccount?.id,
+                selection = state.dashboardSelection,
+                onAllAccountsClick = {
+                    accountsExpanded = false
+                    onEvent(DashboardEvent.AllAccountsSelected)
+                },
                 onAccountClick = { accountId ->
                     accountsExpanded = false
-                    onEvent(DashboardEvent.AccountChanged(accountId))
+                    onEvent(DashboardEvent.AccountSelected(accountId))
                 },
             )
             Spacer(modifier = Modifier.height(Spacing.m))
@@ -170,27 +175,27 @@ fun LeftDrawerContent(
 private fun AccountDropdown(
     accounts: List<Account>,
     currencies: List<Currency>,
-    selectedAccountId: Long?,
+    selection: DashboardSelection?,
+    onAllAccountsClick: () -> Unit,
     onAccountClick: (Long) -> Unit,
 ) {
     Column {
         DrawerOutlinedRow(
             label = stringResource(R.string.left_drawer_all_accounts),
-            selected = false,
+            selected = selection is DashboardSelection.AllAccounts,
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Outlined.AccountBalanceWallet,
                     contentDescription = null,
                 )
             },
-            enabled = false,
-            onClick = {},
+            onClick = onAllAccountsClick,
         )
         accounts.forEach { account ->
             AccountDrawerRow(
                 account = account,
                 currencyCode = currencies.firstOrNull { it.id == account.currencyId }?.code,
-                selected = account.id == selectedAccountId,
+                selected = (selection as? DashboardSelection.SpecificAccount)?.account?.id == account.id,
                 onClick = { onAccountClick(account.id) },
             )
         }

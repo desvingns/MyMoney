@@ -34,7 +34,10 @@ class SearchContentUiTest {
     fun `back button emits search back event`() {
         val capturedEvents = mutableListOf<SearchEvent>()
 
-        setContent(onEvent = { event -> capturedEvents += event })
+        setContent(
+            state = SearchState(query = "coffee"),
+            onEvent = { event -> capturedEvents += event },
+        )
 
         composeTestRule
             .onNodeWithContentDescription(targetString(R.string.transactions_list_back))
@@ -69,6 +72,36 @@ class SearchContentUiTest {
         composeTestRule
             .onNode(hasSetTextAction())
             .assertIsFocused()
+    }
+
+    @Test
+    fun `empty query shows hint and voice action instead of clear action`() {
+        setContent(voiceSearchAvailable = true)
+
+        composeTestRule
+            .onNodeWithText(targetString(R.string.search_records_hint))
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.search_voice_cd))
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.search_clear_cd))
+            .assertDoesNotExist()
+    }
+
+    @Test
+    fun `non blank query shows clear action instead of voice action`() {
+        setContent(
+            state = SearchState(query = "coffee"),
+            voiceSearchAvailable = true,
+        )
+
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.search_clear_cd))
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.search_voice_cd))
+            .assertDoesNotExist()
     }
 
     @Test
@@ -115,6 +148,7 @@ class SearchContentUiTest {
 
         setContent(
             state = SearchState(history = listOf("rent"), phase = SearchPhase.Empty),
+            contextualOverlay = true,
             onEvent = { event -> capturedEvents += event },
         )
 
@@ -139,6 +173,7 @@ class SearchContentUiTest {
                 results = listOf(searchRow(id = 42L, note = "Coffee")),
                 currencies = listOf(currency(id = 1L)),
             ),
+            contextualOverlay = true,
             onEvent = { event -> capturedEvents += event },
         )
 
@@ -159,6 +194,7 @@ class SearchContentUiTest {
                 query = "missing",
                 phase = SearchPhase.EmptyResults,
             ),
+            contextualOverlay = true,
         )
 
         composeTestRule
@@ -183,6 +219,7 @@ class SearchContentUiTest {
     private fun setContent(
         state: SearchState = SearchState(),
         voiceSearchAvailable: Boolean = false,
+        contextualOverlay: Boolean = false,
         onEvent: (SearchEvent) -> Unit = {},
         onLaunchVoice: () -> Unit = {},
     ) {
@@ -194,6 +231,7 @@ class SearchContentUiTest {
                     onEvent = onEvent,
                     onLaunchVoice = onLaunchVoice,
                     voiceSearchAvailable = voiceSearchAvailable,
+                    contextualOverlay = contextualOverlay,
                 )
             }
         }

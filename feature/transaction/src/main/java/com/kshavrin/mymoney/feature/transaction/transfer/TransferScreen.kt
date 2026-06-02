@@ -1,5 +1,8 @@
 package com.kshavrin.mymoney.feature.transaction.transfer
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -7,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -17,9 +21,11 @@ import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Dialpad
+import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
+import androidx.compose.material.icons.outlined.CreditCard
+import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
@@ -49,7 +55,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavBackStackEntry
@@ -223,33 +233,20 @@ fun TransferScreen(
                 showAccountDateRow = false,
             )
 
-            AccountCard(
-                account = state.sourceAccount,
-                currencyCode = state.sourceCurrency?.code
+            TransferAccountSelectorStack(
+                sourceAccount = state.sourceAccount,
+                sourceCurrencyCode = state.sourceCurrency?.code
                     ?: currencyCodeFor(state.sourceAccount, state.currencies),
-                placeholder = stringResource(R.string.source_label),
-                options = state.accounts,
-                currencies = state.currencies,
-                onSelected = { onEvent(TransferEvent.SourceAccountChanged(it.id)) },
-            )
-
-            Icon(
-                imageVector = Icons.Filled.ArrowDownward,
-                contentDescription = stringResource(R.string.transfer_direction_cd),
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier
-                    .align(Alignment.CenterHorizontally)
-                    .size(32.dp),
-            )
-
-            AccountCard(
-                account = state.targetAccount,
-                currencyCode = state.targetCurrency?.code
+                targetAccount = state.targetAccount,
+                targetCurrencyCode = state.targetCurrency?.code
                     ?: currencyCodeFor(state.targetAccount, state.currencies),
-                placeholder = stringResource(R.string.target_label),
+                sourcePlaceholder = stringResource(R.string.source_label),
+                targetPlaceholder = stringResource(R.string.target_label),
+                directionContentDescription = stringResource(R.string.transfer_direction_cd),
                 options = state.accounts,
                 currencies = state.currencies,
-                onSelected = { onEvent(TransferEvent.TargetAccountChanged(it.id)) },
+                onSourceSelected = { onEvent(TransferEvent.SourceAccountChanged(it.id)) },
+                onTargetSelected = { onEvent(TransferEvent.TargetAccountChanged(it.id)) },
             )
 
             if (state.sameAccountsError) {
@@ -329,7 +326,54 @@ fun TransferScreen(
 }
 
 @Composable
-private fun AccountCard(
+private fun TransferAccountSelectorStack(
+    sourceAccount: Account?,
+    sourceCurrencyCode: String?,
+    targetAccount: Account?,
+    targetCurrencyCode: String?,
+    sourcePlaceholder: String,
+    targetPlaceholder: String,
+    directionContentDescription: String,
+    options: List<Account>,
+    currencies: List<Currency>,
+    onSourceSelected: (Account) -> Unit,
+    onTargetSelected: (Account) -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.l),
+        verticalArrangement = Arrangement.spacedBy(Spacing.m),
+    ) {
+        AccountSelectorRow(
+            account = sourceAccount,
+            currencyCode = sourceCurrencyCode,
+            placeholder = sourcePlaceholder,
+            options = options,
+            currencies = currencies,
+            onSelected = onSourceSelected,
+        )
+        Icon(
+            imageVector = Icons.Filled.ArrowDownward,
+            contentDescription = directionContentDescription,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .size(32.dp),
+        )
+        AccountSelectorRow(
+            account = targetAccount,
+            currencyCode = targetCurrencyCode,
+            placeholder = targetPlaceholder,
+            options = options,
+            currencies = currencies,
+            onSelected = onTargetSelected,
+        )
+    }
+}
+
+@Composable
+private fun AccountSelectorRow(
     account: Account?,
     currencyCode: String?,
     placeholder: String,
@@ -338,34 +382,39 @@ private fun AccountCard(
     onSelected: (Account) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { expanded = true },
-        colors = CardDefaults.outlinedCardColors(),
-        border = CardDefaults.outlinedCardBorder(),
-    ) {
+    val selectorShape = MaterialTheme.shapes.extraSmall
+    val accentColor = account?.colorHex?.let(::parseAccountColor) ?: MaterialTheme.colorScheme.primary
+    Box(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(Spacing.m),
+                .heightIn(min = 56.dp)
+                .border(
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+                    shape = selectorShape,
+                )
+                .background(MaterialTheme.colorScheme.surface, selectorShape)
+                .semantics { contentDescription = placeholder }
+                .clickable { expanded = true }
+                .padding(horizontal = Spacing.m, vertical = Spacing.xs),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Spacing.m),
         ) {
             Icon(
-                imageVector = Icons.Outlined.AccountBalanceWallet,
+                imageVector = accountIcon(account?.iconKey),
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.secondary,
+                tint = accentColor,
+                modifier = Modifier.size(36.dp),
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = account?.name ?: placeholder,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.bodyLarge,
                 )
                 if (currencyCode != null) {
                     Text(
                         text = currencyCode,
-                        style = MaterialTheme.typography.labelMedium,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -373,30 +422,39 @@ private fun AccountCard(
             Icon(
                 imageVector = Icons.Filled.ArrowDropDown,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.secondary,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(24.dp),
             )
         }
-        Box {
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-            ) {
-                options.forEach { option ->
-                    DropdownMenuItem(
-                        text = {
-                            val code = currencyCodeFor(option, currencies)
-                            Text(if (code != null) "${option.name} · $code" else option.name)
-                        },
-                        onClick = {
-                            onSelected(option)
-                            expanded = false
-                        },
-                    )
-                }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            options.forEach { option ->
+                DropdownMenuItem(
+                    text = {
+                        val code = currencyCodeFor(option, currencies)
+                        Text(if (code != null) "${option.name} · $code" else option.name)
+                    },
+                    onClick = {
+                        onSelected(option)
+                        expanded = false
+                    },
+                )
             }
         }
     }
 }
+
+private fun accountIcon(iconKey: String?): ImageVector = when (iconKey) {
+    "ic_account_cash" -> Icons.Outlined.Payments
+    "ic_account_card" -> Icons.Outlined.CreditCard
+    "ic_account_bank" -> Icons.Outlined.AccountBalance
+    else -> Icons.Outlined.AccountBalanceWallet
+}
+
+private fun parseAccountColor(hex: String): Color? =
+    runCatching { Color(android.graphics.Color.parseColor(hex)) }.getOrNull()
 
 private fun currencyCodeFor(account: Account?, currencies: List<Currency>): String? {
     if (account == null) return null

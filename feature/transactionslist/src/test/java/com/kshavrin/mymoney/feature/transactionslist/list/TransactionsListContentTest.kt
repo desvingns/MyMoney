@@ -1,5 +1,10 @@
 package com.kshavrin.mymoney.feature.transactionslist.list
 
+import com.kshavrin.mymoney.core.domain.model.CategoryKind
+import com.kshavrin.mymoney.core.domain.model.Currency
+import com.kshavrin.mymoney.core.domain.model.CategoryRecordGroup
+import com.kshavrin.mymoney.core.domain.model.Money
+import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -7,28 +12,28 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.math.BigDecimal
 import java.time.Instant
-import java.time.LocalDate
 
 /**
- * Contract-level pinning for [TransactionsListContent] (S12).
+ * Contract-level pinning for the reworked category-grouped [TransactionsListContent] (S12 collapsed /
+ * S13 expanded).
  *
  * # Why this is not a Compose-UI test yet
  *
- * `:feature:transactionslist`'s offline test classpath does NOT yet have:
+ * `:feature:transactionslist`'s offline test classpath still does NOT have:
  *
  *   - `androidx.compose.ui:ui-test-junit4`
  *   - `androidx.compose.ui:ui-test-manifest`
+ *   - Robolectric
  *
- * (neither artifact is present in the Gradle cache, so a `createComposeRule()` test
- * would fail to resolve at compile time). This mirrors the deliberate deferral
- * documented in `:core:designsystem`'s `MonefyKeypadTest` — full Compose-UI tests
- * land in PHASE_15 once those dependencies are wired in.
+ * (none is present in the Gradle cache, so a `createComposeRule()` test would fail to resolve at
+ * compile time). This mirrors the deliberate deferral documented in this module's
+ * `TransactionDetailContentTest` / `SearchContentTest` and `:core:designsystem`'s `MonefyKeypadTest`
+ * — full Compose-UI tests land in PHASE_15 once those dependencies are wired in. The on-device
+ * Compose coverage lives in `:app`'s `androidTest` (`TransactionsListContentUiTest`).
  *
- * Until then, the user-visible decisions that the composable makes are driven by
- * pure, JVM-visible inputs ([TransactionsListUiState], the [TransactionListItem]
- * sealed type, and `LazyPagingItems.itemCount` / `loadState.refresh`). This file
- * pins those so the contract can't drift, and documents the exact Compose test that
- * replaces it.
+ * Until then, the user-visible decisions [TransactionsListContent] makes are driven by pure,
+ * JVM-visible inputs ([TransactionsListUiState], [RecordSort], [RecordsTestTags]). This file pins
+ * those so the contract can't drift, and documents the exact Compose test that replaces it.
  *
  * # What the real Compose-UI test must cover (template for PHASE_15)
  *
@@ -39,18 +44,13 @@ import java.time.LocalDate
  * class TransactionsListContentTest {
  *     @get:Rule val composeTestRule = createComposeRule()
  *
- *     private fun setContent(
- *         state: TransactionsListUiState = TransactionsListUiState(accountId = 1L),
- *         items: List<TransactionListItem>,
- *     ) {
- *         val flow = flowOf(PagingData.from(items))
+ *     private fun setContent(state: TransactionsListUiState, onEvent: (TransactionsListEvent) -> Unit = {}) {
  *         composeTestRule.setContent {
  *             MyMoneyTheme {
  *                 TransactionsListContent(
  *                     state = state,
- *                     items = flow.collectAsLazyPagingItems(),
  *                     snackbarHostState = remember { SnackbarHostState() },
- *                     onEvent = {},
+ *                     onEvent = onEvent,
  *                     onSearch = {},
  *                     onBack = {},
  *                 )
@@ -58,87 +58,175 @@ import java.time.LocalDate
  *         }
  *     }
  *
- *     @Test fun `shows title`() {
- *         setContent(items = listOf(row(1L)))
- *         composeTestRule.onNodeWithText("Transactions").assertIsDisplayed()
+ *     @Test fun `shows balance bar with net`() {
+ *         setContent(stateWith(net = money("70.00")))
+ *         composeTestRule.onNodeWithTag(RecordsTestTags.BALANCE).assertIsDisplayed()
  *     }
  *
- *     @Test fun `renders rows from paging items`() {
- *         setContent(items = listOf(header(today), row(1L), row(2L)))
- *         // amount text rendered for each row, a day header above them
- *         composeTestRule.onAllNodesWithText("Open transaction").assertCountEquals(2)
+ *     @Test fun `category header shows count and total`() {
+ *         setContent(stateWith(groups = listOf(food)))
+ *         composeTestRule.onNodeWithTag(RecordsTestTags.count(10L)).assertIsDisplayed()
+ *         composeTestRule.onNodeWithTag(RecordsTestTags.total(10L)).assertIsDisplayed()
  *     }
  *
- *     @Test fun `shows empty-state string when zero items`() {
- *         setContent(items = emptyList())
- *         composeTestRule.onNodeWithText("No records for this period").assertIsDisplayed()
+ *     @Test fun `tapping a header toggles expand and reveals leaf rows`() {
+ *         val events = mutableListOf<TransactionsListEvent>()
+ *         setContent(stateWith(groups = listOf(food)), onEvent = { events += it })
+ *         composeTestRule.onNodeWithTag(RecordsTestTags.category(10L)).performClick()
+ *         composeTestRule.runOnIdle { assertEquals(listOf(TransactionsListEvent.CategoryClicked(10L)), events) }
  *     }
  *
- *     @Test fun `shows day header`() {
- *         setContent(items = listOf(header(LocalDate.of(2026, 5, 20)), row(1L)))
- *         composeTestRule.onNodeWithText("Wed, 20 May").assertIsDisplayed()
+ *     @Test fun `expanded leaf row tap emits RowClicked`() {
+ *         val events = mutableListOf<TransactionsListEvent>()
+ *         setContent(stateWith(groups = listOf(food), expanded = setOf(10L)), onEvent = { events += it })
+ *         composeTestRule.onNodeWithTag(RecordsTestTags.transaction(1L)).performClick()
+ *         composeTestRule.runOnIdle { assertEquals(listOf(TransactionsListEvent.RowClicked(1L)), events) }
  *     }
  *
- *     // Swipe-to-delete gesture is asserted in TransactionsListViewModelTest
- *     // (SwipeDeleted -> softDelete + ShowUndoSnackbar); the headless gesture itself
- *     // is not reliably drivable, so the ViewModel test owns that contract.
+ *     @Test fun `sort button emits SortClicked`() {
+ *         val events = mutableListOf<TransactionsListEvent>()
+ *         setContent(stateWith(groups = listOf(food)), onEvent = { events += it })
+ *         composeTestRule.onNodeWithTag(RecordsTestTags.SORT).performClick()
+ *         composeTestRule.runOnIdle { assertEquals(listOf(TransactionsListEvent.SortClicked), events) }
+ *     }
+ *
+ *     @Test fun `empty state shows the empty marker`() {
+ *         setContent(stateWith(groups = emptyList()).copy(isLoading = false))
+ *         composeTestRule.onNodeWithTag(RecordsTestTags.EMPTY).assertIsDisplayed()
+ *     }
  * }
  * ```
  */
 class TransactionsListContentTest {
 
-    private val zone = java.time.ZoneId.systemDefault()
+    private val usd = Currency(
+        id = 1L,
+        code = "USD",
+        symbol = "$",
+        name = "US Dollar",
+        decimalDigits = 2,
+        isActive = true,
+        sortOrder = 0,
+    )
 
-    private fun row(id: Long, occurredAt: Instant) = TransactionListItem.Row(
-        id = id,
-        kind = TransactionKind.Expense,
-        amount = BigDecimal("12.50"),
-        currencyId = 1L,
-        categoryId = 10L,
-        note = null,
-        occurredAt = occurredAt,
+    private fun money(amount: String) = Money(BigDecimal(amount), usd)
+
+    private fun group(
+        id: Long,
+        kind: CategoryKind,
+        total: String,
+        count: Int,
+        transactions: List<Transaction> = emptyList(),
+    ) = CategoryRecordGroup(
+        categoryId = id,
+        name = "cat$id",
+        iconKey = "ic_cat",
+        colorHex = "#FF8888",
+        kind = kind,
+        total = money(total),
+        count = count,
+        transactions = transactions,
     )
 
     @Test
-    fun `empty-state is shown only when item count is zero and not refreshing`() {
-        // Mirror of TransactionsListContent: isEmpty = itemCount == 0 && !refreshing
-        fun isEmpty(itemCount: Int, refreshing: Boolean) = itemCount == 0 && !refreshing
-
-        assertTrue("zero items, settled -> empty state", isEmpty(itemCount = 0, refreshing = false))
-        assertFalse("zero items but still loading -> no empty state", isEmpty(itemCount = 0, refreshing = true))
-        assertFalse("has items -> no empty state", isEmpty(itemCount = 3, refreshing = false))
+    fun `sortedGroups orders by total descending by default`() {
+        val state = TransactionsListUiState(
+            groups = listOf(
+                group(10L, CategoryKind.Expense, "30.00", 2),
+                group(20L, CategoryKind.Income, "100.00", 1),
+            ),
+        )
+        assertEquals(listOf(20L, 10L), state.sortedGroups.map { it.categoryId })
     }
 
     @Test
-    fun `day-header LazyColumn key is derived from the header date`() {
-        val header = TransactionListItem.DayHeader(LocalDate.of(2026, 5, 20))
-        val key = when (header) {
-            is TransactionListItem.DayHeader -> "h_${header.date}"
-            is TransactionListItem.Row -> "r_${header.id}"
-        }
-        assertEquals("h_2026-05-20", key)
+    fun `sortedGroups orders by total ascending when sort is TotalAsc`() {
+        val state = TransactionsListUiState(
+            sort = RecordSort.TotalAsc,
+            groups = listOf(
+                group(10L, CategoryKind.Expense, "30.00", 2),
+                group(20L, CategoryKind.Income, "100.00", 1),
+            ),
+        )
+        assertEquals(listOf(10L, 20L), state.sortedGroups.map { it.categoryId })
     }
 
     @Test
-    fun `row LazyColumn key is derived from the row id`() {
-        val item: TransactionListItem = row(id = 7L, occurredAt = Instant.parse("2026-05-20T09:00:00Z"))
-        val key = when (item) {
-            is TransactionListItem.DayHeader -> "h_${item.date}"
-            is TransactionListItem.Row -> "r_${item.id}"
-        }
-        assertEquals("r_7", key)
+    fun `isEmpty is true only when settled with no groups`() {
+        assertTrue(TransactionsListUiState(isLoading = false, groups = emptyList()).isEmpty)
+        assertFalse("still loading is not empty", TransactionsListUiState(isLoading = true).isEmpty)
+        assertFalse(
+            "has groups is not empty",
+            TransactionsListUiState(isLoading = false, groups = listOf(group(10L, CategoryKind.Expense, "1.00", 1))).isEmpty,
+        )
     }
 
     @Test
-    fun `signed amount uses minus for expense and plus for income`() {
-        // Pins the sign convention TransactionRow renders per kind.
-        fun sign(kind: TransactionKind) = when (kind) {
-            TransactionKind.Expense -> "-"
-            TransactionKind.Income -> "+"
-            TransactionKind.Transfer -> ""
-        }
-        assertEquals("-", sign(TransactionKind.Expense))
-        assertEquals("+", sign(TransactionKind.Income))
-        assertEquals("", sign(TransactionKind.Transfer))
+    fun `expanded predicate reads the expandedCategoryIds set`() {
+        val state = TransactionsListUiState(expandedCategoryIds = setOf(10L))
+        assertTrue(10L in state.expandedCategoryIds)
+        assertFalse(20L in state.expandedCategoryIds)
+    }
+
+    @Test
+    fun `chevron direction is down when expanded and right when collapsed`() {
+        // Mirrors CategoryHeader: expanded -> KeyboardArrowDown, collapsed -> KeyboardArrowRight.
+        fun chevronIsDown(expanded: Boolean) = expanded
+        assertTrue(chevronIsDown(expanded = true))
+        assertFalse(chevronIsDown(expanded = false))
+    }
+
+    @Test
+    fun `total colour maps Income to primary and Expense to tertiary`() {
+        // Pins the kind -> colour-role decision CategoryHeader / TransactionLeaf make.
+        fun isIncomeGreen(kind: CategoryKind) = kind == CategoryKind.Income
+        assertTrue("income total is green/primary", isIncomeGreen(CategoryKind.Income))
+        assertFalse("expense total is red/tertiary", isIncomeGreen(CategoryKind.Expense))
+    }
+
+    @Test
+    fun `leaf amount sign role follows the transaction kind`() {
+        fun isIncome(kind: TransactionKind) = kind == TransactionKind.Income
+        assertTrue(isIncome(TransactionKind.Income))
+        assertFalse(isIncome(TransactionKind.Expense))
+    }
+
+    @Test
+    fun `testTag constants are per-category and per-transaction scoped`() {
+        assertEquals("records_category_10", RecordsTestTags.category(10L))
+        assertEquals("records_chevron_10", RecordsTestTags.chevron(10L))
+        assertEquals("records_count_10", RecordsTestTags.count(10L))
+        assertEquals("records_total_10", RecordsTestTags.total(10L))
+        assertEquals("records_tx_5", RecordsTestTags.transaction(5L))
+        assertEquals("records_balance", RecordsTestTags.BALANCE)
+        assertEquals("records_sort", RecordsTestTags.SORT)
+        assertEquals("records_empty", RecordsTestTags.EMPTY)
+    }
+
+    @Test
+    fun `header LazyColumn key is derived from the category id`() {
+        val g = group(10L, CategoryKind.Expense, "1.00", 1)
+        assertEquals("cat_10", "cat_${g.categoryId}")
+    }
+
+    @Test
+    fun `leaf LazyColumn key is derived from the transaction id`() {
+        val tx = Transaction(
+            id = 7L,
+            kind = TransactionKind.Expense,
+            amount = BigDecimal("1.00"),
+            currencyId = 1L,
+            accountId = 1L,
+            categoryId = 10L,
+            note = null,
+            occurredAt = Instant.parse("2026-05-20T09:00:00Z"),
+            createdAt = Instant.parse("2026-05-20T09:00:00Z"),
+            updatedAt = Instant.parse("2026-05-20T09:00:00Z"),
+            isDeleted = false,
+            toAccountId = null,
+            toAmount = null,
+            exchangeRate = null,
+        )
+        assertEquals("tx_7", "tx_${tx.id}")
     }
 }

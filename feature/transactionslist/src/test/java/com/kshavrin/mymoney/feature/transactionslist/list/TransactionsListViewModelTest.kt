@@ -4,31 +4,26 @@ import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.AccountType
-import com.kshavrin.mymoney.core.domain.model.Category
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.core.domain.model.Currency
-import com.kshavrin.mymoney.core.domain.model.Period
 import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
-import com.kshavrin.mymoney.core.domain.time.PeriodArithmetic
+import com.kshavrin.mymoney.core.domain.repository.CategoryGroup
+import com.kshavrin.mymoney.core.domain.usecase.BalanceCalculator
+import com.kshavrin.mymoney.core.domain.usecase.GetCategoryRecordsUseCase
 import com.kshavrin.mymoney.feature.transactionslist.fake.FakeAccountRepository
-import com.kshavrin.mymoney.feature.transactionslist.fake.FakeCategoryRepository
 import com.kshavrin.mymoney.feature.transactionslist.fake.FakeCurrencyRepository
 import com.kshavrin.mymoney.feature.transactionslist.fake.FakeTransactionRepository
 import com.kshavrin.mymoney.feature.transactionslist.util.MainDispatcherRule
-import com.kshavrin.mymoney.feature.transactionslist.util.firstSnapshot
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import java.math.BigDecimal
 import java.time.Instant
-import java.time.YearMonth
 
 class TransactionsListViewModelTest {
 
@@ -40,7 +35,6 @@ class TransactionsListViewModelTest {
     private lateinit var transactionRepo: FakeTransactionRepository
     private lateinit var accountRepo: FakeAccountRepository
     private lateinit var currencyRepo: FakeCurrencyRepository
-    private lateinit var categoryRepo: FakeCategoryRepository
 
     private val usd = Currency(
         id = 1L,
@@ -67,26 +61,35 @@ class TransactionsListViewModelTest {
         isArchived = false,
     )
 
-    private val foodCategory = Category(
-        id = 10L,
+    private val foodGroup = CategoryGroup(
+        categoryId = 10L,
         name = "Food",
-        kind = CategoryKind.Expense,
         iconKey = "ic_cat_food",
         colorHex = "#FF8888",
-        sortOrder = 0,
-        isDefault = false,
-        isArchived = false,
-        createdAt = now,
+        kind = CategoryKind.Expense,
+        total = BigDecimal("30.00"),
+        count = 2,
     )
 
-    private fun expense(
+    private val salaryGroup = CategoryGroup(
+        categoryId = 20L,
+        name = "Salary",
+        iconKey = "ic_cat_salary",
+        colorHex = "#7AC794",
+        kind = CategoryKind.Income,
+        total = BigDecimal("100.00"),
+        count = 1,
+    )
+
+    private fun tx(
         id: Long,
+        categoryId: Long,
+        kind: TransactionKind,
+        amount: BigDecimal,
         occurredAt: Instant,
-        categoryId: Long? = foodCategory.id,
-        amount: BigDecimal = BigDecimal("12.50"),
     ) = Transaction(
         id = id,
-        kind = TransactionKind.Expense,
+        kind = kind,
         amount = amount,
         currencyId = usd.id,
         accountId = cashAccount.id,
@@ -106,11 +109,9 @@ class TransactionsListViewModelTest {
         transactionRepo = FakeTransactionRepository()
         accountRepo = FakeAccountRepository()
         currencyRepo = FakeCurrencyRepository()
-        categoryRepo = FakeCategoryRepository()
 
         currencyRepo.seed(usd)
         accountRepo.seed(cashAccount)
-        categoryRepo.seed(foodCategory)
     }
 
     private fun handleOf(
@@ -126,96 +127,147 @@ class TransactionsListViewModelTest {
         return SavedStateHandle(map)
     }
 
-    private fun buildViewModel(savedStateHandle: SavedStateHandle = handleOf()): TransactionsListViewModel =
-        TransactionsListViewModel(
-            transactionRepository = transactionRepo,
-            categoryRepository = categoryRepo,
-            currencyRepository = currencyRepo,
+    private fun buildViewModel(savedStateHandle: SavedStateHandle = handleOf()): TransactionsListViewModel {
+        val records = GetCategoryRecordsUseCase(
             accountRepository = accountRepo,
+            currencyRepository = currencyRepo,
+            transactionRepository = transactionRepo,
+            defaultDispatcher = mainDispatcherRule.testDispatcher,
+        )
+        val balance = BalanceCalculator(
+            accountRepository = accountRepo,
+            currencyRepository = currencyRepo,
+            transactionRepository = transactionRepo,
+            defaultDispatcher = mainDispatcherRule.testDispatcher,
+        )
+        return TransactionsListViewModel(
+            getCategoryRecords = records,
+            balanceCalculator = balance,
+            transactionRepository = transactionRepo,
             savedStateHandle = savedStateHandle,
         )
-
-    @Test
-    fun `accountId from savedState is forwarded to repository paged`() = runTest {
-        // pagingData is cold; collecting the first emission triggers the repository call.
-        buildViewModel(handleOf(accountId = 7L)).pagingData.first()
-
-        val call = transactionRepo.pagedCalls.last()
-        assertEquals(7L, call.accountId)
     }
 
     @Test
-    fun `categoryId from savedState is forwarded to repository paged`() = runTest {
-        buildViewModel(handleOf(categoryId = 10L)).pagingData.first()
+    fun `loads category groups and clears loading`() = runTest {
+        transactionRepo.seedCategoryGroups(foodGroup, salaryGroup)
 
-        val call = transactionRepo.pagedCalls.last()
-        assertEquals(10L, call.categoryId)
+        buildViewModel().state.test {
+            val state = expectMostRecentItem()
+            assertFalse(state.isLoading)
+            assertEquals(setOf(10L, 20L), state.groups.map { it.categoryId }.toSet())
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 
     @Test
-    fun `missing categoryId yields null forwarded to repository paged`() = runTest {
-        buildViewModel(handleOf(categoryId = null)).pagingData.first()
+    fun `groups are ordered by total descending`() = runTest {
+        transactionRepo.seedCategoryGroups(foodGroup, salaryGroup)
 
-        val call = transactionRepo.pagedCalls.last()
-        assertNull(call.categoryId)
+        buildViewModel().state.test {
+            val state = expectMostRecentItem()
+            assertEquals(listOf(20L, 10L), state.sortedGroups.map { it.categoryId })
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 
     @Test
-    fun `explicit from and to from savedState are forwarded to repository paged`() = runTest {
-        val from = Instant.parse("2026-03-01T00:00:00Z").toEpochMilli()
-        val to = Instant.parse("2026-03-31T23:59:59Z").toEpochMilli()
+    fun `SortClicked toggles between total descending and ascending`() = runTest {
+        transactionRepo.seedCategoryGroups(foodGroup, salaryGroup)
+        val viewModel = buildViewModel()
 
-        buildViewModel(handleOf(from = from, to = to)).pagingData.first()
+        viewModel.state.test {
+            assertEquals(RecordSort.TotalDesc, expectMostRecentItem().sort)
 
-        val call = transactionRepo.pagedCalls.last()
-        assertEquals(from, call.from.toEpochMilli())
-        assertEquals(to, call.to.toEpochMilli())
+            viewModel.onEvent(TransactionsListEvent.SortClicked)
+            assertEquals(RecordSort.TotalAsc, awaitItem().sort)
+            assertEquals(listOf(10L, 20L), viewModel.state.value.sortedGroups.map { it.categoryId })
+
+            viewModel.onEvent(TransactionsListEvent.SortClicked)
+            assertEquals(RecordSort.TotalDesc, awaitItem().sort)
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 
     @Test
-    fun `default period is current month when no from or to supplied`() = runTest {
-        buildViewModel(handleOf()).pagingData.first()
+    fun `net header is the BalanceCalculator net for the period`() = runTest {
+        transactionRepo.seedCategoryGroups(foodGroup, salaryGroup)
 
-        val expected = PeriodArithmetic.toEpochMillisRange(Period.Month(YearMonth.now()))
-        val call = transactionRepo.pagedCalls.last()
-        assertEquals(expected.first, call.from.toEpochMilli())
-        assertEquals(expected.last, call.to.toEpochMilli())
+        buildViewModel().state.test {
+            val state = expectMostRecentItem()
+            // income 100 - expense 30 = 70
+            assertEquals(0, BigDecimal("70.00").compareTo(state.net?.amount))
+            assertEquals(usd.id, state.currency?.id)
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 
     @Test
-    fun `pagingData maps a non-empty page into Row items`() = runTest {
-        transactionRepo.seed(
-            expense(id = 1L, occurredAt = Instant.parse("2026-05-20T09:00:00Z")),
-            expense(id = 2L, occurredAt = Instant.parse("2026-05-20T08:00:00Z")),
+    fun `expanded transactions are bucketed under their category ordered occurredAt descending`() = runTest {
+        transactionRepo.seedCategoryGroups(foodGroup)
+        transactionRepo.seedPeriodTransactions(
+            tx(1L, 10L, TransactionKind.Expense, BigDecimal("10.00"), Instant.parse("2026-05-18T09:00:00Z")),
+            tx(2L, 10L, TransactionKind.Expense, BigDecimal("20.00"), Instant.parse("2026-05-19T09:00:00Z")),
         )
 
-        val items = buildViewModel().pagingData.firstSnapshot(this)
-
-        val rows = items.filterIsInstance<TransactionListItem.Row>()
-        assertEquals(listOf(1L, 2L), rows.map { it.id })
-        assertEquals(0, BigDecimal("12.50").compareTo(rows.first().amount))
+        buildViewModel().state.test {
+            val food = expectMostRecentItem().groups.first { it.categoryId == 10L }
+            assertEquals(listOf(2L, 1L), food.transactions.map { it.id })
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 
     @Test
-    fun `pagingData inserts a day header before the first row`() = runTest {
-        transactionRepo.seed(
-            expense(id = 1L, occurredAt = Instant.parse("2026-05-20T09:00:00Z")),
-        )
+    fun `no categoryId leaves all categories collapsed`() = runTest {
+        transactionRepo.seedCategoryGroups(foodGroup, salaryGroup)
 
-        val items = buildViewModel().pagingData.firstSnapshot(this)
-
-        assertTrue(
-            "expected at least one DayHeader but got $items",
-            items.any { it is TransactionListItem.DayHeader },
-        )
-        assertTrue("first item should be a DayHeader", items.first() is TransactionListItem.DayHeader)
+        buildViewModel(handleOf(categoryId = null)).state.test {
+            assertTrue(expectMostRecentItem().expandedCategoryIds.isEmpty())
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 
     @Test
-    fun `empty page maps to no list items`() = runTest {
-        val items = buildViewModel().pagingData.firstSnapshot(this)
+    fun `categoryId from savedState starts that category expanded`() = runTest {
+        transactionRepo.seedCategoryGroups(foodGroup, salaryGroup)
 
-        assertTrue("expected empty list for empty page but got $items", items.isEmpty())
+        buildViewModel(handleOf(categoryId = 10L)).state.test {
+            assertEquals(setOf(10L), expectMostRecentItem().expandedCategoryIds)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `CategoryClicked toggles a category in and out of the expanded set`() = runTest {
+        transactionRepo.seedCategoryGroups(foodGroup, salaryGroup)
+        val viewModel = buildViewModel()
+
+        viewModel.state.test {
+            assertTrue(expectMostRecentItem().expandedCategoryIds.isEmpty())
+
+            viewModel.onEvent(TransactionsListEvent.CategoryClicked(10L))
+            assertEquals(setOf(10L), awaitItem().expandedCategoryIds)
+
+            viewModel.onEvent(TransactionsListEvent.CategoryClicked(10L))
+            assertTrue(awaitItem().expandedCategoryIds.isEmpty())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `RowClicked emits OpenDetail with the clicked id`() = runTest {
+        val viewModel = buildViewModel()
+
+        viewModel.actions.test {
+            viewModel.onEvent(TransactionsListEvent.RowClicked(id = 5L))
+
+            val action = awaitItem()
+            assertTrue(
+                "expected OpenDetail(5) but was $action",
+                action is TransactionsListAction.OpenDetail && action.transactionId == 5L,
+            )
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 
     @Test
@@ -245,42 +297,11 @@ class TransactionsListViewModelTest {
     }
 
     @Test
-    fun `RowClicked emits OpenDetail with the clicked id`() = runTest {
-        val viewModel = buildViewModel()
-
-        viewModel.actions.test {
-            viewModel.onEvent(TransactionsListEvent.RowClicked(id = 5L))
-
-            val action = awaitItem()
-            assertTrue(
-                "expected OpenDetail(5) but was $action",
-                action is TransactionsListAction.OpenDetail && action.transactionId == 5L,
-            )
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
-    fun `category filter context is loaded into state when categoryId is present`() = runTest {
-        val viewModel = buildViewModel(handleOf(categoryId = foodCategory.id))
-
-        viewModel.state.test {
+    fun `empty period yields the empty state`() = runTest {
+        buildViewModel().state.test {
             val state = expectMostRecentItem()
-            assertEquals(usd.id, state.currency?.id)
-            assertNotNull(state.categoryFilter)
-            assertEquals(foodCategory.id, state.categoryFilter?.id)
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
-    fun `no category filter in state when categoryId is absent`() = runTest {
-        val viewModel = buildViewModel(handleOf(categoryId = null))
-
-        viewModel.state.test {
-            val state = expectMostRecentItem()
-            assertNull(state.categoryFilter)
-            assertEquals(usd.id, state.currency?.id)
+            assertFalse(state.isLoading)
+            assertTrue(state.isEmpty)
             cancelAndIgnoreRemainingEvents()
         }
     }

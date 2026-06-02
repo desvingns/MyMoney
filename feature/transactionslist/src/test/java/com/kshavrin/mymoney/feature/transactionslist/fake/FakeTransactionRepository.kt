@@ -14,11 +14,14 @@ import kotlinx.coroutines.flow.flowOf
 import java.time.Instant
 
 /**
- * Fake at the repository boundary for the S12 transactions-list ViewModel tests.
+ * Fake at the repository boundary for the S12 category-grouped records ViewModel tests.
  *
- * - `seed(...)` feeds the page that [paged] emits (one PagingData with those rows, in order).
- * - The arguments the ViewModel passes to [paged] are captured so tests can assert the
- *   accountId / categoryId / period forwarding from SavedStateHandle.
+ * - `seedCategoryGroups(...)` feeds the authoritative per-category header rows (total + count +
+ *   kind) that [getCategoryGroups] returns — the SQL-side figures the use case must NOT recompute.
+ * - `seedPeriodTransactions(...)` feeds the leaf rows that [findByPeriod] returns; the use case
+ *   buckets them under their category group (occurredAt desc).
+ * - `seed(...)` is the legacy seam used by the detail/search tests; it also backs [findByPeriod]
+ *   when no explicit period transactions are seeded.
  * - [softDelete] / [restore] record their ids so tests can assert the swipe + undo wiring
  *   without touching a real database.
  */
@@ -39,6 +42,19 @@ class FakeTransactionRepository : TransactionRepository {
     val searchCalls: MutableList<Pair<String, Int>> = mutableListOf()
 
     private val page = MutableStateFlow<List<Transaction>>(emptyList())
+
+    private var categoryGroups: List<CategoryGroup> = emptyList()
+    private var periodTransactions: List<Transaction>? = null
+
+    /** Seeds the authoritative header rows [getCategoryGroups] returns (already total-desc ordered). */
+    fun seedCategoryGroups(vararg groups: CategoryGroup) {
+        categoryGroups = groups.toList()
+    }
+
+    /** Seeds the leaf rows [findByPeriod] returns for the records use case to bucket. */
+    fun seedPeriodTransactions(vararg items: Transaction) {
+        periodTransactions = items.toList()
+    }
 
     /** Controllable result set returned by [searchByNote]; independent of the paged [page]. */
     private var searchResults: List<Transaction> = emptyList()
@@ -73,13 +89,30 @@ class FakeTransactionRepository : TransactionRepository {
     override fun observeRecent(limit: Int): Flow<List<Transaction>> = page.asStateFlow()
     override fun observeAll(): Flow<List<Transaction>> = page.asStateFlow()
     override suspend fun findById(id: Long): Transaction? = page.value.firstOrNull { it.id == id }
-    override suspend fun findByPeriod(accountId: Long, period: Period): List<Transaction> = emptyList()
+    override suspend fun findByPeriod(accountId: Long, period: Period): List<Transaction> =
+        periodTransactions ?: page.value.filterNot { it.isDeleted }
     override suspend fun getCategorySummary(
         accountId: Long,
         period: Period,
         kind: TransactionKind,
-    ): List<CategorySummary> = emptyList()
-    override suspend fun getCategoryGroups(accountId: Long, period: Period): List<CategoryGroup> = emptyList()
+    ): List<CategorySummary> = categoryGroups
+        .filter { group ->
+            when (kind) {
+                TransactionKind.Expense -> group.kind == com.kshavrin.mymoney.core.domain.model.CategoryKind.Expense
+                TransactionKind.Income -> group.kind == com.kshavrin.mymoney.core.domain.model.CategoryKind.Income
+                TransactionKind.Transfer -> false
+            }
+        }
+        .map { group ->
+            CategorySummary(
+                categoryId = group.categoryId,
+                categoryName = group.name,
+                colorHex = group.colorHex,
+                total = group.total,
+                iconKey = group.iconKey,
+            )
+        }
+    override suspend fun getCategoryGroups(accountId: Long, period: Period): List<CategoryGroup> = categoryGroups
     override suspend fun searchByNote(query: String, limit: Int): List<Transaction> {
         searchCalls.add(query to limit)
         searchError?.let { throw it }

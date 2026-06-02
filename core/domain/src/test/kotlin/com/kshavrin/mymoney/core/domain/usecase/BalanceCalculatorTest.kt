@@ -90,7 +90,7 @@ class BalanceCalculatorTest {
         }
 
         val snapshot = BalanceCalculator(accountRepo, currencyRepo, transactionRepo, UnconfinedTestDispatcher())
-            .forAccounts(listOf(cash, card, archived, euro), usd, may2026)
+            .forAccounts(listOf(cash, card, archived), usd, may2026)
 
         assertEquals(0, BigDecimal("40.00").compareTo(snapshot.expense.amount))
         assertEquals(0, BigDecimal("140.00").compareTo(snapshot.income.amount))

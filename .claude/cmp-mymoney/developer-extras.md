@@ -105,6 +105,21 @@ When invoked via `/cmp --feature` directly (not through `--phase`), there is no 
 
 JBR auto-detect snippet for Git Bash on Windows lives in `CLAUDE.md`.
 
+## A public-API rework must flag the instrumented tests that consume it
+
+The app's instrumented Compose-UI tests live under `app/src/androidTest/.../feature/<name>/` and are
+**not** compiled by `testDebugUnitTest`. If you rename/delete/reshape something an instrumented test
+uses — a `*Content` composable signature, a `State`/`Event`/sealed type, a public domain model used in
+test fixtures — that test will stop compiling, and (before the gate below existed) nothing caught it
+until Android Studio. So:
+
+- Before declaring a rework done, **grep `app/src/androidTest` for every symbol you renamed/removed**.
+  List the hits in your changed-files report so the Tester updates them in the same `/cmp` run.
+- `cmp-runner-android` now has a headless `compileDebugAndroidTestKotlin` gate (no device needed) that
+  fails the run if any instrumented test no longer compiles. Treat an androidTest compile break as
+  your regression, not someone else's.
+- You still **never write the test** yourself (Tester owns test code) — you only flag what changed.
+
 ## Device-test seams (when invoked from `--device` / the runbook)
 
 When the SPEC asks you to "expose a seam" for an on-device Compose-UI test, the allowed change set is

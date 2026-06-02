@@ -68,6 +68,30 @@ For on-device screen coverage (`connectedDebugAndroidTest` on `Pixel_5_API_34`),
   feature genuinely isn't in production, do not write the test; report the gap so it is logged in the
   tracker. Never weaken a test to get green.
 
+## androidTest is COMPILED-but-not-run by the verify gate — keep it in lockstep with the API
+
+MyMoney keeps its instrumented Compose-UI tests under **`app/src/androidTest/.../feature/<name>/`**
+(not the feature module's own `androidTest`). That source set is **not** built by
+`testDebugUnitTest`, so for a long time a production-API change could leave an instrumented test
+referencing a deleted/renamed symbol and **nothing in the pipeline noticed** — it only blew up later
+in Android Studio (which compiles `androidTest` on sync/build). Real example: the S11/S12 records
+rework deleted the `TransactionListItem` type and the `TransactionsListContent(items = …)` parameter,
+but `app/src/androidTest/.../list/TransactionsListContentUiTest.kt` was left on the old API → 28
+compile errors, invisible to every green `/cmp` run.
+
+Rules now:
+
+- `cmp-runner-android` runs a **headless `compileDebugAndroidTestKotlin` gate** (`:app` + any changed
+  module that has a `src/androidTest`). It needs **no device** and FAILS the run on any `e:`. So an
+  out-of-date instrumented test is now a hard red, every run — not a latent break.
+- **When you (or the Developer) change a public API that an instrumented test consumes** — a
+  `*Content` composable signature, a `State`/`Event`/sealed-type shape, a public domain model used in
+  a test's fixtures — you MUST update the matching `app/src/androidTest/.../*UiTest.kt` in the **same
+  pass**. Grep `app/src/androidTest` for the changed symbol before declaring done.
+- If a screen was reworked and an old instrumented test no longer maps to any real control, rewrite it
+  against the new screen (new test-tags / signature) rather than leaving it stale. Do **not** delete
+  it silently — deletion is the user's call (file-safety rule); report it instead.
+
 ## Roborazzi (optional)
 
 If a SPEC includes `screenshot` in `TEST_TYPES` and the feature has a custom Compose component (e.g. `MonefyDonutChart`, `MonefyKeypad`):

@@ -23,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.kshavrin.mymoney.core.ui.theme.Spacing
@@ -36,33 +37,38 @@ fun RightDrawerContent(onEvent: (DashboardEvent) -> Unit) {
             .fillMaxWidth()
             .padding(Spacing.l),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(Spacing.xl),
+        verticalArrangement = Arrangement.spacedBy(Spacing.l),
     ) {
-        Spacer(modifier = Modifier.height(Spacing.l))
+        Spacer(modifier = Modifier.height(Spacing.m))
         RightDrawerItem(
             label = stringResource(R.string.right_drawer_categories),
             icon = Icons.Outlined.Category,
             onClick = { onEvent(DashboardEvent.CategoriesClicked) },
+            testTag = RIGHT_DRAWER_CATEGORIES_TAG,
         )
         RightDrawerItem(
             label = stringResource(R.string.right_drawer_accounts),
             icon = Icons.Outlined.AccountBalanceWallet,
             onClick = { onEvent(DashboardEvent.AccountsClicked) },
+            testTag = RIGHT_DRAWER_ACCOUNTS_TAG,
         )
         RightDrawerItem(
             label = stringResource(R.string.right_drawer_currencies),
             icon = Icons.Outlined.Paid,
             onClick = { onEvent(DashboardEvent.CurrenciesClicked) },
+            testTag = RIGHT_DRAWER_CURRENCIES_TAG,
         )
         RightDrawerItem(
             label = stringResource(R.string.right_drawer_settings),
             icon = Icons.Outlined.Settings,
             onClick = { onEvent(DashboardEvent.SettingsClicked) },
+            testTag = RIGHT_DRAWER_SETTINGS_TAG,
         )
         RightDrawerItem(
             label = stringResource(R.string.right_drawer_about),
             icon = Icons.Outlined.Info,
             onClick = { onEvent(DashboardEvent.AboutClicked) },
+            testTag = RIGHT_DRAWER_ABOUT_TAG,
         )
     }
 }
@@ -72,24 +78,26 @@ private fun RightDrawerItem(
     label: String,
     icon: ImageVector,
     onClick: () -> Unit,
+    testTag: String,
 ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(vertical = Spacing.s)
-            .semantics(mergeDescendants = true) {},
+            .padding(vertical = Spacing.xs)
+            .semantics(mergeDescendants = true) {}
+            .testTag(testTag),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(
-            modifier = Modifier.size(72.dp),
+            modifier = Modifier.size(56.dp),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.secondary,
-                modifier = Modifier.size(56.dp),
+                modifier = Modifier.size(44.dp),
             )
         }
         Text(
@@ -99,3 +107,9 @@ private fun RightDrawerItem(
         )
     }
 }
+
+const val RIGHT_DRAWER_CATEGORIES_TAG = "right_drawer_categories"
+const val RIGHT_DRAWER_ACCOUNTS_TAG = "right_drawer_accounts"
+const val RIGHT_DRAWER_CURRENCIES_TAG = "right_drawer_currencies"
+const val RIGHT_DRAWER_SETTINGS_TAG = "right_drawer_settings"
+const val RIGHT_DRAWER_ABOUT_TAG = "right_drawer_about"

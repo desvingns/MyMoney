@@ -1,22 +1,28 @@
 package com.kshavrin.mymoney.feature.transactionslist.list
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -40,8 +46,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kshavrin.mymoney.core.common.money.MoneyFormatter
@@ -50,6 +60,7 @@ import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.core.domain.model.CategoryRecordGroup
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Money
+import com.kshavrin.mymoney.core.domain.model.Period
 import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
 import com.kshavrin.mymoney.core.ui.theme.Spacing
@@ -66,6 +77,8 @@ import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
 fun TransactionsListRoute(
     onOpenDetail: (Long) -> Unit,
     onSearch: () -> Unit,
+    onTransfer: () -> Unit,
+    onOverflow: () -> Unit,
     onBack: () -> Unit,
     viewModel: TransactionsListViewModel = hiltViewModel(),
 ) {
@@ -99,6 +112,8 @@ fun TransactionsListRoute(
         snackbarHostState = snackbarHostState,
         onEvent = viewModel::onEvent,
         onSearch = onSearch,
+        onTransfer = onTransfer,
+        onOverflow = onOverflow,
         onBack = onBack,
     )
 }
@@ -110,6 +125,8 @@ fun TransactionsListContent(
     snackbarHostState: SnackbarHostState,
     onEvent: (TransactionsListEvent) -> Unit,
     onSearch: () -> Unit,
+    onTransfer: () -> Unit,
+    onOverflow: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -117,23 +134,37 @@ fun TransactionsListContent(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.transactions_list_title)) },
+                title = {
+                    RecordsTopBarTitle(
+                        title = stringResource(R.string.transactions_list_brand_title),
+                        subtitle = state.currency?.name,
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
+                            Icons.Filled.Menu,
                             contentDescription = stringResource(R.string.transactions_list_back),
                         )
                     }
                 },
                 actions = {
-                    IconButton(
-                        onClick = { onEvent(TransactionsListEvent.SortClicked) },
-                        modifier = Modifier.testTag(RecordsTestTags.SORT),
-                    ) {
+                    IconButton(onClick = onSearch) {
                         Icon(
-                            Icons.Filled.SwapVert,
-                            contentDescription = stringResource(R.string.transactions_list_sort),
+                            Icons.Filled.Search,
+                            contentDescription = stringResource(R.string.transactions_list_search),
+                        )
+                    }
+                    IconButton(onClick = onTransfer) {
+                        Icon(
+                            Icons.Filled.SwapHoriz,
+                            contentDescription = stringResource(R.string.transactions_list_transfer),
+                        )
+                    }
+                    IconButton(onClick = onOverflow) {
+                        Icon(
+                            Icons.Filled.MoreVert,
+                            contentDescription = stringResource(R.string.transactions_list_more),
                         )
                     }
                 },
@@ -152,7 +183,11 @@ fun TransactionsListContent(
                 .fillMaxSize()
                 .padding(innerPadding),
         ) {
-            BalanceBar(net = state.net)
+            RecordsPeriodLabel(period = state.period)
+            RecordsBalanceHeader(
+                net = state.net,
+                onSort = { onEvent(TransactionsListEvent.SortClicked) },
+            )
             if (state.isEmpty) {
                 Box(modifier = Modifier.fillMaxSize()) {
                     Text(
@@ -202,6 +237,100 @@ fun TransactionsListContent(
 }
 
 @Composable
+private fun RecordsTopBarTitle(
+    title: String,
+    subtitle: String?,
+) {
+    Column {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.headlineSmall,
+            fontFamily = FontFamily.Cursive,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            overflow = TextOverflow.Clip,
+        )
+        if (!subtitle.isNullOrBlank()) {
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@Composable
+private fun RecordsPeriodLabel(
+    period: Period,
+    modifier: Modifier = Modifier,
+) {
+    val locale = LocalConfiguration.current.locales[0]
+    val allLabel = stringResource(R.string.transactions_list_period_all)
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.l, vertical = Spacing.s),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = period.previous().localizedLabel(locale, allLabel),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+            maxLines = 1,
+            overflow = TextOverflow.Clip,
+            modifier = Modifier.weight(1f, fill = false),
+        )
+        Text(
+            text = period.localizedLabel(locale, allLabel),
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.primary,
+            maxLines = 1,
+        )
+        Text(
+            text = period.next().localizedLabel(locale, allLabel),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+            maxLines = 1,
+            overflow = TextOverflow.Clip,
+            modifier = Modifier.weight(1f, fill = false),
+        )
+    }
+}
+
+@Composable
+private fun RecordsBalanceHeader(
+    net: Money?,
+    onSort: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(start = Spacing.l, end = Spacing.s, top = Spacing.s, bottom = Spacing.s),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        BalanceBar(
+            net = net,
+            modifier = Modifier.weight(1f),
+        )
+        Spacer(modifier = Modifier.width(Spacing.s))
+        IconButton(
+            onClick = onSort,
+            modifier = Modifier.testTag(RecordsTestTags.SORT),
+        ) {
+            Icon(
+                Icons.Filled.SwapVert,
+                contentDescription = stringResource(R.string.transactions_list_sort),
+                tint = MaterialTheme.colorScheme.primary,
+            )
+        }
+    }
+}
+
+@Composable
 private fun BalanceBar(net: Money?, modifier: Modifier = Modifier) {
     val label = stringResource(DesignSystemR.string.balance_bar_label)
     val amount = net?.let {
@@ -216,16 +345,15 @@ private fun BalanceBar(net: Money?, modifier: Modifier = Modifier) {
     val isPositive = net == null || !net.isNegative()
     Surface(
         modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = Spacing.l, vertical = Spacing.s)
             .testTag(RecordsTestTags.BALANCE),
-        shape = MaterialTheme.shapes.extraLarge,
-        color = MaterialTheme.colorScheme.surfaceVariant,
+        shape = MaterialTheme.shapes.small,
+        color = if (isPositive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary,
+        shadowElevation = 2.dp,
     ) {
         Text(
             text = "$label $amount",
             style = MaterialTheme.typography.titleMedium,
-            color = if (isPositive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary,
+            color = MaterialTheme.colorScheme.onPrimary,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = Spacing.l, vertical = Spacing.m),
@@ -277,12 +405,19 @@ private fun CategoryHeader(
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f),
         )
-        Text(
-            text = stringResource(R.string.transactions_list_count, group.count),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        Surface(
+            shape = MaterialTheme.shapes.extraLarge,
+            color = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
             modifier = Modifier.testTag(RecordsTestTags.count(group.categoryId)),
-        )
+        ) {
+            Text(
+                text = stringResource(R.string.transactions_list_count, group.count),
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+            )
+        }
         Text(
             text = formatMoney(group.total),
             style = MaterialTheme.typography.titleMedium,
@@ -309,6 +444,7 @@ private fun TransactionLeaf(
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.background)
             .clickable(onClick = onClick)
             .testTag(RecordsTestTags.transaction(transaction.id))
             .padding(start = Spacing.xl, end = Spacing.l, top = Spacing.s, bottom = Spacing.s),
@@ -368,6 +504,21 @@ private fun parseHexColor(hex: String): Color = try {
     Color(argb.toLong(16))
 } catch (_: Exception) {
     Color.Gray
+}
+
+private fun Period.localizedLabel(locale: Locale, allLabel: String): String = when (this) {
+    is Period.Day -> date.format(DateTimeFormatter.ofPattern("EEEE, d MMMM", locale))
+    is Period.Week -> {
+        val formatter = DateTimeFormatter.ofPattern("d MMM", locale)
+        "${weekStart.format(formatter)} - ${weekStart.plusDays(6).format(formatter)}"
+    }
+    is Period.Month -> yearMonth.atDay(1).format(DateTimeFormatter.ofPattern("LLLL yyyy", locale))
+    is Period.Year -> year.toString()
+    Period.All -> allLabel
+    is Period.CustomRange -> {
+        val formatter = DateTimeFormatter.ofPattern("d MMM", locale)
+        "${start.format(formatter)} - ${end.format(formatter)}"
+    }
 }
 
 private const val UNDO_WINDOW_MILLIS = 5_000L

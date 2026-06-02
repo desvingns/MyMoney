@@ -5,6 +5,7 @@ import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
@@ -20,6 +21,9 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.common.money.MoneyFormatter
@@ -30,6 +34,11 @@ import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.domain.model.Period
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
+import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_ABOUT_TAG
+import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_ACCOUNTS_TAG
+import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_CATEGORIES_TAG
+import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_CURRENCIES_TAG
+import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_SETTINGS_TAG
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -49,14 +58,10 @@ class DashboardContentUiTest {
     fun `expense fab stays enabled in empty dashboard and emits minus event`() {
         val capturedEvents = mutableListOf<DashboardEvent>()
 
-        composeTestRule.setContent {
-            MyMoneyTheme {
-                DashboardContent(
-                    state = DashboardState(isLoading = false),
-                    onEvent = { event -> capturedEvents += event },
-                )
-            }
-        }
+        setStatefulDashboardContent(
+            initialState = DashboardState(isLoading = false),
+            onCapturedEvent = { event -> capturedEvents += event },
+        )
 
         composeTestRule
             .onNodeWithContentDescription(targetString(R.string.fab_expense))
@@ -74,14 +79,14 @@ class DashboardContentUiTest {
     fun `income fab stays enabled in empty dashboard and emits plus event`() {
         val capturedEvents = mutableListOf<DashboardEvent>()
 
-        composeTestRule.setContent {
-            MyMoneyTheme {
-                DashboardContent(
-                    state = DashboardState(isLoading = false),
-                    onEvent = { event -> capturedEvents += event },
-                )
-            }
-        }
+        setStatefulDashboardContent(
+            initialState = DashboardState(isLoading = false),
+            onCapturedEvent = { event ->
+                if (event !is DashboardEvent.RightDrawerToggled) {
+                    capturedEvents += event
+                }
+            },
+        )
 
         composeTestRule
             .onNodeWithContentDescription(targetString(R.string.fab_income))
@@ -163,8 +168,14 @@ class DashboardContentUiTest {
             }
         }
 
-        composeTestRule.onNodeWithText(targetString(R.string.dashboard_title)).assertIsDisplayed()
-        composeTestRule.onNodeWithText(usd.name).assertIsDisplayed()
+        composeTestRule
+            .onNodeWithTag(DASHBOARD_TOP_BAR_TITLE_TAG)
+            .assertIsDisplayed()
+            .assertTextEquals(targetString(R.string.dashboard_title))
+        composeTestRule
+            .onNodeWithTag(DASHBOARD_TOP_BAR_SUBTITLE_TAG)
+            .assertIsDisplayed()
+            .assertTextEquals(usd.name)
     }
 
     @Test
@@ -279,34 +290,28 @@ class DashboardContentUiTest {
     fun `right drawer rows display and emit their destination events`() {
         val capturedEvents = mutableListOf<DashboardEvent>()
         val drawerRows = listOf(
-            R.string.right_drawer_settings,
-            R.string.right_drawer_categories,
-            R.string.right_drawer_accounts,
-            R.string.right_drawer_currencies,
-            R.string.right_drawer_about,
+            RIGHT_DRAWER_SETTINGS_TAG,
+            RIGHT_DRAWER_CATEGORIES_TAG,
+            RIGHT_DRAWER_ACCOUNTS_TAG,
+            RIGHT_DRAWER_CURRENCIES_TAG,
+            RIGHT_DRAWER_ABOUT_TAG,
         )
 
-        composeTestRule.setContent {
-            MyMoneyTheme {
-                DashboardContent(
-                    state = DashboardState(isLoading = false),
-                    onEvent = { event -> capturedEvents += event },
-                )
-            }
-        }
+        setStatefulDashboardContent(
+            initialState = DashboardState(isLoading = false, rightDrawerOpen = true),
+            onCapturedEvent = { event -> capturedEvents += event },
+        )
+        composeTestRule.waitForIdle()
 
-        composeTestRule
-            .onNodeWithContentDescription(targetString(R.string.dashboard_overflow_menu))
-            .performClick()
-
-        drawerRows.forEach { resourceId ->
+        drawerRows.forEach { tag ->
             composeTestRule
-                .onNode(hasText(targetString(resourceId)) and hasClickAction())
+                .onNodeWithTag(tag, useUnmergedTree = true)
                 .assertIsDisplayed()
+                .assertHasClickAction()
         }
-        drawerRows.forEach { resourceId ->
+        drawerRows.forEach { tag ->
             composeTestRule
-                .onNode(hasText(targetString(resourceId)) and hasClickAction())
+                .onNodeWithTag(tag, useUnmergedTree = true)
                 .performClick()
         }
 
@@ -348,14 +353,7 @@ class DashboardContentUiTest {
 
     @Test
     fun `left drawer opens as a partial panel instead of a near full width sheet`() {
-        composeTestRule.setContent {
-            MyMoneyTheme {
-                DashboardContent(
-                    state = DashboardState(isLoading = false),
-                    onEvent = {},
-                )
-            }
-        }
+        setStatefulDashboardContent(initialState = DashboardState(isLoading = false))
 
         composeTestRule
             .onNodeWithContentDescription(targetString(R.string.dashboard_menu))
@@ -370,14 +368,7 @@ class DashboardContentUiTest {
 
     @Test
     fun `right drawer opens as a partial panel instead of a near full width sheet`() {
-        composeTestRule.setContent {
-            MyMoneyTheme {
-                DashboardContent(
-                    state = DashboardState(isLoading = false),
-                    onEvent = {},
-                )
-            }
-        }
+        setStatefulDashboardContent(initialState = DashboardState(isLoading = false))
 
         composeTestRule
             .onNodeWithContentDescription(targetString(R.string.dashboard_overflow_menu))
@@ -522,6 +513,29 @@ class DashboardContentUiTest {
 
     private fun targetString(resourceId: Int): String =
         InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)
+
+    private fun setStatefulDashboardContent(
+        initialState: DashboardState,
+        onCapturedEvent: (DashboardEvent) -> Unit = {},
+    ) {
+        composeTestRule.setContent {
+            var state by mutableStateOf(initialState)
+            MyMoneyTheme {
+                DashboardContent(
+                    state = state,
+                    onEvent = { event ->
+                        onCapturedEvent(event)
+                        state = when (event) {
+                            DashboardEvent.LeftDrawerToggled -> state.copy(leftDrawerOpen = !state.leftDrawerOpen)
+                            DashboardEvent.RightDrawerToggled -> state.copy(rightDrawerOpen = !state.rightDrawerOpen)
+                            DashboardEvent.DrawerDismissed -> state.copy(leftDrawerOpen = false, rightDrawerOpen = false)
+                            else -> state
+                        }
+                    },
+                )
+            }
+        }
+    }
 
     private fun targetLocale() = InstrumentationRegistry.getInstrumentation()
         .targetContext.resources.configuration.locales[0]

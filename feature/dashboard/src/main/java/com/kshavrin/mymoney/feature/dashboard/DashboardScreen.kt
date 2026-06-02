@@ -294,11 +294,13 @@ private fun DashboardTopBarTitle(
             style = MaterialTheme.typography.headlineSmall,
             fontFamily = FontFamily.Cursive,
             fontWeight = FontWeight.Bold,
+            modifier = Modifier.testTag(DASHBOARD_TOP_BAR_TITLE_TAG),
         )
         if (!subtitle.isNullOrBlank()) {
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.testTag(DASHBOARD_TOP_BAR_SUBTITLE_TAG),
             )
         }
     }
@@ -325,3 +327,6 @@ private fun formatMoney(money: Money, locale: Locale): String = MoneyFormatter.f
     decimalDigits = money.currency.decimalDigits,
     locale = locale,
 )
+
+const val DASHBOARD_TOP_BAR_TITLE_TAG = "dashboard_top_bar_title"
+const val DASHBOARD_TOP_BAR_SUBTITLE_TAG = "dashboard_top_bar_subtitle"

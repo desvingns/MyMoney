@@ -50,6 +50,7 @@ class TransactionsListViewModel @Inject constructor(
             accountId = accountId,
             currencyId = currencyId,
             categoryId = categoryId,
+            period = period,
             expandedCategoryIds = categoryId?.let { setOf(it) } ?: emptySet(),
         ),
     )

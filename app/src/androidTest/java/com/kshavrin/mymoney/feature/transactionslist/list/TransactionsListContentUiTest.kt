@@ -69,6 +69,35 @@ class TransactionsListContentUiTest {
     }
 
     @Test
+    fun `top bar search transfer and overflow invoke callbacks`() {
+        var searchCalls = 0
+        var transferCalls = 0
+        var overflowCalls = 0
+
+        setContent(
+            onSearch = { searchCalls += 1 },
+            onTransfer = { transferCalls += 1 },
+            onOverflow = { overflowCalls += 1 },
+        )
+
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.transactions_list_search))
+            .performClick()
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.transactions_list_transfer))
+            .performClick()
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.transactions_list_more))
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(1, searchCalls)
+            assertEquals(1, transferCalls)
+            assertEquals(1, overflowCalls)
+        }
+    }
+
+    @Test
     fun `empty state shows the empty marker`() {
         setContent(
             state = TransactionsListUiState(
@@ -174,6 +203,8 @@ class TransactionsListContentUiTest {
         state: TransactionsListUiState = TransactionsListUiState(currency = currency(), isLoading = false),
         onEvent: (TransactionsListEvent) -> Unit = {},
         onSearch: () -> Unit = {},
+        onTransfer: () -> Unit = {},
+        onOverflow: () -> Unit = {},
         onBack: () -> Unit = {},
     ) {
         composeTestRule.setContent {
@@ -183,6 +214,8 @@ class TransactionsListContentUiTest {
                     snackbarHostState = remember { SnackbarHostState() },
                     onEvent = onEvent,
                     onSearch = onSearch,
+                    onTransfer = onTransfer,
+                    onOverflow = onOverflow,
                     onBack = onBack,
                 )
             }

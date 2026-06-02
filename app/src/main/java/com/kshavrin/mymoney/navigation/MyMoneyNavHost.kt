@@ -117,6 +117,8 @@ fun MyMoneyNavHost(
             com.kshavrin.mymoney.feature.transactionslist.list.TransactionsListRoute(
                 onOpenDetail = { id -> navController.navigate("${Destinations.TRANSACTION_DETAIL}/$id") },
                 onSearch = { navController.navigate(Destinations.SEARCH) },
+                onTransfer = { navController.navigate(Destinations.TRANSFER) },
+                onOverflow = { navController.navigate(Destinations.SETTINGS) },
                 onBack = { navController.popBackStack() },
             )
         }

@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -23,6 +24,7 @@ import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DateRangePicker
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -36,11 +38,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.unit.dp
 import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.Currency
@@ -91,53 +95,59 @@ fun LeftDrawerContent(
             )
             Spacer(modifier = Modifier.height(Spacing.m))
         }
-        if (accountsExpanded) {
-            AccountDropdown(
-                accounts = state.accounts,
-                currencies = state.currencies,
-                selection = state.dashboardSelection,
-                onAllAccountsClick = {
-                    accountsExpanded = false
-                    onEvent(DashboardEvent.AllAccountsSelected)
-                },
-                onAccountClick = { accountId ->
-                    accountsExpanded = false
-                    onEvent(DashboardEvent.AccountSelected(accountId))
-                },
-            )
-            Spacer(modifier = Modifier.height(Spacing.m))
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                PeriodButton(
+                    label = stringResource(R.string.period_day),
+                    selected = state.period is Period.Day,
+                    onClick = { changePeriod(Period.Day(LocalDate.now())) },
+                )
+                PeriodButton(
+                    label = stringResource(R.string.period_week),
+                    selected = state.period is Period.Week,
+                    onClick = { changePeriod(Period.Week(LocalDate.now().with(DayOfWeek.MONDAY))) },
+                )
+                PeriodButton(
+                    label = stringResource(R.string.period_month),
+                    selected = state.period is Period.Month,
+                    onClick = { changePeriod(Period.Month(YearMonth.now())) },
+                )
+                PeriodButton(
+                    label = stringResource(R.string.period_year),
+                    selected = state.period is Period.Year,
+                    onClick = { changePeriod(Period.Year(LocalDate.now().year)) },
+                )
+                PeriodButton(
+                    label = stringResource(R.string.period_all),
+                    selected = state.period is Period.All,
+                    onClick = { changePeriod(Period.All) },
+                )
+                PeriodButton(
+                    label = stringResource(R.string.period_pick_a_date),
+                    selected = state.period is Period.CustomRange,
+                    leadingIcon = Icons.Outlined.CalendarToday,
+                    onClick = { showRangePicker = true },
+                )
+            }
+            if (accountsExpanded) {
+                AccountDropdown(
+                    accounts = state.accounts,
+                    currencies = state.currencies,
+                    selection = state.dashboardSelection,
+                    onAllAccountsClick = {
+                        accountsExpanded = false
+                        onEvent(DashboardEvent.AllAccountsSelected)
+                    },
+                    onAccountClick = { accountId ->
+                        accountsExpanded = false
+                        onEvent(DashboardEvent.AccountSelected(accountId))
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .zIndex(1f),
+                )
+            }
         }
-        PeriodButton(
-            label = stringResource(R.string.period_day),
-            selected = state.period is Period.Day,
-            onClick = { changePeriod(Period.Day(LocalDate.now())) },
-        )
-        PeriodButton(
-            label = stringResource(R.string.period_week),
-            selected = state.period is Period.Week,
-            onClick = { changePeriod(Period.Week(LocalDate.now().with(DayOfWeek.MONDAY))) },
-        )
-        PeriodButton(
-            label = stringResource(R.string.period_month),
-            selected = state.period is Period.Month,
-            onClick = { changePeriod(Period.Month(YearMonth.now())) },
-        )
-        PeriodButton(
-            label = stringResource(R.string.period_year),
-            selected = state.period is Period.Year,
-            onClick = { changePeriod(Period.Year(LocalDate.now().year)) },
-        )
-        PeriodButton(
-            label = stringResource(R.string.period_all),
-            selected = state.period is Period.All,
-            onClick = { changePeriod(Period.All) },
-        )
-        PeriodButton(
-            label = stringResource(R.string.period_pick_a_date),
-            selected = state.period is Period.CustomRange,
-            leadingIcon = Icons.Outlined.CalendarToday,
-            onClick = { showRangePicker = true },
-        )
     }
 
     if (showRangePicker) {
@@ -178,26 +188,46 @@ private fun AccountDropdown(
     selection: DashboardSelection?,
     onAllAccountsClick: () -> Unit,
     onAccountClick: (Long) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    Column {
-        DrawerOutlinedRow(
-            label = stringResource(R.string.left_drawer_all_accounts),
-            selected = selection is DashboardSelection.AllAccounts,
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Outlined.AccountBalanceWallet,
-                    contentDescription = null,
-                )
-            },
-            onClick = onAllAccountsClick,
-        )
-        accounts.forEach { account ->
-            AccountDrawerRow(
-                account = account,
-                currencyCode = currencies.firstOrNull { it.id == account.currencyId }?.code,
-                selected = (selection as? DashboardSelection.SpecificAccount)?.account?.id == account.id,
-                onClick = { onAccountClick(account.id) },
+    Surface(
+        modifier = modifier,
+        color = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        shadowElevation = 6.dp,
+    ) {
+        Column {
+            AccountDropdownRow(
+                label = stringResource(R.string.left_drawer_all_accounts),
+                subtitle = (selection as? DashboardSelection.AllAccounts)?.currency?.code
+                    ?: currencies.firstOrNull()?.code,
+                selected = selection is DashboardSelection.AllAccounts,
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Outlined.AccountBalanceWallet,
+                        contentDescription = null,
+                    )
+                },
+                onClick = onAllAccountsClick,
             )
+            accounts.forEachIndexed { index, account ->
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                AccountDropdownRow(
+                    label = account.name,
+                    subtitle = currencies.firstOrNull { it.id == account.currencyId }?.code,
+                    selected = (selection as? DashboardSelection.SpecificAccount)?.account?.id == account.id,
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Outlined.AccountBalanceWallet,
+                            contentDescription = null,
+                        )
+                    },
+                    onClick = { onAccountClick(account.id) },
+                )
+                if (index == accounts.lastIndex) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                }
+            }
         }
     }
 }
@@ -252,24 +282,56 @@ private fun CurrencyHeaderRow(
 }
 
 @Composable
-private fun AccountDrawerRow(
-    account: Account,
-    currencyCode: String?,
+private fun AccountDropdownRow(
+    label: String,
+    subtitle: String?,
     selected: Boolean,
+    leadingIcon: @Composable () -> Unit,
     onClick: () -> Unit,
 ) {
-    DrawerOutlinedRow(
-        label = account.name,
-        subtitle = currencyCode,
-        selected = selected,
-        leadingIcon = {
-            Icon(
-                imageVector = Icons.Outlined.AccountBalanceWallet,
-                contentDescription = null,
+    val backgroundColor = if (selected) {
+        MaterialTheme.colorScheme.primaryContainer
+    } else {
+        MaterialTheme.colorScheme.surface
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(backgroundColor)
+            .clickable(onClick = onClick)
+            .semantics(mergeDescendants = true) { this.selected = selected }
+            .padding(horizontal = Spacing.m, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Surface(
+            modifier = Modifier.size(44.dp),
+            color = Color.Transparent,
+            contentColor = MaterialTheme.colorScheme.secondary,
+        ) {
+            Row(
+                modifier = Modifier.size(44.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+            ) {
+                leadingIcon()
+            }
+        }
+        Spacer(modifier = Modifier.width(Spacing.m))
+        Column {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
             )
-        },
-        onClick = onClick,
-    )
+            if (!subtitle.isNullOrBlank()) {
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
 }
 
 @Composable

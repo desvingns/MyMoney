@@ -1,5 +1,6 @@
 package com.kshavrin.mymoney.feature.transactionslist.list
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -8,15 +9,16 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Category
-import androidx.compose.material.icons.filled.CompareArrows
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -25,6 +27,7 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -35,14 +38,19 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.paging.LoadState
-import androidx.paging.compose.LazyPagingItems
-import androidx.paging.compose.collectAsLazyPagingItems
 import com.kshavrin.mymoney.core.common.money.MoneyFormatter
+import com.kshavrin.mymoney.core.designsystem.icon.categoryIcon
+import com.kshavrin.mymoney.core.domain.model.CategoryKind
+import com.kshavrin.mymoney.core.domain.model.CategoryRecordGroup
 import com.kshavrin.mymoney.core.domain.model.Currency
+import com.kshavrin.mymoney.core.domain.model.Money
+import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.feature.transactionslist.R
@@ -51,8 +59,8 @@ import java.math.BigDecimal
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
 import java.util.Locale
+import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
 
 @Composable
 fun TransactionsListRoute(
@@ -71,8 +79,6 @@ fun TransactionsListRoute(
             when (action) {
                 is TransactionsListAction.OpenDetail -> onOpenDetail(action.transactionId)
                 is TransactionsListAction.ShowUndoSnackbar -> {
-                    // AS-9 / BR-24: explicit 5s window. Indefinite duration defers dismissal to
-                    // the timeout so the soft-delete becomes final exactly after 5 seconds.
                     val result = withTimeoutOrNull(UNDO_WINDOW_MILLIS) {
                         snackbarHostState.showSnackbar(
                             message = undoMessage,
@@ -90,7 +96,6 @@ fun TransactionsListRoute(
 
     TransactionsListContent(
         state = state,
-        items = viewModel.pagingData.collectAsLazyPagingItems(),
         snackbarHostState = snackbarHostState,
         onEvent = viewModel::onEvent,
         onSearch = onSearch,
@@ -102,7 +107,6 @@ fun TransactionsListRoute(
 @Composable
 fun TransactionsListContent(
     state: TransactionsListUiState,
-    items: LazyPagingItems<TransactionListItem>,
     snackbarHostState: SnackbarHostState,
     onEvent: (TransactionsListEvent) -> Unit,
     onSearch: () -> Unit,
@@ -123,10 +127,13 @@ fun TransactionsListContent(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onSearch) {
+                    IconButton(
+                        onClick = { onEvent(TransactionsListEvent.SortClicked) },
+                        modifier = Modifier.testTag(RecordsTestTags.SORT),
+                    ) {
                         Icon(
-                            Icons.Filled.Search,
-                            contentDescription = stringResource(R.string.transactions_list_search),
+                            Icons.Filled.SwapVert,
+                            contentDescription = stringResource(R.string.transactions_list_sort),
                         )
                     }
                 },
@@ -138,55 +145,54 @@ fun TransactionsListContent(
                 ),
             )
         },
-        snackbarHost = {
-            SnackbarHost(snackbarHostState)
-        },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { innerPadding ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
         ) {
-            val refreshing = items.loadState.refresh is LoadState.Loading
-            val isEmpty = items.itemCount == 0 && !refreshing
-            if (isEmpty) {
-                Text(
-                    text = stringResource(R.string.transactions_list_empty),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .padding(Spacing.l),
-                )
+            BalanceBar(net = state.net)
+            if (state.isEmpty) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    Text(
+                        text = stringResource(R.string.transactions_list_empty),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .padding(Spacing.l)
+                            .testTag(RecordsTestTags.EMPTY),
+                    )
+                }
             } else {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    state.categoryFilter?.let { category ->
-                        item(key = "filter_chip") {
-                            FilterChipsRow(label = category.name)
+                    state.sortedGroups.forEach { group ->
+                        val expanded = group.categoryId in state.expandedCategoryIds
+                        item(key = "cat_${group.categoryId}") {
+                            CategoryHeader(
+                                group = group,
+                                expanded = expanded,
+                                onClick = { onEvent(TransactionsListEvent.CategoryClicked(group.categoryId)) },
+                            )
                         }
-                    }
-                    items(
-                        count = items.itemCount,
-                        key = { index ->
-                            when (val it = items.peek(index)) {
-                                is TransactionListItem.DayHeader -> "h_${it.date}"
-                                is TransactionListItem.Row -> "r_${it.id}"
-                                null -> "p_$index"
+                        if (expanded) {
+                            items(
+                                items = group.transactions,
+                                key = { tx -> "tx_${tx.id}" },
+                            ) { tx ->
+                                SwipeToDelete(
+                                    onDelete = { onEvent(TransactionsListEvent.SwipeDeleted(tx.id)) },
+                                ) {
+                                    TransactionLeaf(
+                                        transaction = tx,
+                                        colorHex = group.colorHex,
+                                        kind = group.kind,
+                                        currency = state.currency,
+                                        onClick = { onEvent(TransactionsListEvent.RowClicked(tx.id)) },
+                                    )
+                                }
                             }
-                        },
-                    ) { index ->
-                        when (val item = items[index]) {
-                            is TransactionListItem.DayHeader -> DayHeader(item)
-                            is TransactionListItem.Row -> SwipeToDelete(
-                                onDelete = { onEvent(TransactionsListEvent.SwipeDeleted(item.id)) },
-                            ) {
-                                TransactionRow(
-                                    item = item,
-                                    currency = state.currency,
-                                    onClick = { onEvent(TransactionsListEvent.RowClicked(item.id)) },
-                                )
-                            }
-                            null -> Unit
                         }
                     }
                 }
@@ -196,125 +202,172 @@ fun TransactionsListContent(
 }
 
 @Composable
-private fun FilterChipsRow(label: String, modifier: Modifier = Modifier) {
-    Row(
+private fun BalanceBar(net: Money?, modifier: Modifier = Modifier) {
+    val label = stringResource(DesignSystemR.string.balance_bar_label)
+    val amount = net?.let {
+        MoneyFormatter.format(
+            amount = it.amount,
+            currencySymbol = it.currency.symbol,
+            decimalDigits = it.currency.decimalDigits,
+            locale = Locale.getDefault(),
+            symbolPosition = MoneyFormatter.SymbolPosition.AFTER,
+        )
+    } ?: ""
+    val isPositive = net == null || !net.isNegative()
+    Surface(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = Spacing.l, vertical = Spacing.s),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.s),
+            .padding(horizontal = Spacing.l, vertical = Spacing.s)
+            .testTag(RecordsTestTags.BALANCE),
+        shape = MaterialTheme.shapes.extraLarge,
+        color = MaterialTheme.colorScheme.surfaceVariant,
     ) {
-        FilterChip(
-            selected = true,
-            onClick = {},
-            label = { Text(stringResource(R.string.transactions_list_filter_chip, label)) },
+        Text(
+            text = "$label $amount",
+            style = MaterialTheme.typography.titleMedium,
+            color = if (isPositive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.l, vertical = Spacing.m),
         )
     }
 }
 
 @Composable
-private fun DayHeader(item: TransactionListItem.DayHeader, modifier: Modifier = Modifier) {
-    Text(
-        text = item.date.format(DAY_HEADER_FORMAT),
-        style = MaterialTheme.typography.titleSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = Spacing.l, vertical = Spacing.s),
-    )
-}
-
-@Composable
-private fun TransactionRow(
-    item: TransactionListItem.Row,
-    currency: Currency?,
+private fun CategoryHeader(
+    group: CategoryRecordGroup,
+    expanded: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val amountColor = when (item.kind) {
-        TransactionKind.Expense -> MaterialTheme.colorScheme.tertiary
-        TransactionKind.Income -> MaterialTheme.colorScheme.primary
-        TransactionKind.Transfer -> MaterialTheme.colorScheme.onSurfaceVariant
-    }
-    val leadingIcon = when (item.kind) {
-        TransactionKind.Transfer -> Icons.Filled.CompareArrows
-        else -> Icons.Filled.Category
+    val tint = parseHexColor(group.colorHex)
+    val totalColor = when (group.kind) {
+        CategoryKind.Income -> MaterialTheme.colorScheme.primary
+        CategoryKind.Expense -> MaterialTheme.colorScheme.tertiary
     }
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
+            .testTag(RecordsTestTags.category(group.categoryId))
             .padding(horizontal = Spacing.l, vertical = Spacing.m),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.m),
     ) {
         Icon(
-            imageVector = leadingIcon,
-            contentDescription = null,
-            tint = amountColor,
+            imageVector = if (expanded) {
+                Icons.Filled.KeyboardArrowDown
+            } else {
+                Icons.AutoMirrored.Filled.KeyboardArrowRight
+            },
+            contentDescription = stringResource(
+                if (expanded) R.string.transactions_list_collapse else R.string.transactions_list_expand,
+            ),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.testTag(RecordsTestTags.chevron(group.categoryId)),
         )
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-        ) {
-            Text(
-                text = formatSignedAmount(item.kind, item.amount, currency),
-                style = MaterialTheme.typography.titleMedium,
-                color = amountColor,
-            )
-            val note = item.note
-            if (!note.isNullOrBlank()) {
-                Text(
-                    text = note,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
+        Icon(
+            imageVector = categoryIcon(group.iconKey),
+            contentDescription = null,
+            tint = tint,
+        )
         Text(
-            text = formatTime(item.occurredAt),
+            text = group.name,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            text = stringResource(R.string.transactions_list_count, group.count),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.testTag(RecordsTestTags.count(group.categoryId)),
         )
-        IconButton(onClick = onClick) {
-            Icon(
-                Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = stringResource(R.string.transactions_list_open_detail),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        Text(
+            text = formatMoney(group.total),
+            style = MaterialTheme.typography.titleMedium,
+            color = totalColor,
+            modifier = Modifier.testTag(RecordsTestTags.total(group.categoryId)),
+        )
     }
 }
 
-private val DAY_HEADER_FORMAT: DateTimeFormatter =
-    DateTimeFormatter.ofPattern("EEE, d MMM", Locale.getDefault())
+@Composable
+private fun TransactionLeaf(
+    transaction: Transaction,
+    colorHex: String,
+    kind: CategoryKind,
+    currency: Currency?,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val dotColor = parseHexColor(colorHex)
+    val amountColor = when (kind) {
+        CategoryKind.Income -> MaterialTheme.colorScheme.primary
+        CategoryKind.Expense -> MaterialTheme.colorScheme.tertiary
+    }
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .testTag(RecordsTestTags.transaction(transaction.id))
+            .padding(start = Spacing.xl, end = Spacing.l, top = Spacing.s, bottom = Spacing.s),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.m),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(10.dp)
+                .clip(CircleShape)
+                .background(dotColor),
+        )
+        Text(
+            text = formatLeafAmount(transaction.kind, transaction.amount, currency),
+            style = MaterialTheme.typography.bodyLarge,
+            color = amountColor,
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            text = transaction.occurredAt.atZone(ZoneId.systemDefault()).toLocalDate().format(LEAF_DATE_FORMAT),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
 
-private val TIME_FORMAT: DateTimeFormatter =
-    DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(Locale.getDefault())
+private val LEAF_DATE_FORMAT: DateTimeFormatter =
+    DateTimeFormatter.ofPattern("d MMM", Locale.getDefault())
 
-private fun formatTime(instant: Instant): String =
-    TIME_FORMAT.format(instant.atZone(ZoneId.systemDefault()))
+private fun formatMoney(money: Money): String = MoneyFormatter.format(
+    amount = money.amount,
+    currencySymbol = money.currency.symbol,
+    decimalDigits = money.currency.decimalDigits,
+    locale = Locale.getDefault(),
+    symbolPosition = MoneyFormatter.SymbolPosition.AFTER,
+)
 
-private fun formatSignedAmount(
+private fun formatLeafAmount(
     kind: TransactionKind,
     amount: BigDecimal,
     currency: Currency?,
 ): String {
     val symbol = currency?.symbol ?: ""
     val digits = currency?.decimalDigits ?: 2
-    val formatted = MoneyFormatter.format(
+    return MoneyFormatter.format(
         amount = amount,
         currencySymbol = symbol,
         decimalDigits = digits,
         locale = Locale.getDefault(),
+        symbolPosition = MoneyFormatter.SymbolPosition.AFTER,
     )
-    val sign = when (kind) {
-        TransactionKind.Expense -> "-"
-        TransactionKind.Income -> "+"
-        TransactionKind.Transfer -> ""
-    }
-    return "$sign$formatted"
+}
+
+private fun parseHexColor(hex: String): Color = try {
+    val cleaned = hex.removePrefix("#")
+    val argb = if (cleaned.length == 6) "FF$cleaned" else cleaned
+    Color(argb.toLong(16))
+} catch (_: Exception) {
+    Color.Gray
 }
 
 private const val UNDO_WINDOW_MILLIS = 5_000L

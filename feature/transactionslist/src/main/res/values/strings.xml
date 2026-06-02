@@ -10,6 +10,10 @@
     <string name="transactions_list_delete">Delete</string>
     <string name="transactions_list_transfer">Transfer</string>
     <string name="transactions_list_open_detail">Open transaction</string>
+    <string name="transactions_list_sort">Sort by total</string>
+    <string name="transactions_list_expand">Expand category</string>
+    <string name="transactions_list_collapse">Collapse category</string>
+    <string name="transactions_list_count">%1$d</string>
     <string name="detail_title_expense">Edit expense</string>
     <string name="detail_title_income">Edit income</string>
     <string name="detail_title_transfer">Edit transfer</string>

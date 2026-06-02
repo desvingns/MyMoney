@@ -1,20 +1,15 @@
 package com.kshavrin.mymoney.feature.transactionslist.list
 
-import com.kshavrin.mymoney.core.domain.model.TransactionKind
-import java.math.BigDecimal
-import java.time.Instant
-import java.time.LocalDate
+enum class RecordSort { TotalDesc, TotalAsc }
 
-sealed interface TransactionListItem {
-    data class DayHeader(val date: LocalDate) : TransactionListItem
+object RecordsTestTags {
+    const val BALANCE = "records_balance"
+    const val SORT = "records_sort"
+    const val EMPTY = "records_empty"
 
-    data class Row(
-        val id: Long,
-        val kind: TransactionKind,
-        val amount: BigDecimal,
-        val currencyId: Long,
-        val categoryId: Long?,
-        val note: String?,
-        val occurredAt: Instant,
-    ) : TransactionListItem
+    fun category(id: Long): String = "records_category_$id"
+    fun chevron(id: Long): String = "records_chevron_$id"
+    fun count(id: Long): String = "records_count_$id"
+    fun total(id: Long): String = "records_total_$id"
+    fun transaction(id: Long): String = "records_tx_$id"
 }

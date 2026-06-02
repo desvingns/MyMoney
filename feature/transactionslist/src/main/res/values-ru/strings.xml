@@ -10,6 +10,10 @@
     <string name="transactions_list_delete">Удалить</string>
     <string name="transactions_list_transfer">Перевод</string>
     <string name="transactions_list_open_detail">Открыть транзакцию</string>
+    <string name="transactions_list_sort">Сортировка по сумме</string>
+    <string name="transactions_list_expand">Развернуть категорию</string>
+    <string name="transactions_list_collapse">Свернуть категорию</string>
+    <string name="transactions_list_count">%1$d</string>
     <string name="detail_title_expense">Изменить расход</string>
     <string name="detail_title_income">Изменить доход</string>
     <string name="detail_title_transfer">Изменить перевод</string>

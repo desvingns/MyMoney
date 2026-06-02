@@ -1,7 +1,7 @@
 # Monefy behavioural fidelity — epic overview
 Epic: monefy-behavioral-fidelity
 Order: 00 (index)
-Status: draft
+Status: done
 Date: 2026-06-01
 
 ## Goal

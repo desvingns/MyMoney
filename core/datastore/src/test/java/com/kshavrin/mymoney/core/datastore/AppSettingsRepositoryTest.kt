@@ -43,6 +43,7 @@ class AppSettingsRepositoryTest {
         assertEquals(true, settings.soundEnabled)
         assertEquals(true, settings.hapticEnabled)
         assertEquals(-1L, settings.defaultAccountId)
+        assertEquals("specific_account", settings.dashboardSelectionMode)
         assertEquals("month", settings.defaultPeriod)
         assertEquals(1, settings.dateFirstDayOfWeek)
         assertEquals("before", settings.currencySymbolPosition)
@@ -63,6 +64,7 @@ class AppSettingsRepositoryTest {
             soundEnabled = false,
             hapticEnabled = false,
             defaultAccountId = 42L,
+            dashboardSelectionMode = "all_accounts",
             defaultPeriod = "week",
             dateFirstDayOfWeek = 7,
             currencySymbolPosition = "after",

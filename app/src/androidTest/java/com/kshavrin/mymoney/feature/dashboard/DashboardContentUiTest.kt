@@ -157,7 +157,7 @@ class DashboardContentUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 DashboardContent(
-                    state = DashboardState(currentCurrency = usd, isLoading = false),
+                    state = dashboardState(currency = usd, isLoading = false),
                     onEvent = {},
                 )
             }
@@ -183,8 +183,8 @@ class DashboardContentUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 DashboardContent(
-                    state = DashboardState(
-                        currentCurrency = usd,
+                    state = dashboardState(
+                        currency = usd,
                         balanceSnapshot = BalanceSnapshot(
                             income = Money(BigDecimal("20000.00"), usd),
                             expense = Money(BigDecimal("7654.33"), usd),
@@ -244,8 +244,8 @@ class DashboardContentUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 DashboardContent(
-                    state = DashboardState(
-                        currentCurrency = usd,
+                    state = dashboardState(
+                        currency = usd,
                         balanceSnapshot = BalanceSnapshot(
                             income = Money(BigDecimal("20000.00"), usd),
                             expense = Money(BigDecimal("7654.33"), usd),
@@ -525,6 +525,19 @@ class DashboardContentUiTest {
 
     private fun targetLocale() = InstrumentationRegistry.getInstrumentation()
         .targetContext.resources.configuration.locales[0]
+
+    private fun dashboardState(
+        currency: Currency,
+        balanceSnapshot: BalanceSnapshot? = null,
+        period: Period = Period.Month(YearMonth.now()),
+        isLoading: Boolean = false,
+    ) = DashboardState(
+        period = period,
+        currencies = listOf(currency),
+        dashboardSelection = DashboardSelection.AllAccounts(currency),
+        balanceSnapshot = balanceSnapshot,
+        isLoading = isLoading,
+    )
 
     private fun assertDrawerWidthRatio(
         drawerLabel: String,

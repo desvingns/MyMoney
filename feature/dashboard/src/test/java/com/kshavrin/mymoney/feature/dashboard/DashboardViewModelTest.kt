@@ -176,7 +176,7 @@ class DashboardViewModelTest {
             runCurrent()
             assertEquals(setOf(10L), viewModel.state.value.budgetAlertCategoryIds)
 
-            viewModel.onEvent(DashboardEvent.AccountChanged(card.id))
+            viewModel.onEvent(DashboardEvent.AccountSelected(card.id))
 
             assertTrue(viewModel.state.value.budgetAlertCategoryIds.isEmpty())
             assertNull(viewModel.state.value.overBudgetAmount)
@@ -204,12 +204,77 @@ class DashboardViewModelTest {
         try {
             runCurrent()
 
-            viewModel.onEvent(DashboardEvent.AccountChanged(euroCard.id))
+            viewModel.onEvent(DashboardEvent.AccountSelected(euroCard.id))
 
             runCurrent()
             assertEquals(euroCard, viewModel.state.value.currentAccount)
             assertEquals(eur, viewModel.state.value.currentCurrency)
             assertEquals(euroCard.id, settingsRepository.currentSettings().defaultAccountId)
+            assertEquals("specific_account", settingsRepository.currentSettings().dashboardSelectionMode)
+        } finally {
+            store.clear()
+            runCurrent()
+        }
+    }
+
+    @Test
+    fun `all accounts selection aggregates active accounts in the current currency and persists aggregate mode`() = runTest {
+        val euroCard = account(id = 3L, name = "Euro card", isDefault = false, currencyId = eur.id)
+        accountRepository.seed(cash, card, euroCard)
+        currencyRepository.seed(usd, eur)
+        transactionRepository.seedExpenseSummary(cash.id, initialPeriod, summary(categoryId = 10L, amount = "30.00"))
+        transactionRepository.seedIncomeSummary(cash.id, initialPeriod, summary(categoryId = 200L, amount = "120.00"))
+        transactionRepository.seedExpenseSummary(card.id, initialPeriod, summary(categoryId = 10L, amount = "20.00"))
+        transactionRepository.seedIncomeSummary(card.id, initialPeriod, summary(categoryId = 300L, amount = "25.00"))
+        transactionRepository.seedExpenseSummary(euroCard.id, initialPeriod, summary(categoryId = 99L, amount = "999.00"))
+        budgetRepository.seed(budget(id = 10L, categoryId = 10L))
+
+        val (viewModel, store) = buildViewModel()
+        try {
+            runCurrent()
+            assertEquals(setOf(10L), viewModel.state.value.budgetAlertCategoryIds)
+
+            viewModel.onEvent(DashboardEvent.AllAccountsSelected)
+
+            assertTrue(viewModel.state.value.budgetAlertCategoryIds.isEmpty())
+            assertNull(viewModel.state.value.overBudgetAmount)
+
+            runCurrent()
+            assertNull(viewModel.state.value.currentAccount)
+            assertEquals(usd, viewModel.state.value.currentCurrency)
+            assertEquals(0, BigDecimal("50.00").compareTo(viewModel.state.value.balanceSnapshot!!.expense.amount))
+            assertEquals(0, BigDecimal("145.00").compareTo(viewModel.state.value.balanceSnapshot!!.income.amount))
+            assertEquals(0, BigDecimal("95.00").compareTo(viewModel.state.value.balanceSnapshot!!.net.amount))
+            assertEquals(1.0f, viewModel.state.value.slices.single { it.categoryId == 10L }.fraction, 0.0001f)
+            assertTrue(viewModel.state.value.slices.none { it.hasBudgetAlert })
+            assertEquals(cash.id, settingsRepository.currentSettings().defaultAccountId)
+            assertEquals("all_accounts", settingsRepository.currentSettings().dashboardSelectionMode)
+        } finally {
+            store.clear()
+            runCurrent()
+        }
+    }
+
+    @Test
+    fun `all accounts selection restores on init using the default account currency`() = runTest {
+        settingsRepository = FakeDashboardAppSettingsRepository(
+            AppSettings(
+                defaultAccountId = cash.id,
+                dashboardSelectionMode = "all_accounts",
+                firstPositiveSeen = true,
+            ),
+        )
+        transactionRepository.seedExpenseSummary(cash.id, initialPeriod, summary(categoryId = 10L, amount = "10.00"))
+        transactionRepository.seedExpenseSummary(card.id, initialPeriod, summary(categoryId = 20L, amount = "15.00"))
+
+        val (viewModel, store) = buildViewModel()
+        try {
+            runCurrent()
+
+            assertNull(viewModel.state.value.currentAccount)
+            assertEquals(usd, viewModel.state.value.currentCurrency)
+            assertTrue(viewModel.state.value.dashboardSelection is DashboardSelection.AllAccounts)
+            assertEquals(0, BigDecimal("25.00").compareTo(viewModel.state.value.balanceSnapshot!!.expense.amount))
         } finally {
             store.clear()
             runCurrent()
@@ -519,6 +584,38 @@ class DashboardViewModelTest {
             runCurrent()
 
             assertEquals(listOf(DashboardAction.NavigateTransactionsByAccount(cash.id)), actions)
+        } finally {
+            collector.cancel()
+            store.clear()
+            runCurrent()
+        }
+    }
+
+    @Test
+    fun `all accounts balance and slice taps emit aggregate transactions actions without a fake account id`() = runTest {
+        val (viewModel, store) = buildViewModel()
+        val actions = mutableListOf<DashboardAction>()
+        val collector = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.actions.toList(actions)
+        }
+
+        try {
+            runCurrent()
+
+            viewModel.onEvent(DashboardEvent.AllAccountsSelected)
+            runCurrent()
+            viewModel.onEvent(DashboardEvent.BalanceCardClicked)
+            viewModel.onEvent(DashboardEvent.SliceClicked(categoryId = 77L))
+
+            runCurrent()
+
+            assertEquals(
+                listOf(
+                    DashboardAction.NavigateTransactionsByCurrency(usd.id),
+                    DashboardAction.NavigateTransactionsByCategory(accountId = null, currencyId = usd.id, categoryId = 77L),
+                ),
+                actions,
+            )
         } finally {
             collector.cancel()
             store.clear()

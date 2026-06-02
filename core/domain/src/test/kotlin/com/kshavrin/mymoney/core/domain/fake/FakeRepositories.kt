@@ -140,18 +140,41 @@ class FakeTransactionRepository : TransactionRepository {
     private var incomeSummary: List<CategorySummary> = emptyList()
     private var categoryGroups: List<CategoryGroup> = emptyList()
     private var periodTransactions: List<Transaction> = emptyList()
+    private val expenseSummaryByAccount = mutableMapOf<Pair<Long, Period>, List<CategorySummary>>()
+    private val incomeSummaryByAccount = mutableMapOf<Pair<Long, Period>, List<CategorySummary>>()
+    private val categoryGroupsByAccount = mutableMapOf<Pair<Long, Period>, List<CategoryGroup>>()
+    private val periodTransactionsByAccount = mutableMapOf<Pair<Long, Period>, List<Transaction>>()
 
     fun seedExpenseSummary(vararg rows: CategorySummary) {
         expenseSummary = rows.toList()
     }
+
+    fun seedExpenseSummary(accountId: Long, period: Period, vararg rows: CategorySummary) {
+        expenseSummaryByAccount[accountId to period] = rows.toList()
+    }
+
     fun seedIncomeSummary(vararg rows: CategorySummary) {
         incomeSummary = rows.toList()
     }
+
+    fun seedIncomeSummary(accountId: Long, period: Period, vararg rows: CategorySummary) {
+        incomeSummaryByAccount[accountId to period] = rows.toList()
+    }
+
     fun seedCategoryGroups(vararg rows: CategoryGroup) {
         categoryGroups = rows.toList()
     }
+
+    fun seedCategoryGroups(accountId: Long, period: Period, vararg rows: CategoryGroup) {
+        categoryGroupsByAccount[accountId to period] = rows.toList()
+    }
+
     fun seedPeriodTransactions(vararg rows: Transaction) {
         periodTransactions = rows.toList()
+    }
+
+    fun seedPeriodTransactions(accountId: Long, period: Period, vararg rows: Transaction) {
+        periodTransactionsByAccount[accountId to period] = rows.toList()
     }
 
     fun upserted(): List<Transaction> = transactions.value
@@ -161,10 +184,16 @@ class FakeTransactionRepository : TransactionRepository {
     override fun paged(accountId: Long, categoryId: Long?, from: Instant, to: Instant): Flow<PagingData<Transaction>> =
         flowOf(PagingData.empty())
     override suspend fun findById(id: Long) = transactions.value.firstOrNull { it.id == id }
-    override suspend fun findByPeriod(accountId: Long, period: Period): List<Transaction> = periodTransactions
+    override suspend fun findByPeriod(accountId: Long, period: Period): List<Transaction> =
+        periodTransactionsByAccount[accountId to period] ?: periodTransactions
     override suspend fun getCategorySummary(accountId: Long, period: Period, kind: TransactionKind): List<CategorySummary> =
-        if (kind == TransactionKind.Expense) expenseSummary else incomeSummary
-    override suspend fun getCategoryGroups(accountId: Long, period: Period): List<CategoryGroup> = categoryGroups
+        when (kind) {
+            TransactionKind.Expense -> expenseSummaryByAccount[accountId to period] ?: expenseSummary
+            TransactionKind.Income -> incomeSummaryByAccount[accountId to period] ?: incomeSummary
+            TransactionKind.Transfer -> emptyList()
+        }
+    override suspend fun getCategoryGroups(accountId: Long, period: Period): List<CategoryGroup> =
+        categoryGroupsByAccount[accountId to period] ?: categoryGroups
     override suspend fun searchByNote(query: String, limit: Int): List<Transaction> = emptyList()
     override suspend fun upsert(transaction: Transaction): Long {
         val id = if (transaction.id == 0L) (transactions.value.maxOfOrNull { it.id } ?: 0L) + 1L else transaction.id

@@ -14,6 +14,7 @@ import com.kshavrin.mymoney.core.domain.repository.CategoryGroup
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.math.BigDecimal
@@ -46,21 +47,6 @@ class GetCategoryRecordsUseCaseTest {
         sortOrder = 0,
     )
 
-    private fun account() = Account(
-        id = accountId,
-        name = "Cash",
-        currencyId = currencyId,
-        initialBalance = BigDecimal.ZERO,
-        type = AccountType.Cash,
-        colorHex = "#7AC794",
-        iconKey = "ic_cash",
-        isDefault = true,
-        sortOrder = 0,
-        createdAt = Instant.EPOCH,
-        updatedAt = Instant.EPOCH,
-        isArchived = false,
-    )
-
     private fun group(
         categoryId: Long,
         name: String,
@@ -82,6 +68,7 @@ class GetCategoryRecordsUseCaseTest {
         categoryId: Long,
         occurredAt: Instant,
         kind: TransactionKind = TransactionKind.Expense,
+        accountId: Long = this.accountId,
     ) = Transaction(
         id = id,
         kind = kind,
@@ -211,4 +198,95 @@ class GetCategoryRecordsUseCaseTest {
 
         assertTrue(bills.transactions.isEmpty())
     }
+
+    @Test
+    fun `forAccounts aggregates same-currency groups and excludes archived accounts`() = runTest {
+        val cardAccount = account(id = 2L, name = "Card", currencyId = currencyId)
+        val archivedAccount = account(id = 3L, name = "Archived", currencyId = currencyId, isArchived = true)
+        accountRepo.seed(account(), cardAccount, archivedAccount)
+        currencyRepo.seed(usd)
+        transactionRepo.seedCategoryGroups(
+            accountId,
+            period,
+            group(categoryId = 10L, name = "Bills", total = BigDecimal("50.00"), count = 1),
+            group(categoryId = 12L, name = "Food", total = BigDecimal("10.00"), count = 2),
+        )
+        transactionRepo.seedCategoryGroups(
+            cardAccount.id,
+            period,
+            group(categoryId = 10L, name = "Bills", total = BigDecimal("20.00"), count = 1),
+            group(categoryId = 13L, name = "Travel", total = BigDecimal("5.00"), count = 1),
+        )
+        transactionRepo.seedCategoryGroups(
+            archivedAccount.id,
+            period,
+            group(categoryId = 10L, name = "Bills", total = BigDecimal("999.00"), count = 1),
+        )
+        transactionRepo.seedPeriodTransactions(
+            accountId,
+            period,
+            transaction(id = 1L, categoryId = 10L, occurredAt = Instant.parse("2026-05-20T08:00:00Z")),
+            transaction(id = 2L, categoryId = 12L, occurredAt = Instant.parse("2026-05-20T10:00:00Z")),
+        )
+        transactionRepo.seedPeriodTransactions(
+            cardAccount.id,
+            period,
+            transaction(id = 3L, categoryId = 10L, occurredAt = Instant.parse("2026-05-20T09:00:00Z"), accountId = cardAccount.id),
+            transaction(id = 4L, categoryId = 13L, occurredAt = Instant.parse("2026-05-20T11:00:00Z"), accountId = cardAccount.id),
+        )
+        transactionRepo.seedPeriodTransactions(
+            archivedAccount.id,
+            period,
+            transaction(id = 5L, categoryId = 10L, occurredAt = Instant.parse("2026-05-20T12:00:00Z"), accountId = archivedAccount.id),
+        )
+
+        val result = useCase.forAccounts(listOf(account(), cardAccount, archivedAccount), usd, period)
+
+        assertEquals(setOf(10L, 12L, 13L), result.map { it.categoryId }.toSet())
+        assertEquals(0, BigDecimal("70.00").compareTo(result.single { it.categoryId == 10L }.total.amount))
+        assertEquals(listOf(3L, 1L), result.single { it.categoryId == 10L }.transactions.map { it.id })
+        assertEquals(usd, result.single { it.categoryId == 10L }.total.currency)
+    }
+
+    @Test
+    fun `forAccounts rejects mixed-currency selections`() = runTest {
+        val eur = Currency(
+            id = 10L,
+            code = "EUR",
+            symbol = "EUR",
+            name = "Euro",
+            decimalDigits = 2,
+            isActive = true,
+            sortOrder = 1,
+        )
+        val euroAccount = account(id = 2L, name = "Euro", currencyId = eur.id)
+        accountRepo.seed(account(), euroAccount)
+        currencyRepo.seed(usd, eur)
+
+        assertThrows(IllegalArgumentException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                useCase.forAccounts(listOf(account(), euroAccount), usd, period)
+            }
+        }
+    }
+
+    private fun account(
+        id: Long = accountId,
+        name: String = "Cash",
+        currencyId: Long = this.currencyId,
+        isArchived: Boolean = false,
+    ) = Account(
+        id = id,
+        name = name,
+        currencyId = currencyId,
+        initialBalance = BigDecimal.ZERO,
+        type = AccountType.Cash,
+        colorHex = "#7AC794",
+        iconKey = "ic_cash",
+        isDefault = id == accountId,
+        sortOrder = 0,
+        createdAt = Instant.EPOCH,
+        updatedAt = Instant.EPOCH,
+        isArchived = isArchived,
+    )
 }

@@ -45,15 +45,25 @@ class FakeTransactionRepository : TransactionRepository {
 
     private var categoryGroups: List<CategoryGroup> = emptyList()
     private var periodTransactions: List<Transaction>? = null
+    private val categoryGroupsByAccount = mutableMapOf<Long, List<CategoryGroup>>()
+    private val periodTransactionsByAccount = mutableMapOf<Long, List<Transaction>>()
 
     /** Seeds the authoritative header rows [getCategoryGroups] returns (already total-desc ordered). */
     fun seedCategoryGroups(vararg groups: CategoryGroup) {
         categoryGroups = groups.toList()
     }
 
+    fun seedCategoryGroups(accountId: Long, vararg groups: CategoryGroup) {
+        categoryGroupsByAccount[accountId] = groups.toList()
+    }
+
     /** Seeds the leaf rows [findByPeriod] returns for the records use case to bucket. */
     fun seedPeriodTransactions(vararg items: Transaction) {
         periodTransactions = items.toList()
+    }
+
+    fun seedPeriodTransactions(accountId: Long, vararg items: Transaction) {
+        periodTransactionsByAccount[accountId] = items.toList()
     }
 
     /** Controllable result set returned by [searchByNote]; independent of the paged [page]. */
@@ -90,12 +100,12 @@ class FakeTransactionRepository : TransactionRepository {
     override fun observeAll(): Flow<List<Transaction>> = page.asStateFlow()
     override suspend fun findById(id: Long): Transaction? = page.value.firstOrNull { it.id == id }
     override suspend fun findByPeriod(accountId: Long, period: Period): List<Transaction> =
-        periodTransactions ?: page.value.filterNot { it.isDeleted }
+        periodTransactionsByAccount[accountId] ?: periodTransactions ?: page.value.filterNot { it.isDeleted }
     override suspend fun getCategorySummary(
         accountId: Long,
         period: Period,
         kind: TransactionKind,
-    ): List<CategorySummary> = categoryGroups
+    ): List<CategorySummary> = (categoryGroupsByAccount[accountId] ?: categoryGroups)
         .filter { group ->
             when (kind) {
                 TransactionKind.Expense -> group.kind == com.kshavrin.mymoney.core.domain.model.CategoryKind.Expense
@@ -112,7 +122,8 @@ class FakeTransactionRepository : TransactionRepository {
                 iconKey = group.iconKey,
             )
         }
-    override suspend fun getCategoryGroups(accountId: Long, period: Period): List<CategoryGroup> = categoryGroups
+    override suspend fun getCategoryGroups(accountId: Long, period: Period): List<CategoryGroup> =
+        categoryGroupsByAccount[accountId] ?: categoryGroups
     override suspend fun searchByNote(query: String, limit: Int): List<Transaction> {
         searchCalls.add(query to limit)
         searchError?.let { throw it }

@@ -60,6 +60,34 @@ class TransactionsListViewModelTest {
         updatedAt = now,
         isArchived = false,
     )
+    private val cardAccount = Account(
+        id = 8L,
+        name = "Card",
+        currencyId = usd.id,
+        initialBalance = BigDecimal.ZERO,
+        type = AccountType.Cash,
+        colorHex = "#7AC794",
+        iconKey = "ic_acc_card",
+        isDefault = false,
+        sortOrder = 1,
+        createdAt = now,
+        updatedAt = now,
+        isArchived = false,
+    )
+    private val archivedUsdAccount = Account(
+        id = 9L,
+        name = "Archived",
+        currencyId = usd.id,
+        initialBalance = BigDecimal.ZERO,
+        type = AccountType.Cash,
+        colorHex = "#7AC794",
+        iconKey = "ic_acc_archived",
+        isDefault = false,
+        sortOrder = 2,
+        createdAt = now,
+        updatedAt = now,
+        isArchived = true,
+    )
 
     private val foodGroup = CategoryGroup(
         categoryId = 10L,
@@ -87,12 +115,13 @@ class TransactionsListViewModelTest {
         kind: TransactionKind,
         amount: BigDecimal,
         occurredAt: Instant,
+        accountId: Long = cashAccount.id,
     ) = Transaction(
         id = id,
         kind = kind,
         amount = amount,
         currencyId = usd.id,
-        accountId = cashAccount.id,
+        accountId = accountId,
         categoryId = categoryId,
         note = null,
         occurredAt = occurredAt,
@@ -111,16 +140,19 @@ class TransactionsListViewModelTest {
         currencyRepo = FakeCurrencyRepository()
 
         currencyRepo.seed(usd)
-        accountRepo.seed(cashAccount)
+        accountRepo.seed(cashAccount, cardAccount, archivedUsdAccount)
     }
 
     private fun handleOf(
-        accountId: Long = cashAccount.id,
+        accountId: Long? = cashAccount.id,
+        currencyId: Long? = null,
         categoryId: Long? = null,
         from: Long? = null,
         to: Long? = null,
     ): SavedStateHandle {
-        val map = mutableMapOf<String, Any?>(TransactionsListViewModel.KEY_ACCOUNT_ID to accountId)
+        val map = mutableMapOf<String, Any?>()
+        if (accountId != null) map[TransactionsListViewModel.KEY_ACCOUNT_ID] = accountId
+        if (currencyId != null) map[TransactionsListViewModel.KEY_CURRENCY_ID] = currencyId
         if (categoryId != null) map[TransactionsListViewModel.KEY_CATEGORY_ID] = categoryId
         if (from != null) map[TransactionsListViewModel.KEY_FROM] = from
         if (to != null) map[TransactionsListViewModel.KEY_TO] = to
@@ -143,6 +175,8 @@ class TransactionsListViewModelTest {
         return TransactionsListViewModel(
             getCategoryRecords = records,
             balanceCalculator = balance,
+            accountRepository = accountRepo,
+            currencyRepository = currencyRepo,
             transactionRepository = transactionRepo,
             savedStateHandle = savedStateHandle,
         )
@@ -302,6 +336,80 @@ class TransactionsListViewModelTest {
             val state = expectMostRecentItem()
             assertFalse(state.isLoading)
             assertTrue(state.isEmpty)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `currency filter without account id loads aggregate records for active same-currency accounts`() = runTest {
+        transactionRepo.seedCategoryGroups(
+            cashAccount.id,
+            foodGroup,
+            salaryGroup,
+        )
+        transactionRepo.seedCategoryGroups(
+            cardAccount.id,
+            CategoryGroup(
+                categoryId = 10L,
+                name = "Food",
+                iconKey = "ic_cat_food",
+                colorHex = "#FF8888",
+                kind = CategoryKind.Expense,
+                total = BigDecimal("5.00"),
+                count = 1,
+            ),
+        )
+        transactionRepo.seedCategoryGroups(
+            archivedUsdAccount.id,
+            CategoryGroup(
+                categoryId = 10L,
+                name = "Food",
+                iconKey = "ic_cat_food",
+                colorHex = "#FF8888",
+                kind = CategoryKind.Expense,
+                total = BigDecimal("999.00"),
+                count = 1,
+            ),
+        )
+        transactionRepo.seedPeriodTransactions(
+            cashAccount.id,
+            tx(1L, 10L, TransactionKind.Expense, BigDecimal("10.00"), Instant.parse("2026-05-18T09:00:00Z")),
+            tx(2L, 20L, TransactionKind.Income, BigDecimal("100.00"), Instant.parse("2026-05-19T09:00:00Z")),
+        )
+        transactionRepo.seedPeriodTransactions(
+            cardAccount.id,
+            tx(3L, 10L, TransactionKind.Expense, BigDecimal("5.00"), Instant.parse("2026-05-20T09:00:00Z"), accountId = cardAccount.id),
+        )
+        transactionRepo.seedPeriodTransactions(
+            archivedUsdAccount.id,
+            tx(4L, 10L, TransactionKind.Expense, BigDecimal("999.00"), Instant.parse("2026-05-21T09:00:00Z"), accountId = archivedUsdAccount.id),
+        )
+
+        buildViewModel(handleOf(accountId = null, currencyId = usd.id)).state.test {
+            val state = expectMostRecentItem()
+            assertFalse(state.isLoading)
+            assertEquals(null, state.accountId)
+            assertEquals(usd.id, state.currencyId)
+            assertEquals(setOf(10L, 20L), state.groups.map { it.categoryId }.toSet())
+            assertEquals(0, BigDecimal("35.00").compareTo(state.groups.single { it.categoryId == 10L }.total.amount))
+            assertEquals(listOf(3L, 1L), state.groups.single { it.categoryId == 10L }.transactions.map { it.id })
+            assertEquals(0, BigDecimal("65.00").compareTo(state.net?.amount))
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `currency filter with category id starts that aggregate category expanded`() = runTest {
+        transactionRepo.seedCategoryGroups(
+            cashAccount.id,
+            foodGroup,
+        )
+
+        buildViewModel(handleOf(accountId = null, currencyId = usd.id, categoryId = 10L)).state.test {
+            val state = expectMostRecentItem()
+            assertEquals(setOf(10L), state.expandedCategoryIds)
+            assertEquals(null, state.accountId)
+            assertEquals(usd.id, state.currencyId)
             cancelAndIgnoreRemainingEvents()
         }
     }

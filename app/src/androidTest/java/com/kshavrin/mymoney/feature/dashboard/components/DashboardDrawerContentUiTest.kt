@@ -3,7 +3,6 @@ package com.kshavrin.mymoney.feature.dashboard.components
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
-import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasClickAction
@@ -19,6 +18,7 @@ import com.kshavrin.mymoney.core.domain.model.AccountType
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import com.kshavrin.mymoney.feature.dashboard.DashboardEvent
+import com.kshavrin.mymoney.feature.dashboard.DashboardSelection
 import com.kshavrin.mymoney.feature.dashboard.DashboardState
 import com.kshavrin.mymoney.feature.dashboard.R
 import org.junit.Assert.assertEquals
@@ -66,7 +66,7 @@ class DashboardDrawerContentUiTest {
     }
 
     @Test
-    fun `left drawer currency header expands to account selection and keeps all accounts disabled`() {
+    fun `left drawer currency header expands to account selection and all accounts row is selectable`() {
         val capturedEvents = mutableListOf<DashboardEvent>()
         val currency = currency()
         val cash = account(id = 1L, name = "Cash")
@@ -78,8 +78,7 @@ class DashboardDrawerContentUiTest {
                     state = DashboardState(
                         accounts = listOf(cash, card),
                         currencies = listOf(currency),
-                        currentAccount = cash,
-                        currentCurrency = currency,
+                        dashboardSelection = DashboardSelection.SpecificAccount(cash),
                         isLoading = false,
                     ),
                     onEvent = { event -> capturedEvents += event },
@@ -96,7 +95,8 @@ class DashboardDrawerContentUiTest {
         composeTestRule
             .onNodeWithText(targetString(R.string.left_drawer_all_accounts))
             .assertIsDisplayed()
-            .assertIsNotEnabled()
+            .assertIsEnabled()
+            .assertIsNotSelected()
         composeTestRule
             .onAllNodesWithText(targetString(R.string.left_drawer_manage_accounts))
             .assertCountEquals(0)
@@ -113,7 +113,46 @@ class DashboardDrawerContentUiTest {
         composeTestRule.onAllNodesWithText(card.name).assertCountEquals(0)
 
         composeTestRule.runOnIdle {
-            assertEquals(listOf(DashboardEvent.AccountChanged(card.id)), capturedEvents)
+            assertEquals(listOf(DashboardEvent.AccountSelected(card.id)), capturedEvents)
+        }
+    }
+
+    @Test
+    fun `left drawer marks all accounts selected and emits all accounts event when tapped`() {
+        val capturedEvents = mutableListOf<DashboardEvent>()
+        val currency = currency()
+        val cash = account(id = 1L, name = "Cash")
+        val card = account(id = 2L, name = "Card")
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                LeftDrawerContent(
+                    state = DashboardState(
+                        accounts = listOf(cash, card),
+                        currencies = listOf(currency),
+                        dashboardSelection = DashboardSelection.AllAccounts(currency),
+                        isLoading = false,
+                    ),
+                    onEvent = { event -> capturedEvents += event },
+                )
+            }
+        }
+
+        composeTestRule.onNode(hasText(currency.name) and hasClickAction()).performClick()
+
+        composeTestRule
+            .onNodeWithText(targetString(R.string.left_drawer_all_accounts))
+            .assertIsDisplayed()
+            .assertIsSelected()
+        accountRow(cash.name).assertIsNotSelected()
+        accountRow(card.name).assertIsNotSelected()
+        composeTestRule
+            .onNodeWithText(targetString(R.string.left_drawer_all_accounts))
+            .performClick()
+        composeTestRule.onAllNodesWithText(cash.name).assertCountEquals(0)
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(DashboardEvent.AllAccountsSelected), capturedEvents)
         }
     }
 

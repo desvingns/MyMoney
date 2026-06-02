@@ -3,6 +3,7 @@ package com.kshavrin.mymoney.feature.transaction.transfer
 import com.kshavrin.mymoney.core.designsystem.amountfield.AmountFieldEvent
 import com.kshavrin.mymoney.core.designsystem.keypad.KeypadEvent
 import com.kshavrin.mymoney.core.designsystem.keypad.Operator
+import com.kshavrin.mymoney.core.domain.model.Currency
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -161,6 +162,40 @@ class TransferScreenContractTest {
         assertEquals(null, dispatch(AmountFieldEvent.AccountChipClicked))
     }
 
+    @Test
+    fun `rate panel is shown only for cross currency transfers with preview text`() {
+        val usd = currency(id = 1L, code = "USD")
+        val eur = currency(id = 2L, code = "EUR")
+
+        assertTrue(
+            showRatePanel(
+                TransferState(
+                    sourceCurrency = usd,
+                    targetCurrency = eur,
+                    ratePreviewText = "1 USD = 0.92 EUR",
+                ),
+            ),
+        )
+        assertTrue(
+            !showRatePanel(
+                TransferState(
+                    sourceCurrency = usd,
+                    targetCurrency = usd,
+                    ratePreviewText = "1 USD = 1 USD",
+                ),
+            ),
+        )
+        assertTrue(
+            !showRatePanel(
+                TransferState(
+                    sourceCurrency = usd,
+                    targetCurrency = eur,
+                    ratePreviewText = "",
+                ),
+            ),
+        )
+    }
+
     /**
      * Pure mirror of TransferScreen.dispatchAmountEvent (private). Returns
      * the TransferEvent that the screen would emit, or `null` for the
@@ -182,4 +217,20 @@ class TransferScreenContractTest {
         AmountFieldEvent.AccountChipClicked -> null
         AmountFieldEvent.DateChipClicked -> null
     }
+
+    private fun showRatePanel(state: TransferState): Boolean {
+        val source = state.sourceCurrency ?: return false
+        val target = state.targetCurrency ?: return false
+        return source.id != target.id && state.ratePreviewText.isNotBlank()
+    }
+
+    private fun currency(id: Long, code: String): Currency = Currency(
+        id = id,
+        code = code,
+        symbol = code,
+        name = code,
+        decimalDigits = 2,
+        isActive = true,
+        sortOrder = 0,
+    )
 }

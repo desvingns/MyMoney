@@ -160,7 +160,7 @@ class TransferScreenUiTest {
     }
 
     @Test
-    fun `amount press reveals keypad and digit emits transfer event`() {
+    fun `dialpad keypad digit emits transfer event`() {
         val capturedEvents = mutableListOf<TransferEvent>()
 
         composeTestRule.setContent {
@@ -172,9 +172,14 @@ class TransferScreenUiTest {
             }
         }
 
-        composeTestRule.onNodeWithText("1").assertDoesNotExist()
-        composeTestRule.onNodeWithText("0").performClick()
-        composeTestRule.onNodeWithText("1").performScrollTo().performClick()
+        assertTrue(
+            "keypad digits must start hidden",
+            composeTestRule.onAllNodesWithText("1").fetchSemanticsNodes().isEmpty(),
+        )
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.transfer_open_keypad_cd))
+            .performClick()
+        composeTestRule.onNodeWithText("1").performClick()
 
         composeTestRule.runOnIdle {
             assertEquals(listOf(TransferEvent.KeypadDigit(1)), capturedEvents)
@@ -218,7 +223,9 @@ class TransferScreenUiTest {
             }
         }
 
-        composeTestRule.onNodeWithText("0").performClick()
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.transfer_open_keypad_cd))
+            .performClick()
         composeTestRule
             .onNodeWithContentDescription(targetString(DesignSystemR.string.keypad_backspace_cd))
             .performScrollTo()
@@ -230,7 +237,7 @@ class TransferScreenUiTest {
     }
 
     @Test
-    fun `note focus hides revealed transfer keypad`() {
+    fun `amount field stays form only until dialpad fab is pressed`() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 TransferScreen(
@@ -241,9 +248,10 @@ class TransferScreenUiTest {
         }
 
         composeTestRule.onNodeWithText("0").performClick()
-        composeTestRule.onNodeWithText("1").assertIsDisplayed()
-        composeTestRule.onNodeWithText(targetString(DesignSystemR.string.amountfield_note_hint)).performClick()
-        composeTestRule.onNodeWithText("1").assertDoesNotExist()
+        assertTrue(
+            "keypad must stay hidden until the FAB opens it",
+            composeTestRule.onAllNodesWithText("1").fetchSemanticsNodes().isEmpty(),
+        )
     }
 
     @Test
@@ -269,7 +277,7 @@ class TransferScreenUiTest {
     }
 
     @Test
-    fun `picking a date hides keypad and emits transfer date changed event`() {
+    fun `picking a date emits transfer date changed event`() {
         val capturedEvents = mutableListOf<TransferEvent>()
         val initialDate = LocalDate.of(2026, 5, 17)
         val chosenDate = initialDate.plusDays(1)
@@ -283,13 +291,11 @@ class TransferScreenUiTest {
             }
         }
 
-        composeTestRule.onNodeWithText("0").performClick()
         composeTestRule
             .onNodeWithContentDescription(targetString(DesignSystemR.string.amountfield_pick_date_cd))
             .performClick()
         composeTestRule.onNodeWithText(dateLabel(chosenDate)).performClick()
         composeTestRule.onNodeWithText(targetString(R.string.pick_date)).performClick()
-        composeTestRule.onNodeWithText("1").assertDoesNotExist()
 
         composeTestRule.runOnIdle {
             assertEquals(listOf(TransferEvent.DateChanged(chosenDate)), capturedEvents)
@@ -297,7 +303,7 @@ class TransferScreenUiTest {
     }
 
     @Test
-    fun `choosing a source account hides keypad and emits transfer event`() {
+    fun `choosing a source account emits transfer event`() {
         val capturedEvents = mutableListOf<TransferEvent>()
         val sourceAccount = account(id = 10L, name = "Primary wallet")
 
@@ -310,13 +316,11 @@ class TransferScreenUiTest {
             }
         }
 
-        composeTestRule.onNodeWithText("0").performClick()
         composeTestRule
             .onNode(hasText(targetString(R.string.source_label)) and hasClickAction())
             .performScrollTo()
             .performClick()
         composeTestRule.onNodeWithText(sourceAccount.name).performClick()
-        composeTestRule.onNodeWithText("1").assertDoesNotExist()
 
         composeTestRule.runOnIdle {
             assertEquals(listOf(TransferEvent.SourceAccountChanged(sourceAccount.id)), capturedEvents)
@@ -324,7 +328,7 @@ class TransferScreenUiTest {
     }
 
     @Test
-    fun `choosing a target account hides keypad and emits transfer event`() {
+    fun `choosing a target account emits transfer event`() {
         val capturedEvents = mutableListOf<TransferEvent>()
         val targetAccount = account(id = 20L, name = "Savings account")
 
@@ -337,13 +341,11 @@ class TransferScreenUiTest {
             }
         }
 
-        composeTestRule.onNodeWithText("0").performClick()
         composeTestRule
             .onNode(hasText(targetString(R.string.target_label)) and hasClickAction())
             .performScrollTo()
             .performClick()
         composeTestRule.onNodeWithText(targetAccount.name).performClick()
-        composeTestRule.onNodeWithText("1").assertDoesNotExist()
 
         composeTestRule.runOnIdle {
             assertEquals(listOf(TransferEvent.TargetAccountChanged(targetAccount.id)), capturedEvents)
@@ -351,7 +353,7 @@ class TransferScreenUiTest {
     }
 
     @Test
-    fun `changing a visible rate hides keypad and emits transfer event`() {
+    fun `changing a visible rate emits transfer event`() {
         val capturedEvents = mutableListOf<TransferEvent>()
         val sourceCurrency = currency(id = 1L, code = "USD")
         val targetCurrency = currency(id = 2L, code = "EUR")
@@ -369,12 +371,10 @@ class TransferScreenUiTest {
             }
         }
 
-        composeTestRule.onNodeWithText("0").performClick()
         composeTestRule
             .onNodeWithText(targetString(R.string.transfer_change_rate_cta))
             .performScrollTo()
             .performClick()
-        composeTestRule.onNodeWithText("1").assertDoesNotExist()
 
         composeTestRule.runOnIdle {
             assertEquals(listOf(TransferEvent.ChangeRateClicked), capturedEvents)
@@ -419,7 +419,7 @@ class TransferScreenUiTest {
     }
 
     @Test
-    fun `valid transfer save hides keypad and emits transfer event`() {
+    fun `valid transfer save emits transfer event`() {
         val capturedEvents = mutableListOf<TransferEvent>()
         val sourceAccount = account(id = 10L, name = "Primary wallet")
         val targetAccount = account(id = 20L, name = "Savings account")
@@ -441,13 +441,10 @@ class TransferScreenUiTest {
             }
         }
 
-        composeTestRule.onNodeWithText("1").performClick()
         composeTestRule
             .onNodeWithContentDescription(targetString(R.string.currency_rate_save))
             .assertIsEnabled()
             .performClick()
-        composeTestRule.onNodeWithContentDescription(targetString(DesignSystemR.string.keypad_backspace_cd))
-            .assertDoesNotExist()
 
         composeTestRule.runOnIdle {
             assertEquals(listOf(TransferEvent.SaveClicked), capturedEvents)
@@ -455,7 +452,7 @@ class TransferScreenUiTest {
     }
 
     @Test
-    fun `disabled save tap hides keypad without emitting transfer event`() {
+    fun `disabled save tap does not emit transfer event`() {
         val capturedEvents = mutableListOf<TransferEvent>()
 
         composeTestRule.setContent {
@@ -467,13 +464,10 @@ class TransferScreenUiTest {
             }
         }
 
-        composeTestRule.onNodeWithText("0").performClick()
         composeTestRule
             .onNodeWithContentDescription(targetString(R.string.currency_rate_save))
             .assertIsNotEnabled()
             .performTouchInput { click() }
-        composeTestRule.onNodeWithContentDescription(targetString(DesignSystemR.string.keypad_backspace_cd))
-            .assertDoesNotExist()
 
         composeTestRule.runOnIdle {
             assertEquals(emptyList<TransferEvent>(), capturedEvents)

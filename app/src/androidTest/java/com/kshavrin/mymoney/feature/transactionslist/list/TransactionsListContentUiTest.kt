@@ -2,12 +2,15 @@ package com.kshavrin.mymoney.feature.transactionslist.list
 
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.remember
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -25,6 +28,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
 
 /**
  * On-device Compose-UI coverage for the reworked category-grouped records screen (S12 collapsed /
@@ -68,6 +72,36 @@ class TransactionsListContentUiTest {
         composeTestRule.runOnIdle {
             assertEquals(listOf(TransactionsListEvent.SortClicked), capturedEvents)
         }
+    }
+
+    @Test
+    fun `header shows brand currency balance label and a single sort affordance`() {
+        val serbianDinar = currency().copy(name = "Serbian dinar")
+
+        setContent(
+            state = TransactionsListUiState(
+                currency = serbianDinar,
+                isLoading = false,
+                net = Money(BigDecimal("593658.80"), serbianDinar),
+                groups = listOf(group(id = 10L, kind = CategoryKind.Expense, total = "30.00", count = 2)),
+            ),
+        )
+
+        composeTestRule
+            .onNodeWithText(targetString(R.string.transactions_list_brand_title))
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText(serbianDinar.name)
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText(targetString(DesignSystemR.string.balance_bar_label), substring = true)
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithTag(RecordsTestTags.BALANCE)
+            .assertIsDisplayed()
+        composeTestRule
+            .onAllNodesWithContentDescription(targetString(R.string.transactions_list_sort))
+            .assertCountEquals(1)
     }
 
     @Test
@@ -133,7 +167,7 @@ class TransactionsListContentUiTest {
     }
 
     @Test
-    fun `empty state shows the empty marker`() {
+    fun `empty state keeps header controls and localized empty copy visible`() {
         setContent(
             state = TransactionsListUiState(
                 currency = currency(),
@@ -144,6 +178,12 @@ class TransactionsListContentUiTest {
 
         composeTestRule
             .onNodeWithTag(RecordsTestTags.EMPTY)
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText(targetString(R.string.transactions_list_empty))
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithTag(RecordsTestTags.SORT)
             .assertIsDisplayed()
     }
 
@@ -185,6 +225,65 @@ class TransactionsListContentUiTest {
         composeTestRule.runOnIdle {
             assertEquals(listOf(TransactionsListEvent.CategoryClicked(10L)), capturedEvents)
         }
+    }
+
+    @Test
+    fun `collapsed category hides transactions and shows expand semantics`() {
+        setContent(
+            state = TransactionsListUiState(
+                currency = currency(),
+                isLoading = false,
+                groups = listOf(
+                    group(
+                        id = 10L,
+                        kind = CategoryKind.Expense,
+                        total = "12.34",
+                        count = 1,
+                        transactions = listOf(transaction(id = 42L, categoryId = 10L)),
+                    ),
+                ),
+            ),
+        )
+
+        composeTestRule
+            .onNodeWithContentDescription(
+                targetString(R.string.transactions_list_expand),
+                useUnmergedTree = true,
+            )
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithTag(RecordsTestTags.transaction(42L))
+            .assertDoesNotExist()
+    }
+
+    @Test
+    fun `expanded category shows transactions and shows collapse semantics`() {
+        setContent(
+            state = TransactionsListUiState(
+                currency = currency(),
+                isLoading = false,
+                expandedCategoryIds = setOf(10L),
+                groups = listOf(
+                    group(
+                        id = 10L,
+                        kind = CategoryKind.Expense,
+                        total = "12.34",
+                        count = 1,
+                        transactions = listOf(transaction(id = 42L, categoryId = 10L)),
+                    ),
+                ),
+            ),
+        )
+
+        composeTestRule
+            .onNodeWithContentDescription(
+                targetString(R.string.transactions_list_collapse),
+                useUnmergedTree = true,
+            )
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithTag(RecordsTestTags.transaction(42L))
+            .assertIsDisplayed()
     }
 
     @Test

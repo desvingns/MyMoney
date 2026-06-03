@@ -19,3 +19,17 @@ val MoneyTypography = Typography(
     labelMedium    = TextStyle(fontFamily = FontFamily.Default, fontSize = 12.sp, fontWeight = FontWeight.Medium, lineHeight = 16.sp),
     labelSmall     = TextStyle(fontFamily = FontFamily.Default, fontSize = 11.sp, fontWeight = FontWeight.Medium, lineHeight = 16.sp),
 )
+
+val Typography.recordsHeaderBalanceValue: TextStyle
+    get() = headlineMedium.copy(
+        fontWeight = FontWeight.Medium,
+        letterSpacing = 0.sp,
+        lineHeight = 28.sp,
+    )
+
+val Typography.recordsHeaderSupportingLabel: TextStyle
+    get() = labelLarge.copy(
+        fontWeight = FontWeight.Medium,
+        letterSpacing = 0.sp,
+        lineHeight = 20.sp,
+    )

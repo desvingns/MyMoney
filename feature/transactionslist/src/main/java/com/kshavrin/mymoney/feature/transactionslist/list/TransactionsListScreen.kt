@@ -1,18 +1,16 @@
 package com.kshavrin.mymoney.feature.transactionslist.list
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -51,6 +49,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -64,6 +63,15 @@ import com.kshavrin.mymoney.core.domain.model.Period
 import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
 import com.kshavrin.mymoney.core.ui.theme.Spacing
+import com.kshavrin.mymoney.core.ui.theme.recordsHeaderBalance
+import com.kshavrin.mymoney.core.ui.theme.recordsHeaderBalanceContainer
+import com.kshavrin.mymoney.core.ui.theme.recordsHeaderBalanceContent
+import com.kshavrin.mymoney.core.ui.theme.recordsHeaderBalanceOutline
+import com.kshavrin.mymoney.core.ui.theme.recordsHeaderBalanceValue
+import com.kshavrin.mymoney.core.ui.theme.recordsHeaderControl
+import com.kshavrin.mymoney.core.ui.theme.recordsHeaderSortContainer
+import com.kshavrin.mymoney.core.ui.theme.recordsHeaderSortTint
+import com.kshavrin.mymoney.core.ui.theme.recordsHeaderStripContainer
 import com.kshavrin.mymoney.feature.transactionslist.R
 import kotlinx.coroutines.withTimeoutOrNull
 import java.math.BigDecimal
@@ -306,26 +314,28 @@ private fun RecordsBalanceHeader(
     onSort: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
+    Surface(
         modifier = modifier
-            .fillMaxWidth()
-            .padding(start = Spacing.l, end = Spacing.s, top = Spacing.s, bottom = Spacing.s),
-        verticalAlignment = Alignment.CenterVertically,
+            .fillMaxWidth(),
+        color = MaterialTheme.colorScheme.recordsHeaderStripContainer,
     ) {
-        BalanceBar(
-            net = net,
-            modifier = Modifier.weight(1f),
-        )
-        Spacer(modifier = Modifier.width(Spacing.s))
-        IconButton(
-            onClick = onSort,
-            modifier = Modifier.testTag(RecordsTestTags.SORT),
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = Spacing.l, end = Spacing.l, top = Spacing.s, bottom = Spacing.l),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.l),
         ) {
             Icon(
-                Icons.Filled.SwapVert,
-                contentDescription = stringResource(R.string.transactions_list_sort),
-                tint = MaterialTheme.colorScheme.primary,
+                Icons.Filled.Menu,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.recordsHeaderSortTint,
             )
+            BalanceBar(
+                net = net,
+                modifier = Modifier.weight(1f),
+            )
+            RecordsSortButton(onSort = onSort)
         }
     }
 }
@@ -342,22 +352,50 @@ private fun BalanceBar(net: Money?, modifier: Modifier = Modifier) {
             symbolPosition = MoneyFormatter.SymbolPosition.AFTER,
         )
     } ?: ""
-    val isPositive = net == null || !net.isNegative()
     Surface(
         modifier = modifier
             .testTag(RecordsTestTags.BALANCE),
-        shape = MaterialTheme.shapes.small,
-        color = if (isPositive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary,
-        shadowElevation = 2.dp,
+        shape = MaterialTheme.shapes.recordsHeaderBalance,
+        color = MaterialTheme.colorScheme.recordsHeaderBalanceContainer,
+        contentColor = MaterialTheme.colorScheme.recordsHeaderBalanceContent,
+        border = BorderStroke(Spacing.xxs, MaterialTheme.colorScheme.recordsHeaderBalanceOutline),
+        shadowElevation = Spacing.xs,
     ) {
         Text(
             text = "$label $amount",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onPrimary,
+            style = MaterialTheme.typography.recordsHeaderBalanceValue,
+            color = MaterialTheme.colorScheme.recordsHeaderBalanceContent,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = Spacing.l, vertical = Spacing.m),
+                .padding(horizontal = Spacing.m, vertical = Spacing.m),
         )
+    }
+}
+
+@Composable
+private fun RecordsSortButton(
+    onSort: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier,
+        shape = MaterialTheme.shapes.recordsHeaderControl,
+        color = MaterialTheme.colorScheme.recordsHeaderSortContainer,
+        contentColor = MaterialTheme.colorScheme.recordsHeaderSortTint,
+    ) {
+        IconButton(
+            onClick = onSort,
+            modifier = Modifier.testTag(RecordsTestTags.SORT),
+        ) {
+            Icon(
+                Icons.Filled.SwapVert,
+                contentDescription = stringResource(R.string.transactions_list_sort),
+                tint = MaterialTheme.colorScheme.recordsHeaderSortTint,
+            )
+        }
     }
 }
 

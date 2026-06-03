@@ -1,6 +1,7 @@
 package com.kshavrin.mymoney.core.ui.theme
 
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 
@@ -63,3 +64,24 @@ val CategoryColors: Map<String, Color> = mapOf(
     "cafe"          to Color(0xFF7A9685),
     "car"           to Color(0xFF4A5870),
 )
+
+val ColorScheme.recordsHeaderStripContainer: Color
+    get() = surface
+
+val ColorScheme.recordsHeaderBalanceContainer: Color
+    get() = primary
+
+val ColorScheme.recordsHeaderBalanceContent: Color
+    get() = onPrimary
+
+val ColorScheme.recordsHeaderBalanceOutline: Color
+    get() = secondary
+
+val ColorScheme.recordsHeaderBalanceShadow: Color
+    get() = secondary.copy(alpha = 0.28f)
+
+val ColorScheme.recordsHeaderSortTint: Color
+    get() = primary
+
+val ColorScheme.recordsHeaderSortContainer: Color
+    get() = surface.copy(alpha = 0f)

@@ -193,6 +193,24 @@ on the primary Windows host, then repeat the guest `adb kill-server` /
 `adb start-server` / `adb connect 10.0.2.2:5555` sequence. For Gradle
 instrumented tests, use the helper instead of that remote attachment.
 
+### Visual-change device gate
+
+For `$mp --phase`, `$mp --feature`, `$mp --bugfix`, `$mp --device`, and `$mp --fit`, a
+visual-surface task that requires visual autotests has a hard pre-flight gate.
+This applies only to explicitly visual work: UI fidelity, screenshot or
+reference comparison, Compose UI/instrumented coverage, screen layout, theme,
+animation, visual QA, or similar changes where a device-rendered result matters.
+
+Before starting agents or claiming verification for such work, confirm the
+documented `Pixel_5_API_34` connection and boot state (`ro.boot.qemu.avd_name`
+must be `Pixel_5_API_34`, SDK `34`, and `sys.boot_completed` must be `1`). If
+the device is absent, wrong, offline, unauthorized, or loses attachment, STOP
+and ask the user to start/connect `Pixel_5_API_34` first. Correct development
+cannot proceed without visual testing: do not continue blind, do not replace the
+device visual gate with JVM-only checks, and do not claim visual tests passed.
+The legacy `$cmp` pipeline must follow this same gate only when the user explicitly
+asks for CMP fallback work.
+
 ## Testing stack (TDD §12, lines 2553–2661)
 
 - JUnit 4 + Turbine + `kotlinx-coroutines-test`.
@@ -206,9 +224,9 @@ Default to **zero comments**. Only add when WHY is non-obvious — a hidden cons
 
 ## Project state files — important note
 
-This project has both CMP's iteration model (STATE / ROADMAP / DOCUMENTATION) and the implementation plan's phase model (PROGRESS). **PROGRESS.md is the sole writer of project state.** The three CMP root files are one-line stub redirects pointing at the implementation plan — see `STATE.md`, `ROADMAP.md`, `DOCUMENTATION.md`.
+This project now uses MP Dev's SPEC board (`.claude/specs/{backlog,active,done}/`) plus the implementation-plan phase model (PROGRESS). **PROGRESS.md is the sole writer of phase/release state.** The root `STATE.md`, `ROADMAP.md`, and `DOCUMENTATION.md` files are one-line stub redirects pointing at the implementation plan and the TDD.
 
-The `cmp-docs` agent is **inert** in this project (`.Codex/agents/cmp-docs.md` body has been replaced with a notice). The `/cmp` orchestrator has been patched to skip its docs-update step and to add two new flags — `--phase` (automates the session protocol) and `--check` (read-only state consistency validator).
+The `mp-docs` agent is **inert** in this project via `.claude/mp/extras/mp-docs.md`; it must not rewrite `STATE.md`, `ROADMAP.md`, `DOCUMENTATION.md`, or `CLAUDE.md`. The old CMP docs behavior is legacy-only and must not be used for new Codex MP work.
 
 ## Where to find things
 
@@ -219,7 +237,8 @@ The `cmp-docs` agent is **inert** in this project (`.Codex/agents/cmp-docs.md` b
 | Phase task lists | `docs/implementation_plan/phases/PHASE_NN_*.md` |
 | Cross-phase reference table | `docs/implementation_plan/00_overview.md` |
 | Authoritative spec | `C:\Pet\MyMoney\TDD\MyMoney\MyMoney_TDD.md` (cite line ranges, never paraphrase) |
-| MyMoney-specific agent guidance | `.Codex/cmp-mymoney/{developer,reviewer,tester}-extras.md` |
+| MyMoney-specific MP agent guidance | `.claude/mp/extras/*.md` (shared by Claude and Codex) |
+| Legacy CMP guidance | `.claude/cmp-mymoney/*.md` and `.claude/agents/cmp-*.md` (fallback only) |
 | Cross-session memory | `C:\Users\desvi\.Codex\projects\C--Pet-MyMoney\memory\` (MEMORY.md is the index, auto-loaded) |
 
 ## JBR auto-detect snippet (Git Bash on Windows)
@@ -241,21 +260,37 @@ done
 
 ## Native Codex Pipeline
 
-- Invoke `$cmp --phase`, `$cmp --feature <description>`, `$cmp --bugfix <description>`,
-  `$cmp --discuss <topic>`, `$cmp --check`, or `$cmp --device <Sxx>`.
-- `$cmp --device <Sxx>` runs one on-device instrumented-test slice for a single control: it reads
-  `docs/DEVICE_VERIFICATION_PROGRESS.md` (the device tracker) and the runbook
-  `docs/DEVICE_VERIFICATION_PLAN_FOR_SONNET.md`, writes one Compose-UI test, runs it on
-  `Pixel_5_API_34` via `cmp-runner-instrumented-android` + `scripts/run_connected_test_on_host_avd.ps1`,
-  then updates the tracker. One control per run; never pushes. MyMoney-specific.
-- `$cmp` is a project-local Codex skill in `.agents/skills/cmp/SKILL.md`. It follows the
-  customized canonical workflow in `.claude/commands/cmp.md`, including the MyMoney-only
-  `--phase` and `--check` modes.
-- When subagents are requested, use native specialists from `.codex/agents/*.toml`. The
-  `cmp-runner-instrumented-android` specialist is the only one allowed to invoke PowerShell, and only
-  for the host-AVD helper; `cmp-runner-android` stays JVM-only.
-- Keep `docs/implementation_plan/PROGRESS.md` as the only project-state writer. The
-  `cmp-docs` step remains disabled for this project.
+- Invoke `$mp --feature <description>`, `$mp --feature --next`, `$mp --bugfix <description>`,
+  `$mp --discuss <topic>`, `$mp --spec <description>`, `$mp --coverage`, `$mp --device <Sxx>`,
+  `$mp --fit`, `$mp --plan`, `$mp --phase`, `$mp --check`, `$mp --improve`, or `$mp --reflect`.
+- `$mp` is the primary project-local Codex skill in `.agents/skills/mp-dev/SKILL.md`. It is a thin
+  Codex bridge over the canonical Claude `mp-dev` plugin at
+  `C:\Users\k.shavrin\.claude\plugins\cache\mobile-pipeline\mp-dev\1.5.0`.
+- Claude and Codex share the same project configuration and overrides:
+  `.claude/mp/config.json`, `.claude/mp/extras/*.md`, and `.claude/specs/{backlog,active,done}/`.
+  Put project-specific skill/agent improvements in `.claude/mp/extras/*` first so both surfaces stay
+  synchronized. Use `$mp --improve` / `$mp --reflect` only for plugin-level improvements.
+- Claude and Codex may both use the MP Dev board, but only one active SPEC should be implemented at a
+  time unless the work is explicitly split into disjoint backlog SPECs. Before starting implementation,
+  check `.claude/specs/active/` and avoid racing another agent on the same SPEC.
+- `$mp --device <Sxx>` runs one on-device instrumented-test slice for a single control: it reads
+  `docs/DEVICE_VERIFICATION_PROGRESS.md` and `docs/DEVICE_VERIFICATION_PLAN_FOR_SONNET.md`, writes one
+  Compose-UI test, runs it on `Pixel_5_API_34` via `mp-runner-instrumented-android` +
+  `scripts/run_connected_test_on_host_avd.ps1`, then updates the tracker. One control per run; never
+  pushes.
+- `$mp --phase`, `$mp --feature`, `$mp --bugfix`, `$mp --device`, and `$mp --fit` must run the
+  visual-change device gate above before any agent work when the task is explicitly visual and needs
+  visual/device autotests.
+- Native specialists live in `.codex/agents/mp-*.toml`. They read the matching canonical Claude
+  `mp-dev` agent body and then `.claude/mp/extras/<agent>.md` if present. `mp-runner-instrumented-android`
+  is the only MP specialist allowed to invoke PowerShell, and only for the host-AVD helper.
+- Codex Bash compatibility: the current environment may not have `bash` in `PATH`. If Bash is absent,
+  do not require the Claude deterministic `.sh` scripts; use native Codex `mp-reviewer-android` and
+  `mp-runner-android` agent fallback paths instead.
+- Keep `docs/implementation_plan/PROGRESS.md` as the only phase/release state writer. The MP docs step
+  remains inert via `.claude/mp/extras/mp-docs.md`.
+- `$cmp` is legacy fallback only. Do not use CMP for new Codex work unless the user explicitly asks for
+  historical CMP behavior. After the MP smoke-test is green, CMP Codex skill/agent files may be deleted.
 - Push only after tested files are committed and the user explicitly approves the final gate.
 
 ## graphify

@@ -26,6 +26,22 @@ When this project has **one** platform, agent names with `<platform>` suffix bel
 
 When this project has **multiple** platforms, every SPEC must include an explicit `PLATFORM: <name>` field, and orchestrator spawns the matching platform's agent for each step. If a task spans both platforms, run two SPECs sequentially (one per platform) — do not interleave.
 
+## Visual autotest device pre-flight (MyMoney Android)
+
+Run this hard gate before implementation/test execution for MyMoney tasks that are explicitly visual
+and require visual/device autotests. Do not apply it to every presentation-layer change; apply it when
+the SPEC/task/phase mentions visual, layout, theme, animation, screenshot, fidelity/reference
+comparison, visual QA, `screenshot`, `compose-ui`/instrumented Compose UI, `--device`, or a phase
+done-criterion that requires device-rendered visual autotests.
+
+Use the documented host AVD `Pixel_5_API_34` (Android 14 / API 34). Before spawning any agent, confirm
+the device is connected and booted: `ro.boot.qemu.avd_name` must be `Pixel_5_API_34`, SDK must be
+`34`, and `sys.boot_completed` must be `1`. If the device is absent, wrong, offline, unauthorized, or
+loses attachment, STOP immediately and ask the user to start/connect `Pixel_5_API_34` first. Correct
+development cannot proceed without visual testing. Never continue blind, never replace the device
+visual gate with JVM-only checks or screenshot baselines, and never claim visual tests ran or passed
+without connected-device evidence.
+
 ## Startup
 
 1. Read `CLAUDE.md` (at the repository root) for tech stack and architecture.
@@ -151,6 +167,10 @@ A single-SPEC feature skips the board — emit the SPEC inline as before.
 ### Phase 2 — Implement
 
 **Mode selection.** If the user passed `--tdd` after `--feature` → use the **TDD order** described at the end of this Phase (after Step 6). Otherwise use the **default order** below.
+
+Before spawning any Phase 2 agent, apply the **Visual autotest device pre-flight (MyMoney Android)**
+when the SPEC is explicitly visual and requires visual/device autotests. If the gate fails, stop
+before Developer/Tester/Runner.
 
 Spawn agents in sequence. Pass SPEC to each. Use `<platform>` resolution as described in the "Platform resolution" section above.
 
@@ -356,6 +376,10 @@ Skip questions if bug location is obvious.
 
 ### Phase 2 — Fix
 
+Before spawning Developer, apply the **Visual autotest device pre-flight (MyMoney Android)** when the
+bugfix is explicitly visual and requires visual/device autotests. If the gate fails, stop before any
+fix work.
+
 **Step 1 — Developer**:
 Spawn agent `cmp-developer-<platform>` with prompt:
 ```
@@ -486,6 +510,9 @@ Show the SPEC to the user and ask:
 
 ### Phase 3 — Run pipeline
 
+Before running the default `--feature` Phase 2, apply the **Visual autotest device pre-flight
+(MyMoney Android)** if the synthesised SPEC is explicitly visual and requires visual/device autotests.
+
 Execute the **default --feature pipeline** (Step 1 through Step 5 from the `--feature` workflow above) with the synthesised SPEC.
 
 **Skip Step 6 (Push) by default** — pushing is per-phase, not per-task. Ask:
@@ -573,7 +600,7 @@ is `docs/DEVICE_VERIFICATION_PROGRESS.md`. Read both before starting.
 2. Open the matching **slice card** in `docs/DEVICE_VERIFICATION_PLAN_FOR_SONNET.md` §8. It names the
    `*Content` composable, the `State`/`Event` types and paths, the controls→events mapping, any
    seams/skips, and the test-class FQN.
-3. **Ensure a test device is connected — mandatory, never run without one.** Take the connection
+3. Apply the **Visual autotest device pre-flight (MyMoney Android)**. **Ensure a test device is connected — mandatory, never run without one.** Take the connection
    from the `mymoney-device-connection` memory memo (default: host AVD `Pixel_5_API_34` via
    `adb connect 10.0.2.2:5555`) and run the runbook §3 preflight. If `adb devices` is empty, the AVD
    is wrong, or the connection was lost → **STOP and ask the user (AskUserQuestion) where/how the test
@@ -712,5 +739,6 @@ plan: <mode> — <N> phase files (<created>/<merged>/<conflict→.proposed>)
 - `--tdd` flag (only on `--feature`) reorders Phase 2: Tester writes failing unit tests first (`red_phase=true`), Runner verifies the red, then Developer implements until green (`green_phase=true`). Opt-in only; default order remains developer-first. `--bugfix` delegates regression-test creation to Tester.
 - `cmp-docs` agent is **inert in MyMoney** (`.claude/agents/cmp-docs.md` body replaced). All `--feature`/`--bugfix`/`--phase`/`--tdd` workflows skip the docs step. State is owned by `docs/implementation_plan/PROGRESS.md` exclusively.
 - `cmp-runner-instrumented-android` runs the on-device suite (`connectedDebugAndroidTest`) for **one** test class via `scripts/run_connected_test_on_host_avd.ps1`. It is the **only** agent permitted to invoke PowerShell, and only for that helper — every other agent stays Bash-only. It trusts the parsed connected report, never "BUILD SUCCESSFUL". `cmp-runner-android` remains JVM-only and unchanged.
+- Visual/device autotest work has a hard MyMoney Android pre-flight gate before implementation/test execution. Trigger it only for explicitly visual tasks (visual/layout/theme/animation/screenshot/fidelity/reference comparison/visual QA, `screenshot`, `compose-ui`/instrumented Compose UI, `--device`, or visual device done-criteria). If `Pixel_5_API_34` is not connected and booted, stop and ask the user to start/connect it; correct development cannot proceed without visual testing. Never continue blind or claim visual tests ran.
 - `--device` slices update `docs/DEVICE_VERIFICATION_PROGRESS.md` (the device tracker), never `PROGRESS.md`. They never push. One control per invocation.
 - `--phase`, `--check`, `--device`, and `--plan` are MyMoney-specific extensions, not from CMP source. They will not be modified by `bash CMP/bootstrap.sh --upgrade`. Future CMP versions may add new flags — manually re-apply these four (and the `cmp-runner-instrumented-android` + `cmp-planner-android` agents) if a future upgrade overwrites this file.

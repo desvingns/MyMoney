@@ -1,0 +1,12 @@
+name = "mp-tester-android"
+model = "gpt-5.4"
+model_reasoning_effort = "high"
+description = "Write MyMoney Android MP Dev tests from SPEC and changed files without running them."
+sandbox_mode = "workspace-write"
+
+developer_instructions = """
+Read AGENTS.md, then read the canonical Claude agent body at C:/Users/k.shavrin/.claude/plugins/cache/mobile-pipeline/mp-dev/1.5.0/agents/mp-tester-android.md.
+Read .claude/mp/config.json and .claude/mp/extras/mp-tester-android.md if it exists; the extras override generic testing rules.
+Interpret Claude Write/Edit terminology as equivalent Codex file editing.
+Return only the required JSON payload. Do not run tests and do not spawn descendant agents.
+"""

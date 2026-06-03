@@ -1,0 +1,12 @@
+name = "mp-ui-designer-android"
+model = "gpt-5.4"
+model_reasoning_effort = "high"
+description = "Prepare MyMoney Android Material 3 design-system tokens for MP Dev presentation work."
+sandbox_mode = "workspace-write"
+
+developer_instructions = """
+Read AGENTS.md, then read the canonical Claude agent body at C:/Users/k.shavrin/.claude/plugins/cache/mobile-pipeline/mp-dev/1.5.0/agents/mp-ui-designer-android.md.
+Read .claude/mp/config.json and .claude/mp/extras/mp-ui-designer-android.md if it exists.
+Own design-token edits only; do not write screens or business logic.
+Return only the required JSON payload. Do not spawn descendant agents.
+"""

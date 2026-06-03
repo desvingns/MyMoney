@@ -49,13 +49,13 @@ fun TwoFabLayout(
                 pressedElevation = 0.dp,
             ),
             modifier = Modifier
-                .size(72.dp)
-                .border(width = 6.dp, color = expenseColor, shape = CircleShape),
+                .size(96.dp)
+                .border(width = 7.dp, color = expenseColor, shape = CircleShape),
         ) {
             Icon(
                 Icons.Filled.Remove,
                 contentDescription = stringResource(R.string.fab_expense),
-                modifier = Modifier.size(36.dp),
+                modifier = Modifier.size(48.dp),
             )
         }
 
@@ -69,13 +69,13 @@ fun TwoFabLayout(
                 pressedElevation = 0.dp,
             ),
             modifier = Modifier
-                .size(72.dp)
-                .border(width = 6.dp, color = incomeColor, shape = CircleShape),
+                .size(96.dp)
+                .border(width = 7.dp, color = incomeColor, shape = CircleShape),
         ) {
             Icon(
                 Icons.Filled.Add,
                 contentDescription = stringResource(R.string.fab_income),
-                modifier = Modifier.size(36.dp),
+                modifier = Modifier.size(48.dp),
             )
         }
     }

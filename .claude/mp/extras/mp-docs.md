@@ -25,9 +25,9 @@ That is the entire job for mp-docs in MyMoney.
 
 ## Why
 
-MyMoney follows the implementation-plan phase model, not the CMP STATE/ROADMAP/DOCUMENTATION
+MyMoney follows the implementation-plan phase model, not the legacy CMP STATE/ROADMAP/DOCUMENTATION
 iteration model. Letting mp-docs write `STATE.md` would create a second, competing source of project
 state and clobber the stub redirect. The generic `/mp` orchestrator still spawns `mp-docs` on
 `--feature`/`--bugfix` (Step 6) and cannot be patched per-project — this extras override is how
-MyMoney keeps it inert, the same way the archived `cmp-docs` agent was inert. See `CLAUDE.md`
+MyMoney keeps it inert, the same way the archived `cmp-docs` agent was inert. See `AGENTS.md`
 → "Project state files".

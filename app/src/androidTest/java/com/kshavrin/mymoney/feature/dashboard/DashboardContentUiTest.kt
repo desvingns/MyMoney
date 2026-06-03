@@ -1,5 +1,6 @@
 package com.kshavrin.mymoney.feature.dashboard
 
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
@@ -28,6 +29,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.common.money.MoneyFormatter
 import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
+import com.kshavrin.mymoney.core.designsystem.donut.CategorySlice
 import com.kshavrin.mymoney.core.domain.model.BalanceSnapshot
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Money
@@ -66,8 +68,8 @@ class DashboardContentUiTest {
         composeTestRule
             .onNodeWithContentDescription(targetString(R.string.fab_expense))
             .assertIsEnabled()
-            .assertWidthIsAtLeast(64.dp)
-            .assertHeightIsAtLeast(64.dp)
+            .assertWidthIsAtLeast(96.dp)
+            .assertHeightIsAtLeast(96.dp)
             .performClick()
 
         composeTestRule.runOnIdle {
@@ -91,8 +93,8 @@ class DashboardContentUiTest {
         composeTestRule
             .onNodeWithContentDescription(targetString(R.string.fab_income))
             .assertIsEnabled()
-            .assertWidthIsAtLeast(64.dp)
-            .assertHeightIsAtLeast(64.dp)
+            .assertWidthIsAtLeast(96.dp)
+            .assertHeightIsAtLeast(96.dp)
             .performClick()
 
         composeTestRule.runOnIdle {
@@ -284,6 +286,84 @@ class DashboardContentUiTest {
 
         assertTrue("balance bar must sit below the donut", barTop > donutTop)
         assertTrue("balance bar must sit above the expense fab", barTop < expenseFabTop)
+    }
+
+    @Test
+    fun `year dashboard gives the donut stage and fabs reference scale`() {
+        val usd = Currency(
+            id = 1L,
+            code = "USD",
+            symbol = "$",
+            name = "US Dollar",
+            decimalDigits = 2,
+            isActive = true,
+            sortOrder = 0,
+        )
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state = dashboardState(
+                        currency = usd,
+                        balanceSnapshot = BalanceSnapshot(
+                            income = Money(BigDecimal("2442740.80"), usd),
+                            expense = Money(BigDecimal("1699483.00"), usd),
+                            net = Money(BigDecimal("743257.80"), usd),
+                            byCategory = emptyList(),
+                        ),
+                        period = Period.Year(2026),
+                        slices = listOf(
+                            CategorySlice(1L, Color(0xFFECC400), 0.27f, "Car", "car"),
+                            CategorySlice(2L, Color(0xFF77C99B), 0.21f, "Pets", "pets"),
+                            CategorySlice(3L, Color(0xFFE879B0), 0.17f, "Groceries", "groceries"),
+                            CategorySlice(4L, Color(0xFF9CC7DB), 0.05f, "Home", "home"),
+                        ),
+                        isLoading = false,
+                    ),
+                    onEvent = {},
+                )
+            }
+        }
+
+        val donutBounds = composeTestRule
+            .onNodeWithTag(DASHBOARD_DONUT_TAG)
+            .assertIsDisplayed()
+            .assertWidthIsAtLeast(360.dp)
+            .assertHeightIsAtLeast(360.dp)
+            .fetchSemanticsNode()
+            .boundsInRoot
+        val balanceBounds = composeTestRule
+            .onNodeWithTag(BALANCE_BAR_TAG)
+            .assertIsDisplayed()
+            .fetchSemanticsNode()
+            .boundsInRoot
+        val expenseFab = composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.fab_expense))
+            .assertIsDisplayed()
+            .assertHasClickAction()
+            .assertWidthIsAtLeast(96.dp)
+            .assertHeightIsAtLeast(96.dp)
+            .fetchSemanticsNode()
+            .boundsInRoot
+        val incomeFab = composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.fab_income))
+            .assertIsDisplayed()
+            .assertHasClickAction()
+            .assertWidthIsAtLeast(96.dp)
+            .assertHeightIsAtLeast(96.dp)
+            .fetchSemanticsNode()
+            .boundsInRoot
+        val rootWidth = InstrumentationRegistry.getInstrumentation()
+            .targetContext.resources.displayMetrics.widthPixels.toFloat()
+        val donutWidthRatio = donutBounds.width / rootWidth
+
+        assertTrue(
+            "donut stage width ratio $donutWidthRatio must stay near full width",
+            donutWidthRatio >= 0.92f,
+        )
+        assertTrue("balance bar must sit below the expanded donut stage", balanceBounds.top > donutBounds.bottom)
+        assertTrue("expense FAB must sit below the balance bar", expenseFab.top > balanceBounds.bottom)
+        assertTrue("income FAB must sit below the balance bar", incomeFab.top > balanceBounds.bottom)
     }
 
     @Test
@@ -544,12 +624,14 @@ class DashboardContentUiTest {
         currency: Currency,
         balanceSnapshot: BalanceSnapshot? = null,
         period: Period = Period.Month(YearMonth.now()),
+        slices: List<CategorySlice> = emptyList(),
         isLoading: Boolean = false,
     ) = DashboardState(
         period = period,
         currencies = listOf(currency),
         dashboardSelection = DashboardSelection.AllAccounts(currency),
         balanceSnapshot = balanceSnapshot,
+        slices = slices,
         isLoading = isLoading,
     )
 

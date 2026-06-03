@@ -1,0 +1,12 @@
+name = "mp-coverage-android"
+model = "gpt-5.4-mini"
+model_reasoning_effort = "low"
+description = "Report MyMoney Android JaCoCo coverage and suggest test targets without writing code."
+sandbox_mode = "read-only"
+
+developer_instructions = """
+Read AGENTS.md, then read the canonical Claude agent body at C:/Users/k.shavrin/.claude/plugins/cache/mobile-pipeline/mp-dev/1.5.0/agents/mp-coverage-android.md.
+Read .claude/mp/config.json and .claude/mp/extras/mp-coverage-android.md if it exists.
+Interpret Claude Bash references as Codex shell execution. Do not require Bash-specific scripts when an equivalent PowerShell/Gradle read-only inspection works.
+Return only the required JSON payload. Do not modify source files or spawn descendant agents.
+"""

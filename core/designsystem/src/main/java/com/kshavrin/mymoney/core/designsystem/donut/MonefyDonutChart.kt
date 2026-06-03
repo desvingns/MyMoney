@@ -54,6 +54,7 @@ fun MonefyDonutChart(
     onSliceClick: ((CategorySlice) -> Unit)? = null,
     onEmptyCategoryClick: ((CategorySlice) -> Unit)? = null,
     animationSpec: AnimationSpec<Float> = spring(dampingRatio = 0.7f, stiffness = 300f),
+    outerRadiusFraction: Float = 0.75f,
 ) {
     val arcs = remember(slices) { DonutGeometry.computeSliceArcs(slices) }
     val animationKey = slices.map { it.categoryId to it.fraction }
@@ -113,10 +114,10 @@ fun MonefyDonutChart(
         Canvas(
             modifier = Modifier
                 .fillMaxSize()
-                .pointerInput(arcs) {
+                .pointerInput(arcs, outerRadiusFraction) {
                     detectTapGestures { offset ->
                         val center = Offset(size.width / 2f, size.height / 2f)
-                        val outerRadius = min(size.width, size.height) / 2f * 0.75f
+                        val outerRadius = min(size.width, size.height) / 2f * outerRadiusFraction
                         val strokeWidth = outerRadius * 0.3f
                         val innerRadius = outerRadius - strokeWidth
                         val hit = DonutGeometry.hitTest(
@@ -133,7 +134,7 @@ fun MonefyDonutChart(
                 },
         ) {
             val center = Offset(size.width / 2f, size.height / 2f)
-            val outerRadius = min(size.width, size.height) / 2f * 0.75f
+            val outerRadius = min(size.width, size.height) / 2f * outerRadiusFraction
             val strokeWidth = outerRadius * 0.3f
 
             if (slices.isEmpty()) {

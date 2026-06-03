@@ -1,0 +1,4 @@
+interface:
+  display_name: "MyMoney MP Dev Pipeline"
+  short_description: "Run the shared MP Dev mobile pipeline"
+  default_prompt: "Use $mp --feature --next or $mp --check for MyMoney."

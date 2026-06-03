@@ -216,8 +216,9 @@ fun DashboardContent(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(280.dp)
-                                .padding(horizontal = Spacing.xl),
+                                .weight(1f)
+                                .padding(horizontal = Spacing.s)
+                                .testTag(DASHBOARD_DONUT_TAG),
                         ) {
                             MonefyDonutChart(
                                 income = state.balanceSnapshot?.income?.amount ?: BigDecimal.ZERO,
@@ -227,6 +228,7 @@ fun DashboardContent(
                                 currencySymbol = state.currentCurrency?.symbol ?: "",
                                 decimalDigits = state.currentCurrency?.decimalDigits ?: 2,
                                 emptyStateIcons = state.expenseCategoryPlaceholders,
+                                outerRadiusFraction = 0.80f,
                                 onSliceClick = { slice ->
                                     onEvent(DashboardEvent.SliceClicked(slice.categoryId))
                                 },
@@ -330,3 +332,4 @@ private fun formatMoney(money: Money, locale: Locale): String = MoneyFormatter.f
 
 const val DASHBOARD_TOP_BAR_TITLE_TAG = "dashboard_top_bar_title"
 const val DASHBOARD_TOP_BAR_SUBTITLE_TAG = "dashboard_top_bar_subtitle"
+const val DASHBOARD_DONUT_TAG = "dashboard_donut"

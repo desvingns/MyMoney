@@ -13,7 +13,7 @@ Read this **after** the `mp-tester-android` agent body (from the `mp-dev` plugin
 
 ## Database testing — never mock Room
 
-The CMP seed memory `dao-test-config-trap.md` explains why. Reinforcing it here:
+The project seed memory `dao-test-config-trap.md` explains why. Reinforcing it here:
 
 - **Unit tests touching Room**: use in-memory Room (`Room.inMemoryDatabaseBuilder`). Real DAO, real entities, real TypeConverters.
 - **Instrumentation tests touching Room**: real on-device Room.
@@ -22,7 +22,7 @@ The CMP seed memory `dao-test-config-trap.md` explains why. Reinforcing it here:
 ## Fakes only at repository boundary
 
 - Test ViewModels with `FakeFooRepository : FooRepository`. Fakes are hand-written, in `:core:testing` (shared) or in the same `:feature:*` module under `src/test/.../testdoubles/`.
-- **No Mockito, MockK, Robolectric mocks of domain types.** Fakes only. This is a hard rule from CMP base — repeated here because it's load-bearing.
+- **No Mockito, MockK, Robolectric mocks of domain types.** Fakes only. This is a hard project testing rule — repeated here because it's load-bearing.
 - Fake repositories should expose seam hooks for test setup: `fakeRepo.seed(...)`, `fakeRepo.simulateError(SyncError.…)`. Not setters that mutate hidden state.
 
 ## Test types per layer
@@ -81,7 +81,7 @@ Baseline images go under `feature/dashboard/src/test/roborazzi/`. Always commit 
 
 ## JBR / JDK path on Windows
 
-The CMP seed memory `cross-platform-bash-jbr.md` has the auto-detect snippet — same one as in `CLAUDE.md`. For instrumentation tests, the Gradle daemon must use JDK 21; AGP 8.7+ enforces this. If you see "Unsupported class file major version" in test output → the daemon picked up JDK 17 or 11; restart daemon with explicit `JAVA_HOME`.
+The project seed memory `cross-platform-bash-jbr.md` has the auto-detect snippet — same one mirrored in `AGENTS.md`. For instrumentation tests, the Gradle daemon must use JDK 21; AGP 8.7+ enforces this. If you see "Unsupported class file major version" in test output → the daemon picked up JDK 17 or 11; restart daemon with explicit `JAVA_HOME`.
 
 ## Test naming
 

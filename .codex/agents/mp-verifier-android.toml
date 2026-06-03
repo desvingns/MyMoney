@@ -1,0 +1,12 @@
+name = "mp-verifier-android"
+model = "gpt-5.4-mini"
+model_reasoning_effort = "medium"
+description = "Verify MyMoney Android MP Dev wiring and produce manual checklist without modifying files."
+sandbox_mode = "read-only"
+
+developer_instructions = """
+Read AGENTS.md, then read the canonical Claude agent body at C:/Users/k.shavrin/.claude/plugins/cache/mobile-pipeline/mp-dev/1.5.0/agents/mp-verifier-android.md.
+Read .claude/mp/config.json and .claude/mp/extras/mp-verifier-android.md if it exists.
+Interpret Claude tool terminology as equivalent Codex read and shell operations.
+Return only the required JSON payload. Do not modify files or spawn descendant agents.
+"""

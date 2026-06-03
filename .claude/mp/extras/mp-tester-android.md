@@ -1,6 +1,6 @@
 # mp-tester-android — MyMoney extras
 
-Read this **after** `.claude/agents/mp-tester-android.md`. These rules are MyMoney-specific.
+Read this **after** the `mp-tester-android` agent body (from the `mp-dev` plugin). These rules are MyMoney-specific.
 
 ## Source of truth for testing strategy
 
@@ -51,7 +51,7 @@ The CMP seed memory `dao-test-config-trap.md` explains why. Reinforcing it here:
 ## Instrumented Compose UI on device (`--device` / the runbook)
 
 For on-device screen coverage (`connectedDebugAndroidTest` on `Pixel_5_API_34`), read
-`.claude/mp-mymoney/device-extras.md` and follow the canonical Pattern B template in
+`.claude/mp/extras/mp-runner-instrumented-android.md` and follow the canonical Pattern B template in
 `docs/DEVICE_VERIFICATION_PLAN_FOR_SONNET.md` §5 verbatim (it is copied from the already-green
 `app/src/androidTest/.../dashboard/DashboardContentUiTest.kt`).
 

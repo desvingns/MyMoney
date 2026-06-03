@@ -1,4 +1,4 @@
-# cmp device-verification extras — MyMoney
+# mp-runner-instrumented-android — MyMoney device-verification extras
 
 Read this for any **on-device** (instrumented, `connectedDebugAndroidTest`) work: the `--device`
 flow, the `mp-runner-instrumented-android` agent, and any time you write or run a Compose-UI test on
@@ -79,4 +79,4 @@ E2E test (runbook §8 Slice 0).
 
 The edit screens S22/S24/S26 currently emit `SaveClicked` from the TopAppBar back-arrow (see memory
 `mymoney-edit-screen-backarrow-quirk`). Do not assert that as correct behaviour — cover the
-unambiguous controls and escalate the back-arrow as a separate `/cmp --bugfix` decision.
+unambiguous controls and escalate the back-arrow as a separate `/mp --bugfix` decision.

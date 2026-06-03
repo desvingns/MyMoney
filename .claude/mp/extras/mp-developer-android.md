@@ -1,6 +1,6 @@
 # mp-developer-android — MyMoney extras
 
-Read this **after** `.claude/agents/mp-developer-android.md`. These rules are MyMoney-specific and override CMP defaults where they conflict.
+Read this **after** the `mp-developer-android` agent body (from the `mp-dev` plugin). These rules are MyMoney-specific and override the generic agent defaults where they conflict.
 
 ## Source of truth
 
@@ -89,9 +89,9 @@ Default to **zero comments**. Only add when the WHY is non-obvious — a hidden 
 
 ## Phase awareness
 
-When invoked via `/cmp --phase`, the SPEC will include `CHANGED_HINT: docs/implementation_plan/phases/PHASE_NN_*.md`. **Open that phase file before any code changes** — it contains the task checklist, TDD anchor lines, file lists, and any phase-specific notes. The phase file is more specific than this extras file; respect it.
+When invoked via `/mp --phase`, the SPEC will include `CHANGED_HINT: docs/implementation_plan/phases/PHASE_NN_*.md`. **Open that phase file before any code changes** — it contains the task checklist, TDD anchor lines, file lists, and any phase-specific notes. The phase file is more specific than this extras file; respect it.
 
-When invoked via `/cmp --feature` directly (not through `--phase`), there is no phase file in the SPEC. Still read `docs/implementation_plan/PROGRESS.md` first to know which phase is active — it constrains what the work in scope.
+When invoked via `/mp --feature` directly (not through `--phase`), there is no phase file in the SPEC. Still read `docs/implementation_plan/PROGRESS.md` first to know which phase is active — it constrains what the work in scope.
 
 ## Build & test commands
 
@@ -108,7 +108,7 @@ JBR auto-detect snippet for Git Bash on Windows lives in `CLAUDE.md`.
 ## Device-test seams (when invoked from `--device` / the runbook)
 
 When the SPEC asks you to "expose a seam" for an on-device Compose-UI test, the allowed change set is
-**deliberately tiny** — see `.claude/mp-mymoney/device-extras.md`:
+**deliberately tiny** — see `.claude/mp/extras/mp-runner-instrumented-android.md`:
 
 - You may add ONLY a `Modifier.testTag("…")`, a `contentDescription`, or change a `<Screen>Content`
   composable's visibility to `public`. Cite the exact control the seam is for.

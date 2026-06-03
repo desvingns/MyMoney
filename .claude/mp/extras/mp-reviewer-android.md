@@ -1,6 +1,6 @@
 # mp-reviewer-android — MyMoney extras
 
-Read this **after** `.claude/agents/mp-reviewer-android.md`. The base agent checks Clean Architecture layer boundaries (`presentation/` may import `domain/`, never `data/`; `domain/` is pure Kotlin; etc.). These MyMoney-specific checks run **in addition**.
+Read this **after** the `mp-reviewer-android` agent body (from the `mp-dev` plugin). The base agent checks Clean Architecture layer boundaries (`presentation/` may import `domain/`, never `data/`; `domain/` is pure Kotlin; etc.). These MyMoney-specific checks run **in addition**.
 
 ## TDD / AS conformance pass
 
@@ -56,7 +56,7 @@ In addition to layer boundaries, check Gradle-module boundaries:
 ## Device-test seam scope (when reviewing a `--device` slice)
 
 When the SPEC is a `--device` slice, the production diff must be a **seam only** — see
-`.claude/mp-mymoney/device-extras.md`. Block the chain if a device-slice diff adds anything beyond a
+`.claude/mp/extras/mp-runner-instrumented-android.md`. Block the chain if a device-slice diff adds anything beyond a
 single `Modifier.testTag(...)`, a `contentDescription`, or a `<Screen>Content` visibility change to
 `public`. New events, ViewModel methods, navigation, branches, or UI in a `--device` diff are a
 violation (`rule: "device-seam scope"`) — a weaker model must not smuggle invented behaviour in under

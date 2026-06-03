@@ -2,7 +2,9 @@ package com.kshavrin.mymoney.feature.transactionslist.list
 
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.remember
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -61,6 +63,39 @@ class TransactionsListContentUiTest {
 
         composeTestRule
             .onNodeWithTag(RecordsTestTags.SORT)
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(TransactionsListEvent.SortClicked), capturedEvents)
+        }
+    }
+
+    @Test
+    fun `balance header stays visible and sort stays actionable with long currency and large net`() {
+        val capturedEvents = mutableListOf<TransactionsListEvent>()
+        val longCurrency = currency().copy(
+            symbol = "International Monetary Credits Units",
+            name = "International Monetary Credits and Settlement Units",
+        )
+
+        setContent(
+            state = TransactionsListUiState(
+                currency = longCurrency,
+                isLoading = false,
+                net = Money(BigDecimal("12345678901234567890.12"), longCurrency),
+                groups = listOf(group(id = 10L, kind = CategoryKind.Expense, total = "30.00", count = 2)),
+            ),
+            onEvent = { event -> capturedEvents += event },
+        )
+
+        composeTestRule
+            .onNodeWithTag(RecordsTestTags.BALANCE)
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithTag(RecordsTestTags.SORT)
+            .assertIsDisplayed()
+            .assertHasClickAction()
+            .assertIsEnabled()
             .performClick()
 
         composeTestRule.runOnIdle {

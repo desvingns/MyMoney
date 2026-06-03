@@ -39,6 +39,7 @@ across sessions, and is updated one green test at a time (`/cmp --device <Sxx>` 
 | 2026-05-28 | S27 direct controls green, 5/5 | `CurrencyRateScreenUiTest` covers Back, disabled/enabled Save, rate input, valid preview/Save, invalid inline error, From/To rows, and localized preview; fixes are in `b269a67`; native reviewer pass. |
 | 2026-05-28 | S08 direct controls green, 8/8 | `SearchContentUiTest` covers Back, query input, Clear, deterministic Voice launch, history chip, result row tap, empty-results, and error states; first run exposed a `FocusRequester` crash fixed in `SearchContent`; result row tap fixed to match TDD S08 AC4. |
 | 2026-05-28 | S12 direct controls green, 5/5 | `TransactionsListContentUiTest` covers Back, Search, empty-state copy, category filter chip, and whole-row tap; row tap fixed to match TDD S12, and `:app` androidTest now has direct `paging-compose` for Pattern B tests. |
+| 2026-06-03 | S12 records header stability green, 9/9 suite | `TransactionsListContentUiTest` covers the integrated records balance/sort strip with a long currency symbol/name and a large amount; the balance remains visible and the sort affordance remains enabled/clickable on `Pixel_5_API_34`. |
 | 2026-05-28 | S13 direct controls green, 11/11 | `TransactionDetailContentUiTest` covers Back, hidden/visible Save, Delete, delete confirm/cancel, keypad/backspace/note edits, date selection, account selection, cross-currency target/rate edits, and snackbar error dismissal on `Pixel_5_API_34`. |
 | 2026-05-28 | S14 direct controls green, 3/3 | `SettingsRootContentUiTest` covers Back, all seven destination rows, current Theme/Language labels, and Sound/Haptic switches on `Pixel_5_API_34`. |
 | 2026-05-28 | S15 direct controls green, 2/2 | `ThemeSettingsContentUiTest` covers Back plus System, Light, and Dark selectable rows with selected-state and event assertions on `Pixel_5_API_34`. |
@@ -57,7 +58,7 @@ across sessions, and is updated one green test at a time (`/cmp --device <Sxx>` 
 | 1 | S00/S11/S01/S06 critical flow: onboarding -> dashboard -> add expense -> updated balance | **Done (core E2E)** | J1 Pattern A E2E green 1/1 2026-05-29 (`5e42f8d`); S11 5/5; S01/S04 + AS-2 7/7; S02 2/2; S06 stable controls 7/7. Two real defects fixed (`6767a58`, `5388264`). Error-banner seams remain Pattern B gaps. |
 | 2 | Transaction forms S07/S03/S09/S27, including AS-4 and AS-6 paths | **Done (E2E)** | J2 cross-currency transfer (AS-6/AS-7) and J3 create-category (AS-4) E2E green 2026-05-29 (`cc8c30f`, `210c1f4`); S07 7/7, S03 12/12, S09 3/3, S27 5/5. Two real defects fixed (`beb64c0`, `566e8c4`). S09 long-press context actions + error seams remain Pattern B gaps. |
 | 3 | Dictionaries S21-S26 CRUD and validation controls | **Done** | S21-S26 Content tests green on `Pixel_5_API_34` (Phase B of `COVERAGE_HARDENING_PLAN.md`); re-confirmed in the 2026-05-30 final full run |
-| 4 | List/detail/search/settings/lock/sync/backup plus worker instrumentation | In progress | S08 direct controls 8/8, S12 direct controls 5/5, S13 direct controls 11/11, S14 direct controls 3/3, S15 direct controls 2/2, S16 setup direct controls 6/6, S17 direct controls 6/6, S18 direct controls 5/5, S19 direct controls 2/2, and S20 direct controls 2/2 green 2026-05-28; S12 loading/error/filter-removal/undo, S16 BiometricPrompt/overlay runtime, provider/OAuth E2E pending. **Worker instrumentation done 4/4 (`155a5b2`).** |
+| 4 | List/detail/search/settings/lock/sync/backup plus worker instrumentation | In progress | S08 direct controls 8/8, S12 direct/header controls 9/9, S13 direct controls 11/11, S14 direct controls 3/3, S15 direct controls 2/2, S16 setup direct controls 6/6, S17 direct controls 6/6, S18 direct controls 5/5, S19 direct controls 2/2, and S20 direct controls 2/2 green; S12 loading/error/filter-removal/undo, S16 BiometricPrompt/overlay runtime, provider/OAuth E2E pending. **Worker instrumentation done 4/4 (`155a5b2`).** |
 | 5 | Manual QA, minified release walk, macrobenchmark/Baseline Profile | Pending | - |
 
 ## Screen Matrix
@@ -78,7 +79,7 @@ entry identifies coverage already recorded before this tracker was created.
 | S09 Category picker | category cell, add, back, context actions | Green: Back/+ADD/category cell 3/3 | Add visible in empty state green | n/a | `CategoryPickerContentUiTest` 3/3 green 2026-05-28; long-press Edit/Archive and AS-4 E2E pending |
 | S27 Currency rate | amount input, save, back | Green: rate input/save/back 5/5 | n/a | Inline invalid-rate error green | `CurrencyRateScreenUiTest` 5/5 green 2026-05-28; localized preview and read-only From/To rows green; AS-6 return/inverse-rate E2E pending |
 | S08 Search | back, query/clear, voice affordance, result row, chips | Green: back/query/clear/voice/chip/result row 8/8 | Empty-results green | Error message green | `SearchContentUiTest` 8/8 green 2026-05-28; focus crash and row-click TDD AC4 defect fixed; debounce remains JVM-covered |
-| S12 Transactions list | search, filters, row, swipe/undo | Green: Back/Search/category chip/row tap 5/5 plus swipe 1/1 | Empty-state copy green | Pending | `TransactionsListContentUiTest` 5/5 green 2026-05-28; `SwipeToDeleteUiTest` existing green; whole-row tap fixed; loading/error/filter-removal/undo pending |
+| S12 Transactions list | search, filters, row, header/sort, swipe/undo | Green: Back/Search/category chip/row/header/sort 9/9 plus swipe 1/1 | Empty-state copy green | Pending | `TransactionsListContentUiTest` 9/9 green 2026-06-03; records balance/sort strip remains visible/actionable with long currency and large net; `SwipeToDeleteUiTest` existing green; whole-row tap fixed; loading/error/filter-removal/undo pending |
 | S13 Detail/edit | back, delete/confirm/undo, edit/save, rate | Green: direct controls 11/11 | n/a | Snackbar error green | `TransactionDetailContentUiTest` 11/11 green 2026-05-28; covers pre-populated edit controls, delete dialog, inline transfer rate, and error dismissal; S13/S12 undo snackbar routing remains Pattern A |
 | S14 Settings root | all destination rows, sound/haptic toggles | Green: direct controls 3/3 | n/a | n/a | `SettingsRootContentUiTest` 3/3 green 2026-05-28; covers Back, seven destination rows, current labels, Sound/Haptic switches |
 | S15 Theme | System, Light, Dark rows | Green: direct controls 2/2 | n/a | n/a | `ThemeSettingsContentUiTest` 2/2 green 2026-05-28; covers Back, selected Dark row semantics, and System/Light/Dark selection events |
@@ -96,6 +97,13 @@ entry identifies coverage already recorded before this tracker was created.
 | Workers | recurring, prune, rotation, sync no-op | Green: 4/4 | n/a | Rotation guard green | `core:sync` `WorkerInstrumentationTest` 4/4 green 2026-05-29 (`155a5b2`): Recurring Room effect, Prune 30-day Room effect, Sync gated no-op, BackupRotation missing-URI failure; rotation success path needs real SAF |
 
 ## Session Log
+
+### 2026-06-03 - S12 records header stability
+
+- `TransactionsListContentUiTest` now covers the active S12/S13 records-header fidelity constraint:
+  a long currency symbol/name plus a large net amount leaves `RecordsTestTags.BALANCE` visible and
+  `RecordsTestTags.SORT` displayed, enabled, clickable, and dispatching `SortClicked`.
+  The scoped class passed `9/9` with `0` failed/skipped on `Pixel_5_API_34`.
 
 ### 2026-05-30 - Phase E final full run GREEN + emulator-FPS root cause + health gate (Opus)
 

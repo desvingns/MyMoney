@@ -57,9 +57,9 @@ S21–S26, three Pattern A E2E journeys, Worker instrumentation.
 
 - **By hand (default).** You (the main session) write the test with the Edit/Write tools, then run
   the device step (§4) yourself with the **PowerShell tool**, read the report, and edit the tracker.
-- **Orchestrated via `/cmp --device <Sxx>`.** The cmp orchestrator runs the full slice for one
-  control: (optional) `cmp-developer-android` adds a seam → `cmp-reviewer-android` checks it →
-  `cmp-tester-android` writes one test → `cmp-runner-instrumented-android` runs it on the AVD and
+- **Orchestrated via `/mp --device <Sxx>`.** The mp orchestrator runs the full slice for one
+  control: (optional) `mp-developer-android` adds a seam → `mp-reviewer-android` checks it →
+  `mp-tester-android` writes one test → `mp-runner-instrumented-android` runs it on the AVD and
   parses the report → on green it commits, ticks the tracker row, and stops. Use this when you want
   the guardrails enforced for you.
 
@@ -106,7 +106,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run_connected_test
   -Tasks ':app:connectedDebugAndroidTest' `
   -TestClass 'com.kshavrin.mymoney.feature.<pkg>.<TestClass>'
 ```
-(From the cmp Bash-only agent path the same call is `powershell.exe -NoProfile -ExecutionPolicy
+(From the mp Bash-only agent path the same call is `powershell.exe -NoProfile -ExecutionPolicy
 Bypass -File scripts/run_connected_test_on_host_avd.ps1 -TestClass '…'`.)
 
 **Trust the report, not "BUILD SUCCESSFUL".** After the run, read the JUnit XML:
@@ -221,7 +221,7 @@ Keep the wording in the same terse style as the existing log entries.
 > AccountEditScreen.kt:86, CurrencyEditScreen.kt:73). This is the pre-existing quirk recorded in
 > memory `mymoney-edit-screen-backarrow-quirk.md`. **Do not** write a test that asserts "back-arrow =
 > SaveClicked is correct." Cover the unambiguous controls (fields, save, delete, dialogs) and log the
-> back-arrow as an escalation for a separate `/cmp --bugfix` decision.
+> back-arrow as an escalation for a separate `/mp --bugfix` decision.
 
 ### Slice 0 — Pattern A infrastructure (BLOCKING — do before S00 and any E2E)
 

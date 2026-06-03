@@ -5,7 +5,7 @@ runbook is `docs/DEVICE_VERIFICATION_PLAN_FOR_SONNET.md` (step-by-step, for Clau
 Sonnet 4.6); the original `docs/DEVICE_VERIFICATION_PLAN_FOR_CODEX.md` is kept for
 historical rationale only. `docs/implementation_plan/PROGRESS.md` continues to own
 phase status; this file tracks the fine-grained UI/control and worker test backlog
-across sessions, and is updated one green test at a time (`/cmp --device <Sxx>` or by hand).
+across sessions, and is updated one green test at a time (`/mp --device <Sxx>` or by hand).
 
 ## Rules
 

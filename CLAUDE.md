@@ -153,7 +153,7 @@ Keep sessions cheap without lowering rigor:
 
 This project has both CMP's iteration model (STATE / ROADMAP / DOCUMENTATION) and the implementation plan's phase model (PROGRESS). **PROGRESS.md is the sole writer of project state.** The three CMP root files are one-line stub redirects pointing at the implementation plan — see `STATE.md`, `ROADMAP.md`, `DOCUMENTATION.md`.
 
-The `cmp-docs` agent is **inert** in this project (`.claude/agents/cmp-docs.md` body has been replaced with a notice). The `/cmp` orchestrator has been patched to skip its docs-update step and to add two new flags — `--phase` (automates the session protocol) and `--check` (read-only state consistency validator).
+This project uses the `/mp` marketplace plugin (`mobile-pipeline/mp-dev`), not the legacy `/cmp` fork — `/cmp` and its Codex `$cmp` mirror were archived under `.claude/_archive_pre_mp/` on 2026-06-03 (reversible; see that folder's README). `/mp` provides `--phase` and `--check` natively. The `mp-docs` agent is made **inert** here via `.claude/mp/extras/mp-docs.md` (it returns `{"committed":false}` and writes nothing), so `PROGRESS.md` stays the sole writer of project state.
 
 ## Where to find things
 
@@ -164,7 +164,7 @@ The `cmp-docs` agent is **inert** in this project (`.claude/agents/cmp-docs.md` 
 | Phase task lists | `docs/implementation_plan/phases/PHASE_NN_*.md` |
 | Cross-phase reference table | `docs/implementation_plan/00_overview.md` |
 | Authoritative spec | `C:\Pet\MyMoney\TDD\MyMoney\MyMoney_TDD.md` (cite line ranges, never paraphrase) |
-| MyMoney-specific agent guidance | `.claude/cmp-mymoney/{developer,reviewer,tester}-extras.md` |
+| MyMoney-specific agent guidance | `.claude/mp/extras/` — `mp-{developer,reviewer,tester,runner-instrumented}-android.md` + `mp-docs.md` |
 | Cross-session memory | `C:\Users\desvi\.claude\projects\C--Pet-MyMoney\memory\` (MEMORY.md is the index, auto-loaded) |
 
 ## JBR auto-detect snippet (Git Bash on Windows)

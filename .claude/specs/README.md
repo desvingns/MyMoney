@@ -1,7 +1,7 @@
 # `.claude/specs/` — SPEC backlog board + brainstorm artifacts
 
 This directory is a lightweight, **file-based task board for SPECs**, plus the home of
-`/cmp --discuss` brainstorm records. It exists so a feature that is **too large for one SPEC**
+`/mp --discuss` brainstorm records. It exists so a feature that is **too large for one SPEC**
 is stored, ordered, and resumable across sessions — instead of living only in one chat.
 
 **Committed to git** — long-term visibility into what we planned and why. A backlog SPEC that
@@ -27,17 +27,17 @@ between folders is how its status changes — there is no separate state store.
 
 ## When the board is used
 
-- `/cmp --feature <large feature>` — if Phase 1 finds the feature splits into **≥2
+- `/mp --feature <large feature>` — if Phase 1 finds the feature splits into **≥2
   independently-shippable SPECs**, the orchestrator writes each SPEC as a file in `backlog/`
   (behind one y/N gate), then promotes the first to `active/` and implements it. The rest wait
   in `backlog/` for the next run.
-- `/cmp --spec <description>` — **author SPEC(s) only** and write them straight to `backlog/`
+- `/mp --spec <description>` — **author SPEC(s) only** and write them straight to `backlog/`
   (`Status: draft`, no approval gate). The way to fill the backlog without implementing.
-- `/cmp --feature --next` (or `--backlog <slug>`) — **implement a SPEC already in the backlog**:
+- `/mp --feature --next` (or `--backlog <slug>`) — **implement a SPEC already in the backlog**:
   it is treated as already created + approved, so Phase 0/1 are skipped — the file moves
   `backlog/ → active/` and goes straight to implementation, then to `done/`.
 - A single-SPEC feature skips the board — the SPEC is shown inline in chat as before.
-- `/cmp --discuss <topic>` — still writes a single `<slug>.md` brainstorm artifact at the root
+- `/mp --discuss <topic>` — still writes a single `<slug>.md` brainstorm artifact at the root
   (format at the bottom). When a brainstorm graduates into a multi-SPEC plan, those SPECs go to
   `backlog/`.
 
@@ -97,10 +97,10 @@ Status: brainstorm | spec-ready | in-progress | done
 Date: YYYY-MM-DD
 
 ## Brainstorm output
-<full BRAINSTORM block from cmp-architect — verbatim>
+<full BRAINSTORM block from mp-architect — verbatim>
 
 ## Approved SPEC
-<full SPEC block from /cmp --feature, or "(pending)">
+<full SPEC block from /mp --feature, or "(pending)">
 
 ## Implementation links
 - commit: <hash>

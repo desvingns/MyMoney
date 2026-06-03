@@ -208,8 +208,8 @@ the device is absent, wrong, offline, unauthorized, or loses attachment, STOP
 and ask the user to start/connect `Pixel_5_API_34` first. Correct development
 cannot proceed without visual testing: do not continue blind, do not replace the
 device visual gate with JVM-only checks, and do not claim visual tests passed.
-The legacy `$cmp` pipeline must follow this same gate only when the user explicitly
-asks for CMP fallback work.
+The archived `$cmp` fallback (`.claude/_archive_pre_mp/`) must follow this same gate only if
+the user explicitly restores it for fallback work.
 
 ## Testing stack (TDD §12, lines 2553–2661)
 
@@ -238,7 +238,7 @@ The `mp-docs` agent is **inert** in this project via `.claude/mp/extras/mp-docs.
 | Cross-phase reference table | `docs/implementation_plan/00_overview.md` |
 | Authoritative spec | `C:\Pet\MyMoney\TDD\MyMoney\MyMoney_TDD.md` (cite line ranges, never paraphrase) |
 | MyMoney-specific MP agent guidance | `.claude/mp/extras/*.md` (shared by Claude and Codex) |
-| Legacy CMP guidance | `.claude/cmp-mymoney/*.md` and `.claude/agents/cmp-*.md` (fallback only) |
+| Archived CMP fallback | `.claude/_archive_pre_mp/` (Claude `/cmp` + Codex `$cmp`, archived 2026-06-03) |
 | Cross-session memory | `C:\Users\desvi\.Codex\projects\C--Pet-MyMoney\memory\` (MEMORY.md is the index, auto-loaded) |
 
 ## JBR auto-detect snippet (Git Bash on Windows)
@@ -289,8 +289,8 @@ done
   `mp-runner-android` agent fallback paths instead.
 - Keep `docs/implementation_plan/PROGRESS.md` as the only phase/release state writer. The MP docs step
   remains inert via `.claude/mp/extras/mp-docs.md`.
-- `$cmp` is legacy fallback only. Do not use CMP for new Codex work unless the user explicitly asks for
-  historical CMP behavior. After the MP smoke-test is green, CMP Codex skill/agent files may be deleted.
+- `$cmp` is an archived fallback (`.claude/_archive_pre_mp/`, archived 2026-06-03 — not deleted). Do not
+  use it for new Codex work; restore it from the archive only if the user explicitly asks for historical CMP behavior.
 - Push only after tested files are committed and the user explicitly approves the final gate.
 
 ## graphify

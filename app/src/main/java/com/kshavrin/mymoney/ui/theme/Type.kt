@@ -32,3 +32,17 @@ val Typography = Typography(
     )
     */
 )
+
+val Typography.recordsHeaderBalanceValue: TextStyle
+    get() = headlineMedium.copy(
+        fontWeight = FontWeight.Medium,
+        letterSpacing = 0.sp,
+        lineHeight = 28.sp,
+    )
+
+val Typography.recordsHeaderSupportingLabel: TextStyle
+    get() = labelLarge.copy(
+        fontWeight = FontWeight.Medium,
+        letterSpacing = 0.sp,
+        lineHeight = 20.sp,
+    )

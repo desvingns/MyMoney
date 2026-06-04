@@ -7,6 +7,8 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.math.abs
+import kotlin.math.cos
+import kotlin.math.sin
 
 class DonutGeometryTest {
 
@@ -110,6 +112,76 @@ class DonutGeometryTest {
             arcs = arcs,
         )
         assertNull(hit)
+    }
+
+    @Test
+    fun `hitTest inside default rendered gap returns null while adjacent visible arc point still hits slice`() {
+        val firstSlice = slice(1, 0.5f)
+        val secondSlice = slice(2, 0.5f)
+        val arcs = DonutGeometry.computeSliceArcs(listOf(firstSlice, secondSlice))
+        val radius = 100f
+
+        val gapHit = DonutGeometry.hitTest(
+            offsetX = pointAtAngleDegrees(angleDegrees = 90f, radius = radius).first,
+            offsetY = pointAtAngleDegrees(angleDegrees = 90f, radius = radius).second,
+            centerX = 0f,
+            centerY = 0f,
+            innerRadius = 50f,
+            outerRadius = 150f,
+            arcs = arcs,
+            sliceGapDegrees = 5f,
+        )
+        val visibleArcHit = DonutGeometry.hitTest(
+            offsetX = pointAtAngleDegrees(angleDegrees = 87f, radius = radius).first,
+            offsetY = pointAtAngleDegrees(angleDegrees = 87f, radius = radius).second,
+            centerX = 0f,
+            centerY = 0f,
+            innerRadius = 50f,
+            outerRadius = 150f,
+            arcs = arcs,
+            sliceGapDegrees = 5f,
+        )
+
+        assertNull(gapHit)
+        assertEquals(firstSlice, visibleArcHit)
+    }
+
+    @Test
+    fun `hitTest uses bounded gap for a narrow slice and still preserves its remaining visible sweep`() {
+        val narrowSlice = slice(1, 0.01f)
+        val wideSlice = slice(2, 0.99f)
+        val arcs = DonutGeometry.computeSliceArcs(listOf(narrowSlice, wideSlice))
+        val narrowArc = arcs.first()
+        val radius = 100f
+        val boundedGap = DonutGeometry.gapForSweep(narrowArc.sweepDegrees, 5f)
+        val hiddenGapAngle = narrowArc.startAngleDegrees + boundedGap / 4f
+        val visibleAngle =
+            narrowArc.startAngleDegrees + boundedGap / 2f + (narrowArc.sweepDegrees - boundedGap) / 2f
+
+        val hiddenGapHit = DonutGeometry.hitTest(
+            offsetX = pointAtAngleDegrees(angleDegrees = hiddenGapAngle, radius = radius).first,
+            offsetY = pointAtAngleDegrees(angleDegrees = hiddenGapAngle, radius = radius).second,
+            centerX = 0f,
+            centerY = 0f,
+            innerRadius = 50f,
+            outerRadius = 150f,
+            arcs = arcs,
+            sliceGapDegrees = 5f,
+        )
+        val visibleArcHit = DonutGeometry.hitTest(
+            offsetX = pointAtAngleDegrees(angleDegrees = visibleAngle, radius = radius).first,
+            offsetY = pointAtAngleDegrees(angleDegrees = visibleAngle, radius = radius).second,
+            centerX = 0f,
+            centerY = 0f,
+            innerRadius = 50f,
+            outerRadius = 150f,
+            arcs = arcs,
+            sliceGapDegrees = 5f,
+        )
+
+        assertEquals(2.16f, boundedGap, 0.001f)
+        assertNull(hiddenGapHit)
+        assertEquals(narrowSlice, visibleArcHit)
     }
 
     // ---- framePoint: symmetric rectangle (hhTop == hhBot) ----
@@ -316,5 +388,10 @@ class DonutGeometryTest {
         val gap = minOf(sliceGapDegrees, sweep * 0.6f)
         val effectiveSweep = (sweep - gap).coerceAtLeast(0f)
         assertTrue("effectiveSweep=$effectiveSweep must be > 0 for 8 equal slices", effectiveSweep > 0f)
+    }
+
+    private fun pointAtAngleDegrees(angleDegrees: Float, radius: Float): Pair<Float, Float> {
+        val radians = Math.toRadians(angleDegrees.toDouble())
+        return (radius * cos(radians)).toFloat() to (radius * sin(radians)).toFloat()
     }
 }

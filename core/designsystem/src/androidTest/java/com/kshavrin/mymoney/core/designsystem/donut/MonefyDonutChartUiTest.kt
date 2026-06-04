@@ -3,20 +3,24 @@ package com.kshavrin.mymoney.core.designsystem.donut
 import androidx.compose.animation.core.snap
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
-import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.designsystem.R
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.math.BigDecimal
+import kotlin.math.cos
+import kotlin.math.sin
 
 @RunWith(AndroidJUnit4::class)
 class MonefyDonutChartUiTest {
@@ -153,6 +157,41 @@ class MonefyDonutChartUiTest {
                 expectedDescription(income = "0", expense = "0", slices = listOf("Food" to 0)),
             )
             .assertDoesNotExist()
+    }
+
+    @Test
+    fun `tapping an empty state placeholder icon invokes the matching callback exactly once`() {
+        val emptyStateIcons = listOf(
+            slice(label = "Food", fraction = 0f),
+            slice(label = "Transport", fraction = 0f),
+            slice(label = "Home", fraction = 0f),
+        )
+        val clickedSlices = mutableListOf<CategorySlice>()
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                MonefyDonutChart(
+                    income = BigDecimal.ZERO,
+                    expense = BigDecimal.ZERO,
+                    slices = emptyList(),
+                    modifier = Modifier.size(240.dp),
+                    emptyStateIcons = emptyStateIcons,
+                    onEmptyCategoryClick = { clickedSlices += it },
+                    animationSpec = snap(),
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithContentDescription(expectedDescription(income = "0", expense = "0"))
+            .performTouchInput {
+                click(emptyIconCenter(index = 0, count = emptyStateIcons.size))
+            }
+
+        composeTestRule.runOnIdle {
+            assertEquals(1, clickedSlices.size)
+            assertEquals(emptyStateIcons.first(), clickedSlices.single())
+        }
     }
 
     @Test
@@ -478,5 +517,16 @@ class MonefyDonutChartUiTest {
             context.getString(R.string.donut_chart_slice, label, percent)
         }
         return if (sliceText.isEmpty()) header else "$header $sliceText"
+    }
+
+    private fun emptyIconCenter(index: Int, count: Int): Offset {
+        val canvasSize = with(composeTestRule.density) { 240.dp.toPx() }
+        val center = canvasSize / 2f
+        val outerRadius = center * 0.75f
+        val angleRadians = Math.toRadians((-90f + index * (360f / count)).toDouble())
+        return Offset(
+            x = center + outerRadius * 0.92f * cos(angleRadians).toFloat(),
+            y = center + outerRadius * 0.92f * sin(angleRadians).toFloat(),
+        )
     }
 }

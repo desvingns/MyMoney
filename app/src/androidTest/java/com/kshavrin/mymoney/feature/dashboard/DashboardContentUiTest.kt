@@ -462,6 +462,50 @@ class DashboardContentUiTest {
     }
 
     @Test
+    fun `left drawer keeps the top bar visible and search clickable`() {
+        val capturedEvents = mutableListOf<DashboardEvent>()
+
+        setStatefulDashboardContent(
+            initialState = DashboardState(isLoading = false, leftDrawerOpen = true),
+            onCapturedEvent = { event -> capturedEvents += event },
+        )
+
+        composeTestRule
+            .onNodeWithTag(DASHBOARD_TOP_BAR_TITLE_TAG)
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.dashboard_search))
+            .assertIsEnabled()
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(DashboardEvent.SearchClicked), capturedEvents)
+        }
+    }
+
+    @Test
+    fun `right drawer keeps the top bar visible and transfer clickable`() {
+        val capturedEvents = mutableListOf<DashboardEvent>()
+
+        setStatefulDashboardContent(
+            initialState = DashboardState(isLoading = false, rightDrawerOpen = true),
+            onCapturedEvent = { event -> capturedEvents += event },
+        )
+
+        composeTestRule
+            .onNodeWithTag(DASHBOARD_TOP_BAR_TITLE_TAG)
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.dashboard_transfer))
+            .assertIsEnabled()
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(DashboardEvent.TransferClicked), capturedEvents)
+        }
+    }
+
+    @Test
     fun `swiping the dashboard left emits next period`() {
         val capturedEvents = mutableListOf<DashboardEvent>()
 
@@ -606,8 +650,14 @@ class DashboardContentUiTest {
                     onEvent = { event ->
                         onCapturedEvent(event)
                         state = when (event) {
-                            DashboardEvent.LeftDrawerToggled -> state.copy(leftDrawerOpen = !state.leftDrawerOpen)
-                            DashboardEvent.RightDrawerToggled -> state.copy(rightDrawerOpen = !state.rightDrawerOpen)
+                            DashboardEvent.LeftDrawerToggled -> state.copy(
+                                leftDrawerOpen = !state.leftDrawerOpen,
+                                rightDrawerOpen = false,
+                            )
+                            DashboardEvent.RightDrawerToggled -> state.copy(
+                                rightDrawerOpen = !state.rightDrawerOpen,
+                                leftDrawerOpen = false,
+                            )
                             DashboardEvent.DrawerDismissed -> state.copy(leftDrawerOpen = false, rightDrawerOpen = false)
                             else -> state
                         }

@@ -623,6 +623,46 @@ class DashboardViewModelTest {
         }
     }
 
+    @Test
+    fun `opening the left drawer closes the right drawer`() = runTest {
+        val (viewModel, store) = buildViewModel()
+        try {
+            runCurrent()
+
+            viewModel.onEvent(DashboardEvent.RightDrawerToggled)
+            assertTrue(viewModel.state.value.rightDrawerOpen)
+            assertFalse(viewModel.state.value.leftDrawerOpen)
+
+            viewModel.onEvent(DashboardEvent.LeftDrawerToggled)
+
+            assertTrue(viewModel.state.value.leftDrawerOpen)
+            assertFalse(viewModel.state.value.rightDrawerOpen)
+        } finally {
+            store.clear()
+            runCurrent()
+        }
+    }
+
+    @Test
+    fun `opening the right drawer closes the left drawer`() = runTest {
+        val (viewModel, store) = buildViewModel()
+        try {
+            runCurrent()
+
+            viewModel.onEvent(DashboardEvent.LeftDrawerToggled)
+            assertTrue(viewModel.state.value.leftDrawerOpen)
+            assertFalse(viewModel.state.value.rightDrawerOpen)
+
+            viewModel.onEvent(DashboardEvent.RightDrawerToggled)
+
+            assertTrue(viewModel.state.value.rightDrawerOpen)
+            assertFalse(viewModel.state.value.leftDrawerOpen)
+        } finally {
+            store.clear()
+            runCurrent()
+        }
+    }
+
     private fun buildViewModel(): Pair<DashboardViewModel, ViewModelStore> {
         val dispatcher = mainDispatcherRule.testDispatcher
         val calculator = BalanceCalculator(

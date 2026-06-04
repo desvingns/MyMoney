@@ -226,6 +226,7 @@ fun MonefyDonutChart(
                     incomeColor = incomeColor,
                     expenseColor = expenseColor,
                     textMeasurer = textMeasurer,
+                    innerRadius = outerRadius - th,
                 )
                 return@Canvas
             }
@@ -307,6 +308,7 @@ fun MonefyDonutChart(
                 incomeColor = incomeColor,
                 expenseColor = expenseColor,
                 textMeasurer = textMeasurer,
+                innerRadius = outerRadius - th,
             )
         }
     }
@@ -339,14 +341,25 @@ private fun DrawScope.drawCenterTotals(
     incomeColor: Color,
     expenseColor: Color,
     textMeasurer: TextMeasurer,
+    innerRadius: Float,
 ) {
-    val centerTextStyle = TextStyle(
-        fontSize = 14.sp,
+    if (innerRadius <= 0f) return
+    val baseStyle = TextStyle(
+        fontSize = 18.sp,
         fontWeight = FontWeight.SemiBold,
     )
-    val incomeLayout = textMeasurer.measure(text = incomeText, style = centerTextStyle)
-    val expenseLayout = textMeasurer.measure(text = expenseText, style = centerTextStyle)
     val lineGap = 4.dp.toPx()
+    val baseIncome = textMeasurer.measure(text = incomeText, style = baseStyle)
+    val baseExpense = textMeasurer.measure(text = expenseText, style = baseStyle)
+    val maxLineWidth = max(baseIncome.size.width, baseExpense.size.width).toFloat()
+    val totalBaseHeight = baseIncome.size.height + lineGap + baseExpense.size.height
+    if (maxLineWidth <= 0f || totalBaseHeight <= 0f) return
+    val targetW = innerRadius * 2f * 0.82f
+    val targetH = innerRadius * 2f * 0.72f
+    val scale = min(min(targetW / maxLineWidth, targetH / totalBaseHeight), 1f)
+    val scaledStyle = baseStyle.copy(fontSize = 18.sp * scale)
+    val incomeLayout = textMeasurer.measure(text = incomeText, style = scaledStyle)
+    val expenseLayout = textMeasurer.measure(text = expenseText, style = scaledStyle)
     val totalHeight = incomeLayout.size.height + lineGap + expenseLayout.size.height
     val incomeTop = center.y - totalHeight / 2f
     val expenseTop = incomeTop + incomeLayout.size.height + lineGap
@@ -384,16 +397,13 @@ private fun computeIconFrame(
     density: DrawScope,
 ): IconFrame {
     val halfHeight = height / 2f
-    val pad8 = with(density) { 8.dp.toPx() }
-    val pad2 = with(density) { 2.dp.toPx() }
-    val lift = with(density) { 34.dp.toPx() }
-    val halfBottom = halfHeight - (discDiameter / 2f + labelHeight + pad8)
-    val halfTop = min(halfBottom + lift, halfHeight - discDiameter / 2f - pad2)
-    val halfWidth = 0.406f * width
+    val pad4 = with(density) { 4.dp.toPx() }
+    val halfWidth = width / 2f - discDiameter / 2f - pad4
+    val halfSide = halfHeight - discDiameter / 2f - labelHeight - pad4
     return IconFrame(
         halfWidth = max(halfWidth, 0f),
-        halfTop = max(halfTop, 0f),
-        halfBottom = max(halfBottom, 0f),
+        halfTop = max(halfSide, 0f),
+        halfBottom = max(halfSide, 0f),
     )
 }
 

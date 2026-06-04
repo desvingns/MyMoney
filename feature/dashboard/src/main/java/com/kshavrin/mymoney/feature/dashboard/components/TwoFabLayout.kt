@@ -31,8 +31,8 @@ fun TwoFabLayout(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = Spacing.xl, vertical = Spacing.l),
-        horizontalArrangement = Arrangement.SpaceEvenly,
+            .padding(horizontal = 48.dp, vertical = Spacing.l),
+        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         val expenseColor = MaterialTheme.colorScheme.tertiary

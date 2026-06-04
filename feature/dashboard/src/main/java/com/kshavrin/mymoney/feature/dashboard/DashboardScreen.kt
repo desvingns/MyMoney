@@ -195,7 +195,6 @@ fun DashboardContent(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .weight(1f)
-                                .padding(horizontal = Spacing.xs)
                                 .testTag(DASHBOARD_DONUT_TAG),
                         ) {
                             MonefyDonutChart(
@@ -206,7 +205,7 @@ fun DashboardContent(
                                 currencySymbol = state.currentCurrency?.symbol ?: "",
                                 decimalDigits = state.currentCurrency?.decimalDigits ?: 2,
                                 emptyStateIcons = state.expenseCategoryPlaceholders,
-                                outerRadiusFraction = 0.80f,
+                                outerRadiusFraction = 0.60f,
                                 centerDecimalDigits = 0,
                                 style = DonutStyle.Extrude,
                                 onSliceClick = { slice ->
@@ -221,7 +220,7 @@ fun DashboardContent(
                             onClick = { onEvent(DashboardEvent.BalanceCardClicked) },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = Spacing.l)
+                                .padding(horizontal = Spacing.s)
                                 .testTag("dashboard_balance_bar"),
                         )
                         if (overBudgetText != null) {

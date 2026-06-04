@@ -3,6 +3,7 @@ package com.kshavrin.mymoney.core.designsystem.balancebar
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
@@ -14,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.kshavrin.mymoney.core.designsystem.R
 
@@ -32,7 +34,7 @@ fun MonefyBalanceBar(
 
     Row(
         modifier = modifier.clickable(onClick = onClick),
-        horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
@@ -44,12 +46,16 @@ fun MonefyBalanceBar(
             shape = MaterialTheme.shapes.small,
             color = pillColor,
             contentColor = pillContent,
+            modifier = Modifier.weight(1f),
         ) {
             Text(
                 text = "$label $amount",
                 style = MaterialTheme.typography.titleMedium,
                 color = pillContent,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
             )
         }
         Icon(

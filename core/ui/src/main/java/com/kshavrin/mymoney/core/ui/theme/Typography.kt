@@ -33,3 +33,83 @@ val Typography.recordsHeaderSupportingLabel: TextStyle
         letterSpacing = 0.sp,
         lineHeight = 20.sp,
     )
+
+val Typography.dashboardTopBarTitle: TextStyle
+    get() = headlineLarge.copy(
+        fontSize = 34.sp,
+        fontWeight = FontWeight.Bold,
+        lineHeight = 36.sp,
+        letterSpacing = 0.sp,
+    )
+
+val Typography.dashboardTopBarSubtitle: TextStyle
+    get() = titleMedium.copy(
+        fontSize = 20.sp,
+        fontWeight = FontWeight.Medium,
+        lineHeight = 24.sp,
+        letterSpacing = 0.sp,
+    )
+
+val Typography.dashboardPeriodSelected: TextStyle
+    get() = headlineMedium.copy(
+        fontSize = 22.sp,
+        fontWeight = FontWeight.Bold,
+        lineHeight = 28.sp,
+        letterSpacing = 0.sp,
+    )
+
+val Typography.dashboardPeriodUnselected: TextStyle
+    get() = headlineMedium.copy(
+        fontSize = 22.sp,
+        fontWeight = FontWeight.Normal,
+        lineHeight = 28.sp,
+        letterSpacing = 0.sp,
+    )
+
+val Typography.dashboardBalanceLabel: TextStyle
+    get() = titleLarge.copy(
+        fontSize = 20.sp,
+        fontWeight = FontWeight.Medium,
+        lineHeight = 24.sp,
+        letterSpacing = 0.sp,
+    )
+
+val Typography.dashboardBalanceValue: TextStyle
+    get() = displayMedium.copy(
+        fontSize = 40.sp,
+        fontWeight = FontWeight.Bold,
+        lineHeight = 44.sp,
+        letterSpacing = 0.sp,
+    )
+
+val Typography.dashboardDonutCenterTotal: TextStyle
+    get() = headlineLarge.copy(
+        fontSize = 22.sp,
+        fontWeight = FontWeight.Bold,
+        lineHeight = 26.sp,
+        letterSpacing = 0.sp,
+    )
+
+val Typography.dashboardCalloutLabel: TextStyle
+    get() = bodyMedium.copy(
+        fontSize = 14.sp,
+        fontWeight = FontWeight.Medium,
+        lineHeight = 18.sp,
+        letterSpacing = 0.sp,
+    )
+
+val Typography.dashboardCalloutPercentage: TextStyle
+    get() = headlineMedium.copy(
+        fontSize = 24.sp,
+        fontWeight = FontWeight.Bold,
+        lineHeight = 28.sp,
+        letterSpacing = 0.sp,
+    )
+
+val Typography.dashboardFabLabel: TextStyle
+    get() = titleMedium.copy(
+        fontSize = 18.sp,
+        fontWeight = FontWeight.Bold,
+        lineHeight = 22.sp,
+        letterSpacing = 0.sp,
+    )

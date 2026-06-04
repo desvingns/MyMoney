@@ -4,6 +4,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 
 val LightColors = lightColorScheme(
     primary             = Color(0xFF7AC794), // APK green_2 — top app bar / FAB / income half
@@ -65,6 +66,17 @@ val CategoryColors: Map<String, Color> = mapOf(
     "car"           to Color(0xFF4A5870),
 )
 
+private val DashboardLightHeroGradientEnd = Color(0xFF8FD6A8)
+private val DashboardLightPrimaryText = Color(0xFF066A35)
+private val DashboardLightBalancePanelContainer = Color(0xFFE9F7EF)
+private val DashboardLightBalancePanelOutline = Color(0xFF9ED8B2)
+private val DashboardLightCenterDivider = Color(0xFFD8E7DD)
+private val DashboardIncomeAccent = Color(0xFF15995B)
+private val DashboardExpenseAccent = Color(0xFFF94F4B)
+
+private val ColorScheme.isLightDashboardPalette: Boolean
+    get() = background.luminance() > 0.5f
+
 val ColorScheme.recordsHeaderStripContainer: Color
     get() = surface
 
@@ -94,3 +106,45 @@ val ColorScheme.dashboardDrawerPanelContainer: Color
 
 val ColorScheme.dashboardDrawerPanelContent: Color
     get() = onSurface
+
+val ColorScheme.dashboardHeroGradientStart: Color
+    get() = if (isLightDashboardPalette) primary else primaryContainer
+
+val ColorScheme.dashboardHeroGradientEnd: Color
+    get() = if (isLightDashboardPalette) DashboardLightHeroGradientEnd else primary
+
+val ColorScheme.dashboardPeriodSelectedText: Color
+    get() = if (isLightDashboardPalette) DashboardLightPrimaryText else onSurface
+
+val ColorScheme.dashboardPeriodUnselectedText: Color
+    get() = if (isLightDashboardPalette) onSurfaceVariant.copy(alpha = 0.84f) else onSurfaceVariant
+
+val ColorScheme.dashboardPeriodIndicator: Color
+    get() = dashboardPeriodSelectedText
+
+val ColorScheme.dashboardBalancePanelContainer: Color
+    get() = if (isLightDashboardPalette) DashboardLightBalancePanelContainer else surfaceVariant.copy(alpha = 0.92f)
+
+val ColorScheme.dashboardBalancePanelContent: Color
+    get() = if (isLightDashboardPalette) DashboardLightPrimaryText else onSurface
+
+val ColorScheme.dashboardBalancePanelOutline: Color
+    get() = if (isLightDashboardPalette) DashboardLightBalancePanelOutline else primary.copy(alpha = 0.8f)
+
+val ColorScheme.dashboardBalancePanelShadow: Color
+    get() = if (isLightDashboardPalette) DashboardLightPrimaryText.copy(alpha = 0.16f) else Color.Black.copy(alpha = 0.32f)
+
+val ColorScheme.dashboardDonutCenterDivider: Color
+    get() = if (isLightDashboardPalette) DashboardLightCenterDivider else outlineVariant.copy(alpha = 0.9f)
+
+val ColorScheme.dashboardDonutLeaderLine: Color
+    get() = if (isLightDashboardPalette) outlineVariant.copy(alpha = 0.78f) else onSurfaceVariant.copy(alpha = 0.7f)
+
+val ColorScheme.dashboardCalloutLabel: Color
+    get() = onSurface.copy(alpha = if (isLightDashboardPalette) 0.92f else 0.88f)
+
+val ColorScheme.dashboardActionIncome: Color
+    get() = if (isLightDashboardPalette) DashboardIncomeAccent else primary
+
+val ColorScheme.dashboardActionExpense: Color
+    get() = if (isLightDashboardPalette) DashboardExpenseAccent else tertiary

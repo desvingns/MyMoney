@@ -11,4 +11,20 @@ object Spacing {
     val l = 16.dp
     val xl = 24.dp
     val xxl = 32.dp
+    val dashboardTopBarHeight = 76.dp
+    val dashboardPeriodRowHeight = 80.dp
+    val dashboardPeriodIndicatorWidth = 88.dp
+    val dashboardPeriodIndicatorHeight = 4.dp
+    val dashboardBalancePanelHeight = 84.dp
+    val dashboardBalancePanelMaxWidth = 272.dp
+    val dashboardBalancePanelBorderWidth = 1.dp
+    val dashboardFabSize = 100.dp
+    val dashboardFabHorizontalPadding = 44.dp
+    val dashboardFabOutlineWidth = 4.dp
+    val dashboardFabLabelTopPadding = 16.dp
+    val dashboardDonutExplodedOffset = 8.dp
+    val dashboardDonutCenterDividerWidth = 52.dp
+    val dashboardDonutCenterDividerThickness = 1.dp
+    val dashboardDonutCalloutIconSize = 40.dp
+    val dashboardDonutLeaderLineThickness = 1.dp
 }

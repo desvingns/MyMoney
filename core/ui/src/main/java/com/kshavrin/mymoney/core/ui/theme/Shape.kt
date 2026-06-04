@@ -18,3 +18,9 @@ val Shapes.recordsHeaderBalance: Shape
 
 val Shapes.recordsHeaderControl: Shape
     get() = extraLarge
+
+val Shapes.dashboardBalancePanel: Shape
+    get() = RoundedCornerShape(12.dp)
+
+val Shapes.dashboardPeriodIndicator: Shape
+    get() = RoundedCornerShape(999.dp)

@@ -4,6 +4,7 @@ import android.app.Activity
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
@@ -61,10 +62,14 @@ fun MyMoneyTheme(
         }
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = MoneyTypography,
-        shapes = MoneyShapes,
-        content = content,
-    )
+    CompositionLocalProvider(
+        LocalMotion provides Motion(),
+    ) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = MoneyTypography,
+            shapes = MoneyShapes,
+            content = content,
+        )
+    }
 }

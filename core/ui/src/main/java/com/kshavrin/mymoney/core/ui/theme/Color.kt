@@ -85,3 +85,12 @@ val ColorScheme.recordsHeaderSortTint: Color
 
 val ColorScheme.recordsHeaderSortContainer: Color
     get() = surface.copy(alpha = 0f)
+
+val ColorScheme.dashboardDrawerScrim: Color
+    get() = scrim.copy(alpha = 0.32f)
+
+val ColorScheme.dashboardDrawerPanelContainer: Color
+    get() = surface
+
+val ColorScheme.dashboardDrawerPanelContent: Color
+    get() = onSurface

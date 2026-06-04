@@ -16,7 +16,6 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.designsystem.R
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -76,7 +75,7 @@ class MonefyBalanceBarUiTest {
         val barBounds = composeTestRule.onNodeWithTag(BALANCE_BAR_TAG)
             .fetchSemanticsNode().boundsInRoot
         val textBounds = composeTestRule
-            .onNodeWithText("${targetString(R.string.balance_bar_label)} 100,00 RUB")
+            .onNodeWithText("${targetString(R.string.balance_bar_label)} 100,00 RUB", useUnmergedTree = true)
             .fetchSemanticsNode().boundsInRoot
 
         assertTrue(
@@ -107,26 +106,21 @@ class MonefyBalanceBarUiTest {
     }
 
     @Test
-    fun `negative balance tints the amount with the theme tertiary colour distinct from positive`() {
-        var positiveTint = 0
-        var negativeTint = 0
+    fun `balance bar pill uses primary colour regardless of the sign of the amount`() {
+        // isPositive is accepted for API compatibility but the pill colour no longer changes
+        // based on sign — the bar always uses the theme primary colour as the pill background.
+        var primaryTint = 0
         composeTestRule.setContent {
             MyMoneyTheme {
-                positiveTint = MaterialTheme.colorScheme.primary.toArgb()
-                negativeTint = MaterialTheme.colorScheme.tertiary.toArgb()
+                primaryTint = MaterialTheme.colorScheme.primary.toArgb()
                 MonefyBalanceBar(amount = "-100,00 RUB", isPositive = false)
             }
         }
         composeTestRule.waitForIdle()
 
-        assertNotEquals(
-            "positive and negative tints must differ",
-            positiveTint,
-            negativeTint,
-        )
         assertTrue(
-            "negative amount must be drawn with the theme tertiary colour",
-            amountImageContainsColor(negativeTint),
+            "balance bar pill must use the theme primary colour even for a negative amount",
+            amountImageContainsColor(primaryTint),
         )
     }
 

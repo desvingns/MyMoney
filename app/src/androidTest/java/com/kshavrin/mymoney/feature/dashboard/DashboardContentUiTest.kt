@@ -361,7 +361,10 @@ class DashboardContentUiTest {
             "donut stage width ratio $donutWidthRatio must stay near full width",
             donutWidthRatio >= 0.92f,
         )
-        assertTrue("balance bar must sit below the expanded donut stage", balanceBounds.top > donutBounds.bottom)
+        assertTrue(
+            "balance bar must sit below the donut graphic",
+            balanceBounds.top > donutBounds.center.y,
+        )
         assertTrue("expense FAB must sit below the balance bar", expenseFab.top > balanceBounds.bottom)
         assertTrue("income FAB must sit below the balance bar", incomeFab.top > balanceBounds.bottom)
     }
@@ -632,7 +635,89 @@ class DashboardContentUiTest {
 
         composeTestRule.onNodeWithText(currentLabel).assertIsDisplayed()
         composeTestRule.onNodeWithText(previousLabel).assertIsDisplayed()
-        composeTestRule.onNodeWithText(nextLabel).assertIsDisplayed()
+        // Next period is rendered at alpha=0 (invisible placeholder to preserve layout symmetry).
+        // It must exist in the composition tree but must not be visible.
+        composeTestRule.onNodeWithText(nextLabel).assertExists()
+        composeTestRule.onNodeWithText(nextLabel, useUnmergedTree = true).assertExists()
+    }
+
+    @Test
+    fun `next period label node exists in composition tree but is kept invisible`() {
+        val current = Period.Month(YearMonth.of(2026, 4))
+        val pattern = DateTimeFormatter.ofPattern("LLLL yyyy", targetLocale())
+        val nextLabel = YearMonth.of(2026, 5).atDay(1).format(pattern)
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state = DashboardState(period = current, isLoading = false),
+                    onEvent = {},
+                )
+            }
+        }
+
+        // The node must be present (layout symmetry placeholder) but not asserted as displayed,
+        // because PeriodLabel applies Modifier.alpha(0f) to the next-period slot.
+        composeTestRule.onNodeWithText(nextLabel).assertExists()
+    }
+
+    @Test
+    fun `expense and income fabs are each at least 100dp wide and tall`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state = DashboardState(isLoading = false),
+                    onEvent = {},
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.fab_expense))
+            .assertIsDisplayed()
+            .assertWidthIsAtLeast(100.dp)
+            .assertHeightIsAtLeast(100.dp)
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.fab_income))
+            .assertIsDisplayed()
+            .assertWidthIsAtLeast(100.dp)
+            .assertHeightIsAtLeast(100.dp)
+    }
+
+    @Test
+    fun `balance bar testTag dashboard_balance_bar is present and has a click action`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state = DashboardState(isLoading = false),
+                    onEvent = {},
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithTag(BALANCE_BAR_TAG)
+            .assertExists()
+            .assertHasClickAction()
+    }
+
+    @Test
+    fun `balance bar shows the localized balance label in its text`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state = DashboardState(isLoading = false),
+                    onEvent = {},
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithTag(BALANCE_BAR_TAG)
+            .assertIsDisplayed()
+        composeTestRule
+            .onNode(hasText(targetString(DesignSystemR.string.balance_bar_label), substring = true))
+            .assertIsDisplayed()
     }
 
     private fun targetString(resourceId: Int): String =

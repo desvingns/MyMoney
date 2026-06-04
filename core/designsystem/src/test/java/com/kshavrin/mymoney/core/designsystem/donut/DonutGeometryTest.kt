@@ -390,6 +390,11 @@ class DonutGeometryTest {
         assertTrue("effectiveSweep=$effectiveSweep must be > 0 for 8 equal slices", effectiveSweep > 0f)
     }
 
+    @Test
+    fun `gapForSweep clamps a negative configured max gap to zero`() {
+        assertEquals(0f, DonutGeometry.gapForSweep(sweepDegrees = 120f, maxGapDegrees = -5f), 0.001f)
+    }
+
     private fun pointAtAngleDegrees(angleDegrees: Float, radius: Float): Pair<Float, Float> {
         val radians = Math.toRadians(angleDegrees.toDouble())
         return (radius * cos(radians)).toFloat() to (radius * sin(radians)).toFloat()

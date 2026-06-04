@@ -2,11 +2,13 @@ package com.kshavrin.mymoney.core.designsystem.donut
 
 import androidx.compose.animation.core.snap
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.click
-import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performTouchInput
@@ -16,6 +18,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.designsystem.R
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -134,6 +137,73 @@ class MonefyDonutChartUiTest {
         composeTestRule
             .onNodeWithContentDescription(expectedDescription(income = "0", expense = "0"))
             .assertExists()
+    }
+
+    @Test
+    fun `empty state visibly paints stacked income and expense center totals`() {
+        var incomeTint = 0
+        var expenseTint = 0
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                incomeTint = MaterialTheme.colorScheme.secondary.toArgb()
+                expenseTint = MaterialTheme.colorScheme.tertiary.toArgb()
+                MonefyDonutChart(
+                    income = BigDecimal("321.45"),
+                    expense = BigDecimal("67.89"),
+                    slices = emptyList(),
+                    modifier = Modifier.size(240.dp),
+                    currencySymbol = "₽",
+                    centerDecimalDigits = 0,
+                    emptyStateIcons = listOf(
+                        slice(label = "Food", fraction = 0f),
+                        slice(label = "Transport", fraction = 0f),
+                        slice(label = "Home", fraction = 0f),
+                    ),
+                    animationSpec = snap(),
+                )
+            }
+        }
+        composeTestRule.waitForIdle()
+
+        val image = composeTestRule
+            .onNodeWithContentDescription(expectedDescription(income = "321.45", expense = "67.89"))
+            .captureToImage()
+        val pixels = IntArray(image.width * image.height)
+        image.readPixels(pixels)
+
+        val left = image.width / 4
+        val right = image.width * 3 / 4
+        val centerY = image.height / 2
+        val upperTop = image.height / 3
+        val upperBottom = centerY
+        val lowerTop = centerY
+        val lowerBottom = image.height * 2 / 3
+
+        assertTrue(
+            "empty-state center must paint the income total in the theme secondary color",
+            regionContainsColor(
+                pixels = pixels,
+                width = image.width,
+                left = left,
+                top = upperTop,
+                right = right,
+                bottom = upperBottom,
+                argb = incomeTint,
+            ),
+        )
+        assertTrue(
+            "empty-state center must paint the expense total in the theme tertiary color",
+            regionContainsColor(
+                pixels = pixels,
+                width = image.width,
+                left = left,
+                top = lowerTop,
+                right = right,
+                bottom = lowerBottom,
+                argb = expenseTint,
+            ),
+        )
     }
 
     @Test
@@ -529,5 +599,32 @@ class MonefyDonutChartUiTest {
             x = center + outerRadius * 0.92f * cos(angleRadians).toFloat(),
             y = center + outerRadius * 0.92f * sin(angleRadians).toFloat(),
         )
+    }
+
+    private fun regionContainsColor(
+        pixels: IntArray,
+        width: Int,
+        left: Int,
+        top: Int,
+        right: Int,
+        bottom: Int,
+        argb: Int,
+    ): Boolean {
+        for (y in top until bottom) {
+            for (x in left until right) {
+                if (colorsMatch(pixels[y * width + x], argb)) {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
+    private fun colorsMatch(a: Int, b: Int): Boolean {
+        fun ch(v: Int, shift: Int) = (v shr shift) and 0xFF
+        val tolerance = 16
+        return kotlin.math.abs(ch(a, 16) - ch(b, 16)) <= tolerance &&
+            kotlin.math.abs(ch(a, 8) - ch(b, 8)) <= tolerance &&
+            kotlin.math.abs(ch(a, 0) - ch(b, 0)) <= tolerance
     }
 }

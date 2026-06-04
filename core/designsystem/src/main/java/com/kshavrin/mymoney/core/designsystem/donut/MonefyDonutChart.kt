@@ -44,6 +44,7 @@ import com.kshavrin.mymoney.core.designsystem.R
 import com.kshavrin.mymoney.core.designsystem.icon.categoryIcon
 import java.math.BigDecimal
 import kotlin.math.cos
+import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -133,10 +134,34 @@ fun MonefyDonutChart(
         Canvas(
             modifier = Modifier
                 .fillMaxSize()
-                .pointerInput(arcs, outerRadiusFraction, ringThicknessFraction) {
+                .pointerInput(
+                    arcs,
+                    emptyStateIcons,
+                    outerRadiusFraction,
+                    ringThicknessFraction,
+                    sliceGapDegrees,
+                    iconScale,
+                    onSliceClick,
+                    onEmptyCategoryClick,
+                ) {
                     detectTapGestures { offset ->
                         val center = Offset(size.width / 2f, size.height / 2f)
                         val outerRadius = min(size.width, size.height) / 2f * outerRadiusFraction
+                        if (arcs.isEmpty()) {
+                            val iconSize = (26f * iconScale).roundToInt().dp.toPx()
+                            val discRadius = (iconSize + 12.dp.toPx()) / 2f
+                            val hit = emptyStateIcons.firstOrNullIndexed { index, _ ->
+                                val slot = emptyIconSlot(
+                                    center = center,
+                                    outerRadius = outerRadius,
+                                    index = index,
+                                    count = emptyStateIcons.size,
+                                )
+                                hypot(offset.x - slot.x, offset.y - slot.y) <= discRadius
+                            }
+                            if (hit != null) onEmptyCategoryClick?.invoke(hit)
+                            return@detectTapGestures
+                        }
                         val strokeWidth = outerRadius * ringThicknessFraction
                         val innerRadius = outerRadius - strokeWidth
                         val hit = DonutGeometry.hitTest(
@@ -147,6 +172,7 @@ fun MonefyDonutChart(
                             innerRadius = innerRadius,
                             outerRadius = outerRadius,
                             arcs = arcs,
+                            sliceGapDegrees = sliceGapDegrees,
                         )
                         if (hit != null) onSliceClick?.invoke(hit)
                     }
@@ -176,12 +202,12 @@ fun MonefyDonutChart(
                     center = center,
                     style = Stroke(width = th),
                 )
-                val angles = DonutGeometry.evenAngles(emptyStateIcons.size)
                 emptyStateIcons.forEachIndexed { index, slice ->
-                    val angleRadians = Math.toRadians(angles[index].toDouble()).toFloat()
-                    val slot = Offset(
-                        center.x + outerRadius * 0.92f * cos(angleRadians),
-                        center.y + outerRadius * 0.92f * sin(angleRadians),
+                    val slot = emptyIconSlot(
+                        center = center,
+                        outerRadius = outerRadius,
+                        index = index,
+                        count = emptyStateIcons.size,
                     )
                     drawIconDisc(
                         slotCenter = slot,
@@ -212,7 +238,7 @@ fun MonefyDonutChart(
 
             val gappedArcs = placed.map { p ->
                 val animatedSweep = p.sweepDegrees * progress.value
-                val gap = min(sliceGapDegrees, p.sweepDegrees * 0.6f)
+                val gap = DonutGeometry.gapForSweep(p.sweepDegrees, sliceGapDegrees)
                 GappedArc(
                     color = p.slice.color,
                     startAngle = p.startAngleDegrees + gap / 2f,
@@ -301,6 +327,27 @@ private data class PlacedSlice(
 )
 
 private data class GappedArc(val color: Color, val startAngle: Float, val sweepAngle: Float)
+
+private inline fun <T> List<T>.firstOrNullIndexed(predicate: (Int, T) -> Boolean): T? {
+    forEachIndexed { index, value ->
+        if (predicate(index, value)) return value
+    }
+    return null
+}
+
+private fun emptyIconSlot(
+    center: Offset,
+    outerRadius: Float,
+    index: Int,
+    count: Int,
+): Offset {
+    val angleDegrees = -90f + index * (360f / count)
+    val angleRadians = Math.toRadians(angleDegrees.toDouble()).toFloat()
+    return Offset(
+        center.x + outerRadius * 0.92f * cos(angleRadians),
+        center.y + outerRadius * 0.92f * sin(angleRadians),
+    )
+}
 
 private fun computeIconFrame(
     width: Float,

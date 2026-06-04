@@ -5,6 +5,9 @@ import kotlin.math.hypot
 
 object DonutGeometry {
 
+    fun gapForSweep(sweepDegrees: Float, maxGapDegrees: Float): Float =
+        minOf(maxGapDegrees.coerceAtLeast(0f), sweepDegrees * 0.6f)
+
     fun framePoint(t: Float, hw: Float, hhTop: Float, hhBot: Float): FrameOffset {
         val side = hhTop + hhBot
         val perimeter = 4f * hw + 2f * side
@@ -50,18 +53,37 @@ object DonutGeometry {
         innerRadius: Float,
         outerRadius: Float,
         arcs: List<SliceArc>,
+        sliceGapDegrees: Float = 0f,
     ): CategorySlice? {
         val dx = offsetX - centerX
         val dy = offsetY - centerY
         val distance = hypot(dx, dy)
         if (distance < innerRadius || distance > outerRadius) return null
-        val angleDegrees = (Math.toDegrees(atan2(dy.toDouble(), dx.toDouble())).toFloat() + 450f) % 360f
+        val angleDegrees = normalizeDegrees(
+            Math.toDegrees(atan2(dy.toDouble(), dx.toDouble())).toFloat(),
+        )
         return arcs.firstOrNull { arc ->
-            val start = (arc.startAngleDegrees + 360f) % 360f
-            val end = (start + arc.sweepDegrees) % 360f
-            if (end >= start) angleDegrees in start..end else angleDegrees >= start || angleDegrees <= end
+            val gap = gapForSweep(arc.sweepDegrees, sliceGapDegrees)
+            containsAngle(
+                angleDegrees = angleDegrees,
+                startAngleDegrees = arc.startAngleDegrees + gap / 2f,
+                sweepDegrees = (arc.sweepDegrees - gap).coerceAtLeast(0f),
+            )
         }?.slice
     }
+
+    private fun containsAngle(
+        angleDegrees: Float,
+        startAngleDegrees: Float,
+        sweepDegrees: Float,
+    ): Boolean {
+        if (sweepDegrees <= 0f) return false
+        if (sweepDegrees >= 360f) return true
+        return normalizeDegrees(angleDegrees - startAngleDegrees) <= sweepDegrees
+    }
+
+    private fun normalizeDegrees(angleDegrees: Float): Float =
+        ((angleDegrees % 360f) + 360f) % 360f
 }
 
 data class SliceArc(

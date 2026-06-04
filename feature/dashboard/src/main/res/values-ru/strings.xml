@@ -19,9 +19,13 @@
     <string name="period_pick_a_date">Выбор даты</string>
     <string name="period_apply">Применить</string>
     <string name="period_cancel">Отмена</string>
+    <string name="period_previous">Предыдущий период</string>
+    <string name="period_next">Следующий период</string>
 
     <string name="fab_expense">Добавить расход</string>
     <string name="fab_income">Добавить доход</string>
+    <string name="fab_expense_label">РАСХОД</string>
+    <string name="fab_income_label">ДОХОД</string>
     <string name="fab_transfer">Перевод</string>
 
     <string name="left_drawer_accounts">Счета</string>

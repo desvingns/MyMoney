@@ -1,7 +1,9 @@
 package com.kshavrin.mymoney.core.designsystem.donut
 
 import kotlin.math.atan2
+import kotlin.math.cos
 import kotlin.math.hypot
+import kotlin.math.sin
 
 object DonutGeometry {
 
@@ -54,15 +56,19 @@ object DonutGeometry {
         outerRadius: Float,
         arcs: List<SliceArc>,
         sliceGapDegrees: Float = 0f,
+        explodedOffset: Float = 0f,
     ): CategorySlice? {
-        val dx = offsetX - centerX
-        val dy = offsetY - centerY
-        val distance = hypot(dx, dy)
-        if (distance < innerRadius || distance > outerRadius) return null
-        val angleDegrees = normalizeDegrees(
-            Math.toDegrees(atan2(dy.toDouble(), dx.toDouble())).toFloat(),
-        )
         return arcs.firstOrNull { arc ->
+            val midAngle = midAngleRadians(arc)
+            val arcCenterX = centerX + explodedOffset * cos(midAngle)
+            val arcCenterY = centerY + explodedOffset * sin(midAngle)
+            val dx = offsetX - arcCenterX
+            val dy = offsetY - arcCenterY
+            val distance = hypot(dx, dy)
+            if (distance < innerRadius || distance > outerRadius) return@firstOrNull false
+            val angleDegrees = normalizeDegrees(
+                Math.toDegrees(atan2(dy.toDouble(), dx.toDouble())).toFloat(),
+            )
             val gap = gapForSweep(arc.sweepDegrees, sliceGapDegrees)
             containsAngle(
                 angleDegrees = angleDegrees,

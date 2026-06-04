@@ -31,18 +31,27 @@ import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.kshavrin.mymoney.core.common.money.MoneyFormatter
 import com.kshavrin.mymoney.core.designsystem.R
 import com.kshavrin.mymoney.core.designsystem.icon.categoryIcon
+import com.kshavrin.mymoney.core.ui.theme.Spacing
+import com.kshavrin.mymoney.core.ui.theme.dashboardCalloutLabel
+import com.kshavrin.mymoney.core.ui.theme.dashboardCalloutPercentage
+import com.kshavrin.mymoney.core.ui.theme.dashboardDonutCenterDivider
+import com.kshavrin.mymoney.core.ui.theme.dashboardDonutCenterTotal
+import com.kshavrin.mymoney.core.ui.theme.dashboardDonutLeaderLine
 import java.math.BigDecimal
 import kotlin.math.cos
 import kotlin.math.hypot
@@ -51,9 +60,7 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sin
 
-// AS-14 override for S01: the design labels every non-zero slice, dropping Monefy's
-// >=3% threshold. Restore LABEL_MIN_FRACTION = 0.03f to revert to the locked AS-14.
-private const val LABEL_MIN_FRACTION = 0f
+private const val DEFAULT_LABEL_MIN_FRACTION = 0.03f
 
 enum class DonutStyle { Flat, Extrude }
 
@@ -75,6 +82,19 @@ fun MonefyDonutChart(
     iconScale: Float = 1.7f,
     centerDecimalDigits: Int = decimalDigits,
     style: DonutStyle = DonutStyle.Extrude,
+    explodedOffset: Dp = Spacing.none,
+    centerTextStyle: TextStyle = MaterialTheme.typography.dashboardDonutCenterTotal,
+    centerDividerColor: Color = MaterialTheme.colorScheme.dashboardDonutCenterDivider,
+    centerDividerWidth: Dp = Spacing.dashboardDonutCenterDividerWidth,
+    centerDividerThickness: Dp = Spacing.dashboardDonutCenterDividerThickness,
+    calloutIconSize: Dp = Spacing.dashboardDonutCalloutIconSize,
+    calloutLabelStyle: TextStyle = MaterialTheme.typography.dashboardCalloutLabel,
+    calloutPercentageStyle: TextStyle = MaterialTheme.typography.dashboardCalloutPercentage,
+    calloutLabelColor: Color = MaterialTheme.colorScheme.dashboardCalloutLabel,
+    leaderLineColor: Color = MaterialTheme.colorScheme.dashboardDonutLeaderLine,
+    leaderLineThickness: Dp = Spacing.dashboardDonutLeaderLineThickness,
+    labelMinFraction: Float = DEFAULT_LABEL_MIN_FRACTION,
+    showCategoryLabels: Boolean = false,
 ) {
     val arcs = remember(slices) { DonutGeometry.computeSliceArcs(slices) }
     val animationKey = slices.map { it.categoryId to it.fraction }
@@ -142,6 +162,7 @@ fun MonefyDonutChart(
                     ringThicknessFraction,
                     sliceGapDegrees,
                     iconScale,
+                    explodedOffset,
                     onSliceClick,
                     onEmptyCategoryClick,
                 ) {
@@ -165,6 +186,7 @@ fun MonefyDonutChart(
                         }
                         val strokeWidth = outerRadius * ringThicknessFraction
                         val innerRadius = outerRadius - strokeWidth
+                        val explodedOffsetPx = explodedOffset.toPx()
                         val hit = DonutGeometry.hitTest(
                             offsetX = offset.x,
                             offsetY = offset.y,
@@ -174,6 +196,7 @@ fun MonefyDonutChart(
                             outerRadius = outerRadius,
                             arcs = arcs,
                             sliceGapDegrees = sliceGapDegrees,
+                            explodedOffset = explodedOffsetPx,
                         )
                         if (hit != null) onSliceClick?.invoke(hit)
                     }
@@ -183,11 +206,11 @@ fun MonefyDonutChart(
             val outerRadius = min(size.width, size.height) / 2f * outerRadiusFraction
             val th = outerRadius * ringThicknessFraction
             val r = outerRadius - th / 2f
+            val explodedOffsetPx = explodedOffset.toPx()
 
-            val iconSize = (26f * iconScale).roundToInt().dp.toPx()
-            val pctSize = (13f * iconScale).roundToInt()
-            val discDiameter = iconSize + 12.dp.toPx()
-            val labelHeight = pctSize.dp.toPx() + 4.dp.toPx()
+            val iconSize = calloutIconSize.toPx() * (iconScale / 1.7f)
+            val discDiameter = iconSize + Spacing.m.toPx()
+            val labelHeight = discDiameter + Spacing.xl.toPx() + Spacing.m.toPx()
             val frame = computeIconFrame(
                 width = size.width,
                 height = size.height,
@@ -227,6 +250,10 @@ fun MonefyDonutChart(
                     expenseColor = expenseColor,
                     textMeasurer = textMeasurer,
                     innerRadius = outerRadius - th,
+                    textStyle = centerTextStyle,
+                    dividerColor = centerDividerColor,
+                    dividerWidth = centerDividerWidth.toPx(),
+                    dividerThickness = centerDividerThickness.toPx(),
                 )
                 return@Canvas
             }
@@ -235,24 +262,27 @@ fun MonefyDonutChart(
 
             placed.forEach { p ->
                 if (p.slice.fraction <= 0f) return@forEach
+                val offset = p.explodedOffset(explodedOffsetPx)
                 drawLine(
-                    color = p.slice.color.copy(alpha = 0.55f),
+                    color = leaderLineColor,
                     start = Offset(
-                        center.x + (outerRadius + 1.dp.toPx()) * cos(p.midRadians),
-                        center.y + (outerRadius + 1.dp.toPx()) * sin(p.midRadians),
+                        center.x + offset.x + (outerRadius + leaderLineThickness.toPx()) * cos(p.midRadians),
+                        center.y + offset.y + (outerRadius + leaderLineThickness.toPx()) * sin(p.midRadians),
                     ),
                     end = Offset(center.x + p.frameX, center.y + p.frameY),
-                    strokeWidth = 1.dp.toPx(),
+                    strokeWidth = leaderLineThickness.toPx(),
                 )
             }
 
             val gappedArcs = placed.map { p ->
                 val animatedSweep = p.sweepDegrees * progress.value
                 val gap = DonutGeometry.gapForSweep(p.sweepDegrees, sliceGapDegrees)
+                val offset = p.explodedOffset(explodedOffsetPx)
                 GappedArc(
                     color = p.slice.color,
                     startAngle = p.startAngleDegrees + gap / 2f,
                     sweepAngle = (animatedSweep - gap).coerceAtLeast(0f),
+                    offset = offset,
                 )
             }
 
@@ -281,22 +311,18 @@ fun MonefyDonutChart(
                     drawCircle(color = badgeBorderColor, radius = 5.dp.toPx(), center = badgeCenter)
                     drawCircle(color = budgetAlertColor, radius = 3.5.dp.toPx(), center = badgeCenter)
                 }
-                if (p.slice.fraction >= LABEL_MIN_FRACTION) {
+                if (p.slice.fraction >= labelMinFraction) {
                     val labelText = "${(p.slice.fraction * 100f).roundToInt()}%"
-                    val layout = textMeasurer.measure(
-                        text = labelText,
-                        style = TextStyle(
-                            fontSize = pctSize.sp,
-                            color = p.slice.color,
-                            fontWeight = FontWeight.ExtraBold,
-                        ),
-                    )
-                    drawText(
-                        textLayoutResult = layout,
-                        topLeft = Offset(
-                            slot.x - layout.size.width / 2f,
-                            slot.y + discDiameter / 2f + 2.dp.toPx(),
-                        ),
+                    drawCalloutText(
+                        slot = slot,
+                        discDiameter = discDiameter,
+                        label = p.slice.label.takeIf { showCategoryLabels },
+                        percentage = labelText,
+                        sliceColor = p.slice.color,
+                        labelColor = calloutLabelColor,
+                        labelStyle = calloutLabelStyle,
+                        percentageStyle = calloutPercentageStyle,
+                        textMeasurer = textMeasurer,
                     )
                 }
             }
@@ -309,6 +335,10 @@ fun MonefyDonutChart(
                 expenseColor = expenseColor,
                 textMeasurer = textMeasurer,
                 innerRadius = outerRadius - th,
+                textStyle = centerTextStyle,
+                dividerColor = centerDividerColor,
+                dividerWidth = centerDividerWidth.toPx(),
+                dividerThickness = centerDividerThickness.toPx(),
             )
         }
     }
@@ -325,7 +355,12 @@ private data class PlacedSlice(
     val frameY: Float,
 )
 
-private data class GappedArc(val color: Color, val startAngle: Float, val sweepAngle: Float)
+private data class GappedArc(
+    val color: Color,
+    val startAngle: Float,
+    val sweepAngle: Float,
+    val offset: Offset = Offset.Zero,
+)
 
 private inline fun <T> List<T>.firstOrNullIndexed(predicate: (Int, T) -> Boolean): T? {
     forEachIndexed { index, value ->
@@ -342,36 +377,91 @@ private fun DrawScope.drawCenterTotals(
     expenseColor: Color,
     textMeasurer: TextMeasurer,
     innerRadius: Float,
+    textStyle: TextStyle,
+    dividerColor: Color,
+    dividerWidth: Float,
+    dividerThickness: Float,
 ) {
     if (innerRadius <= 0f) return
-    val baseStyle = TextStyle(
-        fontSize = 18.sp,
-        fontWeight = FontWeight.SemiBold,
-    )
-    val lineGap = 4.dp.toPx()
-    val baseIncome = textMeasurer.measure(text = incomeText, style = baseStyle)
-    val baseExpense = textMeasurer.measure(text = expenseText, style = baseStyle)
+    val lineGap = Spacing.s.toPx()
+    val baseIncome = textMeasurer.measure(text = incomeText, style = textStyle)
+    val baseExpense = textMeasurer.measure(text = expenseText, style = textStyle)
     val maxLineWidth = max(baseIncome.size.width, baseExpense.size.width).toFloat()
-    val totalBaseHeight = baseIncome.size.height + lineGap + baseExpense.size.height
+    val totalBaseHeight = baseIncome.size.height + lineGap * 2f + dividerThickness + baseExpense.size.height
     if (maxLineWidth <= 0f || totalBaseHeight <= 0f) return
-    val targetW = innerRadius * 2f * 0.82f
-    val targetH = innerRadius * 2f * 0.72f
+    val targetW = innerRadius * 2f * 0.92f
+    val targetH = innerRadius * 2f * 0.76f
     val scale = min(min(targetW / maxLineWidth, targetH / totalBaseHeight), 1f)
-    val scaledStyle = baseStyle.copy(fontSize = 18.sp * scale)
+    val scaledStyle = textStyle.copy(fontSize = textStyle.fontSize * scale)
     val incomeLayout = textMeasurer.measure(text = incomeText, style = scaledStyle)
     val expenseLayout = textMeasurer.measure(text = expenseText, style = scaledStyle)
-    val totalHeight = incomeLayout.size.height + lineGap + expenseLayout.size.height
+    val totalHeight = incomeLayout.size.height + lineGap * 2f + dividerThickness + expenseLayout.size.height
     val incomeTop = center.y - totalHeight / 2f
-    val expenseTop = incomeTop + incomeLayout.size.height + lineGap
+    val dividerY = incomeTop + incomeLayout.size.height + lineGap
+    val expenseTop = dividerY + dividerThickness + lineGap
     drawText(
         textLayoutResult = incomeLayout,
         color = incomeColor,
         topLeft = Offset(center.x - incomeLayout.size.width / 2f, incomeTop),
     )
+    drawLine(
+        color = dividerColor,
+        start = Offset(center.x - dividerWidth / 2f, dividerY),
+        end = Offset(center.x + dividerWidth / 2f, dividerY),
+        strokeWidth = dividerThickness,
+    )
     drawText(
         textLayoutResult = expenseLayout,
         color = expenseColor,
         topLeft = Offset(center.x - expenseLayout.size.width / 2f, expenseTop),
+    )
+}
+
+private fun DrawScope.drawCalloutText(
+    slot: Offset,
+    discDiameter: Float,
+    label: String?,
+    percentage: String,
+    sliceColor: Color,
+    labelColor: Color,
+    labelStyle: TextStyle,
+    percentageStyle: TextStyle,
+    textMeasurer: TextMeasurer,
+) {
+    val maxTextWidth = discDiameter * 2.3f
+    val labelLayout = label?.let {
+        textMeasurer.measure(
+            text = it,
+            style = labelStyle.copy(color = labelColor, textAlign = TextAlign.Center),
+            overflow = TextOverflow.Ellipsis,
+            maxLines = 2,
+            constraints = Constraints(maxWidth = maxTextWidth.roundToInt()),
+        )
+    }
+    val percentageLayout = textMeasurer.measure(
+        text = percentage,
+        style = percentageStyle.copy(color = sliceColor, textAlign = TextAlign.Center),
+        maxLines = 1,
+        constraints = Constraints(maxWidth = maxTextWidth.roundToInt()),
+    )
+    val labelTop = slot.y + discDiameter / 2f + Spacing.xxs.toPx()
+    if (labelLayout != null) {
+        drawTextCentered(labelLayout, slot.x, labelTop, labelColor)
+    }
+    val percentageTop = labelTop + (labelLayout?.size?.height ?: 0) + Spacing.xxs.toPx()
+    drawTextCentered(percentageLayout, slot.x, percentageTop, sliceColor)
+}
+
+private fun DrawScope.drawTextCentered(
+    layout: TextLayoutResult,
+    centerX: Float,
+    top: Float,
+    color: Color,
+) {
+    drawText(
+        textLayoutResult = layout,
+        color = color,
+        topLeft = Offset(centerX - layout.size.width / 2f, top),
     )
 }
 
@@ -449,12 +539,13 @@ private fun DrawScope.drawArcBand(
     dy: Float = 0f,
 ) {
     if (arc.sweepAngle <= 0f) return
+    val arcCenter = center + arc.offset
     drawArc(
         color = color,
         startAngle = arc.startAngle,
         sweepAngle = arc.sweepAngle,
         useCenter = false,
-        topLeft = Offset(center.x - radius, center.y - radius + dy),
+        topLeft = Offset(arcCenter.x - radius, arcCenter.y - radius + dy),
         size = Size(radius * 2f, radius * 2f),
         style = Stroke(width = width, cap = StrokeCap.Butt),
     )
@@ -549,3 +640,8 @@ private fun DrawScope.drawIconDisc(
     }
     return slotCenter
 }
+
+private fun PlacedSlice.explodedOffset(distance: Float): Offset = Offset(
+    x = distance * cos(midRadians),
+    y = distance * sin(midRadians),
+)

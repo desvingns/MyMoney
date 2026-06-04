@@ -19,9 +19,13 @@
     <string name="period_pick_a_date">Pick a date</string>
     <string name="period_apply">Apply</string>
     <string name="period_cancel">Cancel</string>
+    <string name="period_previous">Previous period</string>
+    <string name="period_next">Next period</string>
 
     <string name="fab_expense">Add expense</string>
     <string name="fab_income">Add income</string>
+    <string name="fab_expense_label">EXPENSE</string>
+    <string name="fab_income_label">INCOME</string>
     <string name="fab_transfer">Transfer</string>
 
     <string name="left_drawer_accounts">Accounts</string>

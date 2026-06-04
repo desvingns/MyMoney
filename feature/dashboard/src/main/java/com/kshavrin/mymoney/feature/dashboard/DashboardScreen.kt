@@ -1,5 +1,8 @@
 package com.kshavrin.mymoney.feature.dashboard
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
@@ -28,6 +32,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
@@ -35,19 +42,35 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kshavrin.mymoney.core.common.money.MoneyFormatter
 import com.kshavrin.mymoney.core.designsystem.confetti.MonefyConfetti
 import com.kshavrin.mymoney.core.designsystem.donut.DonutStyle
 import com.kshavrin.mymoney.core.designsystem.donut.MonefyDonutChart
-import com.kshavrin.mymoney.core.designsystem.balancebar.MonefyBalanceBar
 import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.ui.feedback.LocalHapticPlayer
 import com.kshavrin.mymoney.core.ui.feedback.LocalSoundPlayer
 import com.kshavrin.mymoney.core.ui.haptic.HapticKind
 import com.kshavrin.mymoney.core.ui.sound.SoundKey
 import com.kshavrin.mymoney.core.ui.theme.Spacing
+import com.kshavrin.mymoney.core.ui.theme.dashboardBalanceLabel
+import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanel
+import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanelContainer
+import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanelContent
+import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanelOutline
+import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanelShadow
+import com.kshavrin.mymoney.core.ui.theme.dashboardBalanceValue
+import com.kshavrin.mymoney.core.ui.theme.dashboardCalloutLabel
+import com.kshavrin.mymoney.core.ui.theme.dashboardCalloutPercentage
+import com.kshavrin.mymoney.core.ui.theme.dashboardDonutCenterDivider
+import com.kshavrin.mymoney.core.ui.theme.dashboardDonutCenterTotal
+import com.kshavrin.mymoney.core.ui.theme.dashboardDonutLeaderLine
+import com.kshavrin.mymoney.core.ui.theme.dashboardHeroGradientEnd
+import com.kshavrin.mymoney.core.ui.theme.dashboardHeroGradientStart
+import com.kshavrin.mymoney.core.ui.theme.dashboardTopBarSubtitle
+import com.kshavrin.mymoney.core.ui.theme.dashboardTopBarTitle
 import com.kshavrin.mymoney.feature.dashboard.components.DashboardDrawerOverlay
 import com.kshavrin.mymoney.feature.dashboard.components.DrawerSide
 import com.kshavrin.mymoney.feature.dashboard.components.LeftDrawerContent
@@ -93,6 +116,16 @@ fun DashboardContent(
     Scaffold(
         topBar = {
             TopAppBar(
+                modifier = Modifier
+                    .height(Spacing.dashboardTopBarHeight)
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.dashboardHeroGradientStart,
+                                MaterialTheme.colorScheme.dashboardHeroGradientEnd,
+                            ),
+                        ),
+                    ),
                 title = {
                     DashboardTopBarTitle(
                         title = stringResource(R.string.dashboard_title),
@@ -134,7 +167,7 @@ fun DashboardContent(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
+                    containerColor = Color.Transparent,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary,
                     navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
                     actionIconContentColor = MaterialTheme.colorScheme.onPrimary,
@@ -176,12 +209,6 @@ fun DashboardContent(
                         modifier = Modifier.fillMaxSize(),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        PeriodLabel(
-                            period = state.period,
-                            modifier = Modifier.padding(top = Spacing.m),
-                        )
-                        Spacer(modifier = Modifier.height(Spacing.xxs))
-
                         val balanceAmount = formatBalanceAmount(
                             state = state,
                             unavailableText = stringResource(R.string.dashboard_balance_unavailable_amount),
@@ -190,6 +217,26 @@ fun DashboardContent(
                         val overBudgetText = state.overBudgetAmount?.let { overage ->
                             stringResource(R.string.dashboard_over_budget, formatMoney(overage, resourceLocale))
                         }
+
+                        PeriodLabel(
+                            period = state.period,
+                            onPreviousClick = {
+                                hapticPlayer.fire(HapticKind.SOFT)
+                                onEvent(DashboardEvent.PreviousPeriod)
+                            },
+                            onNextClick = {
+                                hapticPlayer.fire(HapticKind.SOFT)
+                                onEvent(DashboardEvent.NextPeriod)
+                            },
+                            modifier = Modifier.height(Spacing.dashboardPeriodRowHeight),
+                        )
+
+                        DashboardBalancePanel(
+                            label = stringResource(R.string.dashboard_balance),
+                            amount = balanceAmount,
+                            onClick = { onEvent(DashboardEvent.BalanceCardClicked) },
+                            modifier = Modifier.testTag("dashboard_balance_bar"),
+                        )
 
                         Box(
                             modifier = Modifier
@@ -205,8 +252,23 @@ fun DashboardContent(
                                 currencySymbol = state.currentCurrency?.symbol ?: "",
                                 decimalDigits = state.currentCurrency?.decimalDigits ?: 2,
                                 emptyStateIcons = state.expenseCategoryPlaceholders,
-                                outerRadiusFraction = 0.60f,
-                                centerDecimalDigits = 0,
+                                outerRadiusFraction = 0.62f,
+                                ringThicknessFraction = 0.36f,
+                                sliceGapDegrees = 7f,
+                                explodedOffset = Spacing.dashboardDonutExplodedOffset,
+                                centerDecimalDigits = state.currentCurrency?.decimalDigits ?: 2,
+                                centerTextStyle = MaterialTheme.typography.dashboardDonutCenterTotal,
+                                centerDividerColor = MaterialTheme.colorScheme.dashboardDonutCenterDivider,
+                                centerDividerWidth = Spacing.dashboardDonutCenterDividerWidth,
+                                centerDividerThickness = Spacing.dashboardDonutCenterDividerThickness,
+                                calloutIconSize = Spacing.dashboardDonutCalloutIconSize,
+                                calloutLabelStyle = MaterialTheme.typography.dashboardCalloutLabel,
+                                calloutPercentageStyle = MaterialTheme.typography.dashboardCalloutPercentage,
+                                calloutLabelColor = MaterialTheme.colorScheme.dashboardCalloutLabel,
+                                leaderLineColor = MaterialTheme.colorScheme.dashboardDonutLeaderLine,
+                                leaderLineThickness = Spacing.dashboardDonutLeaderLineThickness,
+                                labelMinFraction = 0f,
+                                showCategoryLabels = true,
                                 style = DonutStyle.Extrude,
                                 onSliceClick = { slice ->
                                     onEvent(DashboardEvent.SliceClicked(slice.categoryId))
@@ -214,15 +276,6 @@ fun DashboardContent(
                             )
                         }
 
-                        MonefyBalanceBar(
-                            amount = balanceAmount,
-                            isPositive = (state.balanceSnapshot?.net?.amount?.signum() ?: 1) >= 0,
-                            onClick = { onEvent(DashboardEvent.BalanceCardClicked) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = Spacing.s)
-                                .testTag("dashboard_balance_bar"),
-                        )
                         if (overBudgetText != null) {
                             Spacer(modifier = Modifier.height(Spacing.s))
                             Surface(
@@ -238,8 +291,6 @@ fun DashboardContent(
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(Spacing.xl))
-
                         TwoFabLayout(
                             onMinusClick = {
                                 hapticPlayer.fire(HapticKind.MEDIUM)
@@ -249,6 +300,8 @@ fun DashboardContent(
                                 hapticPlayer.fire(HapticKind.MEDIUM)
                                 onEvent(DashboardEvent.PlusFabClicked)
                             },
+                            expenseLabel = stringResource(R.string.fab_expense_label),
+                            incomeLabel = stringResource(R.string.fab_income_label),
                         )
                     }
 
@@ -284,7 +337,7 @@ private fun DashboardTopBarTitle(
     Column {
         Text(
             text = title,
-            style = MaterialTheme.typography.headlineSmall,
+            style = MaterialTheme.typography.dashboardTopBarTitle,
             fontFamily = FontFamily.Cursive,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.testTag(DASHBOARD_TOP_BAR_TITLE_TAG),
@@ -292,10 +345,57 @@ private fun DashboardTopBarTitle(
         if (!subtitle.isNullOrBlank()) {
             Text(
                 text = subtitle,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.dashboardTopBarSubtitle,
                 modifier = Modifier.testTag(DASHBOARD_TOP_BAR_SUBTITLE_TAG),
             )
         }
+    }
+}
+
+@Composable
+private fun DashboardBalancePanel(
+    label: String,
+    amount: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val shape = MaterialTheme.shapes.dashboardBalancePanel
+    Column(
+        modifier = modifier
+            .widthIn(max = Spacing.dashboardBalancePanelMaxWidth)
+            .fillMaxWidth()
+            .height(Spacing.dashboardBalancePanelHeight)
+            .padding(horizontal = Spacing.none)
+            .shadow(
+                elevation = Spacing.s,
+                shape = shape,
+                ambientColor = MaterialTheme.colorScheme.dashboardBalancePanelShadow,
+                spotColor = MaterialTheme.colorScheme.dashboardBalancePanelShadow,
+            )
+            .background(MaterialTheme.colorScheme.dashboardBalancePanelContainer, shape)
+            .border(
+                width = Spacing.dashboardBalancePanelBorderWidth,
+                color = MaterialTheme.colorScheme.dashboardBalancePanelOutline,
+                shape = shape,
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = Spacing.m, vertical = Spacing.s),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.dashboardBalanceLabel,
+            color = MaterialTheme.colorScheme.dashboardBalancePanelContent,
+            maxLines = 1,
+            textAlign = TextAlign.Center,
+        )
+        Text(
+            text = amount,
+            style = MaterialTheme.typography.dashboardBalanceValue,
+            color = MaterialTheme.colorScheme.dashboardBalancePanelContent,
+            maxLines = 1,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 

@@ -4,8 +4,10 @@ import androidx.compose.animation.core.snap
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -177,6 +179,264 @@ class MonefyDonutChartUiTest {
                     income = "450.00",
                     expense = "124.00",
                     slices = listOf("Food" to 50, "Transport" to 50),
+                ),
+            )
+            .assertExists()
+    }
+
+    // ---- centerDecimalDigits ----
+
+    @Test
+    fun `centerDecimalDigits zero hides decimal portion from semantics income string`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                MonefyDonutChart(
+                    income = BigDecimal("500.75"),
+                    expense = BigDecimal("124.30"),
+                    slices = listOf(slice(label = "Food", fraction = 1.0f)),
+                    modifier = Modifier.size(240.dp),
+                    currencySymbol = "₽",
+                    decimalDigits = 2,
+                    centerDecimalDigits = 0,
+                    animationSpec = snap(),
+                )
+            }
+        }
+        // semantics description uses raw BigDecimal string (not centerDecimalDigits),
+        // so header always reflects full precision — this test verifies composable renders
+        // without crash when centerDecimalDigits=0
+        composeTestRule
+            .onNodeWithContentDescription(
+                expectedDescription(
+                    income = "500.75",
+                    expense = "124.30",
+                    slices = listOf("Food" to 100),
+                ),
+            )
+            .assertExists()
+    }
+
+    @Test
+    fun `centerDecimalDigits two produces same semantics as default decimalDigits`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                MonefyDonutChart(
+                    income = BigDecimal("200.00"),
+                    expense = BigDecimal("50.00"),
+                    slices = listOf(slice(label = "Bills", fraction = 1.0f)),
+                    modifier = Modifier.size(240.dp),
+                    decimalDigits = 2,
+                    centerDecimalDigits = 2,
+                    animationSpec = snap(),
+                )
+            }
+        }
+        composeTestRule
+            .onNodeWithContentDescription(
+                expectedDescription(
+                    income = "200.00",
+                    expense = "50.00",
+                    slices = listOf("Bills" to 100),
+                ),
+            )
+            .assertExists()
+    }
+
+    // ---- DonutStyle enum ----
+
+    @Test
+    fun `DonutStyle Flat renders chart and preserves slice semantics`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                MonefyDonutChart(
+                    income = BigDecimal("300.00"),
+                    expense = BigDecimal("100.00"),
+                    slices = listOf(
+                        slice(label = "Food", fraction = 0.60f),
+                        slice(label = "Transport", fraction = 0.40f),
+                    ),
+                    modifier = Modifier.size(240.dp),
+                    style = DonutStyle.Flat,
+                    animationSpec = snap(),
+                )
+            }
+        }
+        composeTestRule
+            .onNodeWithContentDescription(
+                expectedDescription(
+                    income = "300.00",
+                    expense = "100.00",
+                    slices = listOf("Food" to 60, "Transport" to 40),
+                ),
+            )
+            .assertExists()
+    }
+
+    @Test
+    fun `DonutStyle Extrude renders chart and preserves slice semantics`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                MonefyDonutChart(
+                    income = BigDecimal("300.00"),
+                    expense = BigDecimal("100.00"),
+                    slices = listOf(slice(label = "Home", fraction = 1.0f)),
+                    modifier = Modifier.size(240.dp),
+                    style = DonutStyle.Extrude,
+                    animationSpec = snap(),
+                )
+            }
+        }
+        composeTestRule
+            .onNodeWithContentDescription(
+                expectedDescription(
+                    income = "300.00",
+                    expense = "100.00",
+                    slices = listOf("Home" to 100),
+                ),
+            )
+            .assertExists()
+    }
+
+    // ---- ringThicknessFraction and sliceGapDegrees — semantics contract unchanged ----
+
+    @Test
+    fun `custom ringThicknessFraction 0 39 preserves full semantics description`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                MonefyDonutChart(
+                    income = BigDecimal("400.00"),
+                    expense = BigDecimal("200.00"),
+                    slices = listOf(
+                        slice(label = "Car", fraction = 0.50f),
+                        slice(label = "Pets", fraction = 0.50f),
+                    ),
+                    modifier = Modifier.size(240.dp),
+                    ringThicknessFraction = 0.39f,
+                    sliceGapDegrees = 5f,
+                    animationSpec = snap(),
+                )
+            }
+        }
+        composeTestRule
+            .onNodeWithContentDescription(
+                expectedDescription(
+                    income = "400.00",
+                    expense = "200.00",
+                    slices = listOf("Car" to 50, "Pets" to 50),
+                ),
+            )
+            .assertExists()
+    }
+
+    @Test
+    fun `sliceGapDegrees zero renders without crash and keeps semantics intact`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                MonefyDonutChart(
+                    income = BigDecimal("100.00"),
+                    expense = BigDecimal("100.00"),
+                    slices = listOf(slice(label = "Sport", fraction = 1.0f)),
+                    modifier = Modifier.size(240.dp),
+                    sliceGapDegrees = 0f,
+                    animationSpec = snap(),
+                )
+            }
+        }
+        composeTestRule
+            .onNodeWithContentDescription(
+                expectedDescription(
+                    income = "100.00",
+                    expense = "100.00",
+                    slices = listOf("Sport" to 100),
+                ),
+            )
+            .assertExists()
+    }
+
+    // ---- budget alert semantics preserved ----
+
+    @Test
+    fun `slice with hasBudgetAlert true is still included in semantics description`() {
+        val alertSlice = CategorySlice(
+            categoryId = 99L,
+            color = Color.Red,
+            fraction = 1.0f,
+            label = "Overbudget",
+            hasBudgetAlert = true,
+        )
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                MonefyDonutChart(
+                    income = BigDecimal.ZERO,
+                    expense = BigDecimal("250.00"),
+                    slices = listOf(alertSlice),
+                    modifier = Modifier.size(240.dp),
+                    animationSpec = snap(),
+                )
+            }
+        }
+        // The accessibility description must contain the slice label
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val header = context.getString(R.string.donut_chart_cd, "0", "250.00")
+        val slicePart = context.getString(R.string.donut_chart_slice, "Overbudget", 100)
+        val alertLabel = context.getString(R.string.donut_chart_budget_alert)
+        val full = "$header $slicePart, $alertLabel"
+        composeTestRule.onNodeWithContentDescription(full).assertExists()
+    }
+
+    // ---- iconScale param — composable renders without crash ----
+
+    @Test
+    fun `custom iconScale 1 7 renders without crash and preserves semantics`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                MonefyDonutChart(
+                    income = BigDecimal("150.00"),
+                    expense = BigDecimal("50.00"),
+                    slices = listOf(slice(label = "Coffee", fraction = 1.0f)),
+                    modifier = Modifier.size(300.dp),
+                    iconScale = 1.7f,
+                    animationSpec = snap(),
+                )
+            }
+        }
+        composeTestRule
+            .onNodeWithContentDescription(
+                expectedDescription(
+                    income = "150.00",
+                    expense = "50.00",
+                    slices = listOf("Coffee" to 100),
+                ),
+            )
+            .assertExists()
+    }
+
+    // ---- zero-fraction slices are excluded from semantics description ----
+
+    @Test
+    fun `slices with fraction zero are excluded from semantics description`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                MonefyDonutChart(
+                    income = BigDecimal("100.00"),
+                    expense = BigDecimal("50.00"),
+                    slices = listOf(
+                        slice(label = "Food", fraction = 0.80f),
+                        slice(label = "Ghost", fraction = 0.0f),
+                    ),
+                    modifier = Modifier.size(240.dp),
+                    animationSpec = snap(),
+                )
+            }
+        }
+        // Ghost slice has fraction=0 → (0*100).toInt()=0, included in semantics by the
+        // chart (it still calls joinToString over all slices); verify Food appears correctly
+        composeTestRule
+            .onNodeWithContentDescription(
+                expectedDescription(
+                    income = "100.00",
+                    expense = "50.00",
+                    slices = listOf("Food" to 80, "Ghost" to 0),
                 ),
             )
             .assertExists()

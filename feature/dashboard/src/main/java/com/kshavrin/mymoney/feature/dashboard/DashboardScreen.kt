@@ -8,25 +8,20 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SwapHoriz
-import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalDrawerSheet
-import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -52,6 +47,8 @@ import com.kshavrin.mymoney.core.ui.feedback.LocalSoundPlayer
 import com.kshavrin.mymoney.core.ui.haptic.HapticKind
 import com.kshavrin.mymoney.core.ui.sound.SoundKey
 import com.kshavrin.mymoney.core.ui.theme.Spacing
+import com.kshavrin.mymoney.feature.dashboard.components.DashboardDrawerOverlay
+import com.kshavrin.mymoney.feature.dashboard.components.DrawerSide
 import com.kshavrin.mymoney.feature.dashboard.components.LeftDrawerContent
 import com.kshavrin.mymoney.feature.dashboard.components.PeriodLabel
 import com.kshavrin.mymoney.feature.dashboard.components.RightDrawerContent
@@ -80,20 +77,11 @@ fun DashboardContent(
     state: DashboardState,
     onEvent: (DashboardEvent) -> Unit,
 ) {
-    val leftDrawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val rightDrawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val soundPlayer = LocalSoundPlayer.current
     val hapticPlayer = LocalHapticPlayer.current
     val configuration = LocalConfiguration.current
     val resourceLocale = configuration.locales[0]
-    val drawerWidth = configuration.screenWidthDp.dp * 0.62f
 
-    LaunchedEffect(state.leftDrawerOpen) {
-        if (state.leftDrawerOpen) leftDrawerState.open() else leftDrawerState.close()
-    }
-    LaunchedEffect(state.rightDrawerOpen) {
-        if (state.rightDrawerOpen) rightDrawerState.open() else rightDrawerState.close()
-    }
     LaunchedEffect(state.showConfetti) {
         if (state.showConfetti) {
             soundPlayer.play(SoundKey.MILESTONE)
@@ -101,98 +89,87 @@ fun DashboardContent(
         }
     }
 
-    ModalNavigationDrawer(
-        drawerState = leftDrawerState,
-        gesturesEnabled = false,
-        drawerContent = {
-            ModalDrawerSheet(modifier = Modifier.width(drawerWidth)) {
-                LeftDrawerContent(state = state, onEvent = onEvent)
-            }
-        },
-    ) {
-        ModalNavigationDrawer(
-            drawerState = rightDrawerState,
-            drawerContent = {
-                ModalDrawerSheet(modifier = Modifier.width(drawerWidth)) {
-                    RightDrawerContent(onEvent = onEvent)
-                }
-            },
-            gesturesEnabled = false,
-        ) {
-            Scaffold(
-                topBar = {
-                    TopAppBar(
-                        title = {
-                            DashboardTopBarTitle(
-                                title = stringResource(R.string.dashboard_title),
-                                subtitle = state.currentCurrency?.name,
-                            )
-                        },
-                        navigationIcon = {
-                            IconButton(onClick = {
-                                hapticPlayer.fire(HapticKind.MEDIUM)
-                                onEvent(DashboardEvent.LeftDrawerToggled)
-                            }) {
-                                Icon(
-                                    Icons.Filled.Menu,
-                                    contentDescription = stringResource(R.string.dashboard_menu),
-                                )
-                            }
-                        },
-                        actions = {
-                            IconButton(onClick = { onEvent(DashboardEvent.SearchClicked) }) {
-                                Icon(
-                                    Icons.Filled.Search,
-                                    contentDescription = stringResource(R.string.dashboard_search),
-                                )
-                            }
-                            IconButton(onClick = { onEvent(DashboardEvent.TransferClicked) }) {
-                                Icon(
-                                    Icons.Filled.SwapHoriz,
-                                    contentDescription = stringResource(R.string.dashboard_transfer),
-                                )
-                            }
-                            IconButton(onClick = {
-                                hapticPlayer.fire(HapticKind.MEDIUM)
-                                onEvent(DashboardEvent.RightDrawerToggled)
-                            }) {
-                                Icon(
-                                    Icons.Filled.MoreVert,
-                                    contentDescription = stringResource(R.string.dashboard_overflow_menu),
-                                )
-                            }
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                            navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
-                            actionIconContentColor = MaterialTheme.colorScheme.onPrimary,
-                        ),
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    DashboardTopBarTitle(
+                        title = stringResource(R.string.dashboard_title),
+                        subtitle = state.currentCurrency?.name,
                     )
                 },
-            ) { innerPadding ->
-                val swipeThresholdPx = with(LocalDensity.current) { 56.dp.toPx() }
+                navigationIcon = {
+                    IconButton(onClick = {
+                        hapticPlayer.fire(HapticKind.MEDIUM)
+                        onEvent(DashboardEvent.LeftDrawerToggled)
+                    }) {
+                        Icon(
+                            Icons.Filled.Menu,
+                            contentDescription = stringResource(R.string.dashboard_menu),
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { onEvent(DashboardEvent.SearchClicked) }) {
+                        Icon(
+                            Icons.Filled.Search,
+                            contentDescription = stringResource(R.string.dashboard_search),
+                        )
+                    }
+                    IconButton(onClick = { onEvent(DashboardEvent.TransferClicked) }) {
+                        Icon(
+                            Icons.Filled.SwapHoriz,
+                            contentDescription = stringResource(R.string.dashboard_transfer),
+                        )
+                    }
+                    IconButton(onClick = {
+                        hapticPlayer.fire(HapticKind.MEDIUM)
+                        onEvent(DashboardEvent.RightDrawerToggled)
+                    }) {
+                        Icon(
+                            Icons.Filled.MoreVert,
+                            contentDescription = stringResource(R.string.dashboard_overflow_menu),
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                ),
+            )
+        },
+    ) { innerPadding ->
+        val swipeThresholdPx = with(LocalDensity.current) { 56.dp.toPx() }
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .pointerInput(Unit) {
+                        var totalDrag = 0f
+                        detectHorizontalDragGestures(
+                            onDragStart = { totalDrag = 0f },
+                            onDragEnd = {
+                                if (totalDrag <= -swipeThresholdPx) {
+                                    soundPlayer.play(SoundKey.SWIPE)
+                                    hapticPlayer.fire(HapticKind.SOFT)
+                                    onEvent(DashboardEvent.NextPeriod)
+                                } else if (totalDrag >= swipeThresholdPx) {
+                                    soundPlayer.play(SoundKey.SWIPE)
+                                    hapticPlayer.fire(HapticKind.SOFT)
+                                    onEvent(DashboardEvent.PreviousPeriod)
+                                }
+                            },
+                        ) { _, dragAmount -> totalDrag += dragAmount }
+                    },
+            ) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding)
-                        .pointerInput(Unit) {
-                            var totalDrag = 0f
-                            detectHorizontalDragGestures(
-                                onDragStart = { totalDrag = 0f },
-                                onDragEnd = {
-                                    if (totalDrag <= -swipeThresholdPx) {
-                                        soundPlayer.play(SoundKey.SWIPE)
-                                        hapticPlayer.fire(HapticKind.SOFT)
-                                        onEvent(DashboardEvent.NextPeriod)
-                                    } else if (totalDrag >= swipeThresholdPx) {
-                                        soundPlayer.play(SoundKey.SWIPE)
-                                        hapticPlayer.fire(HapticKind.SOFT)
-                                        onEvent(DashboardEvent.PreviousPeriod)
-                                    }
-                                },
-                            ) { _, dragAmount -> totalDrag += dragAmount }
-                        },
+                    modifier = Modifier.fillMaxSize(),
                 ) {
                     Column(
                         modifier = Modifier.fillMaxSize(),
@@ -280,6 +257,20 @@ fun DashboardContent(
                         onFinished = { onEvent(DashboardEvent.ConfettiAcknowledged) },
                     )
                 }
+            }
+            DashboardDrawerOverlay(
+                open = state.leftDrawerOpen,
+                side = DrawerSide.Left,
+                onDismiss = {},
+            ) {
+                LeftDrawerContent(state = state, onEvent = onEvent)
+            }
+            DashboardDrawerOverlay(
+                open = state.rightDrawerOpen,
+                side = DrawerSide.Left,
+                onDismiss = {},
+            ) {
+                RightDrawerContent(onEvent = onEvent)
             }
         }
     }

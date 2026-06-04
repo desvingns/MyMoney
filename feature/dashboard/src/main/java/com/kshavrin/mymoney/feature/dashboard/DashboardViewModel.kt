@@ -258,9 +258,15 @@ class DashboardViewModel @Inject constructor(
                 }
             }
             DashboardEvent.LeftDrawerToggled ->
-                _state.value = _state.value.copy(leftDrawerOpen = !_state.value.leftDrawerOpen)
+                _state.value = _state.value.copy(
+                    leftDrawerOpen = !_state.value.leftDrawerOpen,
+                    rightDrawerOpen = false,
+                )
             DashboardEvent.RightDrawerToggled ->
-                _state.value = _state.value.copy(rightDrawerOpen = !_state.value.rightDrawerOpen)
+                _state.value = _state.value.copy(
+                    rightDrawerOpen = !_state.value.rightDrawerOpen,
+                    leftDrawerOpen = false,
+                )
             DashboardEvent.DrawerDismissed ->
                 _state.value = _state.value.copy(leftDrawerOpen = false, rightDrawerOpen = false)
             DashboardEvent.MinusFabClicked -> emit(DashboardAction.NavigateAddExpense)

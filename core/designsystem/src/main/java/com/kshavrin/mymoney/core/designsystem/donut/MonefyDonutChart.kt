@@ -33,6 +33,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
@@ -218,6 +219,14 @@ fun MonefyDonutChart(
                         iconPainter = iconPainters[slice.iconKey],
                     )
                 }
+                drawCenterTotals(
+                    center = center,
+                    incomeText = incomeText,
+                    expenseText = expenseText,
+                    incomeColor = incomeColor,
+                    expenseColor = expenseColor,
+                    textMeasurer = textMeasurer,
+                )
                 return@Canvas
             }
 
@@ -291,25 +300,13 @@ fun MonefyDonutChart(
                 }
             }
 
-            val centerTextStyle = TextStyle(
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-            )
-            val incomeLayout = textMeasurer.measure(text = incomeText, style = centerTextStyle)
-            val expenseLayout = textMeasurer.measure(text = expenseText, style = centerTextStyle)
-            val lineGap = 4.dp.toPx()
-            val totalHeight = incomeLayout.size.height + lineGap + expenseLayout.size.height
-            val incomeTop = center.y - totalHeight / 2f
-            val expenseTop = incomeTop + incomeLayout.size.height + lineGap
-            drawText(
-                textLayoutResult = incomeLayout,
-                color = incomeColor,
-                topLeft = Offset(center.x - incomeLayout.size.width / 2f, incomeTop),
-            )
-            drawText(
-                textLayoutResult = expenseLayout,
-                color = expenseColor,
-                topLeft = Offset(center.x - expenseLayout.size.width / 2f, expenseTop),
+            drawCenterTotals(
+                center = center,
+                incomeText = incomeText,
+                expenseText = expenseText,
+                incomeColor = incomeColor,
+                expenseColor = expenseColor,
+                textMeasurer = textMeasurer,
             )
         }
     }
@@ -333,6 +330,36 @@ private inline fun <T> List<T>.firstOrNullIndexed(predicate: (Int, T) -> Boolean
         if (predicate(index, value)) return value
     }
     return null
+}
+
+private fun DrawScope.drawCenterTotals(
+    center: Offset,
+    incomeText: String,
+    expenseText: String,
+    incomeColor: Color,
+    expenseColor: Color,
+    textMeasurer: TextMeasurer,
+) {
+    val centerTextStyle = TextStyle(
+        fontSize = 14.sp,
+        fontWeight = FontWeight.SemiBold,
+    )
+    val incomeLayout = textMeasurer.measure(text = incomeText, style = centerTextStyle)
+    val expenseLayout = textMeasurer.measure(text = expenseText, style = centerTextStyle)
+    val lineGap = 4.dp.toPx()
+    val totalHeight = incomeLayout.size.height + lineGap + expenseLayout.size.height
+    val incomeTop = center.y - totalHeight / 2f
+    val expenseTop = incomeTop + incomeLayout.size.height + lineGap
+    drawText(
+        textLayoutResult = incomeLayout,
+        color = incomeColor,
+        topLeft = Offset(center.x - incomeLayout.size.width / 2f, incomeTop),
+    )
+    drawText(
+        textLayoutResult = expenseLayout,
+        color = expenseColor,
+        topLeft = Offset(center.x - expenseLayout.size.width / 2f, expenseTop),
+    )
 }
 
 private fun emptyIconSlot(

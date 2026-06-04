@@ -8,8 +8,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import com.kshavrin.mymoney.core.domain.model.Period
 import com.kshavrin.mymoney.feature.dashboard.R
@@ -38,8 +40,9 @@ fun PeriodLabel(
         )
         Text(
             text = period.localizedLabel(locale, allLabel),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.Bold,
             maxLines = 1,
         )
         Text(
@@ -48,7 +51,9 @@ fun PeriodLabel(
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
             maxLines = 1,
             overflow = TextOverflow.Clip,
-            modifier = Modifier.weight(1f, fill = false),
+            modifier = Modifier
+                .weight(1f, fill = false)
+                .alpha(0f),
         )
     }
 }

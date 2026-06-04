@@ -36,7 +36,7 @@ fun TwoFabLayout(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         val expenseColor = MaterialTheme.colorScheme.tertiary
-        val incomeColor = MaterialTheme.colorScheme.primary
+        val incomeColor = MaterialTheme.colorScheme.secondary
         val containerColor = MaterialTheme.colorScheme.onPrimary
 
         FloatingActionButton(
@@ -49,8 +49,8 @@ fun TwoFabLayout(
                 pressedElevation = 0.dp,
             ),
             modifier = Modifier
-                .size(96.dp)
-                .border(width = 7.dp, color = expenseColor, shape = CircleShape),
+                .size(100.dp)
+                .border(width = 6.dp, color = expenseColor, shape = CircleShape),
         ) {
             Icon(
                 Icons.Filled.Remove,
@@ -69,8 +69,8 @@ fun TwoFabLayout(
                 pressedElevation = 0.dp,
             ),
             modifier = Modifier
-                .size(96.dp)
-                .border(width = 7.dp, color = incomeColor, shape = CircleShape),
+                .size(100.dp)
+                .border(width = 6.dp, color = incomeColor, shape = CircleShape),
         ) {
             Icon(
                 Icons.Filled.Add,

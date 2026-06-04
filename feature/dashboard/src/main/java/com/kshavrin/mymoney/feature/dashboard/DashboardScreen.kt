@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kshavrin.mymoney.core.common.money.MoneyFormatter
 import com.kshavrin.mymoney.core.designsystem.confetti.MonefyConfetti
+import com.kshavrin.mymoney.core.designsystem.donut.DonutStyle
 import com.kshavrin.mymoney.core.designsystem.donut.MonefyDonutChart
 import com.kshavrin.mymoney.core.designsystem.balancebar.MonefyBalanceBar
 import com.kshavrin.mymoney.core.domain.model.Money
@@ -179,7 +180,7 @@ fun DashboardContent(
                             period = state.period,
                             modifier = Modifier.padding(top = Spacing.m),
                         )
-                        Spacer(modifier = Modifier.height(Spacing.m))
+                        Spacer(modifier = Modifier.height(Spacing.xxs))
 
                         val balanceAmount = formatBalanceAmount(
                             state = state,
@@ -194,7 +195,7 @@ fun DashboardContent(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .weight(1f)
-                                .padding(horizontal = Spacing.s)
+                                .padding(horizontal = Spacing.xs)
                                 .testTag(DASHBOARD_DONUT_TAG),
                         ) {
                             MonefyDonutChart(
@@ -206,13 +207,13 @@ fun DashboardContent(
                                 decimalDigits = state.currentCurrency?.decimalDigits ?: 2,
                                 emptyStateIcons = state.expenseCategoryPlaceholders,
                                 outerRadiusFraction = 0.80f,
+                                centerDecimalDigits = 0,
+                                style = DonutStyle.Extrude,
                                 onSliceClick = { slice ->
                                     onEvent(DashboardEvent.SliceClicked(slice.categoryId))
                                 },
                             )
                         }
-
-                        Spacer(modifier = Modifier.height(Spacing.l))
 
                         MonefyBalanceBar(
                             amount = balanceAmount,
@@ -220,7 +221,7 @@ fun DashboardContent(
                             onClick = { onEvent(DashboardEvent.BalanceCardClicked) },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = Spacing.xl)
+                                .padding(horizontal = Spacing.l)
                                 .testTag("dashboard_balance_bar"),
                         )
                         if (overBudgetText != null) {

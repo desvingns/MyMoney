@@ -5,6 +5,21 @@ import kotlin.math.hypot
 
 object DonutGeometry {
 
+    fun framePoint(t: Float, hw: Float, hhTop: Float, hhBot: Float): FrameOffset {
+        val side = hhTop + hhBot
+        val perimeter = 4f * hw + 2f * side
+        var d = ((t % 1f) + 1f) % 1f * perimeter
+        if (d < hw) return FrameOffset(d, -hhTop)
+        d -= hw
+        if (d < side) return FrameOffset(hw, -hhTop + d)
+        d -= side
+        if (d < 2f * hw) return FrameOffset(hw - d, hhBot)
+        d -= 2f * hw
+        if (d < side) return FrameOffset(-hw, hhBot - d)
+        d -= side
+        return FrameOffset(-hw + d, -hhTop)
+    }
+
     fun computeSliceArcs(slices: List<CategorySlice>): List<SliceArc> {
         if (slices.isEmpty()) return emptyList()
         var cumulative = 0f
@@ -54,3 +69,5 @@ data class SliceArc(
     val startAngleDegrees: Float,
     val sweepDegrees: Float,
 )
+
+data class FrameOffset(val x: Float, val y: Float)

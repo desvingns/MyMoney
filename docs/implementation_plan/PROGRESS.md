@@ -7,6 +7,8 @@
 
 ## Current state
 
+- **2026-06-04 (Codex MP feature):** Completed SPEC `dashboard-drawers-rework-01-toolbar-visible-overlay`: dashboard drawers now render as custom in-content overlays below the `Scaffold` top bar, using dashboard drawer color/motion tokens, preserving the ~62% panel width, keeping toolbar actions visible/clickable while a drawer is open, and enforcing mutual drawer exclusion in `DashboardViewModel`. Verification green with JDK 21 from `.gradle-local`: `:feature:dashboard:testDebugUnitTest`, `:app:assembleDebug`, `DashboardContentUiTest` 19/19 on `Pixel_5_API_34`, and `DashboardDrawerOverlayUiTest` 3/3 on `Pixel_5_API_34`. The SPEC was moved to `.claude/specs/done/`; next backlog item for this epic is `dashboard-drawers-rework-02-right-drawer-from-right.md`.
+
 - **2026-06-03 (Codex MP feature):** Completed the S01/S05 dashboard fidelity scale fix against reference `05.jpg`: the dashboard donut stage now expands through the middle viewport, chart side padding is reduced, the dashboard passes a larger donut radius fraction, and the two `-`/`+` FABs are 96 dp. Verification green: `:feature:dashboard:testDebugUnitTest`, `:app:assembleDebug`, `DashboardContentUiTest` 17/17 on `Pixel_5_API_34`, `MonefyDonutChartUiTest` 7/7 on `Pixel_5_API_34`. Visual screenshot: `build/visual-check/dashboard-fidelity-scale-after.png`.
 
 - **Active phase:** none — all implementation_plan phases `PHASE_01`–`PHASE_15` are **done**.

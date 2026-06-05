@@ -45,6 +45,21 @@ class MoneyDatabaseMigration1To2Test {
             assertTrue(c.moveToFirst())
             assertEquals(0, c.getInt(0))
         }
+
+        db.execSQL(
+            "INSERT INTO `goal` (`name`, `icon_key`, `color_hex`, `account_id`, `variant`, " +
+                "`target_amount`, `starting_capital`, `monthly_contribution`, " +
+                "`annual_rate_percent`, `term_date`, `created_at`, `updated_at`, `is_archived`) " +
+                "VALUES ('Car', 'ic_goal_car', '#7AC794', 1, 'SAVINGS', 500000.0, 10000.0, 20000.0, NULL, NULL, 1000, 1000, 0)",
+        )
+
+        db.query("SELECT `name`, `variant`, `is_archived` FROM `goal`").use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals("Car", c.getString(0))
+            assertEquals("SAVINGS", c.getString(1))
+            assertEquals(0, c.getInt(2))
+        }
+
         db.close()
     }
 }

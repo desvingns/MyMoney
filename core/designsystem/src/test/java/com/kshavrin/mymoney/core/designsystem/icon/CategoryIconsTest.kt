@@ -2,14 +2,19 @@ package com.kshavrin.mymoney.core.designsystem.icon
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.DirectionsRun
+import androidx.compose.material.icons.outlined.AssignmentReturn
+import androidx.compose.material.icons.outlined.BusinessCenter
 import androidx.compose.material.icons.outlined.Call
 import androidx.compose.material.icons.outlined.CardGiftcard
 import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.ChildCare
+import androidx.compose.material.icons.outlined.Copyright
 import androidx.compose.material.icons.outlined.DirectionsBus
 import androidx.compose.material.icons.outlined.DirectionsCar
+import androidx.compose.material.icons.outlined.Elderly
 import androidx.compose.material.icons.outlined.Fastfood
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.HomeWork
 import androidx.compose.material.icons.outlined.LocalGroceryStore
 import androidx.compose.material.icons.outlined.LocalBar
 import androidx.compose.material.icons.outlined.LocalCafe
@@ -18,16 +23,27 @@ import androidx.compose.material.icons.outlined.LocalOffer
 import androidx.compose.material.icons.outlined.LocalTaxi
 import androidx.compose.material.icons.outlined.Luggage
 import androidx.compose.material.icons.outlined.MedicalServices
+import androidx.compose.material.icons.outlined.MonetizationOn
+import androidx.compose.material.icons.outlined.Paid
 import androidx.compose.material.icons.outlined.Payments
+import androidx.compose.material.icons.outlined.Percent
+import androidx.compose.material.icons.outlined.Redeem
 import androidx.compose.material.icons.outlined.Restaurant
 import androidx.compose.material.icons.outlined.RestaurantMenu
+import androidx.compose.material.icons.outlined.Savings
+import androidx.compose.material.icons.outlined.Sell
+import androidx.compose.material.icons.outlined.ShowChart
 import androidx.compose.material.icons.outlined.ShoppingBasket
 import androidx.compose.material.icons.outlined.Spa
+import androidx.compose.material.icons.outlined.Stars
 import androidx.compose.material.icons.outlined.Subscriptions
 import androidx.compose.material.icons.outlined.Train
+import androidx.compose.material.icons.outlined.TrendingUp
 import androidx.compose.material.icons.outlined.VolunteerActivism
 import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material.icons.outlined.WineBar
+import androidx.compose.material.icons.outlined.Work
+import androidx.compose.material.icons.outlined.WorkspacePremium
 import androidx.compose.ui.graphics.vector.ImageVector
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotSame
@@ -269,6 +285,86 @@ class CategoryIconsTest {
     @Test
     fun `ic_cat_charity maps to Outlined VolunteerActivism`() {
         assertSame(Icons.Outlined.VolunteerActivism, categoryIcon("ic_cat_charity"))
+    }
+
+    @Test
+    fun `ic_cat_freelance maps to Outlined Work`() {
+        assertSame(Icons.Outlined.Work, categoryIcon("ic_cat_freelance"))
+    }
+
+    @Test
+    fun `ic_cat_bonus maps to Outlined Stars`() {
+        assertSame(Icons.Outlined.Stars, categoryIcon("ic_cat_bonus"))
+    }
+
+    @Test
+    fun `ic_cat_dividends maps to Outlined TrendingUp`() {
+        assertSame(Icons.Outlined.TrendingUp, categoryIcon("ic_cat_dividends"))
+    }
+
+    @Test
+    fun `ic_cat_interest maps to Outlined Percent`() {
+        assertSame(Icons.Outlined.Percent, categoryIcon("ic_cat_interest"))
+    }
+
+    @Test
+    fun `ic_cat_rent_income maps to Outlined HomeWork`() {
+        assertSame(Icons.Outlined.HomeWork, categoryIcon("ic_cat_rent_income"))
+    }
+
+    @Test
+    fun `ic_cat_business_income maps to Outlined BusinessCenter`() {
+        assertSame(Icons.Outlined.BusinessCenter, categoryIcon("ic_cat_business_income"))
+    }
+
+    @Test
+    fun `ic_cat_sale maps to Outlined Sell`() {
+        assertSame(Icons.Outlined.Sell, categoryIcon("ic_cat_sale"))
+    }
+
+    @Test
+    fun `ic_cat_refund maps to Outlined AssignmentReturn`() {
+        assertSame(Icons.Outlined.AssignmentReturn, categoryIcon("ic_cat_refund"))
+    }
+
+    @Test
+    fun `ic_cat_gift_received maps to Outlined Redeem`() {
+        assertSame(Icons.Outlined.Redeem, categoryIcon("ic_cat_gift_received"))
+    }
+
+    @Test
+    fun `ic_cat_cashback maps to Outlined Paid`() {
+        assertSame(Icons.Outlined.Paid, categoryIcon("ic_cat_cashback"))
+    }
+
+    @Test
+    fun `ic_cat_pension maps to Outlined Elderly`() {
+        assertSame(Icons.Outlined.Elderly, categoryIcon("ic_cat_pension"))
+    }
+
+    @Test
+    fun `ic_cat_scholarship maps to Outlined WorkspacePremium`() {
+        assertSame(Icons.Outlined.WorkspacePremium, categoryIcon("ic_cat_scholarship"))
+    }
+
+    @Test
+    fun `ic_cat_investment_return maps to Outlined ShowChart`() {
+        assertSame(Icons.Outlined.ShowChart, categoryIcon("ic_cat_investment_return"))
+    }
+
+    @Test
+    fun `ic_cat_royalties maps to Outlined Copyright`() {
+        assertSame(Icons.Outlined.Copyright, categoryIcon("ic_cat_royalties"))
+    }
+
+    @Test
+    fun `ic_cat_tips maps to Outlined MonetizationOn`() {
+        assertSame(Icons.Outlined.MonetizationOn, categoryIcon("ic_cat_tips"))
+    }
+
+    @Test
+    fun `ic_cat_deposit_income maps to Outlined Savings`() {
+        assertSame(Icons.Outlined.Savings, categoryIcon("ic_cat_deposit_income"))
     }
 
     // ---- fallback contract ----

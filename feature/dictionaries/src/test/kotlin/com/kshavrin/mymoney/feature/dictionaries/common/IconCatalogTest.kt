@@ -5,9 +5,12 @@ import androidx.compose.material.icons.outlined.Category
 import com.kshavrin.mymoney.core.designsystem.icon.categoryIcon
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotSame
+import org.junit.Assert.assertSame
 import org.junit.Test
 
 class IconCatalogTest {
+
+    private val fallback = Icons.Outlined.Category
 
     @Test
     fun `expense icon keys match the documented expense catalog order`() {
@@ -69,8 +72,6 @@ class IconCatalogTest {
 
     @Test
     fun `every expense icon key resolves to a non fallback category vector`() {
-        val fallback = Icons.Outlined.Category
-
         for (iconKey in EXPENSE_ICON_KEYS) {
             assertNotSame(
                 "expense key '$iconKey' must resolve to a registered category icon",
@@ -78,5 +79,48 @@ class IconCatalogTest {
                 categoryIcon(iconKey),
             )
         }
+    }
+
+    @Test
+    fun `income icon keys match the documented income catalog order`() {
+        assertEquals(
+            listOf(
+                "ic_cat_salary",
+                "ic_cat_other",
+                "ic_cat_freelance",
+                "ic_cat_bonus",
+                "ic_cat_dividends",
+                "ic_cat_interest",
+                "ic_cat_rent_income",
+                "ic_cat_business_income",
+                "ic_cat_sale",
+                "ic_cat_refund",
+                "ic_cat_gift_received",
+                "ic_cat_cashback",
+                "ic_cat_pension",
+                "ic_cat_scholarship",
+                "ic_cat_investment_return",
+                "ic_cat_royalties",
+                "ic_cat_tips",
+                "ic_cat_deposit_income",
+            ),
+            INCOME_ICON_KEYS,
+        )
+    }
+
+    @Test
+    fun `every non other income icon key resolves to a non fallback category vector`() {
+        for (iconKey in INCOME_ICON_KEYS.filterNot { it == "ic_cat_other" }) {
+            assertNotSame(
+                "income key '$iconKey' must resolve to a registered category icon",
+                fallback,
+                categoryIcon(iconKey),
+            )
+        }
+    }
+
+    @Test
+    fun `income other key intentionally resolves to the fallback category vector`() {
+        assertSame(fallback, categoryIcon("ic_cat_other"))
     }
 }

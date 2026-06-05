@@ -5,17 +5,27 @@ import androidx.compose.material.icons.automirrored.outlined.DirectionsRun
 import androidx.compose.material.icons.outlined.Call
 import androidx.compose.material.icons.outlined.CardGiftcard
 import androidx.compose.material.icons.outlined.Category
+import androidx.compose.material.icons.outlined.ChildCare
+import androidx.compose.material.icons.outlined.DirectionsBus
 import androidx.compose.material.icons.outlined.DirectionsCar
+import androidx.compose.material.icons.outlined.Fastfood
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.LocalGroceryStore
 import androidx.compose.material.icons.outlined.LocalBar
+import androidx.compose.material.icons.outlined.LocalCafe
+import androidx.compose.material.icons.outlined.LocalGasStation
 import androidx.compose.material.icons.outlined.LocalOffer
 import androidx.compose.material.icons.outlined.LocalTaxi
+import androidx.compose.material.icons.outlined.Luggage
+import androidx.compose.material.icons.outlined.MedicalServices
 import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.outlined.Restaurant
 import androidx.compose.material.icons.outlined.RestaurantMenu
 import androidx.compose.material.icons.outlined.ShoppingBasket
+import androidx.compose.material.icons.outlined.Spa
+import androidx.compose.material.icons.outlined.Subscriptions
 import androidx.compose.material.icons.outlined.Train
+import androidx.compose.material.icons.outlined.VolunteerActivism
 import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material.icons.outlined.WineBar
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -186,13 +196,63 @@ class CategoryIconsTest {
     }
 
     @Test
+    fun `ic_cat_fastfood maps to Outlined Fastfood`() {
+        assertSame(Icons.Outlined.Fastfood, categoryIcon("ic_cat_fastfood"))
+    }
+
+    @Test
+    fun `ic_cat_coffee maps to Outlined LocalCafe`() {
+        assertSame(Icons.Outlined.LocalCafe, categoryIcon("ic_cat_coffee"))
+    }
+
+    @Test
     fun `ic_cat_bar maps to Outlined WineBar`() {
         assertSame(Icons.Outlined.WineBar, categoryIcon("ic_cat_bar"))
     }
 
     @Test
+    fun `ic_cat_bus maps to Outlined DirectionsBus`() {
+        assertSame(Icons.Outlined.DirectionsBus, categoryIcon("ic_cat_bus"))
+    }
+
+    @Test
+    fun `ic_cat_fuel maps to Outlined LocalGasStation`() {
+        assertSame(Icons.Outlined.LocalGasStation, categoryIcon("ic_cat_fuel"))
+    }
+
+    @Test
+    fun `ic_cat_doctor maps to Outlined MedicalServices`() {
+        assertSame(Icons.Outlined.MedicalServices, categoryIcon("ic_cat_doctor"))
+    }
+
+    @Test
+    fun `ic_cat_beauty maps to Outlined Spa`() {
+        assertSame(Icons.Outlined.Spa, categoryIcon("ic_cat_beauty"))
+    }
+
+    @Test
+    fun `ic_cat_kids maps to Outlined ChildCare`() {
+        assertSame(Icons.Outlined.ChildCare, categoryIcon("ic_cat_kids"))
+    }
+
+    @Test
+    fun `ic_cat_travel maps to Outlined Luggage`() {
+        assertSame(Icons.Outlined.Luggage, categoryIcon("ic_cat_travel"))
+    }
+
+    @Test
+    fun `ic_cat_subscription maps to Outlined Subscriptions`() {
+        assertSame(Icons.Outlined.Subscriptions, categoryIcon("ic_cat_subscription"))
+    }
+
+    @Test
     fun `ic_cat_internet maps to Outlined Wifi`() {
         assertSame(Icons.Outlined.Wifi, categoryIcon("ic_cat_internet"))
+    }
+
+    @Test
+    fun `ic_cat_charity maps to Outlined VolunteerActivism`() {
+        assertSame(Icons.Outlined.VolunteerActivism, categoryIcon("ic_cat_charity"))
     }
 
     // ---- fallback contract ----

@@ -28,8 +28,10 @@ data class LoanGoalInput(
 data class LoanProjection(
     val principal: BigDecimal,
     val baseMonthlyPayment: BigDecimal,
+    val finalMonthlyPayment: BigDecimal,
     val totalInterest: BigDecimal,
     val totalPaid: BigDecimal,
+    val interestSavedVsBaseline: BigDecimal,
     val monthsToPayoff: Int,
     val underfunded: Boolean,
     val overpaymentApplied: Boolean,

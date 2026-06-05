@@ -21,8 +21,10 @@ class GoalLoanCalculator @Inject constructor() {
             return LoanProjection(
                 principal = zero,
                 baseMonthlyPayment = zero,
+                finalMonthlyPayment = zero,
                 totalInterest = zero,
                 totalPaid = zero,
+                interestSavedVsBaseline = zero,
                 monthsToPayoff = 0,
                 underfunded = false,
                 overpaymentApplied = false,
@@ -34,23 +36,18 @@ class GoalLoanCalculator @Inject constructor() {
             .divide(BigDecimal(12), mc)
         val nBig = BigDecimal(n)
 
-        val baseAnnuity = if (i.signum() == 0) {
-            principal.divide(nBig, mc)
-        } else {
-            val onePlusI = BigDecimal.ONE.add(i, mc)
-            val pow = onePlusI.pow(n, mc)
-            principal.multiply(i, mc).multiply(pow, mc)
-                .divide(pow.subtract(BigDecimal.ONE, mc), mc)
-        }
+        val baseAnnuity = annuity(principal, i, n, mc)
+        val baselineTotalPaid = baseAnnuity.multiply(nBig, mc)
+        val baselineTotalInterest = baselineTotalPaid.subtract(principal, mc)
 
         if (input.monthlyContribution < baseAnnuity) {
-            val totalPaid = baseAnnuity.multiply(nBig, mc)
-            val totalInterest = totalPaid.subtract(principal, mc)
             return LoanProjection(
                 principal = principal.setScale(2, RoundingMode.HALF_UP),
                 baseMonthlyPayment = baseAnnuity.setScale(2, RoundingMode.HALF_UP),
-                totalInterest = totalInterest.setScale(2, RoundingMode.HALF_UP),
-                totalPaid = totalPaid.setScale(2, RoundingMode.HALF_UP),
+                finalMonthlyPayment = baseAnnuity.setScale(2, RoundingMode.HALF_UP),
+                totalInterest = baselineTotalInterest.setScale(2, RoundingMode.HALF_UP),
+                totalPaid = baselineTotalPaid.setScale(2, RoundingMode.HALF_UP),
+                interestSavedVsBaseline = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP),
                 monthsToPayoff = n,
                 underfunded = true,
                 overpaymentApplied = false,
@@ -58,64 +55,70 @@ class GoalLoanCalculator @Inject constructor() {
         }
 
         if (input.monthlyContribution.compareTo(baseAnnuity) == 0) {
-            val totalPaid = baseAnnuity.multiply(nBig, mc)
-            val totalInterest = totalPaid.subtract(principal, mc)
             return LoanProjection(
                 principal = principal.setScale(2, RoundingMode.HALF_UP),
                 baseMonthlyPayment = baseAnnuity.setScale(2, RoundingMode.HALF_UP),
-                totalInterest = totalInterest.setScale(2, RoundingMode.HALF_UP),
-                totalPaid = totalPaid.setScale(2, RoundingMode.HALF_UP),
+                finalMonthlyPayment = baseAnnuity.setScale(2, RoundingMode.HALF_UP),
+                totalInterest = baselineTotalInterest.setScale(2, RoundingMode.HALF_UP),
+                totalPaid = baselineTotalPaid.setScale(2, RoundingMode.HALF_UP),
+                interestSavedVsBaseline = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP),
                 monthsToPayoff = n,
                 underfunded = false,
                 overpaymentApplied = false,
             )
         }
 
-        // Reduce-payment overpayment: term fixed at n, each month the constant surplus is
-        // applied as extra principal and the contractual annuity is recomputed on the reduced
-        // balance for the remaining term, so the schedule still terminates by month n.
+        // Keep the horizon fixed so overpayment lowers the contractual payment, not the payoff date.
         var balance = principal
         var paidInterest = BigDecimal.ZERO
         var paidTotal = BigDecimal.ZERO
-        var monthsUsed = 0
+        var lastAnnuity = baseAnnuity
+        val surplus = input.monthlyContribution.subtract(baseAnnuity, mc)
 
         for (m in 0 until n) {
             val remainingTerm = n - m
-            val annuity = if (i.signum() == 0) {
-                balance.divide(BigDecimal(remainingTerm), mc)
+            if (balance.signum() == 0) {
+                lastAnnuity = BigDecimal.ZERO
             } else {
-                val onePlusI = BigDecimal.ONE.add(i, mc)
-                val pow = onePlusI.pow(remainingTerm, mc)
-                balance.multiply(i, mc).multiply(pow, mc)
-                    .divide(pow.subtract(BigDecimal.ONE, mc), mc)
-            }
-            val interest = balance.multiply(i, mc)
-            val surplus = input.monthlyContribution.subtract(annuity, mc)
-            val plannedPayment = annuity.add(surplus, mc)
-            val principalPart = plannedPayment.subtract(interest, mc)
+                val recomputedAnnuity = annuity(balance, i, remainingTerm, mc)
+                val interest = balance.multiply(i, mc)
+                val principalPart = recomputedAnnuity.subtract(interest, mc)
+                    .add(surplus, mc)
+                    .min(balance)
 
-            monthsUsed = m + 1
-            if (principalPart >= balance) {
-                val finalPayment = balance.add(interest, mc)
                 paidInterest = paidInterest.add(interest, mc)
-                paidTotal = paidTotal.add(finalPayment, mc)
-                balance = BigDecimal.ZERO
-                break
-            } else {
-                paidInterest = paidInterest.add(interest, mc)
-                paidTotal = paidTotal.add(plannedPayment, mc)
+                paidTotal = paidTotal.add(interest.add(principalPart, mc), mc)
                 balance = balance.subtract(principalPart, mc)
+                lastAnnuity = recomputedAnnuity
             }
         }
+        val interestSaved = baselineTotalInterest.subtract(paidInterest, mc).max(BigDecimal.ZERO)
 
         return LoanProjection(
             principal = principal.setScale(2, RoundingMode.HALF_UP),
             baseMonthlyPayment = baseAnnuity.setScale(2, RoundingMode.HALF_UP),
+            finalMonthlyPayment = lastAnnuity.setScale(2, RoundingMode.HALF_UP),
             totalInterest = paidInterest.setScale(2, RoundingMode.HALF_UP),
             totalPaid = paidTotal.setScale(2, RoundingMode.HALF_UP),
-            monthsToPayoff = monthsUsed,
+            interestSavedVsBaseline = interestSaved.setScale(2, RoundingMode.HALF_UP),
+            monthsToPayoff = n,
             underfunded = false,
             overpaymentApplied = true,
         )
+    }
+
+    private fun annuity(
+        balance: BigDecimal,
+        monthlyRate: BigDecimal,
+        termMonths: Int,
+        mc: MathContext,
+    ): BigDecimal {
+        if (balance.signum() == 0) return BigDecimal.ZERO
+        if (monthlyRate.signum() == 0) return balance.divide(BigDecimal(termMonths), mc)
+
+        val onePlusRate = BigDecimal.ONE.add(monthlyRate, mc)
+        val pow = onePlusRate.pow(termMonths, mc)
+        return balance.multiply(monthlyRate, mc).multiply(pow, mc)
+            .divide(pow.subtract(BigDecimal.ONE, mc), mc)
     }
 }

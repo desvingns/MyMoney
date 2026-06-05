@@ -687,6 +687,48 @@ class DashboardContentUiTest {
     }
 
     @Test
+    fun `back arrow closes the left drawer`() {
+        val capturedEvents = mutableListOf<DashboardEvent>()
+
+        val currentState = setStatefulDashboardContent(
+            initialState = DashboardState(isLoading = false, leftDrawerOpen = true),
+            onCapturedEvent = { event -> capturedEvents += event },
+        )
+
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.dashboard_back))
+            .assertIsEnabled()
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(DashboardEvent.DrawerDismissed), capturedEvents)
+            assertFalse(currentState().leftDrawerOpen)
+            assertFalse(currentState().rightDrawerOpen)
+        }
+    }
+
+    @Test
+    fun `back arrow closes the right drawer`() {
+        val capturedEvents = mutableListOf<DashboardEvent>()
+
+        val currentState = setStatefulDashboardContent(
+            initialState = DashboardState(isLoading = false, rightDrawerOpen = true),
+            onCapturedEvent = { event -> capturedEvents += event },
+        )
+
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.dashboard_back))
+            .assertIsEnabled()
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(DashboardEvent.DrawerDismissed), capturedEvents)
+            assertFalse(currentState().leftDrawerOpen)
+            assertFalse(currentState().rightDrawerOpen)
+        }
+    }
+
+    @Test
     fun `hamburger button still opens the left drawer`() {
         val capturedEvents = mutableListOf<DashboardEvent>()
 

@@ -6,6 +6,7 @@ import com.kshavrin.mymoney.core.database.repository.BudgetRepositoryImpl
 import com.kshavrin.mymoney.core.database.repository.CategoryRepositoryImpl
 import com.kshavrin.mymoney.core.database.repository.CurrencyRateRepositoryImpl
 import com.kshavrin.mymoney.core.database.repository.CurrencyRepositoryImpl
+import com.kshavrin.mymoney.core.database.repository.GoalRepositoryImpl
 import com.kshavrin.mymoney.core.database.repository.RecurringTemplateRepositoryImpl
 import com.kshavrin.mymoney.core.database.repository.SearchHistoryRepositoryImpl
 import com.kshavrin.mymoney.core.database.repository.SyncLogRepositoryImpl
@@ -16,6 +17,7 @@ import com.kshavrin.mymoney.core.domain.repository.BudgetRepository
 import com.kshavrin.mymoney.core.domain.repository.CategoryRepository
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRateRepository
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
+import com.kshavrin.mymoney.core.domain.repository.GoalRepository
 import com.kshavrin.mymoney.core.domain.repository.RecurringTemplateRepository
 import com.kshavrin.mymoney.core.domain.repository.SearchHistoryRepository
 import com.kshavrin.mymoney.core.domain.repository.SyncLogRepository
@@ -69,4 +71,8 @@ abstract class RepositoryBindingsModule {
     @Binds
     @Singleton
     abstract fun bindBackupRepository(impl: BackupRepositoryImpl): BackupRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindGoalRepository(impl: GoalRepositoryImpl): GoalRepository
 }

@@ -18,6 +18,10 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+
+    sourceSets {
+        getByName("androidTest").assets.srcDir("$projectDir/schemas")
+    }
 }
 
 ksp {
@@ -43,4 +47,5 @@ dependencies {
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.junit)
     androidTestImplementation(libs.kotlinx.coroutines.test)
+    androidTestImplementation(libs.turbine)
 }

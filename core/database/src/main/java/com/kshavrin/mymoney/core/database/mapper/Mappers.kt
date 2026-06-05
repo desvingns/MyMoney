@@ -5,6 +5,7 @@ import com.kshavrin.mymoney.core.database.entity.BudgetEntity
 import com.kshavrin.mymoney.core.database.entity.CategoryEntity
 import com.kshavrin.mymoney.core.database.entity.CurrencyEntity
 import com.kshavrin.mymoney.core.database.entity.CurrencyRateEntity
+import com.kshavrin.mymoney.core.database.entity.GoalEntity
 import com.kshavrin.mymoney.core.database.entity.RecurringTemplateEntity
 import com.kshavrin.mymoney.core.database.entity.SyncLogEntity
 import com.kshavrin.mymoney.core.database.entity.TransactionEntity
@@ -17,6 +18,8 @@ import com.kshavrin.mymoney.core.domain.model.Category
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.CurrencyRate
+import com.kshavrin.mymoney.core.domain.model.Goal
+import com.kshavrin.mymoney.core.domain.model.GoalVariant
 import com.kshavrin.mymoney.core.domain.model.RecurringTemplate
 import com.kshavrin.mymoney.core.domain.model.SyncLogEntry
 import com.kshavrin.mymoney.core.domain.model.Transaction
@@ -25,6 +28,7 @@ import com.kshavrin.mymoney.core.domain.repository.CategoryGroup
 import com.kshavrin.mymoney.core.domain.repository.CategorySummary
 import java.math.BigDecimal
 import java.time.Instant
+import java.time.LocalDate
 
 internal fun CurrencyEntity.toDomain(): Currency = Currency(
     id = id,
@@ -87,6 +91,40 @@ internal fun Account.toEntity(): AccountEntity = AccountEntity(
     iconKey = iconKey,
     isDefault = isDefault,
     sortOrder = sortOrder,
+    createdAt = createdAt.toEpochMilli(),
+    updatedAt = updatedAt.toEpochMilli(),
+    isArchived = isArchived,
+)
+
+internal fun GoalEntity.toDomain(): Goal = Goal(
+    id = id,
+    name = name,
+    iconKey = iconKey,
+    colorHex = colorHex,
+    accountId = accountId,
+    variant = GoalVariant.valueOf(variant),
+    targetAmount = BigDecimal.valueOf(targetAmount),
+    startingCapital = BigDecimal.valueOf(startingCapital),
+    monthlyContribution = BigDecimal.valueOf(monthlyContribution),
+    annualRatePercent = annualRatePercent?.let { BigDecimal.valueOf(it) },
+    termDate = termDate?.let { LocalDate.ofEpochDay(it) },
+    createdAt = Instant.ofEpochMilli(createdAt),
+    updatedAt = Instant.ofEpochMilli(updatedAt),
+    isArchived = isArchived,
+)
+
+internal fun Goal.toEntity(): GoalEntity = GoalEntity(
+    id = id,
+    name = name,
+    iconKey = iconKey,
+    colorHex = colorHex,
+    accountId = accountId,
+    variant = variant.name,
+    targetAmount = targetAmount.toDouble(),
+    startingCapital = startingCapital.toDouble(),
+    monthlyContribution = monthlyContribution.toDouble(),
+    annualRatePercent = annualRatePercent?.toDouble(),
+    termDate = termDate?.toEpochDay(),
     createdAt = createdAt.toEpochMilli(),
     updatedAt = updatedAt.toEpochMilli(),
     isArchived = isArchived,

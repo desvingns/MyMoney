@@ -30,6 +30,12 @@ val ACCOUNT_ICON_KEYS = listOf(
     "ic_account_rewards", "ic_account_gift_card", "ic_account_transit_card", "ic_account_family",
 )
 
+val GOAL_ICON_KEYS = listOf(
+    "ic_goal_home", "ic_goal_car", "ic_goal_travel", "ic_goal_education", "ic_goal_emergency",
+    "ic_goal_wedding", "ic_goal_gadget", "ic_goal_gift", "ic_goal_health", "ic_goal_retirement",
+    "ic_goal_renovation", "ic_goal_family", "ic_goal_other",
+)
+
 val DEFAULT_PALETTE = listOf(
     "#9C5BB8", "#C9A227", "#E07AAE", "#F08A3E", "#E0A52C",
     "#4A8FCB", "#D85A5A", "#3DA98A", "#7AC29A", "#D9A4A4",

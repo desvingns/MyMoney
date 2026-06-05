@@ -46,6 +46,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.kshavrin.mymoney.core.designsystem.icon.categoryIcon
 import com.kshavrin.mymoney.core.domain.model.Category
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.feature.dictionaries.R
@@ -246,13 +247,11 @@ private fun CategoryCard(
                 .background(parseHexColor(category.colorHex)),
             contentAlignment = Alignment.Center,
         ) {
-            Text(
-                text = category.iconKey
-                    .removePrefix("ic_cat_")
-                    .removePrefix("ic_account_")
-                    .take(3),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onPrimary,
+            Icon(
+                imageVector = categoryIcon(category.iconKey),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.size(22.dp),
             )
         }
         Text(

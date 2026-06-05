@@ -38,6 +38,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kshavrin.mymoney.core.common.money.MoneyFormatter
+import com.kshavrin.mymoney.core.designsystem.icon.accountIcon
 import com.kshavrin.mymoney.feature.dictionaries.R
 import com.kshavrin.mymoney.feature.dictionaries.common.parseHexColor
 import java.util.Locale
@@ -130,10 +131,11 @@ private fun AccountRowItem(row: AccountRow, onClick: () -> Unit) {
                 .background(parseHexColor(row.account.colorHex)),
             contentAlignment = Alignment.Center,
         ) {
-            Text(
-                text = row.account.iconKey.removePrefix("ic_account_").take(2),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onPrimary,
+            Icon(
+                imageVector = accountIcon(row.account.iconKey),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.size(22.dp),
             )
         }
         Column(modifier = Modifier.weight(1f)) {

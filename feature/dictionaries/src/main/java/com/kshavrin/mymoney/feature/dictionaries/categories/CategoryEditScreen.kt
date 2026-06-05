@@ -33,6 +33,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.kshavrin.mymoney.core.designsystem.icon.categoryIcon
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.feature.dictionaries.R
 import com.kshavrin.mymoney.feature.dictionaries.common.BlockedDeleteDialog
@@ -200,6 +201,7 @@ fun CategoryEditContent(
         IconPickerSheet(
             iconKeys = iconKeys,
             selectedIconKey = state.iconKey,
+            iconFor = { categoryIcon(it) },
             onIconSelected = {
                 onEvent(CategoryEditEvent.IconChanged(it))
                 iconPickerVisible = false

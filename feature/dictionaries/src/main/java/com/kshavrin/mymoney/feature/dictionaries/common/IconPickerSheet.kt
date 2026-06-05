@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
@@ -21,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -32,6 +34,7 @@ import com.kshavrin.mymoney.feature.dictionaries.R
 fun IconPickerSheet(
     iconKeys: List<String>,
     selectedIconKey: String,
+    iconFor: (String) -> ImageVector,
     onIconSelected: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -64,12 +67,11 @@ fun IconPickerSheet(
                             .clickable { onIconSelected(key) },
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text(
-                            text = key
-                                .removePrefix("ic_cat_")
-                                .removePrefix("ic_account_")
-                                .take(3),
-                            style = MaterialTheme.typography.labelSmall,
+                        Icon(
+                            imageVector = iconFor(key),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(28.dp),
                         )
                     }
                 }

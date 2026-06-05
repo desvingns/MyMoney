@@ -39,6 +39,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.kshavrin.mymoney.core.designsystem.icon.accountIcon
 import com.kshavrin.mymoney.core.domain.model.AccountType
 import com.kshavrin.mymoney.feature.dictionaries.R
 import com.kshavrin.mymoney.feature.dictionaries.common.ACCOUNT_ICON_KEYS
@@ -244,6 +245,7 @@ fun AccountEditContent(
         IconPickerSheet(
             iconKeys = ACCOUNT_ICON_KEYS,
             selectedIconKey = state.iconKey,
+            iconFor = { accountIcon(it) },
             onIconSelected = {
                 onEvent(AccountEditEvent.IconChanged(it))
                 iconPickerVisible = false

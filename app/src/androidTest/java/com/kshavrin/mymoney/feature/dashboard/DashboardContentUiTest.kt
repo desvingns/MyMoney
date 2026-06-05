@@ -103,6 +103,25 @@ class DashboardContentUiTest {
     }
 
     @Test
+    fun `dashboard fabs render localized labels below the buttons`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state = DashboardState(isLoading = false),
+                    onEvent = {},
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithText(targetString(R.string.fab_expense_label))
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText(targetString(R.string.fab_income_label))
+            .assertIsDisplayed()
+    }
+
+    @Test
     fun `top bar transfer button stays enabled in empty dashboard and emits transfer event`() {
         val capturedEvents = mutableListOf<DashboardEvent>()
 
@@ -181,7 +200,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `balance bar formats grouped net balance with label and emits balance card event`() {
+    fun `balance panel renders localized label and grouped net amount as separate text nodes and emits balance card event`() {
         val capturedEvents = mutableListOf<DashboardEvent>()
         val usd = Currency(
             id = 1L,
@@ -211,29 +230,24 @@ class DashboardContentUiTest {
             }
         }
 
-        val expectedBalanceText = "${targetString(DesignSystemR.string.balance_bar_label)} ${
-            MoneyFormatter.format(
-                amount = BigDecimal("12345.67"),
-                currencySymbol = usd.symbol,
-                decimalDigits = usd.decimalDigits,
-                locale = targetLocale(),
-                symbolPosition = MoneyFormatter.SymbolPosition.AFTER,
-            )
-        }"
+        val expectedBalanceAmount = MoneyFormatter.format(
+            amount = BigDecimal("12345.67"),
+            currencySymbol = usd.symbol,
+            decimalDigits = usd.decimalDigits,
+            locale = targetLocale(),
+            symbolPosition = MoneyFormatter.SymbolPosition.AFTER,
+        )
 
         composeTestRule
             .onNodeWithTag(BALANCE_BAR_TAG)
             .assertIsDisplayed()
             .assertHasClickAction()
         composeTestRule
-            .onNode(hasText(expectedBalanceText))
+            .onNodeWithText(targetString(R.string.dashboard_balance), useUnmergedTree = true)
             .assertIsDisplayed()
         composeTestRule
-            .onAllNodesWithText(
-                "${targetString(DesignSystemR.string.balance_bar_label)} 12345.67",
-                substring = true,
-            )
-            .assertCountEquals(0)
+            .onNodeWithText(expectedBalanceAmount, useUnmergedTree = true)
+            .assertIsDisplayed()
 
         composeTestRule.onNodeWithTag(BALANCE_BAR_TAG).performClick()
 
@@ -243,7 +257,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `balance bar sits between the donut and the expense fab`() {
+    fun `balance panel sits below the period row and above the donut`() {
         val usd = Currency(
             id = 1L,
             code = "USD",
@@ -265,6 +279,7 @@ class DashboardContentUiTest {
                             net = Money(BigDecimal("12345.67"), usd),
                             byCategory = emptyList(),
                         ),
+                        period = Period.Month(YearMonth.of(2026, 4)),
                         isLoading = false,
                     ),
                     onEvent = {},
@@ -272,20 +287,25 @@ class DashboardContentUiTest {
             }
         }
 
-        val barTop = composeTestRule.onNodeWithTag(BALANCE_BAR_TAG)
-            .fetchSemanticsNode().boundsInRoot.top
+        val periodLabel = YearMonth.of(2026, 4)
+            .atDay(1)
+            .format(DateTimeFormatter.ofPattern("LLLL yyyy", targetLocale()))
+        val balanceBounds = composeTestRule.onNodeWithTag(BALANCE_BAR_TAG)
+            .fetchSemanticsNode().boundsInRoot
+        val periodBottom = composeTestRule
+            .onNodeWithText(periodLabel)
+            .fetchSemanticsNode()
+            .boundsInRoot
+            .bottom
         // The donut announces its income/expense totals; match on the localized prefix
         // ahead of the format placeholders so the chart node is uniquely located.
         val donutCdPrefix = targetString(DesignSystemR.string.donut_chart_cd).substringBefore('%').trim()
         val donutTop = composeTestRule
             .onNode(hasContentDescription(donutCdPrefix, substring = true))
             .fetchSemanticsNode().boundsInRoot.top
-        val expenseFabTop = composeTestRule
-            .onNodeWithContentDescription(targetString(R.string.fab_expense))
-            .fetchSemanticsNode().boundsInRoot.top
 
-        assertTrue("balance bar must sit below the donut", barTop > donutTop)
-        assertTrue("balance bar must sit above the expense fab", barTop < expenseFabTop)
+        assertTrue("balance panel must sit below the period row", balanceBounds.top > periodBottom)
+        assertTrue("balance panel must not overlap the donut", balanceBounds.bottom <= donutTop)
     }
 
     @Test
@@ -362,8 +382,8 @@ class DashboardContentUiTest {
             donutWidthRatio >= 0.92f,
         )
         assertTrue(
-            "balance bar must sit below the donut graphic",
-            balanceBounds.top > donutBounds.center.y,
+            "balance panel must not overlap the donut graphic",
+            balanceBounds.bottom <= donutBounds.top,
         )
         assertTrue("expense FAB must sit below the balance bar", expenseFab.top > balanceBounds.bottom)
         assertTrue("income FAB must sit below the balance bar", incomeFab.top > balanceBounds.bottom)
@@ -432,6 +452,36 @@ class DashboardContentUiTest {
         composeTestRule
             .onAllNodes(hasText(expectedLabel) and hasClickAction())
             .assertCountEquals(0)
+    }
+
+    @Test
+    fun `period chevron buttons emit previous and next events`() {
+        val capturedEvents = mutableListOf<DashboardEvent>()
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state = DashboardState(period = Period.Month(YearMonth.of(2026, 4)), isLoading = false),
+                    onEvent = { event -> capturedEvents += event },
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.period_previous))
+            .assertIsEnabled()
+            .performClick()
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.period_next))
+            .assertIsEnabled()
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(
+                listOf(DashboardEvent.PreviousPeriod, DashboardEvent.NextPeriod),
+                capturedEvents,
+            )
+        }
     }
 
     @Test
@@ -702,7 +752,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `balance bar shows the localized balance label in its text`() {
+    fun `balance bar shows the localized balance label as its own text node`() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 DashboardContent(
@@ -716,7 +766,7 @@ class DashboardContentUiTest {
             .onNodeWithTag(BALANCE_BAR_TAG)
             .assertIsDisplayed()
         composeTestRule
-            .onNode(hasText(targetString(DesignSystemR.string.balance_bar_label), substring = true))
+            .onNodeWithText(targetString(R.string.dashboard_balance), useUnmergedTree = true)
             .assertIsDisplayed()
     }
 

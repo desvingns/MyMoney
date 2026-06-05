@@ -184,6 +184,36 @@ class DonutGeometryTest {
         assertEquals(narrowSlice, visibleArcHit)
     }
 
+    @Test
+    fun `hitTest applies exploded offset when locating a shifted slice`() {
+        val shiftedSlice = slice(1, 1f)
+        val arcs = DonutGeometry.computeSliceArcs(listOf(shiftedSlice))
+
+        val hitWithoutOffset = DonutGeometry.hitTest(
+            offsetX = 0f,
+            offsetY = 180f,
+            centerX = 0f,
+            centerY = 0f,
+            innerRadius = 50f,
+            outerRadius = 150f,
+            arcs = arcs,
+            explodedOffset = 0f,
+        )
+        val hitWithOffset = DonutGeometry.hitTest(
+            offsetX = 0f,
+            offsetY = 180f,
+            centerX = 0f,
+            centerY = 0f,
+            innerRadius = 50f,
+            outerRadius = 150f,
+            arcs = arcs,
+            explodedOffset = 80f,
+        )
+
+        assertNull(hitWithoutOffset)
+        assertEquals(shiftedSlice, hitWithOffset)
+    }
+
     // ---- framePoint: symmetric rectangle (hhTop == hhBot) ----
 
     @Test

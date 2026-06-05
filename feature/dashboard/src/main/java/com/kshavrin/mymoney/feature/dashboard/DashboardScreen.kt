@@ -4,28 +4,29 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SwapHoriz
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -34,7 +35,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
@@ -80,7 +80,6 @@ import com.kshavrin.mymoney.feature.dashboard.components.TwoFabLayout
 import java.math.BigDecimal
 import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardRoute(
     onAction: (DashboardAction) -> Unit,
@@ -95,7 +94,6 @@ fun DashboardRoute(
     DashboardContent(state = state, onEvent = viewModel::onEvent)
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardContent(
     state: DashboardState,
@@ -115,63 +113,18 @@ fun DashboardContent(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                modifier = Modifier
-                    .height(Spacing.dashboardTopBarHeight)
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.dashboardHeroGradientStart,
-                                MaterialTheme.colorScheme.dashboardHeroGradientEnd,
-                            ),
-                        ),
-                    ),
-                title = {
-                    DashboardTopBarTitle(
-                        title = stringResource(R.string.dashboard_title),
-                        subtitle = state.currentCurrency?.name,
-                    )
+            DashboardTopBar(
+                subtitle = state.currentCurrency?.name,
+                onMenuClick = {
+                    hapticPlayer.fire(HapticKind.MEDIUM)
+                    onEvent(DashboardEvent.LeftDrawerToggled)
                 },
-                navigationIcon = {
-                    IconButton(onClick = {
-                        hapticPlayer.fire(HapticKind.MEDIUM)
-                        onEvent(DashboardEvent.LeftDrawerToggled)
-                    }) {
-                        Icon(
-                            Icons.Filled.Menu,
-                            contentDescription = stringResource(R.string.dashboard_menu),
-                        )
-                    }
+                onSearchClick = { onEvent(DashboardEvent.SearchClicked) },
+                onTransferClick = { onEvent(DashboardEvent.TransferClicked) },
+                onMoreClick = {
+                    hapticPlayer.fire(HapticKind.MEDIUM)
+                    onEvent(DashboardEvent.RightDrawerToggled)
                 },
-                actions = {
-                    IconButton(onClick = { onEvent(DashboardEvent.SearchClicked) }) {
-                        Icon(
-                            Icons.Filled.Search,
-                            contentDescription = stringResource(R.string.dashboard_search),
-                        )
-                    }
-                    IconButton(onClick = { onEvent(DashboardEvent.TransferClicked) }) {
-                        Icon(
-                            Icons.Filled.SwapHoriz,
-                            contentDescription = stringResource(R.string.dashboard_transfer),
-                        )
-                    }
-                    IconButton(onClick = {
-                        hapticPlayer.fire(HapticKind.MEDIUM)
-                        onEvent(DashboardEvent.RightDrawerToggled)
-                    }) {
-                        Icon(
-                            Icons.Filled.MoreVert,
-                            contentDescription = stringResource(R.string.dashboard_overflow_menu),
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
-                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary,
-                ),
             )
         },
     ) { innerPadding ->
@@ -330,22 +283,93 @@ fun DashboardContent(
 }
 
 @Composable
+private fun DashboardTopBar(
+    subtitle: String?,
+    onMenuClick: () -> Unit,
+    onSearchClick: () -> Unit,
+    onTransferClick: () -> Unit,
+    onMoreClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.dashboardHeroGradientStart,
+                        MaterialTheme.colorScheme.dashboardHeroGradientEnd,
+                    ),
+                ),
+            )
+            .statusBarsPadding()
+            .height(Spacing.dashboardTopBarHeight)
+            .padding(horizontal = Spacing.s),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconButton(onClick = onMenuClick) {
+            Icon(
+                Icons.Filled.Menu,
+                contentDescription = stringResource(R.string.dashboard_menu),
+                tint = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.size(Spacing.xxl),
+            )
+        }
+        DashboardTopBarTitle(
+            title = stringResource(R.string.dashboard_title),
+            subtitle = subtitle,
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = Spacing.s),
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            IconButton(onClick = onSearchClick) {
+                Icon(
+                    Icons.Filled.Search,
+                    contentDescription = stringResource(R.string.dashboard_search),
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(Spacing.xxl),
+                )
+            }
+            IconButton(onClick = onTransferClick) {
+                Icon(
+                    Icons.Filled.SwapHoriz,
+                    contentDescription = stringResource(R.string.dashboard_transfer),
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(Spacing.xxl),
+                )
+            }
+            IconButton(onClick = onMoreClick) {
+                Icon(
+                    Icons.Filled.MoreVert,
+                    contentDescription = stringResource(R.string.dashboard_overflow_menu),
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(Spacing.xxl),
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun DashboardTopBarTitle(
     title: String,
     subtitle: String?,
+    modifier: Modifier = Modifier,
 ) {
-    Column {
+    Column(modifier = modifier) {
         Text(
             text = title,
             style = MaterialTheme.typography.dashboardTopBarTitle,
             fontFamily = FontFamily.Cursive,
             fontWeight = FontWeight.Bold,
+            maxLines = 1,
             modifier = Modifier.testTag(DASHBOARD_TOP_BAR_TITLE_TAG),
         )
         if (!subtitle.isNullOrBlank()) {
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.dashboardTopBarSubtitle,
+                maxLines = 1,
                 modifier = Modifier.testTag(DASHBOARD_TOP_BAR_SUBTITLE_TAG),
             )
         }

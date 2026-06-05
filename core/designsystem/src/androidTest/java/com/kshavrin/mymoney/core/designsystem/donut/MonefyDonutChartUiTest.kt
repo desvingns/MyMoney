@@ -89,6 +89,37 @@ class MonefyDonutChartUiTest {
     }
 
     @Test
+    fun `category label and low percent callout options preserve accessibility semantics`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                MonefyDonutChart(
+                    income = BigDecimal.ZERO,
+                    expense = BigDecimal("100.00"),
+                    slices = listOf(
+                        slice(label = "Trips", fraction = 0.01f),
+                        slice(label = "Food", fraction = 0.99f),
+                    ),
+                    modifier = Modifier.size(240.dp),
+                    showCategoryLabels = true,
+                    labelMinFraction = 0f,
+                    explodedOffset = 8.dp,
+                    animationSpec = snap(),
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithContentDescription(
+                expectedDescription(
+                    income = "0",
+                    expense = "100.00",
+                    slices = listOf("Trips" to 1, "Food" to 99),
+                ),
+            )
+            .assertExists()
+    }
+
+    @Test
     fun `center totals expose both income and expense figures when a currency symbol is supplied`() {
         composeTestRule.setContent {
             MyMoneyTheme {

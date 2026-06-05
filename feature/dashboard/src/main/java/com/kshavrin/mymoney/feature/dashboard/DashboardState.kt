@@ -55,6 +55,7 @@ sealed interface DashboardEvent {
     data object SettingsClicked : DashboardEvent
     data object CategoriesClicked : DashboardEvent
     data object AccountsClicked : DashboardEvent
+    data object FinancialGoalsClicked : DashboardEvent
     data object CurrenciesClicked : DashboardEvent
     data object AboutClicked : DashboardEvent
     data object BalanceCardClicked : DashboardEvent

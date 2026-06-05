@@ -56,4 +56,9 @@
     <string name="dictionaries_error_currency_required">Валюта обязательна</string>
     <string name="dictionaries_error_initial_balance_format">Начальный баланс должен быть числом</string>
     <string name="dictionaries_error_generic">Не удалось сохранить</string>
+    <string name="goals_title">Финансовые цели</string>
+    <string name="goals_empty">Финансовых целей пока нет</string>
+    <string name="goals_add">Добавить цель</string>
+    <string name="goals_variant_savings">Накопление</string>
+    <string name="goals_variant_credit">Кредит</string>
 </resources>

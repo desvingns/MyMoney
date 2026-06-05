@@ -56,4 +56,9 @@
     <string name="dictionaries_error_currency_required">Currency is required</string>
     <string name="dictionaries_error_initial_balance_format">Initial balance must be a number</string>
     <string name="dictionaries_error_generic">Save failed</string>
+    <string name="goals_title">Financial goals</string>
+    <string name="goals_empty">No financial goals yet</string>
+    <string name="goals_add">Add goal</string>
+    <string name="goals_variant_savings">Savings</string>
+    <string name="goals_variant_credit">Loan</string>
 </resources>

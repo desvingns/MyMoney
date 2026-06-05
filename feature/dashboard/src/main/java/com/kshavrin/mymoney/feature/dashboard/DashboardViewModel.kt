@@ -285,6 +285,10 @@ class DashboardViewModel @Inject constructor(
                 closeDrawers()
                 emit(DashboardAction.NavigateAccounts)
             }
+            DashboardEvent.FinancialGoalsClicked -> {
+                closeDrawers()
+                emit(DashboardAction.NavigateFinancialGoals)
+            }
             DashboardEvent.CurrenciesClicked -> {
                 closeDrawers()
                 emit(DashboardAction.NavigateCurrencies)

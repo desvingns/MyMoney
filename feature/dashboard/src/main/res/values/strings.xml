@@ -37,6 +37,7 @@
     <string name="right_drawer_settings">Settings</string>
     <string name="right_drawer_categories">Categories</string>
     <string name="right_drawer_accounts">Accounts</string>
+    <string name="right_drawer_financial_goals">Financial goals</string>
     <string name="right_drawer_currencies">Currencies</string>
     <string name="right_drawer_about">About</string>
 </resources>

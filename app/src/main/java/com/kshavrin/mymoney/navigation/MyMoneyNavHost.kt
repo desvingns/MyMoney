@@ -71,6 +71,8 @@ fun MyMoneyNavHost(
                                 navController.navigate(Destinations.CATEGORIES_LIST)
                             com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateAccounts ->
                                 navController.navigate(Destinations.ACCOUNTS_LIST)
+                            com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateFinancialGoals ->
+                                navController.navigate(Destinations.FINANCIAL_GOALS)
                             com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateCurrencies ->
                                 navController.navigate(Destinations.CURRENCIES_LIST)
                             is com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateTransactionsByAccount ->
@@ -196,6 +198,21 @@ fun MyMoneyNavHost(
             arguments = listOf(navArgument("id") { type = NavType.LongType; defaultValue = -1L }),
         ) {
             com.kshavrin.mymoney.feature.dictionaries.accounts.AccountEditRoute(
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(Destinations.FINANCIAL_GOALS) {
+            com.kshavrin.mymoney.feature.dictionaries.goals.GoalsListRoute(
+                onAdd = { navController.navigate("${Destinations.FINANCIAL_GOAL_EDIT}/-1") },
+                onEdit = { id -> navController.navigate("${Destinations.FINANCIAL_GOAL_EDIT}/$id") },
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(
+            route = "${Destinations.FINANCIAL_GOAL_EDIT}/{id}",
+            arguments = listOf(navArgument("id") { type = NavType.LongType; defaultValue = -1L }),
+        ) {
+            com.kshavrin.mymoney.feature.dictionaries.goals.GoalEditRoute(
                 onBack = { navController.popBackStack() },
             )
         }

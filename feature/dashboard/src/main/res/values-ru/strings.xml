@@ -37,6 +37,7 @@
     <string name="right_drawer_settings">Настройки</string>
     <string name="right_drawer_categories">Категории</string>
     <string name="right_drawer_accounts">Счета</string>
+    <string name="right_drawer_financial_goals">Финансовые цели</string>
     <string name="right_drawer_currencies">Валюты</string>
     <string name="right_drawer_about">О приложении</string>
 </resources>

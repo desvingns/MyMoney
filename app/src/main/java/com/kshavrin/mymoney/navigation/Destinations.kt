@@ -23,6 +23,8 @@ object Destinations {
     const val CATEGORY_EDIT = "dictionaries/categories/edit"
     const val ACCOUNTS_LIST = "dictionaries/accounts"
     const val ACCOUNT_EDIT = "dictionaries/accounts/edit"
+    const val FINANCIAL_GOALS = "dictionaries/goals"
+    const val FINANCIAL_GOAL_EDIT = "dictionaries/goals/edit"
     const val CURRENCIES_LIST = "dictionaries/currencies"
     const val CURRENCY_EDIT = "dictionaries/currencies/edit"
     const val CLOUD_SYNC = "cloud_sync"

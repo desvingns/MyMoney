@@ -8,6 +8,7 @@ sealed interface DashboardAction {
     data object NavigateSettings : DashboardAction
     data object NavigateCategories : DashboardAction
     data object NavigateAccounts : DashboardAction
+    data object NavigateFinancialGoals : DashboardAction
     data object NavigateCurrencies : DashboardAction
     data class NavigateTransactionsByAccount(val accountId: Long) : DashboardAction
     data class NavigateTransactionsByCurrency(val currencyId: Long) : DashboardAction

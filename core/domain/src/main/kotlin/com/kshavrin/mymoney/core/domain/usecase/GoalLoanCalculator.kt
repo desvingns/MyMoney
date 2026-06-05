@@ -77,9 +77,7 @@ class GoalLoanCalculator @Inject constructor() {
 
         for (m in 0 until n) {
             val remainingTerm = n - m
-            if (balance.signum() == 0) {
-                lastAnnuity = BigDecimal.ZERO
-            } else {
+            if (balance.signum() != 0) {
                 val recomputedAnnuity = annuity(balance, i, remainingTerm, mc)
                 val interest = balance.multiply(i, mc)
                 val principalPart = recomputedAnnuity.subtract(interest, mc)

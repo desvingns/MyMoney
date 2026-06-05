@@ -148,3 +148,18 @@ val ColorScheme.dashboardActionIncome: Color
 
 val ColorScheme.dashboardActionExpense: Color
     get() = if (isLightDashboardPalette) DashboardExpenseAccent else tertiary
+
+val ColorScheme.goalSavingsChipContainer: Color
+    get() = primaryContainer
+
+val ColorScheme.goalSavingsChipContent: Color
+    get() = onPrimaryContainer
+
+val ColorScheme.goalCreditChipContainer: Color
+    get() = if (isLightDashboardPalette) Color(0xFFFFF0F0) else surfaceVariant
+
+val ColorScheme.goalCreditChipContent: Color
+    get() = if (isLightDashboardPalette) Color(0xFFB91C1C) else tertiary
+
+val ColorScheme.goalIconCircleContent: Color
+    get() = onPrimary

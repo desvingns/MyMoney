@@ -27,4 +27,6 @@ object Spacing {
     val dashboardDonutCenterDividerThickness = 1.dp
     val dashboardDonutCalloutIconSize = 40.dp
     val dashboardDonutLeaderLineThickness = 1.dp
+    val goalListIconCircleSize = 40.dp
+    val goalListIconSize = 22.dp
 }

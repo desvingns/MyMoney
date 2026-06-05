@@ -113,3 +113,17 @@ val Typography.dashboardFabLabel: TextStyle
         lineHeight = 22.sp,
         letterSpacing = 0.sp,
     )
+
+val Typography.goalListRowAmount: TextStyle
+    get() = bodyMedium.copy(
+        fontWeight = FontWeight.Medium,
+        letterSpacing = 0.sp,
+        lineHeight = 20.sp,
+    )
+
+val Typography.goalListEmptyTitle: TextStyle
+    get() = titleMedium.copy(
+        fontWeight = FontWeight.Normal,
+        letterSpacing = 0.sp,
+        lineHeight = 24.sp,
+    )

@@ -1,5 +1,6 @@
 package com.kshavrin.mymoney.feature.dashboard
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -103,6 +104,10 @@ fun DashboardContent(
     val hapticPlayer = LocalHapticPlayer.current
     val configuration = LocalConfiguration.current
     val resourceLocale = configuration.locales[0]
+
+    BackHandler(enabled = state.leftDrawerOpen || state.rightDrawerOpen) {
+        onEvent(DashboardEvent.DrawerDismissed)
+    }
 
     LaunchedEffect(state.showConfetti) {
         if (state.showConfetti) {
@@ -267,14 +272,14 @@ fun DashboardContent(
             DashboardDrawerOverlay(
                 open = state.leftDrawerOpen,
                 side = DrawerSide.Left,
-                onDismiss = {},
+                onDismiss = { onEvent(DashboardEvent.DrawerDismissed) },
             ) {
                 LeftDrawerContent(state = state, onEvent = onEvent)
             }
             DashboardDrawerOverlay(
                 open = state.rightDrawerOpen,
                 side = DrawerSide.Right,
-                onDismiss = {},
+                onDismiss = { onEvent(DashboardEvent.DrawerDismissed) },
             ) {
                 RightDrawerContent(onEvent = onEvent)
             }

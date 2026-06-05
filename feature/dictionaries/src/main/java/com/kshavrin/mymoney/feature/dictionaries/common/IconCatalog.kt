@@ -13,7 +13,13 @@ val EXPENSE_ICON_KEYS = listOf(
     "ic_cat_subscription", "ic_cat_streaming", "ic_cat_internet", "ic_cat_charity",
 )
 
-val INCOME_ICON_KEYS = listOf("ic_cat_salary", "ic_cat_other")
+val INCOME_ICON_KEYS = listOf(
+    "ic_cat_salary", "ic_cat_other", "ic_cat_freelance", "ic_cat_bonus", "ic_cat_dividends",
+    "ic_cat_interest", "ic_cat_rent_income", "ic_cat_business_income", "ic_cat_sale",
+    "ic_cat_refund", "ic_cat_gift_received", "ic_cat_cashback", "ic_cat_pension",
+    "ic_cat_scholarship", "ic_cat_investment_return", "ic_cat_royalties", "ic_cat_tips",
+    "ic_cat_deposit_income",
+)
 
 val ACCOUNT_ICON_KEYS = listOf(
     "ic_account_wallet", "ic_account_cash", "ic_account_cash_bills", "ic_account_coins",

@@ -3,21 +3,26 @@ package com.kshavrin.mymoney.core.designsystem.icon
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.DirectionsRun
 import androidx.compose.material.icons.outlined.Apartment
+import androidx.compose.material.icons.outlined.AssignmentReturn
 import androidx.compose.material.icons.outlined.Bolt
+import androidx.compose.material.icons.outlined.BusinessCenter
 import androidx.compose.material.icons.outlined.Call
 import androidx.compose.material.icons.outlined.CardGiftcard
 import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.Chair
 import androidx.compose.material.icons.outlined.ChildCare
 import androidx.compose.material.icons.outlined.ChildFriendly
+import androidx.compose.material.icons.outlined.Copyright
 import androidx.compose.material.icons.outlined.Devices
 import androidx.compose.material.icons.outlined.DirectionsBike
 import androidx.compose.material.icons.outlined.DirectionsBus
 import androidx.compose.material.icons.outlined.DirectionsCar
+import androidx.compose.material.icons.outlined.Elderly
 import androidx.compose.material.icons.outlined.Fastfood
 import androidx.compose.material.icons.outlined.FitnessCenter
 import androidx.compose.material.icons.outlined.Flight
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.HomeWork
 import androidx.compose.material.icons.outlined.HomeRepairService
 import androidx.compose.material.icons.outlined.Hotel
 import androidx.compose.material.icons.outlined.Liquor
@@ -32,20 +37,31 @@ import androidx.compose.material.icons.outlined.LocalPharmacy
 import androidx.compose.material.icons.outlined.LocalTaxi
 import androidx.compose.material.icons.outlined.Luggage
 import androidx.compose.material.icons.outlined.MedicalServices
+import androidx.compose.material.icons.outlined.MonetizationOn
+import androidx.compose.material.icons.outlined.Paid
 import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Payments
+import androidx.compose.material.icons.outlined.Percent
+import androidx.compose.material.icons.outlined.Redeem
 import androidx.compose.material.icons.outlined.Restaurant
 import androidx.compose.material.icons.outlined.RestaurantMenu
+import androidx.compose.material.icons.outlined.Savings
 import androidx.compose.material.icons.outlined.School
+import androidx.compose.material.icons.outlined.Sell
+import androidx.compose.material.icons.outlined.ShowChart
 import androidx.compose.material.icons.outlined.ShoppingBasket
 import androidx.compose.material.icons.outlined.Spa
+import androidx.compose.material.icons.outlined.Stars
 import androidx.compose.material.icons.outlined.Subscriptions
 import androidx.compose.material.icons.outlined.Tram
 import androidx.compose.material.icons.outlined.Train
+import androidx.compose.material.icons.outlined.TrendingUp
 import androidx.compose.material.icons.outlined.VolunteerActivism
 import androidx.compose.material.icons.outlined.WaterDrop
 import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material.icons.outlined.WineBar
+import androidx.compose.material.icons.outlined.Work
+import androidx.compose.material.icons.outlined.WorkspacePremium
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
@@ -112,6 +128,22 @@ fun categoryIcon(iconKey: String): ImageVector = when (iconKey) {
     "ic_cat_streaming" -> Icons.Outlined.LiveTv
     "ic_cat_internet" -> Icons.Outlined.Wifi
     "ic_cat_charity" -> Icons.Outlined.VolunteerActivism
+    "ic_cat_freelance" -> Icons.Outlined.Work
+    "ic_cat_bonus" -> Icons.Outlined.Stars
+    "ic_cat_dividends" -> Icons.Outlined.TrendingUp
+    "ic_cat_interest" -> Icons.Outlined.Percent
+    "ic_cat_rent_income" -> Icons.Outlined.HomeWork
+    "ic_cat_business_income" -> Icons.Outlined.BusinessCenter
+    "ic_cat_sale" -> Icons.Outlined.Sell
+    "ic_cat_refund" -> Icons.Outlined.AssignmentReturn
+    "ic_cat_gift_received" -> Icons.Outlined.Redeem
+    "ic_cat_cashback" -> Icons.Outlined.Paid
+    "ic_cat_pension" -> Icons.Outlined.Elderly
+    "ic_cat_scholarship" -> Icons.Outlined.WorkspacePremium
+    "ic_cat_investment_return" -> Icons.Outlined.ShowChart
+    "ic_cat_royalties" -> Icons.Outlined.Copyright
+    "ic_cat_tips" -> Icons.Outlined.MonetizationOn
+    "ic_cat_deposit_income" -> Icons.Outlined.Savings
     "ic_cat_other" -> Icons.Outlined.Category
     else -> Icons.Outlined.Category
 }

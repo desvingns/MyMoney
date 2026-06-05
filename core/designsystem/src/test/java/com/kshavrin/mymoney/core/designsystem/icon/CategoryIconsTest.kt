@@ -46,8 +46,8 @@ import org.junit.Test
  * Fallback contract (pinned exactly per the implementer's note — DO NOT loosen):
  *   - fallback (unknown key) is `Icons.Outlined.Category`;
  *   - `ic_cat_other` INTENTIONALLY maps to that SAME instance;
- *   - the 50 non-`other` keys each return something that is NOT the fallback;
- *   - the 50 non-`other` keys are pairwise distinct from each other.
+ *   - the 66 non-`other` keys each return something that is NOT the fallback;
+ *   - the 66 non-`other` keys are pairwise distinct from each other.
  *
  * Material icon objects are cached singletons, so reference identity (===) is the valid
  * comparison; `assertSame` / `assertNotSame` use reference identity.
@@ -56,7 +56,7 @@ class CategoryIconsTest {
 
     private val fallback: ImageVector = Icons.Outlined.Category
 
-    /** The 51 documented category keys currently supported by the registry. */
+    /** The 67 documented category keys currently supported by the registry. */
     private val allKeys: List<String> = listOf(
         "ic_cat_bills",
         "ic_cat_food",
@@ -109,17 +109,33 @@ class CategoryIconsTest {
         "ic_cat_streaming",
         "ic_cat_internet",
         "ic_cat_charity",
+        "ic_cat_freelance",
+        "ic_cat_bonus",
+        "ic_cat_dividends",
+        "ic_cat_interest",
+        "ic_cat_rent_income",
+        "ic_cat_business_income",
+        "ic_cat_sale",
+        "ic_cat_refund",
+        "ic_cat_gift_received",
+        "ic_cat_cashback",
+        "ic_cat_pension",
+        "ic_cat_scholarship",
+        "ic_cat_investment_return",
+        "ic_cat_royalties",
+        "ic_cat_tips",
+        "ic_cat_deposit_income",
     )
 
-    /** The 50 real keys that must each resolve to a distinct, non-fallback vector. */
+    /** The 66 real keys that must each resolve to a distinct, non-fallback vector. */
     private val nonOtherKeys: List<String> = allKeys.filterNot { it == "ic_cat_other" }
 
     // ---- exhaustiveness: the registry covers all documented keys ----
 
     @Test
     fun `covers exactly the documented category keys`() {
-        assertEquals(51, allKeys.size)
-        assertEquals(50, nonOtherKeys.size)
+        assertEquals(67, allKeys.size)
+        assertEquals(66, nonOtherKeys.size)
     }
 
     // ---- per-key mapping (mirrors the production `when`) ----

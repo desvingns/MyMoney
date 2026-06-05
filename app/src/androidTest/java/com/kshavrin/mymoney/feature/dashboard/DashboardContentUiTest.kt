@@ -8,6 +8,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.assertWidthIsAtLeast
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
@@ -15,10 +16,12 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
 import androidx.compose.ui.unit.dp
@@ -42,6 +45,7 @@ import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_CATEGORIES
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_CURRENCIES_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_SETTINGS_TAG
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -560,6 +564,44 @@ class DashboardContentUiTest {
     }
 
     @Test
+    fun `scrim tap dismisses the left drawer and closes both drawer flags`() {
+        val capturedEvents = mutableListOf<DashboardEvent>()
+
+        val currentState = setStatefulDashboardContent(
+            initialState = DashboardState(isLoading = false, leftDrawerOpen = true),
+            onCapturedEvent = { event -> capturedEvents += event },
+        )
+        composeTestRule.waitForIdle()
+
+        tapDashboardScrim(xFraction = 0.9f)
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(DashboardEvent.DrawerDismissed), capturedEvents)
+            assertFalse(currentState().leftDrawerOpen)
+            assertFalse(currentState().rightDrawerOpen)
+        }
+    }
+
+    @Test
+    fun `scrim tap dismisses the right drawer and closes both drawer flags`() {
+        val capturedEvents = mutableListOf<DashboardEvent>()
+
+        val currentState = setStatefulDashboardContent(
+            initialState = DashboardState(isLoading = false, rightDrawerOpen = true),
+            onCapturedEvent = { event -> capturedEvents += event },
+        )
+        composeTestRule.waitForIdle()
+
+        tapDashboardScrim(xFraction = 0.1f)
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(DashboardEvent.DrawerDismissed), capturedEvents)
+            assertFalse(currentState().leftDrawerOpen)
+            assertFalse(currentState().rightDrawerOpen)
+        }
+    }
+
+    @Test
     fun `swiping the dashboard left emits next period`() {
         val capturedEvents = mutableListOf<DashboardEvent>()
 
@@ -777,9 +819,9 @@ class DashboardContentUiTest {
     private fun setStatefulDashboardContent(
         initialState: DashboardState,
         onCapturedEvent: (DashboardEvent) -> Unit = {},
-    ) {
+    ): () -> DashboardState {
+        var state by mutableStateOf(initialState)
         composeTestRule.setContent {
-            var state by mutableStateOf(initialState)
             MyMoneyTheme {
                 DashboardContent(
                     state = state,
@@ -800,6 +842,19 @@ class DashboardContentUiTest {
                     },
                 )
             }
+        }
+        return { state }
+    }
+
+    private fun tapDashboardScrim(xFraction: Float) {
+        val rootBounds = composeTestRule.onRoot().fetchSemanticsNode().boundsInRoot
+        composeTestRule.onRoot().performTouchInput {
+            click(
+                position = Offset(
+                    x = rootBounds.width * xFraction,
+                    y = rootBounds.height * 0.5f,
+                ),
+            )
         }
     }
 

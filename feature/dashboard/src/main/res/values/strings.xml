@@ -1,6 +1,7 @@
 <resources>
     <string name="dashboard_title">MyMoney</string>
     <string name="dashboard_menu">Open menu</string>
+    <string name="dashboard_back">Back</string>
     <string name="dashboard_transfer">Transfer</string>
     <string name="dashboard_search">Search</string>
     <string name="dashboard_overflow_menu">More options</string>

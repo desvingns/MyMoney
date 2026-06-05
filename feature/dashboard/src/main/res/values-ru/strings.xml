@@ -1,6 +1,7 @@
 <resources>
     <string name="dashboard_title">MyMoney</string>
     <string name="dashboard_menu">Открыть меню</string>
+    <string name="dashboard_back">Назад</string>
     <string name="dashboard_transfer">Перевод</string>
     <string name="dashboard_search">Поиск</string>
     <string name="dashboard_overflow_menu">Другие действия</string>

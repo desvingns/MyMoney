@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
@@ -104,8 +105,9 @@ fun DashboardContent(
     val hapticPlayer = LocalHapticPlayer.current
     val configuration = LocalConfiguration.current
     val resourceLocale = configuration.locales[0]
+    val drawerOpen = state.leftDrawerOpen || state.rightDrawerOpen
 
-    BackHandler(enabled = state.leftDrawerOpen || state.rightDrawerOpen) {
+    BackHandler(enabled = drawerOpen) {
         onEvent(DashboardEvent.DrawerDismissed)
     }
 
@@ -120,9 +122,16 @@ fun DashboardContent(
         topBar = {
             DashboardTopBar(
                 subtitle = state.currentCurrency?.name,
-                onMenuClick = {
+                drawerOpen = drawerOpen,
+                onNavigationClick = {
                     hapticPlayer.fire(HapticKind.MEDIUM)
-                    onEvent(DashboardEvent.LeftDrawerToggled)
+                    onEvent(
+                        if (drawerOpen) {
+                            DashboardEvent.DrawerDismissed
+                        } else {
+                            DashboardEvent.LeftDrawerToggled
+                        },
+                    )
                 },
                 onSearchClick = { onEvent(DashboardEvent.SearchClicked) },
                 onTransferClick = { onEvent(DashboardEvent.TransferClicked) },
@@ -290,7 +299,8 @@ fun DashboardContent(
 @Composable
 private fun DashboardTopBar(
     subtitle: String?,
-    onMenuClick: () -> Unit,
+    drawerOpen: Boolean,
+    onNavigationClick: () -> Unit,
     onSearchClick: () -> Unit,
     onTransferClick: () -> Unit,
     onMoreClick: () -> Unit,
@@ -311,10 +321,12 @@ private fun DashboardTopBar(
             .padding(horizontal = Spacing.s),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(onClick = onMenuClick) {
+        IconButton(onClick = onNavigationClick) {
             Icon(
-                Icons.Filled.Menu,
-                contentDescription = stringResource(R.string.dashboard_menu),
+                imageVector = if (drawerOpen) Icons.AutoMirrored.Filled.ArrowBack else Icons.Filled.Menu,
+                contentDescription = stringResource(
+                    if (drawerOpen) R.string.dashboard_back else R.string.dashboard_menu,
+                ),
                 tint = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.size(Spacing.xxl),
             )

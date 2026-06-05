@@ -16,6 +16,7 @@
     <string name="period_month">Month</string>
     <string name="period_year">Year</string>
     <string name="period_all">All</string>
+    <string name="period_date_range">Date range</string>
     <string name="period_pick_a_date">Pick a date</string>
     <string name="period_apply">Apply</string>
     <string name="period_cancel">Cancel</string>

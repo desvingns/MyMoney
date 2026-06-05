@@ -16,6 +16,7 @@
     <string name="period_month">Месяц</string>
     <string name="period_year">Год</string>
     <string name="period_all">Все</string>
+    <string name="period_date_range">Диапазон дат</string>
     <string name="period_pick_a_date">Выбор даты</string>
     <string name="period_apply">Применить</string>
     <string name="period_cancel">Отмена</string>

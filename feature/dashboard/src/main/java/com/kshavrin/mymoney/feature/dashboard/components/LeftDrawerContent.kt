@@ -19,8 +19,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.AttachMoney
 import androidx.compose.material.icons.outlined.CalendarToday
+import androidx.compose.material.icons.outlined.Event
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
+import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DateRangePicker
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -30,6 +32,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -72,6 +75,7 @@ fun LeftDrawerContent(
 ) {
     var accountsExpanded by remember { mutableStateOf(false) }
     var showRangePicker by remember { mutableStateOf(false) }
+    var showSingleDatePicker by remember { mutableStateOf(false) }
     val soundPlayer = LocalSoundPlayer.current
     val hapticPlayer = LocalHapticPlayer.current
 
@@ -99,7 +103,7 @@ fun LeftDrawerContent(
             Column(modifier = Modifier.fillMaxWidth()) {
                 PeriodButton(
                     label = stringResource(R.string.period_day),
-                    selected = state.period is Period.Day,
+                    selected = state.period is Period.Day && (state.period as Period.Day).date == LocalDate.now(),
                     onClick = { changePeriod(Period.Day(LocalDate.now())) },
                 )
                 PeriodButton(
@@ -123,10 +127,16 @@ fun LeftDrawerContent(
                     onClick = { changePeriod(Period.All) },
                 )
                 PeriodButton(
-                    label = stringResource(R.string.period_pick_a_date),
+                    label = stringResource(R.string.period_date_range),
                     selected = state.period is Period.CustomRange,
                     leadingIcon = Icons.Outlined.CalendarToday,
                     onClick = { showRangePicker = true },
+                )
+                PeriodButton(
+                    label = stringResource(R.string.period_pick_a_date),
+                    selected = state.period is Period.Day && (state.period as Period.Day).date != LocalDate.now(),
+                    leadingIcon = Icons.Outlined.Event,
+                    onClick = { showSingleDatePicker = true },
                 )
             }
             if (accountsExpanded) {
@@ -177,6 +187,32 @@ fun LeftDrawerContent(
             }
         ) {
             DateRangePicker(state = pickerState)
+        }
+    }
+
+    if (showSingleDatePicker) {
+        val pickerState = rememberDatePickerState()
+        DatePickerDialog(
+            onDismissRequest = { showSingleDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    pickerState.selectedDateMillis?.let { selectedMillis ->
+                        val date = Instant.ofEpochMilli(selectedMillis)
+                            .atZone(ZoneId.systemDefault()).toLocalDate()
+                        changePeriod(Period.Day(date))
+                    }
+                    showSingleDatePicker = false
+                }) {
+                    Text(stringResource(R.string.period_apply))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSingleDatePicker = false }) {
+                    Text(stringResource(R.string.period_cancel))
+                }
+            }
+        ) {
+            DatePicker(state = pickerState)
         }
     }
 }

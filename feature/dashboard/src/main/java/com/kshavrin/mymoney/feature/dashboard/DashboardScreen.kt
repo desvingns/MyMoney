@@ -273,7 +273,7 @@ fun DashboardContent(
             }
             DashboardDrawerOverlay(
                 open = state.rightDrawerOpen,
-                side = DrawerSide.Left,
+                side = DrawerSide.Right,
                 onDismiss = {},
             ) {
                 RightDrawerContent(onEvent = onEvent)

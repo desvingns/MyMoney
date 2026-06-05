@@ -512,6 +512,7 @@ class DashboardContentUiTest {
             minimum = 0.60f,
             maximum = 0.68f,
         )
+        assertRightDrawerAnchoredToRight(drawerLabel = targetString(R.string.right_drawer_settings))
     }
 
     @Test
@@ -837,6 +838,30 @@ class DashboardContentUiTest {
         assertTrue(
             "drawer width ratio $ratio must stay within [$minimum, $maximum]",
             ratio in minimum..maximum,
+        )
+    }
+
+    private fun assertRightDrawerAnchoredToRight(drawerLabel: String) {
+        val drawerRow = composeTestRule.onNode(hasText(drawerLabel) and hasClickAction())
+        drawerRow.assertIsDisplayed()
+
+        val rootWidth = InstrumentationRegistry.getInstrumentation()
+            .targetContext.resources.displayMetrics.widthPixels.toFloat()
+        val rowBounds = drawerRow.fetchSemanticsNode().boundsInRoot
+        val labelBounds = composeTestRule
+            .onNodeWithText(drawerLabel, useUnmergedTree = true)
+            .fetchSemanticsNode()
+            .boundsInRoot
+        val horizontalPadding = with(composeTestRule.density) { Spacing.l.toPx() }
+        val panelRight = rowBounds.right + horizontalPadding
+
+        assertTrue(
+            "right drawer panel right edge $panelRight must match screen width $rootWidth",
+            kotlin.math.abs(panelRight - rootWidth) <= 1f,
+        )
+        assertTrue(
+            "right drawer content left edge ${labelBounds.left} must sit past screen centre",
+            labelBounds.left > rootWidth / 2f,
         )
     }
 

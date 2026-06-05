@@ -2,18 +2,50 @@ package com.kshavrin.mymoney.core.designsystem.icon
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.DirectionsRun
+import androidx.compose.material.icons.outlined.Apartment
+import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.Call
 import androidx.compose.material.icons.outlined.CardGiftcard
 import androidx.compose.material.icons.outlined.Category
+import androidx.compose.material.icons.outlined.Chair
+import androidx.compose.material.icons.outlined.ChildCare
+import androidx.compose.material.icons.outlined.ChildFriendly
+import androidx.compose.material.icons.outlined.Devices
+import androidx.compose.material.icons.outlined.DirectionsBike
+import androidx.compose.material.icons.outlined.DirectionsBus
 import androidx.compose.material.icons.outlined.DirectionsCar
+import androidx.compose.material.icons.outlined.Fastfood
+import androidx.compose.material.icons.outlined.FitnessCenter
+import androidx.compose.material.icons.outlined.Flight
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.HomeRepairService
+import androidx.compose.material.icons.outlined.Hotel
+import androidx.compose.material.icons.outlined.Liquor
+import androidx.compose.material.icons.outlined.LiveTv
+import androidx.compose.material.icons.outlined.LocalCafe
 import androidx.compose.material.icons.outlined.LocalBar
+import androidx.compose.material.icons.outlined.LocalGasStation
+import androidx.compose.material.icons.outlined.LocalGroceryStore
 import androidx.compose.material.icons.outlined.LocalOffer
+import androidx.compose.material.icons.outlined.LocalParking
+import androidx.compose.material.icons.outlined.LocalPharmacy
 import androidx.compose.material.icons.outlined.LocalTaxi
+import androidx.compose.material.icons.outlined.Luggage
+import androidx.compose.material.icons.outlined.MedicalServices
+import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.outlined.Restaurant
+import androidx.compose.material.icons.outlined.RestaurantMenu
+import androidx.compose.material.icons.outlined.School
 import androidx.compose.material.icons.outlined.ShoppingBasket
+import androidx.compose.material.icons.outlined.Spa
+import androidx.compose.material.icons.outlined.Subscriptions
+import androidx.compose.material.icons.outlined.Tram
 import androidx.compose.material.icons.outlined.Train
+import androidx.compose.material.icons.outlined.VolunteerActivism
+import androidx.compose.material.icons.outlined.WaterDrop
+import androidx.compose.material.icons.outlined.Wifi
+import androidx.compose.material.icons.outlined.WineBar
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
@@ -23,9 +55,11 @@ import androidx.compose.ui.graphics.vector.PathBuilder
 import androidx.compose.ui.graphics.vector.PathData
 import androidx.compose.ui.unit.dp
 import com.kshavrin.mymoney.core.designsystem.icon.CategoryVectors.Clothing
+import com.kshavrin.mymoney.core.designsystem.icon.CategoryVectors.Dentist
 import com.kshavrin.mymoney.core.designsystem.icon.CategoryVectors.Health
 import com.kshavrin.mymoney.core.designsystem.icon.CategoryVectors.Hygiene
 import com.kshavrin.mymoney.core.designsystem.icon.CategoryVectors.Pets
+import com.kshavrin.mymoney.core.designsystem.icon.CategoryVectors.Shoes
 
 fun categoryIcon(iconKey: String): ImageVector = when (iconKey) {
     "ic_cat_bills" -> Icons.Outlined.LocalOffer
@@ -44,6 +78,40 @@ fun categoryIcon(iconKey: String): ImageVector = when (iconKey) {
     "ic_cat_pets" -> Pets
     "ic_cat_health" -> Health
     "ic_cat_clothing" -> Clothing
+    "ic_cat_groceries" -> Icons.Outlined.LocalGroceryStore
+    "ic_cat_restaurant" -> Icons.Outlined.RestaurantMenu
+    "ic_cat_fastfood" -> Icons.Outlined.Fastfood
+    "ic_cat_coffee" -> Icons.Outlined.LocalCafe
+    "ic_cat_bar" -> Icons.Outlined.WineBar
+    "ic_cat_alcohol" -> Icons.Outlined.Liquor
+    "ic_cat_bus" -> Icons.Outlined.DirectionsBus
+    "ic_cat_tram" -> Icons.Outlined.Tram
+    "ic_cat_flight" -> Icons.Outlined.Flight
+    "ic_cat_bike" -> Icons.Outlined.DirectionsBike
+    "ic_cat_fuel" -> Icons.Outlined.LocalGasStation
+    "ic_cat_parking" -> Icons.Outlined.LocalParking
+    "ic_cat_shoes" -> Shoes
+    "ic_cat_electronics" -> Icons.Outlined.Devices
+    "ic_cat_books" -> Icons.Outlined.MenuBook
+    "ic_cat_rent" -> Icons.Outlined.Apartment
+    "ic_cat_utilities" -> Icons.Outlined.Bolt
+    "ic_cat_water" -> Icons.Outlined.WaterDrop
+    "ic_cat_furniture" -> Icons.Outlined.Chair
+    "ic_cat_repair" -> Icons.Outlined.HomeRepairService
+    "ic_cat_pharmacy" -> Icons.Outlined.LocalPharmacy
+    "ic_cat_doctor" -> Icons.Outlined.MedicalServices
+    "ic_cat_dentist" -> Dentist
+    "ic_cat_gym" -> Icons.Outlined.FitnessCenter
+    "ic_cat_beauty" -> Icons.Outlined.Spa
+    "ic_cat_education" -> Icons.Outlined.School
+    "ic_cat_kids" -> Icons.Outlined.ChildCare
+    "ic_cat_baby" -> Icons.Outlined.ChildFriendly
+    "ic_cat_travel" -> Icons.Outlined.Luggage
+    "ic_cat_hotel" -> Icons.Outlined.Hotel
+    "ic_cat_subscription" -> Icons.Outlined.Subscriptions
+    "ic_cat_streaming" -> Icons.Outlined.LiveTv
+    "ic_cat_internet" -> Icons.Outlined.Wifi
+    "ic_cat_charity" -> Icons.Outlined.VolunteerActivism
     "ic_cat_other" -> Icons.Outlined.Category
     else -> Icons.Outlined.Category
 }
@@ -125,6 +193,44 @@ private object CategoryVectors {
             close()
             moveTo(9f, 4f)
             arcTo(3f, 2f, 0f, false, false, 15f, 4f)
+        }
+    }
+
+    val Shoes: ImageVector by lazy {
+        categoryVector("category_shoes") {
+            moveTo(4f, 15f)
+            lineTo(7.5f, 15f)
+            lineTo(10f, 12f)
+            lineTo(13f, 12f)
+            lineTo(15f, 14f)
+            lineTo(19f, 15.5f)
+            arcTo(1f, 1f, 0f, false, true, 20f, 16.5f)
+            lineTo(20f, 18f)
+            lineTo(4f, 18f)
+            close()
+            moveTo(10f, 12f)
+            lineTo(10f, 9f)
+            moveTo(12f, 12f)
+            lineTo(12f, 10f)
+            moveTo(14f, 13f)
+            lineTo(14f, 11.5f)
+            moveTo(7f, 15f)
+            lineTo(7f, 13f)
+        }
+    }
+
+    val Dentist: ImageVector by lazy {
+        categoryVector("category_dentist") {
+            moveTo(12f, 4f)
+            arcTo(4f, 4f, 0f, false, true, 16f, 8f)
+            lineTo(16f, 12f)
+            lineTo(14f, 19f)
+            lineTo(12f, 16f)
+            lineTo(10f, 19f)
+            lineTo(8f, 12f)
+            lineTo(8f, 8f)
+            arcTo(4f, 4f, 0f, false, true, 12f, 4f)
+            close()
         }
     }
 }

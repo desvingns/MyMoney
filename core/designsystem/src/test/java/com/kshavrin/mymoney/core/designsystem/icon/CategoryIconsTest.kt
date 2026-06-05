@@ -7,13 +7,17 @@ import androidx.compose.material.icons.outlined.CardGiftcard
 import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.LocalGroceryStore
 import androidx.compose.material.icons.outlined.LocalBar
 import androidx.compose.material.icons.outlined.LocalOffer
 import androidx.compose.material.icons.outlined.LocalTaxi
 import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.outlined.Restaurant
+import androidx.compose.material.icons.outlined.RestaurantMenu
 import androidx.compose.material.icons.outlined.ShoppingBasket
 import androidx.compose.material.icons.outlined.Train
+import androidx.compose.material.icons.outlined.Wifi
+import androidx.compose.material.icons.outlined.WineBar
 import androidx.compose.ui.graphics.vector.ImageVector
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotSame
@@ -32,8 +36,8 @@ import org.junit.Test
  * Fallback contract (pinned exactly per the implementer's note — DO NOT loosen):
  *   - fallback (unknown key) is `Icons.Outlined.Category`;
  *   - `ic_cat_other` INTENTIONALLY maps to that SAME instance;
- *   - the 16 non-`other` keys each return something that is NOT the fallback;
- *   - the 16 non-`other` keys are pairwise distinct from each other.
+ *   - the 50 non-`other` keys each return something that is NOT the fallback;
+ *   - the 50 non-`other` keys are pairwise distinct from each other.
  *
  * Material icon objects are cached singletons, so reference identity (===) is the valid
  * comparison; `assertSame` / `assertNotSame` use reference identity.
@@ -42,7 +46,7 @@ class CategoryIconsTest {
 
     private val fallback: ImageVector = Icons.Outlined.Category
 
-    /** The 17 real seed keys from InitialDataSeeder. */
+    /** The 51 documented category keys currently supported by the registry. */
     private val allKeys: List<String> = listOf(
         "ic_cat_bills",
         "ic_cat_food",
@@ -61,17 +65,51 @@ class CategoryIconsTest {
         "ic_cat_pets",
         "ic_cat_health",
         "ic_cat_clothing",
+        "ic_cat_groceries",
+        "ic_cat_restaurant",
+        "ic_cat_fastfood",
+        "ic_cat_coffee",
+        "ic_cat_bar",
+        "ic_cat_alcohol",
+        "ic_cat_bus",
+        "ic_cat_tram",
+        "ic_cat_flight",
+        "ic_cat_bike",
+        "ic_cat_fuel",
+        "ic_cat_parking",
+        "ic_cat_shoes",
+        "ic_cat_electronics",
+        "ic_cat_books",
+        "ic_cat_rent",
+        "ic_cat_utilities",
+        "ic_cat_water",
+        "ic_cat_furniture",
+        "ic_cat_repair",
+        "ic_cat_pharmacy",
+        "ic_cat_doctor",
+        "ic_cat_dentist",
+        "ic_cat_gym",
+        "ic_cat_beauty",
+        "ic_cat_education",
+        "ic_cat_kids",
+        "ic_cat_baby",
+        "ic_cat_travel",
+        "ic_cat_hotel",
+        "ic_cat_subscription",
+        "ic_cat_streaming",
+        "ic_cat_internet",
+        "ic_cat_charity",
     )
 
-    /** The 16 real keys that must each resolve to a distinct, non-fallback vector. */
+    /** The 50 real keys that must each resolve to a distinct, non-fallback vector. */
     private val nonOtherKeys: List<String> = allKeys.filterNot { it == "ic_cat_other" }
 
-    // ---- exhaustiveness: the registry covers all 17 documented keys ----
+    // ---- exhaustiveness: the registry covers all documented keys ----
 
     @Test
-    fun `covers exactly the seventeen documented category keys`() {
-        assertEquals(17, allKeys.size)
-        assertEquals(16, nonOtherKeys.size)
+    fun `covers exactly the documented category keys`() {
+        assertEquals(51, allKeys.size)
+        assertEquals(50, nonOtherKeys.size)
     }
 
     // ---- per-key mapping (mirrors the production `when`) ----
@@ -137,6 +175,26 @@ class CategoryIconsTest {
         assertSame(Icons.Outlined.Payments, categoryIcon("ic_cat_salary"))
     }
 
+    @Test
+    fun `ic_cat_groceries maps to Outlined LocalGroceryStore`() {
+        assertSame(Icons.Outlined.LocalGroceryStore, categoryIcon("ic_cat_groceries"))
+    }
+
+    @Test
+    fun `ic_cat_restaurant maps to Outlined RestaurantMenu`() {
+        assertSame(Icons.Outlined.RestaurantMenu, categoryIcon("ic_cat_restaurant"))
+    }
+
+    @Test
+    fun `ic_cat_bar maps to Outlined WineBar`() {
+        assertSame(Icons.Outlined.WineBar, categoryIcon("ic_cat_bar"))
+    }
+
+    @Test
+    fun `ic_cat_internet maps to Outlined Wifi`() {
+        assertSame(Icons.Outlined.Wifi, categoryIcon("ic_cat_internet"))
+    }
+
     // ---- fallback contract ----
 
     @Test
@@ -171,7 +229,7 @@ class CategoryIconsTest {
     }
 
     @Test
-    fun `the sixteen non-other keys are pairwise distinct vectors`() {
+    fun `all non-other keys are pairwise distinct vectors`() {
         val vectors: List<ImageVector> = nonOtherKeys.map { categoryIcon(it) }
         for (i in vectors.indices) {
             for (j in i + 1 until vectors.size) {

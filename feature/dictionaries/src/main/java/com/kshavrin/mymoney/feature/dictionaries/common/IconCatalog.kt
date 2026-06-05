@@ -8,7 +8,14 @@ val EXPENSE_ICON_KEYS = listOf(
 
 val INCOME_ICON_KEYS = listOf("ic_cat_salary", "ic_cat_other")
 
-val ACCOUNT_ICON_KEYS = listOf("ic_account_cash", "ic_account_card", "ic_account_bank", "ic_account_savings")
+val ACCOUNT_ICON_KEYS = listOf(
+    "ic_account_wallet", "ic_account_cash", "ic_account_cash_bills", "ic_account_coins",
+    "ic_account_card", "ic_account_debit_card", "ic_account_credit_score", "ic_account_ewallet",
+    "ic_account_bank", "ic_account_atm", "ic_account_savings", "ic_account_safe",
+    "ic_account_investment", "ic_account_crypto", "ic_account_currency_exchange", "ic_account_loan",
+    "ic_account_cheque", "ic_account_business", "ic_account_pension", "ic_account_insurance",
+    "ic_account_rewards", "ic_account_gift_card", "ic_account_transit_card", "ic_account_family",
+)
 
 val DEFAULT_PALETTE = listOf(
     "#9C5BB8", "#C9A227", "#E07AAE", "#F08A3E", "#E0A52C",

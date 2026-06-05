@@ -1,6 +1,8 @@
 package com.kshavrin.mymoney.feature.dashboard.components
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -18,7 +20,6 @@ import org.junit.runner.RunWith
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
-import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
 @RunWith(AndroidJUnit4::class)
@@ -28,9 +29,9 @@ class LeftDrawerPeriodSelectorUiTest {
     val composeTestRule = createComposeRule()
 
     @Test
-    fun `pick a date emits a custom range after selecting two dates`() {
+    fun `date range emits a custom range after selecting two dates`() {
         var selectedEvent: DashboardEvent? = null
-        val firstDay = LocalDate.now(ZoneOffset.UTC).withDayOfMonth(1)
+        val firstDay = LocalDate.now().withDayOfMonth(1)
         val secondDay = firstDay.plusDays(1)
 
         composeTestRule.setContent {
@@ -43,7 +44,7 @@ class LeftDrawerPeriodSelectorUiTest {
         }
 
         composeTestRule
-            .onNodeWithText(targetString(R.string.period_pick_a_date))
+            .onNodeWithText(targetString(R.string.period_date_range))
             .performClick()
         composeTestRule.onNodeWithText(dateLabel(firstDay)).performClick()
         composeTestRule.onNodeWithText(dateLabel(secondDay)).performClick()
@@ -58,7 +59,40 @@ class LeftDrawerPeriodSelectorUiTest {
     }
 
     @Test
-    fun `ordinary period buttons emit each corresponding period in order`() {
+    fun `pick a date emits a day period after confirming a single date`() {
+        var selectedEvent: DashboardEvent? = null
+        val currentDate = LocalDate.now()
+        val pickedDate = if (currentDate.dayOfMonth == 1) {
+            currentDate.plusDays(1)
+        } else {
+            currentDate.minusDays(1)
+        }
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                LeftDrawerContent(
+                    state = DashboardState(period = Period.All, isLoading = false),
+                    onEvent = { selectedEvent = it },
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithText(targetString(R.string.period_pick_a_date))
+            .performClick()
+        composeTestRule.onNodeWithText(dateLabel(pickedDate)).performClick()
+        composeTestRule.onNodeWithText(targetString(R.string.period_apply)).performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(
+                DashboardEvent.PeriodChanged(Period.Day(pickedDate)),
+                selectedEvent,
+            )
+        }
+    }
+
+    @Test
+    fun `ordinary period buttons remain present and emit each corresponding period in order`() {
         val currentDate = LocalDate.now()
         val selectedEvents = mutableListOf<DashboardEvent>()
         val expectedSelections = listOf(
@@ -77,6 +111,13 @@ class LeftDrawerPeriodSelectorUiTest {
                 )
             }
         }
+
+        composeTestRule
+            .onAllNodesWithText(targetString(R.string.period_date_range))
+            .assertCountEquals(1)
+        composeTestRule
+            .onAllNodesWithText(targetString(R.string.period_pick_a_date))
+            .assertCountEquals(1)
 
         expectedSelections.forEach { (resourceId, _) ->
             composeTestRule

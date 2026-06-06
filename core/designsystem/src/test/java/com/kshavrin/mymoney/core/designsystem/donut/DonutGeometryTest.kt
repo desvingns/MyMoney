@@ -425,8 +425,57 @@ class DonutGeometryTest {
         assertEquals(0f, DonutGeometry.gapForSweep(sweepDegrees = 120f, maxGapDegrees = -5f), 0.001f)
     }
 
+    @Test
+    fun `mid angle zero projects contour icon center to the right of donut center`() {
+        val arc = SliceArc(
+            slice = slice(1, 1f),
+            startAngleDegrees = -30f,
+            sweepDegrees = 60f,
+        )
+
+        val iconCenter = contourPoint(
+            arc = arc,
+            radius = 100f + 8f + 20f,
+            explodedOffset = 12f,
+        )
+
+        assertEquals(140f, iconCenter.first, 0.001f)
+        assertEquals(0f, iconCenter.second, 0.001f)
+        assertTrue(iconCenter.first > 0f)
+    }
+
+    @Test
+    fun `mid angle minus ninety projects contour icon center above donut center`() {
+        val arc = SliceArc(
+            slice = slice(1, 1f),
+            startAngleDegrees = -120f,
+            sweepDegrees = 60f,
+        )
+
+        val iconCenter = contourPoint(
+            arc = arc,
+            radius = 100f + 8f + 20f,
+            explodedOffset = 12f,
+        )
+
+        assertEquals(0f, iconCenter.first, 0.001f)
+        assertEquals(-140f, iconCenter.second, 0.001f)
+        assertTrue(iconCenter.second < 0f)
+    }
+
     private fun pointAtAngleDegrees(angleDegrees: Float, radius: Float): Pair<Float, Float> {
         val radians = Math.toRadians(angleDegrees.toDouble())
         return (radius * cos(radians)).toFloat() to (radius * sin(radians)).toFloat()
+    }
+
+    private fun contourPoint(
+        arc: SliceArc,
+        radius: Float,
+        explodedOffset: Float,
+    ): Pair<Float, Float> {
+        val mid = DonutGeometry.midAngleRadians(arc)
+        val dx = cos(mid) * (radius + explodedOffset)
+        val dy = sin(mid) * (radius + explodedOffset)
+        return dx to dy
     }
 }

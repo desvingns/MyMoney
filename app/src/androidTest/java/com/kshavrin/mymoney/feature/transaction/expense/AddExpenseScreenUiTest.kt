@@ -238,10 +238,10 @@ class AddExpenseScreenUiTest {
     }
 
     @Test
-    fun `applying a range emits the selected start date event`() {
+    fun `applying a picked date emits the selected expense date event`() {
         val capturedEvents = mutableListOf<AddExpenseEvent>()
         val initialDate = LocalDate.of(2026, 5, 17)
-        val rangeEndDate = initialDate.plusDays(1)
+        val selectedDate = initialDate.plusDays(1)
 
         composeTestRule.setContent {
             MyMoneyTheme {
@@ -255,11 +255,11 @@ class AddExpenseScreenUiTest {
         composeTestRule
             .onNodeWithContentDescription(targetString(DesignSystemR.string.amountfield_pick_date_cd))
             .performClick()
-        composeTestRule.onNodeWithText(dateLabel(rangeEndDate)).performClick()
+        composeTestRule.onNodeWithText(dateLabel(selectedDate)).performClick()
         composeTestRule.onNodeWithText(targetString(R.string.apply)).performClick()
 
         composeTestRule.runOnIdle {
-            assertEquals(listOf(AddExpenseEvent.DateChanged(initialDate)), capturedEvents)
+            assertEquals(listOf(AddExpenseEvent.DateChanged(selectedDate)), capturedEvents)
         }
     }
 

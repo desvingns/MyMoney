@@ -20,14 +20,14 @@ class TransactionDateRangePickerDialogUiTest {
     val composeTestRule = createComposeRule()
 
     @Test
-    fun `applying without an end date dismisses without emitting a picked date`() {
+    fun `applying without changing the selection emits the initial date`() {
         val pickedDates = mutableListOf<LocalDate>()
         var dismissCount = 0
         val initialDate = LocalDate.of(2026, 5, 17)
 
         composeTestRule.setContent {
             MyMoneyTheme {
-                TransactionDateRangePickerDialog(
+                TransactionDatePickerDialog(
                     initialDate = initialDate,
                     onDatePicked = { pickedDates += it },
                     onDismiss = { dismissCount += 1 },
@@ -35,40 +35,40 @@ class TransactionDateRangePickerDialogUiTest {
             }
         }
 
-        composeTestRule
-            .onNodeWithText(targetString(R.string.apply))
-            .performClick()
-
-        composeTestRule.runOnIdle {
-            assertEquals(emptyList<LocalDate>(), pickedDates)
-            assertEquals(1, dismissCount)
-        }
-    }
-
-    @Test
-    fun `applying a range emits the selected start date`() {
-        val pickedDates = mutableListOf<LocalDate>()
-        var dismissCount = 0
-        val initialDate = LocalDate.of(2026, 5, 17)
-        val rangeEndDate = initialDate.plusDays(2)
-
-        composeTestRule.setContent {
-            MyMoneyTheme {
-                TransactionDateRangePickerDialog(
-                    initialDate = initialDate,
-                    onDatePicked = { pickedDates += it },
-                    onDismiss = { dismissCount += 1 },
-                )
-            }
-        }
-
-        composeTestRule.onNodeWithText(dateLabel(rangeEndDate)).performClick()
         composeTestRule
             .onNodeWithText(targetString(R.string.apply))
             .performClick()
 
         composeTestRule.runOnIdle {
             assertEquals(listOf(initialDate), pickedDates)
+            assertEquals(1, dismissCount)
+        }
+    }
+
+    @Test
+    fun `applying a picked date emits the selected concrete date`() {
+        val pickedDates = mutableListOf<LocalDate>()
+        var dismissCount = 0
+        val initialDate = LocalDate.of(2026, 5, 17)
+        val selectedDate = initialDate.plusDays(2)
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                TransactionDatePickerDialog(
+                    initialDate = initialDate,
+                    onDatePicked = { pickedDates += it },
+                    onDismiss = { dismissCount += 1 },
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText(dateLabel(selectedDate)).performClick()
+        composeTestRule
+            .onNodeWithText(targetString(R.string.apply))
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(selectedDate), pickedDates)
             assertEquals(1, dismissCount)
         }
     }

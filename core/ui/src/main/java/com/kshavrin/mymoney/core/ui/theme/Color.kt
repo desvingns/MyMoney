@@ -191,3 +191,12 @@ val ColorScheme.goalCreditUnderfundedContent: Color
 
 val ColorScheme.goalFormReadOnlyContainer: Color
     get() = surfaceVariant.copy(alpha = 0.56f)
+
+// Edit-form delete action — uses M3 low-prominence destructive pattern
+// (errorContainer/onErrorContainer) so the button is clearly destructive
+// without the full visual weight of a filled error button.
+val ColorScheme.transactionFormDeleteContainer: Color
+    get() = errorContainer
+
+val ColorScheme.transactionFormDeleteContent: Color
+    get() = onErrorContainer

@@ -379,6 +379,7 @@ private fun DashboardTopBarTitle(
             style = MaterialTheme.typography.dashboardTopBarTitle,
             fontFamily = FontFamily.Cursive,
             fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onPrimary,
             maxLines = 1,
             modifier = Modifier.testTag(DASHBOARD_TOP_BAR_TITLE_TAG),
         )
@@ -386,6 +387,7 @@ private fun DashboardTopBarTitle(
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.dashboardTopBarSubtitle,
+                color = MaterialTheme.colorScheme.onPrimary,
                 maxLines = 1,
                 modifier = Modifier.testTag(DASHBOARD_TOP_BAR_SUBTITLE_TAG),
             )

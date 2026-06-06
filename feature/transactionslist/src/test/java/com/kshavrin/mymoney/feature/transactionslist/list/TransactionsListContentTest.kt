@@ -169,6 +169,13 @@ class TransactionsListContentTest {
     }
 
     @Test
+    fun `category filter is active only when both id and name are present`() {
+        assertTrue(TransactionsListUiState(categoryId = 10L, categoryName = "Food").hasCategoryFilter)
+        assertFalse(TransactionsListUiState(categoryId = 10L, categoryName = null).hasCategoryFilter)
+        assertFalse(TransactionsListUiState(categoryId = null, categoryName = "Food").hasCategoryFilter)
+    }
+
+    @Test
     fun `chevron direction is down when expanded and right when collapsed`() {
         // Mirrors CategoryHeader: expanded -> KeyboardArrowDown, collapsed -> KeyboardArrowRight.
         fun chevronIsDown(expanded: Boolean) = expanded
@@ -201,6 +208,7 @@ class TransactionsListContentTest {
         assertEquals("records_balance", RecordsTestTags.BALANCE)
         assertEquals("records_sort", RecordsTestTags.SORT)
         assertEquals("records_empty", RecordsTestTags.EMPTY)
+        assertEquals("records_filter", RecordsTestTags.FILTER)
     }
 
     @Test

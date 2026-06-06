@@ -34,6 +34,13 @@ val Typography.recordsHeaderSupportingLabel: TextStyle
         lineHeight = 20.sp,
     )
 
+val Typography.recordsFilterChipLabel: TextStyle
+    get() = labelLarge.copy(
+        fontWeight = FontWeight.Medium,
+        letterSpacing = 0.sp,
+        lineHeight = 20.sp,
+    )
+
 val Typography.dashboardTopBarTitle: TextStyle
     get() = headlineLarge.copy(
         fontSize = 34.sp,

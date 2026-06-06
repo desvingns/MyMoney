@@ -10,6 +10,7 @@ data class TransactionsListUiState(
     val accountId: Long? = null,
     val currencyId: Long? = null,
     val categoryId: Long? = null,
+    val categoryName: String? = null,
     val period: Period = Period.Month(YearMonth.now()),
     val groups: List<CategoryRecordGroup> = emptyList(),
     val expandedCategoryIds: Set<Long> = emptySet(),
@@ -18,6 +19,8 @@ data class TransactionsListUiState(
     val currency: Currency? = null,
     val isLoading: Boolean = true,
 ) {
+    val hasCategoryFilter: Boolean get() = categoryId != null && !categoryName.isNullOrBlank()
+
     val sortedGroups: List<CategoryRecordGroup>
         get() = when (sort) {
             RecordSort.TotalDesc -> groups.sortedByDescending { it.total.amount }

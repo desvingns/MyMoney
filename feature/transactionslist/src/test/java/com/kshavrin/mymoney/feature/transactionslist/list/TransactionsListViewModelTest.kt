@@ -413,4 +413,75 @@ class TransactionsListViewModelTest {
             cancelAndIgnoreRemainingEvents()
         }
     }
+
+    @Test
+    fun `category filter limits groups and exposes the category chip label`() = runTest {
+        transactionRepo.seedCategoryGroups(
+            cashAccount.id,
+            foodGroup,
+            salaryGroup,
+        )
+        transactionRepo.seedPeriodTransactions(
+            cashAccount.id,
+            tx(1L, 10L, TransactionKind.Expense, BigDecimal("10.00"), Instant.parse("2026-05-18T09:00:00Z")),
+            tx(2L, 20L, TransactionKind.Income, BigDecimal("100.00"), Instant.parse("2026-05-19T09:00:00Z")),
+        )
+
+        buildViewModel(handleOf(categoryId = 10L)).state.test {
+            val state = expectMostRecentItem()
+            assertEquals(listOf(10L), state.groups.map { it.categoryId })
+            assertEquals(10L, state.categoryId)
+            assertEquals("Food", state.categoryName)
+            assertTrue(state.hasCategoryFilter)
+            assertEquals(setOf(10L), state.expandedCategoryIds)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `clearing category filter reloads the unfiltered list`() = runTest {
+        transactionRepo.seedCategoryGroups(
+            cashAccount.id,
+            foodGroup,
+            salaryGroup,
+        )
+        transactionRepo.seedPeriodTransactions(
+            cashAccount.id,
+            tx(1L, 10L, TransactionKind.Expense, BigDecimal("10.00"), Instant.parse("2026-05-18T09:00:00Z")),
+            tx(2L, 20L, TransactionKind.Income, BigDecimal("100.00"), Instant.parse("2026-05-19T09:00:00Z")),
+        )
+        val viewModel = buildViewModel(handleOf(categoryId = 10L))
+
+        viewModel.state.test {
+            assertEquals(listOf(10L), expectMostRecentItem().groups.map { it.categoryId })
+
+            viewModel.onEvent(TransactionsListEvent.CategoryFilterCleared)
+
+            assertTrue(awaitItem().isLoading)
+            val reloaded = awaitItem()
+            assertEquals(setOf(10L, 20L), reloaded.groups.map { it.categoryId }.toSet())
+            assertEquals(null, reloaded.categoryId)
+            assertEquals(null, reloaded.categoryName)
+            assertTrue(reloaded.expandedCategoryIds.isEmpty())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `missing category filter falls back to the unfiltered list`() = runTest {
+        transactionRepo.seedCategoryGroups(
+            cashAccount.id,
+            foodGroup,
+            salaryGroup,
+        )
+
+        buildViewModel(handleOf(categoryId = 999L)).state.test {
+            val state = expectMostRecentItem()
+            assertEquals(setOf(10L, 20L), state.groups.map { it.categoryId }.toSet())
+            assertEquals(null, state.categoryId)
+            assertEquals(null, state.categoryName)
+            assertFalse(state.hasCategoryFilter)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
 }

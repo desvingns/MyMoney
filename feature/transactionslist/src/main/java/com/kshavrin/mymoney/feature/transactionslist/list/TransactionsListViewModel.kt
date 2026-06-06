@@ -69,6 +69,7 @@ class TransactionsListViewModel @Inject constructor(
     fun onEvent(event: TransactionsListEvent) {
         when (event) {
             is TransactionsListEvent.CategoryClicked -> toggleCategory(event.categoryId)
+            TransactionsListEvent.CategoryFilterCleared -> clearCategoryFilter()
             is TransactionsListEvent.RowClicked -> emit(TransactionsListAction.OpenDetail(event.id))
             is TransactionsListEvent.SwipeDeleted -> onSwipeDeleted(event.id)
             is TransactionsListEvent.UndoDeleteClicked -> onUndoDelete(event.id)
@@ -79,21 +80,7 @@ class TransactionsListViewModel @Inject constructor(
     private fun load() {
         viewModelScope.launch {
             try {
-                val selection = resolveSelection()
-                val groups = when (selection) {
-                    is RecordsSelection.SpecificAccount -> getCategoryRecords(selection.account.id, period)
-                    is RecordsSelection.AllAccounts -> getCategoryRecords.forAccounts(selection.accounts, selection.currency, period)
-                }
-                val snapshot = when (selection) {
-                    is RecordsSelection.SpecificAccount -> balanceCalculator(selection.account.id, period)
-                    is RecordsSelection.AllAccounts -> balanceCalculator.forAccounts(selection.accounts, selection.currency, period)
-                }
-                _state.value = _state.value.copy(
-                    groups = groups,
-                    net = snapshot.net,
-                    currency = snapshot.net.currency,
-                    isLoading = false,
-                )
+                applyLoadedState()
             } catch (t: Throwable) {
                 t.reportToSentry()
                 _state.value = _state.value.copy(isLoading = false)
@@ -140,20 +127,60 @@ class TransactionsListViewModel @Inject constructor(
     }
 
     private suspend fun reload() {
+        applyLoadedState()
+    }
+
+    private suspend fun applyLoadedState() {
         val selection = resolveSelection()
-        val groups = when (selection) {
-            is RecordsSelection.SpecificAccount -> getCategoryRecords(selection.account.id, period)
-            is RecordsSelection.AllAccounts -> getCategoryRecords.forAccounts(selection.accounts, selection.currency, period)
+        val requestedCategoryId = _state.value.categoryId
+        val filteredGroups = loadGroups(selection, requestedCategoryId)
+        val groups = if (requestedCategoryId != null && filteredGroups.isEmpty()) {
+            loadGroups(selection, categoryId = null)
+        } else {
+            filteredGroups
         }
         val snapshot = when (selection) {
             is RecordsSelection.SpecificAccount -> balanceCalculator(selection.account.id, period)
             is RecordsSelection.AllAccounts -> balanceCalculator.forAccounts(selection.accounts, selection.currency, period)
         }
+        val activeCategoryId = requestedCategoryId?.takeIf { id -> groups.any { it.categoryId == id } }
         _state.value = _state.value.copy(
             groups = groups,
             net = snapshot.net,
             currency = snapshot.net.currency,
+            categoryId = activeCategoryId,
+            categoryName = activeCategoryId?.let { id -> groups.firstOrNull { it.categoryId == id }?.name },
+            expandedCategoryIds = activeCategoryId?.let(::setOf) ?: _state.value.expandedCategoryIds.filterTo(linkedSetOf()) { expandedId ->
+                groups.any { it.categoryId == expandedId }
+            },
+            isLoading = false,
         )
+    }
+
+    private suspend fun loadGroups(
+        selection: RecordsSelection,
+        categoryId: Long?,
+    ) = when (selection) {
+        is RecordsSelection.SpecificAccount -> getCategoryRecords(selection.account.id, period, categoryId)
+        is RecordsSelection.AllAccounts -> getCategoryRecords.forAccounts(selection.accounts, selection.currency, period, categoryId)
+    }
+
+    private fun clearCategoryFilter() {
+        if (_state.value.categoryId == null) return
+        _state.value = _state.value.copy(
+            categoryId = null,
+            categoryName = null,
+            expandedCategoryIds = emptySet(),
+            isLoading = true,
+        )
+        viewModelScope.launch {
+            try {
+                applyLoadedState()
+            } catch (t: Throwable) {
+                t.reportToSentry()
+                _state.value = _state.value.copy(isLoading = false)
+            }
+        }
     }
 
     private fun emit(action: TransactionsListAction) {

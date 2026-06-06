@@ -36,8 +36,14 @@ fun MyMoneyNavHost(
         composable(Destinations.SPLASH) {
             com.kshavrin.mymoney.feature.onboarding.SplashScreen(
                 onNavigateToOnboarding = {
-                    navController.navigate(Destinations.ONBOARDING) {
-                        popUpTo(Destinations.SPLASH) { inclusive = true }
+                    if (com.kshavrin.mymoney.BuildConfig.SHOW_ONBOARDING) {
+                        navController.navigate(Destinations.ONBOARDING) {
+                            popUpTo(Destinations.SPLASH) { inclusive = true }
+                        }
+                    } else {
+                        navController.navigate(Destinations.DASHBOARD) {
+                            popUpTo(Destinations.SPLASH) { inclusive = true }
+                        }
                     }
                 },
             )

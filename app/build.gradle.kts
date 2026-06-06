@@ -57,6 +57,8 @@ android {
             "SYNC_DISABLED",
             (providers.gradleProperty("sync.enabled").orNull != "true").toString(),
         )
+        // Temporary skip of the 4-slide tutorial; re-enabled later by flipping to true.
+        buildConfigField("boolean", "SHOW_ONBOARDING", "false")
     }
 
     signingConfigs {

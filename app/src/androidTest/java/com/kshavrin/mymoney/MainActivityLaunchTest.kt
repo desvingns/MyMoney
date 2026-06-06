@@ -2,11 +2,10 @@ package com.kshavrin.mymoney
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
-import com.kshavrin.mymoney.feature.onboarding.R
+import com.kshavrin.mymoney.feature.dashboard.DASHBOARD_TOP_BAR_TITLE_TAG
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Rule
@@ -24,16 +23,12 @@ class MainActivityLaunchTest {
     val composeRule = createAndroidComposeRule<MainActivity>()
 
     @Test
-    fun launchesToOnboardingOnFreshInMemoryState() {
-        val skip = targetString(R.string.onboarding_skip)
-
+    fun launchesToDashboardWhenOnboardingDisabled() {
         composeRule.waitUntil(timeoutMillis = 15_000) {
-            composeRule.onAllNodesWithText(skip).fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodesWithTag(DASHBOARD_TOP_BAR_TITLE_TAG)
+                .fetchSemanticsNodes().isNotEmpty()
         }
 
-        composeRule.onNodeWithText(skip).assertIsDisplayed()
+        composeRule.onNodeWithTag(DASHBOARD_TOP_BAR_TITLE_TAG).assertIsDisplayed()
     }
-
-    private fun targetString(resourceId: Int): String =
-        InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)
 }

@@ -9,10 +9,13 @@ import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
 import com.kshavrin.mymoney.core.datastore.model.AppSettings
 import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.AccountType
+import com.kshavrin.mymoney.core.domain.model.BalanceSnapshot
 import com.kshavrin.mymoney.core.domain.model.Budget
 import com.kshavrin.mymoney.core.domain.model.Category
+import com.kshavrin.mymoney.core.domain.model.CategoryBalance
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.core.domain.model.Currency
+import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.domain.model.Period
 import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
@@ -457,6 +460,158 @@ class DashboardViewModelTest {
     }
 
     @Test
+    fun `snapshotToSlices keeps real slices when every expense category is at least two percent`() = runTest {
+        val (viewModel, store) = buildViewModel()
+        try {
+            val slices = viewModel.snapshotToSlices(
+                snapshot = expenseSnapshot(
+                    expenseCategoryBalance(categoryId = 10L, amount = "30.00", iconKey = "food"),
+                    expenseCategoryBalance(categoryId = 20L, amount = "70.00", iconKey = "transport"),
+                ),
+                alertCategoryIds = setOf(20L),
+            )
+
+            assertEquals(listOf(10L, 20L), slices.map { it.categoryId })
+            assertFalse(slices.any { it.categoryId == OTHER_CATEGORY_ID })
+            assertEquals(1.0, slices.sumOf { it.fraction.toDouble() }, 0.0001)
+            assertEquals(0.30f, slices.single { it.categoryId == 10L }.fraction, 0.0001f)
+            assertEquals(0.70f, slices.single { it.categoryId == 20L }.fraction, 0.0001f)
+            assertTrue(slices.single { it.categoryId == 20L }.hasBudgetAlert)
+        } finally {
+            store.clear()
+            runCurrent()
+        }
+    }
+
+    @Test
+    fun `snapshotToSlices folds a lone sub two percent expense into one trailing other slice without budget alert`() = runTest {
+        val (viewModel, store) = buildViewModel()
+        try {
+            val slices = viewModel.snapshotToSlices(
+                snapshot = expenseSnapshot(
+                    expenseCategoryBalance(categoryId = 10L, amount = "98.50", iconKey = "food"),
+                    expenseCategoryBalance(categoryId = 20L, amount = "1.50", iconKey = "coffee"),
+                ),
+                alertCategoryIds = setOf(10L, 20L),
+            )
+
+            assertEquals(listOf(10L, OTHER_CATEGORY_ID), slices.map { it.categoryId })
+            assertEquals(1.0, slices.sumOf { it.fraction.toDouble() }, 0.0001)
+            assertEquals(0.985f, slices.first().fraction, 0.0001f)
+            assertTrue(slices.first().hasBudgetAlert)
+
+            val other = slices.last()
+            assertEquals(OTHER_CATEGORY_ID, other.categoryId)
+            assertEquals(OTHER_CATEGORY_ICON_KEY, other.iconKey)
+            assertEquals(0.015f, other.fraction, 0.0001f)
+            assertFalse(other.hasBudgetAlert)
+        } finally {
+            store.clear()
+            runCurrent()
+        }
+    }
+
+    @Test
+    fun `snapshotToSlices folds multiple sub two percent expenses into one trailing other slice`() = runTest {
+        val (viewModel, store) = buildViewModel()
+        try {
+            val slices = viewModel.snapshotToSlices(
+                snapshot = expenseSnapshot(
+                    expenseCategoryBalance(categoryId = 10L, amount = "97.00", iconKey = "food"),
+                    expenseCategoryBalance(categoryId = 20L, amount = "1.00", iconKey = "coffee"),
+                    expenseCategoryBalance(categoryId = 30L, amount = "1.00", iconKey = "snack"),
+                    expenseCategoryBalance(categoryId = 40L, amount = "1.00", iconKey = "taxi"),
+                ),
+                alertCategoryIds = setOf(20L, 30L, 40L),
+            )
+
+            assertEquals(listOf(10L, OTHER_CATEGORY_ID), slices.map { it.categoryId })
+            assertEquals(1.0, slices.sumOf { it.fraction.toDouble() }, 0.0001)
+            assertEquals(0.97f, slices.first().fraction, 0.0001f)
+
+            val other = slices.last()
+            assertEquals(0.03f, other.fraction, 0.0001f)
+            assertEquals(OTHER_CATEGORY_ICON_KEY, other.iconKey)
+            assertFalse(other.hasBudgetAlert)
+        } finally {
+            store.clear()
+            runCurrent()
+        }
+    }
+
+    @Test
+    fun `snapshotToSlices collapses an all minor expense set into a single hundred percent other slice`() = runTest {
+        val (viewModel, store) = buildViewModel()
+        try {
+            val slices = viewModel.snapshotToSlices(
+                snapshot = expenseSnapshot(
+                    *List(60) { index ->
+                        expenseCategoryBalance(
+                            categoryId = (index + 1).toLong(),
+                            amount = "1.00",
+                            iconKey = "minor-${index + 1}",
+                        )
+                    }.toTypedArray(),
+                ),
+                alertCategoryIds = (1L..60L).toSet(),
+            )
+
+            assertEquals(1, slices.size)
+            val other = slices.single()
+            assertEquals(OTHER_CATEGORY_ID, other.categoryId)
+            assertEquals(OTHER_CATEGORY_ICON_KEY, other.iconKey)
+            assertEquals(1.0f, other.fraction, 0.0001f)
+            assertFalse(other.hasBudgetAlert)
+        } finally {
+            store.clear()
+            runCurrent()
+        }
+    }
+
+    @Test
+    fun `snapshotToSlices leaves a two to three percent expense slice real because the grouping threshold is independent of labels`() = runTest {
+        val (viewModel, store) = buildViewModel()
+        try {
+            val slices = viewModel.snapshotToSlices(
+                snapshot = expenseSnapshot(
+                    expenseCategoryBalance(categoryId = 10L, amount = "97.50", iconKey = "food"),
+                    expenseCategoryBalance(categoryId = 20L, amount = "2.50", iconKey = "coffee"),
+                ),
+                alertCategoryIds = emptySet(),
+            )
+
+            assertEquals(listOf(10L, 20L), slices.map { it.categoryId })
+            assertFalse(slices.any { it.categoryId == OTHER_CATEGORY_ID })
+            assertEquals(1.0, slices.sumOf { it.fraction.toDouble() }, 0.0001)
+            assertEquals(0.025f, slices.single { it.categoryId == 20L }.fraction, 0.0001f)
+        } finally {
+            store.clear()
+            runCurrent()
+        }
+    }
+
+    @Test
+    fun `snapshotToSlices does not create other when expense is empty or zero`() = runTest {
+        val (viewModel, store) = buildViewModel()
+        try {
+            val slices = viewModel.snapshotToSlices(
+                snapshot = expenseSnapshot(
+                    expenseCategoryBalance(categoryId = 10L, amount = "0.00", iconKey = "food"),
+                ),
+                alertCategoryIds = setOf(10L),
+            )
+
+            assertEquals(listOf(10L), slices.map { it.categoryId })
+            assertFalse(slices.any { it.categoryId == OTHER_CATEGORY_ID })
+            assertEquals(0f, slices.single().fraction, 0f)
+            assertTrue(slices.single().hasBudgetAlert)
+        } finally {
+            store.clear()
+            runCurrent()
+        }
+    }
+
+    @Test
     fun `expense category placeholders are built from observeByKind Expense sorted by sortOrder`() = runTest {
         categoryRepository.seed(
             category(id = 30L, name = "Home", kind = CategoryKind.Expense, sortOrder = 2, iconKey = "home", colorHex = "#112233"),
@@ -592,6 +747,55 @@ class DashboardViewModelTest {
     }
 
     @Test
+    fun `slice click on other does not emit navigation`() = runTest {
+        val (viewModel, store) = buildViewModel()
+        val actions = mutableListOf<DashboardAction>()
+        val collector = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.actions.toList(actions)
+        }
+
+        try {
+            runCurrent()
+
+            viewModel.onEvent(DashboardEvent.SliceClicked(OTHER_CATEGORY_ID))
+
+            runCurrent()
+
+            assertTrue(actions.isEmpty())
+        } finally {
+            collector.cancel()
+            store.clear()
+            runCurrent()
+        }
+    }
+
+    @Test
+    fun `slice click on a real category emits navigation for the current account`() = runTest {
+        val (viewModel, store) = buildViewModel()
+        val actions = mutableListOf<DashboardAction>()
+        val collector = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.actions.toList(actions)
+        }
+
+        try {
+            runCurrent()
+
+            viewModel.onEvent(DashboardEvent.SliceClicked(categoryId = 77L))
+
+            runCurrent()
+
+            assertEquals(
+                listOf(DashboardAction.NavigateTransactionsByCategory(cash.id, usd.id, 77L)),
+                actions,
+            )
+        } finally {
+            collector.cancel()
+            store.clear()
+            runCurrent()
+        }
+    }
+
+    @Test
     fun `all accounts balance and slice taps emit aggregate transactions actions without a fake account id`() = runTest {
         val (viewModel, store) = buildViewModel()
         val actions = mutableListOf<DashboardAction>()
@@ -700,6 +904,33 @@ class DashboardViewModelTest {
         colorHex = "#FF8888",
         total = BigDecimal(amount),
         iconKey = iconKey,
+    )
+
+    private fun expenseSnapshot(vararg byCategory: CategoryBalance): BalanceSnapshot {
+        val totalExpense = byCategory.fold(BigDecimal.ZERO) { acc, categoryBalance ->
+            acc + categoryBalance.total.amount
+        }
+        val expense = Money(totalExpense, usd)
+        return BalanceSnapshot(
+            income = Money(BigDecimal.ZERO, usd),
+            expense = expense,
+            net = Money(BigDecimal.ZERO.subtract(totalExpense), usd),
+            byCategory = byCategory.toList(),
+        )
+    }
+
+    private fun expenseCategoryBalance(
+        categoryId: Long,
+        amount: String,
+        iconKey: String,
+    ) = CategoryBalance(
+        categoryId = categoryId,
+        categoryName = "category-$categoryId",
+        colorHex = "#FF8888",
+        total = Money(BigDecimal(amount), usd),
+        fraction = 0f,
+        iconKey = iconKey,
+        isExpense = true,
     )
 
     private fun budget(id: Long, categoryId: Long) = Budget(

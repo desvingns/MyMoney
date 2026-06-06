@@ -42,6 +42,7 @@ import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.domain.model.Period
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
+import com.kshavrin.mymoney.core.ui.theme.dashboardDonutOtherSlice
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_ABOUT_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_ACCOUNTS_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_CATEGORIES_TAG
@@ -429,6 +430,62 @@ class DashboardContentUiTest {
         )
         assertTrue("expense FAB must sit below the balance bar", expenseFab.top > balanceBounds.bottom)
         assertTrue("income FAB must sit below the balance bar", incomeFab.top > balanceBounds.bottom)
+    }
+
+    @Test
+    fun `dashboard content relabels and recolors the sentinel other slice at the compose boundary`() {
+        val usd = Currency(
+            id = 1L,
+            code = "USD",
+            symbol = "$",
+            name = "US Dollar",
+            decimalDigits = 2,
+            isActive = true,
+            sortOrder = 0,
+        )
+        var expectedOtherColor = 0
+        val expectedDescription = expectedDonutDescription(
+            income = "0",
+            expense = "10.00",
+            slices = listOf(targetString(R.string.category_other) to 100),
+        )
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                expectedOtherColor = MaterialTheme.colorScheme.dashboardDonutOtherSlice.toArgb()
+                DashboardContent(
+                    state = dashboardState(
+                        currency = usd,
+                        balanceSnapshot = BalanceSnapshot(
+                            income = Money(BigDecimal.ZERO, usd),
+                            expense = Money(BigDecimal("10.00"), usd),
+                            net = Money(BigDecimal("-10.00"), usd),
+                            byCategory = emptyList(),
+                        ),
+                        slices = listOf(
+                            CategorySlice(
+                                categoryId = OTHER_CATEGORY_ID,
+                                color = Color.Unspecified,
+                                fraction = 1.0f,
+                                label = "",
+                                iconKey = OTHER_CATEGORY_ICON_KEY,
+                            ),
+                        ),
+                        isLoading = false,
+                    ),
+                    onEvent = {},
+                )
+            }
+        }
+        composeTestRule.waitForIdle()
+
+        composeTestRule
+            .onNodeWithContentDescription(expectedDescription)
+            .assertIsDisplayed()
+        assertTrue(
+            "dashboard donut must paint the sentinel Other slice with dashboardDonutOtherSlice",
+            nodeImageContainsColor(DASHBOARD_DONUT_TAG, expectedOtherColor),
+        )
     }
 
     @Test
@@ -997,6 +1054,19 @@ class DashboardContentUiTest {
 
     private fun targetLocale() = InstrumentationRegistry.getInstrumentation()
         .targetContext.resources.configuration.locales[0]
+
+    private fun expectedDonutDescription(
+        income: String,
+        expense: String,
+        slices: List<Pair<String, Int>> = emptyList(),
+    ): String {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val header = context.getString(DesignSystemR.string.donut_chart_cd, income, expense)
+        val sliceText = slices.joinToString(separator = " ") { (label, percent) ->
+            context.getString(DesignSystemR.string.donut_chart_slice, label, percent)
+        }
+        return if (sliceText.isEmpty()) header else "$header $sliceText"
+    }
 
     private fun nodeImageContainsColor(tag: String, argb: Int): Boolean {
         val image = composeTestRule

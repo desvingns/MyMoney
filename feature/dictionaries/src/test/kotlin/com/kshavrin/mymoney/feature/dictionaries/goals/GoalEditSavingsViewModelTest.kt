@@ -8,6 +8,7 @@ import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Goal
 import com.kshavrin.mymoney.core.domain.model.GoalStatus
 import com.kshavrin.mymoney.core.domain.model.GoalVariant
+import com.kshavrin.mymoney.core.domain.usecase.GoalLoanCalculator
 import com.kshavrin.mymoney.core.domain.usecase.GoalSavingsProjector
 import com.kshavrin.mymoney.feature.dictionaries.goals.fake.FakeAccountRepository
 import com.kshavrin.mymoney.feature.dictionaries.goals.fake.FakeCurrencyRepository
@@ -33,6 +34,7 @@ class GoalEditSavingsViewModelTest {
     private lateinit var accountRepo: FakeAccountRepository
     private lateinit var currencyRepo: FakeCurrencyRepository
     private val projector = GoalSavingsProjector()
+    private val loanCalculator = GoalLoanCalculator()
 
     private val now: Instant = Instant.parse("2026-06-06T10:00:00Z")
 
@@ -113,6 +115,7 @@ class GoalEditSavingsViewModelTest {
             accountRepository = accountRepo,
             currencyRepository = currencyRepo,
             savingsProjector = projector,
+            loanCalculator = loanCalculator,
             savedStateHandle = SavedStateHandle(mapOf("id" to goalId)),
         )
 

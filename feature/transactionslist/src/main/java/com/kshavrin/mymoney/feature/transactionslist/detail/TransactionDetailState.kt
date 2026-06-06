@@ -26,6 +26,8 @@ data class TransactionDetailState(
     val rateInput: String = "",
     val accounts: List<Account> = emptyList(),
     val currencies: List<Currency> = emptyList(),
+    val categories: List<Category> = emptyList(),
+    val categoryStep: Boolean = false,
     val isLoaded: Boolean = false,
     val isDirty: Boolean = false,
     val isSaving: Boolean = false,

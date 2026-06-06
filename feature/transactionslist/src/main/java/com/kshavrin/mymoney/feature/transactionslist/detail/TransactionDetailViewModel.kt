@@ -8,6 +8,8 @@ import com.kshavrin.mymoney.core.common.exception.reportToSentry
 import com.kshavrin.mymoney.core.designsystem.keypad.toCalculator
 import com.kshavrin.mymoney.core.designsystem.keypad.toDesignsystem
 import com.kshavrin.mymoney.core.domain.model.Account
+import com.kshavrin.mymoney.core.domain.model.Category
+import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.CurrencyRate
 import com.kshavrin.mymoney.core.domain.model.Transaction
@@ -59,8 +61,28 @@ class TransactionDetailViewModel @Inject constructor(
     )
     val actions: SharedFlow<TransactionDetailAction> = _actions.asSharedFlow()
 
+    private var allCategories: List<Category> = emptyList()
+
     init {
         load()
+        observeCategories()
+    }
+
+    private fun observeCategories() {
+        viewModelScope.launch {
+            categoryRepository.observeAll().collect { all ->
+                allCategories = all
+                _state.value = _state.value.copy(categories = filteredCategories())
+            }
+        }
+    }
+
+    // The category step lists only categories of the transaction's own kind; transfers have none.
+    private fun filteredCategories(): List<Category> {
+        val target = categoryKindFor(_state.value.kind) ?: return emptyList()
+        return allCategories
+            .filter { it.kind == target && !it.isArchived }
+            .sortedBy { it.sortOrder }
     }
 
     private fun load() {
@@ -96,6 +118,7 @@ class TransactionDetailViewModel @Inject constructor(
                 isLoaded = true,
                 isDirty = false,
             )
+            _state.value = _state.value.copy(categories = filteredCategories())
         }
     }
 
@@ -132,6 +155,11 @@ class TransactionDetailViewModel @Inject constructor(
             is TransactionDetailEvent.AccountChanged -> onAccountChanged(event.accountId)
             is TransactionDetailEvent.TargetAccountChanged -> onTargetAccountChanged(event.accountId)
             is TransactionDetailEvent.RateChanged -> onRateChanged(event.text)
+            TransactionDetailEvent.SelectCategoryClicked -> onSelectCategoryClicked()
+            TransactionDetailEvent.BackToAmount ->
+                _state.value = _state.value.copy(categoryStep = false, errorBannerRes = null)
+            TransactionDetailEvent.AddCategoryClicked -> onAddCategoryClicked()
+            is TransactionDetailEvent.CategoryPicked -> onCategoryPicked(event.categoryId)
             TransactionDetailEvent.SaveClicked -> save()
             TransactionDetailEvent.DeleteClicked ->
                 _state.value = _state.value.copy(confirmDeleteVisible = true)
@@ -179,6 +207,35 @@ class TransactionDetailViewModel @Inject constructor(
         recomputeDirty()
     }
 
+    private fun onSelectCategoryClicked() {
+        val s = _state.value
+        if (s.amount <= BigDecimal.ZERO) {
+            _state.value = s.copy(errorBannerRes = R.string.detail_error_enter_amount)
+            return
+        }
+        _state.value = s.copy(categoryStep = true, errorBannerRes = null)
+    }
+
+    private fun onAddCategoryClicked() {
+        val kind = categoryKindFor(_state.value.kind) ?: return
+        emit(TransactionDetailAction.NavigateToCreateCategory(kind.name))
+    }
+
+    // Editing a category is explicit-save (unlike New, where picking saves immediately):
+    // we only set the chosen category and return to the amount step so the user can review
+    // and confirm via the Save FAB.
+    private fun onCategoryPicked(categoryId: Long) {
+        viewModelScope.launch {
+            val category = categoryRepository.findById(categoryId) ?: return@launch
+            _state.value = _state.value.copy(
+                category = category,
+                categoryStep = false,
+                errorBannerRes = null,
+            )
+            recomputeDirty()
+        }
+    }
+
     private fun recomputeDirty() {
         val tx = original ?: return
         val s = _state.value
@@ -187,6 +244,7 @@ class TransactionDetailViewModel @Inject constructor(
             s.note != tx.note.orEmpty() ||
             s.occurredAt != originalDate ||
             s.account?.id != tx.accountId ||
+            s.category?.id != tx.categoryId ||
             s.targetAccount?.id != tx.toAccountId ||
             !ratesEqual(s.exchangeRate, tx.exchangeRate)
         _state.value = _state.value.copy(isDirty = dirty)
@@ -212,6 +270,7 @@ class TransactionDetailViewModel @Inject constructor(
                     amount = s.amount,
                     currencyId = currency.id,
                     accountId = account.id,
+                    categoryId = s.category?.id ?: tx.categoryId,
                     note = s.note.takeIf { it.isNotBlank() },
                     occurredAt = s.occurredAt.toUtcInstant(),
                     updatedAt = Instant.now(),
@@ -344,8 +403,15 @@ class TransactionDetailViewModel @Inject constructor(
     private fun LocalDate.toUtcInstant(): Instant =
         atStartOfDay(ZoneOffset.UTC).toInstant()
 
+    private fun categoryKindFor(kind: TransactionKind): CategoryKind? = when (kind) {
+        TransactionKind.Expense -> CategoryKind.Expense
+        TransactionKind.Income -> CategoryKind.Income
+        TransactionKind.Transfer -> null
+    }
+
     companion object {
         const val KEY_TRANSACTION_ID = "transactionId"
+        const val KEY_CREATED_CATEGORY_ID = "createdCategoryId"
 
         private fun ratesEqual(a: Double?, b: Double?): Boolean = a == b
     }

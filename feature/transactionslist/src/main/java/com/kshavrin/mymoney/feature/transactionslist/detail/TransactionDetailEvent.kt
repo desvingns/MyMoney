@@ -14,6 +14,10 @@ sealed interface TransactionDetailEvent {
     data class AccountChanged(val accountId: Long) : TransactionDetailEvent
     data class TargetAccountChanged(val accountId: Long) : TransactionDetailEvent
     data class RateChanged(val text: String) : TransactionDetailEvent
+    data object SelectCategoryClicked : TransactionDetailEvent
+    data object BackToAmount : TransactionDetailEvent
+    data object AddCategoryClicked : TransactionDetailEvent
+    data class CategoryPicked(val categoryId: Long) : TransactionDetailEvent
     data object SaveClicked : TransactionDetailEvent
     data object DeleteClicked : TransactionDetailEvent
     data object ConfirmDelete : TransactionDetailEvent

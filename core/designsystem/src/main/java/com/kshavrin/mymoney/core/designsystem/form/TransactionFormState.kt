@@ -3,6 +3,8 @@ package com.kshavrin.mymoney.core.designsystem.form
 import com.kshavrin.mymoney.core.designsystem.keypad.KeypadEvent
 import java.time.LocalDate
 
+enum class TransactionFormMode { New, Edit }
+
 data class TransactionFormState(
     val amountInput: String,
     val expression: String,
@@ -13,6 +15,7 @@ data class TransactionFormState(
     val categories: List<TransactionFormCategory>,
     val categoryStep: Boolean,
     val chooseCategoryEnabled: Boolean,
+    val mode: TransactionFormMode = TransactionFormMode.New,
 )
 
 sealed interface TransactionFormEvent {
@@ -23,4 +26,5 @@ sealed interface TransactionFormEvent {
     data object BackToAmount : TransactionFormEvent
     data object AddCategoryClicked : TransactionFormEvent
     data class CategoryPicked(val categoryId: Long) : TransactionFormEvent
+    data object DeleteClicked : TransactionFormEvent
 }

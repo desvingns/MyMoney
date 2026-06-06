@@ -1,7 +1,7 @@
 # «Изменить расход/доход» рендерит общую форму (п.3)
 Epic: monefy-ux-fixes
 Order: 04 of 07
-Status: draft
+Status: active
 Depends-on: 01, 02, 03
 Date: 2026-06-06
 

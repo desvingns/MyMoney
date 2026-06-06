@@ -9,4 +9,5 @@
     <string name="keypad_backspace_cd">Backspace</string>
     <string name="transaction_form_choose_category_button">CHOOSE CATEGORY</string>
     <string name="transaction_form_add_category_cta">+ ADD</string>
+    <string name="transaction_form_delete_button">Delete</string>
 </resources>

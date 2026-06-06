@@ -141,9 +141,11 @@ fun MyMoneyNavHost(
             arguments = listOf(
                 navArgument("transactionId") { type = NavType.LongType },
             ),
-        ) {
+        ) { entry ->
             com.kshavrin.mymoney.feature.transactionslist.detail.TransactionDetailRoute(
                 onBack = { navController.popBackStack() },
+                navController = navController,
+                backStackEntry = entry,
             )
         }
         composable(Destinations.ADD_EXPENSE) { entry ->

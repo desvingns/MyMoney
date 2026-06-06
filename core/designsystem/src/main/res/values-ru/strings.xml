@@ -9,4 +9,5 @@
     <string name="keypad_backspace_cd">Удалить символ</string>
     <string name="transaction_form_choose_category_button">ВЫБОР КАТЕГОРИИ</string>
     <string name="transaction_form_add_category_cta">+ ДОБАВИТЬ</string>
+    <string name="transaction_form_delete_button">Удалить</string>
 </resources>

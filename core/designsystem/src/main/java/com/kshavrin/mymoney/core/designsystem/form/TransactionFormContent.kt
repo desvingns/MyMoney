@@ -6,18 +6,27 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import com.kshavrin.mymoney.core.designsystem.R
 import com.kshavrin.mymoney.core.designsystem.amountinput.MonefyAmountInput
 import com.kshavrin.mymoney.core.designsystem.keypad.KeypadEvent
 import com.kshavrin.mymoney.core.designsystem.keypad.MonefyKeypad
 import com.kshavrin.mymoney.core.ui.theme.Spacing
+import com.kshavrin.mymoney.core.ui.theme.transactionFormDeleteContainer
+import com.kshavrin.mymoney.core.ui.theme.transactionFormDeleteContent
 
 @Composable
 fun TransactionFormContent(
@@ -75,10 +84,45 @@ fun TransactionFormContent(
                 ) {
                     Text(stringResource(R.string.transaction_form_choose_category_button))
                 }
+                if (state.mode == TransactionFormMode.Edit) {
+                    DeleteButton(
+                        onClick = { onEvent(TransactionFormEvent.DeleteClicked) },
+                        modifier = Modifier.padding(top = Spacing.s),
+                    )
+                }
             }
         }
     }
 }
+
+@Composable
+private fun DeleteButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Button(
+        onClick = onClick,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.transactionFormDeleteContainer,
+            contentColor = MaterialTheme.colorScheme.transactionFormDeleteContent,
+        ),
+        modifier = modifier
+            .fillMaxWidth()
+            .height(Spacing.transactionFormDeleteButtonHeight)
+            .testTag(TRANSACTION_FORM_DELETE_TAG),
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Delete,
+            contentDescription = null,
+        )
+        Text(
+            text = stringResource(R.string.transaction_form_delete_button),
+            modifier = Modifier.padding(start = Spacing.s),
+        )
+    }
+}
+
+const val TRANSACTION_FORM_DELETE_TAG = "transaction_form_delete"
 
 @Composable
 private fun AmountEntrySection(

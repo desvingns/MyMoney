@@ -201,6 +201,8 @@ private fun dispatchTransactionFormEvent(
         TransactionFormEvent.BackToAmount -> onEvent(AddIncomeEvent.BackToAmount)
         TransactionFormEvent.AddCategoryClicked -> onEvent(AddIncomeEvent.AddCategoryClicked)
         is TransactionFormEvent.CategoryPicked -> onEvent(AddIncomeEvent.CategoryPicked(event.categoryId))
+        // New mode never renders the in-form delete button.
+        TransactionFormEvent.DeleteClicked -> Unit
     }
 }
 

@@ -47,21 +47,32 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavController
 import com.kshavrin.mymoney.core.designsystem.amountfield.AmountFieldEvent
 import com.kshavrin.mymoney.core.designsystem.amountfield.AmountFieldSection
 import com.kshavrin.mymoney.core.designsystem.amountfield.AmountFieldState
+import com.kshavrin.mymoney.core.designsystem.form.TransactionFormCategory
+import com.kshavrin.mymoney.core.designsystem.form.TransactionFormContent
+import com.kshavrin.mymoney.core.designsystem.form.TransactionFormEvent
+import com.kshavrin.mymoney.core.designsystem.form.TransactionFormMode
+import com.kshavrin.mymoney.core.designsystem.form.TransactionFormState
 import com.kshavrin.mymoney.core.designsystem.keypad.KeypadEvent
 import com.kshavrin.mymoney.core.domain.model.Account
+import com.kshavrin.mymoney.core.domain.model.Category
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.feature.transactionslist.R
 import kotlinx.coroutines.withTimeoutOrNull
+import java.math.BigDecimal
 import java.time.Instant
 import java.time.ZoneOffset
 
 @Composable
 fun TransactionDetailRoute(
     onBack: () -> Unit,
+    navController: NavController,
+    backStackEntry: NavBackStackEntry,
     viewModel: TransactionDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -69,10 +80,24 @@ fun TransactionDetailRoute(
     val undoMessage = stringResource(R.string.transactions_list_delete_undo)
     val undoAction = stringResource(R.string.transactions_list_undo_action)
 
+    val createdCategoryId by backStackEntry.savedStateHandle
+        .getStateFlow(TransactionDetailViewModel.KEY_CREATED_CATEGORY_ID, -1L)
+        .collectAsState()
+    LaunchedEffect(createdCategoryId) {
+        if (createdCategoryId != -1L) {
+            viewModel.onEvent(TransactionDetailEvent.CategoryPicked(createdCategoryId))
+            backStackEntry.savedStateHandle[TransactionDetailViewModel.KEY_CREATED_CATEGORY_ID] = -1L
+        }
+    }
+
     LaunchedEffect(viewModel) {
         viewModel.actions.collect { action ->
             when (action) {
                 TransactionDetailAction.NavigateBack -> onBack()
+                is TransactionDetailAction.NavigateToCreateCategory ->
+                    navController.navigate(
+                        "dictionaries/categories/edit/-1?kind=${action.kind}&fromPicker=true",
+                    )
                 is TransactionDetailAction.ShowUndoSnackbar -> {
                     // AS-9: same 5s window as S12. Indefinite duration defers dismissal to the
                     // timeout so the soft-delete becomes final exactly after 5 seconds. We pop
@@ -133,11 +158,15 @@ fun TransactionDetailContent(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { onEvent(TransactionDetailEvent.DeleteClicked) }) {
-                        Icon(
-                            Icons.Filled.Delete,
-                            contentDescription = stringResource(R.string.detail_delete),
-                        )
+                    // The shared edit form renders its own in-form delete button for
+                    // expense/income; the transfer branch still relies on this toolbar action.
+                    if (state.isTransfer) {
+                        IconButton(onClick = { onEvent(TransactionDetailEvent.DeleteClicked) }) {
+                            Icon(
+                                Icons.Filled.Delete,
+                                contentDescription = stringResource(R.string.detail_delete),
+                            )
+                        }
                     }
                 },
             )
@@ -158,70 +187,25 @@ fun TransactionDetailContent(
             }
         },
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(Spacing.m)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(Spacing.m),
-        ) {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                AmountFieldSection(
-                    state = AmountFieldState(
-                        display = state.amountInput,
-                        expression = state.expression,
-                        currencyCode = state.currency?.code,
-                        note = state.note,
-                        occurredAt = state.occurredAt,
-                        accountChipLabel = buildAccountChipLabel(
-                            state.account?.name,
-                            state.currency?.code,
-                        ),
-                    ),
-                    onEvent = { e -> dispatchAmountEvent(e, onEvent) { datePickerVisible = true } },
-                    modifier = Modifier.padding(Spacing.m),
-                )
-            }
-
-            if (state.isTransfer) {
-                AccountDropdown(
-                    label = stringResource(R.string.detail_source_label),
-                    selected = state.account,
-                    options = state.accounts,
-                    onSelected = { onEvent(TransactionDetailEvent.AccountChanged(it.id)) },
-                )
-                AccountDropdown(
-                    label = stringResource(R.string.detail_target_label),
-                    selected = state.targetAccount,
-                    options = state.accounts,
-                    onSelected = { onEvent(TransactionDetailEvent.TargetAccountChanged(it.id)) },
-                )
-                if (state.isCrossCurrency) {
-                    OutlinedTextField(
-                        value = state.rateInput,
-                        onValueChange = { onEvent(TransactionDetailEvent.RateChanged(it)) },
-                        label = { Text(stringResource(R.string.detail_rate_label)) },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        modifier = Modifier.fillMaxWidth(),
+        if (state.isTransfer) {
+            TransferEditBody(
+                state = state,
+                onEvent = onEvent,
+                onDatePickerRequested = { datePickerVisible = true },
+                modifier = Modifier.padding(innerPadding),
+            )
+        } else {
+            TransactionFormContent(
+                state = state.toTransactionFormState(),
+                onEvent = { event ->
+                    dispatchTransactionFormEvent(
+                        event = event,
+                        onDateHeaderClick = { datePickerVisible = true },
+                        onEvent = onEvent,
                     )
-                }
-            } else {
-                AccountDropdown(
-                    label = stringResource(R.string.detail_account_label),
-                    selected = state.account,
-                    options = state.accounts,
-                    onSelected = { onEvent(TransactionDetailEvent.AccountChanged(it.id)) },
-                )
-                state.category?.let { category ->
-                    Text(
-                        text = category.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.padding(horizontal = Spacing.s),
-                    )
-                }
-            }
+                },
+                modifier = Modifier.padding(innerPadding),
+            )
         }
     }
 
@@ -272,6 +256,63 @@ fun TransactionDetailContent(
 }
 
 @Composable
+private fun TransferEditBody(
+    state: TransactionDetailState,
+    onEvent: (TransactionDetailEvent) -> Unit,
+    onDatePickerRequested: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(Spacing.m)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(Spacing.m),
+    ) {
+        Card(modifier = Modifier.fillMaxWidth()) {
+            AmountFieldSection(
+                state = AmountFieldState(
+                    display = state.amountInput,
+                    expression = state.expression,
+                    currencyCode = state.currency?.code,
+                    note = state.note,
+                    occurredAt = state.occurredAt,
+                    accountChipLabel = buildAccountChipLabel(
+                        state.account?.name,
+                        state.currency?.code,
+                    ),
+                ),
+                onEvent = { e -> dispatchAmountEvent(e, onEvent, onDatePickerRequested) },
+                modifier = Modifier.padding(Spacing.m),
+            )
+        }
+
+        AccountDropdown(
+            label = stringResource(R.string.detail_source_label),
+            selected = state.account,
+            options = state.accounts,
+            onSelected = { onEvent(TransactionDetailEvent.AccountChanged(it.id)) },
+        )
+        AccountDropdown(
+            label = stringResource(R.string.detail_target_label),
+            selected = state.targetAccount,
+            options = state.accounts,
+            onSelected = { onEvent(TransactionDetailEvent.TargetAccountChanged(it.id)) },
+        )
+        if (state.isCrossCurrency) {
+            OutlinedTextField(
+                value = state.rateInput,
+                onValueChange = { onEvent(TransactionDetailEvent.RateChanged(it)) },
+                label = { Text(stringResource(R.string.detail_rate_label)) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
+}
+
+@Composable
 private fun AccountDropdown(
     label: String,
     selected: Account?,
@@ -311,6 +352,56 @@ private fun titleRes(kind: TransactionKind): Int = when (kind) {
 private fun buildAccountChipLabel(name: String?, code: String?): String {
     if (name == null) return ""
     return if (code != null) "$name · $code" else name
+}
+
+private fun TransactionDetailState.toTransactionFormState(): TransactionFormState = TransactionFormState(
+    amountInput = amountInput,
+    expression = expression,
+    currencyCode = currency?.code,
+    currencySymbol = currency?.symbol,
+    note = note,
+    occurredAt = occurredAt,
+    categories = categories.map { it.toTransactionFormCategory() },
+    categoryStep = categoryStep,
+    chooseCategoryEnabled = amount > BigDecimal.ZERO,
+    mode = TransactionFormMode.Edit,
+)
+
+private fun Category.toTransactionFormCategory(): TransactionFormCategory = TransactionFormCategory(
+    id = id,
+    name = name,
+    colorHex = colorHex,
+    iconKey = iconKey,
+)
+
+private fun dispatchTransactionFormEvent(
+    event: TransactionFormEvent,
+    onDateHeaderClick: () -> Unit,
+    onEvent: (TransactionDetailEvent) -> Unit,
+) {
+    when (event) {
+        is TransactionFormEvent.Keypad -> dispatchKeypadEvent(event.event, onEvent)
+        is TransactionFormEvent.NoteChanged -> onEvent(TransactionDetailEvent.NoteChanged(event.text))
+        TransactionFormEvent.DateHeaderClicked -> onDateHeaderClick()
+        TransactionFormEvent.SelectCategoryClicked -> onEvent(TransactionDetailEvent.SelectCategoryClicked)
+        TransactionFormEvent.BackToAmount -> onEvent(TransactionDetailEvent.BackToAmount)
+        TransactionFormEvent.AddCategoryClicked -> onEvent(TransactionDetailEvent.AddCategoryClicked)
+        is TransactionFormEvent.CategoryPicked -> onEvent(TransactionDetailEvent.CategoryPicked(event.categoryId))
+        TransactionFormEvent.DeleteClicked -> onEvent(TransactionDetailEvent.DeleteClicked)
+    }
+}
+
+private fun dispatchKeypadEvent(
+    k: KeypadEvent,
+    onEvent: (TransactionDetailEvent) -> Unit,
+) {
+    when (k) {
+        is KeypadEvent.Digit -> onEvent(TransactionDetailEvent.KeypadDigit(k.d))
+        is KeypadEvent.Op -> onEvent(TransactionDetailEvent.KeypadOperator(k.op))
+        KeypadEvent.Dot -> onEvent(TransactionDetailEvent.KeypadDot)
+        KeypadEvent.Backspace -> onEvent(TransactionDetailEvent.KeypadBackspace)
+        KeypadEvent.Equals -> onEvent(TransactionDetailEvent.KeypadEquals)
+    }
 }
 
 private fun dispatchAmountEvent(

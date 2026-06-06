@@ -1,7 +1,7 @@
 # «Изменить расход/доход» рендерит общую форму (п.3)
 Epic: monefy-ux-fixes
 Order: 04 of 07
-Status: active
+Status: done
 Depends-on: 01, 02, 03
 Date: 2026-06-06
 
@@ -27,5 +27,11 @@ read-only, своя раскладка, FAB-save, удаление, dirty-tracki
 формы. Замечание пользователя №3.
 
 ## Implementation links
-- commit: (pending)
-- files: (pending)
+- commit: 87e16d7a (feat) + 3952a4fa (design tokens) + 74bb5336 (test import fix) — pushed to main 312ee29c..74bb5336
+- files:
+  - core/ui/.../theme/Color.kt, Spacing.kt (delete-action tokens)
+  - core/designsystem/.../form/TransactionFormState.kt, TransactionFormContent.kt (mode = New | Edit), strings.xml (EN+RU)
+  - feature/transactionslist/.../detail/TransactionDetailScreen.kt (expense/income body → shared form; transfer branch untouched), TransactionDetailState.kt, TransactionDetailEvent.kt, TransactionDetailAction.kt, TransactionDetailViewModel.kt (state→form-model, editable category)
+  - feature/transaction/.../expense/AddExpenseScreen.kt, income/AddIncomeScreen.kt; app/.../navigation/MyMoneyNavHost.kt
+  - tests: TransactionFormStateContractTest (19), TransactionDetailFormMappingTest (14), TransactionDetailFormDispatchContractTest (15), DestinationsTest (40) + extended androidTest compose-ui (TransactionDetailContentUiTest, Add{Expense,Income}ScreenUiTest — instrumented, device-deferred)
+- verification: 366 JVM unit tests green (designsystem 208 / transactionslist 105 / app 53), 0 failures. On-device visual check of Edit screen deferred to Pixel_5_API_34 run.

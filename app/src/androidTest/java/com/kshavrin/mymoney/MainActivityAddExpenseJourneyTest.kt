@@ -17,10 +17,10 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.kshavrin.mymoney.core.designsystem.form.CATEGORY_GRID_TAG
 import com.kshavrin.mymoney.feature.dashboard.R as DashboardR
 import com.kshavrin.mymoney.feature.onboarding.R as OnboardingR
 import com.kshavrin.mymoney.feature.transaction.R as TransactionR
-import com.kshavrin.mymoney.feature.transaction.categorygrid.CATEGORY_GRID_TAG
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Rule

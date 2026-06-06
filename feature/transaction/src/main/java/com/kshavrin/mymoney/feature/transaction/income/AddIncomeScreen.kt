@@ -39,7 +39,7 @@ import com.kshavrin.mymoney.core.ui.feedback.LocalSoundPlayer
 import com.kshavrin.mymoney.core.ui.haptic.HapticKind
 import com.kshavrin.mymoney.core.ui.sound.SoundKey
 import com.kshavrin.mymoney.feature.transaction.R
-import com.kshavrin.mymoney.feature.transaction.TransactionDateRangePickerDialog
+import com.kshavrin.mymoney.feature.transaction.TransactionDatePickerDialog
 import java.math.BigDecimal
 
 @Composable
@@ -161,7 +161,7 @@ fun AddIncomeScreen(
     }
 
     if (datePickerVisible) {
-        TransactionDateRangePickerDialog(
+        TransactionDatePickerDialog(
             initialDate = state.occurredAt,
             onDatePicked = { onEvent(AddIncomeEvent.DateChanged(it)) },
             onDismiss = { datePickerVisible = false },

@@ -27,7 +27,7 @@ import com.kshavrin.mymoney.feature.transaction.R as TransactionR
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -59,7 +59,7 @@ class MainActivityCreateCategoryJourneyTest {
     lateinit var categoryRepository: CategoryRepository
 
     @Test
-    fun createCategoryFromEmbeddedGridPreservesAmountAndAppliesNewCategory() {
+    fun createCategoryFromEmbeddedGridPreservesAmountAndAppliesNewCategory() = runTest {
         hiltRule.inject()
 
         // Onboarding -> Dashboard
@@ -93,10 +93,8 @@ class MainActivityCreateCategoryJourneyTest {
         waitForContentDescription(expenseFab)
 
         // AS-4: exactly one expense, with the preserved amount 9 and the newly created category.
-        val newCategory = runBlocking {
-            categoryRepository.observeAll().first().first { it.name == NEW_CATEGORY }
-        }
-        val txns = runBlocking { transactionRepository.observeAll().first() }
+        val newCategory = categoryRepository.observeAll().first().first { it.name == NEW_CATEGORY }
+        val txns = transactionRepository.observeAll().first()
         assertEquals("expected a single saved expense", 1, txns.size)
         val saved = txns.single()
         assertEquals(0, BigDecimal("9").compareTo(saved.amount))

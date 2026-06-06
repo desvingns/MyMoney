@@ -8,11 +8,11 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import com.kshavrin.mymoney.core.domain.model.Category
-import com.kshavrin.mymoney.core.domain.model.CategoryKind
+import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
+import com.kshavrin.mymoney.core.designsystem.form.CATEGORY_GRID_ADD_CELL_TAG
+import com.kshavrin.mymoney.core.designsystem.form.CategoryGrid
+import com.kshavrin.mymoney.core.designsystem.form.TransactionFormCategory
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
-import com.kshavrin.mymoney.feature.transaction.R
-import java.time.Instant
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -70,7 +70,10 @@ class CategoryGridUiTest {
         setContent(categories = listOf(category(id = 1L, name = "Food")))
 
         composeTestRule
-            .onNodeWithText(targetString(R.string.add_category_cta), useUnmergedTree = true)
+            .onNodeWithText(
+                targetString(DesignSystemR.string.transaction_form_add_category_cta),
+                useUnmergedTree = true,
+            )
             .assertIsDisplayed()
     }
 
@@ -94,7 +97,7 @@ class CategoryGridUiTest {
     }
 
     private fun setContent(
-        categories: List<Category>,
+        categories: List<TransactionFormCategory>,
         onCategoryClick: (Long) -> Unit = {},
         onAddClick: () -> Unit = {},
     ) {
@@ -113,16 +116,11 @@ class CategoryGridUiTest {
         id: Long,
         name: String,
         sortOrder: Int = 0,
-    ): Category = Category(
+    ): TransactionFormCategory = TransactionFormCategory(
         id = id,
         name = name,
-        kind = CategoryKind.Expense,
         iconKey = "ic_cat_food",
         colorHex = "#7AC794",
-        sortOrder = sortOrder,
-        isDefault = false,
-        isArchived = false,
-        createdAt = Instant.parse("2026-05-20T10:00:00Z"),
     )
 
     private fun targetString(resourceId: Int): String =

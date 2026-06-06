@@ -15,13 +15,13 @@ import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
+import com.kshavrin.mymoney.core.designsystem.form.CATEGORY_GRID_ADD_CELL_TAG
+import com.kshavrin.mymoney.core.designsystem.form.CATEGORY_GRID_TAG
 import com.kshavrin.mymoney.core.designsystem.keypad.Operator
 import com.kshavrin.mymoney.core.domain.model.Category
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import com.kshavrin.mymoney.feature.transaction.R
-import com.kshavrin.mymoney.feature.transaction.categorygrid.CATEGORY_GRID_ADD_CELL_TAG
-import com.kshavrin.mymoney.feature.transaction.categorygrid.CATEGORY_GRID_TAG
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
@@ -52,10 +52,10 @@ class AddExpenseScreenUiTest {
             .onAllNodes(hasText("7") and hasClickAction())
             .assertCountEquals(1)
         composeTestRule
-            .onNodeWithText(targetString(R.string.note_hint))
+            .onNodeWithText(targetString(DesignSystemR.string.amountfield_note_hint))
             .assertIsDisplayed()
         composeTestRule
-            .onNodeWithText(targetString(R.string.choose_category_button))
+            .onNodeWithText(targetString(DesignSystemR.string.transaction_form_choose_category_button))
             .assertIsDisplayed()
             .assertIsNotEnabled()
         composeTestRule
@@ -77,7 +77,7 @@ class AddExpenseScreenUiTest {
         }
 
         composeTestRule
-            .onNodeWithText(targetString(R.string.choose_category_button))
+            .onNodeWithText(targetString(DesignSystemR.string.transaction_form_choose_category_button))
             .assertIsEnabled()
             .performClick()
 

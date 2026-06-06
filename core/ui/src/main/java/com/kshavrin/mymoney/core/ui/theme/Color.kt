@@ -5,6 +5,7 @@ import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.compositeOver
 
 val LightColors = lightColorScheme(
     primary             = Color(0xFF7AC794), // APK green_2 — top app bar / FAB / income half
@@ -70,6 +71,9 @@ private val DashboardLightHeroGradientEnd = Color(0xFF8FD6A8)
 private val DashboardLightPrimaryText = Color(0xFF066A35)
 private val DashboardLightBalancePanelContainer = Color(0xFFE9F7EF)
 private val DashboardLightBalancePanelOutline = Color(0xFF9ED8B2)
+private val DashboardLightBalancePanelContainerNegative = Color(0xFFFCEAEA)
+private val DashboardLightBalancePanelContentNegative = Color(0xFFD64545)
+private val DashboardDarkBalancePanelContentNegative = Color(0xFFEF9A9A)
 private val DashboardLightCenterDivider = Color(0xFFD8E7DD)
 private val DashboardDonutOtherSlice = Color(0xFF9E9E9E)
 private val DashboardIncomeAccent = Color(0xFF15995B)
@@ -143,6 +147,30 @@ val ColorScheme.dashboardBalancePanelOutline: Color
 
 val ColorScheme.dashboardBalancePanelShadow: Color
     get() = if (isLightDashboardPalette) DashboardLightPrimaryText.copy(alpha = 0.16f) else Color.Black.copy(alpha = 0.32f)
+
+val ColorScheme.dashboardBalancePanelContainerNegative: Color
+    get() = if (isLightDashboardPalette) {
+        DashboardLightBalancePanelContainerNegative
+    } else {
+        error.copy(alpha = 0.16f).compositeOver(surface)
+    }
+
+val ColorScheme.dashboardBalancePanelContentNegative: Color
+    get() = if (isLightDashboardPalette) DashboardLightBalancePanelContentNegative else DashboardDarkBalancePanelContentNegative
+
+val ColorScheme.dashboardBalancePanelOutlineNegative: Color
+    get() = if (isLightDashboardPalette) {
+        dashboardBalancePanelContentNegative.copy(alpha = 0.28f)
+    } else {
+        dashboardBalancePanelContentNegative.copy(alpha = 0.4f)
+    }
+
+val ColorScheme.dashboardBalancePanelShadowNegative: Color
+    get() = if (isLightDashboardPalette) {
+        dashboardBalancePanelContentNegative.copy(alpha = 0.14f)
+    } else {
+        dashboardBalancePanelContentNegative.copy(alpha = 0.22f)
+    }
 
 val ColorScheme.dashboardDonutCenterDivider: Color
     get() = if (isLightDashboardPalette) DashboardLightCenterDivider else outlineVariant.copy(alpha = 0.9f)

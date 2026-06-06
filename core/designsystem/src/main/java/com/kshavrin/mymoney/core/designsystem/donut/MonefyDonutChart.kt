@@ -114,7 +114,6 @@ fun MonefyDonutChart(
     val badgeBorderColor = MaterialTheme.colorScheme.surface
     val incomeColor = MaterialTheme.colorScheme.secondary
     val expenseColor = MaterialTheme.colorScheme.tertiary
-    val discColor = MaterialTheme.colorScheme.background
 
     val locale = LocalConfiguration.current.locales[0]
     val incomeText = MoneyFormatter.format(
@@ -162,6 +161,7 @@ fun MonefyDonutChart(
                     ringThicknessFraction,
                     sliceGapDegrees,
                     iconScale,
+                    calloutIconSize,
                     explodedOffset,
                     onSliceClick,
                     onEmptyCategoryClick,
@@ -170,8 +170,8 @@ fun MonefyDonutChart(
                         val center = Offset(size.width / 2f, size.height / 2f)
                         val outerRadius = min(size.width, size.height) / 2f * outerRadiusFraction
                         if (arcs.isEmpty()) {
-                            val iconSize = (26f * iconScale).roundToInt().dp.toPx()
-                            val discRadius = (iconSize + 12.dp.toPx()) / 2f
+                            val iconSize = calloutIconSize.toPx() * (iconScale / 1.7f)
+                            val iconTouchRadius = (iconSize + Spacing.m.toPx()) / 2f
                             val hit = emptyStateIcons.firstOrNullIndexed { index, _ ->
                                 val slot = emptyIconSlot(
                                     center = center,
@@ -179,7 +179,7 @@ fun MonefyDonutChart(
                                     index = index,
                                     count = emptyStateIcons.size,
                                 )
-                                hypot(offset.x - slot.x, offset.y - slot.y) <= discRadius
+                                hypot(offset.x - slot.x, offset.y - slot.y) <= iconTouchRadius
                             }
                             if (hit != null) onEmptyCategoryClick?.invoke(hit)
                             return@detectTapGestures
@@ -209,15 +209,7 @@ fun MonefyDonutChart(
             val explodedOffsetPx = explodedOffset.toPx()
 
             val iconSize = calloutIconSize.toPx() * (iconScale / 1.7f)
-            val discDiameter = iconSize + Spacing.m.toPx()
-            val labelHeight = discDiameter + Spacing.xl.toPx() + Spacing.m.toPx()
-            val frame = computeIconFrame(
-                width = size.width,
-                height = size.height,
-                discDiameter = discDiameter,
-                labelHeight = labelHeight,
-                density = this,
-            )
+            val iconMargin = Spacing.s.toPx()
 
             if (slices.isEmpty()) {
                 drawCircle(
@@ -235,9 +227,7 @@ fun MonefyDonutChart(
                     )
                     drawIconDisc(
                         slotCenter = slot,
-                        discDiameter = discDiameter,
                         iconSize = iconSize,
-                        discColor = discColor,
                         tintColor = slice.color,
                         iconPainter = iconPainters[slice.iconKey],
                     )
@@ -258,21 +248,7 @@ fun MonefyDonutChart(
                 return@Canvas
             }
 
-            val placed = layoutSlices(arcs, frame)
-
-            placed.forEach { p ->
-                if (p.slice.fraction <= 0f) return@forEach
-                val offset = p.explodedOffset(explodedOffsetPx)
-                drawLine(
-                    color = leaderLineColor,
-                    start = Offset(
-                        center.x + offset.x + (outerRadius + leaderLineThickness.toPx()) * cos(p.midRadians),
-                        center.y + offset.y + (outerRadius + leaderLineThickness.toPx()) * sin(p.midRadians),
-                    ),
-                    end = Offset(center.x + p.frameX, center.y + p.frameY),
-                    strokeWidth = leaderLineThickness.toPx(),
-                )
-            }
+            val placed = layoutSlices(arcs)
 
             val gappedArcs = placed.map { p ->
                 val animatedSweep = p.sweepDegrees * progress.value
@@ -294,12 +270,17 @@ fun MonefyDonutChart(
 
             placed.forEach { p ->
                 if (progress.value < 1f || p.slice.fraction <= 0f) return@forEach
-                val slot = Offset(center.x + p.frameX, center.y + p.frameY)
+                val offset = p.explodedOffset(explodedOffsetPx)
+                val slot = p.iconCenter(
+                    center = center,
+                    outerRadius = outerRadius,
+                    iconMargin = iconMargin,
+                    iconSize = iconSize,
+                    explodedOffset = offset,
+                )
                 val iconCenter = drawIconDisc(
                     slotCenter = slot,
-                    discDiameter = discDiameter,
                     iconSize = iconSize,
-                    discColor = discColor,
                     tintColor = p.slice.color,
                     iconPainter = iconPainters[p.slice.iconKey],
                 )
@@ -314,8 +295,15 @@ fun MonefyDonutChart(
                 if (p.slice.fraction >= labelMinFraction) {
                     val labelText = "${(p.slice.fraction * 100f).roundToInt()}%"
                     drawCalloutText(
-                        slot = slot,
-                        discDiameter = discDiameter,
+                        anchor = p.labelAnchor(
+                            center = center,
+                            outerRadius = outerRadius,
+                            iconMargin = iconMargin,
+                            iconSize = iconSize,
+                            labelGap = Spacing.xxs.toPx(),
+                            explodedOffset = offset,
+                        ),
+                        iconSize = iconSize,
                         label = p.slice.label.takeIf { showCategoryLabels },
                         percentage = labelText,
                         sliceColor = p.slice.color,
@@ -344,15 +332,11 @@ fun MonefyDonutChart(
     }
 }
 
-private data class IconFrame(val halfWidth: Float, val halfTop: Float, val halfBottom: Float)
-
 private data class PlacedSlice(
     val slice: CategorySlice,
     val startAngleDegrees: Float,
     val sweepDegrees: Float,
     val midRadians: Float,
-    val frameX: Float,
-    val frameY: Float,
 )
 
 private data class GappedArc(
@@ -418,8 +402,8 @@ private fun DrawScope.drawCenterTotals(
 }
 
 private fun DrawScope.drawCalloutText(
-    slot: Offset,
-    discDiameter: Float,
+    anchor: Offset,
+    iconSize: Float,
     label: String?,
     percentage: String,
     sliceColor: Color,
@@ -428,7 +412,7 @@ private fun DrawScope.drawCalloutText(
     percentageStyle: TextStyle,
     textMeasurer: TextMeasurer,
 ) {
-    val maxTextWidth = discDiameter * 2.3f
+    val maxTextWidth = iconSize * 2.6f
     val labelLayout = label?.let {
         textMeasurer.measure(
             text = it,
@@ -444,12 +428,12 @@ private fun DrawScope.drawCalloutText(
         maxLines = 1,
         constraints = Constraints(maxWidth = maxTextWidth.roundToInt()),
     )
-    val labelTop = slot.y + discDiameter / 2f + Spacing.xxs.toPx()
+    val percentageTop = anchor.y
+    drawTextCentered(percentageLayout, anchor.x, percentageTop, sliceColor)
     if (labelLayout != null) {
-        drawTextCentered(labelLayout, slot.x, labelTop, labelColor)
+        val labelTop = percentageTop + percentageLayout.size.height + Spacing.xxs.toPx()
+        drawTextCentered(labelLayout, anchor.x, labelTop, labelColor)
     }
-    val percentageTop = labelTop + (labelLayout?.size?.height ?: 0) + Spacing.xxs.toPx()
-    drawTextCentered(percentageLayout, slot.x, percentageTop, sliceColor)
 }
 
 private fun DrawScope.drawTextCentered(
@@ -479,41 +463,14 @@ private fun emptyIconSlot(
     )
 }
 
-private fun computeIconFrame(
-    width: Float,
-    height: Float,
-    discDiameter: Float,
-    labelHeight: Float,
-    density: DrawScope,
-): IconFrame {
-    val halfHeight = height / 2f
-    val pad4 = with(density) { 4.dp.toPx() }
-    val halfWidth = width / 2f - discDiameter / 2f - pad4
-    val halfSide = halfHeight - discDiameter / 2f - labelHeight - pad4
-    return IconFrame(
-        halfWidth = max(halfWidth, 0f),
-        halfTop = max(halfSide, 0f),
-        halfBottom = max(halfSide, 0f),
-    )
-}
-
-private fun layoutSlices(arcs: List<SliceArc>, frame: IconFrame): List<PlacedSlice> {
-    val count = arcs.size
-    return arcs.mapIndexed { index, arc ->
+private fun layoutSlices(arcs: List<SliceArc>): List<PlacedSlice> {
+    return arcs.map { arc ->
         val mid = DonutGeometry.midAngleRadians(arc)
-        val point = DonutGeometry.framePoint(
-            t = index.toFloat() / count,
-            hw = frame.halfWidth,
-            hhTop = frame.halfTop,
-            hhBot = frame.halfBottom,
-        )
         PlacedSlice(
             slice = arc.slice,
             startAngleDegrees = arc.startAngleDegrees,
             sweepDegrees = arc.sweepDegrees,
             midRadians = mid,
-            frameX = point.x,
-            frameY = point.y,
         )
     }
 }
@@ -618,13 +575,10 @@ private fun DrawScope.drawExtrudedRing(
 
 private fun DrawScope.drawIconDisc(
     slotCenter: Offset,
-    discDiameter: Float,
     iconSize: Float,
-    discColor: Color,
     tintColor: Color,
     iconPainter: VectorPainter?,
 ): Offset {
-    drawCircle(color = discColor, radius = discDiameter / 2f, center = slotCenter)
     if (iconPainter != null) {
         translate(
             left = slotCenter.x - iconSize / 2f,
@@ -644,4 +598,41 @@ private fun DrawScope.drawIconDisc(
 private fun PlacedSlice.explodedOffset(distance: Float): Offset = Offset(
     x = distance * cos(midRadians),
     y = distance * sin(midRadians),
+)
+
+private fun PlacedSlice.iconCenter(
+    center: Offset,
+    outerRadius: Float,
+    iconMargin: Float,
+    iconSize: Float,
+    explodedOffset: Offset,
+): Offset = radialPoint(
+    center = center,
+    midRadians = midRadians,
+    radius = outerRadius + iconMargin + iconSize / 2f,
+    explodedOffset = explodedOffset,
+)
+
+private fun PlacedSlice.labelAnchor(
+    center: Offset,
+    outerRadius: Float,
+    iconMargin: Float,
+    iconSize: Float,
+    labelGap: Float,
+    explodedOffset: Offset,
+): Offset = radialPoint(
+    center = center,
+    midRadians = midRadians,
+    radius = outerRadius + iconMargin + iconSize + labelGap,
+    explodedOffset = explodedOffset,
+)
+
+private fun radialPoint(
+    center: Offset,
+    midRadians: Float,
+    radius: Float,
+    explodedOffset: Offset,
+): Offset = Offset(
+    x = center.x + explodedOffset.x + radius * cos(midRadians),
+    y = center.y + explodedOffset.y + radius * sin(midRadians),
 )

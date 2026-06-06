@@ -163,3 +163,18 @@ val ColorScheme.goalCreditChipContent: Color
 
 val ColorScheme.goalIconCircleContent: Color
     get() = onPrimary
+
+val ColorScheme.goalCreditProjectionContainer: Color
+    get() = if (isLightDashboardPalette) surfaceVariant.copy(alpha = 0.72f) else surfaceVariant
+
+val ColorScheme.goalCreditProjectionContent: Color
+    get() = onSurface
+
+val ColorScheme.goalCreditUnderfundedContainer: Color
+    get() = if (isLightDashboardPalette) Color(0xFFFFF3E0) else Color(0xFF4E3800)
+
+val ColorScheme.goalCreditUnderfundedContent: Color
+    get() = if (isLightDashboardPalette) Color(0xFF7C4B00) else Color(0xFFFFD54F)
+
+val ColorScheme.goalFormReadOnlyContainer: Color
+    get() = surfaceVariant.copy(alpha = 0.56f)

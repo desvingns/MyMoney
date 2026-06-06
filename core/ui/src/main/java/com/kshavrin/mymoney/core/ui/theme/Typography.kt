@@ -127,3 +127,17 @@ val Typography.goalListEmptyTitle: TextStyle
         letterSpacing = 0.sp,
         lineHeight = 24.sp,
     )
+
+val Typography.goalCreditProjectionAmount: TextStyle
+    get() = headlineMedium.copy(
+        fontWeight = FontWeight.SemiBold,
+        letterSpacing = 0.sp,
+        lineHeight = 28.sp,
+    )
+
+val Typography.goalCreditProjectionLabel: TextStyle
+    get() = bodyMedium.copy(
+        fontWeight = FontWeight.Normal,
+        letterSpacing = 0.sp,
+        lineHeight = 20.sp,
+    )

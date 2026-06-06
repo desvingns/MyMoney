@@ -1,6 +1,8 @@
 package com.kshavrin.mymoney.feature.dashboard
 
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
@@ -8,6 +10,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.assertWidthIsAtLeast
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
@@ -202,6 +205,40 @@ class DashboardContentUiTest {
             .onNodeWithTag(DASHBOARD_TOP_BAR_SUBTITLE_TAG)
             .assertIsDisplayed()
             .assertTextEquals(usd.name)
+    }
+
+    @Test
+    fun `top bar title and currency subtitle use onPrimary in light theme`() {
+        val usd = Currency(
+            id = 1L,
+            code = "USD",
+            symbol = "$",
+            name = "US Dollar",
+            decimalDigits = 2,
+            isActive = true,
+            sortOrder = 0,
+        )
+        var expectedTint = 0
+
+        composeTestRule.setContent {
+            MyMoneyTheme(darkTheme = false) {
+                expectedTint = MaterialTheme.colorScheme.onPrimary.toArgb()
+                DashboardContent(
+                    state = dashboardState(currency = usd, isLoading = false),
+                    onEvent = {},
+                )
+            }
+        }
+        composeTestRule.waitForIdle()
+
+        assertTrue(
+            "dashboard title must use light-theme onPrimary",
+            nodeImageContainsColor(DASHBOARD_TOP_BAR_TITLE_TAG, expectedTint),
+        )
+        assertTrue(
+            "dashboard currency subtitle must use light-theme onPrimary",
+            nodeImageContainsColor(DASHBOARD_TOP_BAR_SUBTITLE_TAG, expectedTint),
+        )
     }
 
     @Test
@@ -960,6 +997,24 @@ class DashboardContentUiTest {
 
     private fun targetLocale() = InstrumentationRegistry.getInstrumentation()
         .targetContext.resources.configuration.locales[0]
+
+    private fun nodeImageContainsColor(tag: String, argb: Int): Boolean {
+        val image = composeTestRule
+            .onNodeWithTag(tag)
+            .assertIsDisplayed()
+            .captureToImage()
+        val pixels = IntArray(image.width * image.height)
+        image.readPixels(pixels)
+        return pixels.any { colorsMatch(it, argb) }
+    }
+
+    private fun colorsMatch(a: Int, b: Int): Boolean {
+        fun channel(value: Int, shift: Int) = (value shr shift) and 0xFF
+        val tolerance = 12
+        return kotlin.math.abs(channel(a, 16) - channel(b, 16)) <= tolerance &&
+            kotlin.math.abs(channel(a, 8) - channel(b, 8)) <= tolerance &&
+            kotlin.math.abs(channel(a, 0) - channel(b, 0)) <= tolerance
+    }
 
     private fun dashboardState(
         currency: Currency,

@@ -82,7 +82,15 @@ class GoalEditViewModel @Inject constructor(
             is GoalEditEvent.IconSelected ->
                 _state.value = _state.value.copy(iconKey = event.iconKey)
             is GoalEditEvent.VariantChanged -> {
-                _state.value = _state.value.copy(variant = event.variant)
+                _state.value = if (event.variant == GoalVariant.SAVINGS) {
+                    _state.value.copy(
+                        variant = event.variant,
+                        annualRatePercent = "",
+                        termDate = null,
+                    )
+                } else {
+                    _state.value.copy(variant = event.variant)
+                }
                 recompute()
             }
             is GoalEditEvent.RateChanged -> {

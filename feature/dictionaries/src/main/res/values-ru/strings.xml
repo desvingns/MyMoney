@@ -76,5 +76,12 @@
     <string name="goal_achievement_date">Дата достижения: %1$s</string>
     <string name="goal_already_achieved">Уже достигнуто</string>
     <string name="goal_unreachable">Недостижимо при текущем пополнении</string>
+    <string name="goal_interest_rate">Годовая ставка, %</string>
+    <string name="goal_term_date">Дата погашения</string>
+    <string name="goal_monthly_payment">Ежемесячный платёж</string>
+    <string name="goal_total_interest">Переплата по процентам: %1$s</string>
+    <string name="goal_total_paid">Всего выплат: %1$s</string>
+    <string name="goal_overpayment_note">Если откладывать больше платежа, будущие платежи уменьшаются</string>
+    <string name="goal_underfunded">Ежемесячное пополнение меньше необходимого платежа</string>
     <string name="goal_save">Сохранить</string>
 </resources>

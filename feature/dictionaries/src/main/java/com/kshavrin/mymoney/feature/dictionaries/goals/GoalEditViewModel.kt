@@ -6,11 +6,14 @@ import androidx.lifecycle.viewModelScope
 import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.Goal
 import com.kshavrin.mymoney.core.domain.model.GoalVariant
+import com.kshavrin.mymoney.core.domain.model.LoanGoalInput
+import com.kshavrin.mymoney.core.domain.model.LoanProjection
 import com.kshavrin.mymoney.core.domain.model.SavingsGoalInput
 import com.kshavrin.mymoney.core.domain.model.SavingsProjection
 import com.kshavrin.mymoney.core.domain.repository.AccountRepository
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
 import com.kshavrin.mymoney.core.domain.repository.GoalRepository
+import com.kshavrin.mymoney.core.domain.usecase.GoalLoanCalculator
 import com.kshavrin.mymoney.core.domain.usecase.GoalSavingsProjector
 import com.kshavrin.mymoney.core.domain.usecase.capitalVsBalanceDelta
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -25,6 +28,7 @@ import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 
 @HiltViewModel
@@ -33,6 +37,7 @@ class GoalEditViewModel @Inject constructor(
     private val accountRepository: AccountRepository,
     private val currencyRepository: CurrencyRepository,
     private val savingsProjector: GoalSavingsProjector,
+    private val loanCalculator: GoalLoanCalculator,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -58,6 +63,8 @@ class GoalEditViewModel @Inject constructor(
                         startingCapital = existing.startingCapital.toPlainString(),
                         monthlyContribution = existing.monthlyContribution.toPlainString(),
                         targetAmount = existing.targetAmount.toPlainString(),
+                        annualRatePercent = existing.annualRatePercent?.toPlainString().orEmpty(),
+                        termDate = existing.termDate,
                         isCreateMode = false,
                     )
                     selectAccount(existing.accountId)
@@ -74,8 +81,18 @@ class GoalEditViewModel @Inject constructor(
                 _state.value = _state.value.copy(name = event.value)
             is GoalEditEvent.IconSelected ->
                 _state.value = _state.value.copy(iconKey = event.iconKey)
-            is GoalEditEvent.VariantChanged ->
+            is GoalEditEvent.VariantChanged -> {
                 _state.value = _state.value.copy(variant = event.variant)
+                recompute()
+            }
+            is GoalEditEvent.RateChanged -> {
+                _state.value = _state.value.copy(annualRatePercent = event.value)
+                recompute()
+            }
+            is GoalEditEvent.TermDateChanged -> {
+                _state.value = _state.value.copy(termDate = event.value)
+                recompute()
+            }
             is GoalEditEvent.AccountSelected ->
                 viewModelScope.launch { selectAccount(event.id) }
             is GoalEditEvent.StartingCapitalChanged -> {
@@ -127,16 +144,51 @@ class GoalEditViewModel @Inject constructor(
 
         val delta = s.currentBalance?.let { capitalVsBalanceDelta(it, capital) }
 
+        val termMonths = s.termDate?.let {
+            ChronoUnit.MONTHS.between(LocalDate.now(), it)
+        }
+        val loanProjection = if (
+            s.variant == GoalVariant.CREDIT &&
+            termMonths != null && termMonths >= 1
+        ) {
+            loanCalculator(
+                LoanGoalInput(
+                    targetAmount = target,
+                    startingCapital = capital,
+                    annualRatePercent = s.annualRatePercent.parseMoney(),
+                    termMonths = termMonths.toInt(),
+                    monthlyContribution = monthly,
+                ),
+            )
+        } else {
+            null
+        }
+
+        val canSave = s.variant != GoalVariant.CREDIT ||
+            (termMonths != null && termMonths >= 1)
+
         _state.value = s.copy(
             savingsProjection = projection,
             capitalDelta = delta,
             capitalDeltaAmountFormatted = delta?.let { formatMoney(it.abs(), s.currencySymbol) },
+            loanProjection = loanProjection,
+            loanProjectionTotalInterestFormatted = loanProjection?.let {
+                formatMoney(it.totalInterest, s.currencySymbol)
+            },
+            loanProjectionTotalPaidFormatted = loanProjection?.let {
+                formatMoney(it.totalPaid, s.currencySymbol)
+            },
+            loanProjectionMonthlyPaymentFormatted = loanProjection?.let {
+                formatMoney(it.baseMonthlyPayment, s.currencySymbol)
+            },
+            canSave = canSave,
         )
     }
 
     private fun save() {
         val s = _state.value
-        if (s.variant != GoalVariant.SAVINGS) return
+        if (!s.canSave) return
+        val isCredit = s.variant == GoalVariant.CREDIT
         viewModelScope.launch {
             val now = Instant.now()
             goalRepository.upsert(
@@ -146,12 +198,12 @@ class GoalEditViewModel @Inject constructor(
                     iconKey = s.iconKey,
                     colorHex = s.colorHex,
                     accountId = s.accountId,
-                    variant = GoalVariant.SAVINGS,
+                    variant = s.variant,
                     targetAmount = s.targetAmount.parseMoney(),
                     startingCapital = s.startingCapital.parseMoney(),
                     monthlyContribution = s.monthlyContribution.parseMoney(),
-                    annualRatePercent = null,
-                    termDate = null,
+                    annualRatePercent = if (isCredit) s.annualRatePercent.parseMoney() else null,
+                    termDate = if (isCredit) s.termDate else null,
                     createdAt = now,
                     updatedAt = now,
                     isArchived = false,
@@ -185,9 +237,16 @@ data class GoalEditState(
     val startingCapital: String = "",
     val monthlyContribution: String = "",
     val targetAmount: String = "",
+    val annualRatePercent: String = "",
+    val termDate: LocalDate? = null,
     val savingsProjection: SavingsProjection? = null,
     val capitalDelta: BigDecimal? = null,
     val capitalDeltaAmountFormatted: String? = null,
+    val loanProjection: LoanProjection? = null,
+    val loanProjectionTotalInterestFormatted: String? = null,
+    val loanProjectionTotalPaidFormatted: String? = null,
+    val loanProjectionMonthlyPaymentFormatted: String? = null,
+    val canSave: Boolean = true,
 )
 
 sealed interface GoalEditEvent {
@@ -198,6 +257,8 @@ sealed interface GoalEditEvent {
     data class StartingCapitalChanged(val value: String) : GoalEditEvent
     data class MonthlyChanged(val value: String) : GoalEditEvent
     data class TargetChanged(val value: String) : GoalEditEvent
+    data class RateChanged(val value: String) : GoalEditEvent
+    data class TermDateChanged(val value: LocalDate?) : GoalEditEvent
     data object SaveClicked : GoalEditEvent
     data object BackClicked : GoalEditEvent
 }

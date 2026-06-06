@@ -42,10 +42,6 @@ import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.domain.model.Period
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
-import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanelContainer
-import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanelContainerNegative
-import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanelContent
-import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanelContentNegative
 import com.kshavrin.mymoney.core.ui.theme.dashboardDonutOtherSlice
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_ABOUT_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_ACCOUNTS_TAG
@@ -301,96 +297,6 @@ class DashboardContentUiTest {
         composeTestRule.runOnIdle {
             assertEquals(listOf(DashboardEvent.BalanceCardClicked), capturedEvents)
         }
-    }
-
-    @Test
-    fun `negative balance panel uses negative container and content tokens in light theme`() {
-        val usd = Currency(
-            id = 1L,
-            code = "USD",
-            symbol = "$",
-            name = "US Dollar",
-            decimalDigits = 2,
-            isActive = true,
-            sortOrder = 0,
-        )
-        var expectedContainer = 0
-        var expectedContent = 0
-
-        composeTestRule.setContent {
-            MyMoneyTheme(darkTheme = false) {
-                expectedContainer = MaterialTheme.colorScheme.dashboardBalancePanelContainerNegative.toArgb()
-                expectedContent = MaterialTheme.colorScheme.dashboardBalancePanelContentNegative.toArgb()
-                DashboardContent(
-                    state = dashboardState(
-                        currency = usd,
-                        balanceSnapshot = BalanceSnapshot(
-                            income = Money(BigDecimal("40.00"), usd),
-                            expense = Money(BigDecimal("55.00"), usd),
-                            net = Money(BigDecimal("-15.00"), usd),
-                            byCategory = emptyList(),
-                        ),
-                        isLoading = false,
-                    ),
-                    onEvent = {},
-                )
-            }
-        }
-        composeTestRule.waitForIdle()
-
-        assertTrue(
-            "negative balance panel must paint dashboardBalancePanelContainerNegative",
-            nodeImageContainsColor(BALANCE_BAR_TAG, expectedContainer),
-        )
-        assertTrue(
-            "negative balance panel must paint dashboardBalancePanelContentNegative",
-            nodeImageContainsColor(BALANCE_BAR_TAG, expectedContent),
-        )
-    }
-
-    @Test
-    fun `zero balance panel keeps default container and content tokens in light theme`() {
-        val usd = Currency(
-            id = 1L,
-            code = "USD",
-            symbol = "$",
-            name = "US Dollar",
-            decimalDigits = 2,
-            isActive = true,
-            sortOrder = 0,
-        )
-        var expectedContainer = 0
-        var expectedContent = 0
-
-        composeTestRule.setContent {
-            MyMoneyTheme(darkTheme = false) {
-                expectedContainer = MaterialTheme.colorScheme.dashboardBalancePanelContainer.toArgb()
-                expectedContent = MaterialTheme.colorScheme.dashboardBalancePanelContent.toArgb()
-                DashboardContent(
-                    state = dashboardState(
-                        currency = usd,
-                        balanceSnapshot = BalanceSnapshot(
-                            income = Money(BigDecimal("75.00"), usd),
-                            expense = Money(BigDecimal("75.00"), usd),
-                            net = Money(BigDecimal.ZERO, usd),
-                            byCategory = emptyList(),
-                        ),
-                        isLoading = false,
-                    ),
-                    onEvent = {},
-                )
-            }
-        }
-        composeTestRule.waitForIdle()
-
-        assertTrue(
-            "zero balance panel must keep dashboardBalancePanelContainer",
-            nodeImageContainsColor(BALANCE_BAR_TAG, expectedContainer),
-        )
-        assertTrue(
-            "zero balance panel must keep dashboardBalancePanelContent",
-            nodeImageContainsColor(BALANCE_BAR_TAG, expectedContent),
-        )
     }
 
     @Test

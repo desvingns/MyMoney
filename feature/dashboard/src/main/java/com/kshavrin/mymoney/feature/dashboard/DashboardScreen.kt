@@ -60,13 +60,9 @@ import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.core.ui.theme.dashboardBalanceLabel
 import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanel
 import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanelContainer
-import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanelContainerNegative
 import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanelContent
-import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanelContentNegative
 import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanelOutline
-import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanelOutlineNegative
 import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanelShadow
-import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanelShadowNegative
 import com.kshavrin.mymoney.core.ui.theme.dashboardBalanceValue
 import com.kshavrin.mymoney.core.ui.theme.dashboardCalloutLabel
 import com.kshavrin.mymoney.core.ui.theme.dashboardCalloutPercentage
@@ -186,7 +182,6 @@ fun DashboardContent(
                             unavailableText = stringResource(R.string.dashboard_balance_unavailable_amount),
                             locale = resourceLocale,
                         )
-                        val isNegativeBalance = (state.balanceSnapshot?.net?.amount?.signum() ?: 0) < 0
                         val overBudgetText = state.overBudgetAmount?.let { overage ->
                             stringResource(R.string.dashboard_over_budget, formatMoney(overage, resourceLocale))
                         }
@@ -207,7 +202,6 @@ fun DashboardContent(
                         DashboardBalancePanel(
                             label = stringResource(R.string.dashboard_balance),
                             amount = balanceAmount,
-                            isNegative = isNegativeBalance,
                             onClick = { onEvent(DashboardEvent.BalanceCardClicked) },
                             modifier = Modifier.testTag("dashboard_balance_bar"),
                         )
@@ -414,31 +408,10 @@ private fun DashboardTopBarTitle(
 private fun DashboardBalancePanel(
     label: String,
     amount: String,
-    isNegative: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val shape = MaterialTheme.shapes.dashboardBalancePanel
-    val containerColor = if (isNegative) {
-        MaterialTheme.colorScheme.dashboardBalancePanelContainerNegative
-    } else {
-        MaterialTheme.colorScheme.dashboardBalancePanelContainer
-    }
-    val contentColor = if (isNegative) {
-        MaterialTheme.colorScheme.dashboardBalancePanelContentNegative
-    } else {
-        MaterialTheme.colorScheme.dashboardBalancePanelContent
-    }
-    val outlineColor = if (isNegative) {
-        MaterialTheme.colorScheme.dashboardBalancePanelOutlineNegative
-    } else {
-        MaterialTheme.colorScheme.dashboardBalancePanelOutline
-    }
-    val shadowColor = if (isNegative) {
-        MaterialTheme.colorScheme.dashboardBalancePanelShadowNegative
-    } else {
-        MaterialTheme.colorScheme.dashboardBalancePanelShadow
-    }
     Column(
         modifier = modifier
             .widthIn(max = Spacing.dashboardBalancePanelMaxWidth)
@@ -448,13 +421,13 @@ private fun DashboardBalancePanel(
             .shadow(
                 elevation = Spacing.s,
                 shape = shape,
-                ambientColor = shadowColor,
-                spotColor = shadowColor,
+                ambientColor = MaterialTheme.colorScheme.dashboardBalancePanelShadow,
+                spotColor = MaterialTheme.colorScheme.dashboardBalancePanelShadow,
             )
-            .background(containerColor, shape)
+            .background(MaterialTheme.colorScheme.dashboardBalancePanelContainer, shape)
             .border(
                 width = Spacing.dashboardBalancePanelBorderWidth,
-                color = outlineColor,
+                color = MaterialTheme.colorScheme.dashboardBalancePanelOutline,
                 shape = shape,
             )
             .clickable(onClick = onClick)
@@ -464,14 +437,14 @@ private fun DashboardBalancePanel(
         Text(
             text = label,
             style = MaterialTheme.typography.dashboardBalanceLabel,
-            color = contentColor,
+            color = MaterialTheme.colorScheme.dashboardBalancePanelContent,
             maxLines = 1,
             textAlign = TextAlign.Center,
         )
         Text(
             text = amount,
             style = MaterialTheme.typography.dashboardBalanceValue,
-            color = contentColor,
+            color = MaterialTheme.colorScheme.dashboardBalancePanelContent,
             maxLines = 1,
             textAlign = TextAlign.Center,
         )

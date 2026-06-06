@@ -158,20 +158,6 @@ val ColorScheme.dashboardBalancePanelContainerNegative: Color
 val ColorScheme.dashboardBalancePanelContentNegative: Color
     get() = if (isLightDashboardPalette) DashboardLightBalancePanelContentNegative else DashboardDarkBalancePanelContentNegative
 
-val ColorScheme.dashboardBalancePanelOutlineNegative: Color
-    get() = if (isLightDashboardPalette) {
-        dashboardBalancePanelContentNegative.copy(alpha = 0.28f)
-    } else {
-        dashboardBalancePanelContentNegative.copy(alpha = 0.4f)
-    }
-
-val ColorScheme.dashboardBalancePanelShadowNegative: Color
-    get() = if (isLightDashboardPalette) {
-        dashboardBalancePanelContentNegative.copy(alpha = 0.14f)
-    } else {
-        dashboardBalancePanelContentNegative.copy(alpha = 0.22f)
-    }
-
 val ColorScheme.dashboardDonutCenterDivider: Color
     get() = if (isLightDashboardPalette) DashboardLightCenterDivider else outlineVariant.copy(alpha = 0.9f)
 

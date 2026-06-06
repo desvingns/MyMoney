@@ -99,6 +99,15 @@ val ColorScheme.recordsHeaderSortTint: Color
 val ColorScheme.recordsHeaderSortContainer: Color
     get() = surface.copy(alpha = 0f)
 
+val ColorScheme.recordsFilterChipContainer: Color
+    get() = primaryContainer
+
+val ColorScheme.recordsFilterChipContent: Color
+    get() = onPrimaryContainer
+
+val ColorScheme.recordsFilterChipBorder: Color
+    get() = outline
+
 val ColorScheme.dashboardDrawerScrim: Color
     get() = scrim.copy(alpha = 0.32f)
 

@@ -1,4 +1,4 @@
-package com.kshavrin.mymoney.feature.transaction
+package com.kshavrin.mymoney.core.designsystem.form
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
+import com.kshavrin.mymoney.core.designsystem.R
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -38,7 +39,7 @@ fun DateHeader(
     ) {
         Icon(
             imageVector = Icons.Filled.CalendarToday,
-            contentDescription = stringResource(R.string.pick_date),
+            contentDescription = stringResource(R.string.amountfield_pick_date_cd),
             tint = MaterialTheme.colorScheme.onSurface,
         )
         Text(

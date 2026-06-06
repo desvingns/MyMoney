@@ -7,4 +7,6 @@
     <string name="donut_chart_slice">%1$s, %2$d%%</string>
     <string name="donut_chart_budget_alert">budget alert</string>
     <string name="keypad_backspace_cd">Backspace</string>
+    <string name="transaction_form_choose_category_button">CHOOSE CATEGORY</string>
+    <string name="transaction_form_add_category_cta">+ ADD</string>
 </resources>

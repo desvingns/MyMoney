@@ -1,20 +1,13 @@
 package com.kshavrin.mymoney.feature.transaction.income
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.SwapHoriz
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
@@ -34,21 +27,20 @@ import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
-import com.kshavrin.mymoney.core.designsystem.amountinput.MonefyAmountInput
+import com.kshavrin.mymoney.core.designsystem.form.TransactionFormCategory
+import com.kshavrin.mymoney.core.designsystem.form.TransactionFormContent
+import com.kshavrin.mymoney.core.designsystem.form.TransactionFormEvent
+import com.kshavrin.mymoney.core.designsystem.form.TransactionFormState
 import com.kshavrin.mymoney.core.designsystem.keypad.KeypadEvent
-import com.kshavrin.mymoney.core.designsystem.keypad.MonefyKeypad
+import com.kshavrin.mymoney.core.domain.model.Category
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.core.ui.feedback.LocalHapticPlayer
 import com.kshavrin.mymoney.core.ui.feedback.LocalSoundPlayer
 import com.kshavrin.mymoney.core.ui.haptic.HapticKind
 import com.kshavrin.mymoney.core.ui.sound.SoundKey
-import com.kshavrin.mymoney.core.ui.theme.Spacing
-import com.kshavrin.mymoney.feature.transaction.DateHeader
 import com.kshavrin.mymoney.feature.transaction.R
 import com.kshavrin.mymoney.feature.transaction.TransactionDateRangePickerDialog
-import com.kshavrin.mymoney.feature.transaction.categorygrid.CategoryGrid
 import java.math.BigDecimal
-import com.kshavrin.mymoney.core.designsystem.R as DesignsystemR
 
 @Composable
 fun AddIncomeRoute(
@@ -155,62 +147,17 @@ fun AddIncomeScreen(
             }
         },
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(Spacing.m),
-        ) {
-            DateHeader(
-                date = state.occurredAt,
-                onClick = { datePickerVisible = true },
-            )
-
-            AmountEntrySection(
-                state = state,
-                onEvent = onEvent,
-                showNote = !state.categoryStep,
-                amountInputModifier = if (state.categoryStep) {
-                    Modifier.clickable { onEvent(AddIncomeEvent.BackToAmount) }
-                } else {
-                    Modifier
-                },
-                modifier = Modifier
-                    .padding(top = Spacing.m),
-            )
-
-            if (state.categoryStep) {
-                CategoryGrid(
-                    categories = state.categories,
-                    onCategoryClick = { onEvent(AddIncomeEvent.CategoryPicked(it)) },
-                    onAddClick = { onEvent(AddIncomeEvent.AddCategoryClicked) },
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(top = Spacing.m),
+        TransactionFormContent(
+            state = state.toTransactionFormState(),
+            onEvent = { event ->
+                dispatchTransactionFormEvent(
+                    event = event,
+                    onDateHeaderClick = { datePickerVisible = true },
+                    onEvent = onEvent,
                 )
-            } else {
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(top = Spacing.m),
-                    verticalArrangement = Arrangement.Bottom,
-                ) {
-                    MonefyKeypad(
-                        onEvent = { e -> dispatchKeypadEvent(e, onEvent) },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Button(
-                        onClick = { onEvent(AddIncomeEvent.SelectCategoryClicked) },
-                        enabled = state.amount > BigDecimal.ZERO,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = Spacing.s),
-                    ) {
-                        Text(stringResource(R.string.choose_category_button))
-                    }
-                }
-            }
-        }
+            },
+            modifier = Modifier.padding(innerPadding),
+        )
     }
 
     if (datePickerVisible) {
@@ -222,36 +169,38 @@ fun AddIncomeScreen(
     }
 }
 
-@Composable
-private fun AmountEntrySection(
-    state: AddIncomeState,
+private fun AddIncomeState.toTransactionFormState(): TransactionFormState = TransactionFormState(
+    amountInput = amountInput,
+    expression = expression,
+    currencyCode = currency?.code,
+    currencySymbol = currency?.symbol,
+    note = note,
+    occurredAt = occurredAt,
+    categories = categories.map { it.toTransactionFormCategory() },
+    categoryStep = categoryStep,
+    chooseCategoryEnabled = amount > BigDecimal.ZERO,
+)
+
+private fun Category.toTransactionFormCategory(): TransactionFormCategory = TransactionFormCategory(
+    id = id,
+    name = name,
+    colorHex = colorHex,
+    iconKey = iconKey,
+)
+
+private fun dispatchTransactionFormEvent(
+    event: TransactionFormEvent,
+    onDateHeaderClick: () -> Unit,
     onEvent: (AddIncomeEvent) -> Unit,
-    showNote: Boolean,
-    amountInputModifier: Modifier,
-    modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(Spacing.m),
-    ) {
-        MonefyAmountInput(
-            display = state.amountInput,
-            expression = state.expression,
-            currencyCode = state.currency?.code,
-            currencySymbol = state.currency?.symbol,
-            onClear = { onEvent(AddIncomeEvent.KeypadBackspace) },
-            clearContentDescription = stringResource(DesignsystemR.string.keypad_backspace_cd),
-            modifier = amountInputModifier.fillMaxWidth(),
-        )
-        if (showNote) {
-            OutlinedTextField(
-                value = state.note,
-                onValueChange = { onEvent(AddIncomeEvent.NoteChanged(it)) },
-                label = { Text(stringResource(R.string.note_hint)) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
+    when (event) {
+        is TransactionFormEvent.Keypad -> dispatchKeypadEvent(event.event, onEvent)
+        is TransactionFormEvent.NoteChanged -> onEvent(AddIncomeEvent.NoteChanged(event.text))
+        TransactionFormEvent.DateHeaderClicked -> onDateHeaderClick()
+        TransactionFormEvent.SelectCategoryClicked -> onEvent(AddIncomeEvent.SelectCategoryClicked)
+        TransactionFormEvent.BackToAmount -> onEvent(AddIncomeEvent.BackToAmount)
+        TransactionFormEvent.AddCategoryClicked -> onEvent(AddIncomeEvent.AddCategoryClicked)
+        is TransactionFormEvent.CategoryPicked -> onEvent(AddIncomeEvent.CategoryPicked(event.categoryId))
     }
 }
 

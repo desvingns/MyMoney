@@ -72,7 +72,7 @@ import com.kshavrin.mymoney.core.ui.feedback.LocalSoundPlayer
 import com.kshavrin.mymoney.core.ui.haptic.HapticKind
 import com.kshavrin.mymoney.core.ui.sound.SoundKey
 import com.kshavrin.mymoney.core.ui.theme.Spacing
-import com.kshavrin.mymoney.feature.transaction.DateHeader
+import com.kshavrin.mymoney.core.designsystem.form.DateHeader
 import com.kshavrin.mymoney.feature.transaction.R
 import java.math.BigDecimal
 import java.time.Instant

@@ -1,4 +1,4 @@
-package com.kshavrin.mymoney.feature.transaction.categorygrid
+package com.kshavrin.mymoney.core.designsystem.form
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -27,20 +27,25 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
+import com.kshavrin.mymoney.core.designsystem.R
 import com.kshavrin.mymoney.core.designsystem.icon.categoryIcon
-import com.kshavrin.mymoney.core.domain.model.Category
 import com.kshavrin.mymoney.core.ui.theme.Spacing
-import com.kshavrin.mymoney.feature.transaction.R
 
 const val CATEGORY_GRID_ADD_CELL_TAG = "category_grid_add_cell"
 const val CATEGORY_GRID_TAG = "category_grid"
 
 private const val ADD_CELL_KEY = "category_grid_add_cell"
 
+data class TransactionFormCategory(
+    val id: Long,
+    val name: String,
+    val colorHex: String,
+    val iconKey: String,
+)
+
 @Composable
 fun CategoryGrid(
-    categories: List<Category>,
+    categories: List<TransactionFormCategory>,
     onCategoryClick: (Long) -> Unit,
     onAddClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -68,11 +73,14 @@ fun CategoryGrid(
 
 @Composable
 private fun CategoryCell(
-    category: Category,
+    category: TransactionFormCategory,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val tint = parseHexColor(category.colorHex)
+    val tint = parseHexColor(
+        hex = category.colorHex,
+        fallback = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
     GridCard(
         contentDescription = category.name,
         icon = categoryIcon(category.iconKey),
@@ -91,10 +99,10 @@ private fun AddCategoryCell(
 ) {
     val neutral = MaterialTheme.colorScheme.onSurfaceVariant
     GridCard(
-        contentDescription = stringResource(R.string.add_category_cta),
+        contentDescription = stringResource(R.string.transaction_form_add_category_cta),
         icon = Icons.Outlined.AddCircleOutline,
         iconTint = neutral,
-        label = stringResource(R.string.add_category_cta),
+        label = stringResource(R.string.transaction_form_add_category_cta),
         labelColor = neutral,
         onClick = onClick,
         modifier = modifier.testTag(CATEGORY_GRID_ADD_CELL_TAG),
@@ -118,7 +126,7 @@ private fun GridCard(
         onClick = onClick,
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = Spacing.none),
         border = CardDefaults.outlinedCardBorder().copy(
             brush = SolidColor(MaterialTheme.colorScheme.outlineVariant),
         ),
@@ -133,7 +141,7 @@ private fun GridCard(
                 imageVector = icon,
                 contentDescription = null,
                 tint = iconTint,
-                modifier = Modifier.size(32.dp),
+                modifier = Modifier.size(Spacing.xxl),
             )
             Text(
                 text = label,
@@ -146,10 +154,10 @@ private fun GridCard(
     }
 }
 
-internal fun parseHexColor(hex: String): Color = try {
+internal fun parseHexColor(hex: String, fallback: Color): Color = try {
     val cleaned = hex.removePrefix("#")
     val argb = if (cleaned.length == 6) "FF$cleaned" else cleaned
     Color(argb.toLong(16))
 } catch (_: Exception) {
-    Color.Gray
+    fallback
 }

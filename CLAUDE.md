@@ -141,6 +141,10 @@ skip it. If `adb devices` is empty, start the AVD and retry.
 
 Default to **zero comments**. Only add when WHY is non-obvious — a hidden constraint, subtle invariant, workaround for a specific bug. Never narrate WHAT (well-named identifiers do that). Don't reference the current task/PR/issue — those belong in commit messages.
 
+## File deletion — archive, never delete
+
+Never delete files. When running the `/mp` skill (or any task), any file that should be removed — a stale/redundant SPEC, a superseded duplicate on the `.claude/specs/` board, dead artifacts — is **moved to `archive/`** (repo root, git-ignored) instead of being deleted, then reported to the user for manual deletion. Preserve a recognizable name (add a `.<reason>` suffix, e.g. `.backlog-stale`, when the name would otherwise collide). The user empties `archive/` by hand.
+
 ## Token-efficient Claude workflow
 
 Keep sessions cheap without lowering rigor:
@@ -154,6 +158,10 @@ Keep sessions cheap without lowering rigor:
 This project has both CMP's iteration model (STATE / ROADMAP / DOCUMENTATION) and the implementation plan's phase model (PROGRESS). **PROGRESS.md is the sole writer of project state.** The three CMP root files are one-line stub redirects pointing at the implementation plan — see `STATE.md`, `ROADMAP.md`, `DOCUMENTATION.md`.
 
 This project uses the `/mp` marketplace plugin (`mobile-pipeline/mp-dev`), not the legacy `/cmp` fork — `/cmp` and its Codex `$cmp` mirror were archived under `.claude/_archive_pre_mp/` on 2026-06-03 (reversible; see that folder's README). `/mp` provides `--phase` and `--check` natively. The `mp-docs` agent is made **inert** here via `.claude/mp/extras/mp-docs.md` (it returns `{"committed":false}` and writes nothing), so `PROGRESS.md` stays the sole writer of project state.
+
+## /mp auto-push policy (project override)
+
+When a `/mp` pipeline run completes **successfully** — Reviewer pass, Runner green (or a verified-manual pass when the runner script throws its known false negative), and Verifier `pass:true` — **push to `main` automatically, without the Step 4.5 `y/N` gate.** Do NOT stop to ask "Ready to push?"; just print the manual checklist for the record and push. This overrides the orchestrator's default push-confirmation prompt for `--feature` (and the equivalent point in `--bugfix`). The gate is only re-introduced if Verifier returns `pass:false`, the run did not pass cleanly, or the user explicitly asks to hold a given run.
 
 ## Where to find things
 

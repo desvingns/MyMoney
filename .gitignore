@@ -67,3 +67,6 @@ graphify-out/
 
 # Self-improvement loop: raw telemetry (retro digests + lessons.md are tracked)
 selfimprove/runs/*.jsonl
+
+# Manual-review archive (stale/redundant files to delete by hand)
+archive/

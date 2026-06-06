@@ -8,6 +8,7 @@ import com.kshavrin.mymoney.core.database.dao.BudgetDao
 import com.kshavrin.mymoney.core.database.dao.CategoryDao
 import com.kshavrin.mymoney.core.database.dao.CurrencyDao
 import com.kshavrin.mymoney.core.database.dao.CurrencyRateDao
+import com.kshavrin.mymoney.core.database.dao.GoalDao
 import com.kshavrin.mymoney.core.database.dao.RecurringTemplateDao
 import com.kshavrin.mymoney.core.database.dao.SearchHistoryDao
 import com.kshavrin.mymoney.core.database.dao.SyncLogDao
@@ -57,4 +58,7 @@ object TestDatabaseModule {
 
     @Provides
     fun provideSearchHistoryDao(db: MoneyDatabase): SearchHistoryDao = db.searchHistoryDao()
+
+    @Provides
+    fun provideGoalDao(db: MoneyDatabase): GoalDao = db.goalDao()
 }

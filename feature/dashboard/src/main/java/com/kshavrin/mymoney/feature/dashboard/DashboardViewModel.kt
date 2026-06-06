@@ -140,7 +140,7 @@ class DashboardViewModel @Inject constructor(
             budgetAlertCategoryIds = categoryIds,
             overBudgetAmount = alerts.mapNotNull { it.overage }.maxByOrNull { it.amount },
             slices = _state.value.slices.map { slice ->
-                slice.copy(hasBudgetAlert = slice.categoryId in categoryIds)
+                slice.copy(hasBudgetAlert = slice.categoryId != OTHER_CATEGORY_ID && slice.categoryId in categoryIds)
             },
         )
     }
@@ -185,9 +185,9 @@ class DashboardViewModel @Inject constructor(
         }
     }
 
-    private fun snapshotToSlices(snapshot: BalanceSnapshot, alertCategoryIds: Set<Long>): List<CategorySlice> {
+    internal fun snapshotToSlices(snapshot: BalanceSnapshot, alertCategoryIds: Set<Long>): List<CategorySlice> {
         val totalExpense = snapshot.expense.amount
-        return snapshot.byCategory
+        val expenseSlices = snapshot.byCategory
             .filter { it.isExpense }
             .map { catBal ->
                 val fraction = if (totalExpense.signum() == 0) {
@@ -204,6 +204,21 @@ class DashboardViewModel @Inject constructor(
                     hasBudgetAlert = catBal.categoryId in alertCategoryIds,
                 )
             }
+        if (totalExpense.signum() == 0) return expenseSlices
+
+        val (minorSlices, majorSlices) = expenseSlices.partition { it.fraction < OTHER_GROUP_MAX_FRACTION }
+        if (minorSlices.isEmpty()) return expenseSlices
+
+        val majorFraction = majorSlices.sumOf { it.fraction.toDouble() }.toFloat()
+        val otherFraction = (1f - majorFraction).coerceAtLeast(0f)
+        return majorSlices + CategorySlice(
+            categoryId = OTHER_CATEGORY_ID,
+            color = Color.Unspecified,
+            fraction = otherFraction,
+            label = "",
+            iconKey = OTHER_CATEGORY_ICON_KEY,
+            hasBudgetAlert = false,
+        )
     }
 
     private fun parseHexColor(hex: String): Color = try {
@@ -305,6 +320,7 @@ class DashboardViewModel @Inject constructor(
                 }
             }
             is DashboardEvent.SliceClicked -> {
+                if (event.categoryId == OTHER_CATEGORY_ID) return
                 when (val selection = _state.value.dashboardSelection) {
                     is DashboardSelection.SpecificAccount -> {
                         val currency = _state.value.currencies.firstOrNull { it.id == selection.account.currencyId } ?: return
@@ -336,3 +352,6 @@ private data class BudgetAlertSelection(
 
 private const val DASHBOARD_SELECTION_SPECIFIC = "specific_account"
 private const val DASHBOARD_SELECTION_ALL = "all_accounts"
+internal const val OTHER_GROUP_MAX_FRACTION = 0.02f
+internal const val OTHER_CATEGORY_ID = -1L
+internal const val OTHER_CATEGORY_ICON_KEY = "ic_cat_other"

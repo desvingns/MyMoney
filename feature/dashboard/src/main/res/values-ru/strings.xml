@@ -10,6 +10,7 @@
     <string name="dashboard_balance_unavailable">Баланс &#8212;</string>
     <string name="dashboard_balance_unavailable_amount">&#8212;</string>
     <string name="dashboard_over_budget">Превышение на %1$s</string>
+    <string name="category_other">Другое</string>
 
     <string name="period_today">Сегодня</string>
     <string name="period_day">День</string>

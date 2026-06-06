@@ -69,6 +69,7 @@ import com.kshavrin.mymoney.core.ui.theme.dashboardCalloutPercentage
 import com.kshavrin.mymoney.core.ui.theme.dashboardDonutCenterDivider
 import com.kshavrin.mymoney.core.ui.theme.dashboardDonutCenterTotal
 import com.kshavrin.mymoney.core.ui.theme.dashboardDonutLeaderLine
+import com.kshavrin.mymoney.core.ui.theme.dashboardDonutOtherSlice
 import com.kshavrin.mymoney.core.ui.theme.dashboardHeroGradientEnd
 import com.kshavrin.mymoney.core.ui.theme.dashboardHeroGradientStart
 import com.kshavrin.mymoney.core.ui.theme.dashboardTopBarSubtitle
@@ -211,10 +212,19 @@ fun DashboardContent(
                                 .weight(1f)
                                 .testTag(DASHBOARD_DONUT_TAG),
                         ) {
+                            val otherCategoryLabel = stringResource(R.string.category_other)
+                            val otherCategoryColor = MaterialTheme.colorScheme.dashboardDonutOtherSlice
+                            val dashboardSlices = state.slices.map { slice ->
+                                if (slice.categoryId == OTHER_CATEGORY_ID) {
+                                    slice.copy(label = otherCategoryLabel, color = otherCategoryColor)
+                                } else {
+                                    slice
+                                }
+                            }
                             MonefyDonutChart(
                                 income = state.balanceSnapshot?.income?.amount ?: BigDecimal.ZERO,
                                 expense = state.balanceSnapshot?.expense?.amount ?: BigDecimal.ZERO,
-                                slices = state.slices,
+                                slices = dashboardSlices,
                                 modifier = Modifier.fillMaxSize(),
                                 currencySymbol = state.currentCurrency?.symbol ?: "",
                                 decimalDigits = state.currentCurrency?.decimalDigits ?: 2,
@@ -234,7 +244,6 @@ fun DashboardContent(
                                 calloutLabelColor = MaterialTheme.colorScheme.dashboardCalloutLabel,
                                 leaderLineColor = MaterialTheme.colorScheme.dashboardDonutLeaderLine,
                                 leaderLineThickness = Spacing.dashboardDonutLeaderLineThickness,
-                                labelMinFraction = 0f,
                                 showCategoryLabels = true,
                                 style = DonutStyle.Extrude,
                                 onSliceClick = { slice ->

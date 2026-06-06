@@ -6,6 +6,7 @@ object RecordsTestTags {
     const val BALANCE = "records_balance"
     const val SORT = "records_sort"
     const val EMPTY = "records_empty"
+    const val FILTER = "records_filter"
 
     fun category(id: Long): String = "records_category_$id"
     fun chevron(id: Long): String = "records_chevron_$id"

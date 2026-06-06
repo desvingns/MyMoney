@@ -187,6 +187,25 @@ class GetCategoryRecordsUseCaseTest {
     }
 
     @Test
+    fun `category filter returns only the matching category group and transactions`() = runTest {
+        seedAccountAndCurrency()
+        transactionRepo.seedCategoryGroups(
+            group(categoryId = 10L, name = "Bills", total = BigDecimal("50.00"), count = 1),
+            group(categoryId = 12L, name = "Food", total = BigDecimal("10.00"), count = 2),
+        )
+        transactionRepo.seedPeriodTransactions(
+            transaction(id = 1L, categoryId = 10L, occurredAt = Instant.parse("2026-05-20T08:00:00Z")),
+            transaction(id = 2L, categoryId = 12L, occurredAt = Instant.parse("2026-05-20T10:00:00Z")),
+            transaction(id = 3L, categoryId = 12L, occurredAt = Instant.parse("2026-05-20T11:00:00Z")),
+        )
+
+        val result = useCase(accountId, period, categoryId = 12L)
+
+        assertEquals(listOf(12L), result.map { it.categoryId })
+        assertEquals(listOf(3L, 2L), result.single().transactions.map { it.id })
+    }
+
+    @Test
     fun `groups with no matching transactions get an empty bucket`() = runTest {
         seedAccountAndCurrency()
         transactionRepo.seedCategoryGroups(
@@ -268,6 +287,41 @@ class GetCategoryRecordsUseCaseTest {
                 useCase.forAccounts(listOf(account(), euroAccount), usd, period)
             }
         }
+    }
+
+    @Test
+    fun `forAccounts category filter keeps only the requested aggregate category`() = runTest {
+        val cardAccount = account(id = 2L, name = "Card", currencyId = currencyId)
+        accountRepo.seed(account(), cardAccount)
+        currencyRepo.seed(usd)
+        transactionRepo.seedCategoryGroups(
+            accountId,
+            period,
+            group(categoryId = 10L, name = "Bills", total = BigDecimal("50.00"), count = 1),
+            group(categoryId = 12L, name = "Food", total = BigDecimal("10.00"), count = 2),
+        )
+        transactionRepo.seedCategoryGroups(
+            cardAccount.id,
+            period,
+            group(categoryId = 12L, name = "Food", total = BigDecimal("5.00"), count = 1),
+        )
+        transactionRepo.seedPeriodTransactions(
+            accountId,
+            period,
+            transaction(id = 1L, categoryId = 10L, occurredAt = Instant.parse("2026-05-20T08:00:00Z")),
+            transaction(id = 2L, categoryId = 12L, occurredAt = Instant.parse("2026-05-20T10:00:00Z")),
+        )
+        transactionRepo.seedPeriodTransactions(
+            cardAccount.id,
+            period,
+            transaction(id = 3L, categoryId = 12L, occurredAt = Instant.parse("2026-05-20T11:00:00Z"), accountId = cardAccount.id),
+        )
+
+        val result = useCase.forAccounts(listOf(account(), cardAccount), usd, period, categoryId = 12L)
+
+        assertEquals(listOf(12L), result.map { it.categoryId })
+        assertEquals(0, BigDecimal("15.00").compareTo(result.single().total.amount))
+        assertEquals(listOf(3L, 2L), result.single().transactions.map { it.id })
     }
 
     private fun account(

@@ -206,6 +206,31 @@ class TransactionsListContentUiTest {
     }
 
     @Test
+    fun `active category filter chip is visible and clearable`() {
+        val capturedEvents = mutableListOf<TransactionsListEvent>()
+
+        setContent(
+            state = TransactionsListUiState(
+                currency = currency(),
+                categoryId = 10L,
+                categoryName = "Food",
+                isLoading = false,
+                groups = listOf(group(id = 10L, kind = CategoryKind.Expense, total = "30.00", count = 2)),
+            ),
+            onEvent = { event -> capturedEvents += event },
+        )
+
+        composeTestRule
+            .onNodeWithTag(RecordsTestTags.FILTER)
+            .assertIsDisplayed()
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(TransactionsListEvent.CategoryFilterCleared), capturedEvents)
+        }
+    }
+
+    @Test
     fun `tapping a collapsed header emits CategoryClicked`() {
         val capturedEvents = mutableListOf<TransactionsListEvent>()
 

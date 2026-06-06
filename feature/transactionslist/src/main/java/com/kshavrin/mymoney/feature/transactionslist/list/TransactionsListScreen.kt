@@ -17,12 +17,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.SwapVert
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -197,6 +199,12 @@ fun TransactionsListContent(
                 net = state.net,
                 onSort = { onEvent(TransactionsListEvent.SortClicked) },
             )
+            if (state.hasCategoryFilter) {
+                CategoryFilterChip(
+                    name = state.categoryName.orEmpty(),
+                    onClear = { onEvent(TransactionsListEvent.CategoryFilterCleared) },
+                )
+            }
             if (state.isEmpty) {
                 Box(modifier = Modifier.fillMaxSize()) {
                     Text(
@@ -243,6 +251,29 @@ fun TransactionsListContent(
             }
         }
     }
+}
+
+@Composable
+private fun CategoryFilterChip(
+    name: String,
+    onClear: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    AssistChip(
+        onClick = onClear,
+        label = {
+            Text(text = stringResource(R.string.transactions_list_filter_chip, name))
+        },
+        leadingIcon = {
+            Icon(
+                imageVector = Icons.Filled.Close,
+                contentDescription = stringResource(R.string.transactions_list_remove_filter),
+            )
+        },
+        modifier = modifier
+            .padding(horizontal = Spacing.l, vertical = Spacing.s)
+            .testTag(RecordsTestTags.FILTER),
+    )
 }
 
 @Composable

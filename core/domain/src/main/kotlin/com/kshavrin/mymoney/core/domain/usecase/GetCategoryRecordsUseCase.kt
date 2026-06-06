@@ -22,25 +22,35 @@ class GetCategoryRecordsUseCase @Inject constructor(
     @DefaultDispatcher private val defaultDispatcher: CoroutineDispatcher,
 ) {
 
-    suspend operator fun invoke(accountId: Long, period: Period): List<CategoryRecordGroup> = withContext(defaultDispatcher) {
+    suspend operator fun invoke(
+        accountId: Long,
+        period: Period,
+        categoryId: Long? = null,
+    ): List<CategoryRecordGroup> = withContext(defaultDispatcher) {
         val account = accountRepository.findById(accountId)
             ?: throw IllegalArgumentException("Account $accountId not found")
         val currency = currencyRepository.findById(account.currencyId)
             ?: throw IllegalStateException("Currency ${account.currencyId} not found")
-        recordsForAccounts(listOf(account), currency, period)
+        recordsForAccounts(listOf(account), currency, period, categoryId)
     }
 
-    suspend fun forAccounts(accounts: List<Account>, currency: Currency, period: Period): List<CategoryRecordGroup> =
+    suspend fun forAccounts(
+        accounts: List<Account>,
+        currency: Currency,
+        period: Period,
+        categoryId: Long? = null,
+    ): List<CategoryRecordGroup> =
         withContext(defaultDispatcher) {
             val activeAccounts = accounts.filterNot { it.isArchived }
             require(activeAccounts.all { it.currencyId == currency.id }) { "All accounts must use ${currency.code}" }
-            recordsForAccounts(activeAccounts, currency, period)
+            recordsForAccounts(activeAccounts, currency, period, categoryId)
         }
 
     private suspend fun recordsForAccounts(
         accounts: List<Account>,
         currency: Currency,
         period: Period,
+        categoryId: Long?,
     ): List<CategoryRecordGroup> {
         val groups = accounts.flatMap { account -> transactionRepository.getCategoryGroups(account.id, period) }
             .groupBy { it.categoryId }
@@ -56,6 +66,7 @@ class GetCategoryRecordsUseCase @Inject constructor(
                     count = entries.sumOf { it.count },
                 )
             }
+            .filter { group -> categoryId == null || group.categoryId == categoryId }
         val byCategory = accounts.flatMap { account -> transactionRepository.findByPeriod(account.id, period) }
             .groupBy { it.categoryId }
 

@@ -3,6 +3,7 @@ package com.kshavrin.mymoney.core.designsystem.form
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -57,10 +58,7 @@ fun TransactionFormContent(
             )
         } else {
             Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(top = Spacing.m),
-                verticalArrangement = Arrangement.Bottom,
+                modifier = Modifier.weight(1f),
             ) {
                 MonefyKeypad(
                     onEvent = { onEvent(TransactionFormEvent.Keypad(it)) },
@@ -71,7 +69,9 @@ fun TransactionFormContent(
                     enabled = state.chooseCategoryEnabled,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = Spacing.s),
+                        .weight(1f)
+                        .padding(top = Spacing.s)
+                        .defaultMinSize(minHeight = Spacing.transactionFormChooseCategoryMinHeight),
                 ) {
                     Text(stringResource(R.string.transaction_form_choose_category_button))
                 }

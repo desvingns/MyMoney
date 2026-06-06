@@ -71,6 +71,7 @@ private val DashboardLightPrimaryText = Color(0xFF066A35)
 private val DashboardLightBalancePanelContainer = Color(0xFFE9F7EF)
 private val DashboardLightBalancePanelOutline = Color(0xFF9ED8B2)
 private val DashboardLightCenterDivider = Color(0xFFD8E7DD)
+private val DashboardDonutOtherSlice = Color(0xFF9E9E9E)
 private val DashboardIncomeAccent = Color(0xFF15995B)
 private val DashboardExpenseAccent = Color(0xFFF94F4B)
 
@@ -139,6 +140,9 @@ val ColorScheme.dashboardDonutCenterDivider: Color
 
 val ColorScheme.dashboardDonutLeaderLine: Color
     get() = if (isLightDashboardPalette) outlineVariant.copy(alpha = 0.78f) else onSurfaceVariant.copy(alpha = 0.7f)
+
+val ColorScheme.dashboardDonutOtherSlice: Color
+    get() = DashboardDonutOtherSlice
 
 val ColorScheme.dashboardCalloutLabel: Color
     get() = onSurface.copy(alpha = if (isLightDashboardPalette) 0.92f else 0.88f)

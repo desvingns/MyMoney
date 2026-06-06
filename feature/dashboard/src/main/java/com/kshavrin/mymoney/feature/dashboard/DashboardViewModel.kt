@@ -353,5 +353,5 @@ private data class BudgetAlertSelection(
 private const val DASHBOARD_SELECTION_SPECIFIC = "specific_account"
 private const val DASHBOARD_SELECTION_ALL = "all_accounts"
 internal const val OTHER_GROUP_MAX_FRACTION = 0.02f
-internal const val OTHER_CATEGORY_ID = -1L
-internal const val OTHER_CATEGORY_ICON_KEY = "ic_cat_other"
+const val OTHER_CATEGORY_ID = -1L
+const val OTHER_CATEGORY_ICON_KEY = "ic_cat_other"

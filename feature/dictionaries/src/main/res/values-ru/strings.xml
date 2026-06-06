@@ -61,4 +61,20 @@
     <string name="goals_add">Добавить цель</string>
     <string name="goals_variant_savings">Накопление</string>
     <string name="goals_variant_credit">Кредит</string>
+    <string name="goal_name">Название цели</string>
+    <string name="goal_icon">Иконка</string>
+    <string name="goal_variant_savings">Без кредита</string>
+    <string name="goal_variant_credit">С кредитом</string>
+    <string name="goal_account">Счёт</string>
+    <string name="goal_current_balance">Сейчас на счету: %1$s</string>
+    <string name="goal_starting_capital">Стартовый капитал</string>
+    <string name="goal_remaining_on_account">На счету останется %1$s</string>
+    <string name="goal_short_on_account">Не хватает %1$s</string>
+    <string name="goal_capital_exact">Точно равно балансу счёта</string>
+    <string name="goal_monthly_contribution">Ежемесячное пополнение</string>
+    <string name="goal_target_amount">Целевая сумма</string>
+    <string name="goal_achievement_date">Дата достижения: %1$s</string>
+    <string name="goal_already_achieved">Уже достигнуто</string>
+    <string name="goal_unreachable">Недостижимо при текущем пополнении</string>
+    <string name="goal_save">Сохранить</string>
 </resources>

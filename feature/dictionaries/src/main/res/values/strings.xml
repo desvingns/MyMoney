@@ -61,4 +61,20 @@
     <string name="goals_add">Add goal</string>
     <string name="goals_variant_savings">Savings</string>
     <string name="goals_variant_credit">Loan</string>
+    <string name="goal_name">Goal name</string>
+    <string name="goal_icon">Icon</string>
+    <string name="goal_variant_savings">Without loan</string>
+    <string name="goal_variant_credit">With loan</string>
+    <string name="goal_account">Account</string>
+    <string name="goal_current_balance">Money on account now: %1$s</string>
+    <string name="goal_starting_capital">Starting capital</string>
+    <string name="goal_remaining_on_account">%1$s will remain on the account</string>
+    <string name="goal_short_on_account">%1$s short on the account</string>
+    <string name="goal_capital_exact">Exactly matches the account balance</string>
+    <string name="goal_monthly_contribution">Monthly contribution</string>
+    <string name="goal_target_amount">Target amount</string>
+    <string name="goal_achievement_date">Achievement date: %1$s</string>
+    <string name="goal_already_achieved">Already achieved</string>
+    <string name="goal_unreachable">Unreachable with the current contribution</string>
+    <string name="goal_save">Save</string>
 </resources>

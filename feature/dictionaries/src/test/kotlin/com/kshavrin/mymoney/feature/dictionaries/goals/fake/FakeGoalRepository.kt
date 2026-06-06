@@ -10,6 +10,9 @@ class FakeGoalRepository : GoalRepository {
 
     private val state = MutableStateFlow<List<Goal>>(emptyList())
 
+    var lastUpserted: Goal? = null
+        private set
+
     fun seed(items: List<Goal>) {
         state.value = items
     }
@@ -26,7 +29,9 @@ class FakeGoalRepository : GoalRepository {
         } else {
             goal.id
         }
-        state.value = state.value.filterNot { it.id == id } + goal.copy(id = id)
+        val saved = goal.copy(id = id)
+        lastUpserted = saved
+        state.value = state.value.filterNot { it.id == id } + saved
         return id
     }
 

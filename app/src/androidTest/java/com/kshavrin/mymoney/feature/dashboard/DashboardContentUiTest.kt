@@ -43,6 +43,7 @@ import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_ABOUT_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_ACCOUNTS_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_CATEGORIES_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_CURRENCIES_TAG
+import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_FINANCIAL_GOALS_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_SETTINGS_TAG
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -434,6 +435,63 @@ class DashboardContentUiTest {
                 capturedEvents,
             )
         }
+    }
+
+    @Test
+    fun `right drawer shows financial goals item and clicking it emits FinancialGoalsClicked`() {
+        val capturedEvents = mutableListOf<DashboardEvent>()
+
+        setStatefulDashboardContent(
+            initialState = DashboardState(isLoading = false, rightDrawerOpen = true),
+            onCapturedEvent = { event -> capturedEvents += event },
+        )
+        composeTestRule.waitForIdle()
+
+        composeTestRule
+            .onNodeWithTag(RIGHT_DRAWER_FINANCIAL_GOALS_TAG, useUnmergedTree = true)
+            .assertIsDisplayed()
+            .assertHasClickAction()
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertTrue(
+                "expected FinancialGoalsClicked to be emitted but got $capturedEvents",
+                capturedEvents.contains(DashboardEvent.FinancialGoalsClicked),
+            )
+        }
+    }
+
+    @Test
+    fun `right drawer financial goals item sits between accounts and currencies`() {
+        setStatefulDashboardContent(
+            initialState = DashboardState(isLoading = false, rightDrawerOpen = true),
+        )
+        composeTestRule.waitForIdle()
+
+        val accountsBounds = composeTestRule
+            .onNodeWithTag(RIGHT_DRAWER_ACCOUNTS_TAG, useUnmergedTree = true)
+            .assertIsDisplayed()
+            .fetchSemanticsNode()
+            .boundsInRoot
+        val goalsBounds = composeTestRule
+            .onNodeWithTag(RIGHT_DRAWER_FINANCIAL_GOALS_TAG, useUnmergedTree = true)
+            .assertIsDisplayed()
+            .fetchSemanticsNode()
+            .boundsInRoot
+        val currenciesBounds = composeTestRule
+            .onNodeWithTag(RIGHT_DRAWER_CURRENCIES_TAG, useUnmergedTree = true)
+            .assertIsDisplayed()
+            .fetchSemanticsNode()
+            .boundsInRoot
+
+        assertTrue(
+            "financial goals item must sit below accounts",
+            goalsBounds.top >= accountsBounds.bottom,
+        )
+        assertTrue(
+            "financial goals item must sit above currencies",
+            goalsBounds.bottom <= currenciesBounds.top,
+        )
     }
 
     @Test

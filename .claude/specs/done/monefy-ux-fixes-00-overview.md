@@ -1,7 +1,7 @@
 # Эпик: monefy-ux-fixes — 6 UX-правок по ревью пользователя
 Epic: monefy-ux-fixes
 Order: 00 of 07 (overview)
-Status: draft
+Status: done
 Depends-on: —
 Date: 2026-06-06
 
@@ -47,5 +47,5 @@ domain-free компонент `TransactionFormContent` в `:core:designsystem`,
 - Доска отдельна от 15-фазного плана (`docs/implementation_plan/`) — PROGRESS.md не трогаем.
 
 ## Implementation links
-- commit: (pending)
-- files: (pending)
+- EPIC COMPLETE 2026-06-07 — all 7 SPECs shipped (see each in `.claude/specs/done/`).
+- 01 extract-transaction-form · 02 form-layout-keypad-up · 03 single-date-picker · 04 edit-uses-shared-form · 05 dashboard-negative-balance · 06 donut-icon-tap · 07 categories-scroll (98687640+f6617af6).

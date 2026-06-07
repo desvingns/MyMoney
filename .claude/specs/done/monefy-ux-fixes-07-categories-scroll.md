@@ -1,7 +1,7 @@
 # Экран «Категории» вертикально скроллится (п.6)
 Epic: monefy-ux-fixes
 Order: 07 of 07
-Status: draft
+Status: done
 Depends-on: —
 Date: 2026-06-06
 
@@ -28,5 +28,8 @@ LazyColumn. Сложность: у каждого грида есть section-is
 Замечание пользователя №6.
 
 ## Implementation links
-- commit: (pending)
-- files: (pending)
+- commit: 98687640 (feat) + f6617af6 (test)
+- files:
+  - feature/dictionaries/src/main/java/com/kshavrin/mymoney/feature/dictionaries/categories/CategoriesListScreen.kt
+  - app/src/androidTest/java/com/kshavrin/mymoney/feature/dictionaries/categories/CategoriesListContentUiTest.kt
+- verification: 6/6 instrumented tests green on Pixel_5_API_34 (emulator-5554); single LazyVerticalGrid with full-span headers; per-section drag-reorder isolation preserved.

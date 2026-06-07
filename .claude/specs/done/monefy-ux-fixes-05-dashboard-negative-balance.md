@@ -1,7 +1,7 @@
 # Отрицательный баланс на dashboard — красные цвета (п.4)
 Epic: monefy-ux-fixes
 Order: 05 of 07
-Status: draft
+Status: done
 Depends-on: —
 Date: 2026-06-06
 
@@ -26,5 +26,10 @@ dashboardBalancePanelContainer/Content; условного стиля для о�
 не проверяет знак). Замечание пользователя №4.
 
 ## Implementation links
-- commit: (pending)
-- files: (pending)
+- commits: c39caaea (tokens) · a9fa6c39 (theme refactor) · e75ec544 (tint negative balance) · f8725bf9 (tighten compose-ui test) · 05470d5a (unit test for color tokens)
+- files:
+  - core/ui/src/main/java/com/kshavrin/mymoney/core/ui/theme/Color.kt (dashboardBalancePanelContainerNegative + dashboardBalancePanelContentNegative, light+dark)
+  - feature/dashboard/src/main/java/com/kshavrin/mymoney/feature/dashboard/DashboardScreen.kt (isNegative via net.amount.signum() threaded into DashboardBalancePanel; conditional container/content tokens)
+  - core/ui/src/test/java/com/kshavrin/mymoney/core/ui/theme/DashboardBalancePanelColorsTest.kt (unit)
+  - feature/dashboard/src/androidTest/java/com/kshavrin/mymoney/feature/dashboard/DashboardContentUiTest.kt (compose-ui)
+- verification: :core:ui + :feature:dashboard testDebugUnitTest green (JDK 21); reviewer pass; verifier pass:true (presentation-only, no wiring deltas)

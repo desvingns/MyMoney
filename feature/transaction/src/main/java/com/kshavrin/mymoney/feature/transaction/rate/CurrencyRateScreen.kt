@@ -10,7 +10,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -33,6 +32,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.kshavrin.mymoney.core.designsystem.form.FormBottomBar
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.feature.transaction.R
 
@@ -97,6 +97,13 @@ fun CurrencyRateScreen(
                 Snackbar(snackbarData = data)
             }
         },
+        bottomBar = {
+            FormBottomBar(
+                text = stringResource(R.string.currency_rate_save),
+                enabled = state.isValid && !state.isSaving,
+                onSave = { onEvent(CurrencyRateEvent.SaveClicked) },
+            )
+        },
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -132,13 +139,6 @@ fun CurrencyRateScreen(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth(),
             )
-            Button(
-                onClick = { onEvent(CurrencyRateEvent.SaveClicked) },
-                enabled = state.isValid && !state.isSaving,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(stringResource(R.string.currency_rate_save))
-            }
         }
     }
 }

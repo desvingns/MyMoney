@@ -6,13 +6,15 @@ import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -29,6 +31,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -98,18 +101,19 @@ fun CategoriesListContent(
             }
         },
     ) { innerPadding ->
-        Column(
+        val expenseTitle = stringResource(R.string.dictionaries_section_expense)
+        val incomeTitle = stringResource(R.string.dictionaries_section_income)
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(3),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp),
         ) {
-            Text(
-                text = stringResource(R.string.dictionaries_section_expense),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(vertical = 8.dp),
-            )
-            CategoryGrid(
+            sectionHeader(expenseTitle)
+            categorySection(
                 items = state.expense,
                 kind = CategoryKind.Expense,
                 onClick = { onEvent(CategoriesListEvent.ItemClicked(it)) },
@@ -118,12 +122,8 @@ fun CategoriesListContent(
                 },
             )
 
-            Text(
-                text = stringResource(R.string.dictionaries_section_income),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(top = 16.dp, bottom = 8.dp),
-            )
-            CategoryGrid(
+            sectionHeader(incomeTitle)
+            categorySection(
                 items = state.income,
                 kind = CategoryKind.Income,
                 onClick = { onEvent(CategoriesListEvent.ItemClicked(it)) },
@@ -135,8 +135,34 @@ fun CategoriesListContent(
     }
 }
 
+private fun LazyGridScope.sectionHeader(title: String) {
+    item(span = { GridItemSpan(maxLineSpan) }) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(vertical = 8.dp),
+        )
+    }
+}
+
+private fun LazyGridScope.categorySection(
+    items: List<Category>,
+    kind: CategoryKind,
+    onClick: (Long) -> Unit,
+    onReordered: (List<Category>) -> Unit,
+) {
+    item(span = { GridItemSpan(maxLineSpan) }, key = "section_$kind") {
+        CategorySectionGrid(
+            items = items,
+            kind = kind,
+            onClick = onClick,
+            onReordered = onReordered,
+        )
+    }
+}
+
 @Composable
-private fun CategoryGrid(
+private fun CategorySectionGrid(
     items: List<Category>,
     kind: CategoryKind,
     onClick: (Long) -> Unit,
@@ -145,67 +171,76 @@ private fun CategoryGrid(
     var localItems by remember(items) { mutableStateOf(items) }
     var draggedId by remember { mutableStateOf<Long?>(null) }
     var pointerWindow by remember { mutableStateOf(Offset.Zero) }
-    val itemBounds = remember(kind) { mutableMapOf<Long, Rect>() }
+    val itemBounds = remember(kind) { mutableStateMapOf<Long, Rect>() }
 
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(3),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        itemsIndexed(localItems, key = { _, cat -> cat.id }) { _, cat ->
-            val isDragged = cat.id == draggedId
-            val currentCenter = itemBounds[cat.id]?.center ?: Offset.Zero
-            val visualOffset = if (isDragged) {
-                Offset(pointerWindow.x - currentCenter.x, pointerWindow.y - currentCenter.y)
-            } else {
-                Offset.Zero
-            }
-            CategoryCard(
-                category = cat,
-                isDragged = isDragged,
-                dragOffset = visualOffset,
-                modifier = Modifier
-                    .onGloballyPositioned { coords ->
-                        itemBounds[cat.id] = coords.boundsInWindow()
+    val rows = localItems.chunked(3)
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        rows.forEach { rowItems ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                rowItems.forEach { cat ->
+                    val isDragged = cat.id == draggedId
+                    val currentCenter = itemBounds[cat.id]?.center ?: Offset.Zero
+                    val visualOffset = if (isDragged) {
+                        Offset(pointerWindow.x - currentCenter.x, pointerWindow.y - currentCenter.y)
+                    } else {
+                        Offset.Zero
                     }
-                    .pointerInput(cat.id, kind) {
-                        detectDragGesturesAfterLongPress(
-                            onDragStart = {
-                                draggedId = cat.id
-                                pointerWindow = itemBounds[cat.id]?.center ?: Offset.Zero
+                    CategoryCard(
+                        category = cat,
+                        isDragged = isDragged,
+                        dragOffset = visualOffset,
+                        modifier = Modifier
+                            .weight(1f)
+                            .onGloballyPositioned { coords ->
+                                itemBounds[cat.id] = coords.boundsInWindow()
+                            }
+                            .pointerInput(cat.id, kind) {
+                                detectDragGesturesAfterLongPress(
+                                    onDragStart = {
+                                        draggedId = cat.id
+                                        pointerWindow = itemBounds[cat.id]?.center ?: Offset.Zero
+                                    },
+                                    onDragEnd = {
+                                        val finalOrder = localItems
+                                        draggedId = null
+                                        pointerWindow = Offset.Zero
+                                        onReordered(finalOrder)
+                                    },
+                                    onDragCancel = {
+                                        draggedId = null
+                                        pointerWindow = Offset.Zero
+                                    },
+                                    onDrag = { change, dragAmount ->
+                                        change.consume()
+                                        pointerWindow += dragAmount
+                                        val targetId = itemBounds.entries
+                                            .firstOrNull { (id, bounds) ->
+                                                id != cat.id && bounds.contains(pointerWindow)
+                                            }
+                                            ?.key
+                                        if (targetId != null) {
+                                            val fromIdx = localItems.indexOfFirst { it.id == cat.id }
+                                            val toIdx = localItems.indexOfFirst { it.id == targetId }
+                                            if (fromIdx >= 0 && toIdx >= 0 && fromIdx != toIdx) {
+                                                val mutable = localItems.toMutableList()
+                                                val moved = mutable.removeAt(fromIdx)
+                                                mutable.add(toIdx, moved)
+                                                localItems = mutable
+                                            }
+                                        }
+                                    },
+                                )
                             },
-                            onDragEnd = {
-                                val finalOrder = localItems
-                                draggedId = null
-                                pointerWindow = Offset.Zero
-                                onReordered(finalOrder)
-                            },
-                            onDragCancel = {
-                                draggedId = null
-                                pointerWindow = Offset.Zero
-                            },
-                            onDrag = { change, dragAmount ->
-                                change.consume()
-                                pointerWindow += dragAmount
-                                val targetId = itemBounds.entries
-                                    .firstOrNull { (id, bounds) -> id != cat.id && bounds.contains(pointerWindow) }
-                                    ?.key
-                                if (targetId != null) {
-                                    val fromIdx = localItems.indexOfFirst { it.id == cat.id }
-                                    val toIdx = localItems.indexOfFirst { it.id == targetId }
-                                    if (fromIdx >= 0 && toIdx >= 0 && fromIdx != toIdx) {
-                                        val mutable = localItems.toMutableList()
-                                        val moved = mutable.removeAt(fromIdx)
-                                        mutable.add(toIdx, moved)
-                                        localItems = mutable
-                                    }
-                                }
-                            },
-                        )
-                    },
-                onClick = { onClick(cat.id) },
-            )
+                        onClick = { onClick(cat.id) },
+                    )
+                }
+                repeat(3 - rowItems.size) {
+                    Box(modifier = Modifier.weight(1f))
+                }
+            }
         }
     }
 }
@@ -219,7 +254,6 @@ private fun CategoryCard(
     onClick: () -> Unit,
 ) {
     val cardModifier = modifier
-        .fillMaxWidth()
         .then(
             if (isDragged) {
                 Modifier

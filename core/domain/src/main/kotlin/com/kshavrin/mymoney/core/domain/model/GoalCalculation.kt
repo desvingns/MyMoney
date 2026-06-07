@@ -20,6 +20,7 @@ enum class GoalStatus { ON_TRACK, ALREADY_ACHIEVED, UNREACHABLE }
 data class LoanGoalInput(
     val targetAmount: BigDecimal,
     val startingCapital: BigDecimal,
+    val downPayment: BigDecimal,
     val annualRatePercent: BigDecimal,
     val termMonths: Int,
     val monthlyContribution: BigDecimal,
@@ -28,11 +29,10 @@ data class LoanGoalInput(
 data class LoanProjection(
     val principal: BigDecimal,
     val baseMonthlyPayment: BigDecimal,
-    val finalMonthlyPayment: BigDecimal,
     val totalInterest: BigDecimal,
     val totalPaid: BigDecimal,
-    val interestSavedVsBaseline: BigDecimal,
-    val monthsToPayoff: Int,
+    val accumulationMonths: Int?,
+    val totalMonthsToPayoff: Int?,
     val underfunded: Boolean,
-    val overpaymentApplied: Boolean,
+    val status: GoalStatus,
 )

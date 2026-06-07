@@ -66,6 +66,30 @@ class CurrencyRateScreenUiTest {
     }
 
     @Test
+    fun `save button is displayed without scrolling and emits save clicked when rate is valid`() {
+        val capturedEvents = mutableListOf<CurrencyRateEvent>()
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                CurrencyRateScreen(
+                    state = validState(),
+                    onEvent = { event -> capturedEvents += event },
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithText(targetString(R.string.currency_rate_save))
+            .assertIsDisplayed()
+            .assertIsEnabled()
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(CurrencyRateEvent.SaveClicked), capturedEvents)
+        }
+    }
+
+    @Test
     fun `rate input emits text change event`() {
         val capturedEvents = mutableListOf<CurrencyRateEvent>()
 
@@ -111,20 +135,12 @@ class CurrencyRateScreenUiTest {
     }
 
     @Test
-    fun `valid rate preview and save emit currency rate event`() {
-        val capturedEvents = mutableListOf<CurrencyRateEvent>()
-
+    fun `valid rate shows currency preview`() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 CurrencyRateScreen(
-                    state = CurrencyRateState(
-                        fromCurrency = currency(id = 1L, code = "USD"),
-                        toCurrency = currency(id = 2L, code = "EUR"),
-                        rateInput = "0.92",
-                        rate = 0.92,
-                        isValid = true,
-                    ),
-                    onEvent = { event -> capturedEvents += event },
+                    state = validState(),
+                    onEvent = {},
                 )
             }
         }
@@ -136,15 +152,15 @@ class CurrencyRateScreenUiTest {
         composeTestRule
             .onNodeWithText(targetString(R.string.currency_rate_pattern, "USD", "0.92", "EUR"))
             .assertIsDisplayed()
-        composeTestRule
-            .onNodeWithText(targetString(R.string.currency_rate_save))
-            .assertIsEnabled()
-            .performClick()
-
-        composeTestRule.runOnIdle {
-            assertEquals(listOf(CurrencyRateEvent.SaveClicked), capturedEvents)
-        }
     }
+
+    private fun validState(): CurrencyRateState = CurrencyRateState(
+        fromCurrency = currency(id = 1L, code = "USD"),
+        toCurrency = currency(id = 2L, code = "EUR"),
+        rateInput = "0.92",
+        rate = 0.92,
+        isValid = true,
+    )
 
     private fun currency(id: Long, code: String): Currency = Currency(
         id = id,

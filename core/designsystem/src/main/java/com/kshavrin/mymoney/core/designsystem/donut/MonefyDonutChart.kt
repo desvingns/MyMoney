@@ -187,6 +187,23 @@ fun MonefyDonutChart(
                         val strokeWidth = outerRadius * ringThicknessFraction
                         val innerRadius = outerRadius - strokeWidth
                         val explodedOffsetPx = explodedOffset.toPx()
+                        val iconSize = calloutIconSize.toPx() * (iconScale / 1.7f)
+                        val iconMargin = Spacing.s.toPx()
+                        val iconTouchRadius = (iconSize + Spacing.m.toPx()) / 2f
+                        val iconHit = layoutSlices(arcs).firstOrNull { placed ->
+                            val slot = placed.iconCenter(
+                                center = center,
+                                outerRadius = outerRadius,
+                                iconMargin = iconMargin,
+                                iconSize = iconSize,
+                                explodedOffset = placed.explodedOffset(explodedOffsetPx),
+                            )
+                            hypot(offset.x - slot.x, offset.y - slot.y) <= iconTouchRadius
+                        }?.slice
+                        if (iconHit != null) {
+                            onSliceClick?.invoke(iconHit)
+                            return@detectTapGestures
+                        }
                         val hit = DonutGeometry.hitTest(
                             offsetX = offset.x,
                             offsetY = offset.y,

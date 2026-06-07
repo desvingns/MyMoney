@@ -19,6 +19,7 @@ data class Goal(
     val createdAt: Instant,
     val updatedAt: Instant,
     val isArchived: Boolean,
+    val contributionBreakdown: ContributionBreakdown = ContributionBreakdown(),
 )
 
 enum class GoalVariant { SAVINGS, CREDIT }

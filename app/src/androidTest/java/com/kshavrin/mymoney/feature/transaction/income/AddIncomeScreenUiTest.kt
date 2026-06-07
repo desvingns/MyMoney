@@ -337,6 +337,24 @@ class AddIncomeScreenUiTest {
         }
     }
 
+    // ---- Regression: New mode must NOT show the in-form delete button (Edit mode only) --------
+
+    @Test
+    fun `New mode income form does not show the in-form delete button`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                AddIncomeScreen(
+                    state = AddIncomeState(),
+                    onEvent = {},
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithText(targetString(DesignSystemR.string.transaction_form_delete_button))
+            .assertDoesNotExist()
+    }
+
     private fun category(id: Long, name: String): Category = Category(
         id = id,
         name = name,

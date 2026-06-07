@@ -1,7 +1,7 @@
 # Contribution breakdown — form UI + ViewModel
 Epic: goal-monthly-contribution-breakdown
 Order: 03 of 03
-Status: active
+Status: done
 Depends-on: 01, 02
 Date: 2026-06-07
 

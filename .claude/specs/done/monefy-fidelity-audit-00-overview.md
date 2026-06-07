@@ -1,7 +1,7 @@
 # Monefy fidelity screenshot audit - epic overview
 Epic: monefy-fidelity-audit
 Order: 00 (index)
-Status: draft
+Status: done
 Depends-on: -
 Date: 2026-06-02
 
@@ -48,4 +48,3 @@ presentation fidelity refinements.
 Every implementation SPEC in this epic must declare any internal type, route, use-case, or data
 contract change in `CHANGED_HINT` before implementation. No public app API/type/interface change is
 implied by this planning run itself.
-

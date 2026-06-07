@@ -311,6 +311,24 @@ class AddExpenseScreenUiTest {
         }
     }
 
+    // ---- Regression: New mode must NOT show the in-form delete button (Edit mode only) --------
+
+    @Test
+    fun `New mode expense form does not show the in-form delete button`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                AddExpenseScreen(
+                    state = AddExpenseState(),
+                    onEvent = {},
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithText(targetString(DesignSystemR.string.transaction_form_delete_button))
+            .assertDoesNotExist()
+    }
+
     @Test
     fun `add category cell emits add event`() {
         val capturedEvents = mutableListOf<AddExpenseEvent>()

@@ -278,6 +278,50 @@ class DestinationsTest {
         assertTrue(literal.startsWith("${Destinations.CATEGORY_EDIT}/"))
     }
 
+    // --- Transaction detail route (SPEC: edit-transaction screen, PHASE_09 + UX-fixes-04) ---
+    //
+    // The Transaction Detail screen is reached via "${Destinations.TRANSACTION_DETAIL}/$id".
+    // Locking the canonical value here prevents a rename from silently breaking the
+    // navigate() call in TransactionsListScreen.
+
+    @Test
+    fun `TRANSACTION_DETAIL route is transaction_detail`() {
+        assertEquals("transaction_detail", Destinations.TRANSACTION_DETAIL)
+    }
+
+    @Test
+    fun `transaction detail route template is well-formed with transactionId path arg`() {
+        val template = "${Destinations.TRANSACTION_DETAIL}/{transactionId}"
+        assertEquals("transaction_detail/{transactionId}", template)
+        assertTrue(template.contains("{transactionId}"))
+    }
+
+    @Test
+    fun `transaction detail navigation literal is well-formed for a given id`() {
+        val literal = "${Destinations.TRANSACTION_DETAIL}/42"
+        assertEquals("transaction_detail/42", literal)
+        assertTrue(literal.startsWith(Destinations.TRANSACTION_DETAIL))
+    }
+
+    @Test
+    fun `TRANSACTION_DETAIL route does not collide with transaction or dictionary routes`() {
+        val detailRoute = Destinations.TRANSACTION_DETAIL
+        val otherRoutes = setOf(
+            Destinations.ADD_EXPENSE,
+            Destinations.ADD_INCOME,
+            Destinations.TRANSFER,
+            Destinations.TRANSACTIONS_LIST,
+            Destinations.CATEGORIES_LIST,
+            Destinations.CATEGORY_EDIT,
+            Destinations.ACCOUNTS_LIST,
+            Destinations.ACCOUNT_EDIT,
+        )
+        assertTrue(
+            "TRANSACTION_DETAIL must not collide with other routes",
+            detailRoute !in otherRoutes,
+        )
+    }
+
     @Test
     fun `destinations do not expose retired category picker route`() {
         val routeValues = Destinations::class.java.declaredFields

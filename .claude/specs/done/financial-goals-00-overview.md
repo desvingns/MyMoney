@@ -1,7 +1,7 @@
 # Financial Goals — epic overview
 Epic: financial-goals
 Order: 00 of 06
-Status: backlog
+Status: done
 Depends-on: —
 Date: 2026-06-05
 

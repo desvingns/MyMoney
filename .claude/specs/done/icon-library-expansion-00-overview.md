@@ -1,7 +1,7 @@
 # Icon library expansion — epic overview
 Epic: icon-library-expansion
 Order: 00 of 04
-Status: backlog
+Status: done
 Depends-on: —
 Date: 2026-06-05
 

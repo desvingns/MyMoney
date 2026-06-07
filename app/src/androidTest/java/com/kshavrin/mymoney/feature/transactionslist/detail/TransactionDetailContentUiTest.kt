@@ -271,6 +271,114 @@ class TransactionDetailContentUiTest {
         }
     }
 
+    // ---- Edit-mode: in-form delete button (SPEC: edit screen uses TransactionFormContent) -----
+
+    @Test
+    fun `expense edit screen shows in-form delete button via TransactionFormContent`() {
+        setContent(state = loadedExpenseState())
+
+        composeTestRule
+            .onNodeWithText(targetString(DesignSystemR.string.transaction_form_delete_button))
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun `in-form delete button emits detail delete event`() {
+        val capturedEvents = mutableListOf<TransactionDetailEvent>()
+
+        setContent(onEvent = { event -> capturedEvents += event })
+
+        composeTestRule
+            .onNodeWithText(targetString(DesignSystemR.string.transaction_form_delete_button))
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertTrue(capturedEvents.contains(TransactionDetailEvent.DeleteClicked))
+        }
+    }
+
+    @Test
+    fun `choose-category button is shown in Edit mode when amount is positive`() {
+        setContent(state = loadedExpenseState())
+
+        composeTestRule
+            .onNodeWithText(targetString(DesignSystemR.string.transaction_form_choose_category_button))
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun `choose-category button click emits SelectCategoryClicked`() {
+        val capturedEvents = mutableListOf<TransactionDetailEvent>()
+
+        setContent(
+            state = loadedExpenseState(),
+            onEvent = { event -> capturedEvents += event },
+        )
+
+        composeTestRule
+            .onNodeWithText(targetString(DesignSystemR.string.transaction_form_choose_category_button))
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertTrue(capturedEvents.contains(TransactionDetailEvent.SelectCategoryClicked))
+        }
+    }
+
+    @Test
+    fun `category grid is shown when categoryStep is true`() {
+        val category = category(id = 10L, name = "Food")
+        setContent(
+            state = loadedExpenseState().copy(
+                categoryStep = true,
+                categories = listOf(category),
+            ),
+        )
+
+        composeTestRule
+            .onNodeWithContentDescription("Food")
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun `clicking a category in category step emits CategoryPicked and does NOT emit NavigateBack`() {
+        val capturedEvents = mutableListOf<TransactionDetailEvent>()
+        val category = category(id = 10L, name = "Food")
+
+        setContent(
+            state = loadedExpenseState().copy(
+                categoryStep = true,
+                categories = listOf(category),
+            ),
+            onEvent = { event -> capturedEvents += event },
+        )
+
+        composeTestRule
+            .onNodeWithContentDescription("Food")
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertTrue(
+                "CategoryPicked must be emitted when a category is selected in Edit mode",
+                capturedEvents.any { it is TransactionDetailEvent.CategoryPicked && it.categoryId == 10L },
+            )
+            assertTrue(
+                "NavigateBack must NOT be emitted by the form itself (explicit-save contract)",
+                capturedEvents.none { it is TransactionDetailEvent.SaveClicked },
+            )
+        }
+    }
+
+    @Test
+    fun `transfer edit screen does not show the in-form delete button`() {
+        setContent(state = loadedTransferState())
+
+        composeTestRule
+            .onNodeWithText(targetString(DesignSystemR.string.transaction_form_delete_button))
+            .assertDoesNotExist()
+    }
+
+    // ---- helpers -------------------------------------------------------------------------------
+
     private fun loadedExpenseState(
         isDirty: Boolean = false,
         confirmDeleteVisible: Boolean = false,

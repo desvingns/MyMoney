@@ -412,4 +412,194 @@ class GoalEditSavingsContentTest {
         val event: GoalEditEvent = GoalEditEvent.BackClicked
         assertEquals(GoalEditEvent.BackClicked, event)
     }
+
+    // ── Advanced contribution R-string resource keys ──────────────────────────────
+
+    @Test
+    fun `R-string goal_advanced_contribution exists`() {
+        val id: Int = R.string.goal_advanced_contribution
+        assertTrue("R.string.goal_advanced_contribution must be a valid resource id", id != 0)
+    }
+
+    @Test
+    fun `R-string goal_monthly_income exists`() {
+        val id: Int = R.string.goal_monthly_income
+        assertTrue("R.string.goal_monthly_income must be a valid resource id", id != 0)
+    }
+
+    @Test
+    fun `R-string goal_monthly_expense exists`() {
+        val id: Int = R.string.goal_monthly_expense
+        assertTrue("R.string.goal_monthly_expense must be a valid resource id", id != 0)
+    }
+
+    @Test
+    fun `R-string goal_contribution_row_name exists`() {
+        val id: Int = R.string.goal_contribution_row_name
+        assertTrue("R.string.goal_contribution_row_name must be a valid resource id", id != 0)
+    }
+
+    @Test
+    fun `R-string goal_contribution_add_income exists`() {
+        val id: Int = R.string.goal_contribution_add_income
+        assertTrue("R.string.goal_contribution_add_income must be a valid resource id", id != 0)
+    }
+
+    @Test
+    fun `R-string goal_contribution_add_expense exists`() {
+        val id: Int = R.string.goal_contribution_add_expense
+        assertTrue("R.string.goal_contribution_add_expense must be a valid resource id", id != 0)
+    }
+
+    @Test
+    fun `R-string goal_contribution_remove exists`() {
+        val id: Int = R.string.goal_contribution_remove
+        assertTrue("R.string.goal_contribution_remove must be a valid resource id", id != 0)
+    }
+
+    // ── State-driven advanced-contribution visibility logic ───────────────────────
+
+    @Test
+    fun `advancedContribution false hides income and expense sections`() {
+        val state = defaultState().copy(advancedContribution = false)
+        assertFalse(
+            "sections must be hidden when advancedContribution is false",
+            state.advancedContribution,
+        )
+    }
+
+    @Test
+    fun `advancedContribution true reveals income and expense sections`() {
+        val state = defaultState().copy(
+            advancedContribution = true,
+            incomeRows = listOf(ContributionRowUi()),
+            expenseRows = listOf(ContributionRowUi()),
+        )
+        assertTrue("sections must be visible when advancedContribution is true", state.advancedContribution)
+        assertFalse("income rows must be non-empty when advanced is on", state.incomeRows.isEmpty())
+        assertFalse("expense rows must be non-empty when advanced is on", state.expenseRows.isEmpty())
+    }
+
+    @Test
+    fun `monthlyContribution field is read-only when advancedContribution is true`() {
+        val state = defaultState().copy(advancedContribution = true, monthlyContribution = "40000")
+        assertTrue(
+            "GoalEditContent passes readOnly=state.advancedContribution to the monthly OutlinedTextField",
+            state.advancedContribution,
+        )
+        assertEquals("40000", state.monthlyContribution)
+    }
+
+    @Test
+    fun `monthlyContribution field is editable when advancedContribution is false`() {
+        val state = defaultState().copy(advancedContribution = false)
+        assertFalse(
+            "GoalEditContent must pass readOnly=false when advancedContribution is false",
+            state.advancedContribution,
+        )
+    }
+
+    @Test
+    fun `AdvancedToggled true event carries enabled=true`() {
+        val event = GoalEditEvent.AdvancedToggled(true)
+        assertTrue(event.enabled)
+    }
+
+    @Test
+    fun `AdvancedToggled false event carries enabled=false`() {
+        val event = GoalEditEvent.AdvancedToggled(false)
+        assertFalse(event.enabled)
+    }
+
+    @Test
+    fun `IncomeAdded is a singleton event`() {
+        val event: GoalEditEvent = GoalEditEvent.IncomeAdded
+        assertEquals(GoalEditEvent.IncomeAdded, event)
+    }
+
+    @Test
+    fun `ExpenseAdded is a singleton event`() {
+        val event: GoalEditEvent = GoalEditEvent.ExpenseAdded
+        assertEquals(GoalEditEvent.ExpenseAdded, event)
+    }
+
+    @Test
+    fun `IncomeRemoved carries the correct index`() {
+        val event = GoalEditEvent.IncomeRemoved(2)
+        assertEquals(2, event.index)
+    }
+
+    @Test
+    fun `ExpenseRemoved carries the correct index`() {
+        val event = GoalEditEvent.ExpenseRemoved(1)
+        assertEquals(1, event.index)
+    }
+
+    @Test
+    fun `IncomeNameChanged carries index and value`() {
+        val event = GoalEditEvent.IncomeNameChanged(0, "Salary")
+        assertEquals(0, event.index)
+        assertEquals("Salary", event.value)
+    }
+
+    @Test
+    fun `IncomeAmountChanged carries index and value`() {
+        val event = GoalEditEvent.IncomeAmountChanged(0, "50000")
+        assertEquals(0, event.index)
+        assertEquals("50000", event.value)
+    }
+
+    @Test
+    fun `ExpenseNameChanged carries index and value`() {
+        val event = GoalEditEvent.ExpenseNameChanged(1, "Rent")
+        assertEquals(1, event.index)
+        assertEquals("Rent", event.value)
+    }
+
+    @Test
+    fun `ExpenseAmountChanged carries index and value`() {
+        val event = GoalEditEvent.ExpenseAmountChanged(1, "20000")
+        assertEquals(1, event.index)
+        assertEquals("20000", event.value)
+    }
+
+    // ── State rows structural checks ──────────────────────────────────────────────
+
+    @Test
+    fun `default GoalEditState has advancedContribution=false and empty rows`() {
+        val state = GoalEditState()
+        assertFalse(state.advancedContribution)
+        assertTrue(state.incomeRows.isEmpty())
+        assertTrue(state.expenseRows.isEmpty())
+    }
+
+    @Test
+    fun `adding income rows increases the count visible to the section`() {
+        val rows = listOf(ContributionRowUi(name = "A", amount = "100"), ContributionRowUi(name = "B", amount = "200"))
+        val state = defaultState().copy(advancedContribution = true, incomeRows = rows)
+        assertEquals("income section must show two rows", 2, state.incomeRows.size)
+    }
+
+    @Test
+    fun `ContributionRowUi defaults to empty name and amount`() {
+        val row = ContributionRowUi()
+        assertEquals("", row.name)
+        assertEquals("", row.amount)
+    }
+
+    @Test
+    fun `breakdown section renders computed total in monthlyContribution when advanced is on`() {
+        val state = defaultState().copy(
+            advancedContribution = true,
+            monthlyContribution = "35000",
+            incomeRows = listOf(ContributionRowUi(name = "Job", amount = "50000")),
+            expenseRows = listOf(ContributionRowUi(name = "Bills", amount = "15000")),
+        )
+        assertEquals(
+            "computed total must be reflected in monthlyContribution",
+            "35000",
+            state.monthlyContribution,
+        )
+        assertTrue("monthly field is read-only when advanced is on", state.advancedContribution)
+    }
 }

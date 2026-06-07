@@ -1,7 +1,7 @@
 # Dashboard side-drawer rework — epic overview
 Epic: dashboard-drawers-rework
 Order: 00 of 04
-Status: draft
+Status: done
 Depends-on: —
 Date: 2026-06-04
 

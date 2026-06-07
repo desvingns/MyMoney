@@ -333,6 +333,98 @@ class MonefyDonutChartUiTest {
     }
 
     @Test
+    fun `tapping a populated icon disc invokes the matching slice callback`() {
+        val slices = contourSlices()
+        val clickedSlices = mutableListOf<CategorySlice>()
+        val chartSize = 240.dp
+        val explodedOffset = 16.dp
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                MonefyDonutChart(
+                    income = BigDecimal("450.00"),
+                    expense = BigDecimal("124.00"),
+                    slices = slices,
+                    modifier = Modifier.size(chartSize),
+                    explodedOffset = explodedOffset,
+                    onSliceClick = { clickedSlices += it },
+                    animationSpec = snap(),
+                )
+            }
+        }
+        composeTestRule.waitForIdle()
+
+        composeTestRule
+            .onNodeWithContentDescription(
+                expectedDescription(
+                    income = "450.00",
+                    expense = "124.00",
+                    slices = listOf("Food" to 50, "Transport" to 50),
+                ),
+            )
+            .performTouchInput {
+                click(
+                    populatedIconCenter(
+                        canvasSize = chartSize,
+                        slices = slices,
+                        sliceIndex = 1,
+                        explodedOffset = explodedOffset,
+                    ),
+                )
+            }
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(slices[1]), clickedSlices)
+        }
+    }
+
+    @Test
+    fun `tapping a populated ring segment still invokes the matching slice callback`() {
+        val slices = contourSlices()
+        val clickedSlices = mutableListOf<CategorySlice>()
+        val chartSize = 240.dp
+        val explodedOffset = 16.dp
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                MonefyDonutChart(
+                    income = BigDecimal("450.00"),
+                    expense = BigDecimal("124.00"),
+                    slices = slices,
+                    modifier = Modifier.size(chartSize),
+                    explodedOffset = explodedOffset,
+                    onSliceClick = { clickedSlices += it },
+                    animationSpec = snap(),
+                )
+            }
+        }
+        composeTestRule.waitForIdle()
+
+        composeTestRule
+            .onNodeWithContentDescription(
+                expectedDescription(
+                    income = "450.00",
+                    expense = "124.00",
+                    slices = listOf("Food" to 50, "Transport" to 50),
+                ),
+            )
+            .performTouchInput {
+                click(
+                    populatedRingCenter(
+                        canvasSize = chartSize,
+                        slices = slices,
+                        sliceIndex = 0,
+                        explodedOffset = explodedOffset,
+                    ),
+                )
+            }
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(slices[0]), clickedSlices)
+        }
+    }
+
+    @Test
     fun `populated slice icons render on their own contour rays and include exploded offset`() {
         val slices = contourSlices()
         val chartSize = 520.dp
@@ -833,6 +925,22 @@ class MonefyDonutChartUiTest {
     }
 
     private fun populatedIconCenter(
+        canvasSize: Dp,
+        slices: List<CategorySlice>,
+        sliceIndex: Int,
+        explodedOffset: Dp,
+    ): Offset {
+        val canvasSizePx = with(composeTestRule.density) { canvasSize.toPx().toInt() }
+        return populatedIconCenter(
+            canvasWidth = canvasSizePx,
+            canvasHeight = canvasSizePx,
+            slices = slices,
+            sliceIndex = sliceIndex,
+            explodedOffset = explodedOffset,
+        )
+    }
+
+    private fun populatedIconCenter(
         canvasWidth: Int,
         canvasHeight: Int,
         slices: List<CategorySlice>,
@@ -850,6 +958,27 @@ class MonefyDonutChartUiTest {
         return Offset(
             x = center.x + radius * cos(mid),
             y = center.y + radius * sin(mid),
+        )
+    }
+
+    private fun populatedRingCenter(
+        canvasSize: Dp,
+        slices: List<CategorySlice>,
+        sliceIndex: Int,
+        explodedOffset: Dp,
+    ): Offset {
+        val canvasSizePx = with(composeTestRule.density) { canvasSize.toPx() }
+        val center = canvasSizePx / 2f
+        val outerRadius = center * 0.75f
+        val strokeWidth = outerRadius * 0.39f
+        val ringRadius = outerRadius - strokeWidth / 2f
+        val explodedOffsetPx = with(composeTestRule.density) { explodedOffset.toPx() }
+        val arc = DonutGeometry.computeSliceArcs(slices)[sliceIndex]
+        val mid = DonutGeometry.midAngleRadians(arc)
+        val radius = ringRadius + explodedOffsetPx
+        return Offset(
+            x = center + radius * cos(mid),
+            y = center + radius * sin(mid),
         )
     }
 

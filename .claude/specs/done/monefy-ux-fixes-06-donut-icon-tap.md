@@ -1,7 +1,7 @@
 # Тап по иконке у пончика = тап по сектору (п.5)
 Epic: monefy-ux-fixes
 Order: 06 of 07
-Status: draft
+Status: done
 Depends-on: —
 Date: 2026-06-06
 
@@ -27,5 +27,5 @@ populated-состоянии собственного hit-test у них нет 
 тап по иконке = тап по сектору. Замечание пользователя №5.
 
 ## Implementation links
-- commit: (pending)
-- files: (pending)
+- commit: b6019804, 28501013, 07cea942, 9b8ba1e5
+- files: core/designsystem/src/main/java/com/kshavrin/mymoney/core/designsystem/donut/MonefyDonutChart.kt; core/designsystem/src/androidTest/java/com/kshavrin/mymoney/core/designsystem/donut/MonefyDonutChartUiTest.kt

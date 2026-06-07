@@ -11,7 +11,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -33,6 +32,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.kshavrin.mymoney.core.designsystem.form.FormBottomBar
 import com.kshavrin.mymoney.feature.dictionaries.R
 import com.kshavrin.mymoney.feature.dictionaries.common.BlockedDeleteDialog
 
@@ -77,6 +77,12 @@ fun CurrencyEditContent(
                         )
                     }
                 },
+            )
+        },
+        bottomBar = {
+            FormBottomBar(
+                text = stringResource(R.string.dictionaries_save),
+                onSave = { onEvent(CurrencyEditEvent.SaveClicked) },
             )
         },
     ) { innerPadding ->
@@ -160,25 +166,14 @@ fun CurrencyEditContent(
                 )
             }
 
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp),
-            ) {
-                Button(
-                    onClick = { onEvent(CurrencyEditEvent.SaveClicked) },
-                    modifier = Modifier.weight(1f),
+            if (!state.isCreateMode) {
+                OutlinedButton(
+                    onClick = { onEvent(CurrencyEditEvent.DeleteClicked) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp),
                 ) {
-                    Text(stringResource(R.string.dictionaries_save))
-                }
-                if (!state.isCreateMode) {
-                    OutlinedButton(
-                        onClick = { onEvent(CurrencyEditEvent.DeleteClicked) },
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text(stringResource(R.string.dictionaries_delete))
-                    }
+                    Text(stringResource(R.string.dictionaries_delete))
                 }
             }
         }

@@ -11,7 +11,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -39,6 +38,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.kshavrin.mymoney.core.designsystem.form.FormBottomBar
 import com.kshavrin.mymoney.core.designsystem.icon.accountIcon
 import com.kshavrin.mymoney.core.domain.model.AccountType
 import com.kshavrin.mymoney.feature.dictionaries.R
@@ -91,6 +91,12 @@ fun AccountEditContent(
                         )
                     }
                 },
+            )
+        },
+        bottomBar = {
+            FormBottomBar(
+                text = stringResource(R.string.dictionaries_save),
+                onSave = { onEvent(AccountEditEvent.SaveClicked) },
             )
         },
     ) { innerPadding ->
@@ -217,25 +223,14 @@ fun AccountEditContent(
                 )
             }
 
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp),
-            ) {
-                Button(
-                    onClick = { onEvent(AccountEditEvent.SaveClicked) },
-                    modifier = Modifier.weight(1f),
+            if (!state.isCreateMode) {
+                OutlinedButton(
+                    onClick = { onEvent(AccountEditEvent.DeleteClicked) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp),
                 ) {
-                    Text(stringResource(R.string.dictionaries_save))
-                }
-                if (!state.isCreateMode) {
-                    OutlinedButton(
-                        onClick = { onEvent(AccountEditEvent.DeleteClicked) },
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text(stringResource(R.string.dictionaries_delete))
-                    }
+                    Text(stringResource(R.string.dictionaries_delete))
                 }
             }
         }

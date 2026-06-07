@@ -16,7 +16,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenuItem
@@ -52,6 +51,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.kshavrin.mymoney.core.designsystem.form.FormBottomBar
 import com.kshavrin.mymoney.core.designsystem.icon.goalIcon
 import com.kshavrin.mymoney.core.domain.model.GoalStatus
 import com.kshavrin.mymoney.core.domain.model.GoalVariant
@@ -107,6 +107,13 @@ fun GoalEditContent(
                         )
                     }
                 },
+            )
+        },
+        bottomBar = {
+            FormBottomBar(
+                text = stringResource(R.string.goal_save),
+                enabled = state.canSave,
+                onSave = { onEvent(GoalEditEvent.SaveClicked) },
             )
         },
     ) { innerPadding ->
@@ -250,16 +257,6 @@ fun GoalEditContent(
 
             if (state.variant == GoalVariant.CREDIT) {
                 CreditFields(state = state, onEvent = onEvent)
-            }
-
-            Button(
-                onClick = { onEvent(GoalEditEvent.SaveClicked) },
-                enabled = state.canSave,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp),
-            ) {
-                Text(stringResource(R.string.goal_save))
             }
         }
     }

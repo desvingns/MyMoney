@@ -10,7 +10,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -33,6 +32,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.kshavrin.mymoney.core.designsystem.form.FormBottomBar
 import com.kshavrin.mymoney.core.designsystem.icon.categoryIcon
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.feature.dictionaries.R
@@ -110,6 +110,12 @@ fun CategoryEditContent(
                 },
             )
         },
+        bottomBar = {
+            FormBottomBar(
+                text = stringResource(R.string.dictionaries_save),
+                onSave = { onEvent(CategoryEditEvent.SaveClicked) },
+            )
+        },
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -172,25 +178,14 @@ fun CategoryEditContent(
                 onColorSelected = { onEvent(CategoryEditEvent.ColorChanged(it)) },
             )
 
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp),
-            ) {
-                Button(
-                    onClick = { onEvent(CategoryEditEvent.SaveClicked) },
-                    modifier = Modifier.weight(1f),
+            if (!state.isCreateMode) {
+                OutlinedButton(
+                    onClick = { onEvent(CategoryEditEvent.DeleteClicked) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp),
                 ) {
-                    Text(stringResource(R.string.dictionaries_save))
-                }
-                if (!state.isCreateMode) {
-                    OutlinedButton(
-                        onClick = { onEvent(CategoryEditEvent.DeleteClicked) },
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text(stringResource(R.string.dictionaries_delete))
-                    }
+                    Text(stringResource(R.string.dictionaries_delete))
                 }
             }
         }

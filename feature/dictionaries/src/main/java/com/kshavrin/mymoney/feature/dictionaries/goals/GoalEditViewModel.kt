@@ -1,6 +1,5 @@
 package com.kshavrin.mymoney.feature.dictionaries.goals
 
-import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -20,9 +19,7 @@ import com.kshavrin.mymoney.core.domain.usecase.ContributionCalculator
 import com.kshavrin.mymoney.core.domain.usecase.GoalLoanCalculator
 import com.kshavrin.mymoney.core.domain.usecase.GoalSavingsProjector
 import com.kshavrin.mymoney.core.domain.usecase.capitalVsBalanceDelta
-import com.kshavrin.mymoney.feature.dictionaries.R
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -44,7 +41,6 @@ class GoalEditViewModel @Inject constructor(
     private val savingsProjector: GoalSavingsProjector,
     private val loanCalculator: GoalLoanCalculator,
     private val contributionCalculator: ContributionCalculator,
-    @ApplicationContext private val context: Context,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -280,21 +276,10 @@ class GoalEditViewModel @Inject constructor(
             loanProjectionMonthlyPaymentFormatted = loanProjection?.let {
                 formatMoney(it.baseMonthlyPayment, s.currencySymbol)
             },
-            loanProjectionYearsToDownPaymentFormatted =
-                loanProjection?.let { formatMonths(it.accumulationMonths) },
-            loanProjectionTotalYearsFormatted =
-                loanProjection?.let { formatMonths(it.totalMonthsToPayoff) },
+            loanProjectionAccumulationMonths = loanProjection?.accumulationMonths,
+            loanProjectionTotalMonths = loanProjection?.totalMonthsToPayoff,
             canSave = canSave,
         )
-    }
-
-    private fun formatMonths(months: Int?): String {
-        if (months == null) {
-            return context.getString(R.string.goal_accumulation_unreachable)
-        }
-        val years = months / 12
-        val remMonths = months % 12
-        return context.getString(R.string.goal_years_months, years, remMonths)
     }
 
     private fun save() {
@@ -380,8 +365,8 @@ data class GoalEditState(
     val loanProjectionTotalInterestFormatted: String? = null,
     val loanProjectionTotalPaidFormatted: String? = null,
     val loanProjectionMonthlyPaymentFormatted: String? = null,
-    val loanProjectionYearsToDownPaymentFormatted: String? = null,
-    val loanProjectionTotalYearsFormatted: String? = null,
+    val loanProjectionAccumulationMonths: Int? = null,
+    val loanProjectionTotalMonths: Int? = null,
     val canSave: Boolean = true,
     val advancedContribution: Boolean = false,
     val incomeRows: List<ContributionRowUi> = emptyList(),

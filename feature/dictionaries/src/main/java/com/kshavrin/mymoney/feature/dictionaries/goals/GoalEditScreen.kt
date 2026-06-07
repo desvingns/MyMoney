@@ -372,14 +372,14 @@ private fun CreditFields(
                 Text(
                     text = stringResource(
                         R.string.goal_years_to_down_payment,
-                        state.loanProjectionYearsToDownPaymentFormatted.orEmpty(),
+                        monthsToYearsLabel(state.loanProjectionAccumulationMonths),
                     ),
                     style = MaterialTheme.typography.goalCreditProjectionLabel,
                 )
                 Text(
                     text = stringResource(
                         R.string.goal_total_years_to_payoff,
-                        state.loanProjectionTotalYearsFormatted.orEmpty(),
+                        monthsToYearsLabel(state.loanProjectionTotalMonths),
                     ),
                     style = MaterialTheme.typography.goalCreditProjectionLabel,
                 )
@@ -429,6 +429,11 @@ private fun CreditFields(
         }
     }
 }
+
+@Composable
+private fun monthsToYearsLabel(months: Int?): String =
+    if (months == null) stringResource(R.string.goal_accumulation_unreachable)
+    else stringResource(R.string.goal_years_months, months / 12, months % 12)
 
 @Composable
 private fun BreakdownSection(

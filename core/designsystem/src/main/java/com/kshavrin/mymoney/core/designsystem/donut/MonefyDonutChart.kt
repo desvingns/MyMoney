@@ -221,6 +221,12 @@ fun MonefyDonutChart(
                                 val iconMargin = Spacing.s.toPx()
                                 val iconTouchRadius = (iconSize + Spacing.m.toPx()) / 2f
                                 val iconHit = layoutSlices(arcs).firstOrNull { placed ->
+                                    if (
+                                        progress.value < 1f ||
+                                        placed.slice.fraction <= 0f
+                                    ) {
+                                        return@firstOrNull false
+                                    }
                                     val slot = placed.iconCenter(
                                         center = center,
                                         outerRadius = outerRadius,

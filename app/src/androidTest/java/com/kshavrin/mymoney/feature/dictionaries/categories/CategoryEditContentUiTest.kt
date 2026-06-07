@@ -57,7 +57,7 @@ class CategoryEditContentUiTest {
         // (waitForIdle never settles), so click it directly.
         composeTestRule.onNodeWithContentDescription("#9C5BB8").performClick()
         composeTestRule.onNodeWithText(targetString(R.string.dictionaries_save))
-            .performScrollTo().performClick()
+            .performClick()
 
         composeTestRule.runOnIdle {
             assertEquals(
@@ -116,6 +116,51 @@ class CategoryEditContentUiTest {
 
         composeTestRule.runOnIdle {
             assertEquals(listOf(CategoryEditEvent.BlockedDeleteDismissed), events)
+        }
+    }
+
+    @Test
+    fun `save button is displayed at bottom and emits SaveClicked in create mode`() {
+        val events = mutableListOf<CategoryEditEvent>()
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                CategoryEditContent(
+                    state = CategoryEditState(isCreateMode = true),
+                    onEvent = { events += it },
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText(targetString(R.string.dictionaries_save))
+            .assertIsDisplayed()
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(CategoryEditEvent.SaveClicked), events)
+        }
+    }
+
+    @Test
+    fun `delete button is present in body in edit mode and save is also displayed`() {
+        val events = mutableListOf<CategoryEditEvent>()
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                CategoryEditContent(
+                    state = CategoryEditState(isCreateMode = false, name = "Food"),
+                    onEvent = { events += it },
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText(targetString(R.string.dictionaries_save))
+            .assertIsDisplayed()
+        composeTestRule.onNodeWithText(targetString(R.string.dictionaries_delete))
+            .performScrollTo()
+            .assertIsDisplayed()
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(CategoryEditEvent.DeleteClicked), events)
         }
     }
 

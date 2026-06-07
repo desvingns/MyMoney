@@ -78,7 +78,7 @@ class AccountEditContentUiTest {
             .performScrollTo().performClick()
         composeTestRule.onNode(isToggleable()).performScrollTo().performClick()
         composeTestRule.onNodeWithText(targetString(R.string.dictionaries_save))
-            .performScrollTo().performClick()
+            .performClick()
 
         composeTestRule.runOnIdle {
             assertEquals(
@@ -113,6 +113,7 @@ class AccountEditContentUiTest {
         }
 
         composeTestRule.onNodeWithText(targetString(R.string.dictionaries_error_currency_required))
+            .performScrollTo()
             .assertIsDisplayed()
         composeTestRule.onNodeWithText(targetString(R.string.dictionaries_blocked_delete_title))
             .assertIsDisplayed()
@@ -141,6 +142,51 @@ class AccountEditContentUiTest {
 
         composeTestRule.runOnIdle {
             assertEquals(listOf(AccountEditEvent.IconChanged("ic_account_bank")), events)
+        }
+    }
+
+    @Test
+    fun `save button is displayed at bottom and emits SaveClicked in create mode`() {
+        val events = mutableListOf<AccountEditEvent>()
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                AccountEditContent(
+                    state = AccountEditState(isCreateMode = true),
+                    onEvent = { events += it },
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText(targetString(R.string.dictionaries_save))
+            .assertIsDisplayed()
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(AccountEditEvent.SaveClicked), events)
+        }
+    }
+
+    @Test
+    fun `delete button is present in body in edit mode and save is also displayed`() {
+        val events = mutableListOf<AccountEditEvent>()
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                AccountEditContent(
+                    state = AccountEditState(isCreateMode = false, name = "Wallet"),
+                    onEvent = { events += it },
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText(targetString(R.string.dictionaries_save))
+            .assertIsDisplayed()
+        composeTestRule.onNodeWithText(targetString(R.string.dictionaries_delete))
+            .performScrollTo()
+            .assertIsDisplayed()
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(AccountEditEvent.DeleteClicked), events)
         }
     }
 

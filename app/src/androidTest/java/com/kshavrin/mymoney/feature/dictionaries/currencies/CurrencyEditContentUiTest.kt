@@ -61,7 +61,7 @@ class CurrencyEditContentUiTest {
         composeTestRule.onNodeWithText("2").performScrollTo().performTextReplacement("3")
         composeTestRule.onNode(isToggleable()).performScrollTo().performClick()
         composeTestRule.onNodeWithText(targetString(R.string.dictionaries_save))
-            .performScrollTo().performClick()
+            .performClick()
 
         composeTestRule.runOnIdle {
             assertEquals(
@@ -122,6 +122,51 @@ class CurrencyEditContentUiTest {
 
         composeTestRule.runOnIdle {
             assertEquals(listOf(CurrencyEditEvent.BlockedDeleteDismissed), events)
+        }
+    }
+
+    @Test
+    fun `save button is displayed at bottom and emits SaveClicked in create mode`() {
+        val events = mutableListOf<CurrencyEditEvent>()
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                CurrencyEditContent(
+                    state = CurrencyEditState(isCreateMode = true),
+                    onEvent = { events += it },
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText(targetString(R.string.dictionaries_save))
+            .assertIsDisplayed()
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(CurrencyEditEvent.SaveClicked), events)
+        }
+    }
+
+    @Test
+    fun `delete button is present in body in edit mode and save is also displayed`() {
+        val events = mutableListOf<CurrencyEditEvent>()
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                CurrencyEditContent(
+                    state = CurrencyEditState(isCreateMode = false, code = "EUR"),
+                    onEvent = { events += it },
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText(targetString(R.string.dictionaries_save))
+            .assertIsDisplayed()
+        composeTestRule.onNodeWithText(targetString(R.string.dictionaries_delete))
+            .performScrollTo()
+            .assertIsDisplayed()
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(CurrencyEditEvent.DeleteClicked), events)
         }
     }
 

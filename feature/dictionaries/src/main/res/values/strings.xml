@@ -77,11 +77,15 @@
     <string name="goal_already_achieved">Already achieved</string>
     <string name="goal_unreachable">Unreachable with the current contribution</string>
     <string name="goal_interest_rate">Annual interest rate, %</string>
-    <string name="goal_term_date">Payoff date</string>
+    <string name="goal_down_payment">Down payment</string>
+    <string name="goal_loan_term_years">Loan term, years</string>
     <string name="goal_monthly_payment">Monthly payment</string>
+    <string name="goal_years_to_down_payment">Years to accumulate down payment: %1$s</string>
+    <string name="goal_total_years_to_payoff">Total years to payoff: %1$s</string>
+    <string name="goal_accumulation_unreachable">Down payment unreachable with current contribution</string>
+    <string name="goal_years_months">%1$d years %2$d months</string>
     <string name="goal_total_interest">Total interest: %1$s</string>
     <string name="goal_total_paid">Total paid: %1$s</string>
-    <string name="goal_overpayment_note">Setting aside more than the payment lowers future payments</string>
     <string name="goal_underfunded">The monthly contribution is below the required payment</string>
     <string name="goal_save">Save</string>
     <string name="goal_advanced_contribution">Advanced monthly-contribution settings</string>

@@ -17,11 +17,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -38,7 +35,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -73,8 +69,6 @@ import com.kshavrin.mymoney.core.ui.theme.goalFormReadOnlyContainer
 import com.kshavrin.mymoney.feature.dictionaries.R
 import com.kshavrin.mymoney.feature.dictionaries.common.GOAL_ICON_KEYS
 import com.kshavrin.mymoney.feature.dictionaries.common.IconPickerSheet
-import java.time.LocalDate
-import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
@@ -330,8 +324,6 @@ private fun CreditFields(
     state: GoalEditState,
     onEvent: (GoalEditEvent) -> Unit,
 ) {
-    var datePickerVisible by remember { mutableStateOf(false) }
-
     OutlinedTextField(
         value = state.annualRatePercent,
         onValueChange = { onEvent(GoalEditEvent.RateChanged(it)) },
@@ -342,21 +334,21 @@ private fun CreditFields(
     )
 
     OutlinedTextField(
-        value = state.termDate?.format(GOAL_DATE_FORMATTER).orEmpty(),
-        onValueChange = {},
-        readOnly = true,
-        label = { Text(stringResource(R.string.goal_term_date)) },
-        trailingIcon = {
-            IconButton(onClick = { datePickerVisible = true }) {
-                Icon(
-                    Icons.Filled.ArrowDropDown,
-                    contentDescription = stringResource(R.string.goal_term_date),
-                )
-            }
-        },
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { datePickerVisible = true },
+        value = state.downPayment,
+        onValueChange = { onEvent(GoalEditEvent.DownPaymentChanged(it)) },
+        label = { Text(stringResource(R.string.goal_down_payment)) },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        modifier = Modifier.fillMaxWidth(),
+    )
+
+    OutlinedTextField(
+        value = state.termYears,
+        onValueChange = { onEvent(GoalEditEvent.TermYearsChanged(it)) },
+        label = { Text(stringResource(R.string.goal_loan_term_years)) },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        modifier = Modifier.fillMaxWidth(),
     )
 
     state.loanProjection?.let { projection ->
@@ -376,6 +368,20 @@ private fun CreditFields(
                 Text(
                     text = state.loanProjectionMonthlyPaymentFormatted.orEmpty(),
                     style = MaterialTheme.typography.goalCreditProjectionAmount,
+                )
+                Text(
+                    text = stringResource(
+                        R.string.goal_years_to_down_payment,
+                        state.loanProjectionYearsToDownPaymentFormatted.orEmpty(),
+                    ),
+                    style = MaterialTheme.typography.goalCreditProjectionLabel,
+                )
+                Text(
+                    text = stringResource(
+                        R.string.goal_total_years_to_payoff,
+                        state.loanProjectionTotalYearsFormatted.orEmpty(),
+                    ),
+                    style = MaterialTheme.typography.goalCreditProjectionLabel,
                 )
             }
         }
@@ -404,10 +410,6 @@ private fun CreditFields(
                     ),
                     style = MaterialTheme.typography.goalCreditProjectionLabel,
                 )
-                Text(
-                    text = stringResource(R.string.goal_overpayment_note),
-                    style = MaterialTheme.typography.goalCreditProjectionLabel,
-                )
             }
         }
 
@@ -424,37 +426,6 @@ private fun CreditFields(
                     modifier = Modifier.padding(16.dp),
                 )
             }
-        }
-    }
-
-    if (datePickerVisible) {
-        val pickerState = rememberDatePickerState(
-            initialSelectedDateMillis = state.termDate
-                ?.atStartOfDay(ZoneOffset.UTC)?.toInstant()?.toEpochMilli(),
-        )
-        DatePickerDialog(
-            onDismissRequest = { datePickerVisible = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    pickerState.selectedDateMillis?.let { millis ->
-                        onEvent(
-                            GoalEditEvent.TermDateChanged(
-                                LocalDate.ofEpochDay(millis / 86_400_000L),
-                            ),
-                        )
-                    }
-                    datePickerVisible = false
-                }) {
-                    Text(stringResource(R.string.goal_save))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { datePickerVisible = false }) {
-                    Text(stringResource(R.string.dictionaries_back))
-                }
-            },
-        ) {
-            DatePicker(state = pickerState)
         }
     }
 }

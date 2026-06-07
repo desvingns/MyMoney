@@ -77,11 +77,15 @@
     <string name="goal_already_achieved">Уже достигнуто</string>
     <string name="goal_unreachable">Недостижимо при текущем пополнении</string>
     <string name="goal_interest_rate">Годовая ставка, %</string>
-    <string name="goal_term_date">Дата погашения</string>
+    <string name="goal_down_payment">Первоначальный взнос</string>
+    <string name="goal_loan_term_years">Срок кредита, лет</string>
     <string name="goal_monthly_payment">Ежемесячный платёж</string>
+    <string name="goal_years_to_down_payment">Лет на накопление взноса: %1$s</string>
+    <string name="goal_total_years_to_payoff">Всего лет до погашения: %1$s</string>
+    <string name="goal_accumulation_unreachable">Взнос недостижим при текущем взносе</string>
+    <string name="goal_years_months">%1$d лет %2$d мес.</string>
     <string name="goal_total_interest">Переплата по процентам: %1$s</string>
     <string name="goal_total_paid">Всего выплат: %1$s</string>
-    <string name="goal_overpayment_note">Если откладывать больше платежа, будущие платежи уменьшаются</string>
     <string name="goal_underfunded">Ежемесячное пополнение меньше необходимого платежа</string>
     <string name="goal_save">Сохранить</string>
     <string name="goal_advanced_contribution">Расширенные настройки ежемесячного пополнения</string>

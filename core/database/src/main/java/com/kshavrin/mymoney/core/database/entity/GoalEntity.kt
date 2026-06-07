@@ -19,7 +19,11 @@ data class GoalEntity(
     @ColumnInfo(name = "starting_capital") val startingCapital: Double,
     @ColumnInfo(name = "monthly_contribution") val monthlyContribution: Double,
     @ColumnInfo(name = "annual_rate_percent") val annualRatePercent: Double?,
-    @ColumnInfo(name = "term_date") val termDate: Long?,
+    @ColumnInfo(name = "down_payment") val downPayment: Double? = null,
+    @ColumnInfo(name = "term_months") val termMonths: Int? = null,
+    // Legacy: replaced by term_months in v4. Kept nullable/unused so the migration stays
+    // additive (no destructive rebuild). The mapper never reads or writes it anymore.
+    @ColumnInfo(name = "term_date") val termDate: Long? = null,
     @ColumnInfo(name = "created_at") val createdAt: Long,
     @ColumnInfo(name = "updated_at") val updatedAt: Long,
     @ColumnInfo(name = "is_archived") val isArchived: Boolean,

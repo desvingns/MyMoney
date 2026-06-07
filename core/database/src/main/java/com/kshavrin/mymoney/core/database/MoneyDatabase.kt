@@ -38,7 +38,7 @@ import com.kshavrin.mymoney.core.database.entity.TransactionEntity
         SearchHistoryEntity::class,
         GoalEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 @TypeConverters(MoneyTypeConverters::class)

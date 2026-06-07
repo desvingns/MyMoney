@@ -15,6 +15,7 @@ import com.kshavrin.mymoney.core.database.dao.SyncLogDao
 import com.kshavrin.mymoney.core.database.dao.TransactionDao
 import com.kshavrin.mymoney.core.database.migration.MIGRATION_1_2
 import com.kshavrin.mymoney.core.database.migration.MIGRATION_2_3
+import com.kshavrin.mymoney.core.database.migration.MIGRATION_3_4
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -30,7 +31,7 @@ object DatabaseModule {
     @Singleton
     fun provideMoneyDatabase(@ApplicationContext context: Context): MoneyDatabase =
         Room.databaseBuilder(context, MoneyDatabase::class.java, "monefy.db")
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
             .fallbackToDestructiveMigrationFrom(99)
             .build()
 

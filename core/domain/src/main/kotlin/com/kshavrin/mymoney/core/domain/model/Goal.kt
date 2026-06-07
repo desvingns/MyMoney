@@ -2,7 +2,6 @@ package com.kshavrin.mymoney.core.domain.model
 
 import java.math.BigDecimal
 import java.time.Instant
-import java.time.LocalDate
 
 data class Goal(
     val id: Long,
@@ -15,7 +14,8 @@ data class Goal(
     val startingCapital: BigDecimal,
     val monthlyContribution: BigDecimal,
     val annualRatePercent: BigDecimal?,
-    val termDate: LocalDate?,
+    val downPayment: BigDecimal?,
+    val termMonths: Int?,
     val createdAt: Instant,
     val updatedAt: Instant,
     val isArchived: Boolean,

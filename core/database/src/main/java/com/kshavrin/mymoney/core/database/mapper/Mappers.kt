@@ -33,7 +33,6 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.math.BigDecimal
 import java.time.Instant
-import java.time.LocalDate
 
 internal fun CurrencyEntity.toDomain(): Currency = Currency(
     id = id,
@@ -112,7 +111,8 @@ internal fun GoalEntity.toDomain(): Goal = Goal(
     startingCapital = BigDecimal.valueOf(startingCapital),
     monthlyContribution = BigDecimal.valueOf(monthlyContribution),
     annualRatePercent = annualRatePercent?.let { BigDecimal.valueOf(it) },
-    termDate = termDate?.let { LocalDate.ofEpochDay(it) },
+    downPayment = downPayment?.toBigDecimal(),
+    termMonths = termMonths,
     createdAt = Instant.ofEpochMilli(createdAt),
     updatedAt = Instant.ofEpochMilli(updatedAt),
     isArchived = isArchived,
@@ -132,7 +132,9 @@ internal fun Goal.toEntity(): GoalEntity = GoalEntity(
     startingCapital = startingCapital.toDouble(),
     monthlyContribution = monthlyContribution.toDouble(),
     annualRatePercent = annualRatePercent?.toDouble(),
-    termDate = termDate?.toEpochDay(),
+    downPayment = downPayment?.toDouble(),
+    termMonths = termMonths,
+    termDate = null,
     createdAt = createdAt.toEpochMilli(),
     updatedAt = updatedAt.toEpochMilli(),
     isArchived = isArchived,

@@ -11,14 +11,12 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.math.BigDecimal
 import java.time.Instant
-import java.time.LocalDate
 
 class GoalMapperTest {
 
     private val createdAt = Instant.parse("2026-06-01T10:00:00Z")
     private val updatedAt = Instant.parse("2026-06-02T12:00:00Z")
-    private val termLocalDate = LocalDate.of(2046, 1, 1)
-    private val termEpochDay = termLocalDate.toEpochDay()
+    private val termMonthsValue = 240
 
     private fun savingsEntity() = GoalEntity(
         id = 7L,
@@ -31,7 +29,8 @@ class GoalMapperTest {
         startingCapital = 10_000.0,
         monthlyContribution = 20_000.0,
         annualRatePercent = null,
-        termDate = null,
+        downPayment = null,
+        termMonths = null,
         createdAt = createdAt.toEpochMilli(),
         updatedAt = updatedAt.toEpochMilli(),
         isArchived = false,
@@ -48,7 +47,8 @@ class GoalMapperTest {
         startingCapital = 2_000_000.0,
         monthlyContribution = 85_000.0,
         annualRatePercent = 12.5,
-        termDate = termEpochDay,
+        downPayment = 2_000_000.0,
+        termMonths = termMonthsValue,
         createdAt = createdAt.toEpochMilli(),
         updatedAt = updatedAt.toEpochMilli(),
         isArchived = true,
@@ -74,11 +74,12 @@ class GoalMapperTest {
     }
 
     @Test
-    fun `SAVINGS entity toDomain yields null annualRatePercent and null termDate`() {
+    fun `SAVINGS entity toDomain yields null annualRatePercent downPayment and termMonths`() {
         val domain = savingsEntity().toDomain()
 
         assertNull(domain.annualRatePercent)
-        assertNull(domain.termDate)
+        assertNull(domain.downPayment)
+        assertNull(domain.termMonths)
     }
 
     @Test
@@ -90,10 +91,11 @@ class GoalMapperTest {
     }
 
     @Test
-    fun `CREDIT entity toDomain converts termDate epoch-day Long to LocalDate`() {
+    fun `CREDIT entity toDomain converts downPayment Double to BigDecimal and preserves termMonths`() {
         val domain = creditEntity().toDomain()
 
-        assertEquals(termLocalDate, domain.termDate)
+        assertEquals(0, BigDecimal.valueOf(2_000_000.0).compareTo(domain.downPayment))
+        assertEquals(termMonthsValue, domain.termMonths)
     }
 
     @Test
@@ -119,19 +121,21 @@ class GoalMapperTest {
         assertEquals(original.startingCapital, roundTripped.startingCapital, 0.0)
         assertEquals(original.monthlyContribution, roundTripped.monthlyContribution, 0.0)
         assertNull(roundTripped.annualRatePercent)
-        assertNull(roundTripped.termDate)
+        assertNull(roundTripped.downPayment)
+        assertNull(roundTripped.termMonths)
         assertEquals(original.createdAt, roundTripped.createdAt)
         assertEquals(original.updatedAt, roundTripped.updatedAt)
         assertEquals(original.isArchived, roundTripped.isArchived)
     }
 
     @Test
-    fun `CREDIT domain toEntity round-trips with non-null annualRatePercent and termDate`() {
+    fun `CREDIT domain toEntity round-trips with non-null annualRatePercent downPayment and termMonths`() {
         val original = creditEntity()
         val roundTripped = original.toDomain().toEntity()
 
         assertEquals(original.annualRatePercent!!, roundTripped.annualRatePercent!!, 0.0)
-        assertEquals(termEpochDay, roundTripped.termDate)
+        assertEquals(original.downPayment!!, roundTripped.downPayment!!, 0.0)
+        assertEquals(termMonthsValue, roundTripped.termMonths)
         assertEquals("CREDIT", roundTripped.variant)
     }
 
@@ -148,7 +152,8 @@ class GoalMapperTest {
             startingCapital = BigDecimal("5000.00"),
             monthlyContribution = BigDecimal("10000.00"),
             annualRatePercent = null,
-            termDate = null,
+            downPayment = null,
+            termMonths = null,
             createdAt = createdAt,
             updatedAt = updatedAt,
             isArchived = false,
@@ -378,7 +383,8 @@ class GoalMapperTest {
         startingCapital = BigDecimal("5000.00"),
         monthlyContribution = BigDecimal("10000.00"),
         annualRatePercent = null,
-        termDate = null,
+        downPayment = null,
+        termMonths = null,
         createdAt = createdAt,
         updatedAt = updatedAt,
         isArchived = false,

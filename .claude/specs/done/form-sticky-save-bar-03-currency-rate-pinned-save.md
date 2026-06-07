@@ -1,7 +1,7 @@
 # Закрепить «Сохранить» снизу на экране CurrencyRate
 Epic: form-sticky-save-bar
 Order: 03 of 03
-Status: backlog
+Status: done
 Depends-on: 01
 Date: 2026-06-07
 
@@ -39,5 +39,7 @@ G5: на CurrencyRate Save лежит последним элементом ск
 FormBottomBar (SPEC-01) для консистентности с остальными формами.
 
 ## Implementation links
-- commit: (pending)
-- files: (pending)
+- commit: ba5e7140, 1fedd37b
+- files:
+  - feature/transaction/src/main/java/com/kshavrin/mymoney/feature/transaction/rate/CurrencyRateScreen.kt
+  - app/src/androidTest/java/com/kshavrin/mymoney/feature/transaction/rate/CurrencyRateScreenUiTest.kt

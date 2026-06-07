@@ -42,6 +42,10 @@ import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.domain.model.Period
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
+import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanelContainer
+import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanelContainerNegative
+import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanelContent
+import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanelContentNegative
 import com.kshavrin.mymoney.core.ui.theme.dashboardDonutOtherSlice
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_ABOUT_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_ACCOUNTS_TAG
@@ -239,6 +243,87 @@ class DashboardContentUiTest {
         assertTrue(
             "dashboard currency subtitle must use light-theme onPrimary",
             nodeImageContainsColor(DASHBOARD_TOP_BAR_SUBTITLE_TAG, expectedTint),
+        )
+    }
+
+    @Test
+    fun `negative balance uses dedicated negative balance panel tokens`() {
+        val usd = usdCurrency()
+        var expectedContainer = 0
+        var expectedContent = 0
+
+        composeTestRule.setContent {
+            MyMoneyTheme(darkTheme = false) {
+                expectedContainer = MaterialTheme.colorScheme.dashboardBalancePanelContainerNegative.toArgb()
+                expectedContent = MaterialTheme.colorScheme.dashboardBalancePanelContentNegative.toArgb()
+                DashboardContent(
+                    state = dashboardState(
+                        currency = usd,
+                        balanceSnapshot = balanceSnapshot(netAmount = "-123.45", currency = usd),
+                        isLoading = false,
+                    ),
+                    onEvent = {},
+                )
+            }
+        }
+
+        assertBalanceBarColors(
+            expectedContainer = expectedContainer,
+            expectedContent = expectedContent,
+        )
+    }
+
+    @Test
+    fun `positive balance keeps the existing balance panel tokens`() {
+        val usd = usdCurrency()
+        var expectedContainer = 0
+        var expectedContent = 0
+
+        composeTestRule.setContent {
+            MyMoneyTheme(darkTheme = false) {
+                expectedContainer = MaterialTheme.colorScheme.dashboardBalancePanelContainer.toArgb()
+                expectedContent = MaterialTheme.colorScheme.dashboardBalancePanelContent.toArgb()
+                DashboardContent(
+                    state = dashboardState(
+                        currency = usd,
+                        balanceSnapshot = balanceSnapshot(netAmount = "123.45", currency = usd),
+                        isLoading = false,
+                    ),
+                    onEvent = {},
+                )
+            }
+        }
+
+        assertBalanceBarColors(
+            expectedContainer = expectedContainer,
+            expectedContent = expectedContent,
+        )
+    }
+
+    @Test
+    fun `zero balance keeps the existing balance panel tokens`() {
+        val usd = usdCurrency()
+        var expectedContainer = 0
+        var expectedContent = 0
+
+        composeTestRule.setContent {
+            MyMoneyTheme(darkTheme = false) {
+                expectedContainer = MaterialTheme.colorScheme.dashboardBalancePanelContainer.toArgb()
+                expectedContent = MaterialTheme.colorScheme.dashboardBalancePanelContent.toArgb()
+                DashboardContent(
+                    state = dashboardState(
+                        currency = usd,
+                        balanceSnapshot = balanceSnapshot(netAmount = "0.00", currency = usd),
+                        isLoading = false,
+                    ),
+                    onEvent = {},
+                )
+            }
+        }
+
+        assertBalanceBarColors(
+            expectedContainer = expectedContainer,
+            expectedContent = expectedContent,
         )
     }
 
@@ -1068,6 +1153,22 @@ class DashboardContentUiTest {
         return if (sliceText.isEmpty()) header else "$header $sliceText"
     }
 
+    private fun assertBalanceBarColors(
+        expectedContainer: Int,
+        expectedContent: Int,
+    ) {
+        composeTestRule.waitForIdle()
+
+        assertTrue(
+            "balance panel must use the expected container token",
+            nodeImageContainsColor(BALANCE_BAR_TAG, expectedContainer),
+        )
+        assertTrue(
+            "balance panel must use the expected content token",
+            nodeImageContainsColor(BALANCE_BAR_TAG, expectedContent),
+        )
+    }
+
     private fun nodeImageContainsColor(tag: String, argb: Int): Boolean {
         val image = composeTestRule
             .onNodeWithTag(tag)
@@ -1100,6 +1201,31 @@ class DashboardContentUiTest {
         slices = slices,
         isLoading = isLoading,
     )
+
+    private fun usdCurrency() = Currency(
+        id = 1L,
+        code = "USD",
+        symbol = "$",
+        name = "US Dollar",
+        decimalDigits = 2,
+        isActive = true,
+        sortOrder = 0,
+    )
+
+    private fun balanceSnapshot(
+        netAmount: String,
+        currency: Currency,
+    ): BalanceSnapshot {
+        val net = BigDecimal(netAmount)
+        val income = if (net.signum() > 0) net else BigDecimal.ZERO
+        val expense = if (net.signum() < 0) net.abs() else BigDecimal.ZERO
+        return BalanceSnapshot(
+            income = Money(income, currency),
+            expense = Money(expense, currency),
+            net = Money(net, currency),
+            byCategory = emptyList(),
+        )
+    }
 
     private fun assertDrawerWidthRatio(
         drawerLabel: String,

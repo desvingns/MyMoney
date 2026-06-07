@@ -23,4 +23,7 @@ data class GoalEntity(
     @ColumnInfo(name = "created_at") val createdAt: Long,
     @ColumnInfo(name = "updated_at") val updatedAt: Long,
     @ColumnInfo(name = "is_archived") val isArchived: Boolean,
+    // Plain TEXT (JSON or null). null = disabled/empty breakdown — keeps MIGRATION_2_3 a pure
+    // ADD COLUMN with no backfill. (De)serialized at the mapper boundary, so Room sees only TEXT.
+    @ColumnInfo(name = "contribution_breakdown") val contributionBreakdown: String? = null,
 )

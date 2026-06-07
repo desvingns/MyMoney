@@ -16,6 +16,8 @@ import com.kshavrin.mymoney.core.domain.model.AccountType
 import com.kshavrin.mymoney.core.domain.model.Budget
 import com.kshavrin.mymoney.core.domain.model.Category
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
+import com.kshavrin.mymoney.core.domain.model.ContributionBreakdown
+import com.kshavrin.mymoney.core.domain.model.ContributionItem
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.CurrencyRate
 import com.kshavrin.mymoney.core.domain.model.Goal
@@ -26,6 +28,9 @@ import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
 import com.kshavrin.mymoney.core.domain.repository.CategoryGroup
 import com.kshavrin.mymoney.core.domain.repository.CategorySummary
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
@@ -111,6 +116,9 @@ internal fun GoalEntity.toDomain(): Goal = Goal(
     createdAt = Instant.ofEpochMilli(createdAt),
     updatedAt = Instant.ofEpochMilli(updatedAt),
     isArchived = isArchived,
+    contributionBreakdown = contributionBreakdown
+        ?.let { Json.decodeFromString<BreakdownDto>(it).toModel() }
+        ?: ContributionBreakdown(),
 )
 
 internal fun Goal.toEntity(): GoalEntity = GoalEntity(
@@ -128,7 +136,42 @@ internal fun Goal.toEntity(): GoalEntity = GoalEntity(
     createdAt = createdAt.toEpochMilli(),
     updatedAt = updatedAt.toEpochMilli(),
     isArchived = isArchived,
+    contributionBreakdown = contributionBreakdown.toColumnOrNull(),
 )
+
+@Serializable
+private data class BreakdownItemDto(val name: String, val amount: String)
+
+@Serializable
+private data class BreakdownDto(
+    val enabled: Boolean,
+    val incomes: List<BreakdownItemDto>,
+    val expenses: List<BreakdownItemDto>,
+)
+
+// Amount serialized as BigDecimal.toPlainString() (never a JSON number/Double) to round-trip exactly.
+private fun BreakdownItemDto.toModel() = ContributionItem(name = name, amount = BigDecimal(amount))
+
+private fun ContributionItem.toDto() = BreakdownItemDto(name = name, amount = amount.toPlainString())
+
+private fun BreakdownDto.toModel() = ContributionBreakdown(
+    enabled = enabled,
+    incomes = incomes.map { it.toModel() },
+    expenses = expenses.map { it.toModel() },
+)
+
+private fun ContributionBreakdown.toColumnOrNull(): String? =
+    if (enabled || incomes.isNotEmpty() || expenses.isNotEmpty()) {
+        Json.encodeToString<BreakdownDto>(
+            BreakdownDto(
+                enabled = enabled,
+                incomes = incomes.map { it.toDto() },
+                expenses = expenses.map { it.toDto() },
+            ),
+        )
+    } else {
+        null
+    }
 
 internal fun CategoryEntity.toDomain(): Category = Category(
     id = id,

@@ -1,10 +1,13 @@
 package com.kshavrin.mymoney.core.database.mapper
 
 import com.kshavrin.mymoney.core.database.entity.GoalEntity
+import com.kshavrin.mymoney.core.domain.model.ContributionBreakdown
+import com.kshavrin.mymoney.core.domain.model.ContributionItem
 import com.kshavrin.mymoney.core.domain.model.Goal
 import com.kshavrin.mymoney.core.domain.model.GoalVariant
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.math.BigDecimal
 import java.time.Instant
@@ -166,4 +169,86 @@ class GoalMapperTest {
     fun `variant string CREDIT maps to GoalVariant CREDIT`() {
         assertEquals(GoalVariant.CREDIT, creditEntity().toDomain().variant)
     }
+
+    @Test
+    fun `default empty breakdown maps to null column`() {
+        val goal = goalWithBreakdown(ContributionBreakdown())
+
+        assertNull(goal.toEntity().contributionBreakdown)
+    }
+
+    @Test
+    fun `null breakdown column maps back to default ContributionBreakdown`() {
+        val restored = savingsEntity().copy(contributionBreakdown = null).toDomain()
+
+        assertEquals(ContributionBreakdown(), restored.contributionBreakdown)
+    }
+
+    @Test
+    fun `enabled breakdown with empty rows serializes to non-null column`() {
+        val goal = goalWithBreakdown(ContributionBreakdown(enabled = true))
+
+        assertTrue(goal.toEntity().contributionBreakdown != null)
+    }
+
+    @Test
+    fun `non-empty breakdown round-trips preserving rows names and BigDecimal amounts`() {
+        val breakdown = ContributionBreakdown(
+            enabled = true,
+            incomes = listOf(
+                ContributionItem("Salary", BigDecimal("120000.55")),
+                ContributionItem("Bonus", BigDecimal("3000.00")),
+            ),
+            expenses = listOf(
+                ContributionItem("Rent", BigDecimal("45000.10")),
+            ),
+        )
+
+        val restored = goalWithBreakdown(breakdown).toEntity().toDomain().contributionBreakdown
+
+        assertEquals(true, restored.enabled)
+        assertEquals(2, restored.incomes.size)
+        assertEquals("Salary", restored.incomes[0].name)
+        assertEquals(0, BigDecimal("120000.55").compareTo(restored.incomes[0].amount))
+        assertEquals("Bonus", restored.incomes[1].name)
+        assertEquals(0, BigDecimal("3000.00").compareTo(restored.incomes[1].amount))
+        assertEquals(1, restored.expenses.size)
+        assertEquals("Rent", restored.expenses[0].name)
+        assertEquals(0, BigDecimal("45000.10").compareTo(restored.expenses[0].amount))
+    }
+
+    @Test
+    fun `disabled breakdown with rows still serializes and round-trips`() {
+        val breakdown = ContributionBreakdown(
+            enabled = false,
+            incomes = listOf(ContributionItem("Side gig", BigDecimal("7500.00"))),
+        )
+
+        val entity = goalWithBreakdown(breakdown).toEntity()
+        assertTrue(entity.contributionBreakdown != null)
+
+        val restored = entity.toDomain().contributionBreakdown
+        assertEquals(false, restored.enabled)
+        assertEquals(1, restored.incomes.size)
+        assertEquals("Side gig", restored.incomes[0].name)
+        assertEquals(0, BigDecimal("7500.00").compareTo(restored.incomes[0].amount))
+    }
+
+    private fun goalWithBreakdown(breakdown: ContributionBreakdown) = Goal(
+        id = 1L,
+        name = "Trip",
+        iconKey = "ic_goal_plane",
+        colorHex = "#FF5733",
+        accountId = 2L,
+        variant = GoalVariant.SAVINGS,
+        targetAmount = BigDecimal("150000.00"),
+        startingCapital = BigDecimal("5000.00"),
+        monthlyContribution = BigDecimal("10000.00"),
+        annualRatePercent = null,
+        termDate = null,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        isArchived = false,
+        contributionBreakdown = breakdown,
+    )
 }

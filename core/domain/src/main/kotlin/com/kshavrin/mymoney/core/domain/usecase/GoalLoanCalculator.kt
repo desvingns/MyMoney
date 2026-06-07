@@ -27,8 +27,9 @@ class GoalLoanCalculator @Inject constructor() {
         val principal = input.targetAmount.subtract(equity, mc).max(BigDecimal.ZERO)
 
         val annuity = annuity(principal, input.annualRatePercent, n, mc)
-        val totalPaid = annuity.multiply(BigDecimal(n), mc)
-        val totalInterest = totalPaid.subtract(principal, mc).max(BigDecimal.ZERO)
+        val monthlyPayment = annuity.setScale(2, RoundingMode.HALF_UP)
+        val totalPaid = monthlyPayment.multiply(BigDecimal(n))
+        val totalInterest = totalPaid.subtract(principal).max(BigDecimal.ZERO)
 
         val totalMonthsToPayoff = accumulationMonths?.let { it + n }
         val status = if (accumulationMonths == null) GoalStatus.UNREACHABLE else GoalStatus.ON_TRACK
@@ -36,7 +37,7 @@ class GoalLoanCalculator @Inject constructor() {
 
         return LoanProjection(
             principal = principal.setScale(2, RoundingMode.HALF_UP),
-            baseMonthlyPayment = annuity.setScale(2, RoundingMode.HALF_UP),
+            baseMonthlyPayment = monthlyPayment,
             totalInterest = totalInterest.setScale(2, RoundingMode.HALF_UP),
             totalPaid = totalPaid.setScale(2, RoundingMode.HALF_UP),
             accumulationMonths = accumulationMonths,

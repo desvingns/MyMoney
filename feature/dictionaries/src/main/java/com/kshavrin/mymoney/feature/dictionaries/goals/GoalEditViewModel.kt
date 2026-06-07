@@ -4,6 +4,8 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kshavrin.mymoney.core.domain.model.Account
+import com.kshavrin.mymoney.core.domain.model.ContributionBreakdown
+import com.kshavrin.mymoney.core.domain.model.ContributionItem
 import com.kshavrin.mymoney.core.domain.model.Goal
 import com.kshavrin.mymoney.core.domain.model.GoalVariant
 import com.kshavrin.mymoney.core.domain.model.LoanGoalInput
@@ -13,6 +15,7 @@ import com.kshavrin.mymoney.core.domain.model.SavingsProjection
 import com.kshavrin.mymoney.core.domain.repository.AccountRepository
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
 import com.kshavrin.mymoney.core.domain.repository.GoalRepository
+import com.kshavrin.mymoney.core.domain.usecase.ContributionCalculator
 import com.kshavrin.mymoney.core.domain.usecase.GoalLoanCalculator
 import com.kshavrin.mymoney.core.domain.usecase.GoalSavingsProjector
 import com.kshavrin.mymoney.core.domain.usecase.capitalVsBalanceDelta
@@ -38,6 +41,7 @@ class GoalEditViewModel @Inject constructor(
     private val currencyRepository: CurrencyRepository,
     private val savingsProjector: GoalSavingsProjector,
     private val loanCalculator: GoalLoanCalculator,
+    private val contributionCalculator: ContributionCalculator,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -55,6 +59,7 @@ class GoalEditViewModel @Inject constructor(
             _state.value = _state.value.copy(accounts = accounts)
             if (goalId != -1L) {
                 goalRepository.findById(goalId)?.let { existing ->
+                    val breakdown = existing.contributionBreakdown
                     _state.value = _state.value.copy(
                         name = existing.name,
                         iconKey = existing.iconKey,
@@ -66,6 +71,9 @@ class GoalEditViewModel @Inject constructor(
                         annualRatePercent = existing.annualRatePercent?.toPlainString().orEmpty(),
                         termDate = existing.termDate,
                         isCreateMode = false,
+                        advancedContribution = breakdown.enabled,
+                        incomeRows = breakdown.incomes.map { it.toRowUi() },
+                        expenseRows = breakdown.expenses.map { it.toRowUi() },
                     )
                     selectAccount(existing.accountId)
                 }
@@ -115,6 +123,76 @@ class GoalEditViewModel @Inject constructor(
                 _state.value = _state.value.copy(targetAmount = event.value)
                 recompute()
             }
+            is GoalEditEvent.AdvancedToggled -> {
+                if (event.enabled) {
+                    val seedIncomes = _state.value.incomeRows.isEmpty() &&
+                        _state.value.expenseRows.isEmpty()
+                    _state.value = _state.value.copy(
+                        advancedContribution = true,
+                        incomeRows = if (seedIncomes) listOf(ContributionRowUi()) else _state.value.incomeRows,
+                        expenseRows = if (seedIncomes) listOf(ContributionRowUi()) else _state.value.expenseRows,
+                    )
+                    recompute()
+                } else {
+                    _state.value = _state.value.copy(advancedContribution = false)
+                }
+            }
+            GoalEditEvent.IncomeAdded -> {
+                _state.value = _state.value.copy(
+                    incomeRows = _state.value.incomeRows + ContributionRowUi(),
+                )
+                recompute()
+            }
+            GoalEditEvent.ExpenseAdded -> {
+                _state.value = _state.value.copy(
+                    expenseRows = _state.value.expenseRows + ContributionRowUi(),
+                )
+                recompute()
+            }
+            is GoalEditEvent.IncomeRemoved -> {
+                _state.value = _state.value.copy(
+                    incomeRows = _state.value.incomeRows.removeAt(event.index),
+                )
+                recompute()
+            }
+            is GoalEditEvent.ExpenseRemoved -> {
+                _state.value = _state.value.copy(
+                    expenseRows = _state.value.expenseRows.removeAt(event.index),
+                )
+                recompute()
+            }
+            is GoalEditEvent.IncomeNameChanged -> {
+                _state.value = _state.value.copy(
+                    incomeRows = _state.value.incomeRows.updateAt(event.index) {
+                        it.copy(name = event.value)
+                    },
+                )
+                recompute()
+            }
+            is GoalEditEvent.IncomeAmountChanged -> {
+                _state.value = _state.value.copy(
+                    incomeRows = _state.value.incomeRows.updateAt(event.index) {
+                        it.copy(amount = event.value)
+                    },
+                )
+                recompute()
+            }
+            is GoalEditEvent.ExpenseNameChanged -> {
+                _state.value = _state.value.copy(
+                    expenseRows = _state.value.expenseRows.updateAt(event.index) {
+                        it.copy(name = event.value)
+                    },
+                )
+                recompute()
+            }
+            is GoalEditEvent.ExpenseAmountChanged -> {
+                _state.value = _state.value.copy(
+                    expenseRows = _state.value.expenseRows.updateAt(event.index) {
+                        it.copy(amount = event.value)
+                    },
+                )
+                recompute()
+            }
             GoalEditEvent.SaveClicked -> save()
             GoalEditEvent.BackClicked ->
                 viewModelScope.launch { _actions.emit(GoalEditAction.NavigateBack) }
@@ -136,7 +214,12 @@ class GoalEditViewModel @Inject constructor(
     }
 
     private fun recompute() {
-        val s = _state.value
+        var s = _state.value
+        if (s.advancedContribution) {
+            val derived = contributionCalculator(s.toBreakdown()).toPlainString()
+            s = s.copy(monthlyContribution = derived)
+            _state.value = s
+        }
         val target = s.targetAmount.parseMoney()
         val capital = s.startingCapital.parseMoney()
         val monthly = s.monthlyContribution.parseMoney()
@@ -215,6 +298,7 @@ class GoalEditViewModel @Inject constructor(
                     createdAt = now,
                     updatedAt = now,
                     isArchived = false,
+                    contributionBreakdown = s.toBreakdown(),
                 ),
             )
             _actions.emit(GoalEditAction.NavigateBack)
@@ -224,6 +308,25 @@ class GoalEditViewModel @Inject constructor(
 
 private fun String.parseMoney(): BigDecimal =
     trim().toBigDecimalOrNull() ?: BigDecimal.ZERO
+
+private fun ContributionItem.toRowUi(): ContributionRowUi =
+    ContributionRowUi(name = name, amount = amount.toPlainString())
+
+private fun List<ContributionRowUi>.toItems(): List<ContributionItem> =
+    map { ContributionItem(it.name, it.amount.parseMoney()) }
+
+private fun GoalEditState.toBreakdown(): ContributionBreakdown =
+    ContributionBreakdown(
+        enabled = advancedContribution,
+        incomes = incomeRows.toItems(),
+        expenses = expenseRows.toItems(),
+    )
+
+private fun <T> List<T>.updateAt(index: Int, transform: (T) -> T): List<T> =
+    if (index in indices) toMutableList().also { it[index] = transform(it[index]) } else this
+
+private fun <T> List<T>.removeAt(index: Int): List<T> =
+    if (index in indices) toMutableList().also { it.removeAt(index) } else this
 
 private fun formatMoney(amount: BigDecimal, symbol: String): String {
     val plain = amount.stripTrailingZeros().toPlainString()
@@ -255,6 +358,14 @@ data class GoalEditState(
     val loanProjectionTotalPaidFormatted: String? = null,
     val loanProjectionMonthlyPaymentFormatted: String? = null,
     val canSave: Boolean = true,
+    val advancedContribution: Boolean = false,
+    val incomeRows: List<ContributionRowUi> = emptyList(),
+    val expenseRows: List<ContributionRowUi> = emptyList(),
+)
+
+data class ContributionRowUi(
+    val name: String = "",
+    val amount: String = "",
 )
 
 sealed interface GoalEditEvent {
@@ -267,6 +378,15 @@ sealed interface GoalEditEvent {
     data class TargetChanged(val value: String) : GoalEditEvent
     data class RateChanged(val value: String) : GoalEditEvent
     data class TermDateChanged(val value: LocalDate?) : GoalEditEvent
+    data class AdvancedToggled(val enabled: Boolean) : GoalEditEvent
+    data object IncomeAdded : GoalEditEvent
+    data object ExpenseAdded : GoalEditEvent
+    data class IncomeRemoved(val index: Int) : GoalEditEvent
+    data class ExpenseRemoved(val index: Int) : GoalEditEvent
+    data class IncomeNameChanged(val index: Int, val value: String) : GoalEditEvent
+    data class IncomeAmountChanged(val index: Int, val value: String) : GoalEditEvent
+    data class ExpenseNameChanged(val index: Int, val value: String) : GoalEditEvent
+    data class ExpenseAmountChanged(val index: Int, val value: String) : GoalEditEvent
     data object SaveClicked : GoalEditEvent
     data object BackClicked : GoalEditEvent
 }

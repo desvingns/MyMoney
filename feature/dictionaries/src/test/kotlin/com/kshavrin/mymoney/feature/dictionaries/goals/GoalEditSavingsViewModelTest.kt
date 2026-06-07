@@ -8,6 +8,7 @@ import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Goal
 import com.kshavrin.mymoney.core.domain.model.GoalStatus
 import com.kshavrin.mymoney.core.domain.model.GoalVariant
+import com.kshavrin.mymoney.core.domain.usecase.ContributionCalculator
 import com.kshavrin.mymoney.core.domain.usecase.GoalLoanCalculator
 import com.kshavrin.mymoney.core.domain.usecase.GoalSavingsProjector
 import com.kshavrin.mymoney.feature.dictionaries.goals.fake.FakeAccountRepository
@@ -116,6 +117,7 @@ class GoalEditSavingsViewModelTest {
             currencyRepository = currencyRepo,
             savingsProjector = projector,
             loanCalculator = loanCalculator,
+            contributionCalculator = ContributionCalculator(),
             savedStateHandle = SavedStateHandle(mapOf("id" to goalId)),
         )
 

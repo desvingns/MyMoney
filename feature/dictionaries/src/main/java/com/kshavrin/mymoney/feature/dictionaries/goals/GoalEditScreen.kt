@@ -1,10 +1,12 @@
 package com.kshavrin.mymoney.feature.dictionaries.goals
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -16,6 +18,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenuItem
@@ -61,6 +65,10 @@ import com.kshavrin.mymoney.core.ui.theme.goalCreditProjectionContent
 import com.kshavrin.mymoney.core.ui.theme.goalCreditProjectionLabel
 import com.kshavrin.mymoney.core.ui.theme.goalCreditUnderfundedContainer
 import com.kshavrin.mymoney.core.ui.theme.goalCreditUnderfundedContent
+import com.kshavrin.mymoney.core.ui.theme.goalBreakdownRowLabel
+import com.kshavrin.mymoney.core.ui.theme.goalBreakdownSectionContainer
+import com.kshavrin.mymoney.core.ui.theme.goalBreakdownSectionHeader
+import com.kshavrin.mymoney.core.ui.theme.goalBreakdownSectionOutline
 import com.kshavrin.mymoney.core.ui.theme.goalFormReadOnlyContainer
 import com.kshavrin.mymoney.feature.dictionaries.R
 import com.kshavrin.mymoney.feature.dictionaries.common.GOAL_ICON_KEYS
@@ -230,9 +238,50 @@ fun GoalEditContent(
                 onValueChange = { onEvent(GoalEditEvent.MonthlyChanged(it)) },
                 label = { Text(stringResource(R.string.goal_monthly_contribution)) },
                 singleLine = true,
+                readOnly = state.advancedContribution,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth(),
             )
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Checkbox(
+                    checked = state.advancedContribution,
+                    onCheckedChange = { onEvent(GoalEditEvent.AdvancedToggled(it)) },
+                )
+                Text(stringResource(R.string.goal_advanced_contribution))
+            }
+
+            if (state.advancedContribution) {
+                BreakdownSection(
+                    header = stringResource(R.string.goal_monthly_income),
+                    rows = state.incomeRows,
+                    addLabel = stringResource(R.string.goal_contribution_add_income),
+                    onAdd = { onEvent(GoalEditEvent.IncomeAdded) },
+                    onRemove = { onEvent(GoalEditEvent.IncomeRemoved(it)) },
+                    onNameChange = { index, value ->
+                        onEvent(GoalEditEvent.IncomeNameChanged(index, value))
+                    },
+                    onAmountChange = { index, value ->
+                        onEvent(GoalEditEvent.IncomeAmountChanged(index, value))
+                    },
+                )
+                BreakdownSection(
+                    header = stringResource(R.string.goal_monthly_expense),
+                    rows = state.expenseRows,
+                    addLabel = stringResource(R.string.goal_contribution_add_expense),
+                    onAdd = { onEvent(GoalEditEvent.ExpenseAdded) },
+                    onRemove = { onEvent(GoalEditEvent.ExpenseRemoved(it)) },
+                    onNameChange = { index, value ->
+                        onEvent(GoalEditEvent.ExpenseNameChanged(index, value))
+                    },
+                    onAmountChange = { index, value ->
+                        onEvent(GoalEditEvent.ExpenseAmountChanged(index, value))
+                    },
+                )
+            }
 
             OutlinedTextField(
                 value = state.targetAmount,
@@ -406,6 +455,70 @@ private fun CreditFields(
             },
         ) {
             DatePicker(state = pickerState)
+        }
+    }
+}
+
+@Composable
+private fun BreakdownSection(
+    header: String,
+    rows: List<ContributionRowUi>,
+    addLabel: String,
+    onAdd: () -> Unit,
+    onRemove: (Int) -> Unit,
+    onNameChange: (Int, String) -> Unit,
+    onAmountChange: (Int, String) -> Unit,
+) {
+    Surface(
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.goalBreakdownSectionContainer,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.goalBreakdownSectionOutline),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = header,
+                style = MaterialTheme.typography.goalBreakdownSectionHeader,
+            )
+            rows.forEachIndexed { index, row ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    OutlinedTextField(
+                        value = row.name,
+                        onValueChange = { onNameChange(index, it) },
+                        label = {
+                            Text(
+                                text = stringResource(R.string.goal_contribution_row_name),
+                                style = MaterialTheme.typography.goalBreakdownRowLabel,
+                            )
+                        },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                    )
+                    OutlinedTextField(
+                        value = row.amount,
+                        onValueChange = { onAmountChange(index, it) },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.weight(1f),
+                    )
+                    IconButton(onClick = { onRemove(index) }) {
+                        Icon(
+                            Icons.Filled.Delete,
+                            contentDescription = stringResource(R.string.goal_contribution_remove),
+                        )
+                    }
+                }
+            }
+            TextButton(onClick = onAdd) {
+                Text(addLabel)
+            }
         }
     }
 }

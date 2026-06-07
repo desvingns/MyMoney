@@ -148,3 +148,17 @@ val Typography.goalCreditProjectionLabel: TextStyle
         letterSpacing = 0.sp,
         lineHeight = 20.sp,
     )
+
+val Typography.goalBreakdownSectionHeader: TextStyle
+    get() = titleSmall.copy(
+        fontWeight = FontWeight.SemiBold,
+        letterSpacing = 0.sp,
+        lineHeight = 20.sp,
+    )
+
+val Typography.goalBreakdownRowLabel: TextStyle
+    get() = bodyMedium.copy(
+        fontWeight = FontWeight.Normal,
+        letterSpacing = 0.sp,
+        lineHeight = 20.sp,
+    )

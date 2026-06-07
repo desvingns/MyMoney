@@ -102,4 +102,54 @@ class GoalDaoTest {
             assertTrue(awaitItem().isEmpty())
         }
     }
+
+    // --- contribution_breakdown column ---
+
+    @Test
+    fun upsert_with_null_breakdown_persists_null_and_findById_reads_it_back() = runTest {
+        val id = db.goalDao().upsert(goal("NullBreakdown", 0L).copy(contributionBreakdown = null))
+        val read = db.goalDao().findById(id)
+        assertNotNull(read)
+        assertNull(read!!.contributionBreakdown)
+    }
+
+    @Test
+    fun upsert_with_non_null_breakdown_json_persists_and_findById_reads_it_back_intact() = runTest {
+        val json = """{"enabled":true,"incomes":[{"name":"Salary","amount":"120000.55"}],"expenses":[]}"""
+        val id = db.goalDao().upsert(goal("WithBreakdown", 0L).copy(contributionBreakdown = json))
+        val read = db.goalDao().findById(id)
+        assertNotNull(read)
+        assertEquals(json, read!!.contributionBreakdown)
+    }
+
+    @Test
+    fun upsert_update_replaces_null_breakdown_with_non_null() = runTest {
+        val id = db.goalDao().upsert(goal("UpdateBreakdown", 0L).copy(contributionBreakdown = null))
+        val json = """{"enabled":true,"incomes":[],"expenses":[{"name":"Rent","amount":"45000.10"}]}"""
+        db.goalDao().upsert(goal("UpdateBreakdown", 0L).copy(id = id, contributionBreakdown = json))
+        val read = db.goalDao().findById(id)
+        assertNotNull(read)
+        assertEquals(json, read!!.contributionBreakdown)
+    }
+
+    @Test
+    fun upsert_update_clears_breakdown_from_non_null_to_null() = runTest {
+        val json = """{"enabled":false,"incomes":[{"name":"Side","amount":"5000.00"}],"expenses":[]}"""
+        val id = db.goalDao().upsert(goal("ClearBreakdown", 0L).copy(contributionBreakdown = json))
+        db.goalDao().upsert(goal("ClearBreakdown", 0L).copy(id = id, contributionBreakdown = null))
+        val read = db.goalDao().findById(id)
+        assertNotNull(read)
+        assertNull(read!!.contributionBreakdown)
+    }
+
+    @Test
+    fun observeActive_emits_goal_with_breakdown_json_preserved() = runTest {
+        val json = """{"enabled":true,"incomes":[{"name":"A","amount":"1.00"}],"expenses":[]}"""
+        db.goalDao().upsert(goal("StreamBreakdown", 0L).copy(contributionBreakdown = json))
+        db.goalDao().observeActive().test {
+            val active = awaitItem()
+            assertEquals(1, active.size)
+            assertEquals(json, active.first().contributionBreakdown)
+        }
+    }
 }

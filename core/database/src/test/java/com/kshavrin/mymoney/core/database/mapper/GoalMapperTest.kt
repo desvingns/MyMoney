@@ -170,6 +170,8 @@ class GoalMapperTest {
         assertEquals(GoalVariant.CREDIT, creditEntity().toDomain().variant)
     }
 
+    // --- ContributionBreakdown mapping ---
+
     @Test
     fun `default empty breakdown maps to null column`() {
         val goal = goalWithBreakdown(ContributionBreakdown())
@@ -232,6 +234,137 @@ class GoalMapperTest {
         assertEquals(1, restored.incomes.size)
         assertEquals("Side gig", restored.incomes[0].name)
         assertEquals(0, BigDecimal("7500.00").compareTo(restored.incomes[0].amount))
+    }
+
+    @Test
+    fun `BigDecimal scale is preserved exactly through toPlainString round-trip`() {
+        // "3000.00" must survive as scale=2 after serialization — compareTo alone would pass
+        // with BigDecimal("3000") (scale=0), but the column stores the plain string so scale
+        // must survive if the original string representation was "3000.00".
+        val amount = BigDecimal("3000.00")
+        val breakdown = ContributionBreakdown(
+            enabled = true,
+            incomes = listOf(ContributionItem("Salary", amount)),
+        )
+
+        val restoredAmount = goalWithBreakdown(breakdown).toEntity().toDomain()
+            .contributionBreakdown.incomes[0].amount
+
+        assertEquals("3000.00", restoredAmount.toPlainString())
+        assertEquals(2, restoredAmount.scale())
+    }
+
+    @Test
+    fun `high-precision BigDecimal amount is not corrupted by Double conversion`() {
+        // Double cannot represent 123456789.99 exactly; serializing via toPlainString() bypasses
+        // that loss entirely. We verify the value matches the original plain string precisely.
+        val amount = BigDecimal("123456789.99")
+        val breakdown = ContributionBreakdown(
+            enabled = true,
+            incomes = listOf(ContributionItem("Precise", amount)),
+        )
+
+        val restoredAmount = goalWithBreakdown(breakdown).toEntity().toDomain()
+            .contributionBreakdown.incomes[0].amount
+
+        assertEquals("123456789.99", restoredAmount.toPlainString())
+        assertEquals(0, amount.compareTo(restoredAmount))
+    }
+
+    @Test
+    fun `negative amount is preserved exactly through round-trip`() {
+        // SPEC: negative amounts are allowed in breakdown items (net monthly can be negative).
+        val breakdown = ContributionBreakdown(
+            enabled = true,
+            expenses = listOf(ContributionItem("Overspend", BigDecimal("-500.50"))),
+        )
+
+        val restored = goalWithBreakdown(breakdown).toEntity().toDomain().contributionBreakdown
+
+        assertEquals(1, restored.expenses.size)
+        assertEquals("-500.50", restored.expenses[0].amount.toPlainString())
+        assertEquals(0, BigDecimal("-500.50").compareTo(restored.expenses[0].amount))
+    }
+
+    @Test
+    fun `blank item name is preserved through round-trip`() {
+        // SPEC: blank/optional names — an empty string name must survive serialization unchanged.
+        val breakdown = ContributionBreakdown(
+            enabled = true,
+            incomes = listOf(ContributionItem("", BigDecimal("1000.00"))),
+        )
+
+        val restored = goalWithBreakdown(breakdown).toEntity().toDomain().contributionBreakdown
+
+        assertEquals(1, restored.incomes.size)
+        assertEquals("", restored.incomes[0].name)
+        assertEquals(0, BigDecimal("1000.00").compareTo(restored.incomes[0].amount))
+    }
+
+    @Test
+    fun `breakdown with only expenses and no incomes round-trips correctly`() {
+        val breakdown = ContributionBreakdown(
+            enabled = true,
+            incomes = emptyList(),
+            expenses = listOf(
+                ContributionItem("Rent", BigDecimal("30000.00")),
+                ContributionItem("Utilities", BigDecimal("5000.00")),
+            ),
+        )
+
+        val restored = goalWithBreakdown(breakdown).toEntity().toDomain().contributionBreakdown
+
+        assertEquals(true, restored.enabled)
+        assertTrue(restored.incomes.isEmpty())
+        assertEquals(2, restored.expenses.size)
+        assertEquals("Rent", restored.expenses[0].name)
+        assertEquals(0, BigDecimal("30000.00").compareTo(restored.expenses[0].amount))
+        assertEquals("Utilities", restored.expenses[1].name)
+        assertEquals(0, BigDecimal("5000.00").compareTo(restored.expenses[1].amount))
+    }
+
+    @Test
+    fun `multiple incomes and multiple expenses round-trip preserving order`() {
+        val breakdown = ContributionBreakdown(
+            enabled = true,
+            incomes = listOf(
+                ContributionItem("Job A", BigDecimal("80000.00")),
+                ContributionItem("Job B", BigDecimal("40000.00")),
+                ContributionItem("Freelance", BigDecimal("15000.50")),
+            ),
+            expenses = listOf(
+                ContributionItem("Mortgage", BigDecimal("55000.00")),
+                ContributionItem("Car", BigDecimal("12000.00")),
+            ),
+        )
+
+        val restored = goalWithBreakdown(breakdown).toEntity().toDomain().contributionBreakdown
+
+        assertEquals(3, restored.incomes.size)
+        assertEquals("Job A", restored.incomes[0].name)
+        assertEquals("Job B", restored.incomes[1].name)
+        assertEquals("Freelance", restored.incomes[2].name)
+        assertEquals(0, BigDecimal("15000.50").compareTo(restored.incomes[2].amount))
+        assertEquals(2, restored.expenses.size)
+        assertEquals("Mortgage", restored.expenses[0].name)
+        assertEquals("Car", restored.expenses[1].name)
+    }
+
+    @Test
+    fun `disabled empty breakdown is the only combination that produces null column`() {
+        // All other combinations — enabled with empty rows, disabled with rows, enabled with rows
+        // — must all produce a non-null column. Only ContributionBreakdown() produces null.
+        assertNull(goalWithBreakdown(ContributionBreakdown(enabled = false)).toEntity().contributionBreakdown)
+
+        assertTrue(
+            goalWithBreakdown(ContributionBreakdown(enabled = true)).toEntity()
+                .contributionBreakdown != null,
+        )
+        assertTrue(
+            goalWithBreakdown(
+                ContributionBreakdown(enabled = false, incomes = listOf(ContributionItem("X", BigDecimal("1")))),
+            ).toEntity().contributionBreakdown != null,
+        )
     }
 
     private fun goalWithBreakdown(breakdown: ContributionBreakdown) = Goal(

@@ -6,6 +6,7 @@ import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.AccountType
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Goal
+import com.kshavrin.mymoney.core.domain.model.GoalStatus
 import com.kshavrin.mymoney.core.domain.model.GoalVariant
 import com.kshavrin.mymoney.core.domain.model.LoanGoalInput
 import com.kshavrin.mymoney.core.domain.usecase.ContributionCalculator
@@ -26,7 +27,6 @@ import org.junit.Rule
 import org.junit.Test
 import java.math.BigDecimal
 import java.time.Instant
-import java.time.LocalDate
 
 class GoalEditCreditViewModelTest {
 
@@ -105,14 +105,13 @@ class GoalEditCreditViewModelTest {
     }
 
     @Test
-    fun `switching back to SAVINGS clears annualRatePercent and termDate`() = runTest {
+    fun `switching back to SAVINGS clears annualRatePercent downPayment and termYears`() = runTest {
         val viewModel = buildViewModel()
 
         viewModel.onEvent(GoalEditEvent.VariantChanged(GoalVariant.CREDIT))
         viewModel.onEvent(GoalEditEvent.RateChanged("12"))
-        viewModel.onEvent(
-            GoalEditEvent.TermDateChanged(LocalDate.now().plusMonths(24)),
-        )
+        viewModel.onEvent(GoalEditEvent.DownPaymentChanged("500000"))
+        viewModel.onEvent(GoalEditEvent.TermYearsChanged("10"))
         viewModel.onEvent(GoalEditEvent.VariantChanged(GoalVariant.SAVINGS))
 
         viewModel.state.test {
@@ -122,7 +121,14 @@ class GoalEditCreditViewModelTest {
                 "switching to SAVINGS must clear rate field",
                 state.annualRatePercent.isBlank(),
             )
-            assertNull("switching to SAVINGS must clear termDate", state.termDate)
+            assertTrue(
+                "switching to SAVINGS must clear downPayment field",
+                state.downPayment.isBlank(),
+            )
+            assertTrue(
+                "switching to SAVINGS must clear termYears field",
+                state.termYears.isBlank(),
+            )
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -134,38 +140,192 @@ class GoalEditCreditViewModelTest {
         currencyRepo.seed(rubCurrency())
         accountRepo.seed(account(id = 1L, currencyId = 1L))
 
-        val termDate = LocalDate.now().plusMonths(24)
         val viewModel = buildViewModel()
 
         viewModel.onEvent(GoalEditEvent.AccountSelected(1L))
         viewModel.onEvent(GoalEditEvent.VariantChanged(GoalVariant.CREDIT))
-        viewModel.onEvent(GoalEditEvent.TargetChanged("1000000"))
-        viewModel.onEvent(GoalEditEvent.StartingCapitalChanged("100000"))
-        viewModel.onEvent(GoalEditEvent.MonthlyChanged("45000"))
-        viewModel.onEvent(GoalEditEvent.RateChanged("12"))
-        viewModel.onEvent(GoalEditEvent.TermDateChanged(termDate))
+        viewModel.onEvent(GoalEditEvent.TargetChanged("2000000"))
+        viewModel.onEvent(GoalEditEvent.StartingCapitalChanged("0"))
+        viewModel.onEvent(GoalEditEvent.MonthlyChanged("50000"))
+        viewModel.onEvent(GoalEditEvent.RateChanged("0"))
+        viewModel.onEvent(GoalEditEvent.DownPaymentChanged("500000"))
+        viewModel.onEvent(GoalEditEvent.TermYearsChanged("10"))
 
         viewModel.state.test {
             val state = expectMostRecentItem()
             val projection = state.loanProjection
             assertNotNull("loanProjection must be computed when all credit fields are set", projection)
 
-            val termMonths = java.time.temporal.ChronoUnit.MONTHS.between(
-                LocalDate.now(), termDate,
-            ).toInt()
             val expected = loanCalculator(
                 LoanGoalInput(
-                    targetAmount = BigDecimal("1000000"),
-                    startingCapital = BigDecimal("100000"),
-                    annualRatePercent = BigDecimal("12"),
-                    termMonths = termMonths,
-                    monthlyContribution = BigDecimal("45000"),
+                    targetAmount = BigDecimal("2000000"),
+                    startingCapital = BigDecimal("0"),
+                    downPayment = BigDecimal("500000"),
+                    annualRatePercent = BigDecimal("0"),
+                    termMonths = 120,
+                    monthlyContribution = BigDecimal("50000"),
                 ),
             )
 
             assertEquals(0, projection!!.baseMonthlyPayment.compareTo(expected.baseMonthlyPayment))
             assertEquals(0, projection.totalInterest.compareTo(expected.totalInterest))
             assertEquals(0, projection.totalPaid.compareTo(expected.totalPaid))
+            assertEquals(expected.accumulationMonths, projection.accumulationMonths)
+            assertEquals(expected.totalMonthsToPayoff, projection.totalMonthsToPayoff)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `worked example target=2000000 downPayment=500000 rate=0 termYears=10 monthly=50000 produces expected values`() = runTest {
+        currencyRepo.seed(rubCurrency())
+        accountRepo.seed(account(id = 1L, currencyId = 1L))
+
+        val viewModel = buildViewModel()
+
+        viewModel.onEvent(GoalEditEvent.AccountSelected(1L))
+        viewModel.onEvent(GoalEditEvent.VariantChanged(GoalVariant.CREDIT))
+        viewModel.onEvent(GoalEditEvent.TargetChanged("2000000"))
+        viewModel.onEvent(GoalEditEvent.StartingCapitalChanged("0"))
+        viewModel.onEvent(GoalEditEvent.MonthlyChanged("50000"))
+        viewModel.onEvent(GoalEditEvent.RateChanged("0"))
+        viewModel.onEvent(GoalEditEvent.DownPaymentChanged("500000"))
+        viewModel.onEvent(GoalEditEvent.TermYearsChanged("10"))
+
+        viewModel.state.test {
+            val state = expectMostRecentItem()
+            val projection = state.loanProjection
+            assertNotNull(projection)
+            assertEquals(
+                "monthly payment = 1500000 / 120 = 12500.00",
+                0,
+                projection!!.baseMonthlyPayment.compareTo(BigDecimal("12500.00")),
+            )
+            assertEquals(
+                "accumulation months = ceil(500000 / 50000) = 10",
+                10,
+                projection.accumulationMonths,
+            )
+            assertEquals(
+                "total months to payoff = 10 + 120 = 130",
+                130,
+                projection.totalMonthsToPayoff,
+            )
+            assertEquals(
+                "total interest = 0 for zero-rate loan",
+                0,
+                projection.totalInterest.compareTo(BigDecimal.ZERO),
+            )
+            assertEquals(
+                "state loanProjectionAccumulationMonths must equal projection accumulationMonths",
+                10,
+                state.loanProjectionAccumulationMonths,
+            )
+            assertEquals(
+                "state loanProjectionTotalMonths must equal projection totalMonthsToPayoff",
+                130,
+                state.loanProjectionTotalMonths,
+            )
+            assertNotNull("loanProjectionMonthlyPaymentFormatted must be set", state.loanProjectionMonthlyPaymentFormatted)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    // ── termYears empty or "0" disables projection and canSave ───────────────────
+
+    @Test
+    fun `termYears empty produces null loanProjection and canSave=false`() = runTest {
+        val viewModel = buildViewModel()
+
+        viewModel.onEvent(GoalEditEvent.VariantChanged(GoalVariant.CREDIT))
+        viewModel.onEvent(GoalEditEvent.TargetChanged("500000"))
+        viewModel.onEvent(GoalEditEvent.RateChanged("10"))
+        viewModel.onEvent(GoalEditEvent.TermYearsChanged(""))
+
+        viewModel.state.test {
+            val state = expectMostRecentItem()
+            assertNull(
+                "loanProjection must be null when termYears is empty",
+                state.loanProjection,
+            )
+            assertFalse(
+                "canSave must be false when termYears is empty",
+                state.canSave,
+            )
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `termYears zero produces null loanProjection and canSave=false`() = runTest {
+        val viewModel = buildViewModel()
+
+        viewModel.onEvent(GoalEditEvent.VariantChanged(GoalVariant.CREDIT))
+        viewModel.onEvent(GoalEditEvent.TargetChanged("500000"))
+        viewModel.onEvent(GoalEditEvent.RateChanged("10"))
+        viewModel.onEvent(GoalEditEvent.TermYearsChanged("0"))
+
+        viewModel.state.test {
+            val state = expectMostRecentItem()
+            assertNull(
+                "loanProjection must be null when termYears is 0 (termMonths=0 < 1)",
+                state.loanProjection,
+            )
+            assertFalse(
+                "canSave must be false when termYears is 0",
+                state.canSave,
+            )
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    // ── UNREACHABLE accumulation with termYears ≥ 1 still allows Save ────────────
+
+    @Test
+    fun `monthly=0 with capital less than downPayment and valid termYears produces UNREACHABLE status and canSave=true`() = runTest {
+        currencyRepo.seed(rubCurrency())
+        accountRepo.seed(account(id = 1L, currencyId = 1L))
+
+        val viewModel = buildViewModel()
+
+        viewModel.onEvent(GoalEditEvent.AccountSelected(1L))
+        viewModel.onEvent(GoalEditEvent.VariantChanged(GoalVariant.CREDIT))
+        viewModel.onEvent(GoalEditEvent.TargetChanged("2000000"))
+        viewModel.onEvent(GoalEditEvent.StartingCapitalChanged("0"))
+        viewModel.onEvent(GoalEditEvent.MonthlyChanged("0"))
+        viewModel.onEvent(GoalEditEvent.RateChanged("0"))
+        viewModel.onEvent(GoalEditEvent.DownPaymentChanged("500000"))
+        viewModel.onEvent(GoalEditEvent.TermYearsChanged("10"))
+
+        viewModel.state.test {
+            val state = expectMostRecentItem()
+            val projection = state.loanProjection
+            assertNotNull("projection must be present even when accumulation is unreachable", projection)
+            assertEquals(
+                "status must be UNREACHABLE when monthly=0 and startingCapital < downPayment",
+                GoalStatus.UNREACHABLE,
+                projection!!.status,
+            )
+            assertNull(
+                "accumulationMonths must be null when unreachable",
+                projection.accumulationMonths,
+            )
+            assertNull(
+                "totalMonthsToPayoff must be null when accumulation is unreachable",
+                projection.totalMonthsToPayoff,
+            )
+            assertNull(
+                "loanProjectionAccumulationMonths state field must be null when unreachable",
+                state.loanProjectionAccumulationMonths,
+            )
+            assertNull(
+                "loanProjectionTotalMonths state field must be null when accumulation is unreachable",
+                state.loanProjectionTotalMonths,
+            )
+            assertTrue(
+                "canSave must be true — Save is gated by termYears, not by reachability",
+                state.canSave,
+            )
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -177,15 +337,15 @@ class GoalEditCreditViewModelTest {
         currencyRepo.seed(rubCurrency())
         accountRepo.seed(account(id = 1L, currencyId = 1L))
 
-        val termDate = LocalDate.now().plusMonths(12)
         val viewModel = buildViewModel()
 
         viewModel.onEvent(GoalEditEvent.AccountSelected(1L))
         viewModel.onEvent(GoalEditEvent.VariantChanged(GoalVariant.CREDIT))
         viewModel.onEvent(GoalEditEvent.TargetChanged("500000"))
         viewModel.onEvent(GoalEditEvent.StartingCapitalChanged("0"))
+        viewModel.onEvent(GoalEditEvent.DownPaymentChanged("0"))
         viewModel.onEvent(GoalEditEvent.RateChanged("12"))
-        viewModel.onEvent(GoalEditEvent.TermDateChanged(termDate))
+        viewModel.onEvent(GoalEditEvent.TermYearsChanged("1"))
         viewModel.onEvent(GoalEditEvent.MonthlyChanged("1000"))
 
         viewModel.state.test {
@@ -202,15 +362,15 @@ class GoalEditCreditViewModelTest {
         currencyRepo.seed(rubCurrency())
         accountRepo.seed(account(id = 1L, currencyId = 1L))
 
-        val termDate = LocalDate.now().plusMonths(12)
         val viewModel = buildViewModel()
 
         viewModel.onEvent(GoalEditEvent.AccountSelected(1L))
         viewModel.onEvent(GoalEditEvent.VariantChanged(GoalVariant.CREDIT))
         viewModel.onEvent(GoalEditEvent.TargetChanged("120000"))
         viewModel.onEvent(GoalEditEvent.StartingCapitalChanged("0"))
+        viewModel.onEvent(GoalEditEvent.DownPaymentChanged("0"))
         viewModel.onEvent(GoalEditEvent.RateChanged("0"))
-        viewModel.onEvent(GoalEditEvent.TermDateChanged(termDate))
+        viewModel.onEvent(GoalEditEvent.TermYearsChanged("1"))
         viewModel.onEvent(GoalEditEvent.MonthlyChanged("10000"))
 
         viewModel.state.test {
@@ -225,60 +385,18 @@ class GoalEditCreditViewModelTest {
         }
     }
 
-    // ── overpayment reduces total interest vs no-overpayment baseline ───────────
+    // ── canSave gating ────────────────────────────────────────────────────────────
 
     @Test
-    fun `overpayment reduces total interest compared to the no-overpayment baseline`() = runTest {
-        currencyRepo.seed(rubCurrency())
-        accountRepo.seed(account(id = 1L, currencyId = 1L))
-
-        val termDate = LocalDate.now().plusMonths(12)
-        val baseInput = LoanGoalInput(
-            targetAmount = BigDecimal("120000"),
-            startingCapital = BigDecimal.ZERO,
-            annualRatePercent = BigDecimal("12"),
-            termMonths = 12,
-            monthlyContribution = BigDecimal.ZERO,
-        )
-        val basePayment = loanCalculator(baseInput).baseMonthlyPayment
-        val overpaymentAmount = basePayment.add(BigDecimal("1000"))
-
-        val viewModel = buildViewModel()
-        viewModel.onEvent(GoalEditEvent.AccountSelected(1L))
-        viewModel.onEvent(GoalEditEvent.VariantChanged(GoalVariant.CREDIT))
-        viewModel.onEvent(GoalEditEvent.TargetChanged("120000"))
-        viewModel.onEvent(GoalEditEvent.StartingCapitalChanged("0"))
-        viewModel.onEvent(GoalEditEvent.RateChanged("12"))
-        viewModel.onEvent(GoalEditEvent.TermDateChanged(termDate))
-        viewModel.onEvent(GoalEditEvent.MonthlyChanged(overpaymentAmount.toPlainString()))
-
-        viewModel.state.test {
-            val state = expectMostRecentItem()
-            val projection = state.loanProjection
-            assertNotNull(projection)
-            assertFalse("overpayment must not be underfunded", projection!!.underfunded)
-            assertTrue("overpayment must be flagged", projection.overpaymentApplied)
-            assertTrue(
-                "overpayment reduces total interest vs baseline",
-                projection.interestSavedVsBaseline.signum() > 0,
-            )
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    // ── termDate ≤ today disables Save ──────────────────────────────────────────
-
-    @Test
-    fun `canSave is false when termDate is today`() = runTest {
+    fun `canSave is false when CREDIT variant is selected but termYears is blank`() = runTest {
         val viewModel = buildViewModel()
 
         viewModel.onEvent(GoalEditEvent.VariantChanged(GoalVariant.CREDIT))
-        viewModel.onEvent(GoalEditEvent.TermDateChanged(LocalDate.now()))
 
         viewModel.state.test {
             val state = expectMostRecentItem()
             assertFalse(
-                "termDate = today produces termMonths = 0, Save must be disabled",
+                "CREDIT with no termYears must disable Save",
                 state.canSave,
             )
             cancelAndIgnoreRemainingEvents()
@@ -286,33 +404,16 @@ class GoalEditCreditViewModelTest {
     }
 
     @Test
-    fun `canSave is false when termDate is in the past`() = runTest {
+    fun `canSave is true when CREDIT has valid termYears of at least 1`() = runTest {
         val viewModel = buildViewModel()
 
         viewModel.onEvent(GoalEditEvent.VariantChanged(GoalVariant.CREDIT))
-        viewModel.onEvent(GoalEditEvent.TermDateChanged(LocalDate.now().minusDays(1)))
-
-        viewModel.state.test {
-            val state = expectMostRecentItem()
-            assertFalse(
-                "termDate in the past produces termMonths < 1, Save must be disabled",
-                state.canSave,
-            )
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
-    fun `canSave is true when termDate is at least one month in the future`() = runTest {
-        val viewModel = buildViewModel()
-
-        viewModel.onEvent(GoalEditEvent.VariantChanged(GoalVariant.CREDIT))
-        viewModel.onEvent(GoalEditEvent.TermDateChanged(LocalDate.now().plusMonths(1)))
+        viewModel.onEvent(GoalEditEvent.TermYearsChanged("1"))
 
         viewModel.state.test {
             val state = expectMostRecentItem()
             assertTrue(
-                "termDate one month out gives termMonths = 1, Save must be enabled",
+                "termYears=1 gives termMonths=12 >= 1, Save must be enabled",
                 state.canSave,
             )
             cancelAndIgnoreRemainingEvents()
@@ -320,23 +421,7 @@ class GoalEditCreditViewModelTest {
     }
 
     @Test
-    fun `canSave is false when CREDIT variant is selected but termDate is null`() = runTest {
-        val viewModel = buildViewModel()
-
-        viewModel.onEvent(GoalEditEvent.VariantChanged(GoalVariant.CREDIT))
-
-        viewModel.state.test {
-            val state = expectMostRecentItem()
-            assertFalse(
-                "CREDIT with no termDate must disable Save (termMonths is null)",
-                state.canSave,
-            )
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
-    fun `loanProjection is null when termDate is null`() = runTest {
+    fun `loanProjection is null when termYears is absent`() = runTest {
         val viewModel = buildViewModel()
 
         viewModel.onEvent(GoalEditEvent.VariantChanged(GoalVariant.CREDIT))
@@ -346,9 +431,57 @@ class GoalEditCreditViewModelTest {
         viewModel.state.test {
             val state = expectMostRecentItem()
             assertNull(
-                "loanProjection must be null without a termDate",
+                "loanProjection must be null without a termYears value",
                 state.loanProjection,
             )
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    // ── Formatted projection fields ───────────────────────────────────────────────
+
+    @Test
+    fun `loanProjection formatted fields are non-null when projection is present`() = runTest {
+        currencyRepo.seed(rubCurrency())
+        accountRepo.seed(account(id = 1L, currencyId = 1L))
+
+        val viewModel = buildViewModel()
+
+        viewModel.onEvent(GoalEditEvent.AccountSelected(1L))
+        viewModel.onEvent(GoalEditEvent.VariantChanged(GoalVariant.CREDIT))
+        viewModel.onEvent(GoalEditEvent.TargetChanged("120000"))
+        viewModel.onEvent(GoalEditEvent.StartingCapitalChanged("0"))
+        viewModel.onEvent(GoalEditEvent.DownPaymentChanged("0"))
+        viewModel.onEvent(GoalEditEvent.RateChanged("12"))
+        viewModel.onEvent(GoalEditEvent.MonthlyChanged("20000"))
+        viewModel.onEvent(GoalEditEvent.TermYearsChanged("1"))
+
+        viewModel.state.test {
+            val state = expectMostRecentItem()
+            assertNotNull("monthly payment formatted must be set", state.loanProjectionMonthlyPaymentFormatted)
+            assertNotNull("total interest formatted must be set", state.loanProjectionTotalInterestFormatted)
+            assertNotNull("total paid formatted must be set", state.loanProjectionTotalPaidFormatted)
+            assertNotNull("loanProjectionAccumulationMonths must be set (downPayment=0, monthly>0)", state.loanProjectionAccumulationMonths)
+            assertNotNull("loanProjectionTotalMonths must be set when projection present", state.loanProjectionTotalMonths)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `loanProjection formatted fields are null when termYears is absent`() = runTest {
+        val viewModel = buildViewModel()
+
+        viewModel.onEvent(GoalEditEvent.VariantChanged(GoalVariant.CREDIT))
+        viewModel.onEvent(GoalEditEvent.TargetChanged("200000"))
+        viewModel.onEvent(GoalEditEvent.RateChanged("10"))
+
+        viewModel.state.test {
+            val state = expectMostRecentItem()
+            assertNull(state.loanProjectionMonthlyPaymentFormatted)
+            assertNull(state.loanProjectionTotalInterestFormatted)
+            assertNull(state.loanProjectionTotalPaidFormatted)
+            assertNull(state.loanProjectionAccumulationMonths)
+            assertNull(state.loanProjectionTotalMonths)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -356,11 +489,10 @@ class GoalEditCreditViewModelTest {
     // ── SaveClicked upserts a CREDIT Goal ────────────────────────────────────────
 
     @Test
-    fun `SaveClicked upserts a CREDIT Goal with rate and termDate then emits NavigateBack`() = runTest {
+    fun `SaveClicked upserts a CREDIT Goal with downPayment and termMonths then emits NavigateBack`() = runTest {
         currencyRepo.seed(rubCurrency())
         accountRepo.seed(account(id = 1L, currencyId = 1L, name = "Main"))
 
-        val termDate = LocalDate.now().plusMonths(24)
         val viewModel = buildViewModel()
 
         viewModel.onEvent(GoalEditEvent.AccountSelected(1L))
@@ -371,7 +503,8 @@ class GoalEditCreditViewModelTest {
         viewModel.onEvent(GoalEditEvent.StartingCapitalChanged("500000"))
         viewModel.onEvent(GoalEditEvent.MonthlyChanged("50000"))
         viewModel.onEvent(GoalEditEvent.RateChanged("9.5"))
-        viewModel.onEvent(GoalEditEvent.TermDateChanged(termDate))
+        viewModel.onEvent(GoalEditEvent.DownPaymentChanged("600000"))
+        viewModel.onEvent(GoalEditEvent.TermYearsChanged("20"))
 
         viewModel.actions.test {
             viewModel.onEvent(GoalEditEvent.SaveClicked)
@@ -390,7 +523,9 @@ class GoalEditCreditViewModelTest {
             assertEquals(0, upserted.monthlyContribution.compareTo(BigDecimal("50000")))
             assertNotNull("annualRatePercent must be set for CREDIT variant", upserted.annualRatePercent)
             assertEquals(0, upserted.annualRatePercent!!.compareTo(BigDecimal("9.5")))
-            assertEquals(termDate, upserted.termDate)
+            assertNotNull("downPayment must be set for CREDIT variant", upserted.downPayment)
+            assertEquals(0, upserted.downPayment!!.compareTo(BigDecimal("600000")))
+            assertEquals("termMonths must be termYears × 12 = 240", 240, upserted.termMonths)
 
             cancelAndIgnoreRemainingEvents()
         }
@@ -413,15 +548,15 @@ class GoalEditCreditViewModelTest {
         currencyRepo.seed(rubCurrency())
         accountRepo.seed(account(id = 1L, currencyId = 1L))
 
-        val termDate = LocalDate.now().plusMonths(12)
         val viewModel = buildViewModel()
 
         viewModel.onEvent(GoalEditEvent.AccountSelected(1L))
         viewModel.onEvent(GoalEditEvent.VariantChanged(GoalVariant.CREDIT))
         viewModel.onEvent(GoalEditEvent.TargetChanged("120000"))
         viewModel.onEvent(GoalEditEvent.StartingCapitalChanged("0"))
+        viewModel.onEvent(GoalEditEvent.DownPaymentChanged("0"))
         viewModel.onEvent(GoalEditEvent.MonthlyChanged("10000"))
-        viewModel.onEvent(GoalEditEvent.TermDateChanged(termDate))
+        viewModel.onEvent(GoalEditEvent.TermYearsChanged("1"))
 
         viewModel.actions.test {
             viewModel.onEvent(GoalEditEvent.SaveClicked)
@@ -442,56 +577,41 @@ class GoalEditCreditViewModelTest {
         }
     }
 
-    // ── Formatted projection fields ──────────────────────────────────────────────
-
     @Test
-    fun `loanProjectionMonthlyPaymentFormatted is non-null when loanProjection is present`() = runTest {
+    fun `SaveClicked CREDIT stores downPayment=0 when downPayment field is blank`() = runTest {
         currencyRepo.seed(rubCurrency())
         accountRepo.seed(account(id = 1L, currencyId = 1L))
 
-        val termDate = LocalDate.now().plusMonths(12)
         val viewModel = buildViewModel()
 
         viewModel.onEvent(GoalEditEvent.AccountSelected(1L))
         viewModel.onEvent(GoalEditEvent.VariantChanged(GoalVariant.CREDIT))
         viewModel.onEvent(GoalEditEvent.TargetChanged("120000"))
         viewModel.onEvent(GoalEditEvent.StartingCapitalChanged("0"))
-        viewModel.onEvent(GoalEditEvent.RateChanged("12"))
-        viewModel.onEvent(GoalEditEvent.MonthlyChanged("20000"))
-        viewModel.onEvent(GoalEditEvent.TermDateChanged(termDate))
+        viewModel.onEvent(GoalEditEvent.MonthlyChanged("10000"))
+        viewModel.onEvent(GoalEditEvent.TermYearsChanged("1"))
 
-        viewModel.state.test {
-            val state = expectMostRecentItem()
-            assertNotNull("monthly payment formatted string must be set", state.loanProjectionMonthlyPaymentFormatted)
-            assertNotNull("total interest formatted string must be set", state.loanProjectionTotalInterestFormatted)
-            assertNotNull("total paid formatted string must be set", state.loanProjectionTotalPaidFormatted)
+        viewModel.actions.test {
+            viewModel.onEvent(GoalEditEvent.SaveClicked)
+            awaitItem()
+
+            val upserted = goalRepo.lastUpserted
+            assertNotNull(upserted)
+            assertNotNull("downPayment must be non-null for CREDIT (zero when blank)", upserted!!.downPayment)
+            assertEquals(
+                "blank downPayment field must save as BigDecimal.ZERO",
+                0,
+                upserted.downPayment!!.compareTo(BigDecimal.ZERO),
+            )
             cancelAndIgnoreRemainingEvents()
         }
     }
 
-    @Test
-    fun `loanProjection formatted fields are null when termDate is absent`() = runTest {
-        val viewModel = buildViewModel()
-
-        viewModel.onEvent(GoalEditEvent.VariantChanged(GoalVariant.CREDIT))
-        viewModel.onEvent(GoalEditEvent.TargetChanged("200000"))
-        viewModel.onEvent(GoalEditEvent.RateChanged("10"))
-
-        viewModel.state.test {
-            val state = expectMostRecentItem()
-            assertNull(state.loanProjectionMonthlyPaymentFormatted)
-            assertNull(state.loanProjectionTotalInterestFormatted)
-            assertNull(state.loanProjectionTotalPaidFormatted)
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    // ── Pre-fill existing CREDIT goal ────────────────────────────────────────────
+    // ── Pre-fill existing CREDIT goal ─────────────────────────────────────────────
 
     @Test
-    fun `editing an existing CREDIT goal pre-fills rate and termDate into state`() = runTest {
+    fun `editing an existing CREDIT goal pre-fills rate downPayment and termYears into state`() = runTest {
         currencyRepo.seed(rubCurrency())
-        val termDate = LocalDate.now().plusMonths(36)
         val existing = Goal(
             id = 7L,
             name = "Car loan",
@@ -503,7 +623,8 @@ class GoalEditCreditViewModelTest {
             startingCapital = BigDecimal("200000"),
             monthlyContribution = BigDecimal("20000"),
             annualRatePercent = BigDecimal("8.5"),
-            termDate = termDate,
+            downPayment = BigDecimal("150000"),
+            termMonths = 36,
             createdAt = now,
             updatedAt = now,
             isArchived = false,
@@ -517,7 +638,8 @@ class GoalEditCreditViewModelTest {
             val state = expectMostRecentItem()
             assertEquals(GoalVariant.CREDIT, state.variant)
             assertEquals("8.5", state.annualRatePercent)
-            assertEquals(termDate, state.termDate)
+            assertEquals("150000", state.downPayment)
+            assertEquals("3", state.termYears)
             assertEquals(false, state.isCreateMode)
             cancelAndIgnoreRemainingEvents()
         }

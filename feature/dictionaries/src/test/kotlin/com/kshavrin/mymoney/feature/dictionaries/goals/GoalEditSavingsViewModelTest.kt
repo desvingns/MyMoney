@@ -105,7 +105,8 @@ class GoalEditSavingsViewModelTest {
         startingCapital = startingCapital,
         monthlyContribution = monthlyContribution,
         annualRatePercent = null,
-        termDate = null,
+        downPayment = null,
+        termMonths = null,
         createdAt = now,
         updatedAt = now,
         isArchived = false,
@@ -365,7 +366,8 @@ class GoalEditSavingsViewModelTest {
             assertEquals(0, upserted.startingCapital.compareTo(BigDecimal("50000")))
             assertEquals(0, upserted.monthlyContribution.compareTo(BigDecimal("10000")))
             assertNull("annualRatePercent must be null for SAVINGS variant", upserted.annualRatePercent)
-            assertNull("termDate must be null for SAVINGS variant", upserted.termDate)
+            assertNull("downPayment must be null for SAVINGS variant", upserted.downPayment)
+            assertNull("termMonths must be null for SAVINGS variant", upserted.termMonths)
 
             cancelAndIgnoreRemainingEvents()
         }

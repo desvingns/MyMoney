@@ -17,6 +17,7 @@ import com.kshavrin.mymoney.feature.dictionaries.goals.fake.FakeGoalRepository
 import com.kshavrin.mymoney.feature.dictionaries.util.MainDispatcherRule
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -508,6 +509,288 @@ class GoalEditSavingsViewModelTest {
             val state = expectMostRecentItem()
             assertEquals(GoalVariant.SAVINGS, state.variant)
             assertEquals(true, state.isCreateMode)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    // ── Advanced contribution toggle ─────────────────────────────────────────────
+
+    @Test
+    fun `AdvancedToggled true seeds one empty income row and one empty expense row`() = runTest {
+        val viewModel = buildViewModel()
+
+        viewModel.onEvent(GoalEditEvent.AdvancedToggled(true))
+
+        viewModel.state.test {
+            val state = expectMostRecentItem()
+            assertTrue("advancedContribution must be enabled", state.advancedContribution)
+            assertEquals("must have exactly one income row", 1, state.incomeRows.size)
+            assertEquals("must have exactly one expense row", 1, state.expenseRows.size)
+            assertEquals("seeded income row name must be empty", "", state.incomeRows[0].name)
+            assertEquals("seeded income row amount must be empty", "", state.incomeRows[0].amount)
+            assertEquals("seeded expense row name must be empty", "", state.expenseRows[0].name)
+            assertEquals("seeded expense row amount must be empty", "", state.expenseRows[0].amount)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `AdvancedToggled true makes monthlyContribution derived from ContributionCalculator`() = runTest {
+        val viewModel = buildViewModel()
+
+        viewModel.onEvent(GoalEditEvent.AdvancedToggled(true))
+        viewModel.onEvent(GoalEditEvent.IncomeAmountChanged(0, "50000"))
+        viewModel.onEvent(GoalEditEvent.ExpenseAmountChanged(0, "20000"))
+
+        viewModel.state.test {
+            val state = expectMostRecentItem()
+            assertTrue("advanced must remain enabled", state.advancedContribution)
+            assertEquals(
+                "monthly = 50000 − 20000 = 30000",
+                0,
+                state.monthlyContribution.toBigDecimalOrNull()?.compareTo(BigDecimal("30000")),
+            )
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `entering multiple income and expense rows recomputes monthly as sum-incomes minus sum-expenses`() = runTest {
+        val viewModel = buildViewModel()
+
+        viewModel.onEvent(GoalEditEvent.AdvancedToggled(true))
+        viewModel.onEvent(GoalEditEvent.IncomeAmountChanged(0, "50000"))
+        viewModel.onEvent(GoalEditEvent.IncomeAdded)
+        viewModel.onEvent(GoalEditEvent.IncomeAmountChanged(1, "10000"))
+        viewModel.onEvent(GoalEditEvent.ExpenseAmountChanged(0, "20000"))
+        viewModel.onEvent(GoalEditEvent.ExpenseAdded)
+        viewModel.onEvent(GoalEditEvent.ExpenseAmountChanged(1, "5000"))
+
+        viewModel.state.test {
+            val state = expectMostRecentItem()
+            assertEquals(
+                "monthly = (50000 + 10000) − (20000 + 5000) = 35000",
+                0,
+                state.monthlyContribution.toBigDecimalOrNull()?.compareTo(BigDecimal("35000")),
+            )
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `expenses greater than incomes produces negative monthly and UNREACHABLE projection`() = runTest {
+        currencyRepo.seed(rubCurrency())
+        accountRepo.seed(account(id = 1L, currencyId = 1L))
+
+        val viewModel = buildViewModel()
+
+        viewModel.onEvent(GoalEditEvent.AccountSelected(1L))
+        viewModel.onEvent(GoalEditEvent.TargetChanged("100000"))
+        viewModel.onEvent(GoalEditEvent.StartingCapitalChanged("0"))
+        viewModel.onEvent(GoalEditEvent.AdvancedToggled(true))
+        viewModel.onEvent(GoalEditEvent.IncomeAmountChanged(0, "5000"))
+        viewModel.onEvent(GoalEditEvent.ExpenseAmountChanged(0, "10000"))
+
+        viewModel.state.test {
+            val state = expectMostRecentItem()
+            val monthly = state.monthlyContribution.toBigDecimalOrNull() ?: BigDecimal.ZERO
+            assertTrue("monthly must be negative when expenses > incomes", monthly.signum() < 0)
+            assertNotNull("projection must be computed", state.savingsProjection)
+            assertEquals(GoalStatus.UNREACHABLE, state.savingsProjection!!.status)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `AdvancedToggled false keeps last computed monthly value and retains rows`() = runTest {
+        val viewModel = buildViewModel()
+
+        viewModel.onEvent(GoalEditEvent.AdvancedToggled(true))
+        viewModel.onEvent(GoalEditEvent.IncomeAmountChanged(0, "30000"))
+        viewModel.onEvent(GoalEditEvent.ExpenseAmountChanged(0, "10000"))
+        viewModel.onEvent(GoalEditEvent.AdvancedToggled(false))
+
+        viewModel.state.test {
+            val state = expectMostRecentItem()
+            assertFalse("advancedContribution must be disabled after toggle-off", state.advancedContribution)
+            assertEquals(
+                "monthly must retain the last computed value 20000",
+                0,
+                state.monthlyContribution.toBigDecimalOrNull()?.compareTo(BigDecimal("20000")),
+            )
+            assertEquals("income rows must be retained", 1, state.incomeRows.size)
+            assertEquals("expense rows must be retained", 1, state.expenseRows.size)
+            assertEquals("income row amount must be retained", "30000", state.incomeRows[0].amount)
+            assertEquals("expense row amount must be retained", "10000", state.expenseRows[0].amount)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `IncomeAdded appends an empty row and recomputes total`() = runTest {
+        val viewModel = buildViewModel()
+
+        viewModel.onEvent(GoalEditEvent.AdvancedToggled(true))
+        viewModel.onEvent(GoalEditEvent.IncomeAmountChanged(0, "20000"))
+        viewModel.onEvent(GoalEditEvent.ExpenseAmountChanged(0, "5000"))
+        viewModel.onEvent(GoalEditEvent.IncomeAdded)
+
+        viewModel.state.test {
+            val state = expectMostRecentItem()
+            assertEquals("two income rows after add", 2, state.incomeRows.size)
+            assertEquals("second income row amount is empty", "", state.incomeRows[1].amount)
+            assertEquals(
+                "monthly = (20000 + 0) − 5000 = 15000",
+                0,
+                state.monthlyContribution.toBigDecimalOrNull()?.compareTo(BigDecimal("15000")),
+            )
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `IncomeRemoved removes the row at the given index and recomputes total`() = runTest {
+        val viewModel = buildViewModel()
+
+        viewModel.onEvent(GoalEditEvent.AdvancedToggled(true))
+        viewModel.onEvent(GoalEditEvent.IncomeAmountChanged(0, "40000"))
+        viewModel.onEvent(GoalEditEvent.IncomeAdded)
+        viewModel.onEvent(GoalEditEvent.IncomeAmountChanged(1, "10000"))
+        viewModel.onEvent(GoalEditEvent.ExpenseAmountChanged(0, "5000"))
+        viewModel.onEvent(GoalEditEvent.IncomeRemoved(0))
+
+        viewModel.state.test {
+            val state = expectMostRecentItem()
+            assertEquals("one income row remains", 1, state.incomeRows.size)
+            assertEquals("remaining income amount is 10000", "10000", state.incomeRows[0].amount)
+            assertEquals(
+                "monthly = 10000 − 5000 = 5000",
+                0,
+                state.monthlyContribution.toBigDecimalOrNull()?.compareTo(BigDecimal("5000")),
+            )
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `blank amount in a row parses to zero and does not affect total`() = runTest {
+        val viewModel = buildViewModel()
+
+        viewModel.onEvent(GoalEditEvent.AdvancedToggled(true))
+        viewModel.onEvent(GoalEditEvent.IncomeAmountChanged(0, ""))
+        viewModel.onEvent(GoalEditEvent.ExpenseAmountChanged(0, ""))
+
+        viewModel.state.test {
+            val state = expectMostRecentItem()
+            assertEquals(
+                "blank amounts → monthly contribution = 0",
+                0,
+                state.monthlyContribution.toBigDecimalOrNull()?.compareTo(BigDecimal.ZERO),
+            )
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `SaveClicked persists a Goal whose contributionBreakdown has enabled=true with the rows`() = runTest {
+        currencyRepo.seed(rubCurrency())
+        accountRepo.seed(account(id = 1L, currencyId = 1L, name = "Main"))
+
+        val viewModel = buildViewModel()
+
+        viewModel.onEvent(GoalEditEvent.AccountSelected(1L))
+        viewModel.onEvent(GoalEditEvent.NameChanged("Vacation"))
+        viewModel.onEvent(GoalEditEvent.TargetChanged("200000"))
+        viewModel.onEvent(GoalEditEvent.StartingCapitalChanged("0"))
+        viewModel.onEvent(GoalEditEvent.AdvancedToggled(true))
+        viewModel.onEvent(GoalEditEvent.IncomeNameChanged(0, "Salary"))
+        viewModel.onEvent(GoalEditEvent.IncomeAmountChanged(0, "50000"))
+        viewModel.onEvent(GoalEditEvent.ExpenseNameChanged(0, "Rent"))
+        viewModel.onEvent(GoalEditEvent.ExpenseAmountChanged(0, "15000"))
+
+        viewModel.actions.test {
+            viewModel.onEvent(GoalEditEvent.SaveClicked)
+            awaitItem()
+
+            val upserted = goalRepo.lastUpserted
+            assertNotNull("goal must have been upserted", upserted)
+            val breakdown = upserted!!.contributionBreakdown
+            assertTrue("breakdown must be enabled", breakdown.enabled)
+            assertEquals("one income row persisted", 1, breakdown.incomes.size)
+            assertEquals("income name persisted", "Salary", breakdown.incomes[0].name)
+            assertEquals(0, breakdown.incomes[0].amount.compareTo(BigDecimal("50000")))
+            assertEquals("one expense row persisted", 1, breakdown.expenses.size)
+            assertEquals("expense name persisted", "Rent", breakdown.expenses[0].name)
+            assertEquals(0, breakdown.expenses[0].amount.compareTo(BigDecimal("15000")))
+            assertEquals(
+                "monthlyContribution on Goal = 50000 − 15000 = 35000",
+                0,
+                upserted.monthlyContribution.compareTo(BigDecimal("35000")),
+            )
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `loading an existing goal with enabled breakdown pre-fills checkbox and rows`() = runTest {
+        currencyRepo.seed(rubCurrency())
+        val breakdown = com.kshavrin.mymoney.core.domain.model.ContributionBreakdown(
+            enabled = true,
+            incomes = listOf(
+                com.kshavrin.mymoney.core.domain.model.ContributionItem("Side job", BigDecimal("25000")),
+            ),
+            expenses = listOf(
+                com.kshavrin.mymoney.core.domain.model.ContributionItem("Gym", BigDecimal("3000")),
+            ),
+        )
+        val existing = goal(id = 55L, name = "Holiday", accountId = 1L).copy(
+            contributionBreakdown = breakdown,
+            monthlyContribution = BigDecimal("22000"),
+        )
+        goalRepo.seed(listOf(existing))
+        accountRepo.seed(account(id = 1L, currencyId = 1L))
+
+        val viewModel = buildViewModel(goalId = 55L)
+
+        viewModel.state.test {
+            val state = expectMostRecentItem()
+            assertTrue("advancedContribution must be enabled from saved breakdown", state.advancedContribution)
+            assertEquals("one income row loaded", 1, state.incomeRows.size)
+            assertEquals("income name loaded", "Side job", state.incomeRows[0].name)
+            assertEquals("income amount loaded", "25000", state.incomeRows[0].amount)
+            assertEquals("one expense row loaded", 1, state.expenseRows.size)
+            assertEquals("expense name loaded", "Gym", state.expenseRows[0].name)
+            assertEquals("expense amount loaded", "3000", state.expenseRows[0].amount)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `AdvancedToggled true does not re-seed rows when rows already exist from a loaded goal`() = runTest {
+        currencyRepo.seed(rubCurrency())
+        val breakdown = com.kshavrin.mymoney.core.domain.model.ContributionBreakdown(
+            enabled = false,
+            incomes = listOf(
+                com.kshavrin.mymoney.core.domain.model.ContributionItem("Bonus", BigDecimal("10000")),
+            ),
+            expenses = listOf(
+                com.kshavrin.mymoney.core.domain.model.ContributionItem("Transport", BigDecimal("2000")),
+            ),
+        )
+        val existing = goal(id = 66L, name = "Trip", accountId = 1L).copy(
+            contributionBreakdown = breakdown,
+        )
+        goalRepo.seed(listOf(existing))
+        accountRepo.seed(account(id = 1L, currencyId = 1L))
+
+        val viewModel = buildViewModel(goalId = 66L)
+        viewModel.onEvent(GoalEditEvent.AdvancedToggled(true))
+
+        viewModel.state.test {
+            val state = expectMostRecentItem()
+            assertEquals("rows must not be re-seeded when already populated", 1, state.incomeRows.size)
+            assertEquals("existing income row must be preserved", "Bonus", state.incomeRows[0].name)
             cancelAndIgnoreRemainingEvents()
         }
     }

@@ -1,7 +1,7 @@
 # Localize seeded built-in categories + default account to the locale
 Epic: monefy-import-visibility-l10n
 Order: 02 of 03
-Status: draft
+Status: done
 Depends-on: —
 Date: 2026-06-08
 
@@ -30,5 +30,8 @@ duplicates every category/account. Localizing the seed to the locale gives a fre
 built-in names that match Monefy's defaults — the precondition for SPEC 03's no-duplicate merge.
 
 ## Implementation links
-- commit: <hash>
-- files: <changed files>
+- commit: 53ad39d2 (seeder + locale name table), b0c7d4db (extended unit tests)
+- files:
+  - core/domain/src/main/kotlin/com/kshavrin/mymoney/core/domain/seed/InitialDataSeeder.kt
+  - core/domain/src/test/kotlin/com/kshavrin/mymoney/core/domain/seed/InitialDataSeederTest.kt
+- verification: `:core:domain:test --tests *InitialDataSeederTest` BUILD SUCCESSFUL (14 tests); runner script false-negative bypassed per project policy. Wiring: SplashViewModel.initialise → seedIfNeeded(locale = Locale.getDefault()).

@@ -22,4 +22,6 @@ internal object AppSettingsKeys {
     val AUTO_SYNC_ENABLED = booleanPreferencesKey("auto_sync_enabled")
     val BUDGET_MODE_ENABLED = booleanPreferencesKey("budget_mode_enabled")
     val FIRST_POSITIVE_SEEN = booleanPreferencesKey("first_positive_seen")
+    val IMPORT_FOCUS_EPOCH_MS = longPreferencesKey("import_focus_epoch_ms")
+    val IMPORT_FOCUS_CURRENCY_ID = longPreferencesKey("import_focus_currency_id")
 }

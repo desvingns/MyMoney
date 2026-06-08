@@ -53,6 +53,8 @@ internal fun Preferences.toAppSettings(): AppSettings = AppSettings(
     autoSyncEnabled = this[AppSettingsKeys.AUTO_SYNC_ENABLED] ?: true,
     budgetModeEnabled = this[AppSettingsKeys.BUDGET_MODE_ENABLED] ?: true,
     firstPositiveSeen = this[AppSettingsKeys.FIRST_POSITIVE_SEEN] ?: false,
+    importFocusEpochMs = this[AppSettingsKeys.IMPORT_FOCUS_EPOCH_MS] ?: 0L,
+    importFocusCurrencyId = this[AppSettingsKeys.IMPORT_FOCUS_CURRENCY_ID] ?: -1L,
 )
 
 internal fun AppSettings.writeTo(prefs: androidx.datastore.preferences.core.MutablePreferences) {
@@ -80,4 +82,6 @@ internal fun AppSettings.writeTo(prefs: androidx.datastore.preferences.core.Muta
     prefs[AppSettingsKeys.AUTO_SYNC_ENABLED] = autoSyncEnabled
     prefs[AppSettingsKeys.BUDGET_MODE_ENABLED] = budgetModeEnabled
     prefs[AppSettingsKeys.FIRST_POSITIVE_SEEN] = firstPositiveSeen
+    prefs[AppSettingsKeys.IMPORT_FOCUS_EPOCH_MS] = importFocusEpochMs
+    prefs[AppSettingsKeys.IMPORT_FOCUS_CURRENCY_ID] = importFocusCurrencyId
 }

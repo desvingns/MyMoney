@@ -4,11 +4,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
+import com.kshavrin.mymoney.core.datastore.model.AppSettings
 import com.kshavrin.mymoney.core.designsystem.donut.CategorySlice
+import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.BalanceSnapshot
 import com.kshavrin.mymoney.core.domain.model.Category
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
+import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.DomainEvent
+import com.kshavrin.mymoney.core.domain.model.Period
 import com.kshavrin.mymoney.core.domain.repository.AccountRepository
 import com.kshavrin.mymoney.core.domain.repository.CategoryRepository
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
@@ -24,10 +28,14 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
+import java.time.Instant
+import java.time.YearMonth
+import java.time.ZoneId
 import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -54,13 +62,10 @@ class DashboardViewModel @Inject constructor(
     private val budgetAlertSelection = MutableStateFlow<BudgetAlertSelection?>(null)
 
     init {
-        viewModelScope.launch {
-            observeAccountsAndCurrencies()
-            selectBudgetAlerts()
-            observeTransactionChanges()
-            observeBudgetAlerts()
-            observeExpenseCategories()
-        }
+        observeAccountsAndCurrencies()
+        observeTransactionChanges()
+        observeBudgetAlerts()
+        observeExpenseCategories()
     }
 
     private fun observeExpenseCategories() {
@@ -83,26 +88,103 @@ class DashboardViewModel @Inject constructor(
         iconKey = category.iconKey,
     )
 
-    private suspend fun observeAccountsAndCurrencies() {
-        val settings = appSettingsRepository.settings.first()
-        val accounts = accountRepository.observeActive().first()
-        val currencies = currencyRepository.observeActive().first()
+    private fun observeAccountsAndCurrencies() {
+        viewModelScope.launch {
+            combine(
+                accountRepository.observeActive(),
+                currencyRepository.observeActive(),
+                appSettingsRepository.settings,
+            ) { accounts, currencies, settings ->
+                DashboardInputs(accounts, currencies, settings)
+            }.collect { inputs ->
+                val current = _state.value
+                val focusPeriod = inputs.settings.importFocusPeriod()
+                val focusSelection = inputs.settings.importFocusSelection(inputs.accounts, inputs.currencies)
+                val selection = if (focusPeriod != null) {
+                    focusSelection ?: resolveDashboardSelection(
+                        current.dashboardSelection,
+                        inputs.accounts,
+                        inputs.currencies,
+                        inputs.settings,
+                    )
+                } else {
+                    resolveDashboardSelection(
+                        current.dashboardSelection,
+                        inputs.accounts,
+                        inputs.currencies,
+                        inputs.settings,
+                    )
+                }
+                _state.value = current.copy(
+                    accounts = inputs.accounts,
+                    currencies = inputs.currencies,
+                    period = focusPeriod ?: current.period,
+                    dashboardSelection = selection,
+                    isLoading = selection == null,
+                )
+                selectBudgetAlerts()
+                recomputeBalance()
+                if (focusPeriod != null) {
+                    appSettingsRepository.update {
+                        it.copy(importFocusEpochMs = 0L, importFocusCurrencyId = -1L)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun resolveDashboardSelection(
+        current: DashboardSelection?,
+        accounts: List<Account>,
+        currencies: List<Currency>,
+        settings: AppSettings,
+    ): DashboardSelection? {
+        preserveDashboardSelection(current, accounts, currencies)?.let { return it }
         val defaultAccount = if (settings.defaultAccountId >= 0) {
             accounts.firstOrNull { it.id == settings.defaultAccountId }
-        } else null
+        } else {
+            null
+        }
         val activeAccount = defaultAccount ?: accounts.firstOrNull()
-        val activeCurrency = activeAccount?.let { acc -> currencies.firstOrNull { it.id == acc.currencyId } }
-        val selection = if (settings.dashboardSelectionMode == DASHBOARD_SELECTION_ALL) {
+        val activeCurrency = activeAccount?.let { account ->
+            currencies.firstOrNull { it.id == account.currencyId }
+        }
+        return if (settings.dashboardSelectionMode == DASHBOARD_SELECTION_ALL) {
             activeCurrency?.let(DashboardSelection::AllAccounts)
         } else {
             activeAccount?.let(DashboardSelection::SpecificAccount)
         }
-        _state.value = _state.value.copy(
-            accounts = accounts,
-            currencies = currencies,
-            dashboardSelection = selection,
-            isLoading = selection == null,
-        )
+    }
+
+    private fun preserveDashboardSelection(
+        current: DashboardSelection?,
+        accounts: List<Account>,
+        currencies: List<Currency>,
+    ): DashboardSelection? = when (current) {
+        is DashboardSelection.SpecificAccount ->
+            accounts.firstOrNull { it.id == current.account.id }?.let(DashboardSelection::SpecificAccount)
+        is DashboardSelection.AllAccounts ->
+            currencies.firstOrNull { it.id == current.currency.id }
+                ?.takeIf { currency -> accounts.any { it.currencyId == currency.id } }
+                ?.let(DashboardSelection::AllAccounts)
+        null -> null
+    }
+
+    private fun AppSettings.importFocusPeriod(): Period.Month? =
+        importFocusEpochMs
+            .takeIf { it > 0L }
+            ?.let { epochMs ->
+                Period.Month(YearMonth.from(Instant.ofEpochMilli(epochMs).atZone(ZoneId.systemDefault())))
+            }
+
+    private fun AppSettings.importFocusSelection(
+        accounts: List<Account>,
+        currencies: List<Currency>,
+    ): DashboardSelection.AllAccounts? {
+        if (importFocusEpochMs <= 0L || importFocusCurrencyId <= 0L) return null
+        val currency = currencies.firstOrNull { it.id == importFocusCurrencyId } ?: return null
+        if (accounts.none { it.currencyId == currency.id }) return null
+        return DashboardSelection.AllAccounts(currency)
     }
 
     private fun observeBudgetAlerts() {
@@ -348,6 +430,12 @@ class DashboardViewModel @Inject constructor(
 
 private data class BudgetAlertSelection(
     val accountId: Long,
+)
+
+private data class DashboardInputs(
+    val accounts: List<Account>,
+    val currencies: List<Currency>,
+    val settings: AppSettings,
 )
 
 private const val DASHBOARD_SELECTION_SPECIFIC = "specific_account"

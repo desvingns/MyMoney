@@ -17,4 +17,6 @@ data class AppSettings(
     val autoSyncEnabled: Boolean = true,
     val budgetModeEnabled: Boolean = true,
     val firstPositiveSeen: Boolean = false,
+    val importFocusEpochMs: Long = 0L,
+    val importFocusCurrencyId: Long = -1L,
 )

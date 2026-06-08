@@ -93,7 +93,15 @@ class BackupRestoreViewModel @Inject constructor(
         viewModelScope.launch {
             _state.value = _state.value.copy(inProgress = true, errorBannerRes = null)
             backupRepository.importTransactionsCsv(documentUriString)
-                .onSuccess {
+                .onSuccess { focus ->
+                    if (focus != null) {
+                        appSettingsRepository.update {
+                            it.copy(
+                                importFocusEpochMs = focus.occurredAtEpochMs,
+                                importFocusCurrencyId = focus.currencyId,
+                            )
+                        }
+                    }
                     _state.value = _state.value.copy(inProgress = false)
                     _actions.emit(BackupRestoreAction.CsvImportSucceeded)
                 }

@@ -124,11 +124,14 @@ class DashboardViewModel @Inject constructor(
                 )
                 selectBudgetAlerts()
                 recomputeBalance()
-                if (focusPeriod != null) {
-                    appSettingsRepository.update {
-                        it.copy(importFocusEpochMs = 0L, importFocusCurrencyId = -1L)
-                    }
-                }
+            }
+        }
+    }
+
+    private fun clearImportFocus() {
+        viewModelScope.launch {
+            appSettingsRepository.update {
+                it.copy(importFocusEpochMs = 0L, importFocusCurrencyId = -1L)
             }
         }
     }
@@ -315,14 +318,17 @@ class DashboardViewModel @Inject constructor(
         when (event) {
             is DashboardEvent.PeriodChanged -> {
                 _state.value = _state.value.copy(period = event.period)
+                clearImportFocus()
                 recomputeBalance()
             }
             DashboardEvent.PreviousPeriod -> {
                 _state.value = _state.value.copy(period = _state.value.period.previous())
+                clearImportFocus()
                 recomputeBalance()
             }
             DashboardEvent.NextPeriod -> {
                 _state.value = _state.value.copy(period = _state.value.period.next())
+                clearImportFocus()
                 recomputeBalance()
             }
             is DashboardEvent.AccountSelected -> {
@@ -331,6 +337,7 @@ class DashboardViewModel @Inject constructor(
                     dashboardSelection = DashboardSelection.SpecificAccount(acc),
                     leftDrawerOpen = false,
                 )
+                clearImportFocus()
                 selectBudgetAlerts()
                 recomputeBalance()
                 viewModelScope.launch {
@@ -348,6 +355,7 @@ class DashboardViewModel @Inject constructor(
                     dashboardSelection = DashboardSelection.AllAccounts(currency),
                     leftDrawerOpen = false,
                 )
+                clearImportFocus()
                 selectBudgetAlerts()
                 recomputeBalance()
                 viewModelScope.launch {

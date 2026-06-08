@@ -315,7 +315,7 @@ class DashboardViewModelTest {
     }
 
     @Test
-    fun `import focus signal selects imported month and all accounts once`() = runTest {
+    fun `import focus signal selects imported month and all accounts and persists until navigation`() = runTest {
         val focusEpochMs = Instant.parse("2020-03-14T12:00:00Z").toEpochMilli()
         settingsRepository = FakeDashboardAppSettingsRepository(
             AppSettings(
@@ -337,10 +337,87 @@ class DashboardViewModelTest {
             assertTrue(viewModel.state.value.dashboardSelection is DashboardSelection.AllAccounts)
             assertEquals(usd, viewModel.state.value.currentCurrency)
             assertEquals(0, BigDecimal("50.00").compareTo(viewModel.state.value.balanceSnapshot!!.expense.amount))
+            assertEquals(focusEpochMs, settingsRepository.currentSettings().importFocusEpochMs)
+            assertEquals(usd.id, settingsRepository.currentSettings().importFocusCurrencyId)
+        } finally {
+            store.clear()
+            runCurrent()
+        }
+    }
+
+    @Test
+    fun `import focus survives a restart so a rebuilt view model still jumps to the imported month`() = runTest {
+        val focusEpochMs = Instant.parse("2020-03-14T12:00:00Z").toEpochMilli()
+        settingsRepository = FakeDashboardAppSettingsRepository(
+            AppSettings(
+                defaultAccountId = cash.id,
+                firstPositiveSeen = true,
+                importFocusEpochMs = focusEpochMs,
+                importFocusCurrencyId = usd.id,
+            ),
+        )
+        val focusPeriod = Period.Month(YearMonth.of(2020, 3))
+        transactionRepository.seedExpenseSummary(cash.id, focusPeriod, summary(categoryId = 10L, amount = "42.00"))
+        transactionRepository.seedExpenseSummary(card.id, focusPeriod, summary(categoryId = 20L, amount = "8.00"))
+
+        val (firstViewModel, firstStore) = buildViewModel()
+        try {
+            runCurrent()
+            assertEquals(focusPeriod, firstViewModel.state.value.period)
+            assertTrue(firstViewModel.state.value.dashboardSelection is DashboardSelection.AllAccounts)
+        } finally {
+            firstStore.clear()
+            runCurrent()
+        }
+
+        val (secondViewModel, secondStore) = buildViewModel()
+        try {
+            runCurrent()
+            assertEquals(focusPeriod, secondViewModel.state.value.period)
+            assertTrue(secondViewModel.state.value.dashboardSelection is DashboardSelection.AllAccounts)
+            assertEquals(usd, secondViewModel.state.value.currentCurrency)
+            assertEquals(0, BigDecimal("50.00").compareTo(secondViewModel.state.value.balanceSnapshot!!.expense.amount))
+        } finally {
+            secondStore.clear()
+            runCurrent()
+        }
+    }
+
+    @Test
+    fun `explicit navigation clears import focus so a rebuilt view model no longer jumps to the imported month`() = runTest {
+        val focusEpochMs = Instant.parse("2020-03-14T12:00:00Z").toEpochMilli()
+        settingsRepository = FakeDashboardAppSettingsRepository(
+            AppSettings(
+                defaultAccountId = cash.id,
+                firstPositiveSeen = true,
+                importFocusEpochMs = focusEpochMs,
+                importFocusCurrencyId = usd.id,
+            ),
+        )
+        val focusPeriod = Period.Month(YearMonth.of(2020, 3))
+        transactionRepository.seedExpenseSummary(cash.id, focusPeriod, summary(categoryId = 10L, amount = "42.00"))
+
+        val (firstViewModel, firstStore) = buildViewModel()
+        try {
+            runCurrent()
+            assertEquals(focusPeriod, firstViewModel.state.value.period)
+
+            firstViewModel.onEvent(DashboardEvent.NextPeriod)
+            runCurrent()
+
             assertEquals(0L, settingsRepository.currentSettings().importFocusEpochMs)
             assertEquals(-1L, settingsRepository.currentSettings().importFocusCurrencyId)
         } finally {
-            store.clear()
+            firstStore.clear()
+            runCurrent()
+        }
+
+        val (secondViewModel, secondStore) = buildViewModel()
+        try {
+            runCurrent()
+            assertEquals(initialPeriod, secondViewModel.state.value.period)
+        } finally {
+            secondStore.clear()
             runCurrent()
         }
     }

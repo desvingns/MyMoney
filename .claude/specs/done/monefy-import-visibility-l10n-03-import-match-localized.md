@@ -1,7 +1,7 @@
 # Monefy import matches existing localized categories/accounts (no duplicates)
 Epic: monefy-import-visibility-l10n
 Order: 03 of 03
-Status: draft
+Status: done
 Depends-on: 02
 Date: 2026-06-08
 
@@ -29,5 +29,10 @@ with the localized seed from SPEC 02 in place, the importer must actually reuse 
 Hardens the existing name normalization (NFC + inner-whitespace) so near-identical RU labels match.
 
 ## Implementation links
-- commit: <hash>
-- files: <changed files>
+- commit: 1a777ec6 (normalizeName helper + BackupRepositoryImpl matching), 074308d1 (extra JVM + E2E tests)
+- files:
+  - core/domain/src/main/kotlin/com/kshavrin/mymoney/core/domain/csv/MonefyCsvImportParser.kt
+  - core/domain/src/test/kotlin/com/kshavrin/mymoney/core/domain/csv/MonefyCsvImportParserTest.kt
+  - core/database/src/main/java/com/kshavrin/mymoney/core/database/repository/BackupRepositoryImpl.kt
+  - core/database/src/androidTest/java/com/kshavrin/mymoney/core/database/MonefyCsvImportE2ETest.kt
+- verification: JVM `:core:domain:test --tests *MonefyCsvImportParserTest` green; `:core:database` main + androidTest compile clean; dao E2E `:core:database:connectedDebugAndroidTest` on emulator-5554 (Pixel_5_API_34) = tests 4, failures 0, errors 0, skipped 0 (incl. merges_into_seeded_RU_entities_without_duplicating). Runner JVM-script false-negative bypassed per project policy.

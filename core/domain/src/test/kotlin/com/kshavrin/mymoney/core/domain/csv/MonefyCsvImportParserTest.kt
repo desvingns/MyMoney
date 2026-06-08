@@ -135,4 +135,44 @@ class MonefyCsvImportParserTest {
             MonefyCsvImportParser.normalizeName("My custom"),
         )
     }
+
+    @Test
+    fun `normalizeName on blank string returns empty string`() {
+        assertEquals("", MonefyCsvImportParser.normalizeName("   "))
+    }
+
+    @Test
+    fun `normalizeName on empty string returns empty string`() {
+        assertEquals("", MonefyCsvImportParser.normalizeName(""))
+    }
+
+    @Test
+    fun `normalizeName is idempotent`() {
+        val name = "  Кафе и  рестораны "
+        assertEquals(
+            MonefyCsvImportParser.normalizeName(name),
+            MonefyCsvImportParser.normalizeName(MonefyCsvImportParser.normalizeName(name)),
+        )
+    }
+
+    @Test
+    fun `normalizeName collapses mixed ASCII-space and non-breaking-space run`() {
+        // Monefy may emit a mix of U+0020 and U+00A0 between words
+        val mixed = "Кафе${nbsp} и ${nbsp}рестораны"
+        assertEquals(
+            MonefyCsvImportParser.normalizeName("Кафе и рестораны"),
+            MonefyCsvImportParser.normalizeName(mixed),
+        )
+    }
+
+    @Test
+    fun `normalizeName uses Locale ROOT so Turkish dotless-i does not interfere`() {
+        // "I" lowercased with Locale.ROOT → "i", not dotless-ı (Turkish locale pitfall)
+        val upper = "INCOME"
+        val lower = "income"
+        assertEquals(
+            MonefyCsvImportParser.normalizeName(upper),
+            MonefyCsvImportParser.normalizeName(lower),
+        )
+    }
 }

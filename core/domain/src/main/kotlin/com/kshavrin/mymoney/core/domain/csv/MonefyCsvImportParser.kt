@@ -6,8 +6,10 @@ import java.io.PushbackReader
 import java.io.Reader
 import java.io.StringReader
 import java.math.BigDecimal
+import java.text.Normalizer
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 enum class CsvImportFormat {
     MyMoney, Monefy, Unknown
@@ -39,6 +41,23 @@ object MonefyCsvImportParser {
     private const val MAX_NOTE_LENGTH = 256
 
     private val DATE_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+
+    // Java's \s excludes Unicode spaces such as U+00A0 (which Monefy emits), so match any
+    // Unicode whitespace plus the explicit non-breaking space to collapse them all.
+    private val WHITESPACE_RUN = Regex("[\\s\\p{Z}\\u00A0]+")
+
+    /**
+     * Canonical key for matching an imported entity name against an existing one.
+     * Trim, Unicode-normalize (NFC), collapse internal whitespace runs (including the
+     * non-breaking spaces Monefy emits) to a single ASCII space, then lowercase.
+     * Both the CSV name and the stored entity name must pass through this identically
+     * so "Кафе и  рестораны" merges into the seeded "Кафе и рестораны".
+     */
+    fun normalizeName(raw: String): String =
+        Normalizer.normalize(raw, Normalizer.Form.NFC)
+            .replace(WHITESPACE_RUN, " ")
+            .trim()
+            .lowercase(Locale.ROOT)
 
     fun parseText(text: String): MonefyCsvImport {
         val records = tokenize(StringReader(text))

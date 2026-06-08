@@ -2,6 +2,7 @@ package com.kshavrin.mymoney.core.domain.csv
 
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -84,5 +85,54 @@ class MonefyCsvImportParserTest {
         assertThrows(IOException::class.java) {
             MonefyCsvImportParser.parseText(csv)
         }
+    }
+
+    @Test
+    fun `normalizeName trims, lowercases and collapses inner whitespace`() {
+        assertEquals(
+            MonefyCsvImportParser.normalizeName("Кафе и рестораны"),
+            MonefyCsvImportParser.normalizeName("  Кафе и  рестораны "),
+        )
+    }
+
+    @Test
+    fun `normalizeName collapses non-breaking space runs`() {
+        assertEquals(
+            MonefyCsvImportParser.normalizeName("Кафе и рестораны"),
+            MonefyCsvImportParser.normalizeName("Кафе$nbsp и${nbsp}рестораны"),
+        )
+    }
+
+    @Test
+    fun `normalizeName is case-insensitive`() {
+        assertEquals(
+            MonefyCsvImportParser.normalizeName("Наличные"),
+            MonefyCsvImportParser.normalizeName("наличные"),
+        )
+    }
+
+    @Test
+    fun `normalizeName unifies NFC and NFD forms`() {
+        // "Кафе" with a precomposed 'е' vs a base 'е' + combining diaeresis decompose to
+        // distinct code-point sequences but must normalize to the same NFC key.
+        val precomposed = "Cafeé"
+        val decomposed = "Cafeé"
+        assertNotEquals(
+            "test setup: the two literals must be distinct code-point sequences",
+            precomposed,
+            decomposed,
+        )
+        assertEquals(
+            MonefyCsvImportParser.normalizeName(precomposed),
+            MonefyCsvImportParser.normalizeName(decomposed),
+        )
+    }
+
+    @Test
+    fun `normalizeName distinguishes genuinely different names`() {
+        assertNotEquals(
+            MonefyCsvImportParser.normalizeName("Продукты"),
+            MonefyCsvImportParser.normalizeName("My custom"),
+        )
     }
 }

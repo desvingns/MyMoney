@@ -257,7 +257,7 @@ class BackupRepositoryImpl @Inject constructor(
             val existingAccounts = database.accountDao().observeActive().first()
                 .map { it.toDomain() }
             existingAccounts.forEach { account ->
-                accountsByName.putIfAbsent(account.name.trim().lowercase(Locale.ROOT), account.id)
+                accountsByName.putIfAbsent(MonefyCsvImportParser.normalizeName(account.name), account.id)
             }
             var accountSortOrder = (existingAccounts.maxOfOrNull { it.sortOrder } ?: -1) + 1
 
@@ -266,7 +266,7 @@ class BackupRepositoryImpl @Inject constructor(
                 .filterNot { it.isArchived }
             existingCategories.forEach { category ->
                 categoriesByNameKind.putIfAbsent(
-                    category.name.trim().lowercase(Locale.ROOT) to category.kind,
+                    MonefyCsvImportParser.normalizeName(category.name) to category.kind,
                     category.id,
                 )
             }
@@ -274,7 +274,7 @@ class BackupRepositoryImpl @Inject constructor(
             var paletteIndex = 0
 
             suspend fun resolveAccountId(name: String, currencyId: Long): Long {
-                val key = name.trim().lowercase(Locale.ROOT)
+                val key = MonefyCsvImportParser.normalizeName(name)
                 accountsByName[key]?.let { return it }
                 val account = Account(
                     id = 0L,
@@ -294,7 +294,7 @@ class BackupRepositoryImpl @Inject constructor(
             }
 
             suspend fun resolveCategoryId(name: String, kind: CategoryKind): Long {
-                val key = name.trim().lowercase(Locale.ROOT) to kind
+                val key = MonefyCsvImportParser.normalizeName(name) to kind
                 categoriesByNameKind[key]?.let { return it }
                 val category = Category(
                     id = 0L,

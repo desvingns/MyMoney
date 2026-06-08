@@ -285,6 +285,90 @@ class DashboardViewModelTest {
     }
 
     @Test
+    fun `imported account emission updates all accounts balance`() = runTest {
+        val importedCash = account(id = 4L, name = "Imported cash", isDefault = false)
+        settingsRepository = FakeDashboardAppSettingsRepository(
+            AppSettings(
+                defaultAccountId = cash.id,
+                dashboardSelectionMode = "all_accounts",
+                firstPositiveSeen = true,
+            ),
+        )
+        accountRepository.seed(cash)
+        transactionRepository.seedExpenseSummary(cash.id, initialPeriod, summary(categoryId = 10L, amount = "10.00"))
+        transactionRepository.seedExpenseSummary(importedCash.id, initialPeriod, summary(categoryId = 20L, amount = "25.00"))
+
+        val (viewModel, store) = buildViewModel()
+        try {
+            runCurrent()
+            assertEquals(0, BigDecimal("10.00").compareTo(viewModel.state.value.balanceSnapshot!!.expense.amount))
+
+            accountRepository.seed(cash, importedCash)
+
+            runCurrent()
+            assertTrue(viewModel.state.value.accounts.any { it.id == importedCash.id })
+            assertEquals(0, BigDecimal("35.00").compareTo(viewModel.state.value.balanceSnapshot!!.expense.amount))
+        } finally {
+            store.clear()
+            runCurrent()
+        }
+    }
+
+    @Test
+    fun `import focus signal selects imported month and all accounts once`() = runTest {
+        val focusEpochMs = Instant.parse("2020-03-14T12:00:00Z").toEpochMilli()
+        settingsRepository = FakeDashboardAppSettingsRepository(
+            AppSettings(
+                defaultAccountId = cash.id,
+                firstPositiveSeen = true,
+                importFocusEpochMs = focusEpochMs,
+                importFocusCurrencyId = usd.id,
+            ),
+        )
+        val focusPeriod = Period.Month(YearMonth.of(2020, 3))
+        transactionRepository.seedExpenseSummary(cash.id, focusPeriod, summary(categoryId = 10L, amount = "42.00"))
+        transactionRepository.seedExpenseSummary(card.id, focusPeriod, summary(categoryId = 20L, amount = "8.00"))
+
+        val (viewModel, store) = buildViewModel()
+        try {
+            runCurrent()
+
+            assertEquals(focusPeriod, viewModel.state.value.period)
+            assertTrue(viewModel.state.value.dashboardSelection is DashboardSelection.AllAccounts)
+            assertEquals(usd, viewModel.state.value.currentCurrency)
+            assertEquals(0, BigDecimal("50.00").compareTo(viewModel.state.value.balanceSnapshot!!.expense.amount))
+            assertEquals(0L, settingsRepository.currentSettings().importFocusEpochMs)
+            assertEquals(-1L, settingsRepository.currentSettings().importFocusCurrencyId)
+        } finally {
+            store.clear()
+            runCurrent()
+        }
+    }
+
+    @Test
+    fun `manual account selection survives account list refresh`() = runTest {
+        val importedCash = account(id = 4L, name = "Imported cash", isDefault = false)
+        val (viewModel, store) = buildViewModel()
+        try {
+            runCurrent()
+
+            viewModel.onEvent(DashboardEvent.AccountSelected(card.id))
+            runCurrent()
+            assertEquals(card, viewModel.state.value.currentAccount)
+
+            accountRepository.seed(cash, card, importedCash)
+
+            runCurrent()
+            assertEquals(card, viewModel.state.value.currentAccount)
+            assertEquals(card.id, settingsRepository.currentSettings().defaultAccountId)
+            assertEquals("specific_account", settingsRepository.currentSettings().dashboardSelectionMode)
+        } finally {
+            store.clear()
+            runCurrent()
+        }
+    }
+
+    @Test
     fun `custom range period change stores the range and recomputes dashboard balances`() = runTest {
         val customRange = Period.CustomRange(
             start = LocalDate.of(2026, 4, 10),

@@ -2,6 +2,7 @@ package com.kshavrin.mymoney.feature.settings.fake
 
 import com.kshavrin.mymoney.core.domain.model.BackupFile
 import com.kshavrin.mymoney.core.domain.repository.BackupRepository
+import com.kshavrin.mymoney.core.domain.repository.CsvImportFocus
 
 class FakeBackupRepository : BackupRepository {
 
@@ -18,7 +19,7 @@ class FakeBackupRepository : BackupRepository {
     private var exportResult: Result<Unit> = Result.success(Unit)
     private var importResult: Result<Unit> = Result.success(Unit)
     private var exportCsvResult: Result<Unit> = Result.success(Unit)
-    private var importCsvResult: Result<Unit> = Result.success(Unit)
+    private var importCsvResult: Result<CsvImportFocus?> = Result.success(null)
     private var clearDatabaseResult: Result<Unit> = Result.success(Unit)
     private var localBackups: List<BackupFile> = emptyList()
 
@@ -36,6 +37,10 @@ class FakeBackupRepository : BackupRepository {
 
     fun simulateCsvImportFailure(throwable: Throwable = RuntimeException("csv import failed")) {
         importCsvResult = Result.failure(throwable)
+    }
+
+    fun seedCsvImportFocus(focus: CsvImportFocus) {
+        importCsvResult = Result.success(focus)
     }
 
     fun simulateClearDatabaseFailure(throwable: Throwable = RuntimeException("clear database failed")) {
@@ -68,7 +73,7 @@ class FakeBackupRepository : BackupRepository {
         return exportCsvResult
     }
 
-    override suspend fun importTransactionsCsv(documentUriString: String): Result<Unit> {
+    override suspend fun importTransactionsCsv(documentUriString: String): Result<CsvImportFocus?> {
         importedCsvUris += documentUriString
         return importCsvResult
     }

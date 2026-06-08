@@ -10,6 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -73,6 +74,9 @@ class MonefyCsvImportE2ETest {
             "Import returned failure: ${result.exceptionOrNull()?.message}",
             result.isSuccess,
         )
+        val focus = result.getOrThrow()
+        assertNotNull(focus)
+        assertTrue(focus!!.occurredAtEpochMs > 0L)
 
         val transactions = db.transactionDao().observeAll().first()
         assertTrue(

@@ -52,6 +52,8 @@ class AppSettingsRepositoryTest {
         assertEquals(true, settings.autoSyncEnabled)
         assertEquals(true, settings.budgetModeEnabled)
         assertEquals(false, settings.firstPositiveSeen)
+        assertEquals(0L, settings.importFocusEpochMs)
+        assertEquals(-1L, settings.importFocusCurrencyId)
     }
 
     @Test
@@ -73,6 +75,8 @@ class AppSettingsRepositoryTest {
             autoSyncEnabled = false,
             budgetModeEnabled = false,
             firstPositiveSeen = true,
+            importFocusEpochMs = 1700000002000L,
+            importFocusCurrencyId = 9L,
         )
         repository.update { target }
         val read = repository.settings.first()

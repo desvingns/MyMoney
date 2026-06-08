@@ -6,6 +6,7 @@ import app.cash.turbine.test
 import com.kshavrin.mymoney.core.datastore.SecureStorage
 import com.kshavrin.mymoney.core.datastore.model.AppSettings
 import com.kshavrin.mymoney.core.datastore.model.SecureSettings
+import com.kshavrin.mymoney.core.domain.repository.CsvImportFocus
 import com.kshavrin.mymoney.feature.settings.R
 import com.kshavrin.mymoney.feature.settings.fake.FakeAppSettingsRepository
 import com.kshavrin.mymoney.feature.settings.fake.FakeBackupRepository
@@ -252,6 +253,7 @@ class BackupRestoreViewModelTest {
     @Test
     fun `successful csv import emits CsvImportSucceeded action and clears progress`() = runTest {
         val viewModel = buildViewModel()
+        repository.seedCsvImportFocus(CsvImportFocus(occurredAtEpochMs = 1_706_918_400_000L, currencyId = 7L))
 
         viewModel.actions.test {
             viewModel.onEvent(BackupRestoreEvent.ImportCsvFilePicked("content://doc/import.csv"))
@@ -265,6 +267,9 @@ class BackupRestoreViewModelTest {
             assertFalse(state.inProgress)
             cancelAndIgnoreRemainingEvents()
         }
+
+        assertEquals(1_706_918_400_000L, appSettingsRepository.settings.value.importFocusEpochMs)
+        assertEquals(7L, appSettingsRepository.settings.value.importFocusCurrencyId)
     }
 
     @Test

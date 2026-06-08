@@ -121,7 +121,7 @@ fun BackupRestoreRoute(
         onExport = { exportLauncher.launch(null) },
         onImport = { importLauncher.launch(arrayOf(IMPORT_MIME_TYPE)) },
         onExportCsv = { csvExportLauncher.launch(csvExportName()) },
-        onImportCsv = { csvImportLauncher.launch(arrayOf(CSV_MIME_TYPE, TEXT_MIME_TYPE)) },
+        onImportCsv = { csvImportLauncher.launch(arrayOf(WILDCARD_MIME_TYPE)) },
         onRequestReset = { viewModel.onEvent(BackupRestoreEvent.ResetRequested) },
         onDismissReset = { viewModel.onEvent(BackupRestoreEvent.ResetCancelled) },
         onConfirmReset = { viewModel.onEvent(BackupRestoreEvent.ResetConfirmed) },
@@ -259,7 +259,7 @@ fun BackupRestoreContent(
 
 private const val IMPORT_MIME_TYPE = "application/octet-stream"
 private const val CSV_MIME_TYPE = "text/csv"
-private const val TEXT_MIME_TYPE = "text/plain"
+private const val WILDCARD_MIME_TYPE = "*/*"
 private val CSV_TIMESTAMP_FORMATTER: DateTimeFormatter =
     DateTimeFormatter.ofPattern("yyyyMMddHHmm").withZone(ZoneId.systemDefault())
 

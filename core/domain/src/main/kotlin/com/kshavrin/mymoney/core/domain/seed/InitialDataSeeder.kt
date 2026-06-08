@@ -34,6 +34,8 @@ class InitialDataSeeder @Inject constructor(
 
         currencyRepository.upsertAll(DEFAULT_CURRENCIES)
 
+        val russian = locale.language == "ru"
+
         val targetCode = runCatching { java.util.Currency.getInstance(locale).currencyCode }.getOrNull() ?: "USD"
         val targetCurrency = currencyRepository.findByCode(targetCode)
             ?: currencyRepository.findByCode("USD")
@@ -42,7 +44,7 @@ class InitialDataSeeder @Inject constructor(
         accountRepository.upsert(
             Account(
                 id = 0L,
-                name = "Cash",
+                name = if (russian) ACCOUNT_NAME_RU else ACCOUNT_NAME_EN,
                 currencyId = targetCurrency.id,
                 initialBalance = BigDecimal.ZERO,
                 type = AccountType.Cash,
@@ -59,7 +61,7 @@ class InitialDataSeeder @Inject constructor(
         val expenseCategories = EXPENSE_CATEGORY_SEEDS.mapIndexed { index, seed ->
             Category(
                 id = 0L,
-                name = seed.name,
+                name = if (russian) seed.nameRu else seed.nameEn,
                 kind = CategoryKind.Expense,
                 iconKey = seed.iconKey,
                 colorHex = seed.colorHex,
@@ -72,7 +74,7 @@ class InitialDataSeeder @Inject constructor(
         val incomeCategories = DEFAULT_INCOME_CATEGORIES.mapIndexed { index, seed ->
             Category(
                 id = 0L,
-                name = seed.name,
+                name = if (russian) seed.nameRu else seed.nameEn,
                 kind = CategoryKind.Income,
                 iconKey = seed.iconKey,
                 colorHex = seed.colorHex,
@@ -86,9 +88,17 @@ class InitialDataSeeder @Inject constructor(
         true
     }
 
-    internal data class CategorySeed(val name: String, val iconKey: String, val colorHex: String)
+    internal data class CategorySeed(
+        val nameEn: String,
+        val nameRu: String,
+        val iconKey: String,
+        val colorHex: String,
+    )
 
     private companion object {
+        const val ACCOUNT_NAME_EN = "Cash"
+        const val ACCOUNT_NAME_RU = "Наличные"
+
         val DEFAULT_CURRENCIES = listOf(
             Currency(0L, "USD", "$", "US Dollar", 2, true, 0),
             Currency(0L, "EUR", "€", "Euro", 2, true, 1),
@@ -113,26 +123,26 @@ class InitialDataSeeder @Inject constructor(
         )
 
         val EXPENSE_CATEGORY_SEEDS = listOf(
-            CategorySeed("Clothing", "ic_cat_clothing", "#9C5BB8"),
-            CategorySeed("Bills", "ic_cat_bills", "#C9A227"),
-            CategorySeed("Food", "ic_cat_food", "#E07AAE"),
-            CategorySeed("Entertainment", "ic_cat_entertainment", "#F08A3E"),
-            CategorySeed("Taxi", "ic_cat_taxi", "#E0A52C"),
-            CategorySeed("Housing", "ic_cat_housing", "#4A8FCB"),
-            CategorySeed("Health", "ic_cat_health", "#D85A5A"),
-            CategorySeed("Pets", "ic_cat_pets", "#3DA98A"),
-            CategorySeed("Sport", "ic_cat_sport", "#7AC29A"),
-            CategorySeed("Gifts", "ic_cat_gifts", "#D9A4A4"),
-            CategorySeed("Phone", "ic_cat_phone", "#9CBBA8"),
-            CategorySeed("Transport", "ic_cat_transport", "#E07A7A"),
-            CategorySeed("Hygiene", "ic_cat_hygiene", "#3A4F8C"),
-            CategorySeed("Cafe", "ic_cat_cafe", "#7A9685"),
-            CategorySeed("Car", "ic_cat_car", "#4A5870"),
+            CategorySeed("Clothing", "Одежда", "ic_cat_clothing", "#9C5BB8"),
+            CategorySeed("Bills", "Счета", "ic_cat_bills", "#C9A227"),
+            CategorySeed("Food", "Продукты", "ic_cat_food", "#E07AAE"),
+            CategorySeed("Entertainment", "Развлечения", "ic_cat_entertainment", "#F08A3E"),
+            CategorySeed("Taxi", "Такси", "ic_cat_taxi", "#E0A52C"),
+            CategorySeed("Housing", "Жильё", "ic_cat_housing", "#4A8FCB"),
+            CategorySeed("Health", "Здоровье", "ic_cat_health", "#D85A5A"),
+            CategorySeed("Pets", "Питомцы", "ic_cat_pets", "#3DA98A"),
+            CategorySeed("Sport", "Спорт", "ic_cat_sport", "#7AC29A"),
+            CategorySeed("Gifts", "Подарки", "ic_cat_gifts", "#D9A4A4"),
+            CategorySeed("Phone", "Телефон", "ic_cat_phone", "#9CBBA8"),
+            CategorySeed("Transport", "Транспорт", "ic_cat_transport", "#E07A7A"),
+            CategorySeed("Hygiene", "Личная гигиена", "ic_cat_hygiene", "#3A4F8C"),
+            CategorySeed("Cafe", "Кафе и рестораны", "ic_cat_cafe", "#7A9685"),
+            CategorySeed("Car", "Автомобиль", "ic_cat_car", "#4A5870"),
         )
 
         val DEFAULT_INCOME_CATEGORIES = listOf(
-            CategorySeed("Salary", "ic_cat_salary", "#7AC29A"),
-            CategorySeed("Other", "ic_cat_other", "#9CBBA8"),
+            CategorySeed("Salary", "Зарплата", "ic_cat_salary", "#7AC29A"),
+            CategorySeed("Other", "Прочее", "ic_cat_other", "#9CBBA8"),
         )
     }
 }

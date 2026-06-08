@@ -10,7 +10,12 @@ import com.kshavrin.mymoney.core.common.di.IoDispatcher
 import com.kshavrin.mymoney.core.database.MoneyDatabase
 import com.kshavrin.mymoney.core.database.mapper.toDomain
 import com.kshavrin.mymoney.core.database.mapper.toEntity
+import com.kshavrin.mymoney.core.domain.csv.CsvImportFormat
+import com.kshavrin.mymoney.core.domain.csv.MonefyCsvImportParser
+import com.kshavrin.mymoney.core.domain.model.Account
+import com.kshavrin.mymoney.core.domain.model.AccountType
 import com.kshavrin.mymoney.core.domain.model.BackupFile
+import com.kshavrin.mymoney.core.domain.model.Category
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
@@ -23,6 +28,7 @@ import java.io.File
 import java.io.IOException
 import java.io.PushbackReader
 import java.io.Reader
+import java.math.BigDecimal
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.time.Instant
@@ -134,10 +140,16 @@ class BackupRepositoryImpl @Inject constructor(
                 ?.bufferedReader(Charsets.UTF_8)
                 ?.use(::parseCsv)
                 ?: throw IOException("Cannot read CSV import")
-            if (records.firstOrNull() != CSV_COLUMNS) {
-                throw IOException("CSV header does not match the transaction schema")
+            when (MonefyCsvImportParser.detectFormat(records.firstOrNull())) {
+                CsvImportFormat.Monefy -> importMonefyCsv(records)
+                CsvImportFormat.MyMoney -> importMyMoneyCsv(records)
+                CsvImportFormat.Unknown ->
+                    throw IOException("CSV header does not match the transaction schema")
             }
+        }
+    }
 
+    private suspend fun importMyMoneyCsv(records: List<List<String>>) {
             val currencies = database.currencyDao().observeAll().first()
                 .map { it.toDomain() }
                 .groupBy { it.code.lowercase(Locale.ROOT) }
@@ -213,6 +225,109 @@ class BackupRepositoryImpl @Inject constructor(
                 transactions.forEach { transaction ->
                     database.transactionDao().upsert(transaction.toEntity())
                 }
+            }
+    }
+
+    private suspend fun importMonefyCsv(records: List<List<String>>) {
+        val rows = MonefyCsvImportParser.parse(records)
+
+        val now = Instant.now()
+        val currenciesByCode = mutableMapOf<String, Long>()
+        val accountsByName = mutableMapOf<String, Long>()
+        val categoriesByNameKind = mutableMapOf<Pair<String, CategoryKind>, Long>()
+
+        suspend fun resolveCurrencyId(code: String): Long {
+            val key = code.lowercase(Locale.ROOT)
+            currenciesByCode[key]?.let { return it }
+            val currency = database.currencyDao().findByCode(code)
+                ?: throw IOException("Currency '$code' is not a seeded currency")
+            return currency.id.also { currenciesByCode[key] = it }
+        }
+
+        database.withTransaction {
+            val existingAccounts = database.accountDao().observeActive().first()
+                .map { it.toDomain() }
+            existingAccounts.forEach { account ->
+                accountsByName.putIfAbsent(account.name.trim().lowercase(Locale.ROOT), account.id)
+            }
+            var accountSortOrder = (existingAccounts.maxOfOrNull { it.sortOrder } ?: -1) + 1
+
+            val existingCategories = database.categoryDao().observeAll().first()
+                .map { it.toDomain() }
+                .filterNot { it.isArchived }
+            existingCategories.forEach { category ->
+                categoriesByNameKind.putIfAbsent(
+                    category.name.trim().lowercase(Locale.ROOT) to category.kind,
+                    category.id,
+                )
+            }
+            var categorySortOrder = (existingCategories.maxOfOrNull { it.sortOrder } ?: -1) + 1
+            var paletteIndex = 0
+
+            suspend fun resolveAccountId(name: String, currencyId: Long): Long {
+                val key = name.trim().lowercase(Locale.ROOT)
+                accountsByName[key]?.let { return it }
+                val account = Account(
+                    id = 0L,
+                    name = name.trim(),
+                    currencyId = currencyId,
+                    initialBalance = BigDecimal.ZERO,
+                    type = AccountType.Cash,
+                    colorHex = AUTO_PALETTE[paletteIndex++ % AUTO_PALETTE.size],
+                    iconKey = AUTO_ACCOUNT_ICON,
+                    isDefault = false,
+                    sortOrder = accountSortOrder++,
+                    createdAt = now,
+                    updatedAt = now,
+                    isArchived = false,
+                )
+                return database.accountDao().upsert(account.toEntity()).also { accountsByName[key] = it }
+            }
+
+            suspend fun resolveCategoryId(name: String, kind: CategoryKind): Long {
+                val key = name.trim().lowercase(Locale.ROOT) to kind
+                categoriesByNameKind[key]?.let { return it }
+                val category = Category(
+                    id = 0L,
+                    name = name.trim(),
+                    kind = kind,
+                    iconKey = AUTO_CATEGORY_ICON,
+                    colorHex = AUTO_PALETTE[paletteIndex++ % AUTO_PALETTE.size],
+                    sortOrder = categorySortOrder++,
+                    isDefault = false,
+                    isArchived = false,
+                    createdAt = now,
+                )
+                return database.categoryDao().upsert(category.toEntity()).also { categoriesByNameKind[key] = it }
+            }
+
+            rows.forEach { row ->
+                val currencyId = resolveCurrencyId(row.currencyCode)
+                val accountId = resolveAccountId(row.accountName, currencyId)
+                val categoryKind = when (row.kind) {
+                    TransactionKind.Expense -> CategoryKind.Expense
+                    TransactionKind.Income -> CategoryKind.Income
+                    TransactionKind.Transfer -> error("Monefy CSV import never produces transfers")
+                }
+                val categoryId = resolveCategoryId(row.categoryName, categoryKind)
+                val occurredAt = row.date.atStartOfDay(ZoneId.systemDefault()).toInstant()
+                val transaction = Transaction(
+                    id = 0L,
+                    kind = row.kind,
+                    amount = row.amount,
+                    currencyId = currencyId,
+                    accountId = accountId,
+                    categoryId = categoryId,
+                    note = row.note,
+                    occurredAt = occurredAt,
+                    createdAt = now,
+                    updatedAt = now,
+                    isDeleted = false,
+                    toAccountId = null,
+                    toAmount = null,
+                    exchangeRate = null,
+                )
+                database.transactionDao().upsert(transaction.toEntity())
             }
         }
     }
@@ -380,6 +495,18 @@ class BackupRepositoryImpl @Inject constructor(
         const val CSV_HEADER = "id,kind,amount,currency,account,category,note,occurredAt,createdAt"
         val CSV_COLUMNS: List<String> = CSV_HEADER.split(",")
         const val CSV_LINE_ENDING = "\r\n"
+        const val AUTO_ACCOUNT_ICON = "ic_account_cash"
+        const val AUTO_CATEGORY_ICON = "ic_cat_other"
+        val AUTO_PALETTE: List<String> = listOf(
+            "#EF5350",
+            "#AB47BC",
+            "#5C6BC0",
+            "#29B6F6",
+            "#26A69A",
+            "#9CCC65",
+            "#FFA726",
+            "#8D6E63",
+        )
         val TIMESTAMP_FORMATTER: DateTimeFormatter =
             DateTimeFormatter.ofPattern("yyyyMMddHHmm").withZone(ZoneId.systemDefault())
     }

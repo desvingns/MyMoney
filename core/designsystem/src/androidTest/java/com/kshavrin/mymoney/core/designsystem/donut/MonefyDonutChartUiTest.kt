@@ -770,6 +770,66 @@ class MonefyDonutChartUiTest {
         composeTestRule.onNodeWithContentDescription(full).assertExists()
     }
 
+    // ---- compact callout block (icon + % inline, name on one line below) ----
+
+    @Test
+    fun `compact callout renders without crash for a very long category name exercising font shrink path`() {
+        val longName = "Очень длинное название категории расходов"
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                MonefyDonutChart(
+                    income = BigDecimal.ZERO,
+                    expense = BigDecimal("200.00"),
+                    slices = listOf(slice(label = longName, fraction = 1.0f)),
+                    modifier = Modifier.size(240.dp),
+                    showCategoryLabels = true,
+                    labelMinFraction = 0f,
+                    animationSpec = snap(),
+                )
+            }
+        }
+        composeTestRule.waitForIdle()
+        composeTestRule
+            .onNodeWithContentDescription(
+                expectedDescription(
+                    income = "0",
+                    expense = "200.00",
+                    slices = listOf(longName to 100),
+                ),
+            )
+            .assertExists()
+    }
+
+    @Test
+    fun `compact callout renders without crash for a normal category name and preserves semantics`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                MonefyDonutChart(
+                    income = BigDecimal.ZERO,
+                    expense = BigDecimal("150.00"),
+                    slices = listOf(
+                        slice(label = "Food", fraction = 0.60f),
+                        slice(label = "Home", fraction = 0.40f),
+                    ),
+                    modifier = Modifier.size(300.dp),
+                    showCategoryLabels = true,
+                    labelMinFraction = 0f,
+                    animationSpec = snap(),
+                )
+            }
+        }
+        composeTestRule.waitForIdle()
+        composeTestRule
+            .onNodeWithContentDescription(
+                expectedDescription(
+                    income = "0",
+                    expense = "150.00",
+                    slices = listOf("Food" to 60, "Home" to 40),
+                ),
+            )
+            .assertExists()
+    }
+
     // ---- iconScale param — composable renders without crash ----
 
     @Test

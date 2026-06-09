@@ -106,10 +106,10 @@ val Typography.dashboardCalloutLabel: TextStyle
     )
 
 val Typography.dashboardCalloutPercentage: TextStyle
-    get() = headlineMedium.copy(
-        fontSize = 24.sp,
+    get() = bodyLarge.copy(
+        fontSize = 16.sp,
         fontWeight = FontWeight.Bold,
-        lineHeight = 28.sp,
+        lineHeight = 20.sp,
         letterSpacing = 0.sp,
     )
 

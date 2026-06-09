@@ -204,12 +204,19 @@ fun MonefyDonutChart(
                                 if (arcs.isEmpty()) {
                                     val iconSize = calloutIconSize.toPx() * (iconScale / 1.7f)
                                     val iconTouchRadius = (iconSize + Spacing.m.toPx()) / 2f
+                                    val inset = iconSize / 2f + Spacing.s.toPx()
+                                    val insetHalfWidth = (size.width / 2f - inset).coerceAtLeast(0f)
+                                    val insetHalfHeightTop = (center.y - inset).coerceAtLeast(0f)
+                                    val insetHalfHeightBottom =
+                                        (size.height - center.y - inset).coerceAtLeast(0f)
+                                    val angles = DonutGeometry.evenAngles(emptyStateIcons.size)
                                     val hit = emptyStateIcons.firstOrNullIndexed { index, _ ->
-                                        val slot = emptyIconSlot(
+                                        val slot = emptyIconFrameSlot(
                                             center = center,
-                                            outerRadius = outerRadius,
-                                            index = index,
-                                            count = emptyStateIcons.size,
+                                            angleDegrees = angles[index],
+                                            insetHalfWidth = insetHalfWidth,
+                                            insetHalfHeightTop = insetHalfHeightTop,
+                                            insetHalfHeightBottom = insetHalfHeightBottom,
                                         )
                                         hypot(offset.x - slot.x, offset.y - slot.y) <= iconTouchRadius
                                     }
@@ -341,18 +348,50 @@ private fun DrawScope.drawDonutChart(
     val iconMargin = Spacing.s.toPx()
 
     if (slices.isEmpty()) {
-        drawCircle(
-            color = outlineColor,
-            radius = r,
-            center = center,
-            style = Stroke(width = th),
+        val ringArcs = listOf(
+            GappedArc(color = outlineColor, startAngle = -90f, sweepAngle = 360f),
         )
+        if (style == DonutStyle.Extrude) {
+            drawExtrudedRing(center = center, radius = r, th = th, arcs = ringArcs)
+        } else {
+            drawFlatRing(center = center, radius = r, th = th, arcs = ringArcs)
+        }
+        val inset = iconSize / 2f + iconMargin
+        val insetHalfWidth = (size.width / 2f - inset).coerceAtLeast(0f)
+        val insetHalfHeightTop = (center.y - inset).coerceAtLeast(0f)
+        val insetHalfHeightBottom = (size.height - center.y - inset).coerceAtLeast(0f)
+        val angles = DonutGeometry.evenAngles(emptyStateIcons.size)
         emptyStateIcons.forEachIndexed { index, slice ->
-            val slot = emptyIconSlot(
+            val angleDegrees = angles[index]
+            val rawSlot = emptyIconFrameSlot(
                 center = center,
-                outerRadius = outerRadius,
-                index = index,
-                count = emptyStateIcons.size,
+                angleDegrees = angleDegrees,
+                insetHalfWidth = insetHalfWidth,
+                insetHalfHeightTop = insetHalfHeightTop,
+                insetHalfHeightBottom = insetHalfHeightBottom,
+            )
+            val slot = clampCalloutAnchor(
+                anchor = rawSlot,
+                iconSize = iconSize,
+                label = null,
+                percentage = "",
+                percentageStyle = calloutPercentageStyle,
+                labelStyle = calloutLabelStyle,
+                textMeasurer = textMeasurer,
+                canvasWidth = size.width,
+                canvasHeight = size.height,
+            )
+            val ringOuterPoint = radialPoint(
+                center = center,
+                midRadians = Math.toRadians(angleDegrees.toDouble()).toFloat(),
+                radius = outerRadius,
+                explodedOffset = Offset.Zero,
+            )
+            drawLine(
+                color = slice.color,
+                start = ringOuterPoint,
+                end = slot,
+                strokeWidth = leaderLineThickness.toPx(),
             )
             drawIconDisc(
                 slotCenter = slot,
@@ -672,18 +711,20 @@ private fun DrawScope.drawTextCentered(
     )
 }
 
-private fun emptyIconSlot(
+private fun emptyIconFrameSlot(
     center: Offset,
-    outerRadius: Float,
-    index: Int,
-    count: Int,
+    angleDegrees: Float,
+    insetHalfWidth: Float,
+    insetHalfHeightTop: Float,
+    insetHalfHeightBottom: Float,
 ): Offset {
-    val angleDegrees = -90f + index * (360f / count)
-    val angleRadians = Math.toRadians(angleDegrees.toDouble()).toFloat()
-    return Offset(
-        center.x + outerRadius * 0.92f * cos(angleRadians),
-        center.y + outerRadius * 0.92f * sin(angleRadians),
+    val projected = DonutGeometry.projectAngleToFrame(
+        angleRadians = Math.toRadians(angleDegrees.toDouble()).toFloat(),
+        halfWidth = insetHalfWidth,
+        halfHeightTop = insetHalfHeightTop,
+        halfHeightBottom = insetHalfHeightBottom,
     )
+    return Offset(center.x + projected.x, center.y + projected.y)
 }
 
 private fun layoutSlices(arcs: List<SliceArc>): List<PlacedSlice> {

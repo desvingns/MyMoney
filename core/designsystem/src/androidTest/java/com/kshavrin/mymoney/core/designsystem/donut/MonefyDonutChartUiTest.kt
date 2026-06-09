@@ -31,6 +31,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import java.math.BigDecimal
 import kotlin.math.cos
+import kotlin.math.hypot
 import kotlin.math.sin
 
 @RunWith(AndroidJUnit4::class)
@@ -521,8 +522,7 @@ class MonefyDonutChartUiTest {
         )
         val iconSizePx = with(composeTestRule.density) { 40.dp.toPx() }
         val iconProbeRadius = with(composeTestRule.density) { 18.dp.toPx() }
-        val fringeX = (iconCenter.x - iconSizePx / 2f - with(composeTestRule.density) { 4.dp.toPx() }).toInt()
-        val fringeY = iconCenter.y.toInt()
+        val fringe = with(composeTestRule.density) { 4.dp.toPx() }
 
         assertTrue(
             "the slice icon itself must still render at the expected frame-projected position",
@@ -536,9 +536,37 @@ class MonefyDonutChartUiTest {
                 argb = slices[0].color.toArgb(),
             ),
         )
+
+        // The leader line runs RADIALLY along center→iconCenter, so sampling along that
+        // direction would land on the line itself. Instead, probe PERPENDICULAR to the
+        // radial direction — a solid filled disc would still paint those points, but the
+        // thin 1dp radial leader line cannot reach a perpendicular-offset sample.
+        val donutCenter = Offset(image.width / 2f, image.height / 2f)
+        val radialDx = iconCenter.x - donutCenter.x
+        val radialDy = iconCenter.y - donutCenter.y
+        val radialLen = hypot(radialDx, radialDy).coerceAtLeast(1f)
+        // Perpendicular unit vector: (-radialDy/len, radialDx/len)
+        val perpUx = -radialDy / radialLen
+        val perpUy = radialDx / radialLen
+        val perpOffset = iconSizePx / 2f + fringe
+
+        // Probe point on one perpendicular side of the icon fringe
+        val fringeX1 = (iconCenter.x + perpUx * perpOffset).toInt()
+        val fringeY1 = (iconCenter.y + perpUy * perpOffset).toInt()
+        // Probe point on the other perpendicular side
+        val fringeX2 = (iconCenter.x - perpUx * perpOffset).toInt()
+        val fringeY2 = (iconCenter.y - perpUy * perpOffset).toInt()
+
+        val side1IsBlack = fringeX1 in 0 until image.width && fringeY1 in 0 until (pixels.size / image.width) &&
+            colorsMatch(pixels[fringeY1 * image.width + fringeX1], Color.Black.toArgb())
+        val side2IsBlack = fringeX2 in 0 until image.width && fringeY2 in 0 until (pixels.size / image.width) &&
+            colorsMatch(pixels[fringeY2 * image.width + fringeX2], Color.Black.toArgb())
+
         assertTrue(
-            "the area just outside the icon outline must stay transparent to the black container instead of painting a background disc",
-            colorsMatch(pixels[fringeY * image.width + fringeX], Color.Black.toArgb()),
+            "the area perpendicular to the leader line just outside the icon outline must stay transparent " +
+                "to the black container — a solid background disc would paint both sides, the thin radial " +
+                "leader line cannot reach a perpendicular-offset point",
+            side1IsBlack || side2IsBlack,
         )
     }
 

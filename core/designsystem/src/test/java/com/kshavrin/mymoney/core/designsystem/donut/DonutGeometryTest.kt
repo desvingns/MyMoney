@@ -463,6 +463,121 @@ class DonutGeometryTest {
         assertTrue(iconCenter.second < 0f)
     }
 
+    // ---- projectAngleToFrame: ray exit on inset rectangle ----
+
+    private fun rad(degrees: Float) = Math.toRadians(degrees.toDouble()).toFloat()
+
+    @Test
+    fun `projectAngleToFrame zero degrees exits at right-edge midpoint`() {
+        val p = DonutGeometry.projectAngleToFrame(
+            angleRadians = rad(0f),
+            halfWidth = 100f,
+            halfHeightTop = 80f,
+            halfHeightBottom = 80f,
+        )
+        assertEquals(100f, p.x, 0.01f)
+        assertEquals(0f, p.y, 0.01f)
+    }
+
+    @Test
+    fun `projectAngleToFrame ninety degrees exits at bottom-edge midpoint`() {
+        val p = DonutGeometry.projectAngleToFrame(
+            angleRadians = rad(90f),
+            halfWidth = 100f,
+            halfHeightTop = 80f,
+            halfHeightBottom = 60f,
+        )
+        assertEquals(0f, p.x, 0.01f)
+        assertEquals(60f, p.y, 0.01f)
+    }
+
+    @Test
+    fun `projectAngleToFrame one-eighty degrees exits at left-edge midpoint`() {
+        val p = DonutGeometry.projectAngleToFrame(
+            angleRadians = rad(180f),
+            halfWidth = 100f,
+            halfHeightTop = 80f,
+            halfHeightBottom = 80f,
+        )
+        assertEquals(-100f, p.x, 0.01f)
+        assertEquals(0f, p.y, 0.01f)
+    }
+
+    @Test
+    fun `projectAngleToFrame two-seventy degrees exits at top-edge midpoint`() {
+        val p = DonutGeometry.projectAngleToFrame(
+            angleRadians = rad(270f),
+            halfWidth = 100f,
+            halfHeightTop = 70f,
+            halfHeightBottom = 60f,
+        )
+        assertEquals(0f, p.x, 0.01f)
+        assertEquals(-70f, p.y, 0.01f)
+    }
+
+    @Test
+    fun `projectAngleToFrame forty-five degrees on square exits at corner`() {
+        val p = DonutGeometry.projectAngleToFrame(
+            angleRadians = rad(45f),
+            halfWidth = 100f,
+            halfHeightTop = 100f,
+            halfHeightBottom = 100f,
+        )
+        assertEquals(100f, p.x, 0.01f)
+        assertEquals(100f, p.y, 0.01f)
+    }
+
+    @Test
+    fun `projectAngleToFrame one-thirty-five degrees on square exits at bottom-left corner`() {
+        val p = DonutGeometry.projectAngleToFrame(
+            angleRadians = rad(135f),
+            halfWidth = 100f,
+            halfHeightTop = 100f,
+            halfHeightBottom = 100f,
+        )
+        assertEquals(-100f, p.x, 0.01f)
+        assertEquals(100f, p.y, 0.01f)
+    }
+
+    @Test
+    fun `projectAngleToFrame diagonal on wide rect exits on left-right edge first`() {
+        val p = DonutGeometry.projectAngleToFrame(
+            angleRadians = rad(45f),
+            halfWidth = 200f,
+            halfHeightTop = 50f,
+            halfHeightBottom = 50f,
+        )
+        // 45° ray reaches the bottom edge (y=50) before the far right edge (x=200)
+        assertEquals(50f, p.y, 0.01f)
+        assertEquals(50f, p.x, 0.01f)
+    }
+
+    @Test
+    fun `projectAngleToFrame diagonal on tall rect exits on top-bottom-blocked side first`() {
+        val p = DonutGeometry.projectAngleToFrame(
+            angleRadians = rad(45f),
+            halfWidth = 50f,
+            halfHeightTop = 200f,
+            halfHeightBottom = 200f,
+        )
+        // 45° ray reaches the right edge (x=50) before the far bottom edge (y=200)
+        assertEquals(50f, p.x, 0.01f)
+        assertEquals(50f, p.y, 0.01f)
+    }
+
+    @Test
+    fun `projectAngleToFrame pure-vertical ray does not divide by zero`() {
+        val p = DonutGeometry.projectAngleToFrame(
+            angleRadians = rad(90f),
+            halfWidth = 100f,
+            halfHeightTop = 40f,
+            halfHeightBottom = 40f,
+        )
+        assertTrue("x must be finite", p.x.isFinite())
+        assertTrue("y must be finite", p.y.isFinite())
+        assertEquals(40f, p.y, 0.01f)
+    }
+
     private fun pointAtAngleDegrees(angleDegrees: Float, radius: Float): Pair<Float, Float> {
         val radians = Math.toRadians(angleDegrees.toDouble())
         return (radius * cos(radians)).toFloat() to (radius * sin(radians)).toFloat()

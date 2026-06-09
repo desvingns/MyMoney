@@ -221,7 +221,11 @@ fun MonefyDonutChart(
                                 val explodedOffsetPx = explodedOffset.toPx()
                                 val iconSize = calloutIconSize.toPx() * (iconScale / 1.7f)
                                 val iconMargin = Spacing.s.toPx()
-                                val iconTouchRadius = (iconSize + Spacing.m.toPx()) / 2f
+        val iconTouchRadius = (iconSize + Spacing.m.toPx()) / 2f
+                                val inset = iconSize / 2f + iconMargin
+                                val insetHalfWidth = (size.width / 2f - inset).coerceAtLeast(0f)
+                                val insetHalfHeightTop = (center.y - inset).coerceAtLeast(0f)
+                                val insetHalfHeightBottom = (size.height - center.y - inset).coerceAtLeast(0f)
                                 val iconHit = layoutSlices(arcs).firstOrNull { placed ->
                                     if (
                                         progress.value < 1f ||
@@ -229,11 +233,11 @@ fun MonefyDonutChart(
                                     ) {
                                         return@firstOrNull false
                                     }
-                                    val slot = placed.iconCenter(
+                                    val slot = placed.frameIconCenter(
                                         center = center,
-                                        outerRadius = outerRadius,
-                                        iconMargin = iconMargin,
-                                        iconSize = iconSize,
+                                        insetHalfWidth = insetHalfWidth,
+                                        insetHalfHeightTop = insetHalfHeightTop,
+                                        insetHalfHeightBottom = insetHalfHeightBottom,
                                         explodedOffset = placed.explodedOffset(explodedOffsetPx),
                                     )
                                     hypot(offset.x - slot.x, offset.y - slot.y) <= iconTouchRadius
@@ -287,6 +291,7 @@ fun MonefyDonutChart(
                         calloutLabelStyle = calloutLabelStyle,
                         calloutPercentageStyle = calloutPercentageStyle,
                         calloutLabelColor = calloutLabelColor,
+                        leaderLineThickness = leaderLineThickness,
                     )
                 }
             }
@@ -324,6 +329,7 @@ private fun DrawScope.drawDonutChart(
     calloutLabelStyle: TextStyle,
     calloutPercentageStyle: TextStyle,
     calloutLabelColor: Color,
+    leaderLineThickness: Dp,
 ) {
     val center = Offset(size.width / 2f, size.height / 2f)
     val outerRadius = min(size.width, size.height) / 2f * outerRadiusFraction
@@ -391,15 +397,43 @@ private fun DrawScope.drawDonutChart(
         drawFlatRing(center = center, radius = r, th = th, arcs = gappedArcs)
     }
 
+    val inset = iconSize / 2f + iconMargin
+    val insetHalfWidth = (size.width / 2f - inset).coerceAtLeast(0f)
+    val insetHalfHeightTop = (center.y - inset).coerceAtLeast(0f)
+    val insetHalfHeightBottom = (size.height - center.y - inset).coerceAtLeast(0f)
+
     placed.forEach { p ->
         if (progress < 1f || p.slice.fraction <= 0f) return@forEach
         val offset = p.explodedOffset(explodedOffsetPx)
-        val slot = p.iconCenter(
+        val rawSlot = p.frameIconCenter(
             center = center,
-            outerRadius = outerRadius,
-            iconMargin = iconMargin,
-            iconSize = iconSize,
+            insetHalfWidth = insetHalfWidth,
+            insetHalfHeightTop = insetHalfHeightTop,
+            insetHalfHeightBottom = insetHalfHeightBottom,
             explodedOffset = offset,
+        )
+        val slot = clampCalloutAnchor(
+            anchor = rawSlot,
+            iconSize = iconSize,
+            label = p.slice.label.takeIf { showCategoryLabels && p.slice.fraction >= labelMinFraction },
+            percentage = "${(p.slice.fraction * 100f).roundToInt()}%",
+            percentageStyle = calloutPercentageStyle,
+            labelStyle = calloutLabelStyle,
+            textMeasurer = textMeasurer,
+            canvasWidth = size.width,
+            canvasHeight = size.height,
+        )
+        val sliceOuterPoint = radialPoint(
+            center = center,
+            midRadians = p.midRadians,
+            radius = outerRadius,
+            explodedOffset = offset,
+        )
+        drawLine(
+            color = p.slice.color,
+            start = sliceOuterPoint,
+            end = slot,
+            strokeWidth = leaderLineThickness.toPx(),
         )
         val iconCenter = drawIconDisc(
             slotCenter = slot,
@@ -518,6 +552,39 @@ private fun DrawScope.drawCenterTotals(
         color = expenseColor,
         topLeft = Offset(center.x - expenseLayout.size.width / 2f, expenseTop),
     )
+}
+
+private fun clampCalloutAnchor(
+    anchor: Offset,
+    iconSize: Float,
+    label: String?,
+    percentage: String,
+    percentageStyle: TextStyle,
+    labelStyle: TextStyle,
+    textMeasurer: TextMeasurer,
+    canvasWidth: Float,
+    canvasHeight: Float,
+): Offset {
+    val percentageLayout = textMeasurer.measure(text = percentage, style = percentageStyle, maxLines = 1)
+    val blockWidth = iconSize + percentageLayout.size.width
+    val labelHeight = if (label != null) {
+        textMeasurer.measure(text = label, style = labelStyle, maxLines = 1).size.height.toFloat()
+    } else {
+        0f
+    }
+
+    val leftFromAnchor = iconSize / 2f
+    val topFromAnchor = iconSize / 2f
+    val bottomFromAnchor = iconSize / 2f + if (label != null) labelHeight else 0f
+
+    val minX = leftFromAnchor
+    val maxX = canvasWidth - (blockWidth - leftFromAnchor)
+    val minY = topFromAnchor
+    val maxY = canvasHeight - bottomFromAnchor
+
+    val clampedX = if (maxX < minX) anchor.x else anchor.x.coerceIn(minX, maxX)
+    val clampedY = if (maxY < minY) anchor.y else anchor.y.coerceIn(minY, maxY)
+    return Offset(clampedX, clampedY)
 }
 
 private fun DrawScope.drawCalloutText(
@@ -756,18 +823,24 @@ private fun PlacedSlice.explodedOffset(distance: Float): Offset = Offset(
     y = distance * sin(midRadians),
 )
 
-private fun PlacedSlice.iconCenter(
+private fun PlacedSlice.frameIconCenter(
     center: Offset,
-    outerRadius: Float,
-    iconMargin: Float,
-    iconSize: Float,
+    insetHalfWidth: Float,
+    insetHalfHeightTop: Float,
+    insetHalfHeightBottom: Float,
     explodedOffset: Offset,
-): Offset = radialPoint(
-    center = center,
-    midRadians = midRadians,
-    radius = outerRadius + iconMargin + iconSize / 2f,
-    explodedOffset = explodedOffset,
-)
+): Offset {
+    val projected = DonutGeometry.projectAngleToFrame(
+        angleRadians = midRadians,
+        halfWidth = insetHalfWidth,
+        halfHeightTop = insetHalfHeightTop,
+        halfHeightBottom = insetHalfHeightBottom,
+    )
+    return Offset(
+        x = center.x + explodedOffset.x + projected.x,
+        y = center.y + explodedOffset.y + projected.y,
+    )
+}
 
 private fun radialPoint(
     center: Offset,

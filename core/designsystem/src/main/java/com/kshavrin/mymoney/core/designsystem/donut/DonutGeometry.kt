@@ -1,11 +1,14 @@
 package com.kshavrin.mymoney.core.designsystem.donut
 
+import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.sin
 
 object DonutGeometry {
+
+    private const val EPSILON = 1e-6f
 
     fun gapForSweep(sweepDegrees: Float, maxGapDegrees: Float): Float =
         minOf(maxGapDegrees.coerceAtLeast(0f), sweepDegrees * 0.6f)
@@ -23,6 +26,22 @@ object DonutGeometry {
         if (d < side) return FrameOffset(-hw, hhBot - d)
         d -= side
         return FrameOffset(-hw + d, -hhTop)
+    }
+
+    fun projectAngleToFrame(
+        angleRadians: Float,
+        halfWidth: Float,
+        halfHeightTop: Float,
+        halfHeightBottom: Float,
+    ): FrameOffset {
+        val dx = cos(angleRadians)
+        val dy = sin(angleRadians)
+        val halfHeight = if (dy >= 0f) halfHeightBottom else halfHeightTop
+        // Guard near-vertical/near-horizontal rays so the unreached edge contributes no scale.
+        val tx = if (abs(dx) < EPSILON) Float.POSITIVE_INFINITY else halfWidth / abs(dx)
+        val ty = if (abs(dy) < EPSILON) Float.POSITIVE_INFINITY else halfHeight / abs(dy)
+        val scale = minOf(tx, ty)
+        return FrameOffset(dx * scale, dy * scale)
     }
 
     fun computeSliceArcs(slices: List<CategorySlice>): List<SliceArc> {

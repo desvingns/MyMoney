@@ -425,7 +425,7 @@ class MonefyDonutChartUiTest {
     }
 
     @Test
-    fun `populated slice icons render on their own contour rays and include exploded offset`() {
+    fun `populated slice icons render at frame-projected positions and include exploded offset`() {
         val slices = contourSlices()
         val chartSize = 520.dp
         val explodedOffset = 16.dp
@@ -464,7 +464,7 @@ class MonefyDonutChartUiTest {
         )
 
         assertTrue(
-            "first slice icon must render on the right-side ray of its slice",
+            "first slice icon must render at the frame-projected position for its mid-angle",
             regionContainsColor(
                 pixels = pixels,
                 width = image.width,
@@ -476,7 +476,7 @@ class MonefyDonutChartUiTest {
             ),
         )
         assertTrue(
-            "second slice icon must render on the left-side ray of its slice",
+            "second slice icon must render at the frame-projected position for its mid-angle",
             regionContainsColor(
                 pixels = pixels,
                 width = image.width,
@@ -525,7 +525,7 @@ class MonefyDonutChartUiTest {
         val fringeY = iconCenter.y.toInt()
 
         assertTrue(
-            "the slice icon itself must still render at the expected contour position",
+            "the slice icon itself must still render at the expected frame-projected position",
             regionContainsColor(
                 pixels = pixels,
                 width = image.width,
@@ -543,8 +543,33 @@ class MonefyDonutChartUiTest {
     }
 
     @Test
-    fun `leader line color parameter is dormant for populated slices`() {
-        val leaderLineColor = Color.Magenta
+    fun `populated chart with active leader lines renders without crash and preserves semantics`() {
+        // Leader lines are now drawn for populated slices using each slice's own color.
+        // The leaderLineColor parameter is accepted but not applied to populated slices.
+        setChart(
+            income = BigDecimal("450.00"),
+            expense = BigDecimal("124.00"),
+            slices = contourSlices(),
+        )
+        composeTestRule.waitForIdle()
+
+        composeTestRule
+            .onNodeWithContentDescription(
+                expectedDescription(
+                    income = "450.00",
+                    expense = "124.00",
+                    slices = listOf("Food" to 50, "Transport" to 50),
+                ),
+            )
+            .assertExists()
+    }
+
+    @Test
+    fun `leader line color parameter does not override slice color for populated slices`() {
+        // The leaderLineColor theme parameter is no longer applied to populated-slice leader lines;
+        // each leader line uses the slice's own color. Passing a contrasting leaderLineColor must
+        // not cause the chart to render that override color anywhere in the pixel buffer.
+        val leaderLineOverrideColor = Color.Magenta
 
         setChartInContainer(size = 520.dp, containerColor = Color.White) {
             MonefyDonutChart(
@@ -553,7 +578,7 @@ class MonefyDonutChartUiTest {
                 slices = contourSlices(),
                 modifier = Modifier.fillMaxSize(),
                 style = DonutStyle.Flat,
-                leaderLineColor = leaderLineColor,
+                leaderLineColor = leaderLineOverrideColor,
                 leaderLineThickness = 16.dp,
                 animationSpec = snap(),
             )
@@ -565,8 +590,8 @@ class MonefyDonutChartUiTest {
         image.readPixels(pixels)
 
         assertFalse(
-            "leaderLineColor must not be painted after the contour-icon redesign",
-            imageContainsColor(pixels, leaderLineColor.toArgb()),
+            "leaderLineColor override (Magenta) must not appear — populated leader lines use slice color",
+            imageContainsColor(pixels, leaderLineOverrideColor.toArgb()),
         )
     }
 
@@ -857,6 +882,74 @@ class MonefyDonutChartUiTest {
             .assertExists()
     }
 
+    // ---- frame-projection: single slice and many small slices do not crash ----
+
+    @Test
+    fun `single full-circle slice with leader line renders without crash and semantics intact`() {
+        // Regression guard: projectAngleToFrame on a single 360-degree slice must not
+        // throw or produce NaN icon coordinates that crash Canvas drawing.
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                MonefyDonutChart(
+                    income = BigDecimal("100.00"),
+                    expense = BigDecimal("100.00"),
+                    slices = listOf(
+                        slice(
+                            label = "Everything",
+                            fraction = 1.0f,
+                            color = Color(0xFF08A045),
+                            iconKey = "ic_cat_food",
+                        ),
+                    ),
+                    modifier = Modifier.size(300.dp),
+                    style = DonutStyle.Flat,
+                    animationSpec = snap(),
+                )
+            }
+        }
+        composeTestRule.waitForIdle()
+        composeTestRule
+            .onNodeWithContentDescription(
+                expectedDescription(
+                    income = "100.00",
+                    expense = "100.00",
+                    slices = listOf("Everything" to 100),
+                ),
+            )
+            .assertExists()
+    }
+
+    @Test
+    fun `eight small slices with leader lines render without crash and all slices in semantics`() {
+        // Previously, many small slices could collide when icons were placed radially.
+        // With frame-projection, slices are clamped to canvas bounds — no crash expected.
+        val smallSlices = (1..8).map { i ->
+            slice(label = "Cat$i", fraction = 0.125f, color = Color(0xFF000000L + i * 0x111111L), iconKey = "ic_cat_food")
+        }
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                MonefyDonutChart(
+                    income = BigDecimal("800.00"),
+                    expense = BigDecimal("800.00"),
+                    slices = smallSlices,
+                    modifier = Modifier.size(360.dp),
+                    style = DonutStyle.Flat,
+                    animationSpec = snap(),
+                )
+            }
+        }
+        composeTestRule.waitForIdle()
+        composeTestRule
+            .onNodeWithContentDescription(
+                expectedDescription(
+                    income = "800.00",
+                    expense = "800.00",
+                    slices = smallSlices.map { it.label to (it.fraction * 100f).toInt() },
+                ),
+            )
+            .assertExists()
+    }
+
     // ---- zero-fraction slices are excluded from semantics description ----
 
     @Test
@@ -1014,10 +1107,22 @@ class MonefyDonutChartUiTest {
         val explodedOffsetPx = with(composeTestRule.density) { explodedOffset.toPx() }
         val arc = DonutGeometry.computeSliceArcs(slices)[sliceIndex]
         val mid = DonutGeometry.midAngleRadians(arc)
-        val radius = outerRadius + iconMargin + iconSize / 2f + explodedOffsetPx
+        val explodedDx = explodedOffsetPx * cos(mid)
+        val explodedDy = explodedOffsetPx * sin(mid)
+        // Mirror the frame-projection logic from PlacedSlice.frameIconCenter in MonefyDonutChart.
+        val inset = iconSize / 2f + iconMargin
+        val insetHalfWidth = (canvasWidth / 2f - inset).coerceAtLeast(0f)
+        val insetHalfHeightTop = (center.y - inset).coerceAtLeast(0f)
+        val insetHalfHeightBottom = (canvasHeight - center.y - inset).coerceAtLeast(0f)
+        val projected = DonutGeometry.projectAngleToFrame(
+            angleRadians = mid,
+            halfWidth = insetHalfWidth,
+            halfHeightTop = insetHalfHeightTop,
+            halfHeightBottom = insetHalfHeightBottom,
+        )
         return Offset(
-            x = center.x + radius * cos(mid),
-            y = center.y + radius * sin(mid),
+            x = center.x + explodedDx + projected.x,
+            y = center.y + explodedDy + projected.y,
         )
     }
 

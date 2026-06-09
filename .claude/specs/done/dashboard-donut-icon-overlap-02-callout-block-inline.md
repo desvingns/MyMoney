@@ -1,7 +1,7 @@
 # Dashboard donut 02 — компактный блок подписи (иконка+% в строку, имя под блоком)
 Epic: dashboard-donut-icon-overlap
 Order: 02 of 03
-Status: draft
+Status: done
 Depends-on: —
 Date: 2026-06-09
 
@@ -21,5 +21,6 @@ CONSTRAINTS: Работает на ТЕКУЩЕЙ радиальной раск�
 высоту блока, давая 03 компактный bounding-box для клемпинга/выноса на периметр.
 
 ## Implementation links
-- commit: <hash>
-- files:  <changed files>
+- commit: 3e808692 (token 24→16sp), 7b9928b2 (compact callout layout), db6c4bbd (tests) — pushed to main
+- files:  core/ui/.../theme/Typography.kt; core/designsystem/.../donut/MonefyDonutChart.kt; core/designsystem/src/androidTest/.../donut/MonefyDonutChartUiTest.kt
+- verified: 26/26 MonefyDonutChartUiTest instrumented tests green on Pixel_5_API_34; CALLOUT_LABEL_MIN_SP=10f floor → ellipsis; icon+% inline row, name 1 line below

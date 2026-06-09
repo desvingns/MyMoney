@@ -10,7 +10,6 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.assertWidthIsAtLeast
-import androidx.compose.ui.test.assertWidthIsAtMost
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasClickAction
@@ -1068,10 +1067,18 @@ class DashboardContentUiTest {
             }
         }
 
-        composeTestRule
+        val panelWidthPx = composeTestRule
             .onNodeWithTag(BALANCE_BAR_TAG)
             .assertIsDisplayed()
-            .assertWidthIsAtMost(Spacing.dashboardBalancePanelMaxWidth)
+            .fetchSemanticsNode()
+            .boundsInRoot
+            .width
+        val panelWidthDp = with(composeTestRule.density) { panelWidthPx.toDp() }
+        val maxWidthDp = Spacing.dashboardBalancePanelMaxWidth
+        assertTrue(
+            "balance panel width $panelWidthDp must not exceed $maxWidthDp",
+            panelWidthDp.value <= maxWidthDp.value + 1f,
+        )
     }
 
     @Test

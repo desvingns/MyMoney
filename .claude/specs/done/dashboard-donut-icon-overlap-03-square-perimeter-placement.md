@@ -1,7 +1,7 @@
 # Dashboard donut 03 — вынос иконок на периметр квадрата + линии-выноски
 Epic: dashboard-donut-icon-overlap
 Order: 03 of 03
-Status: draft
+Status: done
 Depends-on: dashboard-donut-icon-overlap-02
 Date: 2026-06-09
 
@@ -22,5 +22,6 @@ CONSTRAINTS: ЗАВИСИТ ОТ 02 — клемпинг использует bo
 сохраняют связь иконка↔сектор. Финальная мера эпика; даёт unit-покрытие геометрии проекции.
 
 ## Implementation links
-- commit: <hash>
-- files:  <changed files>
+- commit: 6727b1e3 (projection fn + wiring + leader lines + clamp), 81d5697b (UI tests), c6f34b50 (probe-perpendicular fix) — pushed to main
+- files:  core/designsystem/.../donut/DonutGeometry.kt (new projectAngleToFrame, ray→inset-rect); MonefyDonutChart.kt (frameIconCenter + clampCalloutAnchor + sector-coloured leader line drawLine(sliceOuterPoint→slot)); DonutGeometryTest.kt (unit cardinal+diagonal+vertical-guard); MonefyDonutChartUiTest.kt
+- verified: DonutGeometryTest unit green; 29/29 MonefyDonutChartUiTest green on Pixel_5_API_34. framePoint left untouched (wrong primitive — perimeter param, not ray projection). Disc-absence probe samples PERPENDICULAR to the radial leader line.

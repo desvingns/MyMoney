@@ -5,7 +5,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -36,18 +34,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kshavrin.mymoney.core.common.money.MoneyFormatter
+import com.kshavrin.mymoney.core.designsystem.appbar.MoneyHeroAppBar
 import com.kshavrin.mymoney.core.designsystem.confetti.MonefyConfetti
 import com.kshavrin.mymoney.core.designsystem.donut.DonutStyle
 import com.kshavrin.mymoney.core.designsystem.donut.MonefyDonutChart
@@ -72,10 +68,6 @@ import com.kshavrin.mymoney.core.ui.theme.dashboardDonutCenterDivider
 import com.kshavrin.mymoney.core.ui.theme.dashboardDonutCenterTotal
 import com.kshavrin.mymoney.core.ui.theme.dashboardDonutLeaderLine
 import com.kshavrin.mymoney.core.ui.theme.dashboardDonutOtherSlice
-import com.kshavrin.mymoney.core.ui.theme.dashboardHeroGradientEnd
-import com.kshavrin.mymoney.core.ui.theme.dashboardHeroGradientStart
-import com.kshavrin.mymoney.core.ui.theme.dashboardTopBarSubtitle
-import com.kshavrin.mymoney.core.ui.theme.dashboardTopBarTitle
 import com.kshavrin.mymoney.feature.dashboard.components.DashboardDrawerOverlay
 import com.kshavrin.mymoney.feature.dashboard.components.DrawerSide
 import com.kshavrin.mymoney.feature.dashboard.components.LeftDrawerContent
@@ -318,40 +310,23 @@ private fun DashboardTopBar(
     onTransferClick: () -> Unit,
     onMoreClick: () -> Unit,
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                Brush.linearGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.dashboardHeroGradientStart,
-                        MaterialTheme.colorScheme.dashboardHeroGradientEnd,
+    MoneyHeroAppBar(
+        subtitle = subtitle,
+        titleTestTag = DASHBOARD_TOP_BAR_TITLE_TAG,
+        subtitleTestTag = DASHBOARD_TOP_BAR_SUBTITLE_TAG,
+        leading = {
+            IconButton(onClick = onNavigationClick) {
+                Icon(
+                    imageVector = if (drawerOpen) Icons.AutoMirrored.Filled.ArrowBack else Icons.Filled.Menu,
+                    contentDescription = stringResource(
+                        if (drawerOpen) R.string.dashboard_back else R.string.dashboard_menu,
                     ),
-                ),
-            )
-            .statusBarsPadding()
-            .height(Spacing.dashboardTopBarHeight)
-            .padding(horizontal = Spacing.s),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        IconButton(onClick = onNavigationClick) {
-            Icon(
-                imageVector = if (drawerOpen) Icons.AutoMirrored.Filled.ArrowBack else Icons.Filled.Menu,
-                contentDescription = stringResource(
-                    if (drawerOpen) R.string.dashboard_back else R.string.dashboard_menu,
-                ),
-                tint = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.size(Spacing.xxl),
-            )
-        }
-        DashboardTopBarTitle(
-            title = stringResource(R.string.dashboard_title),
-            subtitle = subtitle,
-            modifier = Modifier
-                .weight(1f)
-                .padding(start = Spacing.s),
-        )
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(Spacing.xxl),
+                )
+            }
+        },
+        actions = {
             IconButton(onClick = onSearchClick) {
                 Icon(
                     Icons.Filled.Search,
@@ -376,36 +351,8 @@ private fun DashboardTopBar(
                     modifier = Modifier.size(Spacing.xxl),
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun DashboardTopBarTitle(
-    title: String,
-    subtitle: String?,
-    modifier: Modifier = Modifier,
-) {
-    Column(modifier = modifier) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.dashboardTopBarTitle,
-            fontFamily = FontFamily.Cursive,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onPrimary,
-            maxLines = 1,
-            modifier = Modifier.testTag(DASHBOARD_TOP_BAR_TITLE_TAG),
-        )
-        if (!subtitle.isNullOrBlank()) {
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.dashboardTopBarSubtitle,
-                color = MaterialTheme.colorScheme.onPrimary,
-                maxLines = 1,
-                modifier = Modifier.testTag(DASHBOARD_TOP_BAR_SUBTITLE_TAG),
-            )
-        }
-    }
+        },
+    )
 }
 
 @Composable

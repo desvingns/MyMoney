@@ -25,7 +25,6 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -36,8 +35,6 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -50,13 +47,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kshavrin.mymoney.core.common.money.MoneyFormatter
+import com.kshavrin.mymoney.core.designsystem.appbar.MoneyHeroAppBar
 import com.kshavrin.mymoney.core.designsystem.icon.categoryIcon
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.core.domain.model.CategoryRecordGroup
@@ -129,7 +125,6 @@ fun TransactionsListRoute(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TransactionsListContent(
     state: TransactionsListUiState,
@@ -144,18 +139,15 @@ fun TransactionsListContent(
     Scaffold(
         modifier = modifier,
         topBar = {
-            TopAppBar(
-                title = {
-                    RecordsTopBarTitle(
-                        title = stringResource(R.string.transactions_list_brand_title),
-                        subtitle = state.currency?.name,
-                    )
-                },
-                navigationIcon = {
+            MoneyHeroAppBar(
+                subtitle = state.currency?.name,
+                leading = {
                     IconButton(onClick = onBack) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.transactions_list_back),
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(Spacing.xxl),
                         )
                     }
                 },
@@ -164,27 +156,27 @@ fun TransactionsListContent(
                         Icon(
                             Icons.Filled.Search,
                             contentDescription = stringResource(R.string.transactions_list_search),
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(Spacing.xxl),
                         )
                     }
                     IconButton(onClick = onTransfer) {
                         Icon(
                             Icons.Filled.SwapHoriz,
                             contentDescription = stringResource(R.string.transactions_list_transfer),
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(Spacing.xxl),
                         )
                     }
                     IconButton(onClick = onOverflow) {
                         Icon(
                             Icons.Filled.MoreVert,
                             contentDescription = stringResource(R.string.transactions_list_more),
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(Spacing.xxl),
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
-                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary,
-                ),
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -274,31 +266,6 @@ private fun CategoryFilterChip(
             .padding(horizontal = Spacing.l, vertical = Spacing.s)
             .testTag(RecordsTestTags.FILTER),
     )
-}
-
-@Composable
-private fun RecordsTopBarTitle(
-    title: String,
-    subtitle: String?,
-) {
-    Column {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.headlineSmall,
-            fontFamily = FontFamily.Cursive,
-            fontWeight = FontWeight.Bold,
-            maxLines = 1,
-            overflow = TextOverflow.Clip,
-        )
-        if (!subtitle.isNullOrBlank()) {
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-    }
 }
 
 @Composable

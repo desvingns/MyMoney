@@ -1,6 +1,6 @@
 <resources>
     <string name="transactions_list_title">Transactions</string>
-    <string name="transactions_list_brand_title">Monefy</string>
+    <string name="transactions_list_brand_title">MyMoney</string>
     <string name="transactions_list_filter_chip">Category: %1$s</string>
     <string name="transactions_list_empty">No records for this period</string>
     <string name="transactions_list_delete_undo">Transaction deleted</string>

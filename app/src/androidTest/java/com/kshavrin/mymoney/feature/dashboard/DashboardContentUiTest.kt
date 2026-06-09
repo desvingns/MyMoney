@@ -1034,7 +1034,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `expense and income fabs are each at least 100dp wide and tall`() {
+    fun `expense and income fabs are each at least 90dp wide and tall`() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 DashboardContent(
@@ -1047,13 +1047,13 @@ class DashboardContentUiTest {
         composeTestRule
             .onNodeWithContentDescription(targetString(R.string.fab_expense))
             .assertIsDisplayed()
-            .assertWidthIsAtLeast(100.dp)
-            .assertHeightIsAtLeast(100.dp)
+            .assertWidthIsAtLeast(Spacing.dashboardFabSize)
+            .assertHeightIsAtLeast(Spacing.dashboardFabSize)
         composeTestRule
             .onNodeWithContentDescription(targetString(R.string.fab_income))
             .assertIsDisplayed()
-            .assertWidthIsAtLeast(100.dp)
-            .assertHeightIsAtLeast(100.dp)
+            .assertWidthIsAtLeast(Spacing.dashboardFabSize)
+            .assertHeightIsAtLeast(Spacing.dashboardFabSize)
     }
 
     @Test

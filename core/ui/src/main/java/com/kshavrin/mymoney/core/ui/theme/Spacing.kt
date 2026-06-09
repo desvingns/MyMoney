@@ -17,9 +17,9 @@ object Spacing {
     val dashboardPeriodIndicatorWidth = 88.dp
     val dashboardPeriodIndicatorHeight = 4.dp
     val dashboardBalancePanelHeight = 84.dp
-    val dashboardBalancePanelMaxWidth = 272.dp
+    val dashboardBalancePanelMaxWidth = 245.dp
     val dashboardBalancePanelBorderWidth = 1.dp
-    val dashboardFabSize = 100.dp
+    val dashboardFabSize = 90.dp
     val dashboardFabHorizontalPadding = 44.dp
     val dashboardFabOutlineWidth = 4.dp
     val dashboardFabLabelTopPadding = 16.dp

@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.kshavrin.mymoney.core.common.money.MoneyFormatter
 import com.kshavrin.mymoney.core.designsystem.R
 import com.kshavrin.mymoney.core.designsystem.icon.categoryIcon
@@ -66,6 +67,7 @@ import kotlin.math.roundToInt
 import kotlin.math.sin
 
 private const val DEFAULT_LABEL_MIN_FRACTION = 0.03f
+private const val CALLOUT_LABEL_MIN_SP = 10f
 
 enum class DonutStyle { Flat, Extrude }
 
@@ -416,14 +418,7 @@ private fun DrawScope.drawDonutChart(
         if (p.slice.fraction >= labelMinFraction) {
             val labelText = "${(p.slice.fraction * 100f).roundToInt()}%"
             drawCalloutText(
-                anchor = p.labelAnchor(
-                    center = center,
-                    outerRadius = outerRadius,
-                    iconMargin = iconMargin,
-                    iconSize = iconSize,
-                    labelGap = Spacing.xxs.toPx(),
-                    explodedOffset = offset,
-                ),
+                iconCenter = iconCenter,
                 iconSize = iconSize,
                 label = p.slice.label.takeIf { showCategoryLabels },
                 percentage = labelText,
@@ -526,7 +521,7 @@ private fun DrawScope.drawCenterTotals(
 }
 
 private fun DrawScope.drawCalloutText(
-    anchor: Offset,
+    iconCenter: Offset,
     iconSize: Float,
     label: String?,
     percentage: String,
@@ -536,28 +531,65 @@ private fun DrawScope.drawCalloutText(
     percentageStyle: TextStyle,
     textMeasurer: TextMeasurer,
 ) {
-    val maxTextWidth = iconSize * 2.6f
-    val labelLayout = label?.let {
-        textMeasurer.measure(
-            text = it,
-            style = labelStyle.copy(color = labelColor, textAlign = TextAlign.Center),
-            overflow = TextOverflow.Ellipsis,
-            maxLines = 2,
-            constraints = Constraints(maxWidth = maxTextWidth.roundToInt()),
-        )
-    }
+    val inlineGap = Spacing.xxs.toPx()
     val percentageLayout = textMeasurer.measure(
         text = percentage,
-        style = percentageStyle.copy(color = sliceColor, textAlign = TextAlign.Center),
+        style = percentageStyle.copy(color = sliceColor),
         maxLines = 1,
-        constraints = Constraints(maxWidth = maxTextWidth.roundToInt()),
     )
-    val percentageTop = anchor.y
-    drawTextCentered(percentageLayout, anchor.x, percentageTop, sliceColor)
-    if (labelLayout != null) {
-        val labelTop = percentageTop + percentageLayout.size.height + Spacing.xxs.toPx()
-        drawTextCentered(labelLayout, anchor.x, labelTop, labelColor)
+
+    val iconLeft = iconCenter.x - iconSize / 2f
+    val blockWidth = iconSize + inlineGap + percentageLayout.size.width
+    val blockCenterX = iconLeft + blockWidth / 2f
+
+    val percentageLeft = iconLeft + iconSize + inlineGap
+    val percentageTop = iconCenter.y - percentageLayout.size.height / 2f
+    drawText(
+        textLayoutResult = percentageLayout,
+        color = sliceColor,
+        topLeft = Offset(percentageLeft, percentageTop),
+    )
+
+    if (label != null) {
+        val labelLayout = measureSingleLineLabel(
+            text = label,
+            maxWidth = blockWidth.roundToInt(),
+            style = labelStyle.copy(color = labelColor, textAlign = TextAlign.Center),
+            textMeasurer = textMeasurer,
+        )
+        val labelTop = iconCenter.y + iconSize / 2f + inlineGap
+        drawTextCentered(labelLayout, blockCenterX, labelTop, labelColor)
     }
+}
+
+private fun measureSingleLineLabel(
+    text: String,
+    maxWidth: Int,
+    style: TextStyle,
+    textMeasurer: TextMeasurer,
+): TextLayoutResult {
+    val baseSizeSp = style.fontSize.value
+    var currentSizeSp = baseSizeSp
+    var layout = textMeasurer.measure(
+        text = text,
+        style = style,
+        maxLines = 1,
+        softWrap = false,
+        overflow = TextOverflow.Ellipsis,
+        constraints = Constraints(maxWidth = maxWidth),
+    )
+    while (layout.hasVisualOverflow && currentSizeSp > CALLOUT_LABEL_MIN_SP) {
+        currentSizeSp = (currentSizeSp - 1f).coerceAtLeast(CALLOUT_LABEL_MIN_SP)
+        layout = textMeasurer.measure(
+            text = text,
+            style = style.copy(fontSize = currentSizeSp.sp),
+            maxLines = 1,
+            softWrap = false,
+            overflow = TextOverflow.Ellipsis,
+            constraints = Constraints(maxWidth = maxWidth),
+        )
+    }
+    return layout
 }
 
 private fun DrawScope.drawTextCentered(
@@ -734,20 +766,6 @@ private fun PlacedSlice.iconCenter(
     center = center,
     midRadians = midRadians,
     radius = outerRadius + iconMargin + iconSize / 2f,
-    explodedOffset = explodedOffset,
-)
-
-private fun PlacedSlice.labelAnchor(
-    center: Offset,
-    outerRadius: Float,
-    iconMargin: Float,
-    iconSize: Float,
-    labelGap: Float,
-    explodedOffset: Offset,
-): Offset = radialPoint(
-    center = center,
-    midRadians = midRadians,
-    radius = outerRadius + iconMargin + iconSize + labelGap,
     explodedOffset = explodedOffset,
 )
 

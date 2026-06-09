@@ -277,6 +277,7 @@ class MonefyDonutChartUiTest {
             slice(label = "Home", fraction = 0f),
         )
         val clickedSlices = mutableListOf<CategorySlice>()
+        val chartSize = 240.dp
 
         composeTestRule.setContent {
             MyMoneyTheme {
@@ -284,7 +285,7 @@ class MonefyDonutChartUiTest {
                     income = BigDecimal.ZERO,
                     expense = BigDecimal.ZERO,
                     slices = emptyList(),
-                    modifier = Modifier.size(240.dp),
+                    modifier = Modifier.size(chartSize),
                     emptyStateIcons = emptyStateIcons,
                     onEmptyCategoryClick = { clickedSlices += it },
                     animationSpec = snap(),
@@ -292,16 +293,346 @@ class MonefyDonutChartUiTest {
             }
         }
 
+        // Hit-test must use the new frame-projected positions, not old radial positions.
         composeTestRule
             .onNodeWithContentDescription(expectedDescription(income = "0", expense = "0"))
             .performTouchInput {
-                click(emptyIconCenter(index = 0, count = emptyStateIcons.size))
+                click(
+                    emptyIconFrameCenter(
+                        chartSize = chartSize,
+                        index = 0,
+                        count = emptyStateIcons.size,
+                    ),
+                )
             }
 
         composeTestRule.runOnIdle {
             assertEquals(1, clickedSlices.size)
             assertEquals(emptyStateIcons.first(), clickedSlices.single())
         }
+    }
+
+    @Test
+    fun `empty state extrude ring paints outline color on the ring band`() {
+        var outlineArgb = 0
+
+        setChartInContainer(size = 520.dp, containerColor = Color.Black) {
+            outlineArgb = MaterialTheme.colorScheme.outline.toArgb()
+            MonefyDonutChart(
+                income = BigDecimal.ZERO,
+                expense = BigDecimal.ZERO,
+                slices = emptyList(),
+                modifier = Modifier.fillMaxSize(),
+                style = DonutStyle.Extrude,
+                emptyStateIcons = emptyList(),
+                animationSpec = snap(),
+            )
+        }
+        composeTestRule.waitForIdle()
+
+        val image = composeTestRule.onNodeWithTag(CHART_CONTAINER_TAG).captureToImage()
+        val pixels = IntArray(image.width * image.height)
+        image.readPixels(pixels)
+
+        // The top of the extrude ring sits near the top of the ring band at ~12 o'clock.
+        // Probe a horizontal band around the top of the ring where the outline color must appear.
+        val cx = image.width / 2
+        val cy = image.height / 2
+        val outerRadius = (minOf(image.width, image.height) / 2f * 0.75f).toInt()
+        val probeTop = cy - outerRadius - 4
+        val probeBottom = cy - outerRadius + (outerRadius * 0.39f).toInt() + 4
+
+        assertTrue(
+            "empty-state extrude ring must paint the outline color on the ring band",
+            regionContainsColor(
+                pixels = pixels,
+                width = image.width,
+                left = cx - 8,
+                top = probeTop,
+                right = cx + 8,
+                bottom = probeBottom,
+                argb = outlineArgb,
+            ),
+        )
+    }
+
+    @Test
+    fun `empty state flat ring paints outline color on the ring band`() {
+        var outlineArgb = 0
+
+        setChartInContainer(size = 520.dp, containerColor = Color.Black) {
+            outlineArgb = MaterialTheme.colorScheme.outline.toArgb()
+            MonefyDonutChart(
+                income = BigDecimal.ZERO,
+                expense = BigDecimal.ZERO,
+                slices = emptyList(),
+                modifier = Modifier.fillMaxSize(),
+                style = DonutStyle.Flat,
+                emptyStateIcons = emptyList(),
+                animationSpec = snap(),
+            )
+        }
+        composeTestRule.waitForIdle()
+
+        val image = composeTestRule.onNodeWithTag(CHART_CONTAINER_TAG).captureToImage()
+        val pixels = IntArray(image.width * image.height)
+        image.readPixels(pixels)
+
+        val cx = image.width / 2
+        val cy = image.height / 2
+        val outerRadius = (minOf(image.width, image.height) / 2f * 0.75f).toInt()
+        val probeTop = cy - outerRadius - 4
+        val probeBottom = cy - outerRadius + (outerRadius * 0.39f).toInt() + 4
+
+        assertTrue(
+            "empty-state flat ring must paint the outline color on the ring band",
+            regionContainsColor(
+                pixels = pixels,
+                width = image.width,
+                left = cx - 8,
+                top = probeTop,
+                right = cx + 8,
+                bottom = probeBottom,
+                argb = outlineArgb,
+            ),
+        )
+    }
+
+    @Test
+    fun `empty state icons render at frame-projected positions`() {
+        val emptyStateIcons = listOf(
+            slice(label = "Food", fraction = 0f, color = Color(0xFF08A045), iconKey = "ic_cat_food"),
+            slice(label = "Transport", fraction = 0f, color = Color(0xFF0C63E7), iconKey = "ic_cat_transport"),
+        )
+        val chartSize = 520.dp
+
+        setChartInContainer(size = chartSize, containerColor = Color.White) {
+            MonefyDonutChart(
+                income = BigDecimal.ZERO,
+                expense = BigDecimal.ZERO,
+                slices = emptyList(),
+                modifier = Modifier.fillMaxSize(),
+                style = DonutStyle.Flat,
+                emptyStateIcons = emptyStateIcons,
+                animationSpec = snap(),
+            )
+        }
+        composeTestRule.waitForIdle()
+
+        val image = composeTestRule.onNodeWithTag(CHART_CONTAINER_TAG).captureToImage()
+        val pixels = IntArray(image.width * image.height)
+        image.readPixels(pixels)
+        val iconProbeRadius = with(composeTestRule.density) { 18.dp.toPx() }
+
+        emptyStateIcons.forEachIndexed { index, iconSlice ->
+            val iconCenter = emptyIconFrameCenter(
+                canvasWidth = image.width,
+                canvasHeight = image.height,
+                index = index,
+                count = emptyStateIcons.size,
+            )
+            assertTrue(
+                "empty-state icon[$index] must render its category color at the frame-projected position",
+                regionContainsColor(
+                    pixels = pixels,
+                    width = image.width,
+                    left = (iconCenter.x - iconProbeRadius).toInt(),
+                    top = (iconCenter.y - iconProbeRadius).toInt(),
+                    right = (iconCenter.x + iconProbeRadius).toInt(),
+                    bottom = (iconCenter.y + iconProbeRadius).toInt(),
+                    argb = iconSlice.color.toArgb(),
+                ),
+            )
+        }
+    }
+
+    @Test
+    fun `empty state icon does not paint a solid background disc`() {
+        val emptyStateIcons = listOf(
+            slice(label = "Food", fraction = 0f, color = Color(0xFF08A045), iconKey = "ic_cat_food"),
+        )
+        val chartSize = 520.dp
+
+        setChartInContainer(size = chartSize, containerColor = Color.Black) {
+            MonefyDonutChart(
+                income = BigDecimal.ZERO,
+                expense = BigDecimal.ZERO,
+                slices = emptyList(),
+                modifier = Modifier.fillMaxSize(),
+                style = DonutStyle.Flat,
+                emptyStateIcons = emptyStateIcons,
+                animationSpec = snap(),
+            )
+        }
+        composeTestRule.waitForIdle()
+
+        val image = composeTestRule.onNodeWithTag(CHART_CONTAINER_TAG).captureToImage()
+        val pixels = IntArray(image.width * image.height)
+        image.readPixels(pixels)
+
+        val iconCenter = emptyIconFrameCenter(
+            canvasWidth = image.width,
+            canvasHeight = image.height,
+            index = 0,
+            count = emptyStateIcons.size,
+        )
+        val iconSizePx = with(composeTestRule.density) { 40.dp.toPx() }
+        val iconProbeRadius = with(composeTestRule.density) { 18.dp.toPx() }
+        val fringe = with(composeTestRule.density) { 4.dp.toPx() }
+
+        assertTrue(
+            "the empty-state icon itself must still render at the expected frame-projected position",
+            regionContainsColor(
+                pixels = pixels,
+                width = image.width,
+                left = (iconCenter.x - iconProbeRadius).toInt(),
+                top = (iconCenter.y - iconProbeRadius).toInt(),
+                right = (iconCenter.x + iconProbeRadius).toInt(),
+                bottom = (iconCenter.y + iconProbeRadius).toInt(),
+                argb = emptyStateIcons.first().color.toArgb(),
+            ),
+        )
+
+        // Probe PERPENDICULAR to the radial leader line to detect disc presence without
+        // sampling along the leader line itself (which would give a false positive).
+        val donutCenter = Offset(image.width / 2f, image.height / 2f)
+        val radialDx = iconCenter.x - donutCenter.x
+        val radialDy = iconCenter.y - donutCenter.y
+        val radialLen = hypot(radialDx, radialDy).coerceAtLeast(1f)
+        val perpUx = -radialDy / radialLen
+        val perpUy = radialDx / radialLen
+        val perpOffset = iconSizePx / 2f + fringe
+
+        val fringeX1 = (iconCenter.x + perpUx * perpOffset).toInt()
+        val fringeY1 = (iconCenter.y + perpUy * perpOffset).toInt()
+        val fringeX2 = (iconCenter.x - perpUx * perpOffset).toInt()
+        val fringeY2 = (iconCenter.y - perpUy * perpOffset).toInt()
+
+        val side1IsBlack = fringeX1 in 0 until image.width &&
+            fringeY1 in 0 until (pixels.size / image.width) &&
+            colorsMatch(pixels[fringeY1 * image.width + fringeX1], Color.Black.toArgb())
+        val side2IsBlack = fringeX2 in 0 until image.width &&
+            fringeY2 in 0 until (pixels.size / image.width) &&
+            colorsMatch(pixels[fringeY2 * image.width + fringeX2], Color.Black.toArgb())
+
+        assertTrue(
+            "area perpendicular to the leader line just outside the empty-state icon must remain " +
+                "transparent to the black container — a solid disc background would paint both sides, " +
+                "but the thin radial leader line cannot reach a perpendicular-offset point",
+            side1IsBlack || side2IsBlack,
+        )
+    }
+
+    @Test
+    fun `empty state leader lines use category color not the leaderLineColor parameter`() {
+        val leaderLineOverrideColor = Color.Magenta
+        val emptyStateIcons = listOf(
+            slice(label = "Food", fraction = 0f, color = Color(0xFF08A045), iconKey = "ic_cat_food"),
+            slice(label = "Transport", fraction = 0f, color = Color(0xFF0C63E7), iconKey = "ic_cat_transport"),
+        )
+
+        setChartInContainer(size = 520.dp, containerColor = Color.White) {
+            MonefyDonutChart(
+                income = BigDecimal.ZERO,
+                expense = BigDecimal.ZERO,
+                slices = emptyList(),
+                modifier = Modifier.fillMaxSize(),
+                style = DonutStyle.Flat,
+                emptyStateIcons = emptyStateIcons,
+                leaderLineColor = leaderLineOverrideColor,
+                leaderLineThickness = 16.dp,
+                animationSpec = snap(),
+            )
+        }
+        composeTestRule.waitForIdle()
+
+        val image = composeTestRule.onNodeWithTag(CHART_CONTAINER_TAG).captureToImage()
+        val pixels = IntArray(image.width * image.height)
+        image.readPixels(pixels)
+
+        assertFalse(
+            "leaderLineColor override (Magenta) must not appear in empty state — " +
+                "empty-state leader lines use each category's own color",
+            imageContainsColor(pixels, leaderLineOverrideColor.toArgb()),
+        )
+    }
+
+    @Test
+    fun `empty state does not render percentage labels near icons`() {
+        // Regression guard: the new empty-state branch must NOT call drawCalloutText.
+        // We verify this by checking that no slice color appears in the text-label region
+        // to the right of any icon (where % labels would normally sit in the populated path).
+        val iconColor = Color(0xFFFF6600)
+        val emptyStateIcons = listOf(
+            slice(label = "Car", fraction = 0f, color = iconColor, iconKey = "ic_cat_food"),
+        )
+        val chartSize = 520.dp
+
+        setChartInContainer(size = chartSize, containerColor = Color.White) {
+            MonefyDonutChart(
+                income = BigDecimal.ZERO,
+                expense = BigDecimal.ZERO,
+                slices = emptyList(),
+                modifier = Modifier.fillMaxSize(),
+                style = DonutStyle.Flat,
+                emptyStateIcons = emptyStateIcons,
+                animationSpec = snap(),
+            )
+        }
+        composeTestRule.waitForIdle()
+
+        val image = composeTestRule.onNodeWithTag(CHART_CONTAINER_TAG).captureToImage()
+        val pixels = IntArray(image.width * image.height)
+        image.readPixels(pixels)
+
+        val iconCenter = emptyIconFrameCenter(
+            canvasWidth = image.width,
+            canvasHeight = image.height,
+            index = 0,
+            count = emptyStateIcons.size,
+        )
+        val iconSizePx = with(composeTestRule.density) { 40.dp.toPx() }
+        // The percentage text "100%" would normally appear just to the right of the icon.
+        // For empty state icons (fraction=0), no percentage label should be drawn.
+        val labelRegionLeft = (iconCenter.x + iconSizePx / 2f + 2f).toInt()
+        val labelRegionRight = (iconCenter.x + iconSizePx * 2f).toInt()
+        val labelRegionTop = (iconCenter.y - iconSizePx / 2f).toInt()
+        val labelRegionBottom = (iconCenter.y + iconSizePx / 2f).toInt()
+
+        assertFalse(
+            "empty-state branch must not draw percentage labels — no icon color must appear " +
+                "in the text-label region to the right of the icon",
+            regionContainsColor(
+                pixels = pixels,
+                width = image.width,
+                left = labelRegionLeft,
+                top = labelRegionTop,
+                right = labelRegionRight,
+                bottom = labelRegionBottom,
+                argb = iconColor.toArgb(),
+            ),
+        )
+    }
+
+    @Test
+    fun `empty state with no empty icons still renders ring and center totals without crash`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                MonefyDonutChart(
+                    income = BigDecimal("100.00"),
+                    expense = BigDecimal("50.00"),
+                    slices = emptyList(),
+                    modifier = Modifier.size(240.dp),
+                    emptyStateIcons = emptyList(),
+                    style = DonutStyle.Extrude,
+                    animationSpec = snap(),
+                )
+            }
+        }
+        composeTestRule.waitForIdle()
+        composeTestRule
+            .onNodeWithContentDescription(expectedDescription(income = "100.00", expense = "50.00"))
+            .assertExists()
     }
 
     @Test
@@ -1075,15 +1406,47 @@ class MonefyDonutChartUiTest {
         return if (sliceText.isEmpty()) header else "$header $sliceText"
     }
 
-    private fun emptyIconCenter(index: Int, count: Int): Offset {
-        val canvasSize = with(composeTestRule.density) { 240.dp.toPx() }
-        val center = canvasSize / 2f
-        val outerRadius = center * 0.75f
-        val angleRadians = Math.toRadians((-90f + index * (360f / count)).toDouble())
-        return Offset(
-            x = center + outerRadius * 0.92f * cos(angleRadians).toFloat(),
-            y = center + outerRadius * 0.92f * sin(angleRadians).toFloat(),
+    /**
+     * Mirrors the frame-projection logic used by the empty-state branch in MonefyDonutChart:
+     * evenAngles → projectAngleToFrame → clampCalloutAnchor (canvas-edge clamping).
+     * Icons are placed on the inset rectangle perimeter, not radially.
+     */
+    private fun emptyIconFrameCenter(
+        chartSize: Dp,
+        index: Int,
+        count: Int,
+    ): Offset {
+        val canvasSizePx = with(composeTestRule.density) { chartSize.toPx().toInt() }
+        return emptyIconFrameCenter(
+            canvasWidth = canvasSizePx,
+            canvasHeight = canvasSizePx,
+            index = index,
+            count = count,
         )
+    }
+
+    private fun emptyIconFrameCenter(
+        canvasWidth: Int,
+        canvasHeight: Int,
+        index: Int,
+        count: Int,
+    ): Offset {
+        val center = Offset(canvasWidth / 2f, canvasHeight / 2f)
+        val iconMargin = with(composeTestRule.density) { 8.dp.toPx() }
+        val iconSize = with(composeTestRule.density) { 40.dp.toPx() }
+        val inset = iconSize / 2f + iconMargin
+        val insetHalfWidth = (canvasWidth / 2f - inset).coerceAtLeast(0f)
+        val insetHalfHeightTop = (center.y - inset).coerceAtLeast(0f)
+        val insetHalfHeightBottom = (canvasHeight - center.y - inset).coerceAtLeast(0f)
+        val angleDegrees = DonutGeometry.evenAngles(count)[index]
+        val angleRadians = Math.toRadians(angleDegrees.toDouble()).toFloat()
+        val projected = DonutGeometry.projectAngleToFrame(
+            angleRadians = angleRadians,
+            halfWidth = insetHalfWidth,
+            halfHeightTop = insetHalfHeightTop,
+            halfHeightBottom = insetHalfHeightBottom,
+        )
+        return Offset(center.x + projected.x, center.y + projected.y)
     }
 
     private fun setChartInContainer(

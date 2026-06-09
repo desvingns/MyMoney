@@ -1,7 +1,7 @@
 # Dashboard donut — устранение наезжания иконок категорий
 Epic: dashboard-donut-icon-overlap
 Order: 00 of 03 (overview)
-Status: draft
+Status: done
 Date: 2026-06-09
 
 ## Goal
@@ -55,4 +55,7 @@ Date: 2026-06-09
   03 их подключает (толщина — из токена, цвет — сектора).
 
 ## Implementation links
-(filled per-SPEC as each ships)
+**EPIC COMPLETE 2026-06-09 — all 3 SPECs in done/, pushed to main.**
+- 01-reclaim-space: bb62ea4c + 8ace7ae8 + 5c937aa8 (37/37 device-green)
+- 02-callout-block-inline: 3e808692 + 7b9928b2 + db6c4bbd (26/26 device-green)
+- 03-square-perimeter-placement: 6727b1e3 + 81d5697b + c6f34b50 (29/29 device-green)

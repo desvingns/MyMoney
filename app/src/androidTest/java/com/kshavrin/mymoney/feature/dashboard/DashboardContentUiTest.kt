@@ -10,6 +10,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.assertWidthIsAtLeast
+import androidx.compose.ui.test.assertWidthIsAtMost
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasClickAction
@@ -81,8 +82,8 @@ class DashboardContentUiTest {
         composeTestRule
             .onNodeWithContentDescription(targetString(R.string.fab_expense))
             .assertIsEnabled()
-            .assertWidthIsAtLeast(96.dp)
-            .assertHeightIsAtLeast(96.dp)
+            .assertWidthIsAtLeast(Spacing.dashboardFabSize)
+            .assertHeightIsAtLeast(Spacing.dashboardFabSize)
             .performClick()
 
         composeTestRule.runOnIdle {
@@ -106,8 +107,8 @@ class DashboardContentUiTest {
         composeTestRule
             .onNodeWithContentDescription(targetString(R.string.fab_income))
             .assertIsEnabled()
-            .assertWidthIsAtLeast(96.dp)
-            .assertHeightIsAtLeast(96.dp)
+            .assertWidthIsAtLeast(Spacing.dashboardFabSize)
+            .assertHeightIsAtLeast(Spacing.dashboardFabSize)
             .performClick()
 
         composeTestRule.runOnIdle {
@@ -489,16 +490,16 @@ class DashboardContentUiTest {
             .onNodeWithContentDescription(targetString(R.string.fab_expense))
             .assertIsDisplayed()
             .assertHasClickAction()
-            .assertWidthIsAtLeast(96.dp)
-            .assertHeightIsAtLeast(96.dp)
+            .assertWidthIsAtLeast(Spacing.dashboardFabSize)
+            .assertHeightIsAtLeast(Spacing.dashboardFabSize)
             .fetchSemanticsNode()
             .boundsInRoot
         val incomeFab = composeTestRule
             .onNodeWithContentDescription(targetString(R.string.fab_income))
             .assertIsDisplayed()
             .assertHasClickAction()
-            .assertWidthIsAtLeast(96.dp)
-            .assertHeightIsAtLeast(96.dp)
+            .assertWidthIsAtLeast(Spacing.dashboardFabSize)
+            .assertHeightIsAtLeast(Spacing.dashboardFabSize)
             .fetchSemanticsNode()
             .boundsInRoot
         val rootWidth = InstrumentationRegistry.getInstrumentation()
@@ -1054,6 +1055,23 @@ class DashboardContentUiTest {
             .assertIsDisplayed()
             .assertWidthIsAtLeast(Spacing.dashboardFabSize)
             .assertHeightIsAtLeast(Spacing.dashboardFabSize)
+    }
+
+    @Test
+    fun `balance panel width does not exceed dashboardBalancePanelMaxWidth token`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state = DashboardState(isLoading = false),
+                    onEvent = {},
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithTag(BALANCE_BAR_TAG)
+            .assertIsDisplayed()
+            .assertWidthIsAtMost(Spacing.dashboardBalancePanelMaxWidth)
     }
 
     @Test

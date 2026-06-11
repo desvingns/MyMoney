@@ -1,6 +1,5 @@
 package com.kshavrin.mymoney.feature.lockscreen.overlay
 
-import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createAndroidComposeRule

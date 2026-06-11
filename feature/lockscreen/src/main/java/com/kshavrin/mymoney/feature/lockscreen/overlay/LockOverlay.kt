@@ -245,5 +245,7 @@ private fun launchBiometricPrompt(
         .setNegativeButtonText(cancel)
         .setAllowedAuthenticators(BIOMETRIC_STRONG)
         .build()
-    prompt.authenticate(info)
+    activity.runOnUiThread {
+        prompt.authenticate(info)
+    }
 }

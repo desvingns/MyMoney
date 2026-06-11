@@ -93,8 +93,9 @@ class CurrencyRateViewModel @Inject constructor(
             _state.value = _state.value.copy(isSaving = true)
             try {
                 val now = Instant.now()
+                val existing = currencyRateRepository.findRate(fromId, toId)
                 val rate = CurrencyRate(
-                    id = 0L,
+                    id = existing?.id ?: 0L,
                     fromCurrencyId = fromId,
                     toCurrencyId = toId,
                     rate = rateValue,

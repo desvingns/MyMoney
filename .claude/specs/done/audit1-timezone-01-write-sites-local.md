@@ -1,7 +1,7 @@
 # Запись occurredAt локальной полночью во всех формах транзакций
 Epic: audit1-timezone
 Order: 01 of 04
-Status: active
+Status: done
 Depends-on: —
 Date: 2026-06-10
 
@@ -64,4 +64,4 @@ Feature: Дата транзакции стабильна в любой тайм
   - feature/transaction/src/test/java/com/kshavrin/mymoney/feature/transaction/transfer/TransferViewModelTest.kt
   - feature/transactionslist/src/test/java/com/kshavrin/mymoney/feature/transactionslist/detail/TransactionDetailViewModelTest.kt
   - feature/transactionslist/src/test/java/com/kshavrin/mymoney/feature/transactionslist/detail/TransactionDetailFormMappingTest.kt
-- verification: blocked before Gradle task execution because this environment has no usable JDK 21. `JAVA_HOME` path from AGENTS is absent; no `java` is on PATH; runner found only PyCharm JBR Java 25.0.2, which fails Kotlin DSL initialization with `IllegalArgumentException: 25.0.2`.
+- verification: passed on 2026-06-11 with repo-local JDK 21 (`.gradle-local/jdks/eclipse_adoptium-21-amd64-windows.2`): `:feature:transaction:testDebugUnitTest`, `:feature:transactionslist:testDebugUnitTest`, and `:app:assembleDebug`. `mp-verifier-android` passed; manual timezone checklist remains for human QA.

@@ -95,13 +95,13 @@ fun LockOverlay(
     fun launchPrompt(activity: FragmentActivity) {
         pinFallback = false
         launchBiometric(
-            activity = activity,
-            title = activity.getString(R.string.lock_prompt_title),
-            subtitle = activity.getString(R.string.lock_prompt_subtitle),
-            cancel = activity.getString(R.string.lock_enter_pin),
-            onSuccess = onUnlocked,
-            onLockout = ::showPinFallback,
-            onPinFallback = ::showPinFallback,
+            activity,
+            activity.getString(R.string.lock_prompt_title),
+            activity.getString(R.string.lock_prompt_subtitle),
+            activity.getString(R.string.lock_enter_pin),
+            onUnlocked,
+            ::showPinFallback,
+            ::showPinFallback,
         )
     }
 

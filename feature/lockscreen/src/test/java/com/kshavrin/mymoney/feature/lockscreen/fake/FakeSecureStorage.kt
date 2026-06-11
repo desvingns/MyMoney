@@ -9,6 +9,7 @@ class FakeSecureStorage(
 
     private var current: SecureSettings = initial
 
+    var onWritePinHash: ((String?) -> Unit)? = null
     val writtenPinHashes = mutableListOf<String?>()
     var clearAllCount = 0
         private set
@@ -24,6 +25,7 @@ class FakeSecureStorage(
     }
 
     override fun writePinHash(hash: String?) {
+        onWritePinHash?.invoke(hash)
         writtenPinHashes += hash
         current = current.copy(pinHash = hash)
     }

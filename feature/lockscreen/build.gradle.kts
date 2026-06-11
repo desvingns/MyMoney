@@ -12,6 +12,7 @@ android {
 
     defaultConfig {
         minSdk = 31
+        testInstrumentationRunner = "com.kshavrin.mymoney.feature.lockscreen.HiltTestRunner"
     }
 
     compileOptions {
@@ -42,4 +43,13 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.turbine)
+
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    androidTestImplementation(libs.androidx.test.junit)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.hilt.android.testing)
+    kspAndroidTest(libs.hilt.compiler)
+
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
 }

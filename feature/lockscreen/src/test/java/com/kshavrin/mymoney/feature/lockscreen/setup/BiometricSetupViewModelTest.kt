@@ -133,12 +133,24 @@ class BiometricSetupViewModelTest {
     // --- 3. biometric auth succeeded ------------------------------------------------------
 
     @Test
-    fun `biometric auth succeeded persists the enabled flag`() = runTest {
-        val viewModel = buildViewModel(initialSettings = AppSettings(biometricLockEnabled = false))
+    fun `biometric auth succeeded with existing pin persists the enabled flag`() = runTest {
+        val viewModel = buildViewModel(
+            initialSettings = AppSettings(biometricLockEnabled = false),
+            existingPinHash = pinHasher.hash("1234"),
+        )
 
         viewModel.onEvent(BiometricSetupEvent.BiometricAuthSucceeded)
 
         assertTrue(appSettings.settings.value.biometricLockEnabled)
+    }
+
+    @Test
+    fun `biometric auth succeeded without pin does not persist the enabled flag`() = runTest {
+        val viewModel = buildViewModel(initialSettings = AppSettings(biometricLockEnabled = false))
+
+        viewModel.onEvent(BiometricSetupEvent.BiometricAuthSucceeded)
+
+        assertFalse(appSettings.settings.value.biometricLockEnabled)
     }
 
     @Test
@@ -286,6 +298,29 @@ class BiometricSetupViewModelTest {
     }
 
     @Test
+    fun `a confirmed pin enables biometric lock only after the hash write`() = runTest {
+        secureStorage = FakeSecureStorage().apply {
+            onWritePinHash = {
+                assertFalse(appSettings.settings.value.biometricLockEnabled)
+            }
+        }
+        appSettings = FakeAppSettingsRepository(AppSettings(biometricLockEnabled = false))
+        availabilityChecker = FakeBiometricAvailabilityChecker(BiometricAvailability.Available)
+        val viewModel = BiometricSetupViewModel(
+            appSettingsRepository = appSettings,
+            secureStorage = secureStorage,
+            availabilityChecker = availabilityChecker,
+            pinHasher = pinHasher,
+            ioDispatcher = mainDispatcherRule.testDispatcher,
+        )
+        viewModel.onEvent(BiometricSetupEvent.BiometricAuthSucceeded)
+
+        viewModel.onEvent(BiometricSetupEvent.PinEntered("1234"))
+
+        assertTrue(appSettings.settings.value.biometricLockEnabled)
+    }
+
+    @Test
     fun `a pin shorter than four digits is not written`() = runTest {
         val viewModel = buildViewModel()
 
@@ -317,5 +352,6 @@ class BiometricSetupViewModelTest {
             cancelAndIgnoreRemainingEvents()
         }
         assertTrue(secureStorage.writtenPinHashes.isEmpty())
+        assertFalse(appSettings.settings.value.biometricLockEnabled)
     }
 }

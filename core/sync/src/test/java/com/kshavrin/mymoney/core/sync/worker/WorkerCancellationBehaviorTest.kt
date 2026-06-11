@@ -16,6 +16,7 @@ import androidx.work.impl.utils.taskexecutor.SerialExecutor
 import androidx.work.impl.utils.taskexecutor.TaskExecutor
 import com.google.common.util.concurrent.ListenableFuture
 import com.kshavrin.mymoney.core.common.exception.SyncError
+import com.kshavrin.mymoney.core.common.exception.SyncException
 import com.kshavrin.mymoney.core.datastore.model.AppSettings
 import com.kshavrin.mymoney.core.domain.model.BackupFile
 import com.kshavrin.mymoney.core.domain.model.Period
@@ -29,17 +30,14 @@ import com.kshavrin.mymoney.core.domain.repository.RecurringTemplateRepository
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
 import com.kshavrin.mymoney.core.domain.usecase.GenerateDueRecurringUseCase
 import com.kshavrin.mymoney.core.domain.usecase.RecurringScheduler
-import com.kshavrin.mymoney.core.sync.CloudSyncBackend
-import com.kshavrin.mymoney.core.sync.SnapshotSyncRepository
+import com.kshavrin.mymoney.core.sync.SnapshotSync
+import com.kshavrin.mymoney.core.sync.SyncOutcome
 import com.kshavrin.mymoney.core.sync.SyncTarget
 import com.kshavrin.mymoney.core.sync.fake.FakeAppSettingsRepository
-import com.kshavrin.mymoney.core.sync.fake.FakeBackupRepository
-import com.kshavrin.mymoney.core.sync.fake.FakeCloudSyncBackend
-import com.kshavrin.mymoney.core.sync.fake.FakeSyncLogRepository
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -179,9 +177,6 @@ class WorkerCancellationBehaviorTest {
 
     @Test
     fun `sync cancellation is rethrown instead of becoming retry`() = runTest {
-        val backup = FakeBackupRepository().apply {
-            simulateExportFailure(CancellationException("cancelled"))
-        }
         val settings = FakeAppSettingsRepository(AppSettings(autoSyncEnabled = true))
         val worker = SyncWorker(
             appContext = appContext,
@@ -190,7 +185,7 @@ class WorkerCancellationBehaviorTest {
                     .putString(SyncWorker.KEY_TARGET, SyncTarget.Dropbox.name)
                     .build(),
             ),
-            orchestrator = snapshotSyncRepository(backup = backup, settings = settings),
+            orchestrator = FakeSnapshotSync(pushResult = Result.failure(CancellationException("cancelled"))),
             settings = settings,
         )
 
@@ -203,9 +198,6 @@ class WorkerCancellationBehaviorTest {
 
     @Test
     fun `sync ordinary failure keeps retry mapping before max attempts`() = runTest {
-        val backend = FakeCloudSyncBackend(SyncTarget.Dropbox).apply {
-            simulateUploadFailure(SyncError.Network)
-        }
         val settings = FakeAppSettingsRepository(AppSettings(autoSyncEnabled = true))
         val worker = SyncWorker(
             appContext = appContext,
@@ -214,7 +206,9 @@ class WorkerCancellationBehaviorTest {
                     .putString(SyncWorker.KEY_TARGET, SyncTarget.Dropbox.name)
                     .build(),
             ),
-            orchestrator = snapshotSyncRepository(backends = setOf(backend), settings = settings),
+            orchestrator = FakeSnapshotSync(
+                pushResult = Result.failure(SyncException(SyncError.Network)),
+            ),
             settings = settings,
         )
 
@@ -240,19 +234,6 @@ class WorkerCancellationBehaviorTest {
         foregroundUpdater,
     )
 
-    private fun snapshotSyncRepository(
-        backends: Set<CloudSyncBackend> = setOf(FakeCloudSyncBackend(SyncTarget.Dropbox)),
-        backup: FakeBackupRepository = FakeBackupRepository(),
-        settings: FakeAppSettingsRepository = FakeAppSettingsRepository(),
-    ): SnapshotSyncRepository = SnapshotSyncRepository(
-        context = appContext,
-        backends = backends,
-        backup = backup,
-        syncLog = FakeSyncLogRepository(),
-        settings = settings,
-        ioDispatcher = UnconfinedTestDispatcher(),
-    )
-
     private fun generateDueRecurringUseCase(throwable: Throwable): GenerateDueRecurringUseCase =
         GenerateDueRecurringUseCase(
             recurringTemplateRepository = ThrowingRecurringTemplateRepository(throwable),
@@ -263,6 +244,31 @@ class WorkerCancellationBehaviorTest {
 
     private fun completedFuture(): ListenableFuture<Void> =
         SettableFuture.create<Void>().apply { set(null) }
+
+    private class FakeSnapshotSync(
+        private val pushResult: Result<SyncOutcome> = Result.success(SyncOutcome.Pushed),
+        private val autoSyncResult: Result<Unit> = Result.success(Unit),
+    ) : SnapshotSync {
+        override fun isConnected(target: SyncTarget): Boolean = true
+
+        override fun connectedTargets(): List<SyncTarget> = listOf(SyncTarget.Dropbox)
+
+        override suspend fun syncNow(target: SyncTarget): Result<SyncOutcome> = pushResult
+
+        override suspend fun push(target: SyncTarget): Result<SyncOutcome> = pushResult
+
+        override suspend fun keepLocal(target: SyncTarget): Result<SyncOutcome> = pushResult
+
+        override suspend fun keepRemote(target: SyncTarget): Result<SyncOutcome> = pushResult
+
+        override fun connect(target: SyncTarget, payload: String) = Unit
+
+        override fun disconnect(target: SyncTarget) = Unit
+
+        override suspend fun accountLabel(target: SyncTarget): Result<String> = Result.success(target.name)
+
+        override suspend fun autoSyncConnected(): Result<Unit> = autoSyncResult
+    }
 
     private class ImmediateTaskExecutor(
         private val executor: Executor,

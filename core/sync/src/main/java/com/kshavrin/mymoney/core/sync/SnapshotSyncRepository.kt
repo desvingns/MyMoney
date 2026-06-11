@@ -63,7 +63,7 @@ class SnapshotSyncRepository @Inject constructor(
         }.recoverFailure(target, EVENT_PUSH)
     }
 
-    suspend fun push(target: SyncTarget): Result<SyncOutcome> = withContext(ioDispatcher) {
+    override suspend fun push(target: SyncTarget): Result<SyncOutcome> = withContext(ioDispatcher) {
         breadcrumb("push target=$target")
         runCatching { doPush(target) }.recoverFailure(target, EVENT_PUSH)
     }
@@ -92,7 +92,7 @@ class SnapshotSyncRepository @Inject constructor(
         }.recoverFailure(target, EVENT_PULL)
     }
 
-    suspend fun autoSyncConnected(): Result<Unit> = withContext(ioDispatcher) {
+    override suspend fun autoSyncConnected(): Result<Unit> = withContext(ioDispatcher) {
         var retryable: SyncException? = null
         for (target in connectedTargets()) {
             push(target).onFailure { t ->

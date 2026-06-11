@@ -5,7 +5,7 @@ import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
-import com.kshavrin.mymoney.core.sync.SnapshotSyncRepository
+import com.kshavrin.mymoney.core.sync.SnapshotSync
 import com.kshavrin.mymoney.core.sync.SyncTarget
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
@@ -16,7 +16,7 @@ import kotlinx.coroutines.flow.first
 class SyncWorker @AssistedInject constructor(
     @Assisted appContext: Context,
     @Assisted params: WorkerParameters,
-    private val orchestrator: SnapshotSyncRepository,
+    private val orchestrator: SnapshotSync,
     private val settings: AppSettingsRepository,
 ) : CoroutineWorker(appContext, params) {
 

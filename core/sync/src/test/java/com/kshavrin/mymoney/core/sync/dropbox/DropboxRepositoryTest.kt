@@ -17,14 +17,8 @@ import org.junit.Assert.fail
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.IOException
-import java.lang.reflect.InvocationTargetException
 import java.net.SocketTimeoutException
 import java.time.Instant
-import kotlin.coroutines.Continuation
-import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
-import kotlin.coroutines.suspendCoroutine
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class DropboxRepositoryTest {
@@ -105,37 +99,31 @@ class DropboxRepositoryTest {
 
     @Test
     fun `runOnIo rethrows CancellationException without mapping`() = runTest {
-        var attempts = 0
+        val storage = ThrowingSecureStorage(CancellationException("cancelled"))
 
         try {
-            invokeRunOnIo(repository()) {
-                attempts++
-                throw CancellationException("cancelled")
-            }
+            repository(secureStorage = storage).accountLabel()
             fail("Expected CancellationException")
         } catch (_: CancellationException) {
         }
 
-        assertEquals(1, attempts)
+        assertEquals(1, storage.readCalls)
     }
 
     @Test
     fun `runOnIo keeps existing IOException mapping after retry exhaustion`() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
-        var attempts = 0
+        val storage = ThrowingSecureStorage(IOException("offline"))
 
         val result = async {
-            invokeRunOnIo(repository(dispatcher = dispatcher)) {
-                attempts++
-                throw IOException("offline")
-            }
+            repository(secureStorage = storage, dispatcher = dispatcher).accountLabel()
         }
         advanceUntilIdle()
 
         val failure = result.await().exceptionOrNull()
         assertTrue(failure is SyncException)
         assertEquals(SyncError.Network, (failure as SyncException).syncError)
-        assertEquals(3, attempts)
+        assertEquals(3, storage.readCalls)
     }
 
     // --- snapshotsToDelete ---------------------------------------------------
@@ -225,29 +213,6 @@ class DropboxRepositoryTest {
         ioDispatcher = dispatcher,
     )
 
-    @Suppress("UNCHECKED_CAST")
-    private suspend fun <T> invokeRunOnIo(
-        repository: DropboxRepository,
-        block: () -> T,
-    ): Result<T> = suspendCoroutine { continuation ->
-        val method = DropboxRepository::class.java.getDeclaredMethod(
-            "runOnIo",
-            Function0::class.java,
-            Continuation::class.java,
-        )
-        method.isAccessible = true
-        try {
-            val returned = method.invoke(repository, block, continuation)
-            if (returned !== COROUTINE_SUSPENDED) {
-                continuation.resume(returned as Result<T>)
-            }
-        } catch (error: InvocationTargetException) {
-            continuation.resumeWithException(error.targetException ?: error)
-        } catch (error: Throwable) {
-            continuation.resumeWithException(error)
-        }
-    }
-
     private class FakeSecureStorage(
         private var settings: SecureSettings = SecureSettings(),
     ) : SecureStorage {
@@ -268,5 +233,24 @@ class DropboxRepositoryTest {
         override fun clearAll() {
             settings = SecureSettings()
         }
+    }
+
+    private class ThrowingSecureStorage(
+        private val throwable: Throwable,
+    ) : SecureStorage {
+        var readCalls: Int = 0
+
+        override fun read(): SecureSettings {
+            readCalls++
+            throw throwable
+        }
+
+        override fun writeDropboxRefreshToken(token: String?) = Unit
+
+        override fun writeGdriveAccountEmail(email: String?) = Unit
+
+        override fun writePinHash(hash: String?) = Unit
+
+        override fun clearAll() = Unit
     }
 }

@@ -6,7 +6,6 @@ import androidx.datastore.preferences.core.edit
 import com.kshavrin.mymoney.core.datastore.model.AppSettings
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -21,12 +20,12 @@ class AppSettingsRepositoryImpl @Inject constructor(
         .distinctUntilChanged()
 
     override suspend fun update(transform: (AppSettings) -> AppSettings) {
-        val current = settings.first()
-        val next = transform(current)
-        if (current.firstPositiveSeen && !next.firstPositiveSeen) {
-            throw IllegalStateException("firstPositiveSeen is monotonic — cannot flip true to false")
-        }
         dataStore.edit { prefs ->
+            val current = prefs.toAppSettings()
+            val next = transform(current)
+            if (current.firstPositiveSeen && !next.firstPositiveSeen) {
+                throw IllegalStateException("firstPositiveSeen is monotonic — cannot flip true to false")
+            }
             next.writeTo(prefs)
         }
     }

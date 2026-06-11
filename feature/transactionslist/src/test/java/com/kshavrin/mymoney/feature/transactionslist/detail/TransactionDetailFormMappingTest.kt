@@ -17,6 +17,7 @@ import com.kshavrin.mymoney.feature.transactionslist.fake.FakeCurrencyRepository
 import com.kshavrin.mymoney.feature.transactionslist.fake.FakeTransactionRepository
 import com.kshavrin.mymoney.feature.transactionslist.util.MainDispatcherRule
 import kotlinx.coroutines.test.runTest
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -28,7 +29,8 @@ import org.junit.Test
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
-import java.time.ZoneOffset
+import java.time.ZoneId
+import java.util.TimeZone
 
 /**
  * Tests for the state→TransactionFormState mapping (Edit mode) and for
@@ -41,9 +43,10 @@ class TransactionDetailFormMappingTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
+    private lateinit var originalTimeZone: TimeZone
+
     private val createdAt: Instant = Instant.parse("2026-05-01T08:00:00Z")
-    private val occurredInstant: Instant = Instant.parse("2026-05-10T00:00:00Z")
-    private val originalDate: LocalDate = occurredInstant.atZone(ZoneOffset.UTC).toLocalDate()
+    private val originalDate: LocalDate = LocalDate.parse("2026-06-10")
 
     private lateinit var transactionRepo: FakeTransactionRepository
     private lateinit var accountRepo: FakeAccountRepository
@@ -108,7 +111,7 @@ class TransactionDetailFormMappingTest {
         accountId = cashUsd.id,
         categoryId = foodCategory.id,
         note = "Lunch",
-        occurredAt = occurredInstant,
+        occurredAt = localMidnight(originalDate),
         createdAt = createdAt,
         updatedAt = createdAt,
         isDeleted = false,
@@ -119,6 +122,8 @@ class TransactionDetailFormMappingTest {
 
     @Before
     fun setUp() {
+        originalTimeZone = TimeZone.getDefault()
+        TimeZone.setDefault(TimeZone.getTimeZone(TEST_TIME_ZONE_ID))
         transactionRepo = FakeTransactionRepository()
         accountRepo = FakeAccountRepository()
         currencyRepo = FakeCurrencyRepository()
@@ -128,6 +133,11 @@ class TransactionDetailFormMappingTest {
         currencyRepo.seed(usd)
         accountRepo.seed(cashUsd)
         categoryRepo.seed(foodCategory, entertainmentCategory)
+    }
+
+    @After
+    fun tearDown() {
+        TimeZone.setDefault(originalTimeZone)
     }
 
     private fun buildViewModel(transactionId: Long): TransactionDetailViewModel =
@@ -141,6 +151,9 @@ class TransactionDetailFormMappingTest {
                 mapOf(TransactionDetailViewModel.KEY_TRANSACTION_ID to transactionId),
             ),
         )
+
+    private fun localMidnight(date: LocalDate): Instant =
+        date.atStartOfDay(ZoneId.systemDefault()).toInstant()
 
     // ---- AC1: state→TransactionFormState mapping -----------------------------------------------
 
@@ -473,4 +486,8 @@ class TransactionDetailFormMappingTest {
                 cancelAndIgnoreRemainingEvents()
             }
         }
+
+    companion object {
+        private const val TEST_TIME_ZONE_ID = "America/New_York"
+    }
 }

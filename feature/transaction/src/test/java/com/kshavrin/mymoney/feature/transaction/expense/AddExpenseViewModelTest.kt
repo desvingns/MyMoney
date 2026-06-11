@@ -17,6 +17,7 @@ import com.kshavrin.mymoney.feature.transaction.fake.FakeCurrencyRepository
 import com.kshavrin.mymoney.feature.transaction.fake.FakeTransactionRepository
 import com.kshavrin.mymoney.feature.transaction.util.MainDispatcherRule
 import kotlinx.coroutines.test.runTest
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -27,11 +28,16 @@ import org.junit.Rule
 import org.junit.Test
 import java.math.BigDecimal
 import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.util.TimeZone
 
 class AddExpenseViewModelTest {
 
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
+
+    private lateinit var originalTimeZone: TimeZone
 
     private val now: Instant = Instant.parse("2026-05-20T10:00:00Z")
 
@@ -98,6 +104,8 @@ class AddExpenseViewModelTest {
 
     @Before
     fun setUp() {
+        originalTimeZone = TimeZone.getDefault()
+        TimeZone.setDefault(TimeZone.getTimeZone(TEST_TIME_ZONE_ID))
         transactionRepo = FakeTransactionRepository()
         accountRepo = FakeAccountRepository()
         currencyRepo = FakeCurrencyRepository()
@@ -115,6 +123,11 @@ class AddExpenseViewModelTest {
         )
     }
 
+    @After
+    fun tearDown() {
+        TimeZone.setDefault(originalTimeZone)
+    }
+
     private fun buildViewModel(): AddExpenseViewModel = AddExpenseViewModel(
         transactionRepository = transactionRepo,
         accountRepository = accountRepo,
@@ -123,6 +136,9 @@ class AddExpenseViewModelTest {
         appSettingsRepository = settingsRepo,
         savedStateHandle = savedStateHandle,
     )
+
+    private fun localMidnight(date: LocalDate): Instant =
+        date.atStartOfDay(ZoneId.systemDefault()).toInstant()
 
     @Test
     fun `initial state has amountInput 0 and zero amount with no pending operator`() = runTest {
@@ -278,7 +294,9 @@ class AddExpenseViewModelTest {
     @Test
     fun `CategoryPicked event saves expense transaction with picked categoryId and matching amount`() = runTest {
         val viewModel = buildViewModel()
+        val saveDate = LocalDate.parse("2026-06-10")
         viewModel.onEvent(AddExpenseEvent.KeypadDigit(7))
+        viewModel.onEvent(AddExpenseEvent.DateChanged(saveDate))
 
         viewModel.onEvent(AddExpenseEvent.CategoryPicked(10L))
 
@@ -289,6 +307,7 @@ class AddExpenseViewModelTest {
         assertEquals(10L, saved.categoryId)
         assertEquals(cashAccount.id, saved.accountId)
         assertEquals(usd.id, saved.currencyId)
+        assertEquals(localMidnight(saveDate), saved.occurredAt)
         assertNotNull(viewModel.state.value.category)
         assertEquals(10L, viewModel.state.value.category?.id)
     }
@@ -338,5 +357,9 @@ class AddExpenseViewModelTest {
         viewModel.onEvent(AddExpenseEvent.DismissError)
 
         assertNull(viewModel.state.value.errorBannerRes)
+    }
+
+    companion object {
+        private const val TEST_TIME_ZONE_ID = "America/New_York"
     }
 }

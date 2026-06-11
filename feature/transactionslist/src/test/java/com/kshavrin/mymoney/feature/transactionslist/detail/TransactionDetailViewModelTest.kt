@@ -17,6 +17,7 @@ import com.kshavrin.mymoney.feature.transactionslist.fake.FakeCurrencyRepository
 import com.kshavrin.mymoney.feature.transactionslist.fake.FakeTransactionRepository
 import com.kshavrin.mymoney.feature.transactionslist.util.MainDispatcherRule
 import kotlinx.coroutines.test.runTest
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -28,16 +29,18 @@ import org.junit.Test
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
-import java.time.ZoneOffset
+import java.time.ZoneId
+import java.util.TimeZone
 
 class TransactionDetailViewModelTest {
 
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
+    private lateinit var originalTimeZone: TimeZone
+
     private val createdAt: Instant = Instant.parse("2026-05-01T08:00:00Z")
-    private val occurredInstant: Instant = Instant.parse("2026-05-10T00:00:00Z")
-    private val originalDate: LocalDate = occurredInstant.atZone(ZoneOffset.UTC).toLocalDate()
+    private val originalDate: LocalDate = LocalDate.parse("2026-06-10")
 
     private lateinit var transactionRepo: FakeTransactionRepository
     private lateinit var accountRepo: FakeAccountRepository
@@ -121,7 +124,7 @@ class TransactionDetailViewModelTest {
         accountId = cashUsd.id,
         categoryId = foodCategory.id,
         note = "Lunch",
-        occurredAt = occurredInstant,
+        occurredAt = localMidnight(originalDate),
         createdAt = createdAt,
         updatedAt = createdAt,
         isDeleted = false,
@@ -138,7 +141,7 @@ class TransactionDetailViewModelTest {
         accountId = bankUsd.id,
         categoryId = salaryCategory.id,
         note = "Paycheck",
-        occurredAt = occurredInstant,
+        occurredAt = localMidnight(originalDate),
         createdAt = createdAt,
         updatedAt = createdAt,
         isDeleted = false,
@@ -156,7 +159,7 @@ class TransactionDetailViewModelTest {
         accountId = cashUsd.id,
         categoryId = null,
         note = null,
-        occurredAt = occurredInstant,
+        occurredAt = localMidnight(originalDate),
         createdAt = createdAt,
         updatedAt = createdAt,
         isDeleted = false,
@@ -174,7 +177,7 @@ class TransactionDetailViewModelTest {
         accountId = cashUsd.id,
         categoryId = null,
         note = null,
-        occurredAt = occurredInstant,
+        occurredAt = localMidnight(originalDate),
         createdAt = createdAt,
         updatedAt = createdAt,
         isDeleted = false,
@@ -185,6 +188,8 @@ class TransactionDetailViewModelTest {
 
     @Before
     fun setUp() {
+        originalTimeZone = TimeZone.getDefault()
+        TimeZone.setDefault(TimeZone.getTimeZone(TEST_TIME_ZONE_ID))
         transactionRepo = FakeTransactionRepository()
         accountRepo = FakeAccountRepository()
         currencyRepo = FakeCurrencyRepository()
@@ -194,6 +199,11 @@ class TransactionDetailViewModelTest {
         currencyRepo.seed(usd, eur)
         accountRepo.seed(cashUsd, bankUsd, walletEur)
         categoryRepo.seed(foodCategory, salaryCategory)
+    }
+
+    @After
+    fun tearDown() {
+        TimeZone.setDefault(originalTimeZone)
     }
 
     private fun buildViewModel(transactionId: Long): TransactionDetailViewModel =
@@ -207,6 +217,9 @@ class TransactionDetailViewModelTest {
                 mapOf(TransactionDetailViewModel.KEY_TRANSACTION_ID to transactionId),
             ),
         )
+
+    private fun localMidnight(date: LocalDate): Instant =
+        date.atStartOfDay(ZoneId.systemDefault()).toInstant()
 
     // ---- AC1: load / pre-populate ------------------------------------------------------------
 
@@ -409,6 +422,7 @@ class TransactionDetailViewModelTest {
                 saved.updatedAt.isAfter(createdAt),
             )
             assertEquals("Dinner", saved.note)
+            assertEquals(localMidnight(originalDate), saved.occurredAt)
         }
 
     @Test
@@ -424,6 +438,26 @@ class TransactionDetailViewModelTest {
             assertEquals(TransactionDetailAction.NavigateBack, awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    @Test
+    fun `editing a local-midnight imported row preserves its local date on save`() = runTest {
+        val importedDate = LocalDate.parse("2026-06-01")
+        val tx = expense(id = 101L).copy(occurredAt = localMidnight(importedDate))
+        transactionRepo.seed(tx)
+        val viewModel = buildViewModel(tx.id)
+
+        viewModel.state.test {
+            assertEquals(importedDate, expectMostRecentItem().occurredAt)
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        viewModel.onEvent(TransactionDetailEvent.NoteChanged("Imported lunch"))
+        viewModel.onEvent(TransactionDetailEvent.SaveClicked)
+
+        val saved = transactionRepo.findById(tx.id)
+        assertNotNull(saved)
+        assertEquals(localMidnight(importedDate), saved!!.occurredAt)
     }
 
     // ---- AC4: delete + undo ------------------------------------------------------------------
@@ -487,6 +521,7 @@ class TransactionDetailViewModelTest {
             assertEquals("transfer stays a single row under the same id", tx.id, saved!!.id)
             assertEquals(TransactionKind.Transfer, saved.kind)
             assertEquals(0.8, saved.exchangeRate!!, 0.0001)
+            assertEquals(localMidnight(originalDate), saved.occurredAt)
             // AS-7: toAmount = amount (100) * rate (0.8) = 80
             assertEquals(0, BigDecimal("80").compareTo(saved.toAmount))
         }
@@ -531,6 +566,11 @@ class TransactionDetailViewModelTest {
         val saved = transactionRepo.findById(tx.id)
         assertNotNull(saved)
         assertNull("same-currency transfer carries no exchange rate", saved!!.exchangeRate)
+        assertEquals(localMidnight(originalDate), saved.occurredAt)
         assertTrue("no CurrencyRate row may be written", rateRepo.upserts.isEmpty())
+    }
+
+    companion object {
+        private const val TEST_TIME_ZONE_ID = "America/New_York"
     }
 }

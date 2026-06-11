@@ -69,6 +69,16 @@ class TransactionRepositoryImpl @Inject constructor(
         dao.searchByNote(query, limit).map { it.toDomain() }
     }
 
+    override suspend fun listForTimezoneNormalization(): List<Transaction> = withContext(ioDispatcher) {
+        dao.listForTimezoneNormalization().map { it.toDomain() }
+    }
+
+    override suspend fun updateOccurredAts(updates: Map<Long, Instant>, updatedAt: Instant) = withContext(ioDispatcher) {
+        updates.forEach { (id, occurredAt) ->
+            dao.updateOccurredAt(id, occurredAt.toEpochMilli(), updatedAt.toEpochMilli())
+        }
+    }
+
     override suspend fun upsert(transaction: Transaction): Long = withContext(ioDispatcher) {
         require(transaction.amount.signum() > 0) { "amount must be > 0; got ${transaction.amount}" }
         if (transaction.kind == TransactionKind.Transfer) {

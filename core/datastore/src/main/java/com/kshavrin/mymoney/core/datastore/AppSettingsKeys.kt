@@ -24,4 +24,5 @@ internal object AppSettingsKeys {
     val FIRST_POSITIVE_SEEN = booleanPreferencesKey("first_positive_seen")
     val IMPORT_FOCUS_EPOCH_MS = longPreferencesKey("import_focus_epoch_ms")
     val IMPORT_FOCUS_CURRENCY_ID = longPreferencesKey("import_focus_currency_id")
+    val TZ_NORMALIZED_AT = longPreferencesKey("tz_normalized_at")
 }

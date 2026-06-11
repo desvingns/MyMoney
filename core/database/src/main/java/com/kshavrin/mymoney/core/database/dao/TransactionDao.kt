@@ -96,8 +96,14 @@ interface TransactionDao {
     @Query("SELECT * FROM `transaction` WHERE id = :id LIMIT 1")
     suspend fun findById(id: Long): TransactionEntity?
 
+    @Query("SELECT * FROM `transaction`")
+    suspend fun listForTimezoneNormalization(): List<TransactionEntity>
+
     @Upsert
     suspend fun upsert(transaction: TransactionEntity): Long
+
+    @Query("UPDATE `transaction` SET occurred_at = :occurredAt, updated_at = :updatedAt WHERE id = :id")
+    suspend fun updateOccurredAt(id: Long, occurredAt: Long, updatedAt: Long)
 
     @Query("UPDATE `transaction` SET is_deleted = 1, updated_at = :now WHERE id = :id")
     suspend fun softDelete(id: Long, now: Long)

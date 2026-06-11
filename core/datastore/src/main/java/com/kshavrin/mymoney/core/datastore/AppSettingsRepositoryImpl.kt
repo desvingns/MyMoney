@@ -55,6 +55,7 @@ internal fun Preferences.toAppSettings(): AppSettings = AppSettings(
     firstPositiveSeen = this[AppSettingsKeys.FIRST_POSITIVE_SEEN] ?: false,
     importFocusEpochMs = this[AppSettingsKeys.IMPORT_FOCUS_EPOCH_MS] ?: 0L,
     importFocusCurrencyId = this[AppSettingsKeys.IMPORT_FOCUS_CURRENCY_ID] ?: -1L,
+    tzNormalizedAt = this[AppSettingsKeys.TZ_NORMALIZED_AT],
 )
 
 internal fun AppSettings.writeTo(prefs: androidx.datastore.preferences.core.MutablePreferences) {
@@ -84,4 +85,9 @@ internal fun AppSettings.writeTo(prefs: androidx.datastore.preferences.core.Muta
     prefs[AppSettingsKeys.FIRST_POSITIVE_SEEN] = firstPositiveSeen
     prefs[AppSettingsKeys.IMPORT_FOCUS_EPOCH_MS] = importFocusEpochMs
     prefs[AppSettingsKeys.IMPORT_FOCUS_CURRENCY_ID] = importFocusCurrencyId
+    if (tzNormalizedAt != null) {
+        prefs[AppSettingsKeys.TZ_NORMALIZED_AT] = tzNormalizedAt
+    } else {
+        prefs.remove(AppSettingsKeys.TZ_NORMALIZED_AT)
+    }
 }

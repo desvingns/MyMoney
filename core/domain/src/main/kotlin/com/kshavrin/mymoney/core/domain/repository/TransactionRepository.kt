@@ -24,6 +24,12 @@ interface TransactionRepository {
     suspend fun countByAccount(id: Long): Int
     suspend fun countByCategory(id: Long): Int
     suspend fun countByCurrency(id: Long): Int
+    suspend fun listForTimezoneNormalization(): List<Transaction> =
+        error("Timezone normalization requires a repository implementation")
+
+    suspend fun updateOccurredAts(updates: Map<Long, Instant>, updatedAt: Instant) {
+        error("Timezone normalization requires a repository implementation")
+    }
 }
 
 data class CategorySummary(

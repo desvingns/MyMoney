@@ -19,4 +19,5 @@ data class AppSettings(
     val firstPositiveSeen: Boolean = false,
     val importFocusEpochMs: Long = 0L,
     val importFocusCurrencyId: Long = -1L,
+    val tzNormalizedAt: Long? = null,
 )

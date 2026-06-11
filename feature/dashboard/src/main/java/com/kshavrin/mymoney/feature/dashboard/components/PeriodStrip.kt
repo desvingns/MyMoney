@@ -26,10 +26,8 @@ import com.kshavrin.mymoney.core.domain.model.Period
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.feature.dashboard.R
 import java.time.DayOfWeek
-import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
-import java.time.ZoneId
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -82,10 +80,8 @@ fun PeriodStrip(
                     val startMillis = pickerState.selectedStartDateMillis
                     val endMillis = pickerState.selectedEndDateMillis
                     if (startMillis != null && endMillis != null) {
-                        val start = Instant.ofEpochMilli(startMillis)
-                            .atZone(ZoneId.systemDefault()).toLocalDate()
-                        val end = Instant.ofEpochMilli(endMillis)
-                            .atZone(ZoneId.systemDefault()).toLocalDate()
+                        val start = materialPickerUtcMillisToLocalDate(startMillis)
+                        val end = materialPickerUtcMillisToLocalDate(endMillis)
                         onPeriodChange(Period.CustomRange(start, end))
                     }
                     showRangePicker = false

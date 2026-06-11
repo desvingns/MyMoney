@@ -62,10 +62,8 @@ import com.kshavrin.mymoney.feature.dashboard.DashboardSelection
 import com.kshavrin.mymoney.feature.dashboard.DashboardState
 import com.kshavrin.mymoney.feature.dashboard.R
 import java.time.DayOfWeek
-import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
-import java.time.ZoneId
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -169,10 +167,8 @@ fun LeftDrawerContent(
                     val startMillis = pickerState.selectedStartDateMillis
                     val endMillis = pickerState.selectedEndDateMillis
                     if (startMillis != null && endMillis != null) {
-                        val start = Instant.ofEpochMilli(startMillis)
-                            .atZone(ZoneId.systemDefault()).toLocalDate()
-                        val end = Instant.ofEpochMilli(endMillis)
-                            .atZone(ZoneId.systemDefault()).toLocalDate()
+                        val start = materialPickerUtcMillisToLocalDate(startMillis)
+                        val end = materialPickerUtcMillisToLocalDate(endMillis)
                         changePeriod(Period.CustomRange(start, end))
                     }
                     showRangePicker = false
@@ -197,8 +193,7 @@ fun LeftDrawerContent(
             confirmButton = {
                 TextButton(onClick = {
                     pickerState.selectedDateMillis?.let { selectedMillis ->
-                        val date = Instant.ofEpochMilli(selectedMillis)
-                            .atZone(ZoneId.systemDefault()).toLocalDate()
+                        val date = materialPickerUtcMillisToLocalDate(selectedMillis)
                         changePeriod(Period.Day(date))
                     }
                     showSingleDatePicker = false

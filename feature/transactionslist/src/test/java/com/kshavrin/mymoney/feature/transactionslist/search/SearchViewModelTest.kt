@@ -4,11 +4,13 @@ import app.cash.turbine.test
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
+import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
 import com.kshavrin.mymoney.feature.transactionslist.fake.FakeCurrencyRepository
 import com.kshavrin.mymoney.feature.transactionslist.fake.FakeSearchHistoryRepository
 import com.kshavrin.mymoney.feature.transactionslist.fake.FakeTransactionRepository
 import com.kshavrin.mymoney.feature.transactionslist.util.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -81,8 +83,10 @@ class SearchViewModelTest {
         currencyRepo.seed(usd)
     }
 
-    private fun buildViewModel(): SearchViewModel = SearchViewModel(
-        transactionRepository = transactionRepo,
+    private fun buildViewModel(
+        transactionRepository: TransactionRepository = transactionRepo,
+    ): SearchViewModel = SearchViewModel(
+        transactionRepository = transactionRepository,
         searchHistoryRepository = historyRepo,
         currencyRepository = currencyRepo,
     )
@@ -363,6 +367,35 @@ class SearchViewModelTest {
             }
         }
 
+    @Test
+    fun `superseded search cancellation does not drive the Error phase`() =
+        runTest(mainDispatcherRule.testDispatcher.scheduler) {
+            setUpRepos()
+            val blockingRepo = CancellableSearchRepository(
+                blockingQuery = "cof",
+                resultsByQuery = mapOf(
+                    "coffee" to listOf(expense(id = 3L, note = "Coffee")),
+                ),
+            )
+            val viewModel = buildViewModel(transactionRepository = blockingRepo)
+            advanceUntilIdle()
+
+            viewModel.onEvent(SearchEvent.QueryChanged("cof"))
+            advanceTimeBy(250)
+            runCurrent()
+            assertEquals(listOf("cof"), blockingRepo.startedQueries)
+
+            viewModel.onEvent(SearchEvent.QueryChanged("coffee"))
+            advanceTimeBy(250)
+            runCurrent()
+            advanceUntilIdle()
+
+            assertEquals(listOf("cof"), blockingRepo.cancelledQueries)
+            assertEquals(SearchPhase.Results, viewModel.state.value.phase)
+            assertEquals("coffee", viewModel.state.value.query)
+            assertEquals(listOf(3L), viewModel.state.value.results.map { it.id })
+        }
+
     // ---- AC: Error state (searchByNote throws) -----------------------------------------------
 
     @Test
@@ -412,4 +445,25 @@ class SearchViewModelTest {
                 cancelAndIgnoreRemainingEvents()
             }
         }
+
+    private class CancellableSearchRepository(
+        private val delegate: FakeTransactionRepository = FakeTransactionRepository(),
+        private val blockingQuery: String,
+        private val resultsByQuery: Map<String, List<Transaction>>,
+    ) : TransactionRepository by delegate {
+        val startedQueries: MutableList<String> = mutableListOf()
+        val cancelledQueries: MutableList<String> = mutableListOf()
+
+        override suspend fun searchByNote(query: String, limit: Int): List<Transaction> {
+            startedQueries += query
+            if (query == blockingQuery) {
+                try {
+                    awaitCancellation()
+                } finally {
+                    cancelledQueries += query
+                }
+            }
+            return resultsByQuery[query].orEmpty()
+        }
+    }
 }

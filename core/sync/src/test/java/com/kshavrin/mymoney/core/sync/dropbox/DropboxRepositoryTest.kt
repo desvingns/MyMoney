@@ -2,14 +2,31 @@ package com.kshavrin.mymoney.core.sync.dropbox
 
 import com.kshavrin.mymoney.core.common.exception.SyncError
 import com.kshavrin.mymoney.core.common.exception.SyncException
+import com.kshavrin.mymoney.core.datastore.SecureStorage
+import com.kshavrin.mymoney.core.datastore.model.SecureSettings
 import com.kshavrin.mymoney.core.sync.RemoteSnapshot
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.fail
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.IOException
+import java.lang.reflect.InvocationTargetException
 import java.net.SocketTimeoutException
 import java.time.Instant
+import kotlin.coroutines.Continuation
+import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+import kotlin.coroutines.suspendCoroutine
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class DropboxRepositoryTest {
 
     // --- mapDropboxError -----------------------------------------------------
@@ -84,6 +101,41 @@ class DropboxRepositoryTest {
     fun `mapDropboxError maps an unrecognised throwable to Unknown`() {
         assertEquals(SyncError.Unknown, mapDropboxError(SomethingNobodyMaps()))
         assertEquals(SyncError.Unknown, mapDropboxError(RuntimeException("boom")))
+    }
+
+    @Test
+    fun `runOnIo rethrows CancellationException without mapping`() = runTest {
+        var attempts = 0
+
+        try {
+            invokeRunOnIo(repository()) {
+                attempts++
+                throw CancellationException("cancelled")
+            }
+            fail("Expected CancellationException")
+        } catch (_: CancellationException) {
+        }
+
+        assertEquals(1, attempts)
+    }
+
+    @Test
+    fun `runOnIo keeps existing IOException mapping after retry exhaustion`() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        var attempts = 0
+
+        val result = async {
+            invokeRunOnIo(repository(dispatcher = dispatcher)) {
+                attempts++
+                throw IOException("offline")
+            }
+        }
+        advanceUntilIdle()
+
+        val failure = result.await().exceptionOrNull()
+        assertTrue(failure is SyncException)
+        assertEquals(SyncError.Network, (failure as SyncException).syncError)
+        assertEquals(3, attempts)
     }
 
     // --- snapshotsToDelete ---------------------------------------------------
@@ -163,5 +215,58 @@ class DropboxRepositoryTest {
         val instant = Instant.parse("2026-01-01T00:30:00Z")
 
         assertEquals("monefy_backup_202601010030.db", snapshotFileName(instant))
+    }
+
+    private fun repository(
+        secureStorage: SecureStorage = FakeSecureStorage(),
+        dispatcher: kotlinx.coroutines.CoroutineDispatcher = UnconfinedTestDispatcher(),
+    ): DropboxRepository = DropboxRepository(
+        secureStorage = secureStorage,
+        ioDispatcher = dispatcher,
+    )
+
+    @Suppress("UNCHECKED_CAST")
+    private suspend fun <T> invokeRunOnIo(
+        repository: DropboxRepository,
+        block: () -> T,
+    ): Result<T> = suspendCoroutine { continuation ->
+        val method = DropboxRepository::class.java.getDeclaredMethod(
+            "runOnIo",
+            Function0::class.java,
+            Continuation::class.java,
+        )
+        method.isAccessible = true
+        try {
+            val returned = method.invoke(repository, block, continuation)
+            if (returned !== COROUTINE_SUSPENDED) {
+                continuation.resume(returned as Result<T>)
+            }
+        } catch (error: InvocationTargetException) {
+            continuation.resumeWithException(error.targetException ?: error)
+        } catch (error: Throwable) {
+            continuation.resumeWithException(error)
+        }
+    }
+
+    private class FakeSecureStorage(
+        private var settings: SecureSettings = SecureSettings(),
+    ) : SecureStorage {
+        override fun read(): SecureSettings = settings
+
+        override fun writeDropboxRefreshToken(token: String?) {
+            settings = settings.copy(dropboxRefreshToken = token)
+        }
+
+        override fun writeGdriveAccountEmail(email: String?) {
+            settings = settings.copy(gdriveAccountEmail = email)
+        }
+
+        override fun writePinHash(hash: String?) {
+            settings = settings.copy(pinHash = hash)
+        }
+
+        override fun clearAll() {
+            settings = SecureSettings()
+        }
     }
 }

@@ -1,6 +1,7 @@
 package com.kshavrin.mymoney.feature.transaction.income
 
 import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.viewModelScope
 import app.cash.turbine.test
 import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.AccountType
@@ -18,6 +19,7 @@ import com.kshavrin.mymoney.feature.transaction.fake.FakeCurrencyRepository
 import com.kshavrin.mymoney.feature.transaction.fake.FakeTransactionRepository
 import com.kshavrin.mymoney.feature.transaction.util.MainDispatcherRule
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -322,6 +324,43 @@ class AddIncomeViewModelTest {
     }
 
     @Test
+    fun `cancelling explicit save does not show error banner or emit navigation`() = runTest {
+        val blockingRepo = BlockingTransactionRepository()
+        val viewModel = buildViewModel(transactionRepository = blockingRepo)
+        advanceUntilIdle()
+        viewModel.setStateForExplicitSave(amount = BigDecimal("9"), category = salaryCategory)
+
+        viewModel.actions.test {
+            viewModel.onEvent(AddIncomeEvent.SaveClicked)
+            assertTrue(viewModel.state.value.isSaving)
+            assertEquals(1, blockingRepo.startedUpserts.size)
+
+            viewModel.viewModelScope.cancel()
+            advanceUntilIdle()
+
+            assertTrue(blockingRepo.persistedUpserts.isEmpty())
+            assertNull(viewModel.state.value.errorBannerRes)
+            assertEquals(0L, viewModel.state.value.savedSignal)
+            expectNoEvents()
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `save failure keeps existing income error banner mapping`() = runTest {
+        val viewModel = buildViewModel(transactionRepository = FailingTransactionRepository())
+        advanceUntilIdle()
+        viewModel.setStateForExplicitSave(amount = BigDecimal("9"), category = salaryCategory)
+
+        viewModel.onEvent(AddIncomeEvent.SaveClicked)
+        advanceUntilIdle()
+
+        assertFalse(viewModel.state.value.isSaving)
+        assertEquals(R.string.error_save_failed, viewModel.state.value.errorBannerRes)
+        assertEquals(0L, viewModel.state.value.savedSignal)
+    }
+
+    @Test
     fun `SwapMode emits NavigateToExpenseForm`() = runTest {
         val viewModel = buildViewModel()
 
@@ -355,6 +394,14 @@ class AddIncomeViewModelTest {
             if (!gate.isCompleted) {
                 gate.complete(Unit)
             }
+        }
+    }
+
+    private class FailingTransactionRepository(
+        private val delegate: FakeTransactionRepository = FakeTransactionRepository(),
+    ) : TransactionRepository by delegate {
+        override suspend fun upsert(transaction: Transaction): Long {
+            throw IllegalStateException("boom")
         }
     }
 }

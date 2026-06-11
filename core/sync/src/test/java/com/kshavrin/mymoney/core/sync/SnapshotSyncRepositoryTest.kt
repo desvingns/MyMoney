@@ -10,6 +10,7 @@ import com.kshavrin.mymoney.core.sync.fake.FakeBackupRepository
 import com.kshavrin.mymoney.core.sync.fake.FakeCloudSyncBackend
 import com.kshavrin.mymoney.core.sync.fake.FakeSyncLogRepository
 import io.sentry.SentryLevel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -18,6 +19,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Test
 import java.io.File
 
@@ -132,6 +134,22 @@ class SnapshotSyncRepositoryTest {
         repository().push(SyncTarget.Dropbox)
 
         assertEquals(7_000L, settings.current().lastSyncAt)
+    }
+
+    @Test
+    fun `push cancellation rethrows without writing failure log or changing lastSyncAt`() = runTest {
+        settings.seed(AppSettings(lastSyncAt = 7_000L))
+        backup.simulateExportFailure(CancellationException("cancelled"))
+
+        try {
+            repository().push(SyncTarget.Dropbox)
+            fail("Expected CancellationException")
+        } catch (_: CancellationException) {
+        }
+
+        assertTrue(syncLog.inserted.isEmpty())
+        assertEquals(7_000L, settings.current().lastSyncAt)
+        assertTrue(dropbox.pruneKeeps.isEmpty())
     }
 
     @Test

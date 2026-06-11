@@ -1,6 +1,7 @@
 package com.kshavrin.mymoney.feature.transactionslist.detail
 
 import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.viewModelScope
 import app.cash.turbine.test
 import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.AccountType
@@ -18,6 +19,7 @@ import com.kshavrin.mymoney.feature.transactionslist.fake.FakeCurrencyRepository
 import com.kshavrin.mymoney.feature.transactionslist.fake.FakeTransactionRepository
 import com.kshavrin.mymoney.feature.transactionslist.util.MainDispatcherRule
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -473,6 +475,48 @@ class TransactionDetailViewModelTest {
     }
 
     @Test
+    fun `cancelling save does not show detail error banner or emit navigation`() = runTest {
+        val tx = expense()
+        val blockingRepo = BlockingTransactionRepository().apply { seed(tx) }
+        val viewModel = buildViewModel(tx.id, transactionRepository = blockingRepo)
+
+        advanceUntilIdle()
+        viewModel.onEvent(TransactionDetailEvent.NoteChanged("Dinner"))
+
+        viewModel.actions.test {
+            viewModel.onEvent(TransactionDetailEvent.SaveClicked)
+            assertTrue(viewModel.state.value.isSaving)
+            assertEquals(1, blockingRepo.startedUpserts.size)
+
+            viewModel.viewModelScope.cancel()
+            advanceUntilIdle()
+
+            assertTrue(blockingRepo.persistedUpserts.isEmpty())
+            assertNull(viewModel.state.value.errorBannerRes)
+            expectNoEvents()
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `save failure keeps existing detail error banner mapping`() = runTest {
+        val tx = expense()
+        val failingRepo = FailingTransactionRepository().apply { seed(tx) }
+        val viewModel = buildViewModel(tx.id, transactionRepository = failingRepo)
+
+        advanceUntilIdle()
+        viewModel.onEvent(TransactionDetailEvent.NoteChanged("Dinner"))
+        viewModel.onEvent(TransactionDetailEvent.SaveClicked)
+        advanceUntilIdle()
+
+        assertFalse(viewModel.state.value.isSaving)
+        assertEquals(
+            com.kshavrin.mymoney.feature.transactionslist.R.string.detail_error_save_failed,
+            viewModel.state.value.errorBannerRes,
+        )
+    }
+
+    @Test
     fun `editing a local-midnight imported row preserves its local date on save`() = runTest {
         val importedDate = LocalDate.parse("2026-06-01")
         val tx = expense(id = 101L).copy(occurredAt = localMidnight(importedDate))
@@ -672,6 +716,18 @@ class TransactionDetailViewModelTest {
             if (!softDeleteGate.isCompleted) {
                 softDeleteGate.complete(Unit)
             }
+        }
+    }
+
+    private class FailingTransactionRepository(
+        private val delegate: FakeTransactionRepository = FakeTransactionRepository(),
+    ) : TransactionRepository by delegate {
+        fun seed(vararg items: Transaction) {
+            delegate.seed(*items)
+        }
+
+        override suspend fun upsert(transaction: Transaction): Long {
+            throw IllegalStateException("boom")
         }
     }
 }

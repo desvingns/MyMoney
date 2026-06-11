@@ -1,6 +1,7 @@
 package com.kshavrin.mymoney.feature.transaction.transfer
 
 import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.viewModelScope
 import app.cash.turbine.test
 import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.AccountType
@@ -17,6 +18,7 @@ import com.kshavrin.mymoney.feature.transaction.fake.FakeCurrencyRepository
 import com.kshavrin.mymoney.feature.transaction.fake.FakeTransactionRepository
 import com.kshavrin.mymoney.feature.transaction.util.MainDispatcherRule
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,6 +26,8 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -174,6 +178,46 @@ class TransferViewModelTest {
         }
     }
 
+    @Test
+    fun `cancelling save does not show error banner or emit navigation`() = runTest {
+        val blockingRepo = BlockingTransactionRepository()
+        val viewModel = buildViewModel(transactionRepository = blockingRepo)
+
+        advanceUntilIdle()
+        viewModel.onEvent(TransferEvent.KeypadDigit(7))
+        viewModel.onEvent(TransferEvent.TargetAccountChanged(bankAccount.id))
+
+        viewModel.actions.test {
+            viewModel.onEvent(TransferEvent.SaveClicked)
+            assertEquals(true, viewModel.state.value.isSaving)
+            assertEquals(1, blockingRepo.startedUpserts.size)
+
+            viewModel.viewModelScope.cancel()
+            advanceUntilIdle()
+
+            assertTrue(blockingRepo.persistedUpserts.isEmpty())
+            assertNull(viewModel.state.value.errorBannerRes)
+            assertEquals(0L, viewModel.state.value.savedSignal)
+            expectNoEvents()
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `save failure keeps existing transfer error banner mapping`() = runTest {
+        val viewModel = buildViewModel(transactionRepository = FailingTransactionRepository())
+
+        advanceUntilIdle()
+        viewModel.onEvent(TransferEvent.KeypadDigit(7))
+        viewModel.onEvent(TransferEvent.TargetAccountChanged(bankAccount.id))
+        viewModel.onEvent(TransferEvent.SaveClicked)
+        advanceUntilIdle()
+
+        assertEquals(false, viewModel.state.value.isSaving)
+        assertEquals(com.kshavrin.mymoney.feature.transaction.R.string.error_save_failed, viewModel.state.value.errorBannerRes)
+        assertEquals(0L, viewModel.state.value.savedSignal)
+    }
+
     private class FakeCurrencyRateRepository : CurrencyRateRepository {
         private val rates = MutableStateFlow<List<CurrencyRate>>(emptyList())
 
@@ -213,6 +257,14 @@ class TransferViewModelTest {
             if (!gate.isCompleted) {
                 gate.complete(Unit)
             }
+        }
+    }
+
+    private class FailingTransactionRepository(
+        private val delegate: FakeTransactionRepository = FakeTransactionRepository(),
+    ) : TransactionRepository by delegate {
+        override suspend fun upsert(transaction: Transaction): Long {
+            throw IllegalStateException("boom")
         }
     }
 

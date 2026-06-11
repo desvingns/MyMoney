@@ -169,7 +169,16 @@ class AddExpenseViewModel @Inject constructor(
         val currency = s.currency ?: return
         _state.value = s.copy(isSaving = true)
         viewModelScope.launch {
-            val category = categoryRepository.findById(categoryId)
+            val category = try {
+                categoryRepository.findById(categoryId)
+            } catch (t: Throwable) {
+                t.reportToSentry()
+                _state.value = _state.value.copy(
+                    isSaving = false,
+                    errorBannerRes = R.string.error_save_failed,
+                )
+                return@launch
+            }
             if (category == null) {
                 _state.value = _state.value.copy(isSaving = false)
                 return@launch

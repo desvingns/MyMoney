@@ -54,6 +54,7 @@ class AppSettingsRepositoryTest {
         assertEquals(false, settings.firstPositiveSeen)
         assertEquals(0L, settings.importFocusEpochMs)
         assertEquals(-1L, settings.importFocusCurrencyId)
+        assertEquals(null, settings.tzNormalizedAt)
     }
 
     @Test
@@ -77,6 +78,7 @@ class AppSettingsRepositoryTest {
             firstPositiveSeen = true,
             importFocusEpochMs = 1700000002000L,
             importFocusCurrencyId = 9L,
+            tzNormalizedAt = 1700000003000L,
         )
         repository.update { target }
         val read = repository.settings.first()
@@ -94,12 +96,13 @@ class AppSettingsRepositoryTest {
     }
 
     @Test
-    fun null_clearing_for_optional_timestamps() = runTest(UnconfinedTestDispatcher()) {
-        repository.update { it.copy(onboardingCompletedAt = 123L, lastSyncAt = 456L) }
-        repository.update { it.copy(onboardingCompletedAt = null, lastSyncAt = null) }
+    fun null_clearing_for_optional_timestamps_and_timezone_normalization_flag() = runTest(UnconfinedTestDispatcher()) {
+        repository.update { it.copy(onboardingCompletedAt = 123L, lastSyncAt = 456L, tzNormalizedAt = 789L) }
+        repository.update { it.copy(onboardingCompletedAt = null, lastSyncAt = null, tzNormalizedAt = null) }
         val read = repository.settings.first()
         assertEquals(null, read.onboardingCompletedAt)
         assertEquals(null, read.lastSyncAt)
+        assertEquals(null, read.tzNormalizedAt)
     }
 
     @Test
@@ -112,6 +115,7 @@ class AppSettingsRepositoryTest {
                 lastSyncAt = 456L,
                 autoSyncEnabled = false,
                 firstPositiveSeen = true,
+                tzNormalizedAt = 789L,
             )
         }
 

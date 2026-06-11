@@ -12,8 +12,10 @@ import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import com.kshavrin.mymoney.feature.dashboard.DashboardEvent
 import com.kshavrin.mymoney.feature.dashboard.DashboardState
 import com.kshavrin.mymoney.feature.dashboard.R
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -21,12 +23,26 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
+import java.util.TimeZone
 
 @RunWith(AndroidJUnit4::class)
 class LeftDrawerPeriodSelectorUiTest {
 
     @get:Rule
     val composeTestRule = createComposeRule()
+
+    private lateinit var originalTimeZone: TimeZone
+
+    @Before
+    fun setUp() {
+        originalTimeZone = TimeZone.getDefault()
+        TimeZone.setDefault(TimeZone.getTimeZone(TEST_TIME_ZONE_ID))
+    }
+
+    @After
+    fun tearDown() {
+        TimeZone.setDefault(originalTimeZone)
+    }
 
     @Test
     fun `date range emits a custom range after selecting two dates`() {
@@ -137,5 +153,9 @@ class LeftDrawerPeriodSelectorUiTest {
         val locale = InstrumentationRegistry.getInstrumentation()
             .targetContext.resources.configuration.locales[0]
         return date.format(DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy", locale))
+    }
+
+    companion object {
+        private const val TEST_TIME_ZONE_ID = "America/New_York"
     }
 }

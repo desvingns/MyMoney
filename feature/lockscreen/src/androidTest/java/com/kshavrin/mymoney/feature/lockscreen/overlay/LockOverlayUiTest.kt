@@ -165,7 +165,12 @@ class LockOverlayUiTest {
 
     private fun waitForBiometricFragment() {
         composeRule.waitUntil(timeoutMillis = 5_000) {
-            composeRule.activity.supportFragmentManager.findFragmentByTag(BIOMETRIC_FRAGMENT_TAG) != null
+            var exists = false
+            composeRule.activity.runOnUiThread {
+                exists = composeRule.activity.supportFragmentManager
+                    .findFragmentByTag(BIOMETRIC_FRAGMENT_TAG) != null
+            }
+            exists
         }
     }
 

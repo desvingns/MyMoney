@@ -8,7 +8,10 @@ import com.kshavrin.mymoney.core.domain.model.AccountType
 import com.kshavrin.mymoney.core.domain.model.Category
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.core.domain.model.Currency
+import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
+import com.kshavrin.mymoney.core.domain.repository.CategoryRepository
+import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
 import com.kshavrin.mymoney.feature.transaction.R
 import com.kshavrin.mymoney.feature.transaction.fake.FakeAccountRepository
 import com.kshavrin.mymoney.feature.transaction.fake.FakeAppSettingsRepository
@@ -16,6 +19,9 @@ import com.kshavrin.mymoney.feature.transaction.fake.FakeCategoryRepository
 import com.kshavrin.mymoney.feature.transaction.fake.FakeCurrencyRepository
 import com.kshavrin.mymoney.feature.transaction.fake.FakeTransactionRepository
 import com.kshavrin.mymoney.feature.transaction.util.MainDispatcherRule
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -128,17 +134,37 @@ class AddExpenseViewModelTest {
         TimeZone.setDefault(originalTimeZone)
     }
 
-    private fun buildViewModel(): AddExpenseViewModel = AddExpenseViewModel(
-        transactionRepository = transactionRepo,
+    private fun buildViewModel(
+        transactionRepository: TransactionRepository = transactionRepo,
+        categoryRepository: CategoryRepository = categoryRepo,
+    ): AddExpenseViewModel = AddExpenseViewModel(
+        transactionRepository = transactionRepository,
         accountRepository = accountRepo,
         currencyRepository = currencyRepo,
-        categoryRepository = categoryRepo,
+        categoryRepository = categoryRepository,
         appSettingsRepository = settingsRepo,
         savedStateHandle = savedStateHandle,
     )
 
     private fun localMidnight(date: LocalDate): Instant =
         date.atStartOfDay(ZoneId.systemDefault()).toInstant()
+
+    private fun AddExpenseViewModel.setStateForExplicitSave(
+        amount: BigDecimal,
+        category: Category,
+    ) {
+        val field = AddExpenseViewModel::class.java.getDeclaredField("_state")
+        field.isAccessible = true
+        @Suppress("UNCHECKED_CAST")
+        val stateFlow = field.get(this) as MutableStateFlow<AddExpenseState>
+        stateFlow.value = stateFlow.value.copy(
+            amount = amount,
+            amountInput = amount.toPlainString(),
+            category = category,
+            categoryStep = true,
+            errorBannerRes = null,
+        )
+    }
 
     @Test
     fun `initial state has amountInput 0 and zero amount with no pending operator`() = runTest {
@@ -328,6 +354,77 @@ class AddExpenseViewModelTest {
     }
 
     @Test
+    fun `double SaveClicked performs one upsert and emits one NavigateBack`() = runTest {
+        val blockingRepo = BlockingTransactionRepository()
+        val viewModel = buildViewModel(transactionRepository = blockingRepo)
+        advanceUntilIdle()
+        viewModel.setStateForExplicitSave(amount = BigDecimal("7"), category = expenseCategory(10L, "Food"))
+
+        viewModel.actions.test {
+            viewModel.onEvent(AddExpenseEvent.SaveClicked)
+            assertTrue(viewModel.state.value.isSaving)
+            viewModel.onEvent(AddExpenseEvent.SaveClicked)
+
+            assertEquals(1, blockingRepo.startedUpserts.size)
+
+            blockingRepo.release()
+            advanceUntilIdle()
+
+            assertEquals(1, blockingRepo.persistedUpserts.size)
+            assertEquals(AddExpenseAction.NavigateBack, awaitItem())
+            expectNoEvents()
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `double CategoryPicked performs one upsert and emits one NavigateBack`() = runTest {
+        val blockingRepo = BlockingTransactionRepository()
+        val viewModel = buildViewModel(transactionRepository = blockingRepo)
+        advanceUntilIdle()
+        viewModel.onEvent(AddExpenseEvent.KeypadDigit(7))
+        viewModel.onEvent(AddExpenseEvent.SelectCategoryClicked)
+
+        viewModel.actions.test {
+            viewModel.onEvent(AddExpenseEvent.CategoryPicked(10L))
+            assertTrue(viewModel.state.value.isSaving)
+            viewModel.onEvent(AddExpenseEvent.CategoryPicked(10L))
+
+            assertEquals(1, blockingRepo.startedUpserts.size)
+
+            blockingRepo.release()
+            advanceUntilIdle()
+
+            assertEquals(1, blockingRepo.persistedUpserts.size)
+            assertEquals(AddExpenseAction.NavigateBack, awaitItem())
+            expectNoEvents()
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `category lookup failure resets isSaving and allows a second save attempt`() = runTest {
+        val failOnceCategoryRepo = FailOnceCategoryRepository(categoryRepo)
+        val viewModel = buildViewModel(categoryRepository = failOnceCategoryRepo)
+        advanceUntilIdle()
+        viewModel.onEvent(AddExpenseEvent.KeypadDigit(7))
+
+        viewModel.onEvent(AddExpenseEvent.CategoryPicked(10L))
+
+        assertFalse(viewModel.state.value.isSaving)
+        assertEquals(R.string.error_save_failed, viewModel.state.value.errorBannerRes)
+        assertEquals(0, transactionRepo.upserted.size)
+
+        viewModel.actions.test {
+            viewModel.onEvent(AddExpenseEvent.CategoryPicked(10L))
+
+            assertEquals(AddExpenseAction.NavigateBack, awaitItem())
+            assertEquals(1, transactionRepo.upserted.size)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun `SwapMode emits NavigateToIncomeForm`() = runTest {
         val viewModel = buildViewModel()
 
@@ -361,5 +458,40 @@ class AddExpenseViewModelTest {
 
     companion object {
         private const val TEST_TIME_ZONE_ID = "America/New_York"
+    }
+
+    private class BlockingTransactionRepository(
+        private val delegate: FakeTransactionRepository = FakeTransactionRepository(),
+    ) : TransactionRepository by delegate {
+        val startedUpserts: MutableList<Transaction> = mutableListOf()
+        val persistedUpserts: List<Transaction>
+            get() = delegate.upserted
+        private val gate = CompletableDeferred<Unit>()
+
+        override suspend fun upsert(transaction: Transaction): Long {
+            startedUpserts += transaction
+            gate.await()
+            return delegate.upsert(transaction)
+        }
+
+        fun release() {
+            if (!gate.isCompleted) {
+                gate.complete(Unit)
+            }
+        }
+    }
+
+    private class FailOnceCategoryRepository(
+        private val delegate: FakeCategoryRepository,
+    ) : CategoryRepository by delegate {
+        private var shouldFail = true
+
+        override suspend fun findById(id: Long): Category? {
+            if (shouldFail) {
+                shouldFail = false
+                throw IllegalStateException("boom")
+            }
+            return delegate.findById(id)
+        }
     }
 }

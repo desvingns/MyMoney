@@ -1,18 +1,22 @@
 package com.kshavrin.mymoney.feature.transaction.transfer
 
 import androidx.lifecycle.SavedStateHandle
+import app.cash.turbine.test
 import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.AccountType
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.CurrencyRate
+import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRateRepository
+import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
 import com.kshavrin.mymoney.core.domain.usecase.TransferExecutor
 import com.kshavrin.mymoney.feature.transaction.fake.FakeAccountRepository
 import com.kshavrin.mymoney.feature.transaction.fake.FakeAppSettingsRepository
 import com.kshavrin.mymoney.feature.transaction.fake.FakeCurrencyRepository
 import com.kshavrin.mymoney.feature.transaction.fake.FakeTransactionRepository
 import com.kshavrin.mymoney.feature.transaction.util.MainDispatcherRule
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -103,15 +107,17 @@ class TransferViewModelTest {
         TimeZone.setDefault(originalTimeZone)
     }
 
-    private fun buildViewModel(): TransferViewModel = TransferViewModel(
-        transactionRepository = transactionRepo,
+    private fun buildViewModel(
+        transactionRepository: TransactionRepository = transactionRepo,
+    ): TransferViewModel = TransferViewModel(
+        transactionRepository = transactionRepository,
         accountRepository = accountRepo,
         currencyRepository = currencyRepo,
         currencyRateRepository = rateRepo,
         transferExecutor = TransferExecutor(
             accountRepository = accountRepo,
             currencyRateRepository = rateRepo,
-            transactionRepository = transactionRepo,
+            transactionRepository = transactionRepository,
             defaultDispatcher = mainDispatcherRule.testDispatcher,
         ),
         appSettingsRepository = settingsRepo,
@@ -142,6 +148,32 @@ class TransferViewModelTest {
         assertEquals(0, BigDecimal("7").compareTo(saved.toAmount))
     }
 
+    @Test
+    fun `double SaveClicked performs one transfer upsert and emits one NavigateBack`() = runTest {
+        val blockingRepo = BlockingTransactionRepository()
+        val viewModel = buildViewModel(transactionRepository = blockingRepo)
+
+        advanceUntilIdle()
+        viewModel.onEvent(TransferEvent.KeypadDigit(7))
+        viewModel.onEvent(TransferEvent.TargetAccountChanged(bankAccount.id))
+
+        viewModel.actions.test {
+            viewModel.onEvent(TransferEvent.SaveClicked)
+            assertEquals(true, viewModel.state.value.isSaving)
+            viewModel.onEvent(TransferEvent.SaveClicked)
+
+            assertEquals(1, blockingRepo.startedUpserts.size)
+
+            blockingRepo.release()
+            advanceUntilIdle()
+
+            assertEquals(1, blockingRepo.persistedUpserts.size)
+            assertEquals(TransferAction.NavigateBack, awaitItem())
+            expectNoEvents()
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
     private class FakeCurrencyRateRepository : CurrencyRateRepository {
         private val rates = MutableStateFlow<List<CurrencyRate>>(emptyList())
 
@@ -160,6 +192,27 @@ class TransferViewModelTest {
 
         override suspend fun deleteById(id: Long) {
             rates.value = rates.value.filterNot { it.id == id }
+        }
+    }
+
+    private class BlockingTransactionRepository(
+        private val delegate: FakeTransactionRepository = FakeTransactionRepository(),
+    ) : TransactionRepository by delegate {
+        val startedUpserts: MutableList<Transaction> = mutableListOf()
+        val persistedUpserts: List<Transaction>
+            get() = delegate.upserted
+        private val gate = CompletableDeferred<Unit>()
+
+        override suspend fun upsert(transaction: Transaction): Long {
+            startedUpserts += transaction
+            gate.await()
+            return delegate.upsert(transaction)
+        }
+
+        fun release() {
+            if (!gate.isCompleted) {
+                gate.complete(Unit)
+            }
         }
     }
 

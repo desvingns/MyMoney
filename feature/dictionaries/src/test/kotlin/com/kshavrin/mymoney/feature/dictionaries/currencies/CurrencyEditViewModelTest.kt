@@ -5,10 +5,13 @@ import app.cash.turbine.test
 import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.AccountType
 import com.kshavrin.mymoney.core.domain.model.Currency
+import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
 import com.kshavrin.mymoney.feature.dictionaries.currencies.fake.FakeAccountRepository
 import com.kshavrin.mymoney.feature.dictionaries.currencies.fake.FakeCurrencyRepository
 import com.kshavrin.mymoney.feature.dictionaries.currencies.fake.FakeTransactionRepository
 import com.kshavrin.mymoney.feature.dictionaries.util.MainDispatcherRule
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -62,9 +65,12 @@ class CurrencyEditViewModelTest {
         isArchived = false,
     )
 
-    private fun buildViewModel(currencyId: Long): CurrencyEditViewModel =
+    private fun buildViewModel(
+        currencyId: Long,
+        currencyRepository: CurrencyRepository = currencyRepo,
+    ): CurrencyEditViewModel =
         CurrencyEditViewModel(
-            currencyRepository = currencyRepo,
+            currencyRepository = currencyRepository,
             transactionRepository = transactionRepo,
             accountRepository = accountRepo,
             savedStateHandle = SavedStateHandle(mapOf("id" to currencyId)),
@@ -249,6 +255,54 @@ class CurrencyEditViewModelTest {
             assertEquals(0, state.dependentAccountCount)
             assertFalse(state.isCodeLocked)
             cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `double SaveClicked performs one upsert and emits one NavigateBack`() = runTest {
+        val blockingRepo = BlockingCurrencyRepository()
+        val viewModel = buildViewModel(currencyId = -1L, currencyRepository = blockingRepo)
+
+        viewModel.onEvent(CurrencyEditEvent.CodeChanged("usd"))
+        viewModel.onEvent(CurrencyEditEvent.SymbolChanged("$"))
+        viewModel.onEvent(CurrencyEditEvent.NameChanged("US Dollar"))
+
+        viewModel.actions.test {
+            viewModel.onEvent(CurrencyEditEvent.SaveClicked)
+            assertTrue(viewModel.state.value.isSaving)
+            viewModel.onEvent(CurrencyEditEvent.SaveClicked)
+
+            assertEquals(1, blockingRepo.startedUpserts.size)
+
+            blockingRepo.release()
+            advanceUntilIdle()
+
+            assertEquals(1, blockingRepo.persistedUpserts.size)
+            assertEquals(CurrencyEditAction.NavigateBack, awaitItem())
+            expectNoEvents()
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    private class BlockingCurrencyRepository(
+        private val delegate: FakeCurrencyRepository = FakeCurrencyRepository(),
+    ) : CurrencyRepository by delegate {
+        val startedUpserts: MutableList<Currency> = mutableListOf()
+        val persistedUpserts: MutableList<Currency> = mutableListOf()
+        private val gate = CompletableDeferred<Unit>()
+
+        override suspend fun upsert(currency: Currency): Long {
+            startedUpserts += currency
+            gate.await()
+            val id = delegate.upsert(currency)
+            persistedUpserts += currency.copy(id = id)
+            return id
+        }
+
+        fun release() {
+            if (!gate.isCompleted) {
+                gate.complete(Unit)
+            }
         }
     }
 }

@@ -10,12 +10,15 @@ import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.CurrencyRate
 import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
+import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
 import com.kshavrin.mymoney.feature.transactionslist.fake.FakeAccountRepository
 import com.kshavrin.mymoney.feature.transactionslist.fake.FakeCategoryRepository
 import com.kshavrin.mymoney.feature.transactionslist.fake.FakeCurrencyRateRepository
 import com.kshavrin.mymoney.feature.transactionslist.fake.FakeCurrencyRepository
 import com.kshavrin.mymoney.feature.transactionslist.fake.FakeTransactionRepository
 import com.kshavrin.mymoney.feature.transactionslist.util.MainDispatcherRule
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -206,9 +209,12 @@ class TransactionDetailViewModelTest {
         TimeZone.setDefault(originalTimeZone)
     }
 
-    private fun buildViewModel(transactionId: Long): TransactionDetailViewModel =
+    private fun buildViewModel(
+        transactionId: Long,
+        transactionRepository: TransactionRepository = transactionRepo,
+    ): TransactionDetailViewModel =
         TransactionDetailViewModel(
-            transactionRepository = transactionRepo,
+            transactionRepository = transactionRepository,
             accountRepository = accountRepo,
             currencyRepository = currencyRepo,
             categoryRepository = categoryRepo,
@@ -441,6 +447,32 @@ class TransactionDetailViewModelTest {
     }
 
     @Test
+    fun `double SaveClicked performs one upsert and emits one NavigateBack`() = runTest {
+        val tx = expense()
+        val blockingRepo = BlockingTransactionRepository().apply { seed(tx) }
+        val viewModel = buildViewModel(tx.id, transactionRepository = blockingRepo)
+
+        advanceUntilIdle()
+        viewModel.onEvent(TransactionDetailEvent.NoteChanged("Dinner"))
+
+        viewModel.actions.test {
+            viewModel.onEvent(TransactionDetailEvent.SaveClicked)
+            assertTrue(viewModel.state.value.isSaving)
+            viewModel.onEvent(TransactionDetailEvent.SaveClicked)
+
+            assertEquals(1, blockingRepo.startedUpserts.size)
+
+            blockingRepo.releaseUpsert()
+            advanceUntilIdle()
+
+            assertEquals(1, blockingRepo.persistedUpserts.size)
+            assertEquals(TransactionDetailAction.NavigateBack, awaitItem())
+            expectNoEvents()
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun `editing a local-midnight imported row preserves its local date on save`() = runTest {
         val importedDate = LocalDate.parse("2026-06-01")
         val tx = expense(id = 101L).copy(occurredAt = localMidnight(importedDate))
@@ -479,6 +511,33 @@ class TransactionDetailViewModelTest {
                     action.transactionId == tx.id,
             )
             assertEquals(listOf(tx.id), transactionRepo.softDeletedIds)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `double ConfirmDelete performs one softDelete and emits one undo action`() = runTest {
+        val tx = expense()
+        val blockingRepo = BlockingTransactionRepository().apply { seed(tx) }
+        val viewModel = buildViewModel(tx.id, transactionRepository = blockingRepo)
+
+        advanceUntilIdle()
+
+        viewModel.actions.test {
+            viewModel.onEvent(TransactionDetailEvent.DeleteClicked)
+            viewModel.onEvent(TransactionDetailEvent.ConfirmDelete)
+            assertTrue(viewModel.state.value.isSaving)
+            viewModel.onEvent(TransactionDetailEvent.ConfirmDelete)
+
+            assertEquals(1, blockingRepo.startedSoftDeletes.size)
+
+            blockingRepo.releaseSoftDelete()
+            advanceUntilIdle()
+
+            val action = awaitItem()
+            assertTrue(action is TransactionDetailAction.ShowUndoSnackbar)
+            assertEquals(1, blockingRepo.persistedSoftDeletes.size)
+            expectNoEvents()
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -572,5 +631,47 @@ class TransactionDetailViewModelTest {
 
     companion object {
         private const val TEST_TIME_ZONE_ID = "America/New_York"
+    }
+
+    private class BlockingTransactionRepository(
+        private val delegate: FakeTransactionRepository = FakeTransactionRepository(),
+    ) : TransactionRepository by delegate {
+        val startedUpserts: MutableList<Transaction> = mutableListOf()
+        val persistedUpserts: MutableList<Transaction> = mutableListOf()
+        val startedSoftDeletes: MutableList<Long> = mutableListOf()
+        val persistedSoftDeletes: List<Long>
+            get() = delegate.softDeletedIds
+        private val upsertGate = CompletableDeferred<Unit>()
+        private val softDeleteGate = CompletableDeferred<Unit>()
+
+        fun seed(vararg items: Transaction) {
+            delegate.seed(*items)
+        }
+
+        override suspend fun upsert(transaction: Transaction): Long {
+            startedUpserts += transaction
+            upsertGate.await()
+            val id = delegate.upsert(transaction)
+            persistedUpserts += transaction.copy(id = id)
+            return id
+        }
+
+        override suspend fun softDelete(id: Long, now: Instant) {
+            startedSoftDeletes += id
+            softDeleteGate.await()
+            delegate.softDelete(id, now)
+        }
+
+        fun releaseUpsert() {
+            if (!upsertGate.isCompleted) {
+                upsertGate.complete(Unit)
+            }
+        }
+
+        fun releaseSoftDelete() {
+            if (!softDeleteGate.isCompleted) {
+                softDeleteGate.complete(Unit)
+            }
+        }
     }
 }

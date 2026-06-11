@@ -29,7 +29,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.time.Instant
-import java.time.ZoneOffset
+import java.time.ZoneId
 import javax.inject.Inject
 
 @HiltViewModel
@@ -220,7 +220,7 @@ class TransferViewModel @Inject constructor(
             _state.value = _state.value.copy(isSaving = true, sameAccountsError = false)
             try {
                 val now = Instant.now()
-                val occurred = s.occurredAt.atStartOfDay(ZoneOffset.UTC).toInstant()
+                val occurred = s.occurredAt.atStartOfDay(ZoneId.systemDefault()).toInstant()
                 val result = transferExecutor.execute(
                     sourceAccountId = source.id,
                     targetAccountId = target.id,

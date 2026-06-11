@@ -28,7 +28,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.time.Instant
-import java.time.ZoneOffset
+import java.time.ZoneId
 import javax.inject.Inject
 
 @HiltViewModel
@@ -192,7 +192,7 @@ class AddIncomeViewModel @Inject constructor(
                     accountId = account.id,
                     categoryId = category.id,
                     note = s.note.takeIf { it.isNotBlank() },
-                    occurredAt = s.occurredAt.atStartOfDay(ZoneOffset.UTC).toInstant(),
+                    occurredAt = s.occurredAt.atStartOfDay(ZoneId.systemDefault()).toInstant(),
                     createdAt = now,
                     updatedAt = now,
                     isDeleted = false,

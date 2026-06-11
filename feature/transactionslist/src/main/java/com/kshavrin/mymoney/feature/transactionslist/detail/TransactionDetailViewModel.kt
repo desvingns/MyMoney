@@ -33,7 +33,7 @@ import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
-import java.time.ZoneOffset
+import java.time.ZoneId
 import javax.inject.Inject
 
 @HiltViewModel
@@ -105,7 +105,7 @@ class TransactionDetailViewModel @Inject constructor(
                 amountInput = engine.display,
                 expression = engine.expression,
                 note = tx.note.orEmpty(),
-                occurredAt = tx.occurredAt.atZone(ZoneOffset.UTC).toLocalDate(),
+                occurredAt = tx.occurredAt.atZone(ZoneId.systemDefault()).toLocalDate(),
                 account = account,
                 currency = currency,
                 category = category,
@@ -239,7 +239,7 @@ class TransactionDetailViewModel @Inject constructor(
     private fun recomputeDirty() {
         val tx = original ?: return
         val s = _state.value
-        val originalDate = tx.occurredAt.atZone(ZoneOffset.UTC).toLocalDate()
+        val originalDate = tx.occurredAt.atZone(ZoneId.systemDefault()).toLocalDate()
         val dirty = s.amount.compareTo(tx.amount) != 0 ||
             s.note != tx.note.orEmpty() ||
             s.occurredAt != originalDate ||
@@ -272,7 +272,7 @@ class TransactionDetailViewModel @Inject constructor(
                     accountId = account.id,
                     categoryId = s.category?.id ?: tx.categoryId,
                     note = s.note.takeIf { it.isNotBlank() },
-                    occurredAt = s.occurredAt.toUtcInstant(),
+                    occurredAt = s.occurredAt.toLocalInstant(),
                     updatedAt = Instant.now(),
                 )
                 transactionRepository.upsert(updated)
@@ -320,7 +320,7 @@ class TransactionDetailViewModel @Inject constructor(
                     currencyId = currency.id,
                     accountId = account.id,
                     note = s.note.takeIf { it.isNotBlank() },
-                    occurredAt = s.occurredAt.toUtcInstant(),
+                    occurredAt = s.occurredAt.toLocalInstant(),
                     updatedAt = now,
                     toAccountId = target.id,
                     toAmount = toAmount,
@@ -400,8 +400,8 @@ class TransactionDetailViewModel @Inject constructor(
         viewModelScope.launch { _actions.emit(action) }
     }
 
-    private fun LocalDate.toUtcInstant(): Instant =
-        atStartOfDay(ZoneOffset.UTC).toInstant()
+    private fun LocalDate.toLocalInstant(): Instant =
+        atStartOfDay(ZoneId.systemDefault()).toInstant()
 
     private fun categoryKindFor(kind: TransactionKind): CategoryKind? = when (kind) {
         TransactionKind.Expense -> CategoryKind.Expense

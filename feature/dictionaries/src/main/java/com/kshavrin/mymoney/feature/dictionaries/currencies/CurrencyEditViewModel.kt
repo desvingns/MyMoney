@@ -80,6 +80,7 @@ class CurrencyEditViewModel @Inject constructor(
     }
 
     private fun save() {
+        if (_state.value.isSaving) return
         val s = _state.value
         if (!CODE_REGEX.matches(s.code)) {
             _state.value = s.copy(errorMessage = "code_format")
@@ -94,6 +95,7 @@ class CurrencyEditViewModel @Inject constructor(
             _state.value = s.copy(errorMessage = "decimal_digits")
             return
         }
+        _state.value = s.copy(isSaving = true)
         viewModelScope.launch {
             try {
                 currencyRepository.upsert(
@@ -107,9 +109,15 @@ class CurrencyEditViewModel @Inject constructor(
                         sortOrder = s.sortOrder,
                     ),
                 )
+                _state.value = _state.value.copy(isSaving = false)
                 _actions.emit(CurrencyEditAction.NavigateBack)
             } catch (e: IllegalArgumentException) {
-                _state.value = s.copy(errorMessage = e.message ?: "save_failed")
+                _state.value = _state.value.copy(
+                    isSaving = false,
+                    errorMessage = e.message ?: "save_failed",
+                )
+            } finally {
+                _state.value = _state.value.copy(isSaving = false)
             }
         }
     }
@@ -144,6 +152,7 @@ data class CurrencyEditState(
     val errorMessage: String? = null,
     val dependentAccountCount: Int = 0,
     val isCodeLocked: Boolean = false,
+    val isSaving: Boolean = false,
 )
 
 sealed interface CurrencyEditEvent {

@@ -251,6 +251,7 @@ class TransactionDetailViewModel @Inject constructor(
     }
 
     private fun save() {
+        if (_state.value.isSaving) return
         val tx = original ?: return
         val s = _state.value
         if (s.amount <= BigDecimal.ZERO) {
@@ -263,8 +264,8 @@ class TransactionDetailViewModel @Inject constructor(
             saveTransfer(tx, s, account, currency)
             return
         }
+        _state.value = s.copy(isSaving = true)
         viewModelScope.launch {
-            _state.value = _state.value.copy(isSaving = true)
             try {
                 val updated = tx.copy(
                     amount = s.amount,
@@ -306,8 +307,8 @@ class TransactionDetailViewModel @Inject constructor(
             _state.value = s.copy(errorBannerRes = R.string.detail_error_enter_rate)
             return
         }
+        _state.value = s.copy(isSaving = true)
         viewModelScope.launch {
-            _state.value = _state.value.copy(isSaving = true)
             try {
                 val now = Instant.now()
                 val toAmount = if (crossCurrency && rate != null) {
@@ -356,16 +357,20 @@ class TransactionDetailViewModel @Inject constructor(
     }
 
     private fun delete() {
+        if (_state.value.isSaving) return
+        val s = _state.value
+        _state.value = s.copy(isSaving = true, confirmDeleteVisible = false)
         viewModelScope.launch {
             try {
-                _state.value = _state.value.copy(confirmDeleteVisible = false)
                 transactionRepository.softDelete(transactionId, Instant.now())
+                _state.value = _state.value.copy(isSaving = false)
                 // The screen runs the 5s UNDO window on its own SnackbarHost, then pops back to
                 // S12; emitting NavigateBack here would dispose the host before it can show.
                 _actions.emit(TransactionDetailAction.ShowUndoSnackbar(transactionId))
             } catch (t: Throwable) {
                 t.reportToSentry()
                 _state.value = _state.value.copy(
+                    isSaving = false,
                     errorBannerRes = R.string.detail_error_save_failed,
                 )
             }

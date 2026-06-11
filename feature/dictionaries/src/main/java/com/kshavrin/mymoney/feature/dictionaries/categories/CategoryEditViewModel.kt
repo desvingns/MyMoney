@@ -79,11 +79,13 @@ class CategoryEditViewModel @Inject constructor(
     }
 
     private fun save() {
+        if (_state.value.isSaving) return
         val s = _state.value
         if (s.name.isBlank() || s.name.length > 32) {
             _state.value = s.copy(errorMessage = "name_required_or_too_long")
             return
         }
+        _state.value = s.copy(isSaving = true)
         viewModelScope.launch {
             try {
                 val newId = categoryRepository.upsert(
@@ -99,13 +101,19 @@ class CategoryEditViewModel @Inject constructor(
                         createdAt = Instant.now(),
                     ),
                 )
+                _state.value = _state.value.copy(isSaving = false)
                 if (fromPicker && categoryId == -1L) {
                     _actions.emit(CategoryEditAction.NavigateBackToPickerWithId(newId))
                 } else {
                     _actions.emit(CategoryEditAction.NavigateBack)
                 }
             } catch (e: IllegalArgumentException) {
-                _state.value = s.copy(errorMessage = e.message ?: "save_failed")
+                _state.value = _state.value.copy(
+                    isSaving = false,
+                    errorMessage = e.message ?: "save_failed",
+                )
+            } finally {
+                _state.value = _state.value.copy(isSaving = false)
             }
         }
     }
@@ -134,6 +142,7 @@ data class CategoryEditState(
     val isDefault: Boolean = false,
     val blockedDeleteCount: Int? = null,
     val errorMessage: String? = null,
+    val isSaving: Boolean = false,
 )
 
 sealed interface CategoryEditEvent {

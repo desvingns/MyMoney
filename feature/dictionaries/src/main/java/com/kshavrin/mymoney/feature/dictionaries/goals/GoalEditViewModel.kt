@@ -283,32 +283,38 @@ class GoalEditViewModel @Inject constructor(
     }
 
     private fun save() {
+        if (_state.value.isSaving) return
         val s = _state.value
         if (!s.canSave) return
         val isCredit = s.variant == GoalVariant.CREDIT
+        _state.value = s.copy(isSaving = true)
         viewModelScope.launch {
-            val now = Instant.now()
-            goalRepository.upsert(
-                Goal(
-                    id = if (s.id == -1L) 0L else s.id,
-                    name = s.name,
-                    iconKey = s.iconKey,
-                    colorHex = s.colorHex,
-                    accountId = s.accountId,
-                    variant = s.variant,
-                    targetAmount = s.targetAmount.parseMoney(),
-                    startingCapital = s.startingCapital.parseMoney(),
-                    monthlyContribution = s.monthlyContribution.parseMoney(),
-                    annualRatePercent = if (isCredit) s.annualRatePercent.parseMoney() else null,
-                    downPayment = if (isCredit) s.downPayment.parseMoney() else null,
-                    termMonths = if (isCredit) s.termYears.trim().toIntOrNull()?.times(12) else null,
-                    createdAt = now,
-                    updatedAt = now,
-                    isArchived = false,
-                    contributionBreakdown = s.toBreakdown(),
-                ),
-            )
-            _actions.emit(GoalEditAction.NavigateBack)
+            try {
+                val now = Instant.now()
+                goalRepository.upsert(
+                    Goal(
+                        id = if (s.id == -1L) 0L else s.id,
+                        name = s.name,
+                        iconKey = s.iconKey,
+                        colorHex = s.colorHex,
+                        accountId = s.accountId,
+                        variant = s.variant,
+                        targetAmount = s.targetAmount.parseMoney(),
+                        startingCapital = s.startingCapital.parseMoney(),
+                        monthlyContribution = s.monthlyContribution.parseMoney(),
+                        annualRatePercent = if (isCredit) s.annualRatePercent.parseMoney() else null,
+                        downPayment = if (isCredit) s.downPayment.parseMoney() else null,
+                        termMonths = if (isCredit) s.termYears.trim().toIntOrNull()?.times(12) else null,
+                        createdAt = now,
+                        updatedAt = now,
+                        isArchived = false,
+                        contributionBreakdown = s.toBreakdown(),
+                    ),
+                )
+                _actions.emit(GoalEditAction.NavigateBack)
+            } finally {
+                _state.value = _state.value.copy(isSaving = false)
+            }
         }
     }
 }
@@ -371,6 +377,7 @@ data class GoalEditState(
     val advancedContribution: Boolean = false,
     val incomeRows: List<ContributionRowUi> = emptyList(),
     val expenseRows: List<ContributionRowUi> = emptyList(),
+    val isSaving: Boolean = false,
 )
 
 data class ContributionRowUi(

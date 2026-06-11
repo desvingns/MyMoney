@@ -201,6 +201,7 @@ class TransferViewModel @Inject constructor(
     }
 
     private fun save() {
+        if (_state.value.isSaving) return
         val s = _state.value
         if (s.amount <= BigDecimal.ZERO) {
             _state.value = s.copy(errorBannerRes = R.string.error_enter_amount_first)
@@ -216,8 +217,8 @@ class TransferViewModel @Inject constructor(
             _state.value = s.copy(sameAccountsError = true)
             return
         }
+        _state.value = s.copy(isSaving = true, sameAccountsError = false)
         viewModelScope.launch {
-            _state.value = _state.value.copy(isSaving = true, sameAccountsError = false)
             try {
                 val now = Instant.now()
                 val occurred = s.occurredAt.atStartOfDay(ZoneId.systemDefault()).toInstant()

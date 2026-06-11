@@ -90,6 +90,7 @@ class AccountEditViewModel @Inject constructor(
     }
 
     private fun save() {
+        if (_state.value.isSaving) return
         val s = _state.value
         if (s.name.isBlank() || s.name.length > 32) {
             _state.value = s.copy(errorMessage = "name_required")
@@ -104,6 +105,7 @@ class AccountEditViewModel @Inject constructor(
             _state.value = s.copy(errorMessage = "balance_format")
             return
         }
+        _state.value = s.copy(isSaving = true)
         viewModelScope.launch {
             try {
                 val now = Instant.now()
@@ -126,9 +128,15 @@ class AccountEditViewModel @Inject constructor(
                 if (s.isDefault) {
                     accountRepository.setDefault(savedId)
                 }
+                _state.value = _state.value.copy(isSaving = false)
                 _actions.emit(AccountEditAction.NavigateBack)
             } catch (e: IllegalArgumentException) {
-                _state.value = s.copy(errorMessage = e.message ?: "save_failed")
+                _state.value = _state.value.copy(
+                    isSaving = false,
+                    errorMessage = e.message ?: "save_failed",
+                )
+            } finally {
+                _state.value = _state.value.copy(isSaving = false)
             }
         }
     }
@@ -160,6 +168,7 @@ data class AccountEditState(
     val availableCurrencies: List<Currency> = emptyList(),
     val blockedDeleteCount: Int? = null,
     val errorMessage: String? = null,
+    val isSaving: Boolean = false,
 )
 
 sealed interface AccountEditEvent {

@@ -8,7 +8,10 @@ import com.kshavrin.mymoney.core.common.exception.reportToSentry
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
 import com.kshavrin.mymoney.core.designsystem.keypad.toCalculator
 import com.kshavrin.mymoney.core.designsystem.keypad.toDesignsystem
+import com.kshavrin.mymoney.core.domain.model.Account
+import com.kshavrin.mymoney.core.domain.model.Category
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
+import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
 import com.kshavrin.mymoney.core.domain.repository.AccountRepository
@@ -153,21 +156,32 @@ class AddExpenseViewModel @Inject constructor(
     }
 
     private fun onCategoryPicked(categoryId: Long) {
-        if (_state.value.amount <= BigDecimal.ZERO) {
-            _state.value = _state.value.copy(
+        if (_state.value.isSaving) return
+        val s = _state.value
+        if (s.amount <= BigDecimal.ZERO) {
+            _state.value = s.copy(
                 categoryStep = false,
                 errorBannerRes = R.string.error_enter_amount_first,
             )
             return
         }
+        val account = s.account ?: return
+        val currency = s.currency ?: return
+        _state.value = s.copy(isSaving = true)
         viewModelScope.launch {
-            val category = categoryRepository.findById(categoryId) ?: return@launch
+            val category = categoryRepository.findById(categoryId)
+            if (category == null) {
+                _state.value = _state.value.copy(isSaving = false)
+                return@launch
+            }
+            val saveState = s.copy(category = category)
             _state.value = _state.value.copy(category = category, errorBannerRes = null)
-            save()
+            persist(saveState, category, account, currency)
         }
     }
 
     private fun save() {
+        if (_state.value.isSaving) return
         val s = _state.value
         if (s.amount <= BigDecimal.ZERO) {
             _state.value = s.copy(errorBannerRes = R.string.error_enter_amount_first)
@@ -180,39 +194,48 @@ class AddExpenseViewModel @Inject constructor(
         }
         val account = s.account ?: return
         val currency = s.currency ?: return
+        _state.value = s.copy(isSaving = true)
         viewModelScope.launch {
-            _state.value = _state.value.copy(isSaving = true)
-            try {
-                val now = Instant.now()
-                val tx = Transaction(
-                    id = 0L,
-                    kind = TransactionKind.Expense,
-                    amount = s.amount,
-                    currencyId = currency.id,
-                    accountId = account.id,
-                    categoryId = category.id,
-                    note = s.note.takeIf { it.isNotBlank() },
-                    occurredAt = s.occurredAt.atStartOfDay(ZoneId.systemDefault()).toInstant(),
-                    createdAt = now,
-                    updatedAt = now,
-                    isDeleted = false,
-                    toAccountId = null,
-                    toAmount = null,
-                    exchangeRate = null,
-                )
-                transactionRepository.upsert(tx)
-                _state.value = _state.value.copy(
-                    isSaving = false,
-                    savedSignal = _state.value.savedSignal + 1,
-                )
-                _actions.emit(AddExpenseAction.NavigateBack)
-            } catch (t: Throwable) {
-                t.reportToSentry()
-                _state.value = _state.value.copy(
-                    isSaving = false,
-                    errorBannerRes = R.string.error_save_failed,
-                )
-            }
+            persist(s, category, account, currency)
+        }
+    }
+
+    private suspend fun persist(
+        s: AddExpenseState,
+        category: Category,
+        account: Account,
+        currency: Currency,
+    ) {
+        try {
+            val now = Instant.now()
+            val tx = Transaction(
+                id = 0L,
+                kind = TransactionKind.Expense,
+                amount = s.amount,
+                currencyId = currency.id,
+                accountId = account.id,
+                categoryId = category.id,
+                note = s.note.takeIf { it.isNotBlank() },
+                occurredAt = s.occurredAt.atStartOfDay(ZoneId.systemDefault()).toInstant(),
+                createdAt = now,
+                updatedAt = now,
+                isDeleted = false,
+                toAccountId = null,
+                toAmount = null,
+                exchangeRate = null,
+            )
+            transactionRepository.upsert(tx)
+            _state.value = _state.value.copy(
+                isSaving = false,
+                savedSignal = _state.value.savedSignal + 1,
+            )
+            _actions.emit(AddExpenseAction.NavigateBack)
+        } catch (t: Throwable) {
+            t.reportToSentry()
+            _state.value = _state.value.copy(
+                isSaving = false,
+                errorBannerRes = R.string.error_save_failed,
+            )
         }
     }
 

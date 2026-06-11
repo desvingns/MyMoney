@@ -55,8 +55,7 @@ class BiometricSetupViewModel @Inject constructor(
             BiometricSetupEvent.BiometricAuthFailed -> Unit
             is BiometricSetupEvent.IdleTimeoutSelected -> onIdleTimeoutSelected(event.seconds)
             is BiometricSetupEvent.PinEntered -> onPinEntered(event.pin)
-            BiometricSetupEvent.PinSetupDismissed ->
-                _state.value = _state.value.copy(pinSetupVisible = false)
+            BiometricSetupEvent.PinSetupDismissed -> onPinSetupDismissed()
         }
     }
 
@@ -73,8 +72,9 @@ class BiometricSetupViewModel @Inject constructor(
 
     private fun onBiometricAuthSucceeded() {
         viewModelScope.launch {
-            appSettingsRepository.update { it.copy(biometricLockEnabled = true) }
-            if (!hasPin()) {
+            if (hasPin()) {
+                appSettingsRepository.update { it.copy(biometricLockEnabled = true) }
+            } else {
                 _state.value = _state.value.copy(pinSetupVisible = true)
             }
         }
@@ -90,7 +90,15 @@ class BiometricSetupViewModel @Inject constructor(
         if (pin.length != PIN_LENGTH) return
         viewModelScope.launch {
             withContext(ioDispatcher) { secureStorage.writePinHash(pinHasher.hash(pin)) }
+            appSettingsRepository.update { it.copy(biometricLockEnabled = true) }
             _state.value = _state.value.copy(pinSetupVisible = false)
+        }
+    }
+
+    private fun onPinSetupDismissed() {
+        _state.value = _state.value.copy(pinSetupVisible = false)
+        viewModelScope.launch {
+            appSettingsRepository.update { it.copy(biometricLockEnabled = false) }
         }
     }
 

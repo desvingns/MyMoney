@@ -20,7 +20,10 @@
     <string name="lock_prompt_subtitle">Подтвердите, что это вы</string>
     <string name="lock_prompt_cancel">Ввести PIN-код</string>
     <string name="lock_locked">MyMoney заблокирован</string>
+    <string name="lock_enter_pin">Ввести PIN</string>
     <string name="lock_pin_prompt">Введите PIN-код</string>
     <string name="lock_pin_wrong">Неверный PIN-код, попробуйте снова</string>
+    <string name="lock_pin_unavailable">PIN ещё не задан. Повторите биометрическую разблокировку, затем задайте PIN в настройках блокировки.</string>
     <string name="lock_pin_backspace">Стереть</string>
+    <string name="lock_retry_biometric">Повторить</string>
 </resources>

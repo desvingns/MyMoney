@@ -19,7 +19,10 @@
     <string name="lock_prompt_subtitle">Confirm it\'s you to continue</string>
     <string name="lock_prompt_cancel">Use PIN</string>
     <string name="lock_locked">MyMoney is locked</string>
+    <string name="lock_enter_pin">Enter PIN</string>
     <string name="lock_pin_prompt">Enter your PIN</string>
     <string name="lock_pin_wrong">Wrong PIN, try again</string>
+    <string name="lock_pin_unavailable">PIN is not set yet. Retry biometric unlock, then set a PIN in App lock settings.</string>
     <string name="lock_pin_backspace">Backspace</string>
+    <string name="lock_retry_biometric">Retry</string>
 </resources>

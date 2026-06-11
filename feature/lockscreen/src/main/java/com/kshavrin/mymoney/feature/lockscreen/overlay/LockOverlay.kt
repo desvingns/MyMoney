@@ -95,7 +95,10 @@ fun LockOverlay(onUnlocked: () -> Unit) {
     }
 
     LaunchedEffect(Unit) {
+        val restoredPinFallback = pinFallback
         pinAvailable = hasPin(dependencies)
+        if (restoredPinFallback) return@LaunchedEffect
+
         val activity = context as? FragmentActivity
         if (activity == null) {
             showPinFallback()

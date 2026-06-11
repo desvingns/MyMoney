@@ -1,8 +1,5 @@
 package com.kshavrin.mymoney.feature.lockscreen.overlay
 
-import android.content.Context
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.StateRestorationTester
@@ -14,7 +11,6 @@ import androidx.compose.ui.test.performClick
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.ViewModelProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.datastore.SecureStorage
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import com.kshavrin.mymoney.feature.lockscreen.R
@@ -94,39 +90,31 @@ class LockOverlayUiTest {
     }
 
     @Test
-    fun `pin fallback survives saveable restoration when prompt launch is unavailable`() {
+    fun `pin fallback survives saveable restoration in fragment activity context`() {
         secureStorage.writePinHash(pinHasher.hash("1234"))
         val restorationTester = StateRestorationTester(composeRule)
-        val applicationContext = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext
 
         restorationTester.setContent {
             MyMoneyTheme {
-                CompositionLocalProvider(LocalContext provides applicationContext) {
-                    LockOverlay(onUnlocked = {})
-                }
+                LockOverlay(onUnlocked = {})
             }
         }
 
+        dispatchNegativeButtonFallback()
         assertPinFallbackVisible()
 
         restorationTester.emulateSavedInstanceStateRestore()
+        composeRule.waitForIdle()
 
         assertPinFallbackVisible()
     }
 
     private fun setOverlayContent(
-        contextOverride: Context? = null,
         onUnlocked: () -> Unit = {},
     ) {
         composeRule.setContent {
             MyMoneyTheme {
-                if (contextOverride == null) {
-                    LockOverlay(onUnlocked = onUnlocked)
-                } else {
-                    CompositionLocalProvider(LocalContext provides contextOverride) {
-                        LockOverlay(onUnlocked = onUnlocked)
-                    }
-                }
+                LockOverlay(onUnlocked = onUnlocked)
             }
         }
     }

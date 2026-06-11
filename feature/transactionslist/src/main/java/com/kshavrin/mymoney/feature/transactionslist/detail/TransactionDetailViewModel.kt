@@ -21,6 +21,7 @@ import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
 import com.kshavrin.mymoney.feature.transactionslist.R
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -280,6 +281,7 @@ class TransactionDetailViewModel @Inject constructor(
                 _state.value = _state.value.copy(isSaving = false)
                 _actions.emit(TransactionDetailAction.NavigateBack)
             } catch (t: Throwable) {
+                if (t is CancellationException) throw t
                 t.reportToSentry()
                 _state.value = _state.value.copy(
                     isSaving = false,
@@ -334,6 +336,7 @@ class TransactionDetailViewModel @Inject constructor(
                 _state.value = _state.value.copy(isSaving = false)
                 _actions.emit(TransactionDetailAction.NavigateBack)
             } catch (t: Throwable) {
+                if (t is CancellationException) throw t
                 t.reportToSentry()
                 _state.value = _state.value.copy(
                     isSaving = false,
@@ -368,6 +371,7 @@ class TransactionDetailViewModel @Inject constructor(
                 // S12; emitting NavigateBack here would dispose the host before it can show.
                 _actions.emit(TransactionDetailAction.ShowUndoSnackbar(transactionId))
             } catch (t: Throwable) {
+                if (t is CancellationException) throw t
                 t.reportToSentry()
                 _state.value = _state.value.copy(
                     isSaving = false,
@@ -382,6 +386,7 @@ class TransactionDetailViewModel @Inject constructor(
             try {
                 transactionRepository.restore(id, Instant.now())
             } catch (t: Throwable) {
+                if (t is CancellationException) throw t
                 t.reportToSentry()
             }
         }

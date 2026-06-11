@@ -9,6 +9,7 @@ import com.kshavrin.mymoney.core.sync.SnapshotSyncRepository
 import com.kshavrin.mymoney.core.sync.SyncTarget
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 
 @HiltWorker
@@ -29,7 +30,10 @@ class SyncWorker @AssistedInject constructor(
         }
         return result.fold(
             onSuccess = { Result.success() },
-            onFailure = { if (runAttemptCount < MAX_RETRIES) Result.retry() else Result.failure() },
+            onFailure = {
+                if (it is CancellationException) throw it
+                if (runAttemptCount < MAX_RETRIES) Result.retry() else Result.failure()
+            },
         )
     }
 

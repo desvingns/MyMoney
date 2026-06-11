@@ -7,6 +7,7 @@ import androidx.work.WorkerParameters
 import com.kshavrin.mymoney.core.domain.usecase.GenerateDueRecurringUseCase
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
+import kotlinx.coroutines.CancellationException
 import java.time.Instant
 
 @HiltWorker
@@ -18,7 +19,10 @@ class RecurringWorker @AssistedInject constructor(
 
     override suspend fun doWork(): Result = runCatching { generateDueRecurring(Instant.now()) }.fold(
         onSuccess = { Result.success() },
-        onFailure = { if (runAttemptCount < MAX_RETRIES) Result.retry() else Result.failure() },
+        onFailure = {
+            if (it is CancellationException) throw it
+            if (runAttemptCount < MAX_RETRIES) Result.retry() else Result.failure()
+        },
     )
 
     companion object {

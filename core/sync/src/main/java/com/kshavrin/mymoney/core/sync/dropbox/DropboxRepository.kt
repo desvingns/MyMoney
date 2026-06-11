@@ -16,6 +16,7 @@ import com.kshavrin.mymoney.core.datastore.SecureStorage
 import com.kshavrin.mymoney.core.sync.CloudSyncBackend
 import com.kshavrin.mymoney.core.sync.RemoteSnapshot
 import com.kshavrin.mymoney.core.sync.SyncTarget
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -128,6 +129,7 @@ class DropboxRepository @Inject constructor(
             try {
                 return@withContext Result.success(block())
             } catch (t: Throwable) {
+                if (t is CancellationException) throw t
                 lastError = t
                 val backoff = transientBackoffMillis(t, attempt) ?: break
                 delay(backoff)

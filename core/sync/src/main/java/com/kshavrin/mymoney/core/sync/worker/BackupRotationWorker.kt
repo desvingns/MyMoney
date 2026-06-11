@@ -7,6 +7,7 @@ import androidx.work.WorkerParameters
 import com.kshavrin.mymoney.core.domain.repository.BackupRepository
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
+import kotlinx.coroutines.CancellationException
 
 @HiltWorker
 class BackupRotationWorker @AssistedInject constructor(
@@ -19,7 +20,10 @@ class BackupRotationWorker @AssistedInject constructor(
         val treeUri = inputData.getString(KEY_TREE_URI) ?: return Result.failure()
         return backupRepository.rotateBackups(treeUri).fold(
             onSuccess = { Result.success() },
-            onFailure = { if (runAttemptCount < MAX_RETRIES) Result.retry() else Result.failure() },
+            onFailure = {
+                if (it is CancellationException) throw it
+                if (runAttemptCount < MAX_RETRIES) Result.retry() else Result.failure()
+            },
         )
     }
 

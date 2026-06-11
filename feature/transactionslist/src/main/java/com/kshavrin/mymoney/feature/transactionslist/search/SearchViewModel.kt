@@ -8,6 +8,7 @@ import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
 import com.kshavrin.mymoney.core.domain.repository.SearchHistoryRepository
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.channels.BufferOverflow
@@ -75,6 +76,7 @@ class SearchViewModel @Inject constructor(
         return try {
             SearchOutcome.Hits(transactionRepository.searchByNote(query, SEARCH_LIMIT))
         } catch (t: Throwable) {
+            if (t is CancellationException) throw t
             t.reportToSentry()
             SearchOutcome.Failure
         }
@@ -139,6 +141,7 @@ class SearchViewModel @Inject constructor(
                 searchHistoryRepository.add(trimmed, Instant.now())
                 searchHistoryRepository.pruneToLimit()
             } catch (t: Throwable) {
+                if (t is CancellationException) throw t
                 t.reportToSentry()
             }
         }

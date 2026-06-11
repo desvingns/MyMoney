@@ -18,6 +18,7 @@ import com.kshavrin.mymoney.core.domain.usecase.TransferExecutor
 import com.kshavrin.mymoney.core.domain.usecase.TransferResult
 import com.kshavrin.mymoney.feature.transaction.R
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -253,6 +254,7 @@ class TransferViewModel @Inject constructor(
                     }
                 }
             } catch (t: Throwable) {
+                if (t is CancellationException) throw t
                 t.reportToSentry()
                 _state.value = _state.value.copy(
                     isSaving = false,

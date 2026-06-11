@@ -13,6 +13,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import io.sentry.Breadcrumb
 import io.sentry.Sentry
 import io.sentry.SentryLevel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -126,17 +127,26 @@ class SnapshotSyncRepository @Inject constructor(
     private suspend fun <T> Result<T>.recoverFailure(
         target: SyncTarget,
         event: String,
-    ): Result<T> = recoverCatching { cause ->
-        val error = (cause as? SyncException)?.syncError ?: SyncError.Unknown
-        writeLog(target, event, STATUS_FAILURE, errorMessage = error.name)
-        sentryLevelFor(error)?.let { level ->
-            Sentry.withScope { scope ->
-                scope.level = level
-                Sentry.captureException(SyncException(error))
+    ): Result<T> = fold(
+        onSuccess = { Result.success(it) },
+        onFailure = { cause ->
+            if (cause is CancellationException) throw cause
+            val error = (cause as? SyncException)?.syncError ?: SyncError.Unknown
+            try {
+                writeLog(target, event, STATUS_FAILURE, errorMessage = error.name)
+                sentryLevelFor(error)?.let { level ->
+                    Sentry.withScope { scope ->
+                        scope.level = level
+                        Sentry.captureException(SyncException(error))
+                    }
+                }
+                Result.failure(SyncException(error))
+            } catch (t: Throwable) {
+                if (t is CancellationException) throw t
+                Result.failure(t)
             }
-        }
-        throw SyncException(error)
-    }
+        },
+    )
 
     private suspend fun writeLog(
         target: SyncTarget,
@@ -187,5 +197,6 @@ private fun SyncError.isRetryable(): Boolean =
     this == SyncError.Network || this == SyncError.Server
 
 private fun <T> Result<T>.orThrow(): T = getOrElse { cause ->
+    if (cause is CancellationException) throw cause
     throw if (cause is SyncException) cause else SyncException(SyncError.Unknown)
 }

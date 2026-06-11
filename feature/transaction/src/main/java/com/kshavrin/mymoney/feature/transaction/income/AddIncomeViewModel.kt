@@ -20,6 +20,7 @@ import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
 import com.kshavrin.mymoney.feature.transaction.R
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -172,6 +173,7 @@ class AddIncomeViewModel @Inject constructor(
             val category = try {
                 categoryRepository.findById(categoryId)
             } catch (t: Throwable) {
+                if (t is CancellationException) throw t
                 t.reportToSentry()
                 _state.value = _state.value.copy(
                     isSaving = false,
@@ -240,6 +242,7 @@ class AddIncomeViewModel @Inject constructor(
             )
             _actions.emit(AddIncomeAction.NavigateBack)
         } catch (t: Throwable) {
+            if (t is CancellationException) throw t
             t.reportToSentry()
             _state.value = _state.value.copy(
                 isSaving = false,

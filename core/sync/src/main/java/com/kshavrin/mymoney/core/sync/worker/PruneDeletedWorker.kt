@@ -7,6 +7,7 @@ import androidx.work.WorkerParameters
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
+import kotlinx.coroutines.CancellationException
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
@@ -21,7 +22,10 @@ class PruneDeletedWorker @AssistedInject constructor(
         transactionRepository.pruneDeleted(pruneCutoff(Instant.now()))
     }.fold(
         onSuccess = { Result.success() },
-        onFailure = { if (runAttemptCount < MAX_RETRIES) Result.retry() else Result.failure() },
+        onFailure = {
+            if (it is CancellationException) throw it
+            if (runAttemptCount < MAX_RETRIES) Result.retry() else Result.failure()
+        },
     )
 
     companion object {

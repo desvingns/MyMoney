@@ -1,13 +1,18 @@
 package com.kshavrin.mymoney.core.datastore
 
+import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.mutablePreferencesOf
 import com.kshavrin.mymoney.core.datastore.model.AppSettings
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertThrows
+import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Test
 import java.io.File
@@ -16,13 +21,14 @@ import java.nio.file.Files
 class AppSettingsRepositoryTest {
 
     private lateinit var tempFile: File
+    private lateinit var dataStore: DataStore<Preferences>
     private lateinit var repository: AppSettingsRepository
 
     @Before
     fun setUp() {
         tempFile = Files.createTempFile("test_settings", ".preferences_pb").toFile()
         tempFile.delete()
-        val dataStore = PreferenceDataStoreFactory.create(
+        dataStore = PreferenceDataStoreFactory.create(
             produceFile = { tempFile },
         )
         repository = AppSettingsRepositoryImpl(dataStore)
@@ -88,11 +94,55 @@ class AppSettingsRepositoryTest {
     @Test
     fun first_positive_seen_is_monotonic() = runTest(UnconfinedTestDispatcher()) {
         repository.update { it.copy(firstPositiveSeen = true) }
-        assertThrows(IllegalStateException::class.java) {
-            kotlinx.coroutines.runBlocking {
-                repository.update { it.copy(firstPositiveSeen = false) }
-            }
+        try {
+            repository.update { it.copy(firstPositiveSeen = false) }
+            fail("firstPositiveSeen should not flip from true to false")
+        } catch (_: IllegalStateException) {
         }
+    }
+
+    @Test
+    fun update_transform_preserves_changes_committed_before_edit_applies() = runTest {
+        val interleavedDataStore = InterleavedDataStore()
+        val interleavedRepository = AppSettingsRepositoryImpl(interleavedDataStore)
+        interleavedDataStore.beforeNextUpdate = { prefs ->
+            prefs.copySettings { it.copy(themeMode = "dark") }
+        }
+
+        interleavedRepository.update {
+            it.copy(defaultAccountId = 5L)
+        }
+
+        val read = interleavedRepository.settings.first()
+        assertEquals(5L, read.defaultAccountId)
+        assertEquals("dark", read.themeMode)
+    }
+
+    @Test
+    fun account_update_does_not_restore_import_focus_cleared_before_edit_applies() = runTest {
+        val interleavedDataStore = InterleavedDataStore()
+        val interleavedRepository = AppSettingsRepositoryImpl(interleavedDataStore)
+        interleavedRepository.update {
+            it.copy(
+                defaultAccountId = -1L,
+                dashboardSelectionMode = "specific_account",
+                importFocusEpochMs = 1700000000000L,
+                importFocusCurrencyId = 9L,
+            )
+        }
+        interleavedDataStore.beforeNextUpdate = { prefs ->
+            prefs.copySettings { it.copy(importFocusEpochMs = 0L, importFocusCurrencyId = -1L) }
+        }
+
+        interleavedRepository.update {
+            it.copy(defaultAccountId = 5L, dashboardSelectionMode = "specific_account")
+        }
+
+        val read = interleavedRepository.settings.first()
+        assertEquals(5L, read.defaultAccountId)
+        assertEquals("specific_account", read.dashboardSelectionMode)
+        assertEquals(0L, read.importFocusEpochMs)
+        assertEquals(-1L, read.importFocusCurrencyId)
     }
 
     @Test
@@ -122,5 +172,25 @@ class AppSettingsRepositoryTest {
         repository.reset()
 
         assertEquals(AppSettings(), repository.settings.first())
+    }
+
+    private fun Preferences.copySettings(transform: (AppSettings) -> AppSettings): Preferences =
+        mutablePreferencesOf().also { prefs ->
+            transform(toAppSettings()).writeTo(prefs)
+        }
+
+    private class InterleavedDataStore : DataStore<Preferences> {
+        private val values = MutableStateFlow<Preferences>(mutablePreferencesOf())
+        var beforeNextUpdate: ((Preferences) -> Preferences)? = null
+
+        override val data: Flow<Preferences> = values
+
+        override suspend fun updateData(transform: suspend (t: Preferences) -> Preferences): Preferences {
+            val current = beforeNextUpdate?.invoke(values.value) ?: values.value
+            beforeNextUpdate = null
+            val next = transform(current)
+            values.value = next
+            return next
+        }
     }
 }

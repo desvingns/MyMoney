@@ -63,6 +63,9 @@ class LockOverlayUiTest {
         tapPinDigit(3)
         tapPinDigit(4)
 
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            unlockCount == 1
+        }
         composeRule.runOnIdle {
             assertEquals(1, unlockCount)
         }

@@ -7,6 +7,7 @@ import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
 import com.kshavrin.mymoney.core.datastore.SecureStorage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,6 +36,10 @@ class BiometricSetupViewModel @Inject constructor(
         onBufferOverflow = BufferOverflow.DROP_OLDEST,
     )
     val actions: SharedFlow<BiometricSetupAction> = _actions.asSharedFlow()
+
+    private var pinSetupGeneration = 0
+    private var dismissedPinSetupGeneration = -1
+    private var pinSetupJob: Job? = null
 
     init {
         _state.value = _state.value.copy(availability = availabilityChecker.availability())
@@ -75,6 +80,7 @@ class BiometricSetupViewModel @Inject constructor(
             if (hasPin()) {
                 appSettingsRepository.update { it.copy(biometricLockEnabled = true) }
             } else {
+                pinSetupGeneration += 1
                 _state.value = _state.value.copy(pinSetupVisible = true)
             }
         }
@@ -88,14 +94,20 @@ class BiometricSetupViewModel @Inject constructor(
 
     private fun onPinEntered(pin: String) {
         if (pin.length != PIN_LENGTH) return
-        viewModelScope.launch {
+        val generation = pinSetupGeneration
+        pinSetupJob?.cancel()
+        pinSetupJob = viewModelScope.launch {
             withContext(ioDispatcher) { secureStorage.writePinHash(pinHasher.hash(pin)) }
+            if (generation != pinSetupGeneration || generation == dismissedPinSetupGeneration) return@launch
             appSettingsRepository.update { it.copy(biometricLockEnabled = true) }
             _state.value = _state.value.copy(pinSetupVisible = false)
         }
     }
 
     private fun onPinSetupDismissed() {
+        dismissedPinSetupGeneration = pinSetupGeneration
+        pinSetupJob?.cancel()
+        pinSetupJob = null
         _state.value = _state.value.copy(pinSetupVisible = false)
         viewModelScope.launch {
             appSettingsRepository.update { it.copy(biometricLockEnabled = false) }

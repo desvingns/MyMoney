@@ -29,7 +29,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -51,8 +50,6 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-
-private val LOCK_ERROR_COLOR = Color(0xFFFF5722)
 
 @EntryPoint
 @InstallIn(SingletonComponent::class)
@@ -128,7 +125,7 @@ fun LockOverlay(onUnlocked: () -> Unit) {
                     if (pinError) {
                         Text(
                             text = stringResource(R.string.lock_pin_wrong),
-                            color = LOCK_ERROR_COLOR,
+                            color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier.padding(top = Spacing.s),
                         )

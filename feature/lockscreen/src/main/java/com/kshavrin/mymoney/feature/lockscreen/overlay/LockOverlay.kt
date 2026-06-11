@@ -60,7 +60,18 @@ internal interface LockOverlayEntryPoint {
 }
 
 @Composable
-fun LockOverlay(onUnlocked: () -> Unit) {
+fun LockOverlay(
+    onUnlocked: () -> Unit,
+    launchBiometric: (
+        activity: FragmentActivity,
+        title: String,
+        subtitle: String,
+        cancel: String,
+        onSuccess: () -> Unit,
+        onLockout: () -> Unit,
+        onPinFallback: () -> Unit,
+    ) -> Unit = ::launchBiometricPrompt,
+) {
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     val coroutineScope = rememberCoroutineScope()
@@ -83,7 +94,7 @@ fun LockOverlay(onUnlocked: () -> Unit) {
 
     fun launchPrompt(activity: FragmentActivity) {
         pinFallback = false
-        launchBiometricPrompt(
+        launchBiometric(
             activity = activity,
             title = activity.getString(R.string.lock_prompt_title),
             subtitle = activity.getString(R.string.lock_prompt_subtitle),

@@ -210,6 +210,20 @@ class LockControllerTest {
     }
 
     @Test
+    fun `disabling biometric lock after the overlay is shown hides the lock immediately`() = runTest {
+        val controller = buildController(initialSettings = AppSettings().lockEnabled())
+
+        controller.shouldShowLock.test {
+            assertTrue(awaitItem())
+
+            appSettings.seed(AppSettings(biometricLockEnabled = false))
+
+            assertFalse(awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun `markUnlocked resets pausedAt so a resume within the timeout stays unlocked`() = runTest {
         val controller = buildController(initialSettings = AppSettings().lockEnabled(timeoutSec = 60))
 

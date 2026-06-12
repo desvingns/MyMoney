@@ -1,9 +1,21 @@
 package com.kshavrin.mymoney.core.datastore
 
+import android.content.Context
+import android.content.SharedPreferences
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.Preferences
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import java.io.File
+import java.io.IOException
+import java.security.GeneralSecurityException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
@@ -12,17 +24,25 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class SecureStorageTest {
 
+    private lateinit var context: Context
     private lateinit var storage: SecureStorage
+    private val cleanupPrefsNames = mutableListOf<String>()
+    private val cleanupFiles = mutableListOf<File>()
 
     @Before
     fun setUp() {
-        storage = SecureStorageImpl(ApplicationProvider.getApplicationContext())
+        context = ApplicationProvider.getApplicationContext()
+        storage = SecureStorageImpl(context)
         storage.clearAll()
     }
 
     @After
     fun tearDown() {
         storage.clearAll()
+        cleanupPrefsNames.forEach(context::deleteSharedPreferences)
+        cleanupPrefsNames.clear()
+        cleanupFiles.forEach(File::delete)
+        cleanupFiles.clear()
     }
 
     @Test
@@ -84,4 +104,118 @@ class SecureStorageTest {
         storage.writeDropboxRefreshToken(null)
         assertNull(storage.read().dropboxRefreshToken)
     }
+
+    @Test
+    fun secure_storage_recovers_from_general_security_exception_without_restoring_secrets() = runTest {
+        val dataStore = newTempDataStore()
+        AppSettingsRepositoryImpl(dataStore).update {
+            it.copy(biometricLockEnabled = true)
+        }
+        val deletedFiles = mutableListOf<String>()
+        val prefsName = trackedPrefsName("secure_storage_recovery_gse")
+        val recoveredPrefs = context.getSharedPreferences(prefsName, Context.MODE_PRIVATE).apply {
+            edit()
+                .putString("dropbox_refresh_token", "stale-token")
+                .putString("pin_hash", "stale-hash")
+                .apply()
+        }
+        var creatorCalls = 0
+
+        val recoveredStorage = instantiateStorage(
+            dataStore = dataStore,
+            prefsCreator = { _, _ ->
+                creatorCalls += 1
+                if (creatorCalls == 1) throw GeneralSecurityException("cannot decrypt restored prefs")
+                recoveredPrefs
+            },
+            prefsDeleter = { _, fileName ->
+                deletedFiles += fileName
+                recoveredPrefs.edit().clear().commit()
+            },
+        )
+
+        val read = recoveredStorage.read()
+        assertEquals(2, creatorCalls)
+        assertEquals(listOf("com.kshavrin.mymoney_secure"), deletedFiles)
+        assertNull(read.dropboxRefreshToken)
+        assertNull(read.gdriveAccountEmail)
+        assertNull(read.pinHash)
+        assertEquals(0, read.failedPinAttempts)
+        assertNull(read.pinLockoutDeadlineEpochMs)
+        assertFalse(dataStore.data.first().toAppSettings().biometricLockEnabled)
+    }
+
+    @Test
+    fun secure_storage_recovers_from_io_exception_without_restoring_secrets() = runTest {
+        val dataStore = newTempDataStore()
+        AppSettingsRepositoryImpl(dataStore).update {
+            it.copy(biometricLockEnabled = true)
+        }
+        val deletedFiles = mutableListOf<String>()
+        val prefsName = trackedPrefsName("secure_storage_recovery_io")
+        val recoveredPrefs = context.getSharedPreferences(prefsName, Context.MODE_PRIVATE).apply {
+            edit()
+                .putString("gdrive_account_email", "stale@example.com")
+                .putString("pin_hash", "stale-hash")
+                .apply()
+        }
+        var creatorCalls = 0
+
+        val recoveredStorage = instantiateStorage(
+            dataStore = dataStore,
+            prefsCreator = { _, _ ->
+                creatorCalls += 1
+                if (creatorCalls == 1) throw IOException("restored prefs file is unreadable")
+                recoveredPrefs
+            },
+            prefsDeleter = { _, fileName ->
+                deletedFiles += fileName
+                recoveredPrefs.edit().clear().commit()
+            },
+        )
+
+        val read = recoveredStorage.read()
+        assertEquals(2, creatorCalls)
+        assertEquals(listOf("com.kshavrin.mymoney_secure"), deletedFiles)
+        assertNull(read.dropboxRefreshToken)
+        assertNull(read.gdriveAccountEmail)
+        assertNull(read.pinHash)
+        assertEquals(0, read.failedPinAttempts)
+        assertNull(read.pinLockoutDeadlineEpochMs)
+        assertFalse(dataStore.data.first().toAppSettings().biometricLockEnabled)
+    }
+
+    private fun instantiateStorage(
+        dataStore: DataStore<Preferences>,
+        prefsCreator: (Context, androidx.security.crypto.MasterKey) -> SharedPreferences,
+        prefsDeleter: (Context, String) -> Unit,
+    ): SecureStorage {
+        val constructor = SecureStorageImpl::class.java.declaredConstructors.single { constructor ->
+            val parameterTypes = constructor.parameterTypes
+            parameterTypes.size == 5 &&
+                parameterTypes[0] == Context::class.java &&
+                DataStore::class.java.isAssignableFrom(parameterTypes[1]) &&
+                kotlinx.coroutines.CoroutineDispatcher::class.java.isAssignableFrom(parameterTypes[2])
+        }.apply {
+            isAccessible = true
+        }
+        return constructor.newInstance(
+            context,
+            dataStore,
+            Dispatchers.Unconfined,
+            prefsCreator,
+            prefsDeleter,
+        ) as SecureStorage
+    }
+
+    private fun newTempDataStore(): DataStore<Preferences> {
+        val file = File(context.cacheDir, "secure-storage-${System.nanoTime()}.preferences_pb")
+        cleanupFiles += file
+        return PreferenceDataStoreFactory.create(
+            produceFile = { file },
+        )
+    }
+
+    private fun trackedPrefsName(prefix: String): String =
+        "$prefix-${System.nanoTime()}".also(cleanupPrefsNames::add)
 }

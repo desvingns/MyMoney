@@ -36,6 +36,7 @@ fun PinKeypad(
     onDigit: (Int) -> Unit,
     onBackspace: () -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -45,18 +46,24 @@ fun PinKeypad(
         PinDots(filled = entered.length)
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.s)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
-                DigitKey(1, onDigit); DigitKey(2, onDigit); DigitKey(3, onDigit)
+                DigitKey(1, onDigit, enabled)
+                DigitKey(2, onDigit, enabled)
+                DigitKey(3, onDigit, enabled)
             }
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
-                DigitKey(4, onDigit); DigitKey(5, onDigit); DigitKey(6, onDigit)
+                DigitKey(4, onDigit, enabled)
+                DigitKey(5, onDigit, enabled)
+                DigitKey(6, onDigit, enabled)
             }
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
-                DigitKey(7, onDigit); DigitKey(8, onDigit); DigitKey(9, onDigit)
+                DigitKey(7, onDigit, enabled)
+                DigitKey(8, onDigit, enabled)
+                DigitKey(9, onDigit, enabled)
             }
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
                 KeySpacer()
-                DigitKey(0, onDigit)
-                BackspaceKey(onBackspace)
+                DigitKey(0, onDigit, enabled)
+                BackspaceKey(onBackspace, enabled)
             }
         }
     }
@@ -78,9 +85,10 @@ private fun PinDots(filled: Int) {
 }
 
 @Composable
-private fun RowScope.DigitKey(digit: Int, onDigit: (Int) -> Unit) {
+private fun RowScope.DigitKey(digit: Int, onDigit: (Int) -> Unit, enabled: Boolean) {
     TextButton(
         onClick = { onDigit(digit) },
+        enabled = enabled,
         modifier = Modifier
             .weight(1f)
             .aspectRatio(1.4f),
@@ -90,9 +98,10 @@ private fun RowScope.DigitKey(digit: Int, onDigit: (Int) -> Unit) {
 }
 
 @Composable
-private fun RowScope.BackspaceKey(onBackspace: () -> Unit) {
+private fun RowScope.BackspaceKey(onBackspace: () -> Unit, enabled: Boolean) {
     TextButton(
         onClick = onBackspace,
+        enabled = enabled,
         modifier = Modifier
             .weight(1f)
             .aspectRatio(1.4f)

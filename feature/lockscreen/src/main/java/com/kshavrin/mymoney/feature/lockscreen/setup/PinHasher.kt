@@ -9,21 +9,53 @@ import javax.inject.Inject
 class PinHasher @Inject constructor() {
 
     fun hash(pin: String, salt: ByteArray = randomSalt()): String {
-        val derived = derive(pin, salt)
-        return "${encode(salt)}:${encode(derived)}"
+        val derived = derive(pin, salt, CURRENT_ITERATIONS)
+        return "$CURRENT_VERSION:$CURRENT_ITERATIONS:${encode(salt)}:${encode(derived)}"
     }
 
-    fun verify(pin: String, stored: String): Boolean {
+    fun verify(pin: String, stored: String): Boolean = verifyDetailed(pin, stored).verified
+
+    fun verifyDetailed(pin: String, stored: String): PinVerificationResult {
+        val parsed = parse(stored) ?: return PinVerificationResult(verified = false, needsRehash = false)
+        val actual = derive(pin, parsed.salt, parsed.iterations)
+        val verified = constantTimeEquals(parsed.derivedKey, actual)
+        return PinVerificationResult(verified = verified, needsRehash = verified && parsed.needsRehash)
+    }
+
+    fun isCurrentFormat(stored: String): Boolean = parse(stored)?.needsRehash == false
+
+    private fun parse(stored: String): ParsedHash? {
         val parts = stored.split(":")
-        if (parts.size != 2) return false
-        val salt = decode(parts[0]) ?: return false
-        val expected = decode(parts[1]) ?: return false
-        val actual = derive(pin, salt)
-        return constantTimeEquals(expected, actual)
+        return when {
+            parts.size == 4 && parts[0] == CURRENT_VERSION -> {
+                val iterations = parts[1].toIntOrNull()?.takeIf { it > 0 } ?: return null
+                val salt = decode(parts[2]) ?: return null
+                val derivedKey = decode(parts[3]) ?: return null
+                ParsedHash(
+                    iterations = iterations,
+                    salt = salt,
+                    derivedKey = derivedKey,
+                    needsRehash = iterations != CURRENT_ITERATIONS,
+                )
+            }
+
+            parts.size == 2 -> {
+                val salt = decode(parts[0]) ?: return null
+                val derivedKey = decode(parts[1]) ?: return null
+                ParsedHash(
+                    iterations = LEGACY_ITERATIONS,
+                    salt = salt,
+                    derivedKey = derivedKey,
+                    needsRehash = true,
+                )
+            }
+
+            else -> null
+        }
     }
 
-    private fun derive(pin: String, salt: ByteArray): ByteArray {
-        val spec = PBEKeySpec(pin.toCharArray(), salt, ITERATIONS, KEY_LENGTH_BITS)
+    private fun derive(pin: String, salt: ByteArray, iterations: Int): ByteArray {
+        val spec = PBEKeySpec(pin.toCharArray(), salt, iterations, KEY_LENGTH_BITS)
         return SecretKeyFactory.getInstance(ALGORITHM).generateSecret(spec).encoded
     }
 
@@ -41,9 +73,23 @@ class PinHasher @Inject constructor() {
     }
 
     private companion object {
+        const val CURRENT_VERSION = "v2"
         const val ALGORITHM = "PBKDF2WithHmacSHA256"
-        const val ITERATIONS = 10_000
+        const val CURRENT_ITERATIONS = 600_000
+        const val LEGACY_ITERATIONS = 10_000
         const val KEY_LENGTH_BITS = 256
         const val SALT_LENGTH_BYTES = 16
     }
 }
+
+data class PinVerificationResult(
+    val verified: Boolean,
+    val needsRehash: Boolean,
+)
+
+private data class ParsedHash(
+    val iterations: Int,
+    val salt: ByteArray,
+    val derivedKey: ByteArray,
+    val needsRehash: Boolean,
+)

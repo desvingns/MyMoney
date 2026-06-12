@@ -47,6 +47,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -83,6 +84,8 @@ fun LockOverlay(
     var pinAvailable by rememberSaveable { mutableStateOf<Boolean?>(null) }
     var entered by remember { mutableStateOf("") }
     var pinError by remember { mutableStateOf(false) }
+    var lockoutDeadlineEpochMs by rememberSaveable { mutableStateOf<Long?>(null) }
+    var nowEpochMs by remember { mutableStateOf(System.currentTimeMillis()) }
 
     BackHandler {}
 
@@ -108,6 +111,7 @@ fun LockOverlay(
     LaunchedEffect(Unit) {
         val restoredPinFallback = pinFallback
         pinAvailable = hasPin(dependencies)
+        lockoutDeadlineEpochMs = currentLockoutDeadlineEpochMs(dependencies)
         if (restoredPinFallback) return@LaunchedEffect
 
         val activity = context as? FragmentActivity
@@ -115,6 +119,17 @@ fun LockOverlay(
             showPinFallback()
         } else {
             launchPrompt(activity)
+        }
+    }
+
+    LaunchedEffect(lockoutDeadlineEpochMs) {
+        while (lockoutDeadlineEpochMs != null) {
+            nowEpochMs = System.currentTimeMillis()
+            if (remainingLockoutSeconds(lockoutDeadlineEpochMs, nowEpochMs) <= 0) {
+                lockoutDeadlineEpochMs = currentLockoutDeadlineEpochMs(dependencies)
+                break
+            }
+            delay(LOCKOUT_COUNTDOWN_TICK_MS)
         }
     }
 
@@ -136,7 +151,15 @@ fun LockOverlay(
                     modifier = Modifier.fillMaxWidth(),
                 )
                 if (pinAvailable == true) {
-                    if (pinError) {
+                    val lockoutSeconds = remainingLockoutSeconds(lockoutDeadlineEpochMs, nowEpochMs)
+                    if (lockoutSeconds > 0) {
+                        Text(
+                            text = stringResource(R.string.lock_pin_retry_after, lockoutSeconds),
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(top = Spacing.s),
+                        )
+                    } else if (pinError) {
                         Text(
                             text = stringResource(R.string.lock_pin_wrong),
                             color = MaterialTheme.colorScheme.error,
@@ -147,20 +170,23 @@ fun LockOverlay(
                     PinKeypad(
                         entered = entered,
                         onDigit = { digit ->
-                            if (entered.length < PIN_LENGTH) {
+                            val canEnterPin = remainingLockoutSeconds(lockoutDeadlineEpochMs, nowEpochMs) <= 0
+                            if (canEnterPin && entered.length < PIN_LENGTH) {
                                 pinError = false
                                 entered += digit.toString()
                                 if (entered.length == PIN_LENGTH) {
                                     val candidate = entered
                                     coroutineScope.launch {
                                         if (verifyPin(dependencies, candidate)) {
+                                            lockoutDeadlineEpochMs = null
                                             onUnlocked()
                                         } else {
                                             if (hapticEnabled(dependencies)) {
                                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                             }
                                             entered = ""
-                                            pinError = true
+                                            lockoutDeadlineEpochMs = recordFailedPinAttempt(dependencies)
+                                            pinError = lockoutDeadlineEpochMs == null
                                         }
                                     }
                                 }
@@ -168,6 +194,7 @@ fun LockOverlay(
                         },
                         onBackspace = { if (entered.isNotEmpty()) entered = entered.dropLast(1) },
                         modifier = Modifier.padding(top = Spacing.l),
+                        enabled = lockoutSeconds <= 0,
                     )
                 } else {
                     Text(
@@ -207,9 +234,58 @@ private suspend fun hasPin(dependencies: LockOverlayEntryPoint): Boolean =
 
 private suspend fun verifyPin(dependencies: LockOverlayEntryPoint, pin: String): Boolean =
     withContext(dependencies.ioDispatcher()) {
-        val stored = dependencies.secureStorage().read().pinHash ?: return@withContext false
-        PinHasher().verify(pin, stored)
+        val secureStorage = dependencies.secureStorage()
+        val stored = secureStorage.read().pinHash ?: return@withContext false
+        val hasher = PinHasher()
+        val result = hasher.verifyDetailed(pin, stored)
+        if (result.verified) {
+            if (result.needsRehash) {
+                secureStorage.writePinHash(hasher.hash(pin))
+            }
+            secureStorage.clearPinLockout()
+        }
+        result.verified
     }
+
+private suspend fun currentLockoutDeadlineEpochMs(dependencies: LockOverlayEntryPoint): Long? =
+    withContext(dependencies.ioDispatcher()) {
+        val secureStorage = dependencies.secureStorage()
+        val settings = secureStorage.read()
+        val deadline = settings.pinLockoutDeadlineEpochMs ?: return@withContext null
+        if (deadline > System.currentTimeMillis()) {
+            deadline
+        } else {
+            secureStorage.writePinLockout(settings.failedPinAttempts, deadlineEpochMs = null)
+            null
+        }
+    }
+
+private suspend fun recordFailedPinAttempt(dependencies: LockOverlayEntryPoint): Long? =
+    withContext(dependencies.ioDispatcher()) {
+        val secureStorage = dependencies.secureStorage()
+        val settings = secureStorage.read()
+        val failedPinAttempts = settings.failedPinAttempts + 1
+        val deadline =
+            if (failedPinAttempts >= LOCKOUT_ATTEMPT_STEP && failedPinAttempts % LOCKOUT_ATTEMPT_STEP == 0) {
+                System.currentTimeMillis() + lockoutDelayMs(failedPinAttempts)
+            } else {
+                null
+            }
+        secureStorage.writePinLockout(failedPinAttempts, deadline)
+        deadline
+    }
+
+private fun lockoutDelayMs(failedPinAttempts: Int): Long {
+    val lockoutLevel = failedPinAttempts / LOCKOUT_ATTEMPT_STEP - 1
+    var delayMs = INITIAL_LOCKOUT_MS
+    repeat(lockoutLevel.coerceAtLeast(0)) {
+        delayMs = (delayMs * 2).coerceAtMost(MAX_LOCKOUT_MS)
+    }
+    return delayMs
+}
+
+private fun remainingLockoutSeconds(deadlineEpochMs: Long?, nowEpochMs: Long): Long =
+    deadlineEpochMs?.let { ((it - nowEpochMs + 999L) / 1_000L).coerceAtLeast(0L) } ?: 0L
 
 private suspend fun hapticEnabled(dependencies: LockOverlayEntryPoint): Boolean =
     dependencies.appSettingsRepository().settings.first().hapticEnabled
@@ -260,3 +336,8 @@ private fun launchBiometricPrompt(
         prompt.authenticate(info)
     }
 }
+
+private const val LOCKOUT_ATTEMPT_STEP = 5
+private const val INITIAL_LOCKOUT_MS = 30_000L
+private const val MAX_LOCKOUT_MS = 30L * 60L * 1_000L
+private const val LOCKOUT_COUNTDOWN_TICK_MS = 1_000L

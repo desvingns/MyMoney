@@ -31,6 +31,12 @@ class SecureStorageImpl @Inject constructor(
         dropboxRefreshToken = prefs.getString(KEY_DROPBOX_TOKEN, null),
         gdriveAccountEmail = prefs.getString(KEY_GDRIVE_EMAIL, null),
         pinHash = prefs.getString(KEY_PIN_HASH, null),
+        failedPinAttempts = prefs.getInt(KEY_FAILED_PIN_ATTEMPTS, 0),
+        pinLockoutDeadlineEpochMs = if (prefs.contains(KEY_PIN_LOCKOUT_DEADLINE_EPOCH_MS)) {
+            prefs.getLong(KEY_PIN_LOCKOUT_DEADLINE_EPOCH_MS, 0L)
+        } else {
+            null
+        },
     )
 
     override fun writeDropboxRefreshToken(token: String?) {
@@ -54,6 +60,18 @@ class SecureStorageImpl @Inject constructor(
         }
     }
 
+    override fun writePinLockout(failedPinAttempts: Int, deadlineEpochMs: Long?) {
+        prefs.edit().apply {
+            putInt(KEY_FAILED_PIN_ATTEMPTS, failedPinAttempts)
+            if (deadlineEpochMs == null) {
+                remove(KEY_PIN_LOCKOUT_DEADLINE_EPOCH_MS)
+            } else {
+                putLong(KEY_PIN_LOCKOUT_DEADLINE_EPOCH_MS, deadlineEpochMs)
+            }
+            apply()
+        }
+    }
+
     override fun clearAll() {
         check(prefs.edit().clear().commit()) { "Unable to clear secure storage" }
     }
@@ -63,5 +81,7 @@ class SecureStorageImpl @Inject constructor(
         const val KEY_DROPBOX_TOKEN = "dropbox_refresh_token"
         const val KEY_GDRIVE_EMAIL = "gdrive_account_email"
         const val KEY_PIN_HASH = "pin_hash"
+        const val KEY_FAILED_PIN_ATTEMPTS = "failed_pin_attempts"
+        const val KEY_PIN_LOCKOUT_DEADLINE_EPOCH_MS = "pin_lockout_deadline_epoch_ms"
     }
 }

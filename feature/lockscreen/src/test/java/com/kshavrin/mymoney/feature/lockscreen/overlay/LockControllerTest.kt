@@ -4,11 +4,14 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
 import app.cash.turbine.test
+import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
 import com.kshavrin.mymoney.core.datastore.model.AppSettings
 import com.kshavrin.mymoney.feature.lockscreen.fake.FakeAppSettingsRepository
 import com.kshavrin.mymoney.feature.lockscreen.util.MainDispatcherRule
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -121,13 +124,17 @@ class LockControllerTest {
     // --- 2. cold start --------------------------------------------------------------------
 
     @Test
-    fun `cold start with lock enabled becomes locked after the first settings emission`() = runTest {
-        val controller = buildController(initialSettings = AppSettings().lockEnabled())
+    fun `isResolved stays false before first settings emission and becomes true after enabled settings arrive`() = runTest {
+        val appSettings = DeferredFirstEmissionAppSettingsRepository()
+        val controller = buildController(appSettings)
 
-        controller.shouldShowLock.test {
-            assertTrue(awaitItem())
-            cancelAndIgnoreRemainingEvents()
-        }
+        assertFalse(controller.isResolved.value)
+        assertFalse(controller.shouldShowLock.value)
+
+        appSettings.emit(AppSettings().lockEnabled())
+
+        assertTrue(controller.isResolved.value)
+        assertTrue(controller.shouldShowLock.value)
     }
 
     @Test
@@ -229,6 +236,30 @@ class LockControllerTest {
         controller.shouldShowLock.test {
             assertTrue(awaitItem())
             cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    private fun buildController(
+        appSettingsRepository: AppSettingsRepository,
+    ): LockController = LockController(
+        appSettingsRepository = appSettingsRepository,
+        scope = CoroutineScope(mainDispatcherRule.testDispatcher),
+    )
+
+    private class DeferredFirstEmissionAppSettingsRepository : AppSettingsRepository {
+        private val settingsFlow = MutableSharedFlow<AppSettings>(replay = 0, extraBufferCapacity = 1)
+        private var latest = AppSettings()
+
+        override val settings: Flow<AppSettings> = settingsFlow
+
+        override suspend fun update(transform: (AppSettings) -> AppSettings) {
+            latest = transform(latest)
+            settingsFlow.emit(latest)
+        }
+
+        suspend fun emit(settings: AppSettings) {
+            latest = settings
+            settingsFlow.emit(settings)
         }
     }
 }

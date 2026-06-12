@@ -33,13 +33,21 @@ class LockController @Inject constructor(
     private val _shouldShowLock = MutableStateFlow(false)
     val shouldShowLock: StateFlow<Boolean> = _shouldShowLock.asStateFlow()
 
+    private val _isResolved = MutableStateFlow(false)
+    val isResolved: StateFlow<Boolean> = _isResolved.asStateFlow()
+
+    private val _biometricLockEnabled = MutableStateFlow(false)
+    val biometricLockEnabled: StateFlow<Boolean> = _biometricLockEnabled.asStateFlow()
+
     init {
         scope.launch {
             appSettingsRepository.settings.collect { latest ->
                 settings = latest
+                _biometricLockEnabled.value = latest.biometricLockEnabled
                 if (!firstSettingsSeen) {
                     firstSettingsSeen = true
                     if (latest.biometricLockEnabled) _shouldShowLock.value = true
+                    _isResolved.value = true
                 }
             }
         }

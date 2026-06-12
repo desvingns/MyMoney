@@ -2,6 +2,7 @@ package com.kshavrin.mymoney
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
@@ -11,6 +12,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
 import com.kshavrin.mymoney.core.ui.feedback.LocalHapticPlayer
 import com.kshavrin.mymoney.core.ui.feedback.LocalSoundPlayer
 import com.kshavrin.mymoney.core.ui.haptic.HapticPlayer
@@ -21,6 +23,7 @@ import com.kshavrin.mymoney.feature.lockscreen.overlay.LockOverlay
 import com.kshavrin.mymoney.navigation.Destinations
 import com.kshavrin.mymoney.navigation.MyMoneyNavHost
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -37,9 +40,19 @@ class MainActivity : AppCompatActivity() {
     lateinit var hapticPlayer: HapticPlayer
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        installSplashScreen()
+        val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
+        splashScreen.setKeepOnScreenCondition { !lockController.isResolved.value }
         lockController.observeProcessLifecycle()
+        lifecycleScope.launch {
+            lockController.biometricLockEnabled.collect { enabled ->
+                if (enabled) {
+                    window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                } else {
+                    window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                }
+            }
+        }
         enableEdgeToEdge()
         val shortcutDestination = resolveShortcutDestination(intent)
         setContent {

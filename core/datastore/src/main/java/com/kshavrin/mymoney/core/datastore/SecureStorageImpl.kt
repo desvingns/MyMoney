@@ -2,30 +2,57 @@ package com.kshavrin.mymoney.core.datastore
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import com.kshavrin.mymoney.core.common.di.IoDispatcher
+import com.kshavrin.mymoney.core.common.exception.reportToSentry
 import com.kshavrin.mymoney.core.datastore.model.SecureSettings
 import dagger.hilt.android.qualifiers.ApplicationContext
+import java.io.File
+import java.io.IOException
+import java.security.GeneralSecurityException
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.runBlocking
 
 @Singleton
-class SecureStorageImpl @Inject constructor(
+class SecureStorageImpl private constructor(
     @ApplicationContext context: Context,
+    dataStore: DataStore<Preferences>?,
+    ioDispatcher: CoroutineDispatcher?,
+    prefsCreator: (Context, MasterKey) -> SharedPreferences,
+    prefsDeleter: (Context, String) -> Unit,
 ) : SecureStorage {
 
-    private val prefs: SharedPreferences = run {
-        val masterKey = MasterKey.Builder(context)
-            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-            .build()
-        EncryptedSharedPreferences.create(
-            context,
-            FILE_NAME,
-            masterKey,
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
-        )
-    }
+    @Inject
+    constructor(
+        @ApplicationContext context: Context,
+        dataStore: DataStore<Preferences>,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher,
+    ) : this(context, dataStore, ioDispatcher, ::createEncryptedPrefs, ::deletePrefs)
+
+    constructor(
+        @ApplicationContext context: Context,
+    ) : this(context, null, null, ::createEncryptedPrefs, ::deletePrefs)
+
+    internal constructor(
+        context: Context,
+        dataStore: DataStore<Preferences>,
+        ioDispatcher: CoroutineDispatcher,
+        prefsCreator: (Context, MasterKey) -> SharedPreferences,
+    ) : this(context, dataStore, ioDispatcher, prefsCreator, ::deletePrefs)
+
+    private val prefs: SharedPreferences = createPrefs(
+        context = context,
+        dataStore = dataStore,
+        ioDispatcher = ioDispatcher,
+        prefsCreator = prefsCreator,
+        prefsDeleter = prefsDeleter,
+    )
 
     override fun read(): SecureSettings = SecureSettings(
         dropboxRefreshToken = prefs.getString(KEY_DROPBOX_TOKEN, null),
@@ -83,5 +110,73 @@ class SecureStorageImpl @Inject constructor(
         const val KEY_PIN_HASH = "pin_hash"
         const val KEY_FAILED_PIN_ATTEMPTS = "failed_pin_attempts"
         const val KEY_PIN_LOCKOUT_DEADLINE_EPOCH_MS = "pin_lockout_deadline_epoch_ms"
+
+        fun createPrefs(
+            context: Context,
+            dataStore: DataStore<Preferences>?,
+            ioDispatcher: CoroutineDispatcher?,
+            prefsCreator: (Context, MasterKey) -> SharedPreferences,
+            prefsDeleter: (Context, String) -> Unit,
+        ): SharedPreferences {
+            val prefs = try {
+                prefsCreator(context, createMasterKey(context))
+            } catch (e: GeneralSecurityException) {
+                e.reportToSentry()
+                recoverPrefs(context, prefsCreator, prefsDeleter)
+            } catch (e: IOException) {
+                e.reportToSentry()
+                recoverPrefs(context, prefsCreator, prefsDeleter)
+            }
+            if (dataStore != null && ioDispatcher != null) {
+                resetLockIfPinMissing(prefs, dataStore, ioDispatcher)
+            }
+            return prefs
+        }
+
+        fun recoverPrefs(
+            context: Context,
+            prefsCreator: (Context, MasterKey) -> SharedPreferences,
+            prefsDeleter: (Context, String) -> Unit,
+        ): SharedPreferences {
+            prefsDeleter(context, FILE_NAME)
+            return prefsCreator(context, createMasterKey(context))
+        }
+
+        fun resetLockIfPinMissing(
+            prefs: SharedPreferences,
+            dataStore: DataStore<Preferences>,
+            ioDispatcher: CoroutineDispatcher,
+        ) {
+            if (prefs.getString(KEY_PIN_HASH, null) != null) return
+            runCatching {
+                runBlocking(ioDispatcher) {
+                    dataStore.edit { settings ->
+                        settings[AppSettingsKeys.BIOMETRIC_LOCK_ENABLED] = false
+                    }
+                }
+            }.onFailure { it.reportToSentry() }
+        }
+
+        fun createMasterKey(context: Context): MasterKey =
+            MasterKey.Builder(context)
+                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                .build()
+
+        fun createEncryptedPrefs(context: Context, masterKey: MasterKey): SharedPreferences =
+            EncryptedSharedPreferences.create(
+                context,
+                FILE_NAME,
+                masterKey,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
+            )
+
+        fun deletePrefs(context: Context, fileName: String) {
+            if (!context.deleteSharedPreferences(fileName)) {
+                val sharedPrefsDir = File(context.applicationInfo.dataDir, "shared_prefs")
+                File(sharedPrefsDir, "$fileName.xml").delete()
+                File(sharedPrefsDir, "$fileName.xml.bak").delete()
+            }
+        }
     }
 }

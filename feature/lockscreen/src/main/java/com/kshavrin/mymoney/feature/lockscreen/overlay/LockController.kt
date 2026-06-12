@@ -44,6 +44,9 @@ class LockController @Inject constructor(
             appSettingsRepository.settings.collect { latest ->
                 settings = latest
                 _biometricLockEnabled.value = latest.biometricLockEnabled
+                if (!latest.biometricLockEnabled) {
+                    _shouldShowLock.value = false
+                }
                 if (!firstSettingsSeen) {
                     firstSettingsSeen = true
                     if (latest.biometricLockEnabled) _shouldShowLock.value = true

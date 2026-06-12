@@ -44,15 +44,38 @@ class SecureStorageTest {
     }
 
     @Test
+    fun pin_lockout_roundtrip() {
+        storage.writePinLockout(failedPinAttempts = 10, deadlineEpochMs = 12_345L)
+
+        val read = storage.read()
+        assertEquals(10, read.failedPinAttempts)
+        assertEquals(12_345L, read.pinLockoutDeadlineEpochMs)
+    }
+
+    @Test
+    fun clear_pin_lockout_resets_counter_and_deadline() {
+        storage.writePinLockout(failedPinAttempts = 5, deadlineEpochMs = 12_345L)
+
+        storage.clearPinLockout()
+
+        val read = storage.read()
+        assertEquals(0, read.failedPinAttempts)
+        assertNull(read.pinLockoutDeadlineEpochMs)
+    }
+
+    @Test
     fun clear_all_removes_each_field() {
         storage.writeDropboxRefreshToken("tok")
         storage.writeGdriveAccountEmail("email")
         storage.writePinHash("hash")
+        storage.writePinLockout(failedPinAttempts = 5, deadlineEpochMs = 12_345L)
         storage.clearAll()
         val read = storage.read()
         assertNull(read.dropboxRefreshToken)
         assertNull(read.gdriveAccountEmail)
         assertNull(read.pinHash)
+        assertEquals(0, read.failedPinAttempts)
+        assertNull(read.pinLockoutDeadlineEpochMs)
     }
 
     @Test

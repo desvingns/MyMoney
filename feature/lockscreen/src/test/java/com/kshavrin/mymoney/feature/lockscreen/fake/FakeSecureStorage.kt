@@ -11,6 +11,7 @@ class FakeSecureStorage(
 
     var onWritePinHash: ((String?) -> Unit)? = null
     val writtenPinHashes = mutableListOf<String?>()
+    val writtenPinLockouts = mutableListOf<Pair<Int, Long?>>()
     var clearAllCount = 0
         private set
 
@@ -30,6 +31,14 @@ class FakeSecureStorage(
         current = current.copy(pinHash = hash)
     }
 
+    override fun writePinLockout(failedPinAttempts: Int, deadlineEpochMs: Long?) {
+        writtenPinLockouts += failedPinAttempts to deadlineEpochMs
+        current = current.copy(
+            failedPinAttempts = failedPinAttempts,
+            pinLockoutDeadlineEpochMs = deadlineEpochMs,
+        )
+    }
+
     override fun clearAll() {
         clearAllCount++
         current = SecureSettings()
@@ -37,5 +46,12 @@ class FakeSecureStorage(
 
     fun seedPinHash(hash: String?) {
         current = current.copy(pinHash = hash)
+    }
+
+    fun seedPinLockout(failedPinAttempts: Int, deadlineEpochMs: Long?) {
+        current = current.copy(
+            failedPinAttempts = failedPinAttempts,
+            pinLockoutDeadlineEpochMs = deadlineEpochMs,
+        )
     }
 }

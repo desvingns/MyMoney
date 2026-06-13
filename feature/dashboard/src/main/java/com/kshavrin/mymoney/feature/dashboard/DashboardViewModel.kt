@@ -17,6 +17,7 @@ import com.kshavrin.mymoney.core.domain.repository.AccountRepository
 import com.kshavrin.mymoney.core.domain.repository.CategoryRepository
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
+import com.kshavrin.mymoney.core.domain.time.PeriodArithmetic
 import com.kshavrin.mymoney.core.domain.usecase.BalanceCalculator
 import com.kshavrin.mymoney.core.domain.usecase.ObserveBudgetAlertsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -403,21 +404,35 @@ class DashboardViewModel @Inject constructor(
                 emit(DashboardAction.NavigateAbout)
             }
             DashboardEvent.BalanceCardClicked -> {
+                val range = PeriodArithmetic.toEpochMillisRange(_state.value.period)
                 when (val selection = _state.value.dashboardSelection) {
-                    is DashboardSelection.SpecificAccount -> emit(DashboardAction.NavigateTransactionsByAccount(selection.account.id))
-                    is DashboardSelection.AllAccounts -> emit(DashboardAction.NavigateTransactionsByCurrency(selection.currency.id))
+                    is DashboardSelection.SpecificAccount -> emit(
+                        DashboardAction.NavigateTransactionsByAccount(selection.account.id, range.first, range.last),
+                    )
+                    is DashboardSelection.AllAccounts -> emit(
+                        DashboardAction.NavigateTransactionsByCurrency(selection.currency.id, range.first, range.last),
+                    )
                     null -> Unit
                 }
             }
             is DashboardEvent.SliceClicked -> {
                 if (event.categoryId == OTHER_CATEGORY_ID) return
+                val range = PeriodArithmetic.toEpochMillisRange(_state.value.period)
                 when (val selection = _state.value.dashboardSelection) {
                     is DashboardSelection.SpecificAccount -> {
                         val currency = _state.value.currencies.firstOrNull { it.id == selection.account.currencyId } ?: return
-                        emit(DashboardAction.NavigateTransactionsByCategory(selection.account.id, currency.id, event.categoryId))
+                        emit(
+                            DashboardAction.NavigateTransactionsByCategory(
+                                selection.account.id, currency.id, event.categoryId, range.first, range.last,
+                            ),
+                        )
                     }
                     is DashboardSelection.AllAccounts -> {
-                        emit(DashboardAction.NavigateTransactionsByCategory(null, selection.currency.id, event.categoryId))
+                        emit(
+                            DashboardAction.NavigateTransactionsByCategory(
+                                null, selection.currency.id, event.categoryId, range.first, range.last,
+                            ),
+                        )
                     }
                     null -> Unit
                 }

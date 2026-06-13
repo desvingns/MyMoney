@@ -82,9 +82,15 @@ fun MyMoneyNavHost(
                             com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateCurrencies ->
                                 navController.navigate(Destinations.CURRENCIES_LIST)
                             is com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateTransactionsByAccount ->
-                                navController.navigate("${Destinations.TRANSACTIONS_LIST}?accountId=${action.accountId}")
+                                navController.navigate(
+                                    "${Destinations.TRANSACTIONS_LIST}?accountId=${action.accountId}" +
+                                        "&from=${action.fromMillis}&to=${action.toMillis}",
+                                )
                             is com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateTransactionsByCurrency ->
-                                navController.navigate("${Destinations.TRANSACTIONS_LIST}?currencyId=${action.currencyId}")
+                                navController.navigate(
+                                    "${Destinations.TRANSACTIONS_LIST}?currencyId=${action.currencyId}" +
+                                        "&from=${action.fromMillis}&to=${action.toMillis}",
+                                )
                             is com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateTransactionsByCategory ->
                                 navController.navigate(
                                     buildString {
@@ -93,6 +99,7 @@ fun MyMoneyNavHost(
                                             append("accountId=${action.accountId}&")
                                         }
                                         append("currencyId=${action.currencyId}&categoryId=${action.categoryId}")
+                                        append("&from=${action.fromMillis}&to=${action.toMillis}")
                                     },
                                 )
                             com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateAbout ->

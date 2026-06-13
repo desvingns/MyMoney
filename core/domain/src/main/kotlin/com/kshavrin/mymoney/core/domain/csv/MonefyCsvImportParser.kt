@@ -38,6 +38,10 @@ object MonefyCsvImportParser {
     val MYMONEY_HEADER: List<String> =
         listOf("id", "kind", "amount", "currency", "account", "category", "note", "occurredAt", "createdAt")
 
+    // Additive extension carrying transfer destination columns; legacy 9-column files stay importable.
+    val MYMONEY_TRANSFER_HEADER: List<String> =
+        MYMONEY_HEADER + listOf("to_account", "to_amount")
+
     private const val MAX_NOTE_LENGTH = 256
 
     private val DATE_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
@@ -69,7 +73,7 @@ object MonefyCsvImportParser {
     fun detectFormat(header: List<String>?): CsvImportFormat = when {
         header == null -> CsvImportFormat.Unknown
         header.map { it.trim() } == MONEFY_HEADER -> CsvImportFormat.Monefy
-        header == MYMONEY_HEADER -> CsvImportFormat.MyMoney
+        header == MYMONEY_HEADER || header == MYMONEY_TRANSFER_HEADER -> CsvImportFormat.MyMoney
         else -> CsvImportFormat.Unknown
     }
 

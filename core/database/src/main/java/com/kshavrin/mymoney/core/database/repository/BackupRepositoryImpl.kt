@@ -97,13 +97,12 @@ class BackupRepositoryImpl @Inject constructor(
     override suspend fun exportTransactionsCsv(documentUriString: String): Result<Unit> = withContext(ioDispatcher) {
         runCatching {
             val transactions = database.transactionDao().observeAll().first().map { it.toDomain() }
-            if (transactions.any { it.kind == TransactionKind.Transfer }) {
-                throw IOException("CSV export cannot represent transfer transactions")
-            }
             val currencies = transactions.map { it.currencyId }.distinct().associateWith { id ->
                 database.currencyDao().findById(id)?.toDomain()?.code.orEmpty()
             }
-            val accounts = transactions.map { it.accountId }.distinct().associateWith { id ->
+            val accountIds = (transactions.map { it.accountId } + transactions.mapNotNull { it.toAccountId })
+                .distinct()
+            val accounts = accountIds.associateWith { id ->
                 database.accountDao().findById(id)?.toDomain()?.name.orEmpty()
             }
             val categories = transactions.mapNotNull { it.categoryId }.distinct().associateWith { id ->
@@ -127,6 +126,8 @@ class BackupRepositoryImpl @Inject constructor(
                                 transaction.note.orEmpty(),
                                 transaction.occurredAt.toString(),
                                 transaction.createdAt.toString(),
+                                transaction.toAccountId?.let { accounts[it] }.orEmpty(),
+                                transaction.toAmount?.toPlainString().orEmpty(),
                             ).joinToString(separator = ",", transform = ::csvField),
                         )
                         writer.write(CSV_LINE_ENDING)
@@ -166,15 +167,14 @@ class BackupRepositoryImpl @Inject constructor(
 
         val transactions = records.drop(1).mapIndexed { index, fields ->
             val rowNumber = index + 2
-            if (fields.size != CSV_COLUMNS.size) invalidCsvRow(rowNumber, "expected ${CSV_COLUMNS.size} fields")
+            if (fields.size != CSV_COLUMNS.size && fields.size != CSV_LEGACY_COLUMN_COUNT) {
+                invalidCsvRow(rowNumber, "expected $CSV_LEGACY_COLUMN_COUNT or ${CSV_COLUMNS.size} fields")
+            }
             val id = fields[0].toLongOrNull()?.takeIf { it > 0L }
                 ?: invalidCsvRow(rowNumber, "id must be a positive integer")
             if (!seenIds.add(id)) invalidCsvRow(rowNumber, "duplicate id")
             val kind = runCatching { TransactionKind.fromString(fields[1]) }
                 .getOrElse { invalidCsvRow(rowNumber, "unknown transaction kind") }
-            if (kind == TransactionKind.Transfer) {
-                invalidCsvRow(rowNumber, "transfer import requires destination fields absent from this CSV schema")
-            }
             val amount = fields[2].toBigDecimalOrNull()?.takeIf { it.signum() > 0 }
                 ?: invalidCsvRow(rowNumber, "amount must be positive")
             val currency = currencies[fields[3].lowercase(Locale.ROOT)]?.singleOrNull()
@@ -184,13 +184,6 @@ class BackupRepositoryImpl @Inject constructor(
             if (account.currencyId != currency.id) {
                 invalidCsvRow(rowNumber, "currency does not match account currency")
             }
-            val categoryKind = when (kind) {
-                TransactionKind.Expense -> CategoryKind.Expense
-                TransactionKind.Income -> CategoryKind.Income
-                TransactionKind.Transfer -> error("transfer was rejected above")
-            }
-            val category = categories[fields[5] to categoryKind]?.singleOrNull()
-                ?: invalidCsvRow(rowNumber, "category must resolve to one active matching name")
             val note = fields[6].ifEmpty { null }
             if ((note?.length ?: 0) > MAX_NOTE_LENGTH) {
                 invalidCsvRow(rowNumber, "note exceeds $MAX_NOTE_LENGTH characters")
@@ -199,22 +192,59 @@ class BackupRepositoryImpl @Inject constructor(
                 .getOrElse { invalidCsvRow(rowNumber, "occurredAt must be an instant") }
             val createdAt = runCatching { Instant.parse(fields[8]) }
                 .getOrElse { invalidCsvRow(rowNumber, "createdAt must be an instant") }
-            Transaction(
-                id = id,
-                kind = kind,
-                amount = amount,
-                currencyId = currency.id,
-                accountId = account.id,
-                categoryId = category.id,
-                note = note,
-                occurredAt = occurredAt,
-                createdAt = createdAt,
-                updatedAt = createdAt,
-                isDeleted = false,
-                toAccountId = null,
-                toAmount = null,
-                exchangeRate = null,
-            )
+
+            if (kind == TransactionKind.Transfer) {
+                if (fields.size != CSV_COLUMNS.size) {
+                    invalidCsvRow(rowNumber, "transfer requires to_account and to_amount columns")
+                }
+                if (fields[5].isNotEmpty()) {
+                    invalidCsvRow(rowNumber, "transfer must not carry a category")
+                }
+                val toAccount = accounts[fields[9]]?.singleOrNull()
+                    ?: invalidCsvRow(rowNumber, "to_account must resolve to one active existing name")
+                val toAmount = fields[10].toBigDecimalOrNull()?.takeIf { it.signum() > 0 }
+                    ?: invalidCsvRow(rowNumber, "to_amount must be positive")
+                Transaction(
+                    id = id,
+                    kind = kind,
+                    amount = amount,
+                    currencyId = currency.id,
+                    accountId = account.id,
+                    categoryId = null,
+                    note = note,
+                    occurredAt = occurredAt,
+                    createdAt = createdAt,
+                    updatedAt = createdAt,
+                    isDeleted = false,
+                    toAccountId = toAccount.id,
+                    toAmount = toAmount,
+                    exchangeRate = null,
+                )
+            } else {
+                val categoryKind = when (kind) {
+                    TransactionKind.Expense -> CategoryKind.Expense
+                    TransactionKind.Income -> CategoryKind.Income
+                    TransactionKind.Transfer -> error("transfer handled above")
+                }
+                val category = categories[fields[5] to categoryKind]?.singleOrNull()
+                    ?: invalidCsvRow(rowNumber, "category must resolve to one active matching name")
+                Transaction(
+                    id = id,
+                    kind = kind,
+                    amount = amount,
+                    currencyId = currency.id,
+                    accountId = account.id,
+                    categoryId = category.id,
+                    note = note,
+                    occurredAt = occurredAt,
+                    createdAt = createdAt,
+                    updatedAt = createdAt,
+                    isDeleted = false,
+                    toAccountId = null,
+                    toAmount = null,
+                    exchangeRate = null,
+                )
+            }
         }
 
         for ((index, transaction) in transactions.withIndex()) {
@@ -510,8 +540,10 @@ class BackupRepositoryImpl @Inject constructor(
         const val BACKUP_SUFFIX = ".db"
         const val MIME_TYPE = "application/octet-stream"
         const val MAX_NOTE_LENGTH = 256
-        const val CSV_HEADER = "id,kind,amount,currency,account,category,note,occurredAt,createdAt"
+        const val CSV_HEADER =
+            "id,kind,amount,currency,account,category,note,occurredAt,createdAt,to_account,to_amount"
         val CSV_COLUMNS: List<String> = CSV_HEADER.split(",")
+        const val CSV_LEGACY_COLUMN_COUNT = 9
         const val CSV_LINE_ENDING = "\r\n"
         const val AUTO_ACCOUNT_ICON = "ic_account_cash"
         const val AUTO_CATEGORY_ICON = "ic_cat_other"

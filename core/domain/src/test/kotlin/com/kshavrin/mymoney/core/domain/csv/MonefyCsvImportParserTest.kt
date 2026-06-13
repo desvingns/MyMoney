@@ -35,6 +35,57 @@ class MonefyCsvImportParserTest {
     }
 
     @Test
+    fun `detects 11-column MyMoney transfer header as MyMoney format`() {
+        val transferHeader = "$myMoneyHeader,to_account,to_amount"
+        val result = MonefyCsvImportParser.detectFormat(transferHeader.split(","))
+        assertEquals(CsvImportFormat.MyMoney, result)
+    }
+
+    @Test
+    fun `detectFormat maps 9-col MYMONEY_HEADER to MyMoney`() {
+        val result = MonefyCsvImportParser.detectFormat(MonefyCsvImportParser.MYMONEY_HEADER)
+        assertEquals(CsvImportFormat.MyMoney, result)
+    }
+
+    @Test
+    fun `detectFormat maps 11-col MYMONEY_TRANSFER_HEADER to MyMoney`() {
+        val result = MonefyCsvImportParser.detectFormat(MonefyCsvImportParser.MYMONEY_TRANSFER_HEADER)
+        assertEquals(CsvImportFormat.MyMoney, result)
+    }
+
+    @Test
+    fun `detectFormat maps MONEFY_HEADER to Monefy`() {
+        val result = MonefyCsvImportParser.detectFormat(MonefyCsvImportParser.MONEFY_HEADER)
+        assertEquals(CsvImportFormat.Monefy, result)
+    }
+
+    @Test
+    fun `detectFormat distinguishes Monefy header from MyMoney headers`() {
+        assertNotEquals(
+            MonefyCsvImportParser.detectFormat(MonefyCsvImportParser.MONEFY_HEADER),
+            MonefyCsvImportParser.detectFormat(MonefyCsvImportParser.MYMONEY_HEADER),
+        )
+        assertNotEquals(
+            MonefyCsvImportParser.detectFormat(MonefyCsvImportParser.MONEFY_HEADER),
+            MonefyCsvImportParser.detectFormat(MonefyCsvImportParser.MYMONEY_TRANSFER_HEADER),
+        )
+    }
+
+    @Test
+    fun `detectFormat with null header returns Unknown`() {
+        assertEquals(CsvImportFormat.Unknown, MonefyCsvImportParser.detectFormat(null))
+    }
+
+    @Test
+    fun `MYMONEY_TRANSFER_HEADER is an additive extension of MYMONEY_HEADER`() {
+        val transferHeader = MonefyCsvImportParser.MYMONEY_TRANSFER_HEADER
+        val legacyHeader = MonefyCsvImportParser.MYMONEY_HEADER
+        assertEquals(legacyHeader.size + 2, transferHeader.size)
+        assertEquals(legacyHeader, transferHeader.take(legacyHeader.size))
+        assertEquals(listOf("to_account", "to_amount"), transferHeader.takeLast(2))
+    }
+
+    @Test
     fun `unknown header is rejected as Unknown`() {
         val result = MonefyCsvImportParser.parseText("foo,bar,baz\r\n")
         assertEquals(CsvImportFormat.Unknown, result.format)

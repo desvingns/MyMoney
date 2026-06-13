@@ -320,20 +320,25 @@ class GoalEditViewModel
             if (!s.canSave) return
             val isCredit = s.variant == GoalVariant.CREDIT
 
-            val targetAmount = s.targetAmount.parseMoneyOrNull()
-            val startingCapital = s.startingCapital.parseMoneyOrNull()
-            val monthlyContribution = s.monthlyContribution.parseMoneyOrNull()
-            val annualRatePercent = if (isCredit) s.annualRatePercent.parseMoneyOrNull() else null
-            val downPayment = if (isCredit) s.downPayment.parseMoneyOrNull() else null
-            if (targetAmount == null ||
-                startingCapital == null ||
-                monthlyContribution == null ||
-                (isCredit && annualRatePercent == null) ||
-                (isCredit && downPayment == null)
+            val targetAmount = s.targetAmount.parseMoneyField()
+            val startingCapital = s.startingCapital.parseMoneyField()
+            val monthlyContribution = s.monthlyContribution.parseMoneyField()
+            val annualRatePercent = if (isCredit) s.annualRatePercent.parseMoneyField() else MoneyField.Valid(BigDecimal.ZERO)
+            val downPayment = if (isCredit) s.downPayment.parseMoneyField() else MoneyField.Valid(BigDecimal.ZERO)
+            if (targetAmount is MoneyField.Invalid ||
+                startingCapital is MoneyField.Invalid ||
+                monthlyContribution is MoneyField.Invalid ||
+                annualRatePercent is MoneyField.Invalid ||
+                downPayment is MoneyField.Invalid
             ) {
                 _state.value = s.copy(errorMessage = "amount_format")
                 return
             }
+            val targetAmountValue = (targetAmount as MoneyField.Valid).value
+            val startingCapitalValue = (startingCapital as MoneyField.Valid).value
+            val monthlyContributionValue = (monthlyContribution as MoneyField.Valid).value
+            val annualRatePercentValue = (annualRatePercent as MoneyField.Valid).value
+            val downPaymentValue = (downPayment as MoneyField.Valid).value
 
             _state.value = s.copy(isSaving = true)
             viewModelScope.launch {
@@ -347,11 +352,11 @@ class GoalEditViewModel
                             colorHex = s.colorHex,
                             accountId = s.accountId,
                             variant = s.variant,
-                            targetAmount = targetAmount,
-                            startingCapital = startingCapital,
-                            monthlyContribution = monthlyContribution,
-                            annualRatePercent = annualRatePercent,
-                            downPayment = downPayment,
+                            targetAmount = targetAmountValue,
+                            startingCapital = startingCapitalValue,
+                            monthlyContribution = monthlyContributionValue,
+                            annualRatePercent = if (isCredit) annualRatePercentValue else null,
+                            downPayment = if (isCredit) downPaymentValue else null,
                             termMonths =
                                 if (isCredit) {
                                     s.termYears
@@ -380,6 +385,21 @@ private fun String.parseMoneyOrNull(): BigDecimal? =
 
 private fun String.parseMoney(): BigDecimal =
     parseMoneyOrNull() ?: BigDecimal.ZERO
+
+private sealed interface MoneyField {
+    data class Valid(
+        val value: BigDecimal,
+    ) : MoneyField
+
+    data object Invalid : MoneyField
+}
+
+private fun String.parseMoneyField(): MoneyField {
+    val normalized = trim()
+    if (normalized.isBlank()) return MoneyField.Valid(BigDecimal.ZERO)
+    val parsed = normalized.replace(',', '.').toBigDecimalOrNull()
+    return if (parsed != null) MoneyField.Valid(parsed) else MoneyField.Invalid
+}
 
 private fun ContributionItem.toRowUi(): ContributionRowUi =
     ContributionRowUi(name = name, amount = amount.toPlainString())

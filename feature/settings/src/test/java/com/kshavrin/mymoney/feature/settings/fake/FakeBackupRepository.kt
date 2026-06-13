@@ -5,7 +5,6 @@ import com.kshavrin.mymoney.core.domain.repository.BackupRepository
 import com.kshavrin.mymoney.core.domain.repository.CsvImportFocus
 
 class FakeBackupRepository : BackupRepository {
-
     val exportedUris: MutableList<String> = mutableListOf()
     val importedUris: MutableList<String> = mutableListOf()
     val exportedCsvUris: MutableList<String> = mutableListOf()

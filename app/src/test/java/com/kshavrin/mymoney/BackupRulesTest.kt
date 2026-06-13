@@ -9,7 +9,6 @@ import java.io.File
 import javax.xml.parsers.DocumentBuilderFactory
 
 class BackupRulesTest {
-
     private val backupRulesFile = resolveResFile("backup_rules.xml")
 
     @Test
@@ -50,19 +49,22 @@ class BackupRulesTest {
 
     private companion object {
         fun resolveResFile(fileName: String): File {
-            val candidates = listOf(
-                File("src/main/res/xml/$fileName"),
-                File("app/src/main/res/xml/$fileName"),
-            )
+            val candidates =
+                listOf(
+                    File("src/main/res/xml/$fileName"),
+                    File("app/src/main/res/xml/$fileName"),
+                )
             return candidates.firstOrNull(File::isFile)
                 ?: candidates.first().absoluteFile
         }
 
         fun parseRules(file: File): ParsedRules {
             assertTrue("Missing ${file.path}", file.isFile)
-            val document = DocumentBuilderFactory.newInstance()
-                .newDocumentBuilder()
-                .parse(file)
+            val document =
+                DocumentBuilderFactory
+                    .newInstance()
+                    .newDocumentBuilder()
+                    .parse(file)
             val includes = document.getElementsByTagName("include").asRuleEntries()
             val excludes = document.getElementsByTagName("exclude").asRuleEntries()
             return ParsedRules(includes = includes, excludes = excludes)

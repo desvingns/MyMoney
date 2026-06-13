@@ -107,10 +107,11 @@ fun CategoriesListContent(
             columns = GridCells.Fixed(3),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = 16.dp),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(horizontal = 16.dp),
         ) {
             sectionHeader(expenseTitle)
             categorySection(
@@ -183,57 +184,58 @@ private fun CategorySectionGrid(
                 rowItems.forEach { cat ->
                     val isDragged = cat.id == draggedId
                     val currentCenter = itemBounds[cat.id]?.center ?: Offset.Zero
-                    val visualOffset = if (isDragged) {
-                        Offset(pointerWindow.x - currentCenter.x, pointerWindow.y - currentCenter.y)
-                    } else {
-                        Offset.Zero
-                    }
+                    val visualOffset =
+                        if (isDragged) {
+                            Offset(pointerWindow.x - currentCenter.x, pointerWindow.y - currentCenter.y)
+                        } else {
+                            Offset.Zero
+                        }
                     CategoryCard(
                         category = cat,
                         isDragged = isDragged,
                         dragOffset = visualOffset,
-                        modifier = Modifier
-                            .weight(1f)
-                            .onGloballyPositioned { coords ->
-                                itemBounds[cat.id] = coords.boundsInWindow()
-                            }
-                            .pointerInput(cat.id, kind) {
-                                detectDragGesturesAfterLongPress(
-                                    onDragStart = {
-                                        draggedId = cat.id
-                                        pointerWindow = itemBounds[cat.id]?.center ?: Offset.Zero
-                                    },
-                                    onDragEnd = {
-                                        val finalOrder = localItems
-                                        draggedId = null
-                                        pointerWindow = Offset.Zero
-                                        onReordered(finalOrder)
-                                    },
-                                    onDragCancel = {
-                                        draggedId = null
-                                        pointerWindow = Offset.Zero
-                                    },
-                                    onDrag = { change, dragAmount ->
-                                        change.consume()
-                                        pointerWindow += dragAmount
-                                        val targetId = itemBounds.entries
-                                            .firstOrNull { (id, bounds) ->
-                                                id != cat.id && bounds.contains(pointerWindow)
+                        modifier =
+                            Modifier
+                                .weight(1f)
+                                .onGloballyPositioned { coords ->
+                                    itemBounds[cat.id] = coords.boundsInWindow()
+                                }.pointerInput(cat.id, kind) {
+                                    detectDragGesturesAfterLongPress(
+                                        onDragStart = {
+                                            draggedId = cat.id
+                                            pointerWindow = itemBounds[cat.id]?.center ?: Offset.Zero
+                                        },
+                                        onDragEnd = {
+                                            val finalOrder = localItems
+                                            draggedId = null
+                                            pointerWindow = Offset.Zero
+                                            onReordered(finalOrder)
+                                        },
+                                        onDragCancel = {
+                                            draggedId = null
+                                            pointerWindow = Offset.Zero
+                                        },
+                                        onDrag = { change, dragAmount ->
+                                            change.consume()
+                                            pointerWindow += dragAmount
+                                            val targetId =
+                                                itemBounds.entries
+                                                    .firstOrNull { (id, bounds) ->
+                                                        id != cat.id && bounds.contains(pointerWindow)
+                                                    }?.key
+                                            if (targetId != null) {
+                                                val fromIdx = localItems.indexOfFirst { it.id == cat.id }
+                                                val toIdx = localItems.indexOfFirst { it.id == targetId }
+                                                if (fromIdx >= 0 && toIdx >= 0 && fromIdx != toIdx) {
+                                                    val mutable = localItems.toMutableList()
+                                                    val moved = mutable.removeAt(fromIdx)
+                                                    mutable.add(toIdx, moved)
+                                                    localItems = mutable
+                                                }
                                             }
-                                            ?.key
-                                        if (targetId != null) {
-                                            val fromIdx = localItems.indexOfFirst { it.id == cat.id }
-                                            val toIdx = localItems.indexOfFirst { it.id == targetId }
-                                            if (fromIdx >= 0 && toIdx >= 0 && fromIdx != toIdx) {
-                                                val mutable = localItems.toMutableList()
-                                                val moved = mutable.removeAt(fromIdx)
-                                                mutable.add(toIdx, moved)
-                                                localItems = mutable
-                                            }
-                                        }
-                                    },
-                                )
-                            },
+                                        },
+                                    )
+                                },
                         onClick = { onClick(cat.id) },
                     )
                 }
@@ -253,32 +255,32 @@ private fun CategoryCard(
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
-    val cardModifier = modifier
-        .then(
-            if (isDragged) {
-                Modifier
-                    .graphicsLayer {
-                        translationX = dragOffset.x
-                        translationY = dragOffset.y
-                        alpha = 0.8f
-                    }
-                    .shadow(elevation = 8.dp)
-            } else {
-                Modifier
-            },
-        )
-        .clickable(enabled = !isDragged, onClick = onClick)
-        .padding(8.dp)
+    val cardModifier =
+        modifier
+            .then(
+                if (isDragged) {
+                    Modifier
+                        .graphicsLayer {
+                            translationX = dragOffset.x
+                            translationY = dragOffset.y
+                            alpha = 0.8f
+                        }.shadow(elevation = 8.dp)
+                } else {
+                    Modifier
+                },
+            ).clickable(enabled = !isDragged, onClick = onClick)
+            .padding(8.dp)
 
     Column(
         modifier = cardModifier,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(
-            modifier = Modifier
-                .size(56.dp)
-                .clip(CircleShape)
-                .background(parseHexColor(category.colorHex)),
+            modifier =
+                Modifier
+                    .size(56.dp)
+                    .clip(CircleShape)
+                    .background(parseHexColor(category.colorHex)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(

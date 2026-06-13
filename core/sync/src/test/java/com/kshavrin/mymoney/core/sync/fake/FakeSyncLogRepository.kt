@@ -10,7 +10,6 @@ import com.kshavrin.mymoney.core.domain.repository.SyncLogRepository
  * recorded but no row is removed.
  */
 class FakeSyncLogRepository : SyncLogRepository {
-
     val inserted: MutableList<SyncLogEntry> = mutableListOf()
     val prunedTargets: MutableList<String> = mutableListOf()
 
@@ -22,7 +21,10 @@ class FakeSyncLogRepository : SyncLogRepository {
         return id
     }
 
-    override suspend fun recentByTarget(target: String, limit: Int): List<SyncLogEntry> =
+    override suspend fun recentByTarget(
+        target: String,
+        limit: Int,
+    ): List<SyncLogEntry> =
         inserted.filter { it.target == target }.takeLast(limit)
 
     override suspend fun pruneOld(target: String) {

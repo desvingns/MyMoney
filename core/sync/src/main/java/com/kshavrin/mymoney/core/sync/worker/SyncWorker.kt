@@ -13,34 +13,36 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 
 @HiltWorker
-class SyncWorker @AssistedInject constructor(
-    @Assisted appContext: Context,
-    @Assisted params: WorkerParameters,
-    private val orchestrator: SnapshotSync,
-    private val settings: AppSettingsRepository,
-) : CoroutineWorker(appContext, params) {
-
-    override suspend fun doWork(): Result {
-        val target = inputData.getString(KEY_TARGET)
-        val result = if (target != null) {
-            orchestrator.push(SyncTarget.valueOf(target)).map { }
-        } else {
-            if (!settings.settings.first().autoSyncEnabled) return Result.success()
-            orchestrator.autoSyncConnected()
+class SyncWorker
+    @AssistedInject
+    constructor(
+        @Assisted appContext: Context,
+        @Assisted params: WorkerParameters,
+        private val orchestrator: SnapshotSync,
+        private val settings: AppSettingsRepository,
+    ) : CoroutineWorker(appContext, params) {
+        override suspend fun doWork(): Result {
+            val target = inputData.getString(KEY_TARGET)
+            val result =
+                if (target != null) {
+                    orchestrator.push(SyncTarget.valueOf(target)).map { }
+                } else {
+                    if (!settings.settings.first().autoSyncEnabled) return Result.success()
+                    orchestrator.autoSyncConnected()
+                }
+            return result.fold(
+                onSuccess = { Result.success() },
+                onFailure = {
+                    if (it is CancellationException) throw it
+                    if (runAttemptCount < MAX_RETRIES) Result.retry() else Result.failure()
+                },
+            )
         }
-        return result.fold(
-            onSuccess = { Result.success() },
-            onFailure = {
-                if (it is CancellationException) throw it
-                if (runAttemptCount < MAX_RETRIES) Result.retry() else Result.failure()
-            },
-        )
-    }
 
-    companion object {
-        const val KEY_TARGET = "target"
-        const val MAX_RETRIES = 3
-        const val UNIQUE_PERIODIC = "auto_sync"
-        const val UNIQUE_MANUAL = "manual_sync"
+        companion object {
+            const val KEY_TARGET = "target"
+            const val MAX_RETRIES = 3
+            const val UNIQUE_PERIODIC = "auto_sync"
+            const val UNIQUE_MANUAL = "manual_sync"
+        }
     }
-}

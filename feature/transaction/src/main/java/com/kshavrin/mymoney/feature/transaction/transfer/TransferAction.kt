@@ -5,7 +5,17 @@ import com.kshavrin.mymoney.feature.transaction.HapticKind
 
 sealed interface TransferAction {
     data object NavigateBack : TransferAction
-    data class NavigateToRateSetup(val fromCurrencyId: Long, val toCurrencyId: Long) : TransferAction
-    data class FireHaptic(val kind: HapticKind) : TransferAction
-    data class PlaySound(val key: SoundKey) : TransferAction
+
+    data class NavigateToRateSetup(
+        val fromCurrencyId: Long,
+        val toCurrencyId: Long,
+    ) : TransferAction
+
+    data class FireHaptic(
+        val kind: HapticKind,
+    ) : TransferAction
+
+    data class PlaySound(
+        val key: SoundKey,
+    ) : TransferAction
 }

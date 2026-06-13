@@ -18,14 +18,14 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.designsystem.form.CATEGORY_GRID_TAG
-import com.kshavrin.mymoney.feature.dashboard.R as DashboardR
-import com.kshavrin.mymoney.feature.onboarding.R as OnboardingR
-import com.kshavrin.mymoney.feature.transaction.R as TransactionR
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import com.kshavrin.mymoney.feature.dashboard.R as DashboardR
+import com.kshavrin.mymoney.feature.onboarding.R as OnboardingR
+import com.kshavrin.mymoney.feature.transaction.R as TransactionR
 
 /**
  * J1 — the highest-value end-to-end journey (AS-2, AS-4, TDD §4.6 AC6).
@@ -40,7 +40,6 @@ import org.junit.runner.RunWith
 @HiltAndroidTest
 @RunWith(AndroidJUnit4::class)
 class MainActivityAddExpenseJourneyTest {
-
     @get:Rule(order = 0)
     val hiltRule = HiltAndroidRule(this)
 
@@ -80,14 +79,17 @@ class MainActivityAddExpenseJourneyTest {
 
         // The balance bar now reflects the 15 expense (net = -15).
         composeRule.waitUntil(TIMEOUT) {
-            composeRule.onAllNodesWithTag(BALANCE_BAR_TAG)
+            composeRule
+                .onAllNodesWithTag(BALANCE_BAR_TAG)
                 .fetchSemanticsNodes()
                 .any { node ->
-                    node.config.getOrNull(SemanticsProperties.Text)
+                    node.config
+                        .getOrNull(SemanticsProperties.Text)
                         ?.any { it.text.contains("15") } == true
                 }
         }
-        composeRule.onNodeWithTag(BALANCE_BAR_TAG)
+        composeRule
+            .onNodeWithTag(BALANCE_BAR_TAG)
             .assertIsDisplayed()
             .assertTextContains("15", substring = true)
     }

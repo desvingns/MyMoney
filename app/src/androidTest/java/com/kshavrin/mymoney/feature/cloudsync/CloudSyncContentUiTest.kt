@@ -26,7 +26,6 @@ import java.util.Locale
 
 @RunWith(AndroidJUnit4::class)
 class CloudSyncContentUiTest {
-
     @get:Rule
     val composeTestRule = createComposeRule()
 
@@ -50,16 +49,19 @@ class CloudSyncContentUiTest {
         val events = mutableListOf<CloudSyncEvent>()
 
         setContent(
-            state = CloudSyncState(
-                dropbox = TargetCardState(
-                    target = SyncTarget.Dropbox,
-                    enabled = true,
+            state =
+                CloudSyncState(
+                    dropbox =
+                        TargetCardState(
+                            target = SyncTarget.Dropbox,
+                            enabled = true,
+                        ),
+                    drive =
+                        TargetCardState(
+                            target = SyncTarget.GoogleDrive,
+                            enabled = false,
+                        ),
                 ),
-                drive = TargetCardState(
-                    target = SyncTarget.GoogleDrive,
-                    enabled = false,
-                ),
-            ),
             onEvent = events::add,
         )
 
@@ -99,18 +101,21 @@ class CloudSyncContentUiTest {
         val events = mutableListOf<CloudSyncEvent>()
 
         setContent(
-            state = CloudSyncState(
-                dropbox = TargetCardState(
-                    target = SyncTarget.Dropbox,
-                    connected = true,
-                    accountLabel = "dropbox@example.test",
+            state =
+                CloudSyncState(
+                    dropbox =
+                        TargetCardState(
+                            target = SyncTarget.Dropbox,
+                            connected = true,
+                            accountLabel = "dropbox@example.test",
+                        ),
+                    drive =
+                        TargetCardState(
+                            target = SyncTarget.GoogleDrive,
+                            connected = true,
+                            accountLabel = "drive@example.test",
+                        ),
                 ),
-                drive = TargetCardState(
-                    target = SyncTarget.GoogleDrive,
-                    connected = true,
-                    accountLabel = "drive@example.test",
-                ),
-            ),
             onEvent = events::add,
         )
 
@@ -205,13 +210,15 @@ class CloudSyncContentUiTest {
         val localMs = Instant.parse("2026-05-27T18:15:00Z").toEpochMilli()
 
         setContent(
-            state = CloudSyncState(
-                conflict = ConflictPrompt(
-                    target = SyncTarget.Dropbox,
-                    remoteMs = remoteMs,
-                    localMs = localMs,
+            state =
+                CloudSyncState(
+                    conflict =
+                        ConflictPrompt(
+                            target = SyncTarget.Dropbox,
+                            remoteMs = remoteMs,
+                            localMs = localMs,
+                        ),
                 ),
-            ),
             onEvent = events::add,
         )
 
@@ -256,18 +263,26 @@ class CloudSyncContentUiTest {
         }
     }
 
-    private fun targetString(resourceId: Int, vararg formatArgs: Any): String =
+    private fun targetString(
+        resourceId: Int,
+        vararg formatArgs: Any,
+    ): String =
         InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId, *formatArgs)
 
     private fun formattedTimestamp(epochMillis: Long): String =
-        DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT)
+        DateTimeFormatter
+            .ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT)
             .withLocale(Locale.getDefault())
             .format(Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()))
 
-    private fun providerControlTag(target: SyncTarget, control: String): String = when (target) {
-        SyncTarget.Dropbox -> "cloud_sync_dropbox_$control"
-        SyncTarget.GoogleDrive -> "cloud_sync_google_drive_$control"
-    }
+    private fun providerControlTag(
+        target: SyncTarget,
+        control: String,
+    ): String =
+        when (target) {
+            SyncTarget.Dropbox -> "cloud_sync_dropbox_$control"
+            SyncTarget.GoogleDrive -> "cloud_sync_google_drive_$control"
+        }
 
     private companion object {
         const val AUTO_SYNC_TAG = "cloud_sync_auto_sync"

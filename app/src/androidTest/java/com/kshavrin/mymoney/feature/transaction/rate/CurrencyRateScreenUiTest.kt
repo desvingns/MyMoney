@@ -22,7 +22,6 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class CurrencyRateScreenUiTest {
-
     @get:Rule
     val composeTestRule = createComposeRule()
 
@@ -116,11 +115,12 @@ class CurrencyRateScreenUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 CurrencyRateScreen(
-                    state = CurrencyRateState(
-                        rateInput = "0",
-                        rate = 0.0,
-                        isValid = false,
-                    ),
+                    state =
+                        CurrencyRateState(
+                            rateInput = "0",
+                            rate = 0.0,
+                            isValid = false,
+                        ),
                     onEvent = {},
                 )
             }
@@ -154,24 +154,32 @@ class CurrencyRateScreenUiTest {
             .assertIsDisplayed()
     }
 
-    private fun validState(): CurrencyRateState = CurrencyRateState(
-        fromCurrency = currency(id = 1L, code = "USD"),
-        toCurrency = currency(id = 2L, code = "EUR"),
-        rateInput = "0.92",
-        rate = 0.92,
-        isValid = true,
-    )
+    private fun validState(): CurrencyRateState =
+        CurrencyRateState(
+            fromCurrency = currency(id = 1L, code = "USD"),
+            toCurrency = currency(id = 2L, code = "EUR"),
+            rateInput = "0.92",
+            rate = 0.92,
+            isValid = true,
+        )
 
-    private fun currency(id: Long, code: String): Currency = Currency(
-        id = id,
-        code = code,
-        symbol = code,
-        name = code,
-        decimalDigits = 2,
-        isActive = true,
-        sortOrder = 0,
-    )
+    private fun currency(
+        id: Long,
+        code: String,
+    ): Currency =
+        Currency(
+            id = id,
+            code = code,
+            symbol = code,
+            name = code,
+            decimalDigits = 2,
+            isActive = true,
+            sortOrder = 0,
+        )
 
-    private fun targetString(resourceId: Int, vararg formatArgs: Any): String =
+    private fun targetString(
+        resourceId: Int,
+        vararg formatArgs: Any,
+    ): String =
         InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId, *formatArgs)
 }

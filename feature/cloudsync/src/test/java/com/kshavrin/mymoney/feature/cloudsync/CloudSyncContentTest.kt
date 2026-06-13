@@ -106,18 +106,18 @@ import java.time.Instant
  * ```
  */
 class CloudSyncContentTest {
-
-    private val sampleLog = SyncLogEntry(
-        id = 1L,
-        target = SyncTarget.Dropbox.name,
-        event = "PUSH",
-        entityKind = null,
-        entityId = null,
-        performedAt = Instant.parse("2026-05-18T10:00:00Z"),
-        status = "SUCCESS",
-        payloadHash = null,
-        errorMessage = null,
-    )
+    private val sampleLog =
+        SyncLogEntry(
+            id = 1L,
+            target = SyncTarget.Dropbox.name,
+            event = "PUSH",
+            entityKind = null,
+            entityId = null,
+            performedAt = Instant.parse("2026-05-18T10:00:00Z"),
+            status = "SUCCESS",
+            payloadHash = null,
+            errorMessage = null,
+        )
 
     /**
      * Mirror of the `if (card.connected) … else …` branch in `TargetCard`: a connected card renders
@@ -261,9 +261,10 @@ class CloudSyncContentTest {
 
     @Test
     fun `the conflict dialog is shown when a conflict prompt is present`() {
-        val state = CloudSyncState(
-            conflict = ConflictPrompt(SyncTarget.Dropbox, remoteMs = 2L, localMs = 1L),
-        )
+        val state =
+            CloudSyncState(
+                conflict = ConflictPrompt(SyncTarget.Dropbox, remoteMs = 2L, localMs = 1L),
+            )
         assertTrue(showsConflictDialog(state))
         assertEquals(SyncTarget.Dropbox, state.conflict?.target)
     }
@@ -282,17 +283,18 @@ class CloudSyncContentTest {
     @Test
     fun `every control in the screen maps to a distinct CloudSyncEvent`() {
         val target = SyncTarget.Dropbox
-        val events: List<CloudSyncEvent> = listOf(
-            CloudSyncEvent.ConnectClicked(target),
-            CloudSyncEvent.DisconnectClicked(target),
-            CloudSyncEvent.SyncNowClicked(target),
-            CloudSyncEvent.AutoSyncToggled(true),
-            CloudSyncEvent.ConflictKeepRemote,
-            CloudSyncEvent.ConflictKeepLocal,
-            CloudSyncEvent.DismissConflict,
-            CloudSyncEvent.DismissError,
-            CloudSyncEvent.BackClicked,
-        )
+        val events: List<CloudSyncEvent> =
+            listOf(
+                CloudSyncEvent.ConnectClicked(target),
+                CloudSyncEvent.DisconnectClicked(target),
+                CloudSyncEvent.SyncNowClicked(target),
+                CloudSyncEvent.AutoSyncToggled(true),
+                CloudSyncEvent.ConflictKeepRemote,
+                CloudSyncEvent.ConflictKeepLocal,
+                CloudSyncEvent.DismissConflict,
+                CloudSyncEvent.DismissError,
+                CloudSyncEvent.BackClicked,
+            )
         assertEquals(
             "no two screen controls may collapse onto the same event type",
             events.size,
@@ -336,11 +338,12 @@ class CloudSyncContentTest {
 
     @Test
     fun `the route collects exactly the three one-shot actions`() {
-        val actions: List<CloudSyncAction> = listOf(
-            CloudSyncAction.NavigateBack,
-            CloudSyncAction.LaunchDropboxAuth,
-            CloudSyncAction.LaunchGoogleSignIn,
-        )
+        val actions: List<CloudSyncAction> =
+            listOf(
+                CloudSyncAction.NavigateBack,
+                CloudSyncAction.LaunchDropboxAuth,
+                CloudSyncAction.LaunchGoogleSignIn,
+            )
         assertEquals(3, actions.map { it::class }.toSet().size)
         assertNotNull(CloudSyncAction.NavigateBack)
     }

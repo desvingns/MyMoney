@@ -10,26 +10,27 @@ import dagger.assisted.AssistedInject
 import kotlinx.coroutines.CancellationException
 
 @HiltWorker
-class BackupRotationWorker @AssistedInject constructor(
-    @Assisted appContext: Context,
-    @Assisted params: WorkerParameters,
-    private val backupRepository: BackupRepository,
-) : CoroutineWorker(appContext, params) {
+class BackupRotationWorker
+    @AssistedInject
+    constructor(
+        @Assisted appContext: Context,
+        @Assisted params: WorkerParameters,
+        private val backupRepository: BackupRepository,
+    ) : CoroutineWorker(appContext, params) {
+        override suspend fun doWork(): Result {
+            val treeUri = inputData.getString(KEY_TREE_URI) ?: return Result.failure()
+            return backupRepository.rotateBackups(treeUri).fold(
+                onSuccess = { Result.success() },
+                onFailure = {
+                    if (it is CancellationException) throw it
+                    if (runAttemptCount < MAX_RETRIES) Result.retry() else Result.failure()
+                },
+            )
+        }
 
-    override suspend fun doWork(): Result {
-        val treeUri = inputData.getString(KEY_TREE_URI) ?: return Result.failure()
-        return backupRepository.rotateBackups(treeUri).fold(
-            onSuccess = { Result.success() },
-            onFailure = {
-                if (it is CancellationException) throw it
-                if (runAttemptCount < MAX_RETRIES) Result.retry() else Result.failure()
-            },
-        )
+        companion object {
+            const val KEY_TREE_URI = "tree_uri"
+            const val MAX_RETRIES = 3
+            const val UNIQUE_ROTATION = "backup_rotation"
+        }
     }
-
-    companion object {
-        const val KEY_TREE_URI = "tree_uri"
-        const val MAX_RETRIES = 3
-        const val UNIQUE_ROTATION = "backup_rotation"
-    }
-}

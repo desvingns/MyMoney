@@ -77,7 +77,6 @@ import java.time.LocalDate
  * ```
  */
 class TransactionDetailFormDispatchContractTest {
-
     // ---- dispatchTransactionFormEvent mirror ------------------------------------------------
     // Returns the TransactionDetailEvent the screen would emit, or null for branches handled
     // via UI-local state (date picker visibility).  Keep in sync with TransactionDetailScreen.kt.
@@ -85,27 +84,29 @@ class TransactionDetailFormDispatchContractTest {
     private fun dispatch(
         event: TransactionFormEvent,
         onDateHeaderClickCalled: () -> Unit = {},
-    ): TransactionDetailEvent? = when (event) {
-        is TransactionFormEvent.Keypad -> dispatchKeypad(event.event)
-        is TransactionFormEvent.NoteChanged -> TransactionDetailEvent.NoteChanged(event.text)
-        TransactionFormEvent.DateHeaderClicked -> {
-            onDateHeaderClickCalled()
-            null
+    ): TransactionDetailEvent? =
+        when (event) {
+            is TransactionFormEvent.Keypad -> dispatchKeypad(event.event)
+            is TransactionFormEvent.NoteChanged -> TransactionDetailEvent.NoteChanged(event.text)
+            TransactionFormEvent.DateHeaderClicked -> {
+                onDateHeaderClickCalled()
+                null
+            }
+            TransactionFormEvent.SelectCategoryClicked -> TransactionDetailEvent.SelectCategoryClicked
+            TransactionFormEvent.BackToAmount -> TransactionDetailEvent.BackToAmount
+            TransactionFormEvent.AddCategoryClicked -> TransactionDetailEvent.AddCategoryClicked
+            is TransactionFormEvent.CategoryPicked -> TransactionDetailEvent.CategoryPicked(event.categoryId)
+            TransactionFormEvent.DeleteClicked -> TransactionDetailEvent.DeleteClicked
         }
-        TransactionFormEvent.SelectCategoryClicked -> TransactionDetailEvent.SelectCategoryClicked
-        TransactionFormEvent.BackToAmount -> TransactionDetailEvent.BackToAmount
-        TransactionFormEvent.AddCategoryClicked -> TransactionDetailEvent.AddCategoryClicked
-        is TransactionFormEvent.CategoryPicked -> TransactionDetailEvent.CategoryPicked(event.categoryId)
-        TransactionFormEvent.DeleteClicked -> TransactionDetailEvent.DeleteClicked
-    }
 
-    private fun dispatchKeypad(k: KeypadEvent): TransactionDetailEvent = when (k) {
-        is KeypadEvent.Digit -> TransactionDetailEvent.KeypadDigit(k.d)
-        is KeypadEvent.Op -> TransactionDetailEvent.KeypadOperator(k.op)
-        KeypadEvent.Dot -> TransactionDetailEvent.KeypadDot
-        KeypadEvent.Backspace -> TransactionDetailEvent.KeypadBackspace
-        KeypadEvent.Equals -> TransactionDetailEvent.KeypadEquals
-    }
+    private fun dispatchKeypad(k: KeypadEvent): TransactionDetailEvent =
+        when (k) {
+            is KeypadEvent.Digit -> TransactionDetailEvent.KeypadDigit(k.d)
+            is KeypadEvent.Op -> TransactionDetailEvent.KeypadOperator(k.op)
+            KeypadEvent.Dot -> TransactionDetailEvent.KeypadDot
+            KeypadEvent.Backspace -> TransactionDetailEvent.KeypadBackspace
+            KeypadEvent.Equals -> TransactionDetailEvent.KeypadEquals
+        }
 
     // ---- keypad routing ----------------------------------------------------------------------
 
@@ -216,16 +217,17 @@ class TransactionDetailFormDispatchContractTest {
     @Test
     fun `toTransactionFormState produces mode Edit for a non-transfer loaded expense state`() {
         // Verify the mapping flag that makes the shared form show the delete button.
-        val s = TransactionDetailState(
-            transactionId = 1L,
-            kind = com.kshavrin.mymoney.core.domain.model.TransactionKind.Expense,
-            amount = java.math.BigDecimal("12.50"),
-            amountInput = "12.5",
-            expression = "",
-            note = "Lunch",
-            occurredAt = LocalDate.of(2026, 5, 10),
-            isLoaded = true,
-        )
+        val s =
+            TransactionDetailState(
+                transactionId = 1L,
+                kind = com.kshavrin.mymoney.core.domain.model.TransactionKind.Expense,
+                amount = java.math.BigDecimal("12.50"),
+                amountInput = "12.5",
+                expression = "",
+                note = "Lunch",
+                occurredAt = LocalDate.of(2026, 5, 10),
+                isLoaded = true,
+            )
         // The screen's toTransactionFormState always produces mode = Edit for detail screen.
         // We assert the mapping manually here to pin it:
         val formMode = com.kshavrin.mymoney.core.designsystem.form.TransactionFormMode.Edit
@@ -237,12 +239,13 @@ class TransactionDetailFormDispatchContractTest {
 
     @Test
     fun `canSave is false immediately after loading (not dirty)`() {
-        val s = TransactionDetailState(
-            transactionId = 1L,
-            amount = java.math.BigDecimal("12.50"),
-            isLoaded = true,
-            isDirty = false,
-        )
+        val s =
+            TransactionDetailState(
+                transactionId = 1L,
+                amount = java.math.BigDecimal("12.50"),
+                isLoaded = true,
+                isDirty = false,
+            )
         assertTrue("state is loaded", s.isLoaded)
         assertFalse("freshly loaded state is not dirty", s.isDirty)
         assertFalse("not dirty -> canSave is false", s.canSave)
@@ -250,12 +253,13 @@ class TransactionDetailFormDispatchContractTest {
 
     @Test
     fun `canSave becomes true after a field change that makes the form dirty`() {
-        val s = TransactionDetailState(
-            transactionId = 1L,
-            amount = java.math.BigDecimal("12.50"),
-            isLoaded = true,
-            isDirty = true,
-        )
+        val s =
+            TransactionDetailState(
+                transactionId = 1L,
+                amount = java.math.BigDecimal("12.50"),
+                isLoaded = true,
+                isDirty = true,
+            )
         assertTrue("dirty + amount>0 + loaded + not saving -> canSave is true", s.canSave)
     }
 }

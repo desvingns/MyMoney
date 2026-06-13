@@ -62,6 +62,7 @@ import androidx.navigation.NavController
 import com.kshavrin.mymoney.core.designsystem.amountfield.AmountFieldEvent
 import com.kshavrin.mymoney.core.designsystem.amountfield.AmountFieldSection
 import com.kshavrin.mymoney.core.designsystem.amountfield.AmountFieldState
+import com.kshavrin.mymoney.core.designsystem.form.DateHeader
 import com.kshavrin.mymoney.core.designsystem.icon.accountIcon
 import com.kshavrin.mymoney.core.designsystem.keypad.KeypadEvent
 import com.kshavrin.mymoney.core.designsystem.keypad.MonefyKeypad
@@ -72,7 +73,6 @@ import com.kshavrin.mymoney.core.ui.feedback.LocalSoundPlayer
 import com.kshavrin.mymoney.core.ui.haptic.HapticKind
 import com.kshavrin.mymoney.core.ui.sound.SoundKey
 import com.kshavrin.mymoney.core.ui.theme.Spacing
-import com.kshavrin.mymoney.core.designsystem.form.DateHeader
 import com.kshavrin.mymoney.feature.transaction.R
 import java.math.BigDecimal
 import java.time.Instant
@@ -109,7 +109,8 @@ fun TransferRoute(
                         "transaction/currency_rate?fromId=${action.fromCurrencyId}&toId=${action.toCurrencyId}",
                     )
                 is TransferAction.FireHaptic,
-                is TransferAction.PlaySound -> Unit
+                is TransferAction.PlaySound,
+                -> Unit
             }
         }
     }
@@ -172,12 +173,13 @@ fun TransferScreen(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
-                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary,
-                ),
+                colors =
+                    TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                        navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                        actionIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                    ),
             )
         },
         floatingActionButton = {
@@ -199,11 +201,12 @@ fun TransferScreen(
         },
     ) { innerPadding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(Spacing.l)
-                .verticalScroll(rememberScrollState()),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(Spacing.l)
+                    .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(Spacing.m),
         ) {
             DateHeader(
@@ -212,18 +215,20 @@ fun TransferScreen(
             )
 
             AmountFieldSection(
-                state = AmountFieldState(
-                    display = state.amountInput,
-                    expression = state.expression,
-                    currencyCode = state.sourceCurrency?.code,
-                    currencySymbol = state.sourceCurrency?.symbol,
-                    note = state.note,
-                    occurredAt = state.occurredAt,
-                    accountChipLabel = buildAccountChipLabel(
-                        state.sourceAccount?.name,
-                        state.sourceCurrency?.code,
+                state =
+                    AmountFieldState(
+                        display = state.amountInput,
+                        expression = state.expression,
+                        currencyCode = state.sourceCurrency?.code,
+                        currencySymbol = state.sourceCurrency?.symbol,
+                        note = state.note,
+                        occurredAt = state.occurredAt,
+                        accountChipLabel =
+                            buildAccountChipLabel(
+                                state.sourceAccount?.name,
+                                state.sourceCurrency?.code,
+                            ),
                     ),
-                ),
                 onEvent = { e -> dispatchAmountEvent(e, onEvent) { datePickerVisible = true } },
                 showKeypad = false,
                 showAccountDateRow = false,
@@ -231,11 +236,13 @@ fun TransferScreen(
 
             TransferAccountSelectorStack(
                 sourceAccount = state.sourceAccount,
-                sourceCurrencyCode = state.sourceCurrency?.code
-                    ?: currencyCodeFor(state.sourceAccount, state.currencies),
+                sourceCurrencyCode =
+                    state.sourceCurrency?.code
+                        ?: currencyCodeFor(state.sourceAccount, state.currencies),
                 targetAccount = state.targetAccount,
-                targetCurrencyCode = state.targetCurrency?.code
-                    ?: currencyCodeFor(state.targetAccount, state.currencies),
+                targetCurrencyCode =
+                    state.targetCurrency?.code
+                        ?: currencyCodeFor(state.targetAccount, state.currencies),
                 sourcePlaceholder = stringResource(R.string.source_label),
                 targetPlaceholder = stringResource(R.string.target_label),
                 directionContentDescription = stringResource(R.string.transfer_direction_cd),
@@ -256,9 +263,10 @@ fun TransferScreen(
             if (showRatePanel(state)) {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(Spacing.m),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(Spacing.m),
                         verticalArrangement = Arrangement.spacedBy(Spacing.s),
                     ) {
                         Text(
@@ -287,17 +295,23 @@ fun TransferScreen(
                 onEvent = { e ->
                     dispatchAmountEvent(AmountFieldEvent.Keypad(e), onEvent) { datePickerVisible = true }
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(Spacing.m),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(Spacing.m),
             )
         }
     }
 
     if (datePickerVisible) {
-        val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = state.occurredAt.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
-        )
+        val datePickerState =
+            rememberDatePickerState(
+                initialSelectedDateMillis =
+                    state.occurredAt
+                        .atStartOfDay(ZoneOffset.UTC)
+                        .toInstant()
+                        .toEpochMilli(),
+            )
         DatePickerDialog(
             onDismissRequest = { datePickerVisible = false },
             confirmButton = {
@@ -336,9 +350,10 @@ private fun TransferAccountSelectorStack(
     onTargetSelected: (Account) -> Unit,
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = Spacing.l),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.l),
         verticalArrangement = Arrangement.spacedBy(Spacing.m),
     ) {
         AccountSelectorRow(
@@ -353,9 +368,10 @@ private fun TransferAccountSelectorStack(
             imageVector = Icons.Filled.ArrowDownward,
             contentDescription = directionContentDescription,
             tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier
-                .align(Alignment.CenterHorizontally)
-                .size(32.dp),
+            modifier =
+                Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .size(32.dp),
         )
         AccountSelectorRow(
             account = targetAccount,
@@ -382,17 +398,17 @@ private fun AccountSelectorRow(
     val accentColor = account?.colorHex?.let(::parseAccountColor) ?: MaterialTheme.colorScheme.primary
     Box(modifier = Modifier.fillMaxWidth()) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 56.dp)
-                .border(
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
-                    shape = selectorShape,
-                )
-                .background(MaterialTheme.colorScheme.surface, selectorShape)
-                .semantics { contentDescription = placeholder }
-                .clickable { expanded = true }
-                .padding(horizontal = Spacing.m, vertical = Spacing.xs),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 56.dp)
+                    .border(
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+                        shape = selectorShape,
+                    ).background(MaterialTheme.colorScheme.surface, selectorShape)
+                    .semantics { contentDescription = placeholder }
+                    .clickable { expanded = true }
+                    .padding(horizontal = Spacing.m, vertical = Spacing.xs),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Spacing.m),
         ) {
@@ -445,7 +461,10 @@ private fun AccountSelectorRow(
 private fun parseAccountColor(hex: String): Color? =
     runCatching { Color(android.graphics.Color.parseColor(hex)) }.getOrNull()
 
-private fun currencyCodeFor(account: Account?, currencies: List<Currency>): String? {
+private fun currencyCodeFor(
+    account: Account?,
+    currencies: List<Currency>,
+): String? {
     if (account == null) return null
     return currencies.find { it.id == account.currencyId }?.code
 }
@@ -468,7 +487,10 @@ private fun showRatePanel(state: TransferState): Boolean {
     return source.id != target.id && state.ratePreviewText.isNotBlank()
 }
 
-private fun buildAccountChipLabel(name: String?, code: String?): String {
+private fun buildAccountChipLabel(
+    name: String?,
+    code: String?,
+): String {
     if (name == null) return ""
     return if (code != null) "$name · $code" else name
 }
@@ -479,13 +501,14 @@ private fun dispatchAmountEvent(
     onDateChipClicked: () -> Unit,
 ) {
     when (e) {
-        is AmountFieldEvent.Keypad -> when (val k = e.event) {
-            is KeypadEvent.Digit -> onEvent(TransferEvent.KeypadDigit(k.d))
-            is KeypadEvent.Op -> onEvent(TransferEvent.KeypadOperator(k.op))
-            KeypadEvent.Dot -> onEvent(TransferEvent.KeypadDot)
-            KeypadEvent.Backspace -> onEvent(TransferEvent.KeypadBackspace)
-            KeypadEvent.Equals -> onEvent(TransferEvent.KeypadEquals)
-        }
+        is AmountFieldEvent.Keypad ->
+            when (val k = e.event) {
+                is KeypadEvent.Digit -> onEvent(TransferEvent.KeypadDigit(k.d))
+                is KeypadEvent.Op -> onEvent(TransferEvent.KeypadOperator(k.op))
+                KeypadEvent.Dot -> onEvent(TransferEvent.KeypadDot)
+                KeypadEvent.Backspace -> onEvent(TransferEvent.KeypadBackspace)
+                KeypadEvent.Equals -> onEvent(TransferEvent.KeypadEquals)
+            }
         is AmountFieldEvent.NoteChanged -> onEvent(TransferEvent.NoteChanged(e.text))
         is AmountFieldEvent.DateChanged -> onEvent(TransferEvent.DateChanged(e.date))
         AmountFieldEvent.AccountChipClicked -> Unit

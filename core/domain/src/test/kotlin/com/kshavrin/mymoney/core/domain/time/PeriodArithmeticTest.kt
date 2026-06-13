@@ -10,14 +10,17 @@ import java.time.YearMonth
 import java.time.ZoneId
 
 class PeriodArithmeticTest {
-
     private val zone = ZoneId.of("UTC")
 
     private fun startMillis(date: LocalDate): Long =
         date.atStartOfDay(zone).toInstant().toEpochMilli()
 
     private fun endMillis(date: LocalDate): Long =
-        date.atTime(LocalTime.MAX).atZone(zone).toInstant().toEpochMilli()
+        date
+            .atTime(LocalTime.MAX)
+            .atZone(zone)
+            .toInstant()
+            .toEpochMilli()
 
     @Test
     fun `Day spans start of day to end of same day`() {
@@ -116,7 +119,12 @@ class PeriodArithmeticTest {
         val range = PeriodArithmetic.toEpochMillisRange(Period.Year(2026), zone)
 
         // 2026-01-01T00:00:00Z in epoch-millis.
-        val expectedStart = LocalDate.of(2026, 1, 1).atStartOfDay(zone).toInstant().toEpochMilli()
+        val expectedStart =
+            LocalDate
+                .of(2026, 1, 1)
+                .atStartOfDay(zone)
+                .toInstant()
+                .toEpochMilli()
         assertEquals(expectedStart, range.first)
     }
 

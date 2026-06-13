@@ -21,105 +21,111 @@ import java.time.Instant
 import javax.inject.Inject
 
 @HiltViewModel
-class CurrencyRateViewModel @Inject constructor(
-    private val currencyRepository: CurrencyRepository,
-    private val currencyRateRepository: CurrencyRateRepository,
-    private val savedStateHandle: SavedStateHandle,
-) : ViewModel() {
+class CurrencyRateViewModel
+    @Inject
+    constructor(
+        private val currencyRepository: CurrencyRepository,
+        private val currencyRateRepository: CurrencyRateRepository,
+        private val savedStateHandle: SavedStateHandle,
+    ) : ViewModel() {
+        private val fromId: Long = savedStateHandle.get<Long>(KEY_FROM_ID) ?: -1L
+        private val toId: Long = savedStateHandle.get<Long>(KEY_TO_ID) ?: -1L
 
-    private val fromId: Long = savedStateHandle.get<Long>(KEY_FROM_ID) ?: -1L
-    private val toId: Long = savedStateHandle.get<Long>(KEY_TO_ID) ?: -1L
+        private val _state = MutableStateFlow(CurrencyRateState())
+        val state: StateFlow<CurrencyRateState> = _state.asStateFlow()
 
-    private val _state = MutableStateFlow(CurrencyRateState())
-    val state: StateFlow<CurrencyRateState> = _state.asStateFlow()
+        private val _actions =
+            MutableSharedFlow<CurrencyRateAction>(
+                extraBufferCapacity = 4,
+                onBufferOverflow = BufferOverflow.DROP_OLDEST,
+            )
+        val actions: SharedFlow<CurrencyRateAction> = _actions.asSharedFlow()
 
-    private val _actions = MutableSharedFlow<CurrencyRateAction>(
-        extraBufferCapacity = 4,
-        onBufferOverflow = BufferOverflow.DROP_OLDEST,
-    )
-    val actions: SharedFlow<CurrencyRateAction> = _actions.asSharedFlow()
+        init {
+            loadInitialContext()
+        }
 
-    init {
-        loadInitialContext()
-    }
-
-    private fun loadInitialContext() {
-        viewModelScope.launch {
-            val from = currencyRepository.findById(fromId)
-            val to = currencyRepository.findById(toId)
-            _state.value = _state.value.copy(fromCurrency = from, toCurrency = to)
-            if (fromId > 0 && toId > 0) {
-                val existing = currencyRateRepository.findRate(fromId, toId)
-                if (existing != null) {
-                    _state.value = _state.value.copy(
-                        rate = existing.rate,
-                        rateInput = existing.rate.toString(),
-                        isValid = true,
-                    )
+        private fun loadInitialContext() {
+            viewModelScope.launch {
+                val from = currencyRepository.findById(fromId)
+                val to = currencyRepository.findById(toId)
+                _state.value = _state.value.copy(fromCurrency = from, toCurrency = to)
+                if (fromId > 0 && toId > 0) {
+                    val existing = currencyRateRepository.findRate(fromId, toId)
+                    if (existing != null) {
+                        _state.value =
+                            _state.value.copy(
+                                rate = existing.rate,
+                                rateInput = existing.rate.toString(),
+                                isValid = true,
+                            )
+                    }
                 }
             }
         }
-    }
 
-    fun onEvent(event: CurrencyRateEvent) {
-        when (event) {
-            is CurrencyRateEvent.RateInputChanged -> onRateInputChanged(event.text)
-            CurrencyRateEvent.SaveClicked -> save()
-            CurrencyRateEvent.BackClicked -> emit(CurrencyRateAction.NavigateBack)
-            CurrencyRateEvent.DismissError ->
-                _state.value = _state.value.copy(errorBannerRes = null)
-        }
-    }
-
-    private fun onRateInputChanged(text: String) {
-        val parsed = text.toDoubleOrNull()
-        val valid = parsed != null && parsed > 0.0
-        _state.value = _state.value.copy(
-            rateInput = text,
-            rate = parsed,
-            isValid = valid,
-            errorBannerRes = null,
-        )
-    }
-
-    private fun save() {
-        val s = _state.value
-        val rateValue = s.rate
-        if (!s.isValid || rateValue == null) {
-            _state.value = s.copy(errorBannerRes = R.string.currency_rate_invalid)
-            return
-        }
-        viewModelScope.launch {
-            _state.value = _state.value.copy(isSaving = true)
-            try {
-                val now = Instant.now()
-                val existing = currencyRateRepository.findRate(fromId, toId)
-                val rate = CurrencyRate(
-                    id = existing?.id ?: 0L,
-                    fromCurrencyId = fromId,
-                    toCurrencyId = toId,
-                    rate = rateValue,
-                    updatedAt = now,
-                )
-                currencyRateRepository.upsert(rate)
-                _state.value = _state.value.copy(isSaving = false)
-                _actions.emit(CurrencyRateAction.NavigateBackWithRate(rate.rate))
-            } catch (t: Throwable) {
-                t.reportToSentry()
-                _state.value = _state.value.copy(
-                    isSaving = false,
-                    errorBannerRes = R.string.error_save_failed,
-                )
+        fun onEvent(event: CurrencyRateEvent) {
+            when (event) {
+                is CurrencyRateEvent.RateInputChanged -> onRateInputChanged(event.text)
+                CurrencyRateEvent.SaveClicked -> save()
+                CurrencyRateEvent.BackClicked -> emit(CurrencyRateAction.NavigateBack)
+                CurrencyRateEvent.DismissError ->
+                    _state.value = _state.value.copy(errorBannerRes = null)
             }
         }
-    }
 
-    private fun emit(action: CurrencyRateAction) {
-        viewModelScope.launch { _actions.emit(action) }
-    }
+        private fun onRateInputChanged(text: String) {
+            val parsed = text.toDoubleOrNull()
+            val valid = parsed != null && parsed > 0.0
+            _state.value =
+                _state.value.copy(
+                    rateInput = text,
+                    rate = parsed,
+                    isValid = valid,
+                    errorBannerRes = null,
+                )
+        }
 
-    companion object {
-        const val KEY_FROM_ID = "fromId"
-        const val KEY_TO_ID = "toId"
+        private fun save() {
+            val s = _state.value
+            val rateValue = s.rate
+            if (!s.isValid || rateValue == null) {
+                _state.value = s.copy(errorBannerRes = R.string.currency_rate_invalid)
+                return
+            }
+            viewModelScope.launch {
+                _state.value = _state.value.copy(isSaving = true)
+                try {
+                    val now = Instant.now()
+                    val existing = currencyRateRepository.findRate(fromId, toId)
+                    val rate =
+                        CurrencyRate(
+                            id = existing?.id ?: 0L,
+                            fromCurrencyId = fromId,
+                            toCurrencyId = toId,
+                            rate = rateValue,
+                            updatedAt = now,
+                        )
+                    currencyRateRepository.upsert(rate)
+                    _state.value = _state.value.copy(isSaving = false)
+                    _actions.emit(CurrencyRateAction.NavigateBackWithRate(rate.rate))
+                } catch (t: Throwable) {
+                    t.reportToSentry()
+                    _state.value =
+                        _state.value.copy(
+                            isSaving = false,
+                            errorBannerRes = R.string.error_save_failed,
+                        )
+                }
+            }
+        }
+
+        private fun emit(action: CurrencyRateAction) {
+            viewModelScope.launch { _actions.emit(action) }
+        }
+
+        companion object {
+            const val KEY_FROM_ID = "fromId"
+            const val KEY_TO_ID = "toId"
+        }
     }
-}

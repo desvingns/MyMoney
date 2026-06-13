@@ -9,7 +9,6 @@ import com.kshavrin.mymoney.core.domain.repository.BackupRepository
  * The SAF Uri overloads are unused by the orchestrator and return success.
  */
 class FakeBackupRepository : BackupRepository {
-
     val exportedPaths: MutableList<String> = mutableListOf()
     val importedPaths: MutableList<String> = mutableListOf()
 

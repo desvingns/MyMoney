@@ -4,7 +4,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class SyncTargetTest {
-
     @Test
     fun `has exactly Dropbox and GoogleDrive entries`() {
         assertEquals(

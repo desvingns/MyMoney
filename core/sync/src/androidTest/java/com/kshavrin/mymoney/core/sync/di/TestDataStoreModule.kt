@@ -22,14 +22,14 @@ import javax.inject.Singleton
 @Module
 @TestInstallIn(components = [SingletonComponent::class], replaces = [DataStoreModule::class])
 object TestDataStoreModule {
-
     @Provides
     @Singleton
     fun providePreferencesDataStore(
         @ApplicationContext context: Context,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
-    ): DataStore<Preferences> = PreferenceDataStoreFactory.create(
-        scope = CoroutineScope(SupervisorJob() + ioDispatcher),
-        produceFile = { context.preferencesDataStoreFile("test_sync_settings_${UUID.randomUUID()}") },
-    )
+    ): DataStore<Preferences> =
+        PreferenceDataStoreFactory.create(
+            scope = CoroutineScope(SupervisorJob() + ioDispatcher),
+            produceFile = { context.preferencesDataStoreFile("test_sync_settings_${UUID.randomUUID()}") },
+        )
 }

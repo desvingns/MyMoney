@@ -8,7 +8,6 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
 import com.kshavrin.mymoney.core.designsystem.form.CATEGORY_GRID_ADD_CELL_TAG
 import com.kshavrin.mymoney.core.designsystem.form.CategoryGrid
 import com.kshavrin.mymoney.core.designsystem.form.TransactionFormCategory
@@ -17,10 +16,10 @@ import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
 
 @RunWith(AndroidJUnit4::class)
 class CategoryGridUiTest {
-
     @get:Rule
     val composeTestRule = createComposeRule()
 
@@ -29,10 +28,11 @@ class CategoryGridUiTest {
         val captured = mutableListOf<Long>()
 
         setContent(
-            categories = listOf(
-                category(id = 1L, name = "Food", sortOrder = 0),
-                category(id = 2L, name = "Bills", sortOrder = 1),
-            ),
+            categories =
+                listOf(
+                    category(id = 1L, name = "Food", sortOrder = 0),
+                    category(id = 2L, name = "Bills", sortOrder = 1),
+                ),
             onCategoryClick = { captured += it },
         )
 
@@ -73,8 +73,7 @@ class CategoryGridUiTest {
             .onNodeWithText(
                 targetString(DesignSystemR.string.transaction_form_add_category_cta),
                 useUnmergedTree = true,
-            )
-            .assertIsDisplayed()
+            ).assertIsDisplayed()
     }
 
     @Test
@@ -116,12 +115,13 @@ class CategoryGridUiTest {
         id: Long,
         name: String,
         sortOrder: Int = 0,
-    ): TransactionFormCategory = TransactionFormCategory(
-        id = id,
-        name = name,
-        iconKey = "ic_cat_food",
-        colorHex = "#7AC794",
-    )
+    ): TransactionFormCategory =
+        TransactionFormCategory(
+            id = id,
+            name = name,
+            iconKey = "ic_cat_food",
+            colorHex = "#7AC794",
+        )
 
     private fun targetString(resourceId: Int): String =
         InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)

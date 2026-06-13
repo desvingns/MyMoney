@@ -20,7 +20,6 @@ import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class LockControllerTest {
-
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
@@ -31,9 +30,10 @@ class LockControllerTest {
      * overrides (inherited from DefaultLifecycleObserver) can be driven directly without
      * standing up ProcessLifecycleOwner.
      */
-    private val lifecycleOwner = object : LifecycleOwner {
-        override val lifecycle: Lifecycle = LifecycleRegistry(this)
-    }
+    private val lifecycleOwner =
+        object : LifecycleOwner {
+            override val lifecycle: Lifecycle = LifecycleRegistry(this)
+        }
 
     private fun buildController(
         initialSettings: AppSettings = AppSettings(),
@@ -56,11 +56,12 @@ class LockControllerTest {
         val controller = buildController()
         val settings = AppSettings().lockEnabled(timeoutSec = 60)
 
-        val result = controller.shouldLockAfterIdle(
-            pausedAt = 0L,
-            now = 61_000L,
-            settings = settings,
-        )
+        val result =
+            controller.shouldLockAfterIdle(
+                pausedAt = 0L,
+                now = 61_000L,
+                settings = settings,
+            )
 
         assertTrue(result)
     }
@@ -70,11 +71,12 @@ class LockControllerTest {
         val controller = buildController()
         val settings = AppSettings().lockEnabled(timeoutSec = 60)
 
-        val result = controller.shouldLockAfterIdle(
-            pausedAt = 0L,
-            now = 59_000L,
-            settings = settings,
-        )
+        val result =
+            controller.shouldLockAfterIdle(
+                pausedAt = 0L,
+                now = 59_000L,
+                settings = settings,
+            )
 
         assertFalse(result)
     }
@@ -84,11 +86,12 @@ class LockControllerTest {
         val controller = buildController()
         val settings = AppSettings().lockEnabled(timeoutSec = 60)
 
-        val result = controller.shouldLockAfterIdle(
-            pausedAt = 0L,
-            now = 60_000L,
-            settings = settings,
-        )
+        val result =
+            controller.shouldLockAfterIdle(
+                pausedAt = 0L,
+                now = 60_000L,
+                settings = settings,
+            )
 
         assertTrue(result)
     }
@@ -98,11 +101,12 @@ class LockControllerTest {
         val controller = buildController()
         val settings = AppSettings(biometricLockEnabled = false, biometricIdleTimeoutSec = 60)
 
-        val result = controller.shouldLockAfterIdle(
-            pausedAt = 0L,
-            now = 600_000L,
-            settings = settings,
-        )
+        val result =
+            controller.shouldLockAfterIdle(
+                pausedAt = 0L,
+                now = 600_000L,
+                settings = settings,
+            )
 
         assertFalse(result)
     }
@@ -112,11 +116,12 @@ class LockControllerTest {
         val controller = buildController()
         val settings = AppSettings().lockEnabled(timeoutSec = 60)
 
-        val result = controller.shouldLockAfterIdle(
-            pausedAt = null,
-            now = 600_000L,
-            settings = settings,
-        )
+        val result =
+            controller.shouldLockAfterIdle(
+                pausedAt = null,
+                now = 600_000L,
+                settings = settings,
+            )
 
         assertFalse(result)
     }
@@ -124,141 +129,151 @@ class LockControllerTest {
     // --- 2. cold start --------------------------------------------------------------------
 
     @Test
-    fun `isResolved stays false before first settings emission and becomes true after enabled settings arrive`() = runTest {
-        val appSettings = DeferredFirstEmissionAppSettingsRepository()
-        val controller = buildController(appSettings)
+    fun `isResolved stays false before first settings emission and becomes true after enabled settings arrive`() =
+        runTest {
+            val appSettings = DeferredFirstEmissionAppSettingsRepository()
+            val controller = buildController(appSettings)
 
-        assertFalse(controller.isResolved.value)
-        assertFalse(controller.shouldShowLock.value)
+            assertFalse(controller.isResolved.value)
+            assertFalse(controller.shouldShowLock.value)
 
-        appSettings.emit(AppSettings().lockEnabled())
+            appSettings.emit(AppSettings().lockEnabled())
 
-        assertTrue(controller.isResolved.value)
-        assertTrue(controller.shouldShowLock.value)
-    }
+            assertTrue(controller.isResolved.value)
+            assertTrue(controller.shouldShowLock.value)
+        }
 
     @Test
-    fun `cold start with lock disabled stays unlocked`() = runTest {
-        val controller = buildController(initialSettings = AppSettings(biometricLockEnabled = false))
+    fun `cold start with lock disabled stays unlocked`() =
+        runTest {
+            val controller = buildController(initialSettings = AppSettings(biometricLockEnabled = false))
 
-        controller.shouldShowLock.test {
-            assertFalse(awaitItem())
-            cancelAndIgnoreRemainingEvents()
+            controller.shouldShowLock.test {
+                assertFalse(awaitItem())
+                cancelAndIgnoreRemainingEvents()
+            }
         }
-    }
 
     // --- 3. pause / resume idle transition ------------------------------------------------
 
     @Test
-    fun `resume after idle exceeds the timeout shows the lock`() = runTest {
-        val controller = buildController(initialSettings = AppSettings().lockEnabled(timeoutSec = 60))
-        controller.markUnlocked()
+    fun `resume after idle exceeds the timeout shows the lock`() =
+        runTest {
+            val controller = buildController(initialSettings = AppSettings().lockEnabled(timeoutSec = 60))
+            controller.markUnlocked()
 
-        controller.now = { 0L }
-        controller.onPause(lifecycleOwner)
-        controller.now = { 61_000L }
-        controller.onResume(lifecycleOwner)
+            controller.now = { 0L }
+            controller.onPause(lifecycleOwner)
+            controller.now = { 61_000L }
+            controller.onResume(lifecycleOwner)
 
-        controller.shouldShowLock.test {
-            assertTrue(awaitItem())
-            cancelAndIgnoreRemainingEvents()
+            controller.shouldShowLock.test {
+                assertTrue(awaitItem())
+                cancelAndIgnoreRemainingEvents()
+            }
         }
-    }
 
     @Test
-    fun `resume within the timeout stays unlocked`() = runTest {
-        val controller = buildController(initialSettings = AppSettings().lockEnabled(timeoutSec = 60))
-        controller.markUnlocked()
+    fun `resume within the timeout stays unlocked`() =
+        runTest {
+            val controller = buildController(initialSettings = AppSettings().lockEnabled(timeoutSec = 60))
+            controller.markUnlocked()
 
-        controller.now = { 0L }
-        controller.onPause(lifecycleOwner)
-        controller.now = { 30_000L }
-        controller.onResume(lifecycleOwner)
+            controller.now = { 0L }
+            controller.onPause(lifecycleOwner)
+            controller.now = { 30_000L }
+            controller.onResume(lifecycleOwner)
 
-        controller.shouldShowLock.test {
-            assertFalse(awaitItem())
-            cancelAndIgnoreRemainingEvents()
+            controller.shouldShowLock.test {
+                assertFalse(awaitItem())
+                cancelAndIgnoreRemainingEvents()
+            }
         }
-    }
 
     @Test
-    fun `resume without a preceding pause stays unlocked`() = runTest {
-        val controller = buildController(initialSettings = AppSettings().lockEnabled(timeoutSec = 60))
-        controller.markUnlocked()
+    fun `resume without a preceding pause stays unlocked`() =
+        runTest {
+            val controller = buildController(initialSettings = AppSettings().lockEnabled(timeoutSec = 60))
+            controller.markUnlocked()
 
-        controller.now = { 600_000L }
-        controller.onResume(lifecycleOwner)
+            controller.now = { 600_000L }
+            controller.onResume(lifecycleOwner)
 
-        controller.shouldShowLock.test {
-            assertFalse(awaitItem())
-            cancelAndIgnoreRemainingEvents()
+            controller.shouldShowLock.test {
+                assertFalse(awaitItem())
+                cancelAndIgnoreRemainingEvents()
+            }
         }
-    }
 
     // --- 4. markUnlocked ------------------------------------------------------------------
 
     @Test
-    fun `markUnlocked clears the lock`() = runTest {
-        val controller = buildController(initialSettings = AppSettings().lockEnabled())
+    fun `markUnlocked clears the lock`() =
+        runTest {
+            val controller = buildController(initialSettings = AppSettings().lockEnabled())
 
-        controller.markUnlocked()
+            controller.markUnlocked()
 
-        controller.shouldShowLock.test {
-            assertFalse(awaitItem())
-            cancelAndIgnoreRemainingEvents()
+            controller.shouldShowLock.test {
+                assertFalse(awaitItem())
+                cancelAndIgnoreRemainingEvents()
+            }
         }
-    }
 
     @Test
-    fun `disabling biometric lock after the overlay is shown hides the lock immediately`() = runTest {
-        val controller = buildController(initialSettings = AppSettings().lockEnabled())
+    fun `disabling biometric lock after the overlay is shown hides the lock immediately`() =
+        runTest {
+            val controller = buildController(initialSettings = AppSettings().lockEnabled())
 
-        controller.shouldShowLock.test {
-            assertTrue(awaitItem())
+            controller.shouldShowLock.test {
+                assertTrue(awaitItem())
 
-            appSettings.seed(AppSettings(biometricLockEnabled = false))
+                appSettings.seed(AppSettings(biometricLockEnabled = false))
 
-            assertFalse(awaitItem())
-            cancelAndIgnoreRemainingEvents()
+                assertFalse(awaitItem())
+                cancelAndIgnoreRemainingEvents()
+            }
         }
-    }
 
     @Test
-    fun `markUnlocked resets pausedAt so a resume within the timeout stays unlocked`() = runTest {
-        val controller = buildController(initialSettings = AppSettings().lockEnabled(timeoutSec = 60))
+    fun `markUnlocked resets pausedAt so a resume within the timeout stays unlocked`() =
+        runTest {
+            val controller = buildController(initialSettings = AppSettings().lockEnabled(timeoutSec = 60))
 
-        controller.now = { 0L }
-        controller.onPause(lifecycleOwner)
-        controller.markUnlocked()
-        controller.now = { 600_000L }
-        controller.onResume(lifecycleOwner)
+            controller.now = { 0L }
+            controller.onPause(lifecycleOwner)
+            controller.markUnlocked()
+            controller.now = { 600_000L }
+            controller.onResume(lifecycleOwner)
 
-        controller.shouldShowLock.test {
-            assertFalse(awaitItem())
-            cancelAndIgnoreRemainingEvents()
+            controller.shouldShowLock.test {
+                assertFalse(awaitItem())
+                cancelAndIgnoreRemainingEvents()
+            }
         }
-    }
 
     // --- 5. lockNow -----------------------------------------------------------------------
 
     @Test
-    fun `lockNow shows the lock`() = runTest {
-        val controller = buildController(initialSettings = AppSettings(biometricLockEnabled = false))
+    fun `lockNow shows the lock`() =
+        runTest {
+            val controller = buildController(initialSettings = AppSettings(biometricLockEnabled = false))
 
-        controller.lockNow()
+            controller.lockNow()
 
-        controller.shouldShowLock.test {
-            assertTrue(awaitItem())
-            cancelAndIgnoreRemainingEvents()
+            controller.shouldShowLock.test {
+                assertTrue(awaitItem())
+                cancelAndIgnoreRemainingEvents()
+            }
         }
-    }
 
     private fun buildController(
         appSettingsRepository: AppSettingsRepository,
-    ): LockController = LockController(
-        appSettingsRepository = appSettingsRepository,
-        scope = CoroutineScope(mainDispatcherRule.testDispatcher),
-    )
+    ): LockController =
+        LockController(
+            appSettingsRepository = appSettingsRepository,
+            scope = CoroutineScope(mainDispatcherRule.testDispatcher),
+        )
 
     private class DeferredFirstEmissionAppSettingsRepository : AppSettingsRepository {
         private val settingsFlow = MutableSharedFlow<AppSettings>(replay = 0, extraBufferCapacity = 1)

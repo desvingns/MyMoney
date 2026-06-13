@@ -77,11 +77,12 @@ fun PeriodLabel(
                 textAlign = TextAlign.Center,
             )
             Box(
-                modifier = Modifier
-                    .width(Spacing.dashboardPeriodIndicatorWidth)
-                    .height(Spacing.dashboardPeriodIndicatorHeight)
-                    .clip(MaterialTheme.shapes.dashboardPeriodIndicator)
-                    .background(MaterialTheme.colorScheme.dashboardPeriodIndicator),
+                modifier =
+                    Modifier
+                        .width(Spacing.dashboardPeriodIndicatorWidth)
+                        .height(Spacing.dashboardPeriodIndicatorHeight)
+                        .clip(MaterialTheme.shapes.dashboardPeriodIndicator)
+                        .background(MaterialTheme.colorScheme.dashboardPeriodIndicator),
             )
         }
         Text(
@@ -91,9 +92,10 @@ fun PeriodLabel(
             textAlign = TextAlign.Center,
             maxLines = 1,
             overflow = TextOverflow.Clip,
-            modifier = Modifier
-                .weight(1f, fill = false)
-                .alpha(0f),
+            modifier =
+                Modifier
+                    .weight(1f, fill = false)
+                    .alpha(0f),
         )
         IconButton(onClick = { onNextClick?.invoke() }) {
             Icon(
@@ -105,17 +107,21 @@ fun PeriodLabel(
     }
 }
 
-private fun Period.localizedLabel(locale: Locale, allLabel: String): String = when (this) {
-    is Period.Day -> date.format(DateTimeFormatter.ofPattern("EEEE, d MMMM", locale))
-    is Period.Week -> {
-        val formatter = DateTimeFormatter.ofPattern("d MMM", locale)
-        "${weekStart.format(formatter)} – ${weekStart.plusDays(6).format(formatter)}"
+private fun Period.localizedLabel(
+    locale: Locale,
+    allLabel: String,
+): String =
+    when (this) {
+        is Period.Day -> date.format(DateTimeFormatter.ofPattern("EEEE, d MMMM", locale))
+        is Period.Week -> {
+            val formatter = DateTimeFormatter.ofPattern("d MMM", locale)
+            "${weekStart.format(formatter)} – ${weekStart.plusDays(6).format(formatter)}"
+        }
+        is Period.Month -> yearMonth.atDay(1).format(DateTimeFormatter.ofPattern("LLLL yyyy", locale))
+        is Period.Year -> year.toString()
+        Period.All -> allLabel
+        is Period.CustomRange -> {
+            val formatter = DateTimeFormatter.ofPattern("d MMM", locale)
+            "${start.format(formatter)} – ${end.format(formatter)}"
+        }
     }
-    is Period.Month -> yearMonth.atDay(1).format(DateTimeFormatter.ofPattern("LLLL yyyy", locale))
-    is Period.Year -> year.toString()
-    Period.All -> allLabel
-    is Period.CustomRange -> {
-        val formatter = DateTimeFormatter.ofPattern("d MMM", locale)
-        "${start.format(formatter)} – ${end.format(formatter)}"
-    }
-}

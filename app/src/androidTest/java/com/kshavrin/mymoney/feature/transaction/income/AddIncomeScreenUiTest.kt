@@ -1,7 +1,7 @@
 package com.kshavrin.mymoney.feature.transaction.income
 
-import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasClickAction
@@ -14,7 +14,6 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
 import com.kshavrin.mymoney.core.designsystem.form.CATEGORY_GRID_ADD_CELL_TAG
 import com.kshavrin.mymoney.core.designsystem.form.CATEGORY_GRID_TAG
 import com.kshavrin.mymoney.core.designsystem.keypad.Operator
@@ -22,18 +21,18 @@ import com.kshavrin.mymoney.core.domain.model.Category
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import com.kshavrin.mymoney.feature.transaction.R
-import java.math.BigDecimal
-import java.time.Instant
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.math.BigDecimal
+import java.time.Instant
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
 
 @RunWith(AndroidJUnit4::class)
 class AddIncomeScreenUiTest {
-
     @get:Rule
     val composeTestRule = createComposeRule()
 
@@ -126,10 +125,11 @@ class AddIncomeScreenUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 AddIncomeScreen(
-                    state = AddIncomeState(
-                        categories = listOf(category(id = 20L, name = "Salary")),
-                        categoryStep = true,
-                    ),
+                    state =
+                        AddIncomeState(
+                            categories = listOf(category(id = 20L, name = "Salary")),
+                            categoryStep = true,
+                        ),
                     onEvent = { event -> capturedEvents += event },
                 )
             }
@@ -292,10 +292,11 @@ class AddIncomeScreenUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 AddIncomeScreen(
-                    state = AddIncomeState(
-                        categories = listOf(category(id = 20L, name = "Salary")),
-                        categoryStep = true,
-                    ),
+                    state =
+                        AddIncomeState(
+                            categories = listOf(category(id = 20L, name = "Salary")),
+                            categoryStep = true,
+                        ),
                     onEvent = { event -> capturedEvents += event },
                 )
             }
@@ -318,10 +319,11 @@ class AddIncomeScreenUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 AddIncomeScreen(
-                    state = AddIncomeState(
-                        categories = listOf(category(id = 20L, name = "Salary")),
-                        categoryStep = true,
-                    ),
+                    state =
+                        AddIncomeState(
+                            categories = listOf(category(id = 20L, name = "Salary")),
+                            categoryStep = true,
+                        ),
                     onEvent = { event -> capturedEvents += event },
                 )
             }
@@ -355,24 +357,30 @@ class AddIncomeScreenUiTest {
             .assertDoesNotExist()
     }
 
-    private fun category(id: Long, name: String): Category = Category(
-        id = id,
-        name = name,
-        kind = CategoryKind.Income,
-        iconKey = "ic_cat_salary",
-        colorHex = "#7AC794",
-        sortOrder = 0,
-        isDefault = false,
-        isArchived = false,
-        createdAt = Instant.parse("2026-05-27T00:00:00Z"),
-    )
+    private fun category(
+        id: Long,
+        name: String,
+    ): Category =
+        Category(
+            id = id,
+            name = name,
+            kind = CategoryKind.Income,
+            iconKey = "ic_cat_salary",
+            colorHex = "#7AC794",
+            sortOrder = 0,
+            isDefault = false,
+            isArchived = false,
+            createdAt = Instant.parse("2026-05-27T00:00:00Z"),
+        )
 
     private fun targetString(resourceId: Int): String =
         InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)
 
     private fun dateLabel(date: LocalDate): String {
-        val locale = InstrumentationRegistry.getInstrumentation()
-            .targetContext.resources.configuration.locales[0]
+        val locale =
+            InstrumentationRegistry
+                .getInstrumentation()
+                .targetContext.resources.configuration.locales[0]
         return date.format(DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy", locale))
     }
 }

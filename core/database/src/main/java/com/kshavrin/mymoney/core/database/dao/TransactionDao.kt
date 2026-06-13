@@ -12,41 +12,59 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface TransactionDao {
-    @Query("""
+    @Query(
+        """
         SELECT * FROM `transaction`
         WHERE account_id = :accountId
           AND occurred_at BETWEEN :from AND :to
           AND is_deleted = 0
         ORDER BY occurred_at DESC, created_at DESC
-    """)
-    fun pagedByAccount(accountId: Long, from: Long, to: Long): PagingSource<Int, TransactionEntity>
+    """,
+    )
+    fun pagedByAccount(
+        accountId: Long,
+        from: Long,
+        to: Long,
+    ): PagingSource<Int, TransactionEntity>
 
-    @Query("""
+    @Query(
+        """
         SELECT * FROM `transaction`
         WHERE account_id = :accountId
           AND occurred_at BETWEEN :from AND :to
           AND is_deleted = 0
           AND (:categoryId IS NULL OR category_id = :categoryId)
         ORDER BY occurred_at DESC, created_at DESC
-    """)
-    fun pagedByPeriod(accountId: Long, categoryId: Long?, from: Long, to: Long): PagingSource<Int, TransactionEntity>
+    """,
+    )
+    fun pagedByPeriod(
+        accountId: Long,
+        categoryId: Long?,
+        from: Long,
+        to: Long,
+    ): PagingSource<Int, TransactionEntity>
 
-    @Query("""
+    @Query(
+        """
         SELECT * FROM `transaction`
         WHERE is_deleted = 0
         ORDER BY occurred_at DESC, created_at DESC
         LIMIT :limit
-    """)
+    """,
+    )
     fun observeRecent(limit: Int): Flow<List<TransactionEntity>>
 
-    @Query("""
+    @Query(
+        """
         SELECT * FROM `transaction`
         WHERE is_deleted = 0
         ORDER BY occurred_at DESC, created_at DESC
-    """)
+    """,
+    )
     fun observeAll(): Flow<List<TransactionEntity>>
 
-    @Query("""
+    @Query(
+        """
         SELECT c.id AS categoryId, c.name AS categoryName, c.color_hex AS colorHex,
                c.icon_key AS iconKey, SUM(t.amount) AS total
         FROM `transaction` t
@@ -57,10 +75,17 @@ interface TransactionDao {
           AND t.is_deleted = 0
         GROUP BY c.id
         ORDER BY total DESC
-    """)
-    suspend fun getCategorySummary(accountId: Long, from: Long, to: Long, kind: String): List<CategorySummaryRow>
+    """,
+    )
+    suspend fun getCategorySummary(
+        accountId: Long,
+        from: Long,
+        to: Long,
+        kind: String,
+    ): List<CategorySummaryRow>
 
-    @Query("""
+    @Query(
+        """
         SELECT c.id AS categoryId, c.name AS name, c.icon_key AS iconKey,
                c.color_hex AS colorHex, c.kind AS kind,
                SUM(t.amount) AS total, COUNT(t.id) AS txCount
@@ -72,19 +97,31 @@ interface TransactionDao {
           AND t.is_deleted = 0
         GROUP BY c.id
         ORDER BY total DESC
-    """)
-    suspend fun getCategoryGroups(accountId: Long, from: Long, to: Long): List<CategoryGroupRow>
+    """,
+    )
+    suspend fun getCategoryGroups(
+        accountId: Long,
+        from: Long,
+        to: Long,
+    ): List<CategoryGroupRow>
 
-    @Query("""
+    @Query(
+        """
         SELECT * FROM `transaction`
         WHERE account_id = :accountId
           AND occurred_at BETWEEN :from AND :to
           AND is_deleted = 0
         ORDER BY occurred_at DESC, created_at DESC
-    """)
-    suspend fun listByPeriod(accountId: Long, from: Long, to: Long): List<TransactionEntity>
+    """,
+    )
+    suspend fun listByPeriod(
+        accountId: Long,
+        from: Long,
+        to: Long,
+    ): List<TransactionEntity>
 
-    @Query("""
+    @Query(
+        """
         SELECT t.id AS id,
                af.name AS fromAccountName,
                at.name AS toAccountName,
@@ -100,18 +137,28 @@ interface TransactionDao {
           AND t.is_deleted = 0
           AND (:accountId IS NULL OR t.account_id = :accountId OR t.to_account_id = :accountId)
         ORDER BY t.occurred_at DESC, t.created_at DESC
-    """)
-    suspend fun getTransfers(accountId: Long?, from: Long, to: Long): List<TransferRow>
+    """,
+    )
+    suspend fun getTransfers(
+        accountId: Long?,
+        from: Long,
+        to: Long,
+    ): List<TransferRow>
 
-    @Query("""
+    @Query(
+        """
         SELECT * FROM `transaction`
         WHERE is_deleted = 0
           AND (note LIKE '%' || :q || '%' COLLATE NOCASE
                OR category_id IN (SELECT id FROM category WHERE name LIKE '%' || :q || '%' COLLATE NOCASE))
         ORDER BY occurred_at DESC
         LIMIT :limit
-    """)
-    suspend fun searchByNote(q: String, limit: Int = 200): List<TransactionEntity>
+    """,
+    )
+    suspend fun searchByNote(
+        q: String,
+        limit: Int = 200,
+    ): List<TransactionEntity>
 
     @Query("SELECT * FROM `transaction` WHERE id = :id LIMIT 1")
     suspend fun findById(id: Long): TransactionEntity?
@@ -123,13 +170,23 @@ interface TransactionDao {
     suspend fun upsert(transaction: TransactionEntity): Long
 
     @Query("UPDATE `transaction` SET occurred_at = :occurredAt, updated_at = :updatedAt WHERE id = :id")
-    suspend fun updateOccurredAt(id: Long, occurredAt: Long, updatedAt: Long)
+    suspend fun updateOccurredAt(
+        id: Long,
+        occurredAt: Long,
+        updatedAt: Long,
+    )
 
     @Query("UPDATE `transaction` SET is_deleted = 1, updated_at = :now WHERE id = :id")
-    suspend fun softDelete(id: Long, now: Long)
+    suspend fun softDelete(
+        id: Long,
+        now: Long,
+    )
 
     @Query("UPDATE `transaction` SET is_deleted = 0, updated_at = :now WHERE id = :id")
-    suspend fun restore(id: Long, now: Long)
+    suspend fun restore(
+        id: Long,
+        now: Long,
+    )
 
     @Query("DELETE FROM `transaction` WHERE is_deleted = 1 AND updated_at < :before")
     suspend fun pruneDeleted(before: Long)

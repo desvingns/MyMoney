@@ -9,7 +9,10 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface CurrencyRateDao {
     @Query("SELECT * FROM currency_rate WHERE from_currency_id = :from AND to_currency_id = :to LIMIT 1")
-    suspend fun findRate(from: Long, to: Long): CurrencyRateEntity?
+    suspend fun findRate(
+        from: Long,
+        to: Long,
+    ): CurrencyRateEntity?
 
     @Query("SELECT * FROM currency_rate")
     fun observeAll(): Flow<List<CurrencyRateEntity>>

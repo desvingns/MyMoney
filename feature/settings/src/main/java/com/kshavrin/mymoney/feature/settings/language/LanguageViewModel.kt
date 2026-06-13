@@ -11,38 +11,43 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class LanguageViewModel @Inject constructor(
-    private val appSettingsRepository: AppSettingsRepository,
-    private val localeController: AppLocaleController,
-) : ViewModel() {
+class LanguageViewModel
+    @Inject
+    constructor(
+        private val appSettingsRepository: AppSettingsRepository,
+        private val localeController: AppLocaleController,
+    ) : ViewModel() {
+        private val _state = MutableStateFlow(LanguageState())
+        val state: StateFlow<LanguageState> = _state.asStateFlow()
 
-    private val _state = MutableStateFlow(LanguageState())
-    val state: StateFlow<LanguageState> = _state.asStateFlow()
-
-    init {
-        viewModelScope.launch {
-            appSettingsRepository.settings.collect { settings ->
-                _state.value = LanguageState(selected = AppLanguage.fromStored(settings.language))
+        init {
+            viewModelScope.launch {
+                appSettingsRepository.settings.collect { settings ->
+                    _state.value = LanguageState(selected = AppLanguage.fromStored(settings.language))
+                }
             }
         }
-    }
 
-    fun onEvent(event: LanguageEvent) {
-        when (event) {
-            is LanguageEvent.LanguageSelected -> {
-                localeController.apply(event.language.localeTag)
-                viewModelScope.launch {
-                    appSettingsRepository.update { it.copy(language = event.language.stored) }
+        fun onEvent(event: LanguageEvent) {
+            when (event) {
+                is LanguageEvent.LanguageSelected -> {
+                    localeController.apply(event.language.localeTag)
+                    viewModelScope.launch {
+                        appSettingsRepository.update { it.copy(language = event.language.stored) }
+                    }
                 }
             }
         }
     }
-}
 
-enum class AppLanguage(val stored: String, val localeTag: String?) {
+enum class AppLanguage(
+    val stored: String,
+    val localeTag: String?,
+) {
     System("system", null),
     English("en", "en"),
-    Russian("ru", "ru");
+    Russian("ru", "ru"),
+    ;
 
     companion object {
         fun fromStored(value: String): AppLanguage =
@@ -55,5 +60,7 @@ data class LanguageState(
 )
 
 sealed interface LanguageEvent {
-    data class LanguageSelected(val language: AppLanguage) : LanguageEvent
+    data class LanguageSelected(
+        val language: AppLanguage,
+    ) : LanguageEvent
 }

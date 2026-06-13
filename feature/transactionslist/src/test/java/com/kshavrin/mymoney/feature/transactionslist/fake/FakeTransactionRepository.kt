@@ -29,7 +29,6 @@ import java.time.Instant
  *   without touching a real database.
  */
 class FakeTransactionRepository : TransactionRepository {
-
     data class PagedCall(
         val accountId: Long,
         val categoryId: Long?,
@@ -66,7 +65,10 @@ class FakeTransactionRepository : TransactionRepository {
         transfers = rows.toList()
     }
 
-    fun seedTransfers(accountId: Long, vararg rows: TransferRow) {
+    fun seedTransfers(
+        accountId: Long,
+        vararg rows: TransferRow,
+    ) {
         transfersByAccount[accountId] = rows.toList()
     }
 
@@ -75,7 +77,10 @@ class FakeTransactionRepository : TransactionRepository {
         categoryGroups = groups.toList()
     }
 
-    fun seedCategoryGroups(accountId: Long, vararg groups: CategoryGroup) {
+    fun seedCategoryGroups(
+        accountId: Long,
+        vararg groups: CategoryGroup,
+    ) {
         categoryGroupsByAccount[accountId] = groups.toList()
     }
 
@@ -84,7 +89,10 @@ class FakeTransactionRepository : TransactionRepository {
         periodTransactions = items.toList()
     }
 
-    fun seedPeriodTransactions(accountId: Long, vararg items: Transaction) {
+    fun seedPeriodTransactions(
+        accountId: Long,
+        vararg items: Transaction,
+    ) {
         periodTransactionsByAccount[accountId] = items.toList()
     }
 
@@ -126,7 +134,10 @@ class FakeTransactionRepository : TransactionRepository {
      * picks up the updated totals.  Needed when the ViewModel was built with an accountId filter
      * and the fake was seeded via [seedCategoryGroups(accountId, ...)].
      */
-    fun updateCategoryGroups(accountId: Long, vararg groups: CategoryGroup) {
+    fun updateCategoryGroups(
+        accountId: Long,
+        vararg groups: CategoryGroup,
+    ) {
         categoryGroupsByAccount[accountId] = groups.toList()
     }
 
@@ -155,36 +166,55 @@ class FakeTransactionRepository : TransactionRepository {
 
     override fun observeRecent(limit: Int): Flow<List<Transaction>> =
         merge(page.asStateFlow(), recentChangeTrigger)
+
     override fun observeAll(): Flow<List<Transaction>> = page.asStateFlow()
+
     override suspend fun findById(id: Long): Transaction? = page.value.firstOrNull { it.id == id }
-    override suspend fun findByPeriod(accountId: Long, period: Period): List<Transaction> =
+
+    override suspend fun findByPeriod(
+        accountId: Long,
+        period: Period,
+    ): List<Transaction> =
         periodTransactionsByAccount[accountId] ?: periodTransactions ?: page.value.filterNot { it.isDeleted }
+
     override suspend fun getCategorySummary(
         accountId: Long,
         period: Period,
         kind: TransactionKind,
-    ): List<CategorySummary> = (categoryGroupsByAccount[accountId] ?: categoryGroups)
-        .filter { group ->
-            when (kind) {
-                TransactionKind.Expense -> group.kind == com.kshavrin.mymoney.core.domain.model.CategoryKind.Expense
-                TransactionKind.Income -> group.kind == com.kshavrin.mymoney.core.domain.model.CategoryKind.Income
-                TransactionKind.Transfer -> false
+    ): List<CategorySummary> =
+        (categoryGroupsByAccount[accountId] ?: categoryGroups)
+            .filter { group ->
+                when (kind) {
+                    TransactionKind.Expense -> group.kind == com.kshavrin.mymoney.core.domain.model.CategoryKind.Expense
+                    TransactionKind.Income -> group.kind == com.kshavrin.mymoney.core.domain.model.CategoryKind.Income
+                    TransactionKind.Transfer -> false
+                }
+            }.map { group ->
+                CategorySummary(
+                    categoryId = group.categoryId,
+                    categoryName = group.name,
+                    colorHex = group.colorHex,
+                    total = group.total,
+                    iconKey = group.iconKey,
+                )
             }
-        }
-        .map { group ->
-            CategorySummary(
-                categoryId = group.categoryId,
-                categoryName = group.name,
-                colorHex = group.colorHex,
-                total = group.total,
-                iconKey = group.iconKey,
-            )
-        }
-    override suspend fun getCategoryGroups(accountId: Long, period: Period): List<CategoryGroup> =
+
+    override suspend fun getCategoryGroups(
+        accountId: Long,
+        period: Period,
+    ): List<CategoryGroup> =
         categoryGroupsByAccount[accountId] ?: categoryGroups
-    override suspend fun getTransfers(accountId: Long?, period: Period): List<TransferRow> =
+
+    override suspend fun getTransfers(
+        accountId: Long?,
+        period: Period,
+    ): List<TransferRow> =
         accountId?.let { transfersByAccount[it] } ?: transfers
-    override suspend fun searchByNote(query: String, limit: Int): List<Transaction> {
+
+    override suspend fun searchByNote(
+        query: String,
+        limit: Int,
+    ): List<Transaction> {
         searchCalls.add(query to limit)
         searchError?.let { throw it }
         return searchResults
@@ -196,12 +226,18 @@ class FakeTransactionRepository : TransactionRepository {
         return id
     }
 
-    override suspend fun softDelete(id: Long, now: Instant) {
+    override suspend fun softDelete(
+        id: Long,
+        now: Instant,
+    ) {
         softDeletedIds.add(id)
         page.value = page.value.map { if (it.id == id) it.copy(isDeleted = true, updatedAt = now) else it }
     }
 
-    override suspend fun restore(id: Long, now: Instant) {
+    override suspend fun restore(
+        id: Long,
+        now: Instant,
+    ) {
         restoredIds.add(id)
         page.value = page.value.map { if (it.id == id) it.copy(isDeleted = false, updatedAt = now) else it }
     }

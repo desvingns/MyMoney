@@ -41,13 +41,14 @@ android {
 
     packaging {
         resources {
-            excludes += listOf(
-                "META-INF/DEPENDENCIES",
-                "META-INF/INDEX.LIST",
-                "META-INF/LICENSE.md",
-                "META-INF/NOTICE.md",
-                "META-INF/*.kotlin_module",
-            )
+            excludes +=
+                listOf(
+                    "META-INF/DEPENDENCIES",
+                    "META-INF/INDEX.LIST",
+                    "META-INF/LICENSE.md",
+                    "META-INF/NOTICE.md",
+                    "META-INF/*.kotlin_module",
+                )
         }
     }
 }

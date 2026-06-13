@@ -55,9 +55,10 @@ fun CategoryGrid(
         contentPadding = PaddingValues(Spacing.l),
         verticalArrangement = Arrangement.spacedBy(Spacing.m),
         horizontalArrangement = Arrangement.spacedBy(Spacing.m),
-        modifier = modifier
-            .fillMaxWidth()
-            .testTag(CATEGORY_GRID_TAG),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .testTag(CATEGORY_GRID_TAG),
     ) {
         items(categories, key = { it.id }) { cat ->
             CategoryCell(
@@ -77,10 +78,11 @@ private fun CategoryCell(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val tint = parseHexColor(
-        hex = category.colorHex,
-        fallback = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
+    val tint =
+        parseHexColor(
+            hex = category.colorHex,
+            fallback = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     GridCard(
         contentDescription = category.name,
         icon = categoryIcon(category.iconKey),
@@ -120,21 +122,24 @@ private fun GridCard(
     modifier: Modifier = Modifier,
 ) {
     Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .semantics { this.contentDescription = contentDescription },
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .semantics { this.contentDescription = contentDescription },
         onClick = onClick,
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = Spacing.none),
-        border = CardDefaults.outlinedCardBorder().copy(
-            brush = SolidColor(MaterialTheme.colorScheme.outlineVariant),
-        ),
+        border =
+            CardDefaults.outlinedCardBorder().copy(
+                brush = SolidColor(MaterialTheme.colorScheme.outlineVariant),
+            ),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = Spacing.m, horizontal = Spacing.s),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = Spacing.m, horizontal = Spacing.s),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Icon(
@@ -154,10 +159,14 @@ private fun GridCard(
     }
 }
 
-internal fun parseHexColor(hex: String, fallback: Color): Color = try {
-    val cleaned = hex.removePrefix("#")
-    val argb = if (cleaned.length == 6) "FF$cleaned" else cleaned
-    Color(argb.toLong(16))
-} catch (_: Exception) {
-    fallback
-}
+internal fun parseHexColor(
+    hex: String,
+    fallback: Color,
+): Color =
+    try {
+        val cleaned = hex.removePrefix("#")
+        val argb = if (cleaned.length == 6) "FF$cleaned" else cleaned
+        Color(argb.toLong(16))
+    } catch (_: Exception) {
+        fallback
+    }

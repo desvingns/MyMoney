@@ -1,16 +1,15 @@
 package com.kshavrin.mymoney.feature.lockscreen.setup
 
-import java.util.Base64
-import javax.crypto.SecretKeyFactory
-import javax.crypto.spec.PBEKeySpec
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.util.Base64
+import javax.crypto.SecretKeyFactory
+import javax.crypto.spec.PBEKeySpec
 
 class PinHasherTest {
-
     private val hasher = PinHasher()
 
     @Test
@@ -109,30 +108,34 @@ class PinHasherTest {
         assertFalse(result.needsRehash)
     }
 
-    private fun legacyHash(pin: String, salt: ByteArray): String {
+    private fun legacyHash(
+        pin: String,
+        salt: ByteArray,
+    ): String {
         val spec = PBEKeySpec(pin.toCharArray(), salt, 10_000, 256)
         val derived = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(spec).encoded
         return "${Base64.getEncoder().encodeToString(salt)}:${Base64.getEncoder().encodeToString(derived)}"
     }
 
     private companion object {
-        val fixedSalt = byteArrayOf(
-            0x01.toByte(),
-            0x23.toByte(),
-            0x45.toByte(),
-            0x67.toByte(),
-            0x11.toByte(),
-            0x22.toByte(),
-            0x33.toByte(),
-            0x44.toByte(),
-            0x55.toByte(),
-            0x66.toByte(),
-            0x77.toByte(),
-            0x12.toByte(),
-            0x34.toByte(),
-            0x56.toByte(),
-            0x78.toByte(),
-            0x09.toByte(),
-        )
+        val fixedSalt =
+            byteArrayOf(
+                0x01.toByte(),
+                0x23.toByte(),
+                0x45.toByte(),
+                0x67.toByte(),
+                0x11.toByte(),
+                0x22.toByte(),
+                0x33.toByte(),
+                0x44.toByte(),
+                0x55.toByte(),
+                0x66.toByte(),
+                0x77.toByte(),
+                0x12.toByte(),
+                0x34.toByte(),
+                0x56.toByte(),
+                0x78.toByte(),
+                0x09.toByte(),
+            )
     }
 }

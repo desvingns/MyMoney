@@ -30,20 +30,20 @@ import java.time.Instant
 
 @RunWith(AndroidJUnit4::class)
 class DashboardDrawerContentUiTest {
-
     @get:Rule
     val composeTestRule = createComposeRule()
 
     @Test
     fun `right drawer entries remain exposed and clickable after icon over label restyle`() {
         val capturedEvents = mutableListOf<DashboardEvent>()
-        val entries = listOf(
-            R.string.right_drawer_categories to DashboardEvent.CategoriesClicked,
-            R.string.right_drawer_accounts to DashboardEvent.AccountsClicked,
-            R.string.right_drawer_currencies to DashboardEvent.CurrenciesClicked,
-            R.string.right_drawer_settings to DashboardEvent.SettingsClicked,
-            R.string.right_drawer_about to DashboardEvent.AboutClicked,
-        )
+        val entries =
+            listOf(
+                R.string.right_drawer_categories to DashboardEvent.CategoriesClicked,
+                R.string.right_drawer_accounts to DashboardEvent.AccountsClicked,
+                R.string.right_drawer_currencies to DashboardEvent.CurrenciesClicked,
+                R.string.right_drawer_settings to DashboardEvent.SettingsClicked,
+                R.string.right_drawer_about to DashboardEvent.AboutClicked,
+            )
 
         composeTestRule.setContent {
             MyMoneyTheme {
@@ -75,12 +75,13 @@ class DashboardDrawerContentUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 LeftDrawerContent(
-                    state = DashboardState(
-                        accounts = listOf(cash, card),
-                        currencies = listOf(currency),
-                        dashboardSelection = DashboardSelection.SpecificAccount(cash),
-                        isLoading = false,
-                    ),
+                    state =
+                        DashboardState(
+                            accounts = listOf(cash, card),
+                            currencies = listOf(currency),
+                            dashboardSelection = DashboardSelection.SpecificAccount(cash),
+                            isLoading = false,
+                        ),
                     onEvent = { event -> capturedEvents += event },
                 )
             }
@@ -127,12 +128,13 @@ class DashboardDrawerContentUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 LeftDrawerContent(
-                    state = DashboardState(
-                        accounts = listOf(cash, card),
-                        currencies = listOf(currency),
-                        dashboardSelection = DashboardSelection.AllAccounts(currency),
-                        isLoading = false,
-                    ),
+                    state =
+                        DashboardState(
+                            accounts = listOf(cash, card),
+                            currencies = listOf(currency),
+                            dashboardSelection = DashboardSelection.AllAccounts(currency),
+                            isLoading = false,
+                        ),
                     onEvent = { event -> capturedEvents += event },
                 )
             }
@@ -165,28 +167,33 @@ class DashboardDrawerContentUiTest {
     private fun targetString(resourceId: Int): String =
         InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)
 
-    private fun currency() = Currency(
-        id = 1L,
-        code = "USD",
-        symbol = "$",
-        name = "US Dollar",
-        decimalDigits = 2,
-        isActive = true,
-        sortOrder = 0,
-    )
+    private fun currency() =
+        Currency(
+            id = 1L,
+            code = "USD",
+            symbol = "$",
+            name = "US Dollar",
+            decimalDigits = 2,
+            isActive = true,
+            sortOrder = 0,
+        )
 
-    private fun account(id: Long, name: String) = Account(
-        id = id,
-        name = name,
-        currencyId = 1L,
-        initialBalance = BigDecimal.ZERO,
-        type = AccountType.Cash,
-        colorHex = "#7AC794",
-        iconKey = "wallet",
-        isDefault = id == 1L,
-        sortOrder = id.toInt(),
-        createdAt = Instant.parse("2026-05-18T10:00:00Z"),
-        updatedAt = Instant.parse("2026-05-18T10:00:00Z"),
-        isArchived = false,
-    )
+    private fun account(
+        id: Long,
+        name: String,
+    ) =
+        Account(
+            id = id,
+            name = name,
+            currencyId = 1L,
+            initialBalance = BigDecimal.ZERO,
+            type = AccountType.Cash,
+            colorHex = "#7AC794",
+            iconKey = "wallet",
+            isDefault = id == 1L,
+            sortOrder = id.toInt(),
+            createdAt = Instant.parse("2026-05-18T10:00:00Z"),
+            updatedAt = Instant.parse("2026-05-18T10:00:00Z"),
+            isArchived = false,
+        )
 }

@@ -1,6 +1,8 @@
 package com.kshavrin.mymoney.core.common.exception
 
-class SyncException(val syncError: SyncError) : Exception()
+class SyncException(
+    val syncError: SyncError,
+) : Exception()
 
 enum class SyncError {
     Network,

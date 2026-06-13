@@ -27,7 +27,6 @@ import java.util.TimeZone
 
 @RunWith(AndroidJUnit4::class)
 class LeftDrawerPeriodSelectorUiTest {
-
     @get:Rule
     val composeTestRule = createComposeRule()
 
@@ -78,11 +77,12 @@ class LeftDrawerPeriodSelectorUiTest {
     fun `pick a date emits a day period after confirming a single date`() {
         var selectedEvent: DashboardEvent? = null
         val currentDate = LocalDate.now()
-        val pickedDate = if (currentDate.dayOfMonth == 1) {
-            currentDate.plusDays(1)
-        } else {
-            currentDate.minusDays(1)
-        }
+        val pickedDate =
+            if (currentDate.dayOfMonth == 1) {
+                currentDate.plusDays(1)
+            } else {
+                currentDate.minusDays(1)
+            }
 
         composeTestRule.setContent {
             MyMoneyTheme {
@@ -111,13 +111,14 @@ class LeftDrawerPeriodSelectorUiTest {
     fun `ordinary period buttons remain present and emit each corresponding period in order`() {
         val currentDate = LocalDate.now()
         val selectedEvents = mutableListOf<DashboardEvent>()
-        val expectedSelections = listOf(
-            R.string.period_day to DashboardEvent.PeriodChanged(Period.Day(currentDate)),
-            R.string.period_week to DashboardEvent.PeriodChanged(Period.Week(currentDate.with(DayOfWeek.MONDAY))),
-            R.string.period_month to DashboardEvent.PeriodChanged(Period.Month(YearMonth.from(currentDate))),
-            R.string.period_year to DashboardEvent.PeriodChanged(Period.Year(currentDate.year)),
-            R.string.period_all to DashboardEvent.PeriodChanged(Period.All),
-        )
+        val expectedSelections =
+            listOf(
+                R.string.period_day to DashboardEvent.PeriodChanged(Period.Day(currentDate)),
+                R.string.period_week to DashboardEvent.PeriodChanged(Period.Week(currentDate.with(DayOfWeek.MONDAY))),
+                R.string.period_month to DashboardEvent.PeriodChanged(Period.Month(YearMonth.from(currentDate))),
+                R.string.period_year to DashboardEvent.PeriodChanged(Period.Year(currentDate.year)),
+                R.string.period_all to DashboardEvent.PeriodChanged(Period.All),
+            )
 
         composeTestRule.setContent {
             MyMoneyTheme {
@@ -150,8 +151,10 @@ class LeftDrawerPeriodSelectorUiTest {
         InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)
 
     private fun dateLabel(date: LocalDate): String {
-        val locale = InstrumentationRegistry.getInstrumentation()
-            .targetContext.resources.configuration.locales[0]
+        val locale =
+            InstrumentationRegistry
+                .getInstrumentation()
+                .targetContext.resources.configuration.locales[0]
         return date.format(DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy", locale))
     }
 

@@ -25,7 +25,6 @@ import org.junit.Test
  * placeholder in [SoundPoolImplTest].
  */
 class SoundPlayerContractTest {
-
     // ---- SoundKey: exact membership ----
 
     @Test
@@ -133,6 +132,7 @@ class SoundPlayerContractTest {
      */
     private class FakeSoundPlayer : SoundPlayer {
         val calls: MutableList<SoundKey> = mutableListOf()
+
         override fun play(key: SoundKey) {
             calls += key
         }

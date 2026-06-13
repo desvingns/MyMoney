@@ -90,10 +90,11 @@ fun SettingsRootContent(
         },
     ) { innerPadding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState()),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .verticalScroll(rememberScrollState()),
         ) {
             SectionHeader(stringResource(R.string.settings_section_appearance))
             ListItem(
@@ -162,25 +163,28 @@ private fun SectionHeader(title: String) {
         text = title,
         style = MaterialTheme.typography.labelMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(
-            start = Spacing.l,
-            end = Spacing.l,
-            top = Spacing.l,
-            bottom = Spacing.s,
-        ),
+        modifier =
+            Modifier.padding(
+                start = Spacing.l,
+                end = Spacing.l,
+                top = Spacing.l,
+                bottom = Spacing.s,
+            ),
     )
 }
 
 private val ThemeMode.labelRes: Int
-    get() = when (this) {
-        ThemeMode.System -> R.string.theme_system
-        ThemeMode.Light -> R.string.theme_light
-        ThemeMode.Dark -> R.string.theme_dark
-    }
+    get() =
+        when (this) {
+            ThemeMode.System -> R.string.theme_system
+            ThemeMode.Light -> R.string.theme_light
+            ThemeMode.Dark -> R.string.theme_dark
+        }
 
 private val AppLanguage.labelRes: Int
-    get() = when (this) {
-        AppLanguage.System -> R.string.language_system
-        AppLanguage.English -> R.string.language_en
-        AppLanguage.Russian -> R.string.language_ru
-    }
+    get() =
+        when (this) {
+            AppLanguage.System -> R.string.language_system
+            AppLanguage.English -> R.string.language_en
+            AppLanguage.Russian -> R.string.language_ru
+        }

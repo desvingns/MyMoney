@@ -31,7 +31,6 @@ import java.time.YearMonth
 import java.time.ZoneId
 
 class TimezoneRegressionTest {
-
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
@@ -40,42 +39,45 @@ class TimezoneRegressionTest {
 
     private val now = Instant.parse("2026-05-20T10:00:00Z")
 
-    private val usd = Currency(
-        id = 1L,
-        code = "USD",
-        symbol = "$",
-        name = "US Dollar",
-        decimalDigits = 2,
-        isActive = true,
-        sortOrder = 0,
-    )
+    private val usd =
+        Currency(
+            id = 1L,
+            code = "USD",
+            symbol = "$",
+            name = "US Dollar",
+            decimalDigits = 2,
+            isActive = true,
+            sortOrder = 0,
+        )
 
-    private val cashAccount = Account(
-        id = 1L,
-        name = "Cash",
-        currencyId = usd.id,
-        initialBalance = BigDecimal.ZERO,
-        type = AccountType.Cash,
-        colorHex = "#7AC794",
-        iconKey = "ic_acc_cash",
-        isDefault = true,
-        sortOrder = 0,
-        createdAt = now,
-        updatedAt = now,
-        isArchived = false,
-    )
+    private val cashAccount =
+        Account(
+            id = 1L,
+            name = "Cash",
+            currencyId = usd.id,
+            initialBalance = BigDecimal.ZERO,
+            type = AccountType.Cash,
+            colorHex = "#7AC794",
+            iconKey = "ic_acc_cash",
+            isDefault = true,
+            sortOrder = 0,
+            createdAt = now,
+            updatedAt = now,
+            isArchived = false,
+        )
 
-    private val foodCategory = Category(
-        id = 10L,
-        name = "Food",
-        kind = CategoryKind.Expense,
-        iconKey = "ic_cat_food",
-        colorHex = "#FF8888",
-        sortOrder = 0,
-        isDefault = false,
-        isArchived = false,
-        createdAt = now,
-    )
+    private val foodCategory =
+        Category(
+            id = 10L,
+            name = "Food",
+            kind = CategoryKind.Expense,
+            iconKey = "ic_cat_food",
+            colorHex = "#FF8888",
+            sortOrder = 0,
+            isDefault = false,
+            isArchived = false,
+            createdAt = now,
+        )
 
     private fun buildViewModel(
         transactionRepository: FakeTransactionRepository,
@@ -83,66 +85,77 @@ class TimezoneRegressionTest {
         currencyRepository: FakeCurrencyRepository,
         categoryRepository: FakeCategoryRepository,
         settingsRepository: FakeAppSettingsRepository,
-    ): AddExpenseViewModel = AddExpenseViewModel(
-        transactionRepository = transactionRepository,
-        accountRepository = accountRepository,
-        currencyRepository = currencyRepository,
-        categoryRepository = categoryRepository,
-        appSettingsRepository = settingsRepository,
-        savedStateHandle = SavedStateHandle(),
-    )
+    ): AddExpenseViewModel =
+        AddExpenseViewModel(
+            transactionRepository = transactionRepository,
+            accountRepository = accountRepository,
+            currencyRepository = currencyRepository,
+            categoryRepository = categoryRepository,
+            appSettingsRepository = settingsRepository,
+            savedStateHandle = SavedStateHandle(),
+        )
 
     private fun systemZone(): ZoneId = ZoneId.systemDefault()
 
     @Test
-    fun `saving June 10 expense in New York stores local midnight and displays the same local date`() = runTest {
-        val transactionRepository = FakeTransactionRepository()
-        val viewModel = buildViewModel(
-            transactionRepository = transactionRepository,
-            accountRepository = FakeAccountRepository().apply { seed(cashAccount) },
-            currencyRepository = FakeCurrencyRepository().apply { seed(usd) },
-            categoryRepository = FakeCategoryRepository().apply { seed(foodCategory) },
-            settingsRepository = FakeAppSettingsRepository(
-                AppSettings(defaultAccountId = cashAccount.id),
-            ),
-        )
-        val date = LocalDate.of(2026, 6, 10)
+    fun `saving June 10 expense in New York stores local midnight and displays the same local date`() =
+        runTest {
+            val transactionRepository = FakeTransactionRepository()
+            val viewModel =
+                buildViewModel(
+                    transactionRepository = transactionRepository,
+                    accountRepository = FakeAccountRepository().apply { seed(cashAccount) },
+                    currencyRepository = FakeCurrencyRepository().apply { seed(usd) },
+                    categoryRepository = FakeCategoryRepository().apply { seed(foodCategory) },
+                    settingsRepository =
+                        FakeAppSettingsRepository(
+                            AppSettings(defaultAccountId = cashAccount.id),
+                        ),
+                )
+            val date = LocalDate.of(2026, 6, 10)
 
-        viewModel.onEvent(AddExpenseEvent.KeypadDigit(7))
-        viewModel.onEvent(AddExpenseEvent.DateChanged(date))
-        viewModel.onEvent(AddExpenseEvent.CategoryPicked(foodCategory.id))
+            viewModel.onEvent(AddExpenseEvent.KeypadDigit(7))
+            viewModel.onEvent(AddExpenseEvent.DateChanged(date))
+            viewModel.onEvent(AddExpenseEvent.CategoryPicked(foodCategory.id))
 
-        val saved = transactionRepository.upserted.single()
-        val range = PeriodArithmetic.toEpochMillisRange(Period.Day(date))
+            val saved = transactionRepository.upserted.single()
+            val range = PeriodArithmetic.toEpochMillisRange(Period.Day(date))
 
-        assertEquals(date.atStartOfDay(systemZone()).toInstant(), saved.occurredAt)
-        assertTrue(saved.occurredAt.toEpochMilli() in range)
-        assertEquals(date, saved.occurredAt.atZone(systemZone()).toLocalDate())
-    }
+            assertEquals(date.atStartOfDay(systemZone()).toInstant(), saved.occurredAt)
+            assertTrue(saved.occurredAt.toEpochMilli() in range)
+            assertEquals(date, saved.occurredAt.atZone(systemZone()).toLocalDate())
+        }
 
     @Test
-    fun `saving June 1 expense in New York lands in June month instead of May`() = runTest {
-        val transactionRepository = FakeTransactionRepository()
-        val viewModel = buildViewModel(
-            transactionRepository = transactionRepository,
-            accountRepository = FakeAccountRepository().apply { seed(cashAccount) },
-            currencyRepository = FakeCurrencyRepository().apply { seed(usd) },
-            categoryRepository = FakeCategoryRepository().apply { seed(foodCategory) },
-            settingsRepository = FakeAppSettingsRepository(
-                AppSettings(defaultAccountId = cashAccount.id),
-            ),
-        )
-        val date = LocalDate.of(2026, 6, 1)
+    fun `saving June 1 expense in New York lands in June month instead of May`() =
+        runTest {
+            val transactionRepository = FakeTransactionRepository()
+            val viewModel =
+                buildViewModel(
+                    transactionRepository = transactionRepository,
+                    accountRepository = FakeAccountRepository().apply { seed(cashAccount) },
+                    currencyRepository = FakeCurrencyRepository().apply { seed(usd) },
+                    categoryRepository = FakeCategoryRepository().apply { seed(foodCategory) },
+                    settingsRepository =
+                        FakeAppSettingsRepository(
+                            AppSettings(defaultAccountId = cashAccount.id),
+                        ),
+                )
+            val date = LocalDate.of(2026, 6, 1)
 
-        viewModel.onEvent(AddExpenseEvent.KeypadDigit(9))
-        viewModel.onEvent(AddExpenseEvent.DateChanged(date))
-        viewModel.onEvent(AddExpenseEvent.CategoryPicked(foodCategory.id))
+            viewModel.onEvent(AddExpenseEvent.KeypadDigit(9))
+            viewModel.onEvent(AddExpenseEvent.DateChanged(date))
+            viewModel.onEvent(AddExpenseEvent.CategoryPicked(foodCategory.id))
 
-        val savedEpochMillis = transactionRepository.upserted.single().occurredAt.toEpochMilli()
-        val juneRange = PeriodArithmetic.toEpochMillisRange(Period.Month(YearMonth.of(2026, 6)))
-        val mayRange = PeriodArithmetic.toEpochMillisRange(Period.Month(YearMonth.of(2026, 5)))
+            val savedEpochMillis =
+                transactionRepository.upserted
+                    .single()
+                    .occurredAt
+                    .toEpochMilli()
+            val juneRange = PeriodArithmetic.toEpochMillisRange(Period.Month(YearMonth.of(2026, 6)))
+            val mayRange = PeriodArithmetic.toEpochMillisRange(Period.Month(YearMonth.of(2026, 5)))
 
-        assertTrue(savedEpochMillis in juneRange)
-        assertFalse(savedEpochMillis in mayRange)
-    }
+            assertTrue(savedEpochMillis in juneRange)
+            assertFalse(savedEpochMillis in mayRange)
+        }
 }

@@ -12,7 +12,6 @@ import java.math.BigDecimal
 import java.time.LocalDate
 
 class MonefyCsvImportParserTest {
-
     private val monefyHeader =
         "date,account,category,amount,currency,converted amount,currency,description"
     private val myMoneyHeader =
@@ -209,7 +208,7 @@ class MonefyCsvImportParserTest {
     @Test
     fun `normalizeName collapses mixed ASCII-space and non-breaking-space run`() {
         // Monefy may emit a mix of U+0020 and U+00A0 between words
-        val mixed = "Кафе${nbsp} и ${nbsp}рестораны"
+        val mixed = "Кафе$nbsp и ${nbsp}рестораны"
         assertEquals(
             MonefyCsvImportParser.normalizeName("Кафе и рестораны"),
             MonefyCsvImportParser.normalizeName(mixed),

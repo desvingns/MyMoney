@@ -40,20 +40,21 @@ fun MoneyHeroAppBar(
     actions: @Composable RowScope.() -> Unit = {},
 ) {
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .testTag(MONEY_HERO_APP_BAR_TAG)
-            .background(
-                Brush.linearGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.dashboardHeroGradientStart,
-                        MaterialTheme.colorScheme.dashboardHeroGradientEnd,
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .testTag(MONEY_HERO_APP_BAR_TAG)
+                .background(
+                    Brush.linearGradient(
+                        colors =
+                            listOf(
+                                MaterialTheme.colorScheme.dashboardHeroGradientStart,
+                                MaterialTheme.colorScheme.dashboardHeroGradientEnd,
+                            ),
                     ),
-                ),
-            )
-            .statusBarsPadding()
-            .height(Spacing.heroAppBarHeight)
-            .padding(horizontal = Spacing.s),
+                ).statusBarsPadding()
+                .height(Spacing.heroAppBarHeight)
+                .padding(horizontal = Spacing.s),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         leading()
@@ -62,9 +63,10 @@ fun MoneyHeroAppBar(
             subtitle = subtitle,
             titleTestTag = titleTestTag,
             subtitleTestTag = subtitleTestTag,
-            modifier = Modifier
-                .weight(1f)
-                .padding(start = Spacing.s),
+            modifier =
+                Modifier
+                    .weight(1f)
+                    .padding(start = Spacing.s),
         )
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             actions()

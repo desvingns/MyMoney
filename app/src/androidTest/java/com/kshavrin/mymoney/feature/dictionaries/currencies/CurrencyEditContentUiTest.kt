@@ -24,7 +24,6 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class CurrencyEditContentUiTest {
-
     @get:Rule
     val composeTestRule = createComposeRule()
 
@@ -38,29 +37,36 @@ class CurrencyEditContentUiTest {
                     state = state,
                     onEvent = { event ->
                         events += event
-                        state = when (event) {
-                            is CurrencyEditEvent.CodeChanged -> state.copy(code = event.value)
-                            is CurrencyEditEvent.SymbolChanged -> state.copy(symbol = event.value)
-                            is CurrencyEditEvent.NameChanged -> state.copy(name = event.value)
-                            is CurrencyEditEvent.DecimalDigitsChanged -> state.copy(decimalDigitsText = event.value)
-                            is CurrencyEditEvent.IsActiveChanged -> state.copy(isActive = event.value)
-                            else -> state
-                        }
+                        state =
+                            when (event) {
+                                is CurrencyEditEvent.CodeChanged -> state.copy(code = event.value)
+                                is CurrencyEditEvent.SymbolChanged -> state.copy(symbol = event.value)
+                                is CurrencyEditEvent.NameChanged -> state.copy(name = event.value)
+                                is CurrencyEditEvent.DecimalDigitsChanged -> state.copy(decimalDigitsText = event.value)
+                                is CurrencyEditEvent.IsActiveChanged -> state.copy(isActive = event.value)
+                                else -> state
+                            }
                     },
                 )
             }
         }
 
-        composeTestRule.onNodeWithText(targetString(R.string.dictionaries_field_code))
+        composeTestRule
+            .onNodeWithText(targetString(R.string.dictionaries_field_code))
             .performTextInput("USD")
-        composeTestRule.onNodeWithText(targetString(R.string.dictionaries_field_symbol))
-            .performScrollTo().performTextInput("kr")
-        composeTestRule.onNodeWithText(targetString(R.string.dictionaries_field_name))
-            .performScrollTo().performTextInput("Krona")
+        composeTestRule
+            .onNodeWithText(targetString(R.string.dictionaries_field_symbol))
+            .performScrollTo()
+            .performTextInput("kr")
+        composeTestRule
+            .onNodeWithText(targetString(R.string.dictionaries_field_name))
+            .performScrollTo()
+            .performTextInput("Krona")
         // The decimal-digits field carries the default "2" (unique on screen); match its editable text.
         composeTestRule.onNodeWithText("2").performScrollTo().performTextReplacement("3")
         composeTestRule.onNode(isToggleable()).performScrollTo().performClick()
-        composeTestRule.onNodeWithText(targetString(R.string.dictionaries_save))
+        composeTestRule
+            .onNodeWithText(targetString(R.string.dictionaries_save))
             .performClick()
 
         composeTestRule.runOnIdle {
@@ -83,14 +89,15 @@ class CurrencyEditContentUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 CurrencyEditContent(
-                    state = CurrencyEditState(
-                        isCreateMode = false,
-                        code = "USD",
-                        symbol = "kr",
-                        name = "US Dollar",
-                        isCodeLocked = true,
-                        dependentAccountCount = 2,
-                    ),
+                    state =
+                        CurrencyEditState(
+                            isCreateMode = false,
+                            code = "USD",
+                            symbol = "kr",
+                            name = "US Dollar",
+                            isCodeLocked = true,
+                            dependentAccountCount = 2,
+                        ),
                     onEvent = {},
                 )
             }
@@ -105,12 +112,13 @@ class CurrencyEditContentUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 CurrencyEditContent(
-                    state = CurrencyEditState(
-                        isCreateMode = false,
-                        code = "US",
-                        errorMessage = "code_format",
-                        blockedDeleteCount = 4,
-                    ),
+                    state =
+                        CurrencyEditState(
+                            isCreateMode = false,
+                            code = "US",
+                            errorMessage = "code_format",
+                            blockedDeleteCount = 4,
+                        ),
                     onEvent = { events += it },
                 )
             }
@@ -137,7 +145,8 @@ class CurrencyEditContentUiTest {
             }
         }
 
-        composeTestRule.onNodeWithText(targetString(R.string.dictionaries_save))
+        composeTestRule
+            .onNodeWithText(targetString(R.string.dictionaries_save))
             .assertIsDisplayed()
             .performClick()
 
@@ -158,9 +167,11 @@ class CurrencyEditContentUiTest {
             }
         }
 
-        composeTestRule.onNodeWithText(targetString(R.string.dictionaries_save))
+        composeTestRule
+            .onNodeWithText(targetString(R.string.dictionaries_save))
             .assertIsDisplayed()
-        composeTestRule.onNodeWithText(targetString(R.string.dictionaries_delete))
+        composeTestRule
+            .onNodeWithText(targetString(R.string.dictionaries_delete))
             .performScrollTo()
             .assertIsDisplayed()
             .performClick()

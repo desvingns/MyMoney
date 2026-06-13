@@ -15,35 +15,36 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class GoalsListViewModel @Inject constructor(
-    private val goalRepository: GoalRepository,
-) : ViewModel() {
+class GoalsListViewModel
+    @Inject
+    constructor(
+        private val goalRepository: GoalRepository,
+    ) : ViewModel() {
+        private val _state = MutableStateFlow(GoalsListState())
+        val state: StateFlow<GoalsListState> = _state.asStateFlow()
 
-    private val _state = MutableStateFlow(GoalsListState())
-    val state: StateFlow<GoalsListState> = _state.asStateFlow()
+        private val _actions = MutableSharedFlow<GoalsListAction>(extraBufferCapacity = 4)
+        val actions: SharedFlow<GoalsListAction> = _actions.asSharedFlow()
 
-    private val _actions = MutableSharedFlow<GoalsListAction>(extraBufferCapacity = 4)
-    val actions: SharedFlow<GoalsListAction> = _actions.asSharedFlow()
+        init {
+            viewModelScope.launch {
+                goalRepository.observeActive().collect { goals ->
+                    _state.value = _state.value.copy(rows = goals)
+                }
+            }
+        }
 
-    init {
-        viewModelScope.launch {
-            goalRepository.observeActive().collect { goals ->
-                _state.value = _state.value.copy(rows = goals)
+        fun onEvent(event: GoalsListEvent) {
+            when (event) {
+                GoalsListEvent.AddClicked ->
+                    viewModelScope.launch { _actions.emit(GoalsListAction.NavigateAdd) }
+                is GoalsListEvent.ItemClicked ->
+                    viewModelScope.launch { _actions.emit(GoalsListAction.NavigateEdit(event.id)) }
+                GoalsListEvent.BackClicked ->
+                    viewModelScope.launch { _actions.emit(GoalsListAction.NavigateBack) }
             }
         }
     }
-
-    fun onEvent(event: GoalsListEvent) {
-        when (event) {
-            GoalsListEvent.AddClicked ->
-                viewModelScope.launch { _actions.emit(GoalsListAction.NavigateAdd) }
-            is GoalsListEvent.ItemClicked ->
-                viewModelScope.launch { _actions.emit(GoalsListAction.NavigateEdit(event.id)) }
-            GoalsListEvent.BackClicked ->
-                viewModelScope.launch { _actions.emit(GoalsListAction.NavigateBack) }
-        }
-    }
-}
 
 data class GoalsListState(
     val rows: List<Goal> = emptyList(),
@@ -51,12 +52,20 @@ data class GoalsListState(
 
 sealed interface GoalsListEvent {
     data object AddClicked : GoalsListEvent
-    data class ItemClicked(val id: Long) : GoalsListEvent
+
+    data class ItemClicked(
+        val id: Long,
+    ) : GoalsListEvent
+
     data object BackClicked : GoalsListEvent
 }
 
 sealed interface GoalsListAction {
     data object NavigateAdd : GoalsListAction
-    data class NavigateEdit(val id: Long) : GoalsListAction
+
+    data class NavigateEdit(
+        val id: Long,
+    ) : GoalsListAction
+
     data object NavigateBack : GoalsListAction
 }

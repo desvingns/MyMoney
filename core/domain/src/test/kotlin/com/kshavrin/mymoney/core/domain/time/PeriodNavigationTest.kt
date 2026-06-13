@@ -8,7 +8,6 @@ import java.time.LocalDate
 import java.time.YearMonth
 
 class PeriodNavigationTest {
-
     @Test
     fun `Day next advances by one calendar day`() {
         val period = Period.Day(LocalDate.of(2026, 5, 18))
@@ -92,10 +91,11 @@ class PeriodNavigationTest {
     @Test
     fun `CustomRange next shifts by the inclusive range length preserving the length`() {
         // 10..12 April is a 3-day inclusive range, so next() jumps forward 3 days to 13..15 April.
-        val period = Period.CustomRange(
-            start = LocalDate.of(2026, 4, 10),
-            end = LocalDate.of(2026, 4, 12),
-        )
+        val period =
+            Period.CustomRange(
+                start = LocalDate.of(2026, 4, 10),
+                end = LocalDate.of(2026, 4, 12),
+            )
 
         val next = period.next() as Period.CustomRange
         assertEquals(LocalDate.of(2026, 4, 13), next.start)
@@ -105,10 +105,11 @@ class PeriodNavigationTest {
 
     @Test
     fun `CustomRange previous shifts back by the inclusive range length preserving the length`() {
-        val period = Period.CustomRange(
-            start = LocalDate.of(2026, 4, 10),
-            end = LocalDate.of(2026, 4, 12),
-        )
+        val period =
+            Period.CustomRange(
+                start = LocalDate.of(2026, 4, 10),
+                end = LocalDate.of(2026, 4, 12),
+            )
 
         val previous = period.previous() as Period.CustomRange
         assertEquals(LocalDate.of(2026, 4, 7), previous.start)
@@ -128,10 +129,11 @@ class PeriodNavigationTest {
 
     @Test
     fun `CustomRange next then previous returns to the original range`() {
-        val period = Period.CustomRange(
-            start = LocalDate.of(2026, 4, 10),
-            end = LocalDate.of(2026, 4, 17),
-        )
+        val period =
+            Period.CustomRange(
+                start = LocalDate.of(2026, 4, 10),
+                end = LocalDate.of(2026, 4, 17),
+            )
 
         assertEquals(period, period.next().previous())
     }
@@ -150,5 +152,6 @@ class PeriodNavigationTest {
     }
 
     private fun daysInclusive(range: Period.CustomRange): Long =
-        java.time.temporal.ChronoUnit.DAYS.between(range.start, range.end) + 1
+        java.time.temporal.ChronoUnit.DAYS
+            .between(range.start, range.end) + 1
 }

@@ -14,21 +14,23 @@ interface AppLocaleController {
 }
 
 @Singleton
-class AppCompatLocaleController @Inject constructor() : AppLocaleController {
-    override fun apply(languageTag: String?) {
-        val locales = if (languageTag.isNullOrEmpty()) {
-            LocaleListCompat.getEmptyLocaleList()
-        } else {
-            LocaleListCompat.forLanguageTags(languageTag)
+class AppCompatLocaleController
+    @Inject
+    constructor() : AppLocaleController {
+        override fun apply(languageTag: String?) {
+            val locales =
+                if (languageTag.isNullOrEmpty()) {
+                    LocaleListCompat.getEmptyLocaleList()
+                } else {
+                    LocaleListCompat.forLanguageTags(languageTag)
+                }
+            AppCompatDelegate.setApplicationLocales(locales)
         }
-        AppCompatDelegate.setApplicationLocales(locales)
     }
-}
 
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class AppLocaleControllerModule {
-
     @Binds
     @Singleton
     abstract fun bindAppLocaleController(impl: AppCompatLocaleController): AppLocaleController

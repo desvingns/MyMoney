@@ -15,8 +15,11 @@ class FakeAccountRepository : AccountRepository {
     }
 
     override fun observeActive(): Flow<List<Account>> = state.asStateFlow()
+
     override suspend fun findById(id: Long): Account? = state.value.firstOrNull { it.id == id }
+
     override suspend fun findDefault(): Account? = state.value.firstOrNull { it.isDefault }
+
     override suspend fun computeBalance(accountId: Long): BigDecimal =
         state.value.firstOrNull { it.id == accountId }?.initialBalance ?: BigDecimal.ZERO
 

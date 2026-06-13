@@ -15,29 +15,31 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object HttpModule {
-
     @Provides
     @Singleton
     fun provideJson(): Json = Json { ignoreUnknownKeys = true }
 
     @Provides
     @Singleton
-    fun provideOkHttpClient(): OkHttpClient = OkHttpClient.Builder()
-        .apply {
-            if (BuildConfig.DEBUG) {
-                addInterceptor(
-                    HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY }
-                )
-            }
-        }
-        .build()
+    fun provideOkHttpClient(): OkHttpClient =
+        OkHttpClient
+            .Builder()
+            .apply {
+                if (BuildConfig.DEBUG) {
+                    addInterceptor(
+                        HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY },
+                    )
+                }
+            }.build()
 
     @Provides
     @Singleton
     fun provideRetrofitBuilder(
         client: OkHttpClient,
         json: Json,
-    ): Retrofit.Builder = Retrofit.Builder()
-        .client(client)
-        .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+    ): Retrofit.Builder =
+        Retrofit
+            .Builder()
+            .client(client)
+            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
 }

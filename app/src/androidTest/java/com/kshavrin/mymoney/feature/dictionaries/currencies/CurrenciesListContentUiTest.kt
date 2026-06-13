@@ -19,7 +19,6 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class CurrenciesListContentUiTest {
-
     @get:Rule
     val composeTestRule = createComposeRule()
 
@@ -29,9 +28,10 @@ class CurrenciesListContentUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 CurrenciesListContent(
-                    state = CurrenciesListState(
-                        currencies = listOf(currency(1L, "EUR", "€", "Euro", isActive = true)),
-                    ),
+                    state =
+                        CurrenciesListState(
+                            currencies = listOf(currency(1L, "EUR", "€", "Euro", isActive = true)),
+                        ),
                     onEvent = { events += it },
                 )
             }
@@ -40,8 +40,10 @@ class CurrenciesListContentUiTest {
         composeTestRule.onNodeWithText("EUR €").assertIsDisplayed()
         composeTestRule.onNodeWithText("Euro").assertIsDisplayed()
 
-        composeTestRule.onNodeWithContentDescription(targetString(R.string.dictionaries_add))
-            .assertIsEnabled().performClick()
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.dictionaries_add))
+            .assertIsEnabled()
+            .performClick()
         // The row's only toggleable is the active Switch; toggling a checked row emits active=false.
         composeTestRule.onNode(isToggleable()).performClick()
         // Tap the code/symbol text (unmerged) for the row click: the merged-row centre lands on the Switch.
@@ -73,7 +75,13 @@ class CurrenciesListContentUiTest {
         composeTestRule.onNodeWithContentDescription(targetString(R.string.dictionaries_add)).assertIsEnabled()
     }
 
-    private fun currency(id: Long, code: String, symbol: String, name: String, isActive: Boolean): Currency =
+    private fun currency(
+        id: Long,
+        code: String,
+        symbol: String,
+        name: String,
+        isActive: Boolean,
+    ): Currency =
         Currency(
             id = id,
             code = code,

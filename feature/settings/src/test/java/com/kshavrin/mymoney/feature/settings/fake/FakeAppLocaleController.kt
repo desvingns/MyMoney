@@ -3,7 +3,6 @@ package com.kshavrin.mymoney.feature.settings.fake
 import com.kshavrin.mymoney.feature.settings.language.AppLocaleController
 
 class FakeAppLocaleController : AppLocaleController {
-
     var applyCount: Int = 0
         private set
 

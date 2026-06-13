@@ -8,7 +8,6 @@ import kotlinx.coroutines.flow.asStateFlow
 class FakeAppSettingsRepository(
     initial: AppSettings = AppSettings(),
 ) : AppSettingsRepository {
-
     private val _settings = MutableStateFlow(initial)
     override val settings = _settings.asStateFlow()
     var resetCalls: Int = 0

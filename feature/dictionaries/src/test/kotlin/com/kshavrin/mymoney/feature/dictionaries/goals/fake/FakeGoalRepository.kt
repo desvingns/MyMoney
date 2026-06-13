@@ -7,7 +7,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 
 class FakeGoalRepository : GoalRepository {
-
     private val state = MutableStateFlow<List<Goal>>(emptyList())
 
     var lastUpserted: Goal? = null
@@ -24,11 +23,12 @@ class FakeGoalRepository : GoalRepository {
         state.value.firstOrNull { it.id == id }
 
     override suspend fun upsert(goal: Goal): Long {
-        val id = if (goal.id == 0L) {
-            (state.value.maxOfOrNull { it.id } ?: 0L) + 1L
-        } else {
-            goal.id
-        }
+        val id =
+            if (goal.id == 0L) {
+                (state.value.maxOfOrNull { it.id } ?: 0L) + 1L
+            } else {
+                goal.id
+            }
         val saved = goal.copy(id = id)
         lastUpserted = saved
         state.value = state.value.filterNot { it.id == id } + saved

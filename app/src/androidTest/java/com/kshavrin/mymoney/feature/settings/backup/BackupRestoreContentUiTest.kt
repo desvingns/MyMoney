@@ -20,7 +20,6 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class BackupRestoreContentUiTest {
-
     @get:Rule
     val composeTestRule = createComposeRule()
 
@@ -160,7 +159,10 @@ class BackupRestoreContentUiTest {
         }
     }
 
-    private fun targetString(resourceId: Int, vararg formatArgs: Any): String =
+    private fun targetString(
+        resourceId: Int,
+        vararg formatArgs: Any,
+    ): String =
         InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId, *formatArgs)
 
     private fun formattedSize(bytes: Long): String =

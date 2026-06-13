@@ -24,11 +24,13 @@ import javax.inject.Singleton
 @Module
 @TestInstallIn(components = [SingletonComponent::class], replaces = [DatabaseModule::class])
 object TestDatabaseModule {
-
     @Provides
     @Singleton
-    fun provideMoneyDatabase(@ApplicationContext context: Context): MoneyDatabase =
-        Room.inMemoryDatabaseBuilder(context, MoneyDatabase::class.java)
+    fun provideMoneyDatabase(
+        @ApplicationContext context: Context,
+    ): MoneyDatabase =
+        Room
+            .inMemoryDatabaseBuilder(context, MoneyDatabase::class.java)
             .allowMainThreadQueries()
             .build()
 

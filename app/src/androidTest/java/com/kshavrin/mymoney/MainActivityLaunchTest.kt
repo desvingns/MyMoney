@@ -15,7 +15,6 @@ import org.junit.runner.RunWith
 @HiltAndroidTest
 @RunWith(AndroidJUnit4::class)
 class MainActivityLaunchTest {
-
     @get:Rule(order = 0)
     val hiltRule = HiltAndroidRule(this)
 
@@ -25,8 +24,10 @@ class MainActivityLaunchTest {
     @Test
     fun launchesToDashboardWhenOnboardingDisabled() {
         composeRule.waitUntil(timeoutMillis = 15_000) {
-            composeRule.onAllNodesWithTag(DASHBOARD_TOP_BAR_TITLE_TAG)
-                .fetchSemanticsNodes().isNotEmpty()
+            composeRule
+                .onAllNodesWithTag(DASHBOARD_TOP_BAR_TITLE_TAG)
+                .fetchSemanticsNodes()
+                .isNotEmpty()
         }
 
         composeRule.onNodeWithTag(DASHBOARD_TOP_BAR_TITLE_TAG).assertIsDisplayed()

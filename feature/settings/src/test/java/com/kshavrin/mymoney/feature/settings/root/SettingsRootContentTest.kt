@@ -201,93 +201,108 @@ import org.junit.Test
  * ```
  */
 class SettingsRootContentTest {
-
     private enum class Section { Appearance, Security, Cloud, General, About }
 
     /** Mirror of the five [SectionHeader]s in [SettingsRootContent], top to bottom. */
-    private val sections: List<Section> = listOf(
-        Section.Appearance,
-        Section.Security,
-        Section.Cloud,
-        Section.General,
-        Section.About,
-    )
+    private val sections: List<Section> =
+        listOf(
+            Section.Appearance,
+            Section.Security,
+            Section.Cloud,
+            Section.General,
+            Section.About,
+        )
 
     /** Mirror of the `stringResource` passed to each [SectionHeader]. */
-    private fun headerRes(section: Section): Int = when (section) {
-        Section.Appearance -> R.string.settings_section_appearance
-        Section.Security -> R.string.settings_section_security
-        Section.Cloud -> R.string.settings_section_cloud
-        Section.General -> R.string.settings_section_general
-        Section.About -> R.string.settings_section_about
-    }
+    private fun headerRes(section: Section): Int =
+        when (section) {
+            Section.Appearance -> R.string.settings_section_appearance
+            Section.Security -> R.string.settings_section_security
+            Section.Cloud -> R.string.settings_section_cloud
+            Section.General -> R.string.settings_section_general
+            Section.About -> R.string.settings_section_about
+        }
 
     private enum class Row {
-        Theme, AppLock, Sync, Backup, Language, Sound, Haptic, About, Licences,
+        Theme,
+        AppLock,
+        Sync,
+        Backup,
+        Language,
+        Sound,
+        Haptic,
+        About,
+        Licences,
     }
 
     /** Mirror of the [ListItem]s in [SettingsRootContent], top to bottom, in their sections. */
-    private val rows: List<Row> = listOf(
-        Row.Theme,
-        Row.AppLock,
-        Row.Sync,
-        Row.Backup,
-        Row.Language,
-        Row.Sound,
-        Row.Haptic,
-        Row.About,
-        Row.Licences,
-    )
+    private val rows: List<Row> =
+        listOf(
+            Row.Theme,
+            Row.AppLock,
+            Row.Sync,
+            Row.Backup,
+            Row.Language,
+            Row.Sound,
+            Row.Haptic,
+            Row.About,
+            Row.Licences,
+        )
 
     /** Mirror of the headline `stringResource` for each row. */
-    private fun headlineRes(row: Row): Int = when (row) {
-        Row.Theme -> R.string.settings_theme
-        Row.AppLock -> R.string.settings_biometric_lock
-        Row.Sync -> R.string.settings_cloud_sync
-        Row.Backup -> R.string.settings_backup_restore
-        Row.Language -> R.string.settings_language
-        Row.Sound -> R.string.settings_sound_toggle
-        Row.Haptic -> R.string.settings_haptic_toggle
-        Row.About -> R.string.settings_about_help
-        Row.Licences -> R.string.about_licences
-    }
+    private fun headlineRes(row: Row): Int =
+        when (row) {
+            Row.Theme -> R.string.settings_theme
+            Row.AppLock -> R.string.settings_biometric_lock
+            Row.Sync -> R.string.settings_cloud_sync
+            Row.Backup -> R.string.settings_backup_restore
+            Row.Language -> R.string.settings_language
+            Row.Sound -> R.string.settings_sound_toggle
+            Row.Haptic -> R.string.settings_haptic_toggle
+            Row.About -> R.string.settings_about_help
+            Row.Licences -> R.string.about_licences
+        }
 
     /**
      * Mirror of which rows render as greyed placeholders with no `clickable`. As of the S16/S17
      * wiring (App lock → BiometricSetup, Sync → CloudSync) every navigation row is live; no row is a
      * disabled placeholder anymore.
      */
-    private fun isDisabled(row: Row): Boolean = when (row) {
-        Row.Theme, Row.AppLock, Row.Sync, Row.Backup, Row.Language,
-        Row.Sound, Row.Haptic, Row.About, Row.Licences,
-        -> false
-    }
+    private fun isDisabled(row: Row): Boolean =
+        when (row) {
+            Row.Theme, Row.AppLock, Row.Sync, Row.Backup, Row.Language,
+            Row.Sound, Row.Haptic, Row.About, Row.Licences,
+            -> false
+        }
 
     /** Mirror of the per-row `Modifier.clickable(onClick = …)` wiring. */
-    private fun callbackKeyForRowClick(row: Row): String? = when (row) {
-        Row.Theme -> "onOpenTheme"
-        Row.AppLock -> "onOpenBiometricLock"
-        Row.Sync -> "onOpenCloudSync"
-        Row.Language -> "onOpenLanguage"
-        Row.Backup -> "onOpenBackup"
-        Row.About -> "onOpenAbout"
-        Row.Licences -> "onOpenLicences"
-        Row.Sound, Row.Haptic -> null
-    }
+    private fun callbackKeyForRowClick(row: Row): String? =
+        when (row) {
+            Row.Theme -> "onOpenTheme"
+            Row.AppLock -> "onOpenBiometricLock"
+            Row.Sync -> "onOpenCloudSync"
+            Row.Language -> "onOpenLanguage"
+            Row.Backup -> "onOpenBackup"
+            Row.About -> "onOpenAbout"
+            Row.Licences -> "onOpenLicences"
+            Row.Sound, Row.Haptic -> null
+        }
 
     /** Mirror of the private `ThemeMode.labelRes` mapping in SettingsRootScreen. */
-    private fun themeLabelRes(mode: ThemeMode): Int = when (mode) {
-        ThemeMode.System -> R.string.theme_system
-        ThemeMode.Light -> R.string.theme_light
-        ThemeMode.Dark -> R.string.theme_dark
-    }
+    private fun themeLabelRes(mode: ThemeMode): Int =
+        when (mode) {
+            ThemeMode.System -> R.string.theme_system
+            ThemeMode.Light -> R.string.theme_light
+            ThemeMode.Dark -> R.string.theme_dark
+        }
 
     /** Mirror of the private `AppLanguage.labelRes` mapping in SettingsRootScreen. */
-    private fun languageLabelRes(language: AppLanguage): Int = when (language) {
-        AppLanguage.System -> R.string.language_system
-        AppLanguage.English -> R.string.language_en
-        AppLanguage.Russian -> R.string.language_ru
-    }
+    private fun languageLabelRes(language: AppLanguage): Int =
+        when (language) {
+            AppLanguage.System -> R.string.language_system
+            AppLanguage.English -> R.string.language_en
+            AppLanguage.Russian -> R.string.language_ru
+        }
 
     @Test
     fun `content renders exactly five section headers in declaration order`() {

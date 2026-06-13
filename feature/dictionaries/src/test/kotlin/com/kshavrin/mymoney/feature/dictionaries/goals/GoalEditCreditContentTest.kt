@@ -162,7 +162,6 @@ import java.time.Instant
  * ```
  */
 class GoalEditCreditContentTest {
-
     private val now: Instant = Instant.parse("2026-06-06T10:00:00Z")
 
     private fun anAccount(
@@ -310,26 +309,28 @@ class GoalEditCreditContentTest {
 
     @Test
     fun `SAVINGS variant state does not expose credit fields — variant is SAVINGS`() {
-        val savingsState = GoalEditState(
-            variant = GoalVariant.SAVINGS,
-            accounts = listOf(anAccount()),
-            accountId = 1L,
-            currentBalanceFormatted = "0 ₽",
-        )
+        val savingsState =
+            GoalEditState(
+                variant = GoalVariant.SAVINGS,
+                accounts = listOf(anAccount()),
+                accountId = 1L,
+                currentBalanceFormatted = "0 ₽",
+            )
         assertEquals(GoalVariant.SAVINGS, savingsState.variant)
         assertFalse("SAVINGS variant must not be CREDIT", savingsState.variant == GoalVariant.CREDIT)
     }
 
     @Test
     fun `SAVINGS variant state has blank downPayment and termYears`() {
-        val savingsState = GoalEditState(
-            variant = GoalVariant.SAVINGS,
-            accounts = listOf(anAccount()),
-            accountId = 1L,
-            currentBalanceFormatted = "0 ₽",
-            downPayment = "",
-            termYears = "",
-        )
+        val savingsState =
+            GoalEditState(
+                variant = GoalVariant.SAVINGS,
+                accounts = listOf(anAccount()),
+                accountId = 1L,
+                currentBalanceFormatted = "0 ₽",
+                downPayment = "",
+                termYears = "",
+            )
         assertTrue(
             "SAVINGS state must have blank downPayment after variant switch",
             savingsState.downPayment.isBlank(),
@@ -350,21 +351,23 @@ class GoalEditCreditContentTest {
 
     @Test
     fun `non-null loanProjection means the monthly payment block is shown`() {
-        val state = creditState(
-            loanProjection = aLoanProjection(),
-            monthlyPaymentFormatted = "12500.00 ₽",
-        )
+        val state =
+            creditState(
+                loanProjection = aLoanProjection(),
+                monthlyPaymentFormatted = "12500.00 ₽",
+            )
         assertNotNull("non-null loanProjection → monthly payment block must be rendered", state.loanProjection)
         assertNotNull("monthly payment formatted must be set", state.loanProjectionMonthlyPaymentFormatted)
     }
 
     @Test
     fun `accumulation months and total months are set when projection is present`() {
-        val state = creditState(
-            loanProjection = aLoanProjection(accumulationMonths = 10, totalMonthsToPayoff = 130),
-            loanProjectionAccumulationMonths = 10,
-            loanProjectionTotalMonths = 130,
-        )
+        val state =
+            creditState(
+                loanProjection = aLoanProjection(accumulationMonths = 10, totalMonthsToPayoff = 130),
+                loanProjectionAccumulationMonths = 10,
+                loanProjectionTotalMonths = 130,
+            )
         assertNotNull("loanProjectionAccumulationMonths must be non-null when projection present", state.loanProjectionAccumulationMonths)
         assertNotNull("loanProjectionTotalMonths must be non-null when projection present", state.loanProjectionTotalMonths)
         assertEquals("accumulation months must be 10", 10, state.loanProjectionAccumulationMonths)
@@ -373,11 +376,12 @@ class GoalEditCreditContentTest {
 
     @Test
     fun `null raw month fields when loanProjection is null`() {
-        val state = creditState(
-            loanProjection = null,
-            loanProjectionAccumulationMonths = null,
-            loanProjectionTotalMonths = null,
-        )
+        val state =
+            creditState(
+                loanProjection = null,
+                loanProjectionAccumulationMonths = null,
+                loanProjectionTotalMonths = null,
+            )
         assertNull(state.loanProjectionAccumulationMonths)
         assertNull(state.loanProjectionTotalMonths)
         assertNull(state.loanProjectionMonthlyPaymentFormatted)
@@ -401,11 +405,12 @@ class GoalEditCreditContentTest {
 
     @Test
     fun `UNREACHABLE status has null accumulationMonths and null totalMonthsToPayoff`() {
-        val projection = aLoanProjection(
-            accumulationMonths = null,
-            totalMonthsToPayoff = null,
-            status = GoalStatus.UNREACHABLE,
-        )
+        val projection =
+            aLoanProjection(
+                accumulationMonths = null,
+                totalMonthsToPayoff = null,
+                status = GoalStatus.UNREACHABLE,
+            )
         assertEquals(GoalStatus.UNREACHABLE, projection.status)
         assertNull("UNREACHABLE projection must have null accumulationMonths", projection.accumulationMonths)
         assertNull("UNREACHABLE projection must have null totalMonthsToPayoff", projection.totalMonthsToPayoff)
@@ -413,11 +418,12 @@ class GoalEditCreditContentTest {
 
     @Test
     fun `ON_TRACK status has non-null accumulationMonths and totalMonthsToPayoff`() {
-        val projection = aLoanProjection(
-            accumulationMonths = 10,
-            totalMonthsToPayoff = 130,
-            status = GoalStatus.ON_TRACK,
-        )
+        val projection =
+            aLoanProjection(
+                accumulationMonths = 10,
+                totalMonthsToPayoff = 130,
+                status = GoalStatus.ON_TRACK,
+            )
         assertEquals(GoalStatus.ON_TRACK, projection.status)
         assertNotNull("ON_TRACK projection must have non-null accumulationMonths", projection.accumulationMonths)
         assertNotNull("ON_TRACK projection must have non-null totalMonthsToPayoff", projection.totalMonthsToPayoff)
@@ -428,30 +434,33 @@ class GoalEditCreditContentTest {
     @Test
     fun `loanProjection totalInterest matches the value set on state`() {
         val expected = BigDecimal.ZERO
-        val state = creditState(
-            loanProjection = aLoanProjection(totalInterest = expected),
-            totalInterestFormatted = "0 ₽",
-        )
+        val state =
+            creditState(
+                loanProjection = aLoanProjection(totalInterest = expected),
+                totalInterestFormatted = "0 ₽",
+            )
         assertEquals(0, state.loanProjection!!.totalInterest.compareTo(expected))
     }
 
     @Test
     fun `loanProjection totalPaid matches the value set on state`() {
         val expected = BigDecimal("1500000.00")
-        val state = creditState(
-            loanProjection = aLoanProjection(totalPaid = expected),
-            totalPaidFormatted = "1500000 ₽",
-        )
+        val state =
+            creditState(
+                loanProjection = aLoanProjection(totalPaid = expected),
+                totalPaidFormatted = "1500000 ₽",
+            )
         assertEquals(0, state.loanProjection!!.totalPaid.compareTo(expected))
     }
 
     @Test
     fun `loanProjection baseMonthlyPayment matches the value set on state`() {
         val expected = BigDecimal("12500.00")
-        val state = creditState(
-            loanProjection = aLoanProjection(baseMonthlyPayment = expected),
-            monthlyPaymentFormatted = "12500.00 ₽",
-        )
+        val state =
+            creditState(
+                loanProjection = aLoanProjection(baseMonthlyPayment = expected),
+                monthlyPaymentFormatted = "12500.00 ₽",
+            )
         assertEquals(0, state.loanProjection!!.baseMonthlyPayment.compareTo(expected))
     }
 

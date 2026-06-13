@@ -1,11 +1,11 @@
 package com.kshavrin.mymoney.feature.dashboard.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -39,14 +39,16 @@ fun DashboardDrawerOverlay(
     content: @Composable () -> Unit,
 ) {
     val motion = LocalMotion.current
-    val animationSpec = tween<Float>(
-        durationMillis = motion.drawerOverlayEnterExitDuration,
-        easing = motion.easeStandard,
-    )
-    val slideAnimationSpec = tween<IntOffset>(
-        durationMillis = motion.drawerOverlayEnterExitDuration,
-        easing = motion.easeStandard,
-    )
+    val animationSpec =
+        tween<Float>(
+            durationMillis = motion.drawerOverlayEnterExitDuration,
+            easing = motion.easeStandard,
+        )
+    val slideAnimationSpec =
+        tween<IntOffset>(
+            durationMillis = motion.drawerOverlayEnterExitDuration,
+            easing = motion.easeStandard,
+        )
 
     Box(modifier = Modifier.fillMaxSize()) {
         AnimatedVisibility(
@@ -55,32 +57,37 @@ fun DashboardDrawerOverlay(
             exit = fadeOut(animationSpec = animationSpec),
         ) {
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.dashboardDrawerScrim)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = onDismiss,
-                    ),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.dashboardDrawerScrim)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = onDismiss,
+                        ),
             )
         }
         AnimatedVisibility(
             visible = open,
-            modifier = Modifier
-                .align(if (side == DrawerSide.Left) Alignment.CenterStart else Alignment.CenterEnd)
-                .fillMaxHeight(),
-            enter = slideInHorizontally(
-                animationSpec = slideAnimationSpec,
-            ) { width -> if (side == DrawerSide.Left) -width else width } + fadeIn(animationSpec = animationSpec),
-            exit = slideOutHorizontally(
-                animationSpec = slideAnimationSpec,
-            ) { width -> if (side == DrawerSide.Left) -width else width } + fadeOut(animationSpec = animationSpec),
+            modifier =
+                Modifier
+                    .align(if (side == DrawerSide.Left) Alignment.CenterStart else Alignment.CenterEnd)
+                    .fillMaxHeight(),
+            enter =
+                slideInHorizontally(
+                    animationSpec = slideAnimationSpec,
+                ) { width -> if (side == DrawerSide.Left) -width else width } + fadeIn(animationSpec = animationSpec),
+            exit =
+                slideOutHorizontally(
+                    animationSpec = slideAnimationSpec,
+                ) { width -> if (side == DrawerSide.Left) -width else width } + fadeOut(animationSpec = animationSpec),
         ) {
             Surface(
-                modifier = Modifier
-                    .fillMaxWidth(widthFraction)
-                    .fillMaxHeight(),
+                modifier =
+                    Modifier
+                        .fillMaxWidth(widthFraction)
+                        .fillMaxHeight(),
                 color = MaterialTheme.colorScheme.dashboardDrawerPanelContainer,
                 contentColor = MaterialTheme.colorScheme.dashboardDrawerPanelContent,
             ) {

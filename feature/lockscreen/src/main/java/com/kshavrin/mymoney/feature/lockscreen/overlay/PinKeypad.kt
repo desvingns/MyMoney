@@ -85,27 +85,36 @@ private fun PinDots(filled: Int) {
 }
 
 @Composable
-private fun RowScope.DigitKey(digit: Int, onDigit: (Int) -> Unit, enabled: Boolean) {
+private fun RowScope.DigitKey(
+    digit: Int,
+    onDigit: (Int) -> Unit,
+    enabled: Boolean,
+) {
     TextButton(
         onClick = { onDigit(digit) },
         enabled = enabled,
-        modifier = Modifier
-            .weight(1f)
-            .aspectRatio(1.4f),
+        modifier =
+            Modifier
+                .weight(1f)
+                .aspectRatio(1.4f),
     ) {
         Text(text = digit.toString(), style = MaterialTheme.typography.headlineSmall)
     }
 }
 
 @Composable
-private fun RowScope.BackspaceKey(onBackspace: () -> Unit, enabled: Boolean) {
+private fun RowScope.BackspaceKey(
+    onBackspace: () -> Unit,
+    enabled: Boolean,
+) {
     TextButton(
         onClick = onBackspace,
         enabled = enabled,
-        modifier = Modifier
-            .weight(1f)
-            .aspectRatio(1.4f)
-            .testTag(PIN_BACKSPACE_TAG),
+        modifier =
+            Modifier
+                .weight(1f)
+                .aspectRatio(1.4f)
+                .testTag(PIN_BACKSPACE_TAG),
     ) {
         Icon(
             imageVector = Icons.AutoMirrored.Filled.Backspace,
@@ -117,8 +126,9 @@ private fun RowScope.BackspaceKey(onBackspace: () -> Unit, enabled: Boolean) {
 @Composable
 private fun RowScope.KeySpacer() {
     Box(
-        modifier = Modifier
-            .weight(1f)
-            .aspectRatio(1.4f),
+        modifier =
+            Modifier
+                .weight(1f)
+                .aspectRatio(1.4f),
     )
 }

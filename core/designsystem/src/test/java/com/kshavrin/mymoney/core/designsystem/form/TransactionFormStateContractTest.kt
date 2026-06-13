@@ -123,7 +123,6 @@ import java.time.LocalDate
  * ```
  */
 class TransactionFormStateContractTest {
-
     private fun baseState(
         mode: TransactionFormMode = TransactionFormMode.New,
         categoryStep: Boolean = false,
@@ -238,10 +237,11 @@ class TransactionFormStateContractTest {
 
     @Test
     fun `categories list is preserved in the form state`() {
-        val cats = listOf(
-            TransactionFormCategory(10L, "Food", "#FF8888", "ic_cat_food"),
-            TransactionFormCategory(11L, "Entertainment", "#8888FF", "ic_cat_fun"),
-        )
+        val cats =
+            listOf(
+                TransactionFormCategory(10L, "Food", "#FF8888", "ic_cat_food"),
+                TransactionFormCategory(11L, "Entertainment", "#8888FF", "ic_cat_fun"),
+            )
         val state = editState(categories = cats)
         assertEquals(2, state.categories.size)
         assertEquals(10L, state.categories[0].id)

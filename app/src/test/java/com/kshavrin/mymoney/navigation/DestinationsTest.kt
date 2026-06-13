@@ -7,7 +7,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class DestinationsTest {
-
     @Test
     fun `CATEGORIES_LIST route is dictionaries categories`() {
         assertEquals("dictionaries/categories", Destinations.CATEGORIES_LIST)
@@ -40,21 +39,23 @@ class DestinationsTest {
 
     @Test
     fun `dictionary list routes are all distinct`() {
-        val listRoutes = setOf(
-            Destinations.CATEGORIES_LIST,
-            Destinations.ACCOUNTS_LIST,
-            Destinations.CURRENCIES_LIST,
-        )
+        val listRoutes =
+            setOf(
+                Destinations.CATEGORIES_LIST,
+                Destinations.ACCOUNTS_LIST,
+                Destinations.CURRENCIES_LIST,
+            )
         assertEquals(3, listRoutes.size)
     }
 
     @Test
     fun `dictionary edit base routes are all distinct`() {
-        val editRoutes = setOf(
-            Destinations.CATEGORY_EDIT,
-            Destinations.ACCOUNT_EDIT,
-            Destinations.CURRENCY_EDIT,
-        )
+        val editRoutes =
+            setOf(
+                Destinations.CATEGORY_EDIT,
+                Destinations.ACCOUNT_EDIT,
+                Destinations.CURRENCY_EDIT,
+            )
         assertEquals(3, editRoutes.size)
     }
 
@@ -124,27 +125,29 @@ class DestinationsTest {
 
     @Test
     fun `dictionary routes do not collide with non-dictionary routes`() {
-        val dictionaryRoutes = setOf(
-            Destinations.CATEGORIES_LIST,
-            Destinations.CATEGORY_EDIT,
-            Destinations.ACCOUNTS_LIST,
-            Destinations.ACCOUNT_EDIT,
-            Destinations.CURRENCIES_LIST,
-            Destinations.CURRENCY_EDIT,
-        )
-        val otherRoutes = setOf(
-            Destinations.DECISION,
-            Destinations.SPLASH,
-            Destinations.ONBOARDING,
-            Destinations.DASHBOARD,
-            Destinations.ADD_EXPENSE,
-            Destinations.ADD_INCOME,
-            Destinations.TRANSFER,
-            Destinations.TRANSACTIONS_LIST,
-            Destinations.SETTINGS,
-            Destinations.CLOUD_SYNC,
-            Destinations.LOCK_SCREEN,
-        )
+        val dictionaryRoutes =
+            setOf(
+                Destinations.CATEGORIES_LIST,
+                Destinations.CATEGORY_EDIT,
+                Destinations.ACCOUNTS_LIST,
+                Destinations.ACCOUNT_EDIT,
+                Destinations.CURRENCIES_LIST,
+                Destinations.CURRENCY_EDIT,
+            )
+        val otherRoutes =
+            setOf(
+                Destinations.DECISION,
+                Destinations.SPLASH,
+                Destinations.ONBOARDING,
+                Destinations.DASHBOARD,
+                Destinations.ADD_EXPENSE,
+                Destinations.ADD_INCOME,
+                Destinations.TRANSFER,
+                Destinations.TRANSACTIONS_LIST,
+                Destinations.SETTINGS,
+                Destinations.CLOUD_SYNC,
+                Destinations.LOCK_SCREEN,
+            )
         val intersection = dictionaryRoutes.intersect(otherRoutes)
         assertTrue(
             "Dictionary routes must not overlap with other navigation routes; collisions: $intersection",
@@ -209,12 +212,13 @@ class DestinationsTest {
 
     @Test
     fun `transaction routes are all distinct`() {
-        val transactionRoutes = setOf(
-            Destinations.ADD_EXPENSE,
-            Destinations.ADD_INCOME,
-            Destinations.TRANSFER,
-            Destinations.CURRENCY_RATE,
-        )
+        val transactionRoutes =
+            setOf(
+                Destinations.ADD_EXPENSE,
+                Destinations.ADD_INCOME,
+                Destinations.TRANSFER,
+                Destinations.CURRENCY_RATE,
+            )
         assertEquals(4, transactionRoutes.size)
     }
 
@@ -307,16 +311,17 @@ class DestinationsTest {
     @Test
     fun `TRANSACTION_DETAIL route does not collide with transaction or dictionary routes`() {
         val detailRoute = Destinations.TRANSACTION_DETAIL
-        val otherRoutes = setOf(
-            Destinations.ADD_EXPENSE,
-            Destinations.ADD_INCOME,
-            Destinations.TRANSFER,
-            Destinations.TRANSACTIONS_LIST,
-            Destinations.CATEGORIES_LIST,
-            Destinations.CATEGORY_EDIT,
-            Destinations.ACCOUNTS_LIST,
-            Destinations.ACCOUNT_EDIT,
-        )
+        val otherRoutes =
+            setOf(
+                Destinations.ADD_EXPENSE,
+                Destinations.ADD_INCOME,
+                Destinations.TRANSFER,
+                Destinations.TRANSACTIONS_LIST,
+                Destinations.CATEGORIES_LIST,
+                Destinations.CATEGORY_EDIT,
+                Destinations.ACCOUNTS_LIST,
+                Destinations.ACCOUNT_EDIT,
+            )
         assertTrue(
             "TRANSACTION_DETAIL must not collide with other routes",
             detailRoute !in otherRoutes,
@@ -325,12 +330,13 @@ class DestinationsTest {
 
     @Test
     fun `destinations do not expose retired category picker route`() {
-        val routeValues = Destinations::class.java.declaredFields
-            .filter { it.type == String::class.java }
-            .map { field ->
-                field.isAccessible = true
-                field.get(null) as String
-            }
+        val routeValues =
+            Destinations::class.java.declaredFields
+                .filter { it.type == String::class.java }
+                .map { field ->
+                    field.isAccessible = true
+                    field.get(null) as String
+                }
 
         assertTrue("Category picker route must stay retired", "transaction/category_picker" !in routeValues)
     }
@@ -390,12 +396,13 @@ class DestinationsTest {
         val categoryId = 42L
         val fromMillis = 1_746_489_600_000L
         val toMillis = 1_777_939_199_999L
-        val route = buildString {
-            append("${Destinations.TRANSACTIONS_LIST}?")
-            append("accountId=$accountId&")
-            append("currencyId=$currencyId&categoryId=$categoryId")
-            append("&from=$fromMillis&to=$toMillis")
-        }
+        val route =
+            buildString {
+                append("${Destinations.TRANSACTIONS_LIST}?")
+                append("accountId=$accountId&")
+                append("currencyId=$currencyId&categoryId=$categoryId")
+                append("&from=$fromMillis&to=$toMillis")
+            }
         assertEquals(
             "transactions?accountId=3&currencyId=1&categoryId=42&from=1746489600000&to=1777939199999",
             route,
@@ -410,11 +417,12 @@ class DestinationsTest {
         val categoryId = 55L
         val fromMillis = 1_746_489_600_000L
         val toMillis = 1_777_939_199_999L
-        val route = buildString {
-            append("${Destinations.TRANSACTIONS_LIST}?")
-            append("currencyId=$currencyId&categoryId=$categoryId")
-            append("&from=$fromMillis&to=$toMillis")
-        }
+        val route =
+            buildString {
+                append("${Destinations.TRANSACTIONS_LIST}?")
+                append("currencyId=$currencyId&categoryId=$categoryId")
+                append("&from=$fromMillis&to=$toMillis")
+            }
         assertFalse("accountId must be absent for all-accounts category navigation", route.contains("accountId="))
         assertTrue(route.contains("currencyId="))
         assertTrue(route.contains("categoryId="))
@@ -435,28 +443,30 @@ class DestinationsTest {
 
     @Test
     fun `transaction routes do not collide with other navigation routes`() {
-        val transactionRoutes = setOf(
-            Destinations.ADD_EXPENSE,
-            Destinations.ADD_INCOME,
-            Destinations.TRANSFER,
-            Destinations.CURRENCY_RATE,
-        )
-        val otherRoutes = setOf(
-            Destinations.DECISION,
-            Destinations.SPLASH,
-            Destinations.ONBOARDING,
-            Destinations.DASHBOARD,
-            Destinations.TRANSACTIONS_LIST,
-            Destinations.SETTINGS,
-            Destinations.CATEGORIES_LIST,
-            Destinations.CATEGORY_EDIT,
-            Destinations.ACCOUNTS_LIST,
-            Destinations.ACCOUNT_EDIT,
-            Destinations.CURRENCIES_LIST,
-            Destinations.CURRENCY_EDIT,
-            Destinations.CLOUD_SYNC,
-            Destinations.LOCK_SCREEN,
-        )
+        val transactionRoutes =
+            setOf(
+                Destinations.ADD_EXPENSE,
+                Destinations.ADD_INCOME,
+                Destinations.TRANSFER,
+                Destinations.CURRENCY_RATE,
+            )
+        val otherRoutes =
+            setOf(
+                Destinations.DECISION,
+                Destinations.SPLASH,
+                Destinations.ONBOARDING,
+                Destinations.DASHBOARD,
+                Destinations.TRANSACTIONS_LIST,
+                Destinations.SETTINGS,
+                Destinations.CATEGORIES_LIST,
+                Destinations.CATEGORY_EDIT,
+                Destinations.ACCOUNTS_LIST,
+                Destinations.ACCOUNT_EDIT,
+                Destinations.CURRENCIES_LIST,
+                Destinations.CURRENCY_EDIT,
+                Destinations.CLOUD_SYNC,
+                Destinations.LOCK_SCREEN,
+            )
         val intersection = transactionRoutes.intersect(otherRoutes)
         assertTrue(
             "Transaction routes must not overlap with other navigation routes; collisions: $intersection",

@@ -26,16 +26,15 @@ import com.kshavrin.mymoney.core.designsystem.R
 import com.kshavrin.mymoney.core.designsystem.keypad.KeypadEvent
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import com.kshavrin.mymoney.core.ui.theme.Spacing
-import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.time.LocalDate
 
 @RunWith(AndroidJUnit4::class)
 class TransactionFormContentUiTest {
-
     @get:Rule
     val composeTestRule = createComposeRule()
 
@@ -44,10 +43,11 @@ class TransactionFormContentUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 TransactionFormContent(
-                    state = defaultState(
-                        chooseCategoryEnabled = false,
-                        categories = listOf(category(id = 10L, name = "Food")),
-                    ),
+                    state =
+                        defaultState(
+                            chooseCategoryEnabled = false,
+                            categories = listOf(category(id = 10L, name = "Food")),
+                        ),
                     onEvent = {},
                 )
             }
@@ -76,10 +76,11 @@ class TransactionFormContentUiTest {
                     modifier = Modifier.requiredSize(width = 360.dp, height = 700.dp),
                 ) {
                     TransactionFormContent(
-                        state = defaultState(
-                            amountInput = "12",
-                            chooseCategoryEnabled = true,
-                        ),
+                        state =
+                            defaultState(
+                                amountInput = "12",
+                                chooseCategoryEnabled = true,
+                            ),
                         onEvent = {},
                         modifier = Modifier.fillMaxSize(),
                     )
@@ -87,24 +88,28 @@ class TransactionFormContentUiTest {
             }
         }
 
-        val noteBounds = composeTestRule
-            .onNode(hasSetTextAction())
-            .fetchSemanticsNode()
-            .boundsInRoot
-        val keypadTop = composeTestRule
-            .onNode(hasText("1") and hasClickAction())
-            .fetchSemanticsNode()
-            .boundsInRoot
-            .top
-        val buttonBounds = composeTestRule
-            .onNodeWithText(targetString(R.string.transaction_form_choose_category_button))
-            .assertIsDisplayed()
-            .assertIsEnabled()
-            .fetchSemanticsNode()
-            .boundsInRoot
-        val minButtonHeight = with(composeTestRule.density) {
-            Spacing.transactionFormChooseCategoryMinHeight.toPx()
-        }
+        val noteBounds =
+            composeTestRule
+                .onNode(hasSetTextAction())
+                .fetchSemanticsNode()
+                .boundsInRoot
+        val keypadTop =
+            composeTestRule
+                .onNode(hasText("1") and hasClickAction())
+                .fetchSemanticsNode()
+                .boundsInRoot
+                .top
+        val buttonBounds =
+            composeTestRule
+                .onNodeWithText(targetString(R.string.transaction_form_choose_category_button))
+                .assertIsDisplayed()
+                .assertIsEnabled()
+                .fetchSemanticsNode()
+                .boundsInRoot
+        val minButtonHeight =
+            with(composeTestRule.density) {
+                Spacing.transactionFormChooseCategoryMinHeight.toPx()
+            }
 
         assertTrue(
             "keypad must start immediately under the note field",
@@ -124,11 +129,12 @@ class TransactionFormContentUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 TransactionFormContent(
-                    state = defaultState(
-                        amountInput = "12",
-                        chooseCategoryEnabled = true,
-                        occurredAt = occurredAt,
-                    ),
+                    state =
+                        defaultState(
+                            amountInput = "12",
+                            chooseCategoryEnabled = true,
+                            occurredAt = occurredAt,
+                        ),
                     onEvent = { event -> capturedEvents += event },
                 )
             }
@@ -166,15 +172,17 @@ class TransactionFormContentUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 Box(
-                    modifier = Modifier
-                        .requiredSize(width = 320.dp, height = 620.dp)
-                        .testTag(FORM_CONTAINER_TAG),
+                    modifier =
+                        Modifier
+                            .requiredSize(width = 320.dp, height = 620.dp)
+                            .testTag(FORM_CONTAINER_TAG),
                 ) {
                     TransactionFormContent(
-                        state = defaultState(
-                            amountInput = "12",
-                            chooseCategoryEnabled = true,
-                        ),
+                        state =
+                            defaultState(
+                                amountInput = "12",
+                                chooseCategoryEnabled = true,
+                            ),
                         onEvent = {},
                         modifier = Modifier.fillMaxSize(),
                     )
@@ -182,17 +190,19 @@ class TransactionFormContentUiTest {
             }
         }
 
-        val containerBottom = composeTestRule
-            .onNodeWithTag(FORM_CONTAINER_TAG)
-            .fetchSemanticsNode()
-            .boundsInRoot
-            .bottom
-        val buttonBounds = composeTestRule
-            .onNodeWithText(targetString(R.string.transaction_form_choose_category_button))
-            .assertIsDisplayed()
-            .assertHeightIsAtLeast(Spacing.transactionFormChooseCategoryMinHeight)
-            .fetchSemanticsNode()
-            .boundsInRoot
+        val containerBottom =
+            composeTestRule
+                .onNodeWithTag(FORM_CONTAINER_TAG)
+                .fetchSemanticsNode()
+                .boundsInRoot
+                .bottom
+        val buttonBounds =
+            composeTestRule
+                .onNodeWithText(targetString(R.string.transaction_form_choose_category_button))
+                .assertIsDisplayed()
+                .assertHeightIsAtLeast(Spacing.transactionFormChooseCategoryMinHeight)
+                .fetchSemanticsNode()
+                .boundsInRoot
 
         composeTestRule
             .onNode(hasText("1") and hasClickAction())
@@ -210,11 +220,12 @@ class TransactionFormContentUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 TransactionFormContent(
-                    state = defaultState(
-                        amountInput = "12",
-                        categories = listOf(category(id = 10L, name = "Food")),
-                        categoryStep = true,
-                    ),
+                    state =
+                        defaultState(
+                            amountInput = "12",
+                            categories = listOf(category(id = 10L, name = "Food")),
+                            categoryStep = true,
+                        ),
                     onEvent = {},
                 )
             }
@@ -247,11 +258,12 @@ class TransactionFormContentUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 TransactionFormContent(
-                    state = defaultState(
-                        amountInput = "12",
-                        categories = listOf(category(id = 10L, name = "Food")),
-                        categoryStep = true,
-                    ),
+                    state =
+                        defaultState(
+                            amountInput = "12",
+                            categories = listOf(category(id = 10L, name = "Food")),
+                            categoryStep = true,
+                        ),
                     onEvent = { event -> capturedEvents += event },
                 )
             }
@@ -285,32 +297,42 @@ class TransactionFormContentUiTest {
         categories: List<TransactionFormCategory> = emptyList(),
         categoryStep: Boolean = false,
         chooseCategoryEnabled: Boolean = false,
-    ): TransactionFormState = TransactionFormState(
-        amountInput = amountInput,
-        expression = "",
-        currencyCode = "USD",
-        currencySymbol = "$",
-        note = "",
-        occurredAt = occurredAt,
-        categories = categories,
-        categoryStep = categoryStep,
-        chooseCategoryEnabled = chooseCategoryEnabled,
-    )
+    ): TransactionFormState =
+        TransactionFormState(
+            amountInput = amountInput,
+            expression = "",
+            currencyCode = "USD",
+            currencySymbol = "$",
+            note = "",
+            occurredAt = occurredAt,
+            categories = categories,
+            categoryStep = categoryStep,
+            chooseCategoryEnabled = chooseCategoryEnabled,
+        )
 
-    private fun category(id: Long, name: String): TransactionFormCategory = TransactionFormCategory(
-        id = id,
-        name = name,
-        colorHex = "#7AC794",
-        iconKey = "ic_cat_food",
-    )
+    private fun category(
+        id: Long,
+        name: String,
+    ): TransactionFormCategory =
+        TransactionFormCategory(
+            id = id,
+            name = name,
+            colorHex = "#7AC794",
+            iconKey = "ic_cat_food",
+        )
 
     private fun targetString(resourceId: Int): String =
         InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)
 
     private fun dateLabel(date: LocalDate): String {
-        val locale = InstrumentationRegistry.getInstrumentation()
-            .targetContext.resources.configuration.locales[0]
-        return date.format(java.time.format.DateTimeFormatter.ofPattern("EEEE, d MMMM", locale))
+        val locale =
+            InstrumentationRegistry
+                .getInstrumentation()
+                .targetContext.resources.configuration.locales[0]
+        return date.format(
+            java.time.format.DateTimeFormatter
+                .ofPattern("EEEE, d MMMM", locale),
+        )
     }
 
     private companion object {

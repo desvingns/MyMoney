@@ -57,41 +57,45 @@ fun BackupRestoreRoute(
     val restoreMessage = stringResource(R.string.backup_import_success)
     val resetMessage = stringResource(R.string.backup_reset_success)
 
-    val exportLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocumentTree(),
-    ) { uri ->
-        if (uri != null) {
-            context.contentResolver.takePersistableUriPermission(
-                uri,
-                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
-            )
-            viewModel.onEvent(BackupRestoreEvent.ExportFolderPicked(uri.toString()))
+    val exportLauncher =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.OpenDocumentTree(),
+        ) { uri ->
+            if (uri != null) {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+                )
+                viewModel.onEvent(BackupRestoreEvent.ExportFolderPicked(uri.toString()))
+            }
         }
-    }
 
-    val importLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocument(),
-    ) { uri ->
-        if (uri != null) {
-            viewModel.onEvent(BackupRestoreEvent.ImportFilePicked(uri.toString()))
+    val importLauncher =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.OpenDocument(),
+        ) { uri ->
+            if (uri != null) {
+                viewModel.onEvent(BackupRestoreEvent.ImportFilePicked(uri.toString()))
+            }
         }
-    }
 
-    val csvExportLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.CreateDocument(CSV_MIME_TYPE),
-    ) { uri ->
-        if (uri != null) {
-            viewModel.onEvent(BackupRestoreEvent.ExportCsvFilePicked(uri.toString()))
+    val csvExportLauncher =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.CreateDocument(CSV_MIME_TYPE),
+        ) { uri ->
+            if (uri != null) {
+                viewModel.onEvent(BackupRestoreEvent.ExportCsvFilePicked(uri.toString()))
+            }
         }
-    }
 
-    val csvImportLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocument(),
-    ) { uri ->
-        if (uri != null) {
-            viewModel.onEvent(BackupRestoreEvent.ImportCsvFilePicked(uri.toString()))
+    val csvImportLauncher =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.OpenDocument(),
+        ) { uri ->
+            if (uri != null) {
+                viewModel.onEvent(BackupRestoreEvent.ImportCsvFilePicked(uri.toString()))
+            }
         }
-    }
 
     CollectActions(flow = viewModel.actions, key = viewModel) { action ->
         when (action) {
@@ -103,11 +107,12 @@ fun BackupRestoreRoute(
                 relaunchApplication(context)
             }
             is BackupRestoreAction.RestartToOnboardingAfterReset -> {
-                val message = if (action.hadFailures) {
-                    context.getString(R.string.backup_reset_error)
-                } else {
-                    resetMessage
-                }
+                val message =
+                    if (action.hadFailures) {
+                        context.getString(R.string.backup_reset_error)
+                    } else {
+                        resetMessage
+                    }
                 Toast.makeText(context, message, Toast.LENGTH_LONG).show()
                 relaunchApplication(context)
             }
@@ -160,10 +165,11 @@ fun BackupRestoreContent(
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { innerPadding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(Spacing.l),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(Spacing.l),
             verticalArrangement = Arrangement.spacedBy(Spacing.m),
         ) {
             Text(
@@ -204,19 +210,21 @@ fun BackupRestoreContent(
                 style = MaterialTheme.typography.titleMedium,
             )
             Text(
-                text = stringResource(
-                    R.string.backup_size_label,
-                    Formatter.formatShortFileSize(context, state.dbSizeBytes),
-                ),
+                text =
+                    stringResource(
+                        R.string.backup_size_label,
+                        Formatter.formatShortFileSize(context, state.dbSizeBytes),
+                    ),
                 style = MaterialTheme.typography.bodyMedium,
             )
             Button(
                 onClick = onRequestReset,
                 enabled = !state.inProgress,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error,
-                    contentColor = MaterialTheme.colorScheme.onError,
-                ),
+                colors =
+                    ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError,
+                    ),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(stringResource(R.string.backup_reset_cta))
@@ -238,10 +246,11 @@ fun BackupRestoreContent(
             confirmButton = {
                 Button(
                     onClick = onConfirmReset,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error,
-                        contentColor = MaterialTheme.colorScheme.onError,
-                    ),
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error,
+                            contentColor = MaterialTheme.colorScheme.onError,
+                        ),
                 ) {
                     Text(stringResource(R.string.backup_reset_confirm))
                 }
@@ -265,9 +274,10 @@ private fun csvExportName(): String =
     "mymoney_transactions_${CSV_TIMESTAMP_FORMATTER.format(Instant.now())}.csv"
 
 private fun relaunchApplication(context: android.content.Context) {
-    val component = checkNotNull(
-        context.packageManager.getLaunchIntentForPackage(context.packageName)?.component,
-    )
+    val component =
+        checkNotNull(
+            context.packageManager.getLaunchIntentForPackage(context.packageName)?.component,
+        )
     context.startActivity(Intent.makeRestartActivityTask(component))
     Process.killProcess(Process.myPid())
 }

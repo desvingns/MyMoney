@@ -17,7 +17,6 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class AboutHelpContentUiTest {
-
     @get:Rule
     val composeTestRule = createComposeRule()
 
@@ -92,6 +91,9 @@ class AboutHelpContentUiTest {
         }
     }
 
-    private fun targetString(resourceId: Int, vararg formatArgs: Any): String =
+    private fun targetString(
+        resourceId: Int,
+        vararg formatArgs: Any,
+    ): String =
         InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId, *formatArgs)
 }

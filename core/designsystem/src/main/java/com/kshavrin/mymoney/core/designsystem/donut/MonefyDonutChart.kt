@@ -36,9 +36,9 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
@@ -82,7 +82,10 @@ enum class DonutStyle { Flat, Extrude }
  * table write. Deriving the key here (rather than keying `LaunchedEffect` on the raw list)
  * makes that invariant explicit and unit-testable.
  */
-internal data class DonutAnimationKey(private val ids: List<Long>, private val fractions: List<Float>)
+internal data class DonutAnimationKey(
+    private val ids: List<Long>,
+    private val fractions: List<Float>,
+)
 
 internal fun donutAnimationKey(slices: List<CategorySlice>): DonutAnimationKey =
     DonutAnimationKey(
@@ -91,11 +94,14 @@ internal fun donutAnimationKey(slices: List<CategorySlice>): DonutAnimationKey =
     )
 
 /** Reusable, allocation-free draw objects for the extruded ring's cast shadow. */
-private class ExtrudedRingPaints(blurRadiusPx: Float) {
-    val shadowPaint: Paint = Paint().apply {
-        style = PaintingStyle.Stroke
-        asFrameworkPaint().maskFilter = BlurMaskFilter(blurRadiusPx, BlurMaskFilter.Blur.NORMAL)
-    }
+private class ExtrudedRingPaints(
+    blurRadiusPx: Float,
+) {
+    val shadowPaint: Paint =
+        Paint().apply {
+            style = PaintingStyle.Stroke
+            asFrameworkPaint().maskFilter = BlurMaskFilter(blurRadiusPx, BlurMaskFilter.Blur.NORMAL)
+        }
 }
 
 @Composable
@@ -135,12 +141,14 @@ fun MonefyDonutChart(
     val progress = remember { Animatable(0f) }
     val textMeasurer = rememberTextMeasurer()
     val density = LocalDensity.current
-    val extrudedRingPaints = remember(density) {
-        ExtrudedRingPaints(blurRadiusPx = with(density) { 7.dp.toPx() })
-    }
-    val iconPainters = (slices + emptyStateIcons)
-        .distinctBy { it.iconKey }
-        .associate { it.iconKey to rememberVectorPainter(categoryIcon(it.iconKey)) }
+    val extrudedRingPaints =
+        remember(density) {
+            ExtrudedRingPaints(blurRadiusPx = with(density) { 7.dp.toPx() })
+        }
+    val iconPainters =
+        (slices + emptyStateIcons)
+            .distinctBy { it.iconKey }
+            .associate { it.iconKey to rememberVectorPainter(categoryIcon(it.iconKey)) }
 
     LaunchedEffect(animationKey) {
         progress.snapTo(0f)
@@ -154,40 +162,46 @@ fun MonefyDonutChart(
     val expenseColor = MaterialTheme.colorScheme.tertiary
 
     val locale = LocalConfiguration.current.locales[0]
-    val incomeText = MoneyFormatter.format(
-        amount = income,
-        currencySymbol = currencySymbol,
-        decimalDigits = centerDecimalDigits,
-        locale = locale,
-        symbolPosition = MoneyFormatter.SymbolPosition.AFTER,
-    )
-    val expenseText = MoneyFormatter.format(
-        amount = expense,
-        currencySymbol = currencySymbol,
-        decimalDigits = centerDecimalDigits,
-        locale = locale,
-        symbolPosition = MoneyFormatter.SymbolPosition.AFTER,
-    )
+    val incomeText =
+        MoneyFormatter.format(
+            amount = income,
+            currencySymbol = currencySymbol,
+            decimalDigits = centerDecimalDigits,
+            locale = locale,
+            symbolPosition = MoneyFormatter.SymbolPosition.AFTER,
+        )
+    val expenseText =
+        MoneyFormatter.format(
+            amount = expense,
+            currencySymbol = currencySymbol,
+            decimalDigits = centerDecimalDigits,
+            locale = locale,
+            symbolPosition = MoneyFormatter.SymbolPosition.AFTER,
+        )
 
-    val chartHeader = stringResource(
-        R.string.donut_chart_cd,
-        income.toPlainString(),
-        expense.toPlainString(),
-    )
+    val chartHeader =
+        stringResource(
+            R.string.donut_chart_cd,
+            income.toPlainString(),
+            expense.toPlainString(),
+        )
     val sliceTemplate = stringResource(R.string.donut_chart_slice)
     val budgetAlertLabel = stringResource(R.string.donut_chart_budget_alert)
-    val chartDescription = remember(chartHeader, sliceTemplate, budgetAlertLabel, slices) {
-        val sliceText = slices.joinToString(separator = " ") { slice ->
-            val description = String.format(sliceTemplate, slice.label, (slice.fraction * 100f).toInt())
-            if (slice.hasBudgetAlert) "$description, $budgetAlertLabel" else description
+    val chartDescription =
+        remember(chartHeader, sliceTemplate, budgetAlertLabel, slices) {
+            val sliceText =
+                slices.joinToString(separator = " ") { slice ->
+                    val description = String.format(sliceTemplate, slice.label, (slice.fraction * 100f).toInt())
+                    if (slice.hasBudgetAlert) "$description, $budgetAlertLabel" else description
+                }
+            if (sliceText.isEmpty()) chartHeader else "$chartHeader $sliceText"
         }
-        if (sliceText.isEmpty()) chartHeader else "$chartHeader $sliceText"
-    }
 
     Box(
-        modifier = modifier.semantics(mergeDescendants = true) {
-            contentDescription = chartDescription
-        },
+        modifier =
+            modifier.semantics(mergeDescendants = true) {
+                contentDescription = chartDescription
+            },
     ) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             val viewConfiguration = LocalViewConfiguration.current
@@ -197,107 +211,118 @@ fun MonefyDonutChart(
             val iconCenterRadius =
                 chartHalf * outerRadiusFraction + Spacing.s + iconSizeDp / 2f + explodedOffset
             val iconTouchOverflow = maxOf(Spacing.none, iconCenterRadius + iconTouchRadiusDp - chartHalf)
-            val minimumTouchTargetSize = DpSize(
-                width = maxOf(
-                    viewConfiguration.minimumTouchTargetSize.width,
-                    maxWidth + iconTouchOverflow * 2f,
-                ),
-                height = maxOf(
-                    viewConfiguration.minimumTouchTargetSize.height,
-                    maxHeight + iconTouchOverflow * 2f,
-                ),
-            )
-            val donutViewConfiguration = remember(viewConfiguration, minimumTouchTargetSize) {
-                DonutViewConfiguration(
-                    base = viewConfiguration,
-                    minimumTouchTargetSize = minimumTouchTargetSize,
+            val minimumTouchTargetSize =
+                DpSize(
+                    width =
+                        maxOf(
+                            viewConfiguration.minimumTouchTargetSize.width,
+                            maxWidth + iconTouchOverflow * 2f,
+                        ),
+                    height =
+                        maxOf(
+                            viewConfiguration.minimumTouchTargetSize.height,
+                            maxHeight + iconTouchOverflow * 2f,
+                        ),
                 )
-            }
+            val donutViewConfiguration =
+                remember(viewConfiguration, minimumTouchTargetSize) {
+                    DonutViewConfiguration(
+                        base = viewConfiguration,
+                        minimumTouchTargetSize = minimumTouchTargetSize,
+                    )
+                }
             CompositionLocalProvider(LocalViewConfiguration provides donutViewConfiguration) {
                 Canvas(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .pointerInput(
-                            arcs,
-                            emptyStateIcons,
-                            outerRadiusFraction,
-                            ringThicknessFraction,
-                            sliceGapDegrees,
-                            iconScale,
-                            calloutIconSize,
-                            explodedOffset,
-                            onSliceClick,
-                            onEmptyCategoryClick,
-                        ) {
-                            detectTapGestures { offset ->
-                                val center = Offset(size.width / 2f, size.height / 2f)
-                                val outerRadius = min(size.width, size.height) / 2f * outerRadiusFraction
-                                if (arcs.isEmpty()) {
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .pointerInput(
+                                arcs,
+                                emptyStateIcons,
+                                outerRadiusFraction,
+                                ringThicknessFraction,
+                                sliceGapDegrees,
+                                iconScale,
+                                calloutIconSize,
+                                explodedOffset,
+                                onSliceClick,
+                                onEmptyCategoryClick,
+                            ) {
+                                detectTapGestures { offset ->
+                                    val center = Offset(size.width / 2f, size.height / 2f)
+                                    val outerRadius = min(size.width, size.height) / 2f * outerRadiusFraction
+                                    if (arcs.isEmpty()) {
+                                        val iconSize = calloutIconSize.toPx() * (iconScale / 1.7f)
+                                        val iconTouchRadius = (iconSize + Spacing.m.toPx()) / 2f
+                                        val inset = iconSize / 2f + Spacing.s.toPx()
+                                        val insetHalfWidth = (size.width / 2f - inset).coerceAtLeast(0f)
+                                        val insetHalfHeightTop = (center.y - inset).coerceAtLeast(0f)
+                                        val insetHalfHeightBottom =
+                                            (size.height - center.y - inset).coerceAtLeast(0f)
+                                        val angles = DonutGeometry.evenAngles(emptyStateIcons.size)
+                                        val hit =
+                                            emptyStateIcons.firstOrNullIndexed { index, _ ->
+                                                val slot =
+                                                    emptyIconFrameSlot(
+                                                        center = center,
+                                                        angleDegrees = angles[index],
+                                                        insetHalfWidth = insetHalfWidth,
+                                                        insetHalfHeightTop = insetHalfHeightTop,
+                                                        insetHalfHeightBottom = insetHalfHeightBottom,
+                                                    )
+                                                hypot(offset.x - slot.x, offset.y - slot.y) <= iconTouchRadius
+                                            }
+                                        if (hit != null) onEmptyCategoryClick?.invoke(hit)
+                                        return@detectTapGestures
+                                    }
+                                    val strokeWidth = outerRadius * ringThicknessFraction
+                                    val innerRadius = outerRadius - strokeWidth
+                                    val explodedOffsetPx = explodedOffset.toPx()
                                     val iconSize = calloutIconSize.toPx() * (iconScale / 1.7f)
+                                    val iconMargin = Spacing.s.toPx()
                                     val iconTouchRadius = (iconSize + Spacing.m.toPx()) / 2f
-                                    val inset = iconSize / 2f + Spacing.s.toPx()
+                                    val inset = iconSize / 2f + iconMargin
                                     val insetHalfWidth = (size.width / 2f - inset).coerceAtLeast(0f)
                                     val insetHalfHeightTop = (center.y - inset).coerceAtLeast(0f)
-                                    val insetHalfHeightBottom =
-                                        (size.height - center.y - inset).coerceAtLeast(0f)
-                                    val angles = DonutGeometry.evenAngles(emptyStateIcons.size)
-                                    val hit = emptyStateIcons.firstOrNullIndexed { index, _ ->
-                                        val slot = emptyIconFrameSlot(
-                                            center = center,
-                                            angleDegrees = angles[index],
-                                            insetHalfWidth = insetHalfWidth,
-                                            insetHalfHeightTop = insetHalfHeightTop,
-                                            insetHalfHeightBottom = insetHalfHeightBottom,
+                                    val insetHalfHeightBottom = (size.height - center.y - inset).coerceAtLeast(0f)
+                                    val iconHit =
+                                        layoutSlices(arcs)
+                                            .firstOrNull { placed ->
+                                                if (
+                                                    progress.value < 1f ||
+                                                    placed.slice.fraction <= 0f
+                                                ) {
+                                                    return@firstOrNull false
+                                                }
+                                                val slot =
+                                                    placed.frameIconCenter(
+                                                        center = center,
+                                                        insetHalfWidth = insetHalfWidth,
+                                                        insetHalfHeightTop = insetHalfHeightTop,
+                                                        insetHalfHeightBottom = insetHalfHeightBottom,
+                                                        explodedOffset = placed.explodedOffset(explodedOffsetPx),
+                                                    )
+                                                hypot(offset.x - slot.x, offset.y - slot.y) <= iconTouchRadius
+                                            }?.slice
+                                    if (iconHit != null) {
+                                        onSliceClick?.invoke(iconHit)
+                                        return@detectTapGestures
+                                    }
+                                    val hit =
+                                        DonutGeometry.hitTest(
+                                            offsetX = offset.x,
+                                            offsetY = offset.y,
+                                            centerX = center.x,
+                                            centerY = center.y,
+                                            innerRadius = innerRadius,
+                                            outerRadius = outerRadius,
+                                            arcs = arcs,
+                                            sliceGapDegrees = sliceGapDegrees,
+                                            explodedOffset = explodedOffsetPx,
                                         )
-                                        hypot(offset.x - slot.x, offset.y - slot.y) <= iconTouchRadius
-                                    }
-                                    if (hit != null) onEmptyCategoryClick?.invoke(hit)
-                                    return@detectTapGestures
+                                    if (hit != null) onSliceClick?.invoke(hit)
                                 }
-                                val strokeWidth = outerRadius * ringThicknessFraction
-                                val innerRadius = outerRadius - strokeWidth
-                                val explodedOffsetPx = explodedOffset.toPx()
-                                val iconSize = calloutIconSize.toPx() * (iconScale / 1.7f)
-                                val iconMargin = Spacing.s.toPx()
-        val iconTouchRadius = (iconSize + Spacing.m.toPx()) / 2f
-                                val inset = iconSize / 2f + iconMargin
-                                val insetHalfWidth = (size.width / 2f - inset).coerceAtLeast(0f)
-                                val insetHalfHeightTop = (center.y - inset).coerceAtLeast(0f)
-                                val insetHalfHeightBottom = (size.height - center.y - inset).coerceAtLeast(0f)
-                                val iconHit = layoutSlices(arcs).firstOrNull { placed ->
-                                    if (
-                                        progress.value < 1f ||
-                                        placed.slice.fraction <= 0f
-                                    ) {
-                                        return@firstOrNull false
-                                    }
-                                    val slot = placed.frameIconCenter(
-                                        center = center,
-                                        insetHalfWidth = insetHalfWidth,
-                                        insetHalfHeightTop = insetHalfHeightTop,
-                                        insetHalfHeightBottom = insetHalfHeightBottom,
-                                        explodedOffset = placed.explodedOffset(explodedOffsetPx),
-                                    )
-                                    hypot(offset.x - slot.x, offset.y - slot.y) <= iconTouchRadius
-                                }?.slice
-                                if (iconHit != null) {
-                                    onSliceClick?.invoke(iconHit)
-                                    return@detectTapGestures
-                                }
-                                val hit = DonutGeometry.hitTest(
-                                    offsetX = offset.x,
-                                    offsetY = offset.y,
-                                    centerX = center.x,
-                                    centerY = center.y,
-                                    innerRadius = innerRadius,
-                                    outerRadius = outerRadius,
-                                    arcs = arcs,
-                                    sliceGapDegrees = sliceGapDegrees,
-                                    explodedOffset = explodedOffsetPx,
-                                )
-                                if (hit != null) onSliceClick?.invoke(hit)
-                            }
-                        },
+                            },
                 ) {
                     drawDonutChart(
                         incomeText = incomeText,
@@ -381,9 +406,10 @@ private fun DrawScope.drawDonutChart(
     val iconMargin = Spacing.s.toPx()
 
     if (slices.isEmpty()) {
-        val ringArcs = listOf(
-            GappedArc(color = outlineColor, startAngle = -90f, sweepAngle = 360f),
-        )
+        val ringArcs =
+            listOf(
+                GappedArc(color = outlineColor, startAngle = -90f, sweepAngle = 360f),
+            )
         if (style == DonutStyle.Extrude) {
             drawExtrudedRing(center = center, radius = r, th = th, arcs = ringArcs, paints = extrudedRingPaints)
         } else {
@@ -396,30 +422,33 @@ private fun DrawScope.drawDonutChart(
         val angles = DonutGeometry.evenAngles(emptyStateIcons.size)
         emptyStateIcons.forEachIndexed { index, slice ->
             val angleDegrees = angles[index]
-            val rawSlot = emptyIconFrameSlot(
-                center = center,
-                angleDegrees = angleDegrees,
-                insetHalfWidth = insetHalfWidth,
-                insetHalfHeightTop = insetHalfHeightTop,
-                insetHalfHeightBottom = insetHalfHeightBottom,
-            )
-            val slot = clampCalloutAnchor(
-                anchor = rawSlot,
-                iconSize = iconSize,
-                label = null,
-                percentage = "",
-                percentageStyle = calloutPercentageStyle,
-                labelStyle = calloutLabelStyle,
-                textMeasurer = textMeasurer,
-                canvasWidth = size.width,
-                canvasHeight = size.height,
-            )
-            val ringOuterPoint = radialPoint(
-                center = center,
-                midRadians = Math.toRadians(angleDegrees.toDouble()).toFloat(),
-                radius = outerRadius,
-                explodedOffset = Offset.Zero,
-            )
+            val rawSlot =
+                emptyIconFrameSlot(
+                    center = center,
+                    angleDegrees = angleDegrees,
+                    insetHalfWidth = insetHalfWidth,
+                    insetHalfHeightTop = insetHalfHeightTop,
+                    insetHalfHeightBottom = insetHalfHeightBottom,
+                )
+            val slot =
+                clampCalloutAnchor(
+                    anchor = rawSlot,
+                    iconSize = iconSize,
+                    label = null,
+                    percentage = "",
+                    percentageStyle = calloutPercentageStyle,
+                    labelStyle = calloutLabelStyle,
+                    textMeasurer = textMeasurer,
+                    canvasWidth = size.width,
+                    canvasHeight = size.height,
+                )
+            val ringOuterPoint =
+                radialPoint(
+                    center = center,
+                    midRadians = Math.toRadians(angleDegrees.toDouble()).toFloat(),
+                    radius = outerRadius,
+                    explodedOffset = Offset.Zero,
+                )
             drawLine(
                 color = slice.color,
                 start = ringOuterPoint,
@@ -451,17 +480,18 @@ private fun DrawScope.drawDonutChart(
 
     val placed = layoutSlices(arcs)
 
-    val gappedArcs = placed.map { p ->
-        val animatedSweep = p.sweepDegrees * progress
-        val gap = DonutGeometry.gapForSweep(p.sweepDegrees, sliceGapDegrees)
-        val offset = p.explodedOffset(explodedOffsetPx)
-        GappedArc(
-            color = p.slice.color,
-            startAngle = p.startAngleDegrees + gap / 2f,
-            sweepAngle = (animatedSweep - gap).coerceAtLeast(0f),
-            offset = offset,
-        )
-    }
+    val gappedArcs =
+        placed.map { p ->
+            val animatedSweep = p.sweepDegrees * progress
+            val gap = DonutGeometry.gapForSweep(p.sweepDegrees, sliceGapDegrees)
+            val offset = p.explodedOffset(explodedOffsetPx)
+            GappedArc(
+                color = p.slice.color,
+                startAngle = p.startAngleDegrees + gap / 2f,
+                sweepAngle = (animatedSweep - gap).coerceAtLeast(0f),
+                offset = offset,
+            )
+        }
 
     if (style == DonutStyle.Extrude) {
         drawExtrudedRing(center = center, radius = r, th = th, arcs = gappedArcs, paints = extrudedRingPaints)
@@ -477,47 +507,52 @@ private fun DrawScope.drawDonutChart(
     placed.forEach { p ->
         if (progress < 1f || p.slice.fraction <= 0f) return@forEach
         val offset = p.explodedOffset(explodedOffsetPx)
-        val rawSlot = p.frameIconCenter(
-            center = center,
-            insetHalfWidth = insetHalfWidth,
-            insetHalfHeightTop = insetHalfHeightTop,
-            insetHalfHeightBottom = insetHalfHeightBottom,
-            explodedOffset = offset,
-        )
-        val slot = clampCalloutAnchor(
-            anchor = rawSlot,
-            iconSize = iconSize,
-            label = p.slice.label.takeIf { showCategoryLabels && p.slice.fraction >= labelMinFraction },
-            percentage = "${(p.slice.fraction * 100f).roundToInt()}%",
-            percentageStyle = calloutPercentageStyle,
-            labelStyle = calloutLabelStyle,
-            textMeasurer = textMeasurer,
-            canvasWidth = size.width,
-            canvasHeight = size.height,
-        )
-        val sliceOuterPoint = radialPoint(
-            center = center,
-            midRadians = p.midRadians,
-            radius = outerRadius,
-            explodedOffset = offset,
-        )
+        val rawSlot =
+            p.frameIconCenter(
+                center = center,
+                insetHalfWidth = insetHalfWidth,
+                insetHalfHeightTop = insetHalfHeightTop,
+                insetHalfHeightBottom = insetHalfHeightBottom,
+                explodedOffset = offset,
+            )
+        val slot =
+            clampCalloutAnchor(
+                anchor = rawSlot,
+                iconSize = iconSize,
+                label = p.slice.label.takeIf { showCategoryLabels && p.slice.fraction >= labelMinFraction },
+                percentage = "${(p.slice.fraction * 100f).roundToInt()}%",
+                percentageStyle = calloutPercentageStyle,
+                labelStyle = calloutLabelStyle,
+                textMeasurer = textMeasurer,
+                canvasWidth = size.width,
+                canvasHeight = size.height,
+            )
+        val sliceOuterPoint =
+            radialPoint(
+                center = center,
+                midRadians = p.midRadians,
+                radius = outerRadius,
+                explodedOffset = offset,
+            )
         drawLine(
             color = p.slice.color,
             start = sliceOuterPoint,
             end = slot,
             strokeWidth = leaderLineThickness.toPx(),
         )
-        val iconCenter = drawIconDisc(
-            slotCenter = slot,
-            iconSize = iconSize,
-            tintColor = p.slice.color,
-            iconPainter = iconPainters[p.slice.iconKey],
-        )
-        if (p.slice.hasBudgetAlert) {
-            val badgeCenter = Offset(
-                x = iconCenter.x + iconSize * 0.35f,
-                y = iconCenter.y - iconSize * 0.35f,
+        val iconCenter =
+            drawIconDisc(
+                slotCenter = slot,
+                iconSize = iconSize,
+                tintColor = p.slice.color,
+                iconPainter = iconPainters[p.slice.iconKey],
             )
+        if (p.slice.hasBudgetAlert) {
+            val badgeCenter =
+                Offset(
+                    x = iconCenter.x + iconSize * 0.35f,
+                    y = iconCenter.y - iconSize * 0.35f,
+                )
             drawCircle(color = badgeBorderColor, radius = 5.dp.toPx(), center = badgeCenter)
             drawCircle(color = budgetAlertColor, radius = 3.5.dp.toPx(), center = badgeCenter)
         }
@@ -639,11 +674,15 @@ private fun clampCalloutAnchor(
 ): Offset {
     val percentageLayout = textMeasurer.measure(text = percentage, style = percentageStyle, maxLines = 1)
     val blockWidth = iconSize + percentageLayout.size.width
-    val labelHeight = if (label != null) {
-        textMeasurer.measure(text = label, style = labelStyle, maxLines = 1).size.height.toFloat()
-    } else {
-        0f
-    }
+    val labelHeight =
+        if (label != null) {
+            textMeasurer
+                .measure(text = label, style = labelStyle, maxLines = 1)
+                .size.height
+                .toFloat()
+        } else {
+            0f
+        }
 
     val leftFromAnchor = iconSize / 2f
     val topFromAnchor = iconSize / 2f
@@ -671,11 +710,12 @@ private fun DrawScope.drawCalloutText(
     textMeasurer: TextMeasurer,
 ) {
     val inlineGap = Spacing.xxs.toPx()
-    val percentageLayout = textMeasurer.measure(
-        text = percentage,
-        style = percentageStyle.copy(color = sliceColor),
-        maxLines = 1,
-    )
+    val percentageLayout =
+        textMeasurer.measure(
+            text = percentage,
+            style = percentageStyle.copy(color = sliceColor),
+            maxLines = 1,
+        )
 
     val iconLeft = iconCenter.x - iconSize / 2f
     val blockWidth = iconSize + inlineGap + percentageLayout.size.width
@@ -690,12 +730,13 @@ private fun DrawScope.drawCalloutText(
     )
 
     if (label != null) {
-        val labelLayout = measureSingleLineLabel(
-            text = label,
-            maxWidth = blockWidth.roundToInt(),
-            style = labelStyle.copy(color = labelColor, textAlign = TextAlign.Center),
-            textMeasurer = textMeasurer,
-        )
+        val labelLayout =
+            measureSingleLineLabel(
+                text = label,
+                maxWidth = blockWidth.roundToInt(),
+                style = labelStyle.copy(color = labelColor, textAlign = TextAlign.Center),
+                textMeasurer = textMeasurer,
+            )
         val labelTop = iconCenter.y + iconSize / 2f + inlineGap
         drawTextCentered(labelLayout, blockCenterX, labelTop, labelColor)
     }
@@ -709,24 +750,26 @@ private fun measureSingleLineLabel(
 ): TextLayoutResult {
     val baseSizeSp = style.fontSize.value
     var currentSizeSp = baseSizeSp
-    var layout = textMeasurer.measure(
-        text = text,
-        style = style,
-        maxLines = 1,
-        softWrap = false,
-        overflow = TextOverflow.Ellipsis,
-        constraints = Constraints(maxWidth = maxWidth),
-    )
-    while (layout.hasVisualOverflow && currentSizeSp > CALLOUT_LABEL_MIN_SP) {
-        currentSizeSp = (currentSizeSp - 1f).coerceAtLeast(CALLOUT_LABEL_MIN_SP)
-        layout = textMeasurer.measure(
+    var layout =
+        textMeasurer.measure(
             text = text,
-            style = style.copy(fontSize = currentSizeSp.sp),
+            style = style,
             maxLines = 1,
             softWrap = false,
             overflow = TextOverflow.Ellipsis,
             constraints = Constraints(maxWidth = maxWidth),
         )
+    while (layout.hasVisualOverflow && currentSizeSp > CALLOUT_LABEL_MIN_SP) {
+        currentSizeSp = (currentSizeSp - 1f).coerceAtLeast(CALLOUT_LABEL_MIN_SP)
+        layout =
+            textMeasurer.measure(
+                text = text,
+                style = style.copy(fontSize = currentSizeSp.sp),
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Ellipsis,
+                constraints = Constraints(maxWidth = maxWidth),
+            )
     }
     return layout
 }
@@ -751,17 +794,18 @@ private fun emptyIconFrameSlot(
     insetHalfHeightTop: Float,
     insetHalfHeightBottom: Float,
 ): Offset {
-    val projected = DonutGeometry.projectAngleToFrame(
-        angleRadians = Math.toRadians(angleDegrees.toDouble()).toFloat(),
-        halfWidth = insetHalfWidth,
-        halfHeightTop = insetHalfHeightTop,
-        halfHeightBottom = insetHalfHeightBottom,
-    )
+    val projected =
+        DonutGeometry.projectAngleToFrame(
+            angleRadians = Math.toRadians(angleDegrees.toDouble()).toFloat(),
+            halfWidth = insetHalfWidth,
+            halfHeightTop = insetHalfHeightTop,
+            halfHeightBottom = insetHalfHeightBottom,
+        )
     return Offset(center.x + projected.x, center.y + projected.y)
 }
 
-private fun layoutSlices(arcs: List<SliceArc>): List<PlacedSlice> {
-    return arcs.map { arc ->
+private fun layoutSlices(arcs: List<SliceArc>): List<PlacedSlice> =
+    arcs.map { arc ->
         val mid = DonutGeometry.midAngleRadians(arc)
         PlacedSlice(
             slice = arc.slice,
@@ -770,11 +814,14 @@ private fun layoutSlices(arcs: List<SliceArc>): List<PlacedSlice> {
             midRadians = mid,
         )
     }
-}
 
-private fun shade(color: Color, factor: Float): Color {
+private fun shade(
+    color: Color,
+    factor: Float,
+): Color {
     val target = if (factor < 0f) 0f else 1f
     val p = kotlin.math.abs(factor)
+
     fun mix(channel: Float) = (target - channel) * p + channel
     return Color(
         red = mix(color.red),
@@ -827,10 +874,11 @@ private fun DrawScope.drawExtrudedRing(
     // Visual parity: reuse a remembered Paint/BlurMaskFilter (blur radius is density-derived
     // and thus constant for the composition) and mutate only color/strokeWidth — cheap setters
     // that produce byte-identical output to the per-frame `Paint()`/`BlurMaskFilter()` it replaces.
-    val shadowPaint = paints.shadowPaint.apply {
-        color = EXTRUDED_RING_CAST_COLOR
-        strokeWidth = th * 0.92f
-    }
+    val shadowPaint =
+        paints.shadowPaint.apply {
+            color = EXTRUDED_RING_CAST_COLOR
+            strokeWidth = th * 0.92f
+        }
     drawIntoCanvas { canvas ->
         canvas.drawCircle(Offset(center.x, center.y + th * 0.95f), radius, shadowPaint)
     }
@@ -895,10 +943,11 @@ private fun DrawScope.drawIconDisc(
     return slotCenter
 }
 
-private fun PlacedSlice.explodedOffset(distance: Float): Offset = Offset(
-    x = distance * cos(midRadians),
-    y = distance * sin(midRadians),
-)
+private fun PlacedSlice.explodedOffset(distance: Float): Offset =
+    Offset(
+        x = distance * cos(midRadians),
+        y = distance * sin(midRadians),
+    )
 
 private fun PlacedSlice.frameIconCenter(
     center: Offset,
@@ -907,12 +956,13 @@ private fun PlacedSlice.frameIconCenter(
     insetHalfHeightBottom: Float,
     explodedOffset: Offset,
 ): Offset {
-    val projected = DonutGeometry.projectAngleToFrame(
-        angleRadians = midRadians,
-        halfWidth = insetHalfWidth,
-        halfHeightTop = insetHalfHeightTop,
-        halfHeightBottom = insetHalfHeightBottom,
-    )
+    val projected =
+        DonutGeometry.projectAngleToFrame(
+            angleRadians = midRadians,
+            halfWidth = insetHalfWidth,
+            halfHeightTop = insetHalfHeightTop,
+            halfHeightBottom = insetHalfHeightBottom,
+        )
     return Offset(
         x = center.x + explodedOffset.x + projected.x,
         y = center.y + explodedOffset.y + projected.y,
@@ -924,7 +974,8 @@ private fun radialPoint(
     midRadians: Float,
     radius: Float,
     explodedOffset: Offset,
-): Offset = Offset(
-    x = center.x + explodedOffset.x + radius * cos(midRadians),
-    y = center.y + explodedOffset.y + radius * sin(midRadians),
-)
+): Offset =
+    Offset(
+        x = center.x + explodedOffset.x + radius * cos(midRadians),
+        y = center.y + explodedOffset.y + radius * sin(midRadians),
+    )

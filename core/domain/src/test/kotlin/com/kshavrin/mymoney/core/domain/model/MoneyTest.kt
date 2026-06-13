@@ -8,37 +8,39 @@ import org.junit.Test
 import java.math.BigDecimal
 
 class MoneyTest {
-
-    private val usd = Currency(
-        id = 1L,
-        code = "USD",
-        symbol = "$",
-        name = "US Dollar",
-        decimalDigits = 2,
-        isActive = true,
-        sortOrder = 0,
-    )
+    private val usd =
+        Currency(
+            id = 1L,
+            code = "USD",
+            symbol = "$",
+            name = "US Dollar",
+            decimalDigits = 2,
+            isActive = true,
+            sortOrder = 0,
+        )
 
     // Same decimalDigits as USD but a different id: the currency guard keys on id.
-    private val eur = Currency(
-        id = 2L,
-        code = "EUR",
-        symbol = "€",
-        name = "Euro",
-        decimalDigits = 2,
-        isActive = true,
-        sortOrder = 1,
-    )
+    private val eur =
+        Currency(
+            id = 2L,
+            code = "EUR",
+            symbol = "€",
+            name = "Euro",
+            decimalDigits = 2,
+            isActive = true,
+            sortOrder = 1,
+        )
 
-    private val jpy = Currency(
-        id = 3L,
-        code = "JPY",
-        symbol = "¥",
-        name = "Yen",
-        decimalDigits = 0,
-        isActive = true,
-        sortOrder = 2,
-    )
+    private val jpy =
+        Currency(
+            id = 3L,
+            code = "JPY",
+            symbol = "¥",
+            name = "Yen",
+            decimalDigits = 0,
+            isActive = true,
+            sortOrder = 2,
+        )
 
     private fun usd(value: String) = Money(BigDecimal(value), usd)
 
@@ -59,9 +61,10 @@ class MoneyTest {
 
     @Test
     fun `plus rejects different currencies`() {
-        val ex = assertThrows(IllegalArgumentException::class.java) {
-            Money(BigDecimal("1.00"), usd) + Money(BigDecimal("1.00"), eur)
-        }
+        val ex =
+            assertThrows(IllegalArgumentException::class.java) {
+                Money(BigDecimal("1.00"), usd) + Money(BigDecimal("1.00"), eur)
+            }
         assertTrue(ex.message!!.contains("USD"))
         assertTrue(ex.message!!.contains("EUR"))
     }

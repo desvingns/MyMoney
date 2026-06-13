@@ -6,8 +6,10 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class BackupRotationTest {
-
-    private fun backup(name: String, lastModifiedEpochMs: Long) =
+    private fun backup(
+        name: String,
+        lastModifiedEpochMs: Long,
+    ) =
         BackupFile(name = name, uriString = "content://backups/$name", lastModifiedEpochMs = lastModifiedEpochMs)
 
     @Test
@@ -65,12 +67,13 @@ class BackupRotationTest {
 
     @Test
     fun `selection is ordered by last modified not by input order`() {
-        val files = listOf(
-            backup("inserted-third", 999L),
-            backup("inserted-first", 10L),
-            backup("inserted-second", 500L),
-            backup("inserted-fourth", 1L),
-        )
+        val files =
+            listOf(
+                backup("inserted-third", 999L),
+                backup("inserted-first", 10L),
+                backup("inserted-second", 500L),
+                backup("inserted-fourth", 1L),
+            )
 
         val toDelete = BackupRepository.backupsToDelete(files)
 
@@ -79,13 +82,14 @@ class BackupRotationTest {
 
     @Test
     fun `retained files are exactly the three with the highest timestamps`() {
-        val files = listOf(
-            backup("a", 1L),
-            backup("b", 9L),
-            backup("c", 3L),
-            backup("d", 7L),
-            backup("e", 5L),
-        )
+        val files =
+            listOf(
+                backup("a", 1L),
+                backup("b", 9L),
+                backup("c", 3L),
+                backup("d", 7L),
+                backup("e", 5L),
+            )
 
         val deleted = BackupRepository.backupsToDelete(files).toSet()
         val retained = files.toSet() - deleted
@@ -95,13 +99,14 @@ class BackupRotationTest {
 
     @Test
     fun `deleting then retaining covers the whole input exactly once`() {
-        val files = listOf(
-            backup("a", 100L),
-            backup("b", 200L),
-            backup("c", 300L),
-            backup("d", 400L),
-            backup("e", 500L),
-        )
+        val files =
+            listOf(
+                backup("a", 100L),
+                backup("b", 200L),
+                backup("c", 300L),
+                backup("d", 400L),
+                backup("e", 500L),
+            )
 
         val deleted = BackupRepository.backupsToDelete(files)
         val retained = files - deleted.toSet()

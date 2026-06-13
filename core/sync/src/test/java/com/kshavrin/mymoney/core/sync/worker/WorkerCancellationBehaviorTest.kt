@@ -52,187 +52,221 @@ import kotlin.coroutines.EmptyCoroutineContext
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class WorkerCancellationBehaviorTest {
-
     private val executor: Executor = Executor { it.run() }
     private val taskExecutor = ImmediateTaskExecutor(executor)
-    private val workerFactory = object : WorkerFactory() {
-        override fun createWorker(
-            appContext: Context,
-            workerClassName: String,
-            workerParameters: WorkerParameters,
-        ): ListenableWorker? = null
-    }
-    private val progressUpdater = object : ProgressUpdater {
-        override fun updateProgress(
-            context: Context,
-            id: UUID,
-            data: Data,
-        ): ListenableFuture<Void> = completedFuture()
-    }
-    private val foregroundUpdater = object : ForegroundUpdater {
-        override fun setForegroundAsync(
-            context: Context,
-            id: UUID,
-            foregroundInfo: ForegroundInfo,
-        ): ListenableFuture<Void> = completedFuture()
-    }
-    private val cacheDir: File = File.createTempFile("worker_cache", "").let { tmp ->
-        tmp.delete()
-        tmp.mkdirs()
-        tmp.deleteOnExit()
-        tmp
-    }
-    private val appContext: Context = object : ContextWrapper(null) {
-        override fun getCacheDir(): File = cacheDir
-    }
-
-    @Test
-    fun `backup rotation cancellation is rethrown instead of becoming retry`() = runTest {
-        val repository = RotationBackupRepository(Result.failure(CancellationException("cancelled")))
-        val worker = BackupRotationWorker(
-            appContext = appContext,
-            params = workerParameters(
-                inputData = Data.Builder()
-                    .putString(BackupRotationWorker.KEY_TREE_URI, "content://tree/backup")
-                    .build(),
-            ),
-            backupRepository = repository,
-        )
-
-        try {
-            worker.doWork()
-            fail("Expected CancellationException")
-        } catch (_: CancellationException) {
+    private val workerFactory =
+        object : WorkerFactory() {
+            override fun createWorker(
+                appContext: Context,
+                workerClassName: String,
+                workerParameters: WorkerParameters,
+            ): ListenableWorker? = null
+        }
+    private val progressUpdater =
+        object : ProgressUpdater {
+            override fun updateProgress(
+                context: Context,
+                id: UUID,
+                data: Data,
+            ): ListenableFuture<Void> = completedFuture()
+        }
+    private val foregroundUpdater =
+        object : ForegroundUpdater {
+            override fun setForegroundAsync(
+                context: Context,
+                id: UUID,
+                foregroundInfo: ForegroundInfo,
+            ): ListenableFuture<Void> = completedFuture()
+        }
+    private val cacheDir: File =
+        File.createTempFile("worker_cache", "").let { tmp ->
+            tmp.delete()
+            tmp.mkdirs()
+            tmp.deleteOnExit()
+            tmp
+        }
+    private val appContext: Context =
+        object : ContextWrapper(null) {
+            override fun getCacheDir(): File = cacheDir
         }
 
-        assertEquals(listOf("content://tree/backup"), repository.rotateCalls)
-    }
-
     @Test
-    fun `backup rotation ordinary failure keeps retry mapping before max attempts`() = runTest {
-        val worker = BackupRotationWorker(
-            appContext = appContext,
-            params = workerParameters(
-                inputData = Data.Builder()
-                    .putString(BackupRotationWorker.KEY_TREE_URI, "content://tree/backup")
-                    .build(),
-            ),
-            backupRepository = RotationBackupRepository(Result.failure(IllegalStateException("boom"))),
-        )
+    fun `backup rotation cancellation is rethrown instead of becoming retry`() =
+        runTest {
+            val repository = RotationBackupRepository(Result.failure(CancellationException("cancelled")))
+            val worker =
+                BackupRotationWorker(
+                    appContext = appContext,
+                    params =
+                        workerParameters(
+                            inputData =
+                                Data
+                                    .Builder()
+                                    .putString(BackupRotationWorker.KEY_TREE_URI, "content://tree/backup")
+                                    .build(),
+                        ),
+                    backupRepository = repository,
+                )
 
-        assertEquals(ListenableWorker.Result.retry(), worker.doWork())
-    }
+            try {
+                worker.doWork()
+                fail("Expected CancellationException")
+            } catch (_: CancellationException) {
+            }
 
-    @Test
-    fun `prune deleted cancellation is rethrown instead of becoming retry`() = runTest {
-        val worker = PruneDeletedWorker(
-            appContext = appContext,
-            params = workerParameters(),
-            transactionRepository = PruneTransactionRepository(CancellationException("cancelled")),
-        )
-
-        try {
-            worker.doWork()
-            fail("Expected CancellationException")
-        } catch (_: CancellationException) {
+            assertEquals(listOf("content://tree/backup"), repository.rotateCalls)
         }
-    }
 
     @Test
-    fun `prune deleted ordinary failure keeps retry mapping before max attempts`() = runTest {
-        val worker = PruneDeletedWorker(
-            appContext = appContext,
-            params = workerParameters(),
-            transactionRepository = PruneTransactionRepository(IllegalStateException("boom")),
-        )
+    fun `backup rotation ordinary failure keeps retry mapping before max attempts`() =
+        runTest {
+            val worker =
+                BackupRotationWorker(
+                    appContext = appContext,
+                    params =
+                        workerParameters(
+                            inputData =
+                                Data
+                                    .Builder()
+                                    .putString(BackupRotationWorker.KEY_TREE_URI, "content://tree/backup")
+                                    .build(),
+                        ),
+                    backupRepository = RotationBackupRepository(Result.failure(IllegalStateException("boom"))),
+                )
 
-        assertEquals(ListenableWorker.Result.retry(), worker.doWork())
-    }
-
-    @Test
-    fun `recurring cancellation is rethrown instead of becoming retry`() = runTest {
-        val worker = RecurringWorker(
-            appContext = appContext,
-            params = workerParameters(),
-            generateDueRecurring = generateDueRecurringUseCase(CancellationException("cancelled")),
-        )
-
-        try {
-            worker.doWork()
-            fail("Expected CancellationException")
-        } catch (_: CancellationException) {
+            assertEquals(ListenableWorker.Result.retry(), worker.doWork())
         }
-    }
 
     @Test
-    fun `recurring ordinary failure keeps retry mapping before max attempts`() = runTest {
-        val worker = RecurringWorker(
-            appContext = appContext,
-            params = workerParameters(),
-            generateDueRecurring = generateDueRecurringUseCase(IllegalStateException("boom")),
-        )
+    fun `prune deleted cancellation is rethrown instead of becoming retry`() =
+        runTest {
+            val worker =
+                PruneDeletedWorker(
+                    appContext = appContext,
+                    params = workerParameters(),
+                    transactionRepository = PruneTransactionRepository(CancellationException("cancelled")),
+                )
 
-        assertEquals(ListenableWorker.Result.retry(), worker.doWork())
-    }
-
-    @Test
-    fun `sync cancellation is rethrown instead of becoming retry`() = runTest {
-        val settings = FakeAppSettingsRepository(AppSettings(autoSyncEnabled = true))
-        val worker = SyncWorker(
-            appContext = appContext,
-            params = workerParameters(
-                inputData = Data.Builder()
-                    .putString(SyncWorker.KEY_TARGET, SyncTarget.Dropbox.name)
-                    .build(),
-            ),
-            orchestrator = FakeSnapshotSync(pushResult = Result.failure(CancellationException("cancelled"))),
-            settings = settings,
-        )
-
-        try {
-            worker.doWork()
-            fail("Expected CancellationException")
-        } catch (_: CancellationException) {
+            try {
+                worker.doWork()
+                fail("Expected CancellationException")
+            } catch (_: CancellationException) {
+            }
         }
-    }
 
     @Test
-    fun `sync ordinary failure keeps retry mapping before max attempts`() = runTest {
-        val settings = FakeAppSettingsRepository(AppSettings(autoSyncEnabled = true))
-        val worker = SyncWorker(
-            appContext = appContext,
-            params = workerParameters(
-                inputData = Data.Builder()
-                    .putString(SyncWorker.KEY_TARGET, SyncTarget.Dropbox.name)
-                    .build(),
-            ),
-            orchestrator = FakeSnapshotSync(
-                pushResult = Result.failure(SyncException(SyncError.Network)),
-            ),
-            settings = settings,
-        )
+    fun `prune deleted ordinary failure keeps retry mapping before max attempts`() =
+        runTest {
+            val worker =
+                PruneDeletedWorker(
+                    appContext = appContext,
+                    params = workerParameters(),
+                    transactionRepository = PruneTransactionRepository(IllegalStateException("boom")),
+                )
 
-        assertEquals(ListenableWorker.Result.retry(), worker.doWork())
-    }
+            assertEquals(ListenableWorker.Result.retry(), worker.doWork())
+        }
+
+    @Test
+    fun `recurring cancellation is rethrown instead of becoming retry`() =
+        runTest {
+            val worker =
+                RecurringWorker(
+                    appContext = appContext,
+                    params = workerParameters(),
+                    generateDueRecurring = generateDueRecurringUseCase(CancellationException("cancelled")),
+                )
+
+            try {
+                worker.doWork()
+                fail("Expected CancellationException")
+            } catch (_: CancellationException) {
+            }
+        }
+
+    @Test
+    fun `recurring ordinary failure keeps retry mapping before max attempts`() =
+        runTest {
+            val worker =
+                RecurringWorker(
+                    appContext = appContext,
+                    params = workerParameters(),
+                    generateDueRecurring = generateDueRecurringUseCase(IllegalStateException("boom")),
+                )
+
+            assertEquals(ListenableWorker.Result.retry(), worker.doWork())
+        }
+
+    @Test
+    fun `sync cancellation is rethrown instead of becoming retry`() =
+        runTest {
+            val settings = FakeAppSettingsRepository(AppSettings(autoSyncEnabled = true))
+            val worker =
+                SyncWorker(
+                    appContext = appContext,
+                    params =
+                        workerParameters(
+                            inputData =
+                                Data
+                                    .Builder()
+                                    .putString(SyncWorker.KEY_TARGET, SyncTarget.Dropbox.name)
+                                    .build(),
+                        ),
+                    orchestrator = FakeSnapshotSync(pushResult = Result.failure(CancellationException("cancelled"))),
+                    settings = settings,
+                )
+
+            try {
+                worker.doWork()
+                fail("Expected CancellationException")
+            } catch (_: CancellationException) {
+            }
+        }
+
+    @Test
+    fun `sync ordinary failure keeps retry mapping before max attempts`() =
+        runTest {
+            val settings = FakeAppSettingsRepository(AppSettings(autoSyncEnabled = true))
+            val worker =
+                SyncWorker(
+                    appContext = appContext,
+                    params =
+                        workerParameters(
+                            inputData =
+                                Data
+                                    .Builder()
+                                    .putString(SyncWorker.KEY_TARGET, SyncTarget.Dropbox.name)
+                                    .build(),
+                        ),
+                    orchestrator =
+                        FakeSnapshotSync(
+                            pushResult = Result.failure(SyncException(SyncError.Network)),
+                        ),
+                    settings = settings,
+                )
+
+            assertEquals(ListenableWorker.Result.retry(), worker.doWork())
+        }
 
     private fun workerParameters(
         inputData: Data = Data.EMPTY,
         runAttemptCount: Int = 0,
         workerContext: CoroutineContext = EmptyCoroutineContext,
-    ): WorkerParameters = WorkerParameters(
-        UUID.randomUUID(),
-        inputData,
-        emptyList<String>(),
-        WorkerParameters.RuntimeExtras(),
-        runAttemptCount,
-        0,
-        executor,
-        workerContext,
-        taskExecutor,
-        workerFactory,
-        progressUpdater,
-        foregroundUpdater,
-    )
+    ): WorkerParameters =
+        WorkerParameters(
+            UUID.randomUUID(),
+            inputData,
+            emptyList<String>(),
+            WorkerParameters.RuntimeExtras(),
+            runAttemptCount,
+            0,
+            executor,
+            workerContext,
+            taskExecutor,
+            workerFactory,
+            progressUpdater,
+            foregroundUpdater,
+        )
 
     private fun generateDueRecurringUseCase(throwable: Throwable): GenerateDueRecurringUseCase =
         GenerateDueRecurringUseCase(
@@ -261,7 +295,10 @@ class WorkerCancellationBehaviorTest {
 
         override suspend fun keepRemote(target: SyncTarget): Result<SyncOutcome> = pushResult
 
-        override fun connect(target: SyncTarget, payload: String) = Unit
+        override fun connect(
+            target: SyncTarget,
+            payload: String,
+        ) = Unit
 
         override fun disconnect(target: SyncTarget) = Unit
 
@@ -304,23 +341,22 @@ class WorkerCancellationBehaviorTest {
     private class PruneTransactionRepository(
         private val throwable: Throwable,
     ) : NoOpTransactionRepository() {
-        override suspend fun pruneDeleted(before: Instant) {
-            throw throwable
-        }
+        override suspend fun pruneDeleted(before: Instant): Unit = throw throwable
     }
 
     private class ThrowingRecurringTemplateRepository(
         private val throwable: Throwable,
     ) : RecurringTemplateRepository {
-        override suspend fun findDue(now: Instant): List<RecurringTemplate> {
-            throw throwable
-        }
+        override suspend fun findDue(now: Instant): List<RecurringTemplate> = throw throwable
 
         override fun observeAll(): Flow<List<RecurringTemplate>> = flowOf(emptyList())
 
         override suspend fun upsert(template: RecurringTemplate): Long = 0L
 
-        override suspend fun updateNextRun(id: Long, nextRunAt: Instant) = Unit
+        override suspend fun updateNextRun(
+            id: Long,
+            nextRunAt: Instant,
+        ) = Unit
 
         override suspend fun deactivate(id: Long) = Unit
     }
@@ -339,7 +375,10 @@ class WorkerCancellationBehaviorTest {
 
         override suspend fun findById(id: Long): Transaction? = null
 
-        override suspend fun findByPeriod(accountId: Long, period: Period): List<Transaction> = emptyList()
+        override suspend fun findByPeriod(
+            accountId: Long,
+            period: Period,
+        ): List<Transaction> = emptyList()
 
         override suspend fun getCategorySummary(
             accountId: Long,
@@ -347,15 +386,27 @@ class WorkerCancellationBehaviorTest {
             kind: TransactionKind,
         ): List<CategorySummary> = emptyList()
 
-        override suspend fun getCategoryGroups(accountId: Long, period: Period): List<CategoryGroup> = emptyList()
+        override suspend fun getCategoryGroups(
+            accountId: Long,
+            period: Period,
+        ): List<CategoryGroup> = emptyList()
 
-        override suspend fun searchByNote(query: String, limit: Int): List<Transaction> = emptyList()
+        override suspend fun searchByNote(
+            query: String,
+            limit: Int,
+        ): List<Transaction> = emptyList()
 
         override suspend fun upsert(transaction: Transaction): Long = 0L
 
-        override suspend fun softDelete(id: Long, now: Instant) = Unit
+        override suspend fun softDelete(
+            id: Long,
+            now: Instant,
+        ) = Unit
 
-        override suspend fun restore(id: Long, now: Instant) = Unit
+        override suspend fun restore(
+            id: Long,
+            now: Instant,
+        ) = Unit
 
         override suspend fun pruneDeleted(before: Instant) = Unit
 

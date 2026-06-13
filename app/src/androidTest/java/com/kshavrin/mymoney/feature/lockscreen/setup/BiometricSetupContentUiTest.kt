@@ -21,7 +21,6 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class BiometricSetupContentUiTest {
-
     @get:Rule
     val composeTestRule = createComposeRule()
 

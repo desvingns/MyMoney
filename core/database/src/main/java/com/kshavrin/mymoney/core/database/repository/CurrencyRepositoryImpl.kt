@@ -14,42 +14,51 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class CurrencyRepositoryImpl @Inject constructor(
-    private val dao: CurrencyDao,
-    @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
-) : CurrencyRepository {
+class CurrencyRepositoryImpl
+    @Inject
+    constructor(
+        private val dao: CurrencyDao,
+        @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+    ) : CurrencyRepository {
+        override fun observeActive(): Flow<List<Currency>> = dao.observeActive().map { list -> list.map { it.toDomain() } }
 
-    override fun observeActive(): Flow<List<Currency>> = dao.observeActive().map { list -> list.map { it.toDomain() } }
+        override fun observeAll(): Flow<List<Currency>> = dao.observeAll().map { list -> list.map { it.toDomain() } }
 
-    override fun observeAll(): Flow<List<Currency>> = dao.observeAll().map { list -> list.map { it.toDomain() } }
+        override suspend fun findById(id: Long): Currency? =
+            withContext(ioDispatcher) {
+                dao.findById(id)?.toDomain()
+            }
 
-    override suspend fun findById(id: Long): Currency? = withContext(ioDispatcher) {
-        dao.findById(id)?.toDomain()
-    }
+        override suspend fun findByCode(code: String): Currency? =
+            withContext(ioDispatcher) {
+                dao.findByCode(code)?.toDomain()
+            }
 
-    override suspend fun findByCode(code: String): Currency? = withContext(ioDispatcher) {
-        dao.findByCode(code)?.toDomain()
-    }
+        override suspend fun upsert(currency: Currency): Long =
+            withContext(ioDispatcher) {
+                require(currency.code.matches(CODE_REGEX)) { "code must match ${CODE_REGEX.pattern}; got: ${currency.code}" }
+                require(currency.symbol.isNotBlank() && currency.symbol.length <= 4) { "symbol must be non-blank and <= 4 chars" }
+                require(currency.decimalDigits in 0..8) { "decimalDigits must be in 0..8" }
+                dao.upsert(currency.toEntity())
+            }
 
-    override suspend fun upsert(currency: Currency): Long = withContext(ioDispatcher) {
-        require(currency.code.matches(CODE_REGEX)) { "code must match ${CODE_REGEX.pattern}; got: ${currency.code}" }
-        require(currency.symbol.isNotBlank() && currency.symbol.length <= 4) { "symbol must be non-blank and <= 4 chars" }
-        require(currency.decimalDigits in 0..8) { "decimalDigits must be in 0..8" }
-        dao.upsert(currency.toEntity())
-    }
+        override suspend fun upsertAll(currencies: List<Currency>) =
+            withContext(ioDispatcher) {
+                currencies.forEach { c ->
+                    require(c.code.matches(CODE_REGEX)) { "code must match ${CODE_REGEX.pattern}; got: ${c.code}" }
+                }
+                dao.upsertAll(currencies.map { it.toEntity() })
+            }
 
-    override suspend fun upsertAll(currencies: List<Currency>) = withContext(ioDispatcher) {
-        currencies.forEach { c ->
-            require(c.code.matches(CODE_REGEX)) { "code must match ${CODE_REGEX.pattern}; got: ${c.code}" }
+        override suspend fun setActive(
+            id: Long,
+            active: Boolean,
+        ) =
+            withContext(ioDispatcher) {
+                dao.setActive(id, active)
+            }
+
+        private companion object {
+            val CODE_REGEX = Regex("^[A-Z]{3}$")
         }
-        dao.upsertAll(currencies.map { it.toEntity() })
     }
-
-    override suspend fun setActive(id: Long, active: Boolean) = withContext(ioDispatcher) {
-        dao.setActive(id, active)
-    }
-
-    private companion object {
-        val CODE_REGEX = Regex("^[A-Z]{3}$")
-    }
-}

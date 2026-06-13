@@ -9,16 +9,15 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.designsystem.R
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 @RunWith(AndroidJUnit4::class)
 class DateHeaderUiTest {
-
     @get:Rule
     val composeTestRule = createComposeRule()
 
@@ -67,8 +66,10 @@ class DateHeaderUiTest {
         InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)
 
     private fun dateLabel(date: LocalDate): String {
-        val locale = InstrumentationRegistry.getInstrumentation()
-            .targetContext.resources.configuration.locales[0]
+        val locale =
+            InstrumentationRegistry
+                .getInstrumentation()
+                .targetContext.resources.configuration.locales[0]
         return date.format(DateTimeFormatter.ofPattern("EEEE, d MMMM", locale))
     }
 }

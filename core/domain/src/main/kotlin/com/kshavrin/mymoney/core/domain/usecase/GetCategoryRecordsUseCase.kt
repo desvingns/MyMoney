@@ -10,83 +10,91 @@ import com.kshavrin.mymoney.core.domain.model.Period
 import com.kshavrin.mymoney.core.domain.repository.AccountRepository
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
-import java.math.BigDecimal
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
+import java.math.BigDecimal
 import javax.inject.Inject
 
-class GetCategoryRecordsUseCase @Inject constructor(
-    private val accountRepository: AccountRepository,
-    private val currencyRepository: CurrencyRepository,
-    private val transactionRepository: TransactionRepository,
-    @DefaultDispatcher private val defaultDispatcher: CoroutineDispatcher,
-) {
+class GetCategoryRecordsUseCase
+    @Inject
+    constructor(
+        private val accountRepository: AccountRepository,
+        private val currencyRepository: CurrencyRepository,
+        private val transactionRepository: TransactionRepository,
+        @DefaultDispatcher private val defaultDispatcher: CoroutineDispatcher,
+    ) {
+        suspend operator fun invoke(
+            accountId: Long,
+            period: Period,
+            categoryId: Long? = null,
+        ): List<CategoryRecordGroup> =
+            withContext(defaultDispatcher) {
+                val account =
+                    accountRepository.findById(accountId)
+                        ?: throw IllegalArgumentException("Account $accountId not found")
+                val currency =
+                    currencyRepository.findById(account.currencyId)
+                        ?: throw IllegalStateException("Currency ${account.currencyId} not found")
+                recordsForAccounts(listOf(account), currency, period, categoryId)
+            }
 
-    suspend operator fun invoke(
-        accountId: Long,
-        period: Period,
-        categoryId: Long? = null,
-    ): List<CategoryRecordGroup> = withContext(defaultDispatcher) {
-        val account = accountRepository.findById(accountId)
-            ?: throw IllegalArgumentException("Account $accountId not found")
-        val currency = currencyRepository.findById(account.currencyId)
-            ?: throw IllegalStateException("Currency ${account.currencyId} not found")
-        recordsForAccounts(listOf(account), currency, period, categoryId)
-    }
+        suspend fun forAccounts(
+            accounts: List<Account>,
+            currency: Currency,
+            period: Period,
+            categoryId: Long? = null,
+        ): List<CategoryRecordGroup> =
+            withContext(defaultDispatcher) {
+                val activeAccounts = accounts.filterNot { it.isArchived }
+                require(activeAccounts.all { it.currencyId == currency.id }) { "All accounts must use ${currency.code}" }
+                recordsForAccounts(activeAccounts, currency, period, categoryId)
+            }
 
-    suspend fun forAccounts(
-        accounts: List<Account>,
-        currency: Currency,
-        period: Period,
-        categoryId: Long? = null,
-    ): List<CategoryRecordGroup> =
-        withContext(defaultDispatcher) {
-            val activeAccounts = accounts.filterNot { it.isArchived }
-            require(activeAccounts.all { it.currencyId == currency.id }) { "All accounts must use ${currency.code}" }
-            recordsForAccounts(activeAccounts, currency, period, categoryId)
-        }
+        private suspend fun recordsForAccounts(
+            accounts: List<Account>,
+            currency: Currency,
+            period: Period,
+            categoryId: Long?,
+        ): List<CategoryRecordGroup> {
+            val groups =
+                accounts
+                    .flatMap { account -> transactionRepository.getCategoryGroups(account.id, period) }
+                    .groupBy { it.categoryId }
+                    .map { (_, entries) ->
+                        val first = entries.first()
+                        CategoryGroupTotal(
+                            categoryId = first.categoryId,
+                            name = first.name,
+                            iconKey = first.iconKey,
+                            colorHex = first.colorHex,
+                            kind = first.kind,
+                            total = entries.fold(BigDecimal.ZERO) { acc, item -> acc + item.total },
+                            count = entries.sumOf { it.count },
+                        )
+                    }.filter { group -> categoryId == null || group.categoryId == categoryId }
+            val byCategory =
+                accounts
+                    .flatMap { account -> transactionRepository.findByPeriod(account.id, period) }
+                    .groupBy { it.categoryId }
 
-    private suspend fun recordsForAccounts(
-        accounts: List<Account>,
-        currency: Currency,
-        period: Period,
-        categoryId: Long?,
-    ): List<CategoryRecordGroup> {
-        val groups = accounts.flatMap { account -> transactionRepository.getCategoryGroups(account.id, period) }
-            .groupBy { it.categoryId }
-            .map { (_, entries) ->
-                val first = entries.first()
-                CategoryGroupTotal(
-                    categoryId = first.categoryId,
-                    name = first.name,
-                    iconKey = first.iconKey,
-                    colorHex = first.colorHex,
-                    kind = first.kind,
-                    total = entries.fold(BigDecimal.ZERO) { acc, item -> acc + item.total },
-                    count = entries.sumOf { it.count },
+            return groups.map { group ->
+                val transactions =
+                    byCategory[group.categoryId]
+                        .orEmpty()
+                        .sortedByDescending { it.occurredAt }
+                CategoryRecordGroup(
+                    categoryId = group.categoryId,
+                    name = group.name,
+                    iconKey = group.iconKey,
+                    colorHex = group.colorHex,
+                    kind = group.kind,
+                    total = Money(group.total, currency),
+                    count = group.count,
+                    transactions = transactions,
                 )
             }
-            .filter { group -> categoryId == null || group.categoryId == categoryId }
-        val byCategory = accounts.flatMap { account -> transactionRepository.findByPeriod(account.id, period) }
-            .groupBy { it.categoryId }
-
-        return groups.map { group ->
-            val transactions = byCategory[group.categoryId]
-                .orEmpty()
-                .sortedByDescending { it.occurredAt }
-            CategoryRecordGroup(
-                categoryId = group.categoryId,
-                name = group.name,
-                iconKey = group.iconKey,
-                colorHex = group.colorHex,
-                kind = group.kind,
-                total = Money(group.total, currency),
-                count = group.count,
-                transactions = transactions,
-            )
         }
     }
-}
 
 private data class CategoryGroupTotal(
     val categoryId: Long,

@@ -7,10 +7,14 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SearchContentTest {
-
     private fun showsMicSlot(query: String): Boolean = query.isEmpty()
+
     private fun showsClearIcon(query: String): Boolean = !query.isEmpty()
-    private fun bodyTakesOver(contextualOverlay: Boolean, phase: SearchPhase): Boolean =
+
+    private fun bodyTakesOver(
+        contextualOverlay: Boolean,
+        phase: SearchPhase,
+    ): Boolean =
         !contextualOverlay || phase != SearchPhase.Empty
 
     @Test
@@ -38,13 +42,14 @@ class SearchContentTest {
 
     private enum class Body { Chips, Loading, Results, NoMatches, Error }
 
-    private fun bodyFor(phase: SearchPhase): Body = when (phase) {
-        SearchPhase.Empty -> Body.Chips
-        SearchPhase.Loading -> Body.Loading
-        SearchPhase.Results -> Body.Results
-        SearchPhase.EmptyResults -> Body.NoMatches
-        SearchPhase.Error -> Body.Error
-    }
+    private fun bodyFor(phase: SearchPhase): Body =
+        when (phase) {
+            SearchPhase.Empty -> Body.Chips
+            SearchPhase.Loading -> Body.Loading
+            SearchPhase.Results -> Body.Results
+            SearchPhase.EmptyResults -> Body.NoMatches
+            SearchPhase.Error -> Body.Error
+        }
 
     @Test
     fun `Empty phase renders the history chips row`() {

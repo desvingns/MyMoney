@@ -18,10 +18,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
-import java.math.BigDecimal
 
 class AccountEditViewModelTest {
-
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
@@ -49,39 +47,41 @@ class AccountEditViewModelTest {
 
     private fun buildViewModel(
         accountRepository: AccountRepository = accountRepo,
-    ): AccountEditViewModel = AccountEditViewModel(
-        accountRepository = accountRepository,
-        currencyRepository = currencyRepo,
-        transactionRepository = transactionRepo,
-        savedStateHandle = SavedStateHandle(),
-    )
+    ): AccountEditViewModel =
+        AccountEditViewModel(
+            accountRepository = accountRepository,
+            currencyRepository = currencyRepo,
+            transactionRepository = transactionRepo,
+            savedStateHandle = SavedStateHandle(),
+        )
 
     @Test
-    fun `double SaveClicked performs one upsert and emits one NavigateBack`() = runTest {
-        val blockingRepo = BlockingAccountRepository()
-        val viewModel = buildViewModel(accountRepository = blockingRepo)
+    fun `double SaveClicked performs one upsert and emits one NavigateBack`() =
+        runTest {
+            val blockingRepo = BlockingAccountRepository()
+            val viewModel = buildViewModel(accountRepository = blockingRepo)
 
-        advanceUntilIdle()
-        viewModel.onEvent(AccountEditEvent.NameChanged("Wallet"))
-        viewModel.onEvent(AccountEditEvent.InitialBalanceChanged("25"))
-        viewModel.onEvent(AccountEditEvent.TypeChanged(AccountType.Cash))
-
-        viewModel.actions.test {
-            viewModel.onEvent(AccountEditEvent.SaveClicked)
-            assertTrue(viewModel.state.value.isSaving)
-            viewModel.onEvent(AccountEditEvent.SaveClicked)
-
-            assertEquals(1, blockingRepo.startedUpserts.size)
-
-            blockingRepo.release()
             advanceUntilIdle()
+            viewModel.onEvent(AccountEditEvent.NameChanged("Wallet"))
+            viewModel.onEvent(AccountEditEvent.InitialBalanceChanged("25"))
+            viewModel.onEvent(AccountEditEvent.TypeChanged(AccountType.Cash))
 
-            assertEquals(1, blockingRepo.persistedUpserts.size)
-            assertEquals(AccountEditAction.NavigateBack, awaitItem())
-            expectNoEvents()
-            cancelAndIgnoreRemainingEvents()
+            viewModel.actions.test {
+                viewModel.onEvent(AccountEditEvent.SaveClicked)
+                assertTrue(viewModel.state.value.isSaving)
+                viewModel.onEvent(AccountEditEvent.SaveClicked)
+
+                assertEquals(1, blockingRepo.startedUpserts.size)
+
+                blockingRepo.release()
+                advanceUntilIdle()
+
+                assertEquals(1, blockingRepo.persistedUpserts.size)
+                assertEquals(AccountEditAction.NavigateBack, awaitItem())
+                expectNoEvents()
+                cancelAndIgnoreRemainingEvents()
+            }
         }
-    }
 
     private class BlockingAccountRepository(
         private val delegate: FakeAccountRepository = FakeAccountRepository(),

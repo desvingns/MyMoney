@@ -44,25 +44,25 @@ import org.junit.Test
  * comparison; `assertSame` / `assertNotSame` use reference identity.
  */
 class GoalIconsTest {
-
     private val fallback: ImageVector = Icons.Outlined.Flag
 
     /** All 13 keys from GoalIcons.kt (local copy — :core:designsystem may not import :feature). */
-    private val allKeys: List<String> = listOf(
-        "ic_goal_home",
-        "ic_goal_car",
-        "ic_goal_travel",
-        "ic_goal_education",
-        "ic_goal_emergency",
-        "ic_goal_wedding",
-        "ic_goal_gadget",
-        "ic_goal_gift",
-        "ic_goal_health",
-        "ic_goal_retirement",
-        "ic_goal_renovation",
-        "ic_goal_family",
-        "ic_goal_other",
-    )
+    private val allKeys: List<String> =
+        listOf(
+            "ic_goal_home",
+            "ic_goal_car",
+            "ic_goal_travel",
+            "ic_goal_education",
+            "ic_goal_emergency",
+            "ic_goal_wedding",
+            "ic_goal_gadget",
+            "ic_goal_gift",
+            "ic_goal_health",
+            "ic_goal_retirement",
+            "ic_goal_renovation",
+            "ic_goal_family",
+            "ic_goal_other",
+        )
 
     /** The 12 keys that must each resolve to a distinct, non-fallback vector. */
     private val themedKeys: List<String> = allKeys.filterNot { it == "ic_goal_other" }

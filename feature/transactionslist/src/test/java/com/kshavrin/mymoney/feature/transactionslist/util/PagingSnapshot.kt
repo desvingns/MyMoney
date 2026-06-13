@@ -19,9 +19,10 @@ import kotlinx.coroutines.yield
  * the presenter's internal differ work runs inline.
  */
 suspend fun <T : Any> Flow<PagingData<T>>.firstSnapshot(scope: CoroutineScope): List<T> {
-    val presenter = object : PagingDataPresenter<T>() {
-        override suspend fun presentPagingDataEvent(event: PagingDataEvent<T>) = Unit
-    }
+    val presenter =
+        object : PagingDataPresenter<T>() {
+            override suspend fun presentPagingDataEvent(event: PagingDataEvent<T>) = Unit
+        }
     val firstPage = first()
     val job = scope.launch { presenter.collectFrom(firstPage) }
 

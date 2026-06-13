@@ -20,7 +20,6 @@ import java.util.TimeZone
 
 @RunWith(AndroidJUnit4::class)
 class PeriodStripUiTest {
-
     @get:Rule
     val composeTestRule = createComposeRule()
 
@@ -69,8 +68,10 @@ class PeriodStripUiTest {
         InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)
 
     private fun dateLabel(date: LocalDate): String {
-        val locale = InstrumentationRegistry.getInstrumentation()
-            .targetContext.resources.configuration.locales[0]
+        val locale =
+            InstrumentationRegistry
+                .getInstrumentation()
+                .targetContext.resources.configuration.locales[0]
         return date.format(DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy", locale))
     }
 

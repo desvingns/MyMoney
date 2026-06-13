@@ -6,7 +6,6 @@ import java.time.Instant
 import java.time.temporal.ChronoUnit
 
 class PruneDeletedWorkerTest {
-
     @Test
     fun `prune cutoff is thirty days before now`() {
         val now = Instant.parse("2026-05-20T10:00:00Z")

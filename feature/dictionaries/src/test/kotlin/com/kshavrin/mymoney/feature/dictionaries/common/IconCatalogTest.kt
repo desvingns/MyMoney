@@ -9,7 +9,6 @@ import org.junit.Assert.assertSame
 import org.junit.Test
 
 class IconCatalogTest {
-
     private val fallback = Icons.Outlined.Category
 
     @Test

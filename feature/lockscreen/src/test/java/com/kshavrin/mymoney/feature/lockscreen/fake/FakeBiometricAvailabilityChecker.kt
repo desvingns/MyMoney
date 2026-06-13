@@ -6,7 +6,6 @@ import com.kshavrin.mymoney.feature.lockscreen.setup.BiometricAvailabilityChecke
 class FakeBiometricAvailabilityChecker(
     private var current: BiometricAvailability = BiometricAvailability.Available,
 ) : BiometricAvailabilityChecker {
-
     override fun availability(): BiometricAvailability = current
 
     fun setAvailability(availability: BiometricAvailability) {

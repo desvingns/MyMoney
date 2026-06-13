@@ -21,7 +21,9 @@ data class Money(
         copy(amount = amount.multiply(factor).setScale(currency.decimalDigits, RoundingMode.HALF_UP))
 
     fun isPositive(): Boolean = amount.signum() > 0
+
     fun isNegative(): Boolean = amount.signum() < 0
+
     fun isZero(): Boolean = amount.signum() == 0
 
     companion object {

@@ -20,10 +20,12 @@ class FakeCloudSyncBackend(
     override val target: SyncTarget,
     private var connected: Boolean = true,
 ) : CloudSyncBackend {
-
     var snapshots: MutableList<RemoteSnapshot> = mutableListOf()
 
-    data class Upload(val localFile: File, val remoteName: String)
+    data class Upload(
+        val localFile: File,
+        val remoteName: String,
+    )
 
     val uploads: MutableList<Upload> = mutableListOf()
     val pruneKeeps: MutableList<Int> = mutableListOf()
@@ -63,14 +65,15 @@ class FakeCloudSyncBackend(
 
     override suspend fun accountLabel(): Result<String> = Result.success(target.name)
 
-    override suspend fun upload(localFile: File, remoteName: String): Result<Unit> {
+    override suspend fun upload(
+        localFile: File,
+        remoteName: String,
+    ): Result<Unit> {
         uploads += Upload(localFile, remoteName)
         return uploadError.asFailureOr(Unit)
     }
 
-    override suspend fun listSnapshots(): Result<List<RemoteSnapshot>> {
-        return listError.asFailureOr(snapshots.sortedByDescending { it.modifiedAtEpochMs })
-    }
+    override suspend fun listSnapshots(): Result<List<RemoteSnapshot>> = listError.asFailureOr(snapshots.sortedByDescending { it.modifiedAtEpochMs })
 
     override suspend fun downloadNewest(destFile: File): Result<RemoteSnapshot?> {
         downloadCalls++

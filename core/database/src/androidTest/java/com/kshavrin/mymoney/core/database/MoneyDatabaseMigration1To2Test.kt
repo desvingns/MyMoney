@@ -13,16 +13,16 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class MoneyDatabaseMigration1To2Test {
-
     private val dbName = "migration-1-2-test.db"
 
     @get:Rule
-    val helper = MigrationTestHelper(
-        InstrumentationRegistry.getInstrumentation(),
-        MoneyDatabase::class.java,
-        emptyList(),
-        FrameworkSQLiteOpenHelperFactory(),
-    )
+    val helper =
+        MigrationTestHelper(
+            InstrumentationRegistry.getInstrumentation(),
+            MoneyDatabase::class.java,
+            emptyList(),
+            FrameworkSQLiteOpenHelperFactory(),
+        )
 
     @Test
     fun migrate1To2_creates_goal_table_and_preserves_existing_data() {

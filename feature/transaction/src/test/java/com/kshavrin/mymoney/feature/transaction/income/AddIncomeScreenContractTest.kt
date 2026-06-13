@@ -3,11 +3,11 @@ package com.kshavrin.mymoney.feature.transaction.income
 import com.kshavrin.mymoney.core.designsystem.amountfield.AmountFieldEvent
 import com.kshavrin.mymoney.core.designsystem.keypad.KeypadEvent
 import com.kshavrin.mymoney.core.designsystem.keypad.Operator
-import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.time.LocalDate
 
 /**
  * Contract-level pinning for [AddIncomeScreen] (form-chrome restyle).
@@ -32,7 +32,6 @@ import org.junit.Test
  * # JVM-visible pins below
  */
 class AddIncomeScreenContractTest {
-
     // ---- amount-box ✕ clear + keypad routing (dispatchAmountEvent mirror) ----
 
     @Test
@@ -107,17 +106,19 @@ class AddIncomeScreenContractTest {
      * Pure mirror of AddIncomeScreen.dispatchAmountEvent + dispatchKeypadEvent
      * (both private). Keep in lock-step with AddIncomeScreen.kt.
      */
-    private fun dispatch(e: AmountFieldEvent): AddIncomeEvent? = when (e) {
-        is AmountFieldEvent.Keypad -> when (val k = e.event) {
-            is KeypadEvent.Digit -> AddIncomeEvent.KeypadDigit(k.d)
-            is KeypadEvent.Op -> AddIncomeEvent.KeypadOperator(k.op)
-            KeypadEvent.Dot -> AddIncomeEvent.KeypadDot
-            KeypadEvent.Backspace -> AddIncomeEvent.KeypadBackspace
-            KeypadEvent.Equals -> AddIncomeEvent.KeypadEquals
+    private fun dispatch(e: AmountFieldEvent): AddIncomeEvent? =
+        when (e) {
+            is AmountFieldEvent.Keypad ->
+                when (val k = e.event) {
+                    is KeypadEvent.Digit -> AddIncomeEvent.KeypadDigit(k.d)
+                    is KeypadEvent.Op -> AddIncomeEvent.KeypadOperator(k.op)
+                    KeypadEvent.Dot -> AddIncomeEvent.KeypadDot
+                    KeypadEvent.Backspace -> AddIncomeEvent.KeypadBackspace
+                    KeypadEvent.Equals -> AddIncomeEvent.KeypadEquals
+                }
+            is AmountFieldEvent.NoteChanged -> AddIncomeEvent.NoteChanged(e.text)
+            is AmountFieldEvent.DateChanged -> AddIncomeEvent.DateChanged(e.date)
+            AmountFieldEvent.AccountChipClicked -> null
+            AmountFieldEvent.DateChipClicked -> null
         }
-        is AmountFieldEvent.NoteChanged -> AddIncomeEvent.NoteChanged(e.text)
-        is AmountFieldEvent.DateChanged -> AddIncomeEvent.DateChanged(e.date)
-        AmountFieldEvent.AccountChipClicked -> null
-        AmountFieldEvent.DateChipClicked -> null
-    }
 }

@@ -26,11 +26,13 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
-
     @Provides
     @Singleton
-    fun provideMoneyDatabase(@ApplicationContext context: Context): MoneyDatabase =
-        Room.databaseBuilder(context, MoneyDatabase::class.java, "monefy.db")
+    fun provideMoneyDatabase(
+        @ApplicationContext context: Context,
+    ): MoneyDatabase =
+        Room
+            .databaseBuilder(context, MoneyDatabase::class.java, "monefy.db")
             .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
             .fallbackToDestructiveMigrationFrom(99)
             .build()

@@ -19,8 +19,9 @@ import java.time.Clock
 import javax.inject.Inject
 
 @HiltAndroidApp
-class MyMoneyApp : Application(), Configuration.Provider {
-
+class MyMoneyApp :
+    Application(),
+    Configuration.Provider {
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
 
@@ -42,9 +43,11 @@ class MyMoneyApp : Application(), Configuration.Provider {
     lateinit var ioDispatcher: CoroutineDispatcher
 
     override val workManagerConfiguration: Configuration
-        get() = Configuration.Builder()
-            .setWorkerFactory(workerFactory)
-            .build()
+        get() =
+            Configuration
+                .Builder()
+                .setWorkerFactory(workerFactory)
+                .build()
 
     override fun onCreate() {
         super.onCreate()

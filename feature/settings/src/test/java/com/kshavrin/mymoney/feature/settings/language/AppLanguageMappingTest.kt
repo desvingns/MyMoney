@@ -5,7 +5,6 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 class AppLanguageMappingTest {
-
     @Test
     fun `stored emits the exact wire strings system en ru`() {
         assertEquals("system", AppLanguage.System.stored)

@@ -50,10 +50,11 @@ fun SwipeToDelete(
         enableDismissFromStartToEnd = false,
         backgroundContent = {
             Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.tertiary)
-                    .padding(horizontal = Spacing.l),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.tertiary)
+                        .padding(horizontal = Spacing.l),
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically,
             ) {

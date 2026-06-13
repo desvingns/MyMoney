@@ -6,7 +6,6 @@ import java.time.Instant
 import java.time.LocalDate
 
 class MoneyTypeConverters {
-
     @TypeConverter
     fun bigDecimalToDouble(value: BigDecimal?): Double? = value?.toDouble()
 

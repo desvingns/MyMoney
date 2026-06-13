@@ -20,76 +20,83 @@ import java.time.ZoneId
 import java.time.ZoneOffset
 
 class NormalizeLegacyUtcMidnightUseCaseTest {
-
     private val fixedNow = Instant.parse("2026-06-11T12:34:56Z")
     private val fixedClock = Clock.fixed(fixedNow, ZoneOffset.UTC)
 
     @Test
-    fun `utc midnight in America_New_York shifts to local midnight of the same utc day`() = runTest {
-        val repository = RecordingTransactionRepository(
-            listOf(
-                transaction(id = 1L, occurredAt = "2026-06-10T00:00:00Z"),
-                transaction(id = 2L, occurredAt = "2026-06-10T13:37:00Z"),
-            ),
-        )
-        val useCase = NormalizeLegacyUtcMidnightUseCase(repository)
+    fun `utc midnight in America_New_York shifts to local midnight of the same utc day`() =
+        runTest {
+            val repository =
+                RecordingTransactionRepository(
+                    listOf(
+                        transaction(id = 1L, occurredAt = "2026-06-10T00:00:00Z"),
+                        transaction(id = 2L, occurredAt = "2026-06-10T13:37:00Z"),
+                    ),
+                )
+            val useCase = NormalizeLegacyUtcMidnightUseCase(repository)
 
-        val shifted = useCase(zone = ZoneId.of("America/New_York"), clock = fixedClock)
+            val shifted = useCase(zone = ZoneId.of("America/New_York"), clock = fixedClock)
 
-        assertEquals(1, shifted)
-        assertEquals(1, repository.updateCalls.size)
-        assertEquals(
-            Instant.parse("2026-06-10T04:00:00Z"),
-            repository.updateCalls.single().updates[1L],
-        )
-        assertEquals(fixedNow, repository.updateCalls.single().updatedAt)
-        assertTrue(2L !in repository.updateCalls.single().updates)
-    }
-
-    @Test
-    fun `utc midnight in Europe_Moscow shifts backward to local midnight of the same utc day`() = runTest {
-        val repository = RecordingTransactionRepository(
-            listOf(transaction(id = 7L, occurredAt = "2026-06-10T00:00:00Z")),
-        )
-        val useCase = NormalizeLegacyUtcMidnightUseCase(repository)
-
-        val shifted = useCase(zone = ZoneId.of("Europe/Moscow"), clock = fixedClock)
-
-        assertEquals(1, shifted)
-        assertEquals(
-            Instant.parse("2026-06-09T21:00:00Z"),
-            repository.updateCalls.single().updates[7L],
-        )
-    }
+            assertEquals(1, shifted)
+            assertEquals(1, repository.updateCalls.size)
+            assertEquals(
+                Instant.parse("2026-06-10T04:00:00Z"),
+                repository.updateCalls.single().updates[1L],
+            )
+            assertEquals(fixedNow, repository.updateCalls.single().updatedAt)
+            assertTrue(2L !in repository.updateCalls.single().updates)
+        }
 
     @Test
-    fun `utc zone is a no-op for utc midnight candidates`() = runTest {
-        val repository = RecordingTransactionRepository(
-            listOf(transaction(id = 3L, occurredAt = "2026-06-10T00:00:00Z")),
-        )
-        val useCase = NormalizeLegacyUtcMidnightUseCase(repository)
+    fun `utc midnight in Europe_Moscow shifts backward to local midnight of the same utc day`() =
+        runTest {
+            val repository =
+                RecordingTransactionRepository(
+                    listOf(transaction(id = 7L, occurredAt = "2026-06-10T00:00:00Z")),
+                )
+            val useCase = NormalizeLegacyUtcMidnightUseCase(repository)
 
-        val shifted = useCase(zone = ZoneOffset.UTC, clock = fixedClock)
+            val shifted = useCase(zone = ZoneId.of("Europe/Moscow"), clock = fixedClock)
 
-        assertEquals(0, shifted)
-        assertTrue(repository.updateCalls.isEmpty())
-    }
+            assertEquals(1, shifted)
+            assertEquals(
+                Instant.parse("2026-06-09T21:00:00Z"),
+                repository.updateCalls.single().updates[7L],
+            )
+        }
 
     @Test
-    fun `already local and non-midnight instants are never shifted a second time`() = runTest {
-        val repository = RecordingTransactionRepository(
-            listOf(
-                transaction(id = 4L, occurredAt = "2026-06-10T04:00:00Z"),
-                transaction(id = 5L, occurredAt = "2026-06-10T13:37:00Z"),
-            ),
-        )
-        val useCase = NormalizeLegacyUtcMidnightUseCase(repository)
+    fun `utc zone is a no-op for utc midnight candidates`() =
+        runTest {
+            val repository =
+                RecordingTransactionRepository(
+                    listOf(transaction(id = 3L, occurredAt = "2026-06-10T00:00:00Z")),
+                )
+            val useCase = NormalizeLegacyUtcMidnightUseCase(repository)
 
-        val shifted = useCase(zone = ZoneId.of("America/New_York"), clock = fixedClock)
+            val shifted = useCase(zone = ZoneOffset.UTC, clock = fixedClock)
 
-        assertEquals(0, shifted)
-        assertTrue(repository.updateCalls.isEmpty())
-    }
+            assertEquals(0, shifted)
+            assertTrue(repository.updateCalls.isEmpty())
+        }
+
+    @Test
+    fun `already local and non-midnight instants are never shifted a second time`() =
+        runTest {
+            val repository =
+                RecordingTransactionRepository(
+                    listOf(
+                        transaction(id = 4L, occurredAt = "2026-06-10T04:00:00Z"),
+                        transaction(id = 5L, occurredAt = "2026-06-10T13:37:00Z"),
+                    ),
+                )
+            val useCase = NormalizeLegacyUtcMidnightUseCase(repository)
+
+            val shifted = useCase(zone = ZoneId.of("America/New_York"), clock = fixedClock)
+
+            assertEquals(0, shifted)
+            assertTrue(repository.updateCalls.isEmpty())
+        }
 
     private fun transaction(
         id: Long,
@@ -134,7 +141,10 @@ class NormalizeLegacyUtcMidnightUseCaseTest {
 
         override suspend fun findById(id: Long): Transaction? = normalizationCandidates.firstOrNull { it.id == id }
 
-        override suspend fun findByPeriod(accountId: Long, period: Period): List<Transaction> = emptyList()
+        override suspend fun findByPeriod(
+            accountId: Long,
+            period: Period,
+        ): List<Transaction> = emptyList()
 
         override suspend fun getCategorySummary(
             accountId: Long,
@@ -142,15 +152,27 @@ class NormalizeLegacyUtcMidnightUseCaseTest {
             kind: TransactionKind,
         ): List<CategorySummary> = emptyList()
 
-        override suspend fun getCategoryGroups(accountId: Long, period: Period): List<CategoryGroup> = emptyList()
+        override suspend fun getCategoryGroups(
+            accountId: Long,
+            period: Period,
+        ): List<CategoryGroup> = emptyList()
 
-        override suspend fun searchByNote(query: String, limit: Int): List<Transaction> = emptyList()
+        override suspend fun searchByNote(
+            query: String,
+            limit: Int,
+        ): List<Transaction> = emptyList()
 
         override suspend fun upsert(transaction: Transaction): Long = transaction.id
 
-        override suspend fun softDelete(id: Long, now: Instant) = Unit
+        override suspend fun softDelete(
+            id: Long,
+            now: Instant,
+        ) = Unit
 
-        override suspend fun restore(id: Long, now: Instant) = Unit
+        override suspend fun restore(
+            id: Long,
+            now: Instant,
+        ) = Unit
 
         override suspend fun pruneDeleted(before: Instant) = Unit
 
@@ -162,7 +184,10 @@ class NormalizeLegacyUtcMidnightUseCaseTest {
 
         override suspend fun listForTimezoneNormalization(): List<Transaction> = normalizationCandidates
 
-        override suspend fun updateOccurredAts(updates: Map<Long, Instant>, updatedAt: Instant) {
+        override suspend fun updateOccurredAts(
+            updates: Map<Long, Instant>,
+            updatedAt: Instant,
+        ) {
             updateCalls += UpdateCall(updates = updates.toMap(), updatedAt = updatedAt)
         }
     }

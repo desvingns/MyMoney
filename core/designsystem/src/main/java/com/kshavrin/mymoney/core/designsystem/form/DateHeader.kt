@@ -30,10 +30,11 @@ fun DateHeader(
     val locale = LocalConfiguration.current.locales[0]
     val formatter = remember(locale) { DateTimeFormatter.ofPattern("EEEE, d MMMM", locale) }
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = Spacing.m, horizontal = Spacing.l),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(vertical = Spacing.m, horizontal = Spacing.l),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {

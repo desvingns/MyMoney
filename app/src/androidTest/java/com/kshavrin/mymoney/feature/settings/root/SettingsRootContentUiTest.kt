@@ -22,7 +22,6 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class SettingsRootContentUiTest {
-
     @get:Rule
     val composeTestRule = createComposeRule()
 
@@ -83,12 +82,13 @@ class SettingsRootContentUiTest {
         val emitted = mutableListOf<SettingsEvent>()
 
         setContent(
-            state = SettingsState(
-                themeMode = ThemeMode.Dark,
-                language = AppLanguage.Russian,
-                soundEnabled = true,
-                hapticEnabled = false,
-            ),
+            state =
+                SettingsState(
+                    themeMode = ThemeMode.Dark,
+                    language = AppLanguage.Russian,
+                    soundEnabled = true,
+                    hapticEnabled = false,
+                ),
             onEvent = { event -> emitted += event },
         )
 

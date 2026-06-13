@@ -56,7 +56,9 @@ import kotlinx.coroutines.withContext
 @InstallIn(SingletonComponent::class)
 internal interface LockOverlayEntryPoint {
     fun secureStorage(): SecureStorage
+
     fun appSettingsRepository(): AppSettingsRepository
+
     @IoDispatcher fun ioDispatcher(): CoroutineDispatcher
 }
 
@@ -76,9 +78,10 @@ fun LockOverlay(
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     val coroutineScope = rememberCoroutineScope()
-    val dependencies = remember(context) {
-        EntryPointAccessors.fromApplication(context.applicationContext, LockOverlayEntryPoint::class.java)
-    }
+    val dependencies =
+        remember(context) {
+            EntryPointAccessors.fromApplication(context.applicationContext, LockOverlayEntryPoint::class.java)
+        }
 
     var pinFallback by rememberSaveable { mutableStateOf(false) }
     var pinAvailable by rememberSaveable { mutableStateOf<Boolean?>(null) }
@@ -135,17 +138,19 @@ fun LockOverlay(
 
     Surface(modifier = Modifier.fillMaxSize()) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(Spacing.l),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(Spacing.l),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
             if (pinFallback) {
                 Text(
-                    text = stringResource(
-                        if (pinAvailable == true) R.string.lock_pin_prompt else R.string.lock_locked,
-                    ),
+                    text =
+                        stringResource(
+                            if (pinAvailable == true) R.string.lock_pin_prompt else R.string.lock_locked,
+                        ),
                     style = MaterialTheme.typography.titleMedium,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth(),
@@ -201,9 +206,10 @@ fun LockOverlay(
                         text = stringResource(R.string.lock_pin_unavailable),
                         style = MaterialTheme.typography.bodyMedium,
                         textAlign = TextAlign.Center,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = Spacing.s),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(top = Spacing.s),
                     )
                     Button(
                         onClick = {
@@ -232,7 +238,10 @@ private suspend fun hasPin(dependencies: LockOverlayEntryPoint): Boolean =
         dependencies.secureStorage().read().pinHash != null
     }
 
-private suspend fun verifyPin(dependencies: LockOverlayEntryPoint, pin: String): Boolean =
+private suspend fun verifyPin(
+    dependencies: LockOverlayEntryPoint,
+    pin: String,
+): Boolean =
     withContext(dependencies.ioDispatcher()) {
         val secureStorage = dependencies.secureStorage()
         val stored = secureStorage.read().pinHash ?: return@withContext false
@@ -284,11 +293,18 @@ private fun lockoutDelayMs(failedPinAttempts: Int): Long {
     return delayMs
 }
 
-private fun remainingLockoutSeconds(deadlineEpochMs: Long?, nowEpochMs: Long): Long =
+private fun remainingLockoutSeconds(
+    deadlineEpochMs: Long?,
+    nowEpochMs: Long,
+): Long =
     deadlineEpochMs?.let { ((it - nowEpochMs + 999L) / 1_000L).coerceAtLeast(0L) } ?: 0L
 
 private suspend fun hapticEnabled(dependencies: LockOverlayEntryPoint): Boolean =
-    dependencies.appSettingsRepository().settings.first().hapticEnabled
+    dependencies
+        .appSettingsRepository()
+        .settings
+        .first()
+        .hapticEnabled
 
 private fun launchBiometricPrompt(
     activity: FragmentActivity,
@@ -300,38 +316,44 @@ private fun launchBiometricPrompt(
     onPinFallback: () -> Unit,
 ) {
     val executor = ContextCompat.getMainExecutor(activity)
-    val prompt = BiometricPrompt(
-        activity,
-        executor,
-        object : BiometricPrompt.AuthenticationCallback() {
-            override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                onSuccess()
-            }
-
-            override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
-                when (errorCode) {
-                    ERROR_LOCKOUT,
-                    ERROR_LOCKOUT_PERMANENT,
-                    -> onLockout()
-
-                    ERROR_NEGATIVE_BUTTON,
-                    ERROR_USER_CANCELED,
-                    ERROR_NO_BIOMETRICS,
-                    ERROR_HW_UNAVAILABLE,
-                    ERROR_HW_NOT_PRESENT,
-                    -> onPinFallback()
-
-                    else -> onPinFallback()
+    val prompt =
+        BiometricPrompt(
+            activity,
+            executor,
+            object : BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                    onSuccess()
                 }
-            }
-        },
-    )
-    val info = BiometricPrompt.PromptInfo.Builder()
-        .setTitle(title)
-        .setSubtitle(subtitle)
-        .setNegativeButtonText(cancel)
-        .setAllowedAuthenticators(BIOMETRIC_STRONG)
-        .build()
+
+                override fun onAuthenticationError(
+                    errorCode: Int,
+                    errString: CharSequence,
+                ) {
+                    when (errorCode) {
+                        ERROR_LOCKOUT,
+                        ERROR_LOCKOUT_PERMANENT,
+                        -> onLockout()
+
+                        ERROR_NEGATIVE_BUTTON,
+                        ERROR_USER_CANCELED,
+                        ERROR_NO_BIOMETRICS,
+                        ERROR_HW_UNAVAILABLE,
+                        ERROR_HW_NOT_PRESENT,
+                        -> onPinFallback()
+
+                        else -> onPinFallback()
+                    }
+                }
+            },
+        )
+    val info =
+        BiometricPrompt.PromptInfo
+            .Builder()
+            .setTitle(title)
+            .setSubtitle(subtitle)
+            .setNegativeButtonText(cancel)
+            .setAllowedAuthenticators(BIOMETRIC_STRONG)
+            .build()
     activity.runOnUiThread {
         prompt.authenticate(info)
     }

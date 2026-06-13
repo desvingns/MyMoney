@@ -12,10 +12,11 @@ class BaselineProfileGenerator {
     val baselineProfileRule = BaselineProfileRule()
 
     @Test
-    fun generate() = baselineProfileRule.collect(packageName = TARGET_PACKAGE) {
-        pressHome()
-        launchDashboard()
-        openTransactionsList()
-        scrollTransactionsList()
-    }
+    fun generate() =
+        baselineProfileRule.collect(packageName = TARGET_PACKAGE) {
+            pressHome()
+            launchDashboard()
+            openTransactionsList()
+            scrollTransactionsList()
+        }
 }

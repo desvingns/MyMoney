@@ -13,7 +13,6 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class AestheticsModule {
-
     @Binds
     @Singleton
     abstract fun bindSoundPlayer(impl: SoundPoolImpl): SoundPlayer

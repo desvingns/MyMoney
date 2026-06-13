@@ -15,7 +15,9 @@ class FakeCategoryRepository : CategoryRepository {
     }
 
     override fun observeByKind(kind: CategoryKind): Flow<List<Category>> = state.asStateFlow()
+
     override fun observeAll(): Flow<List<Category>> = state.asStateFlow()
+
     override suspend fun findById(id: Long): Category? = state.value.firstOrNull { it.id == id }
 
     override suspend fun upsert(category: Category): Long {

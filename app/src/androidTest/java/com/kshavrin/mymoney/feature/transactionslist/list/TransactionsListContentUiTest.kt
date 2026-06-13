@@ -25,12 +25,12 @@ import com.kshavrin.mymoney.core.domain.model.TransactionKind
 import com.kshavrin.mymoney.core.domain.model.TransferRecord
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import com.kshavrin.mymoney.feature.transactionslist.R
-import java.math.BigDecimal
-import java.time.Instant
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.math.BigDecimal
+import java.time.Instant
 import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
 
 /**
@@ -43,7 +43,6 @@ import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
  */
 @RunWith(AndroidJUnit4::class)
 class TransactionsListContentUiTest {
-
     @get:Rule
     val composeTestRule = createComposeRule()
 
@@ -82,12 +81,13 @@ class TransactionsListContentUiTest {
         val serbianDinar = currency().copy(name = "Serbian dinar")
 
         setContent(
-            state = TransactionsListUiState(
-                currency = serbianDinar,
-                isLoading = false,
-                net = Money(BigDecimal("593658.80"), serbianDinar),
-                groups = listOf(group(id = 10L, kind = CategoryKind.Expense, total = "30.00", count = 2)),
-            ),
+            state =
+                TransactionsListUiState(
+                    currency = serbianDinar,
+                    isLoading = false,
+                    net = Money(BigDecimal("593658.80"), serbianDinar),
+                    groups = listOf(group(id = 10L, kind = CategoryKind.Expense, total = "30.00", count = 2)),
+                ),
         )
 
         composeTestRule
@@ -110,18 +110,20 @@ class TransactionsListContentUiTest {
     @Test
     fun `balance header stays visible and sort stays actionable with long currency and large net`() {
         val capturedEvents = mutableListOf<TransactionsListEvent>()
-        val longCurrency = currency().copy(
-            symbol = "International Monetary Credits Units",
-            name = "International Monetary Credits and Settlement Units",
-        )
+        val longCurrency =
+            currency().copy(
+                symbol = "International Monetary Credits Units",
+                name = "International Monetary Credits and Settlement Units",
+            )
 
         setContent(
-            state = TransactionsListUiState(
-                currency = longCurrency,
-                isLoading = false,
-                net = Money(BigDecimal("12345678901234567890.12"), longCurrency),
-                groups = listOf(group(id = 10L, kind = CategoryKind.Expense, total = "30.00", count = 2)),
-            ),
+            state =
+                TransactionsListUiState(
+                    currency = longCurrency,
+                    isLoading = false,
+                    net = Money(BigDecimal("12345678901234567890.12"), longCurrency),
+                    groups = listOf(group(id = 10L, kind = CategoryKind.Expense, total = "30.00", count = 2)),
+                ),
             onEvent = { event -> capturedEvents += event },
         )
 
@@ -172,11 +174,12 @@ class TransactionsListContentUiTest {
     @Test
     fun `empty state keeps header controls and localized empty copy visible`() {
         setContent(
-            state = TransactionsListUiState(
-                currency = currency(),
-                isLoading = false,
-                groups = emptyList(),
-            ),
+            state =
+                TransactionsListUiState(
+                    currency = currency(),
+                    isLoading = false,
+                    groups = emptyList(),
+                ),
         )
 
         composeTestRule
@@ -193,11 +196,12 @@ class TransactionsListContentUiTest {
     @Test
     fun `category header shows count and total`() {
         setContent(
-            state = TransactionsListUiState(
-                currency = currency(),
-                isLoading = false,
-                groups = listOf(group(id = 10L, kind = CategoryKind.Expense, total = "30.00", count = 2)),
-            ),
+            state =
+                TransactionsListUiState(
+                    currency = currency(),
+                    isLoading = false,
+                    groups = listOf(group(id = 10L, kind = CategoryKind.Expense, total = "30.00", count = 2)),
+                ),
         )
 
         composeTestRule
@@ -213,13 +217,14 @@ class TransactionsListContentUiTest {
         val capturedEvents = mutableListOf<TransactionsListEvent>()
 
         setContent(
-            state = TransactionsListUiState(
-                currency = currency(),
-                categoryId = 10L,
-                categoryName = "Food",
-                isLoading = false,
-                groups = listOf(group(id = 10L, kind = CategoryKind.Expense, total = "30.00", count = 2)),
-            ),
+            state =
+                TransactionsListUiState(
+                    currency = currency(),
+                    categoryId = 10L,
+                    categoryName = "Food",
+                    isLoading = false,
+                    groups = listOf(group(id = 10L, kind = CategoryKind.Expense, total = "30.00", count = 2)),
+                ),
             onEvent = { event -> capturedEvents += event },
         )
 
@@ -238,11 +243,12 @@ class TransactionsListContentUiTest {
         val capturedEvents = mutableListOf<TransactionsListEvent>()
 
         setContent(
-            state = TransactionsListUiState(
-                currency = currency(),
-                isLoading = false,
-                groups = listOf(group(id = 10L, kind = CategoryKind.Expense, total = "30.00", count = 2)),
-            ),
+            state =
+                TransactionsListUiState(
+                    currency = currency(),
+                    isLoading = false,
+                    groups = listOf(group(id = 10L, kind = CategoryKind.Expense, total = "30.00", count = 2)),
+                ),
             onEvent = { event -> capturedEvents += event },
         )
 
@@ -258,27 +264,28 @@ class TransactionsListContentUiTest {
     @Test
     fun `collapsed category hides transactions and shows expand semantics`() {
         setContent(
-            state = TransactionsListUiState(
-                currency = currency(),
-                isLoading = false,
-                groups = listOf(
-                    group(
-                        id = 10L,
-                        kind = CategoryKind.Expense,
-                        total = "12.34",
-                        count = 1,
-                        transactions = listOf(transaction(id = 42L, categoryId = 10L)),
-                    ),
+            state =
+                TransactionsListUiState(
+                    currency = currency(),
+                    isLoading = false,
+                    groups =
+                        listOf(
+                            group(
+                                id = 10L,
+                                kind = CategoryKind.Expense,
+                                total = "12.34",
+                                count = 1,
+                                transactions = listOf(transaction(id = 42L, categoryId = 10L)),
+                            ),
+                        ),
                 ),
-            ),
         )
 
         composeTestRule
             .onNodeWithContentDescription(
                 targetString(R.string.transactions_list_expand),
                 useUnmergedTree = true,
-            )
-            .assertIsDisplayed()
+            ).assertIsDisplayed()
         composeTestRule
             .onNodeWithTag(RecordsTestTags.transaction(42L))
             .assertDoesNotExist()
@@ -287,28 +294,29 @@ class TransactionsListContentUiTest {
     @Test
     fun `expanded category shows transactions and shows collapse semantics`() {
         setContent(
-            state = TransactionsListUiState(
-                currency = currency(),
-                isLoading = false,
-                expandedCategoryIds = setOf(10L),
-                groups = listOf(
-                    group(
-                        id = 10L,
-                        kind = CategoryKind.Expense,
-                        total = "12.34",
-                        count = 1,
-                        transactions = listOf(transaction(id = 42L, categoryId = 10L)),
-                    ),
+            state =
+                TransactionsListUiState(
+                    currency = currency(),
+                    isLoading = false,
+                    expandedCategoryIds = setOf(10L),
+                    groups =
+                        listOf(
+                            group(
+                                id = 10L,
+                                kind = CategoryKind.Expense,
+                                total = "12.34",
+                                count = 1,
+                                transactions = listOf(transaction(id = 42L, categoryId = 10L)),
+                            ),
+                        ),
                 ),
-            ),
         )
 
         composeTestRule
             .onNodeWithContentDescription(
                 targetString(R.string.transactions_list_collapse),
                 useUnmergedTree = true,
-            )
-            .assertIsDisplayed()
+            ).assertIsDisplayed()
         composeTestRule
             .onNodeWithTag(RecordsTestTags.transaction(42L))
             .assertIsDisplayed()
@@ -319,20 +327,22 @@ class TransactionsListContentUiTest {
         val capturedEvents = mutableListOf<TransactionsListEvent>()
 
         setContent(
-            state = TransactionsListUiState(
-                currency = currency(),
-                isLoading = false,
-                expandedCategoryIds = setOf(10L),
-                groups = listOf(
-                    group(
-                        id = 10L,
-                        kind = CategoryKind.Expense,
-                        total = "12.34",
-                        count = 1,
-                        transactions = listOf(transaction(id = 42L, categoryId = 10L)),
-                    ),
+            state =
+                TransactionsListUiState(
+                    currency = currency(),
+                    isLoading = false,
+                    expandedCategoryIds = setOf(10L),
+                    groups =
+                        listOf(
+                            group(
+                                id = 10L,
+                                kind = CategoryKind.Expense,
+                                total = "12.34",
+                                count = 1,
+                                transactions = listOf(transaction(id = 42L, categoryId = 10L)),
+                            ),
+                        ),
                 ),
-            ),
             onEvent = { event -> capturedEvents += event },
         )
 
@@ -348,12 +358,13 @@ class TransactionsListContentUiTest {
     @Test
     fun `balance bar is shown when net is present`() {
         setContent(
-            state = TransactionsListUiState(
-                currency = currency(),
-                isLoading = false,
-                net = money("70.00"),
-                groups = listOf(group(id = 10L, kind = CategoryKind.Expense, total = "30.00", count = 2)),
-            ),
+            state =
+                TransactionsListUiState(
+                    currency = currency(),
+                    isLoading = false,
+                    net = money("70.00"),
+                    groups = listOf(group(id = 10L, kind = CategoryKind.Expense, total = "30.00", count = 2)),
+                ),
         )
 
         composeTestRule
@@ -384,15 +395,16 @@ class TransactionsListContentUiTest {
         }
     }
 
-    private fun currency(): Currency = Currency(
-        id = 1L,
-        code = "USD",
-        symbol = "$",
-        name = "US Dollar",
-        decimalDigits = 2,
-        isActive = true,
-        sortOrder = 0,
-    )
+    private fun currency(): Currency =
+        Currency(
+            id = 1L,
+            code = "USD",
+            symbol = "$",
+            name = "US Dollar",
+            decimalDigits = 2,
+            isActive = true,
+            sortOrder = 0,
+        )
 
     private fun money(amount: String): Money = Money(BigDecimal(amount), currency())
 
@@ -402,33 +414,38 @@ class TransactionsListContentUiTest {
         total: String,
         count: Int,
         transactions: List<Transaction> = emptyList(),
-    ): CategoryRecordGroup = CategoryRecordGroup(
-        categoryId = id,
-        name = "cat$id",
-        iconKey = "ic_cat_food",
-        colorHex = "#7AC794",
-        kind = kind,
-        total = money(total),
-        count = count,
-        transactions = transactions,
-    )
+    ): CategoryRecordGroup =
+        CategoryRecordGroup(
+            categoryId = id,
+            name = "cat$id",
+            iconKey = "ic_cat_food",
+            colorHex = "#7AC794",
+            kind = kind,
+            total = money(total),
+            count = count,
+            transactions = transactions,
+        )
 
-    private fun transaction(id: Long, categoryId: Long): Transaction = Transaction(
-        id = id,
-        kind = TransactionKind.Expense,
-        amount = BigDecimal("12.34"),
-        currencyId = 1L,
-        accountId = 1L,
-        categoryId = categoryId,
-        note = "Coffee",
-        occurredAt = Instant.parse("2026-05-28T09:00:00Z"),
-        createdAt = Instant.parse("2026-05-28T09:00:00Z"),
-        updatedAt = Instant.parse("2026-05-28T09:00:00Z"),
-        isDeleted = false,
-        toAccountId = null,
-        toAmount = null,
-        exchangeRate = null,
-    )
+    private fun transaction(
+        id: Long,
+        categoryId: Long,
+    ): Transaction =
+        Transaction(
+            id = id,
+            kind = TransactionKind.Expense,
+            amount = BigDecimal("12.34"),
+            currencyId = 1L,
+            accountId = 1L,
+            categoryId = categoryId,
+            note = "Coffee",
+            occurredAt = Instant.parse("2026-05-28T09:00:00Z"),
+            createdAt = Instant.parse("2026-05-28T09:00:00Z"),
+            updatedAt = Instant.parse("2026-05-28T09:00:00Z"),
+            isDeleted = false,
+            toAccountId = null,
+            toAmount = null,
+            exchangeRate = null,
+        )
 
     // ----- Transfer tab Compose-UI tests -----
 
@@ -464,11 +481,12 @@ class TransactionsListContentUiTest {
         val capturedEvents = mutableListOf<TransactionsListEvent>()
 
         setContent(
-            state = TransactionsListUiState(
-                currency = currency(),
-                activeTab = RecordsTab.Transfers,
-                isLoading = false,
-            ),
+            state =
+                TransactionsListUiState(
+                    currency = currency(),
+                    activeTab = RecordsTab.Transfers,
+                    isLoading = false,
+                ),
             onEvent = { capturedEvents += it },
         )
 
@@ -486,12 +504,13 @@ class TransactionsListContentUiTest {
         val transferRecord = transferRecord(id = 55L, from = "Наличные", to = "Карта", amount = "500.00")
 
         setContent(
-            state = TransactionsListUiState(
-                currency = currency(),
-                activeTab = RecordsTab.Transfers,
-                transfers = listOf(transferRecord),
-                isLoading = false,
-            ),
+            state =
+                TransactionsListUiState(
+                    currency = currency(),
+                    activeTab = RecordsTab.Transfers,
+                    transfers = listOf(transferRecord),
+                    isLoading = false,
+                ),
         )
 
         composeTestRule
@@ -505,8 +524,7 @@ class TransactionsListContentUiTest {
                     "Карта",
                 ),
                 useUnmergedTree = true,
-            )
-            .assertIsDisplayed()
+            ).assertIsDisplayed()
     }
 
     @Test
@@ -515,12 +533,13 @@ class TransactionsListContentUiTest {
         val transferRecord = transferRecord(id = 55L, from = "Cash", to = "Card", amount = "200.00")
 
         setContent(
-            state = TransactionsListUiState(
-                currency = currency(),
-                activeTab = RecordsTab.Transfers,
-                transfers = listOf(transferRecord),
-                isLoading = false,
-            ),
+            state =
+                TransactionsListUiState(
+                    currency = currency(),
+                    activeTab = RecordsTab.Transfers,
+                    transfers = listOf(transferRecord),
+                    isLoading = false,
+                ),
             onEvent = { capturedEvents += it },
         )
 
@@ -536,12 +555,13 @@ class TransactionsListContentUiTest {
     @Test
     fun `Transfers tab shows empty state when there are no transfers`() {
         setContent(
-            state = TransactionsListUiState(
-                currency = currency(),
-                activeTab = RecordsTab.Transfers,
-                transfers = emptyList(),
-                isLoading = false,
-            ),
+            state =
+                TransactionsListUiState(
+                    currency = currency(),
+                    activeTab = RecordsTab.Transfers,
+                    transfers = emptyList(),
+                    isLoading = false,
+                ),
         )
 
         composeTestRule
@@ -550,8 +570,7 @@ class TransactionsListContentUiTest {
         composeTestRule
             .onNodeWithText(
                 targetString(com.kshavrin.mymoney.feature.transactionslist.R.string.transactions_list_transfers_empty),
-            )
-            .assertIsDisplayed()
+            ).assertIsDisplayed()
     }
 
     @Test
@@ -559,13 +578,14 @@ class TransactionsListContentUiTest {
         val transferRecord = transferRecord(id = 77L, from = "A", to = "B", amount = "100.00")
 
         setContent(
-            state = TransactionsListUiState(
-                currency = currency(),
-                activeTab = RecordsTab.Operations,
-                transfers = listOf(transferRecord),
-                isLoading = false,
-                groups = emptyList(),
-            ),
+            state =
+                TransactionsListUiState(
+                    currency = currency(),
+                    activeTab = RecordsTab.Operations,
+                    transfers = listOf(transferRecord),
+                    isLoading = false,
+                    groups = emptyList(),
+                ),
         )
 
         composeTestRule
@@ -581,14 +601,15 @@ class TransactionsListContentUiTest {
         val transferRecord = transferRecord(id = 88L, from = "A", to = "B", amount = "50.00")
 
         setContent(
-            state = TransactionsListUiState(
-                currency = currency(),
-                activeTab = RecordsTab.Transfers,
-                transfers = listOf(transferRecord),
-                isLoading = false,
-                categoryId = 10L,
-                categoryName = "Food",
-            ),
+            state =
+                TransactionsListUiState(
+                    currency = currency(),
+                    activeTab = RecordsTab.Transfers,
+                    transfers = listOf(transferRecord),
+                    isLoading = false,
+                    categoryId = 10L,
+                    categoryName = "Food",
+                ),
         )
 
         composeTestRule
@@ -604,14 +625,15 @@ class TransactionsListContentUiTest {
         from: String,
         to: String,
         amount: String,
-    ): TransferRecord = TransferRecord(
-        id = id,
-        fromAccountName = from,
-        toAccountName = to,
-        amount = money(amount),
-        toAmount = null,
-        occurredAt = java.time.Instant.parse("2026-06-10T12:00:00Z"),
-    )
+    ): TransferRecord =
+        TransferRecord(
+            id = id,
+            fromAccountName = from,
+            toAccountName = to,
+            amount = money(amount),
+            toAmount = null,
+            occurredAt = java.time.Instant.parse("2026-06-10T12:00:00Z"),
+        )
 
     // ----- Undo snackbar non-blocking test -----
 
@@ -646,20 +668,22 @@ class TransactionsListContentUiTest {
                     )
                 }
                 TransactionsListContent(
-                    state = TransactionsListUiState(
-                        currency = currency(),
-                        isLoading = false,
-                        expandedCategoryIds = setOf(10L),
-                        groups = listOf(
-                            group(
-                                id = 10L,
-                                kind = CategoryKind.Expense,
-                                total = "12.34",
-                                count = 1,
-                                transactions = listOf(tx),
-                            ),
+                    state =
+                        TransactionsListUiState(
+                            currency = currency(),
+                            isLoading = false,
+                            expandedCategoryIds = setOf(10L),
+                            groups =
+                                listOf(
+                                    group(
+                                        id = 10L,
+                                        kind = CategoryKind.Expense,
+                                        total = "12.34",
+                                        count = 1,
+                                        transactions = listOf(tx),
+                                    ),
+                                ),
                         ),
-                    ),
                     snackbarHostState = snackbarHostState,
                     onEvent = { event -> capturedEvents += event },
                     onSearch = {},
@@ -689,6 +713,9 @@ class TransactionsListContentUiTest {
         }
     }
 
-    private fun targetString(resourceId: Int, vararg formatArgs: Any): String =
+    private fun targetString(
+        resourceId: Int,
+        vararg formatArgs: Any,
+    ): String =
         InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId, *formatArgs)
 }

@@ -13,35 +13,38 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class ThemeSettingsViewModel @Inject constructor(
-    private val appSettingsRepository: AppSettingsRepository,
-) : ViewModel() {
+class ThemeSettingsViewModel
+    @Inject
+    constructor(
+        private val appSettingsRepository: AppSettingsRepository,
+    ) : ViewModel() {
+        private val _state = MutableStateFlow(ThemeSettingsState())
+        val state: StateFlow<ThemeSettingsState> = _state.asStateFlow()
 
-    private val _state = MutableStateFlow(ThemeSettingsState())
-    val state: StateFlow<ThemeSettingsState> = _state.asStateFlow()
+        init {
+            viewModelScope.launch {
+                appSettingsRepository.settings.collect { settings ->
+                    _state.value = ThemeSettingsState(selected = ThemeMode.fromStored(settings.themeMode))
+                }
+            }
+        }
 
-    init {
-        viewModelScope.launch {
-            appSettingsRepository.settings.collect { settings ->
-                _state.value = ThemeSettingsState(selected = ThemeMode.fromStored(settings.themeMode))
+        fun onEvent(event: ThemeSettingsEvent) {
+            when (event) {
+                is ThemeSettingsEvent.ModeSelected ->
+                    viewModelScope.launch {
+                        appSettingsRepository.update { it.copy(themeMode = event.mode.stored) }
+                    }
             }
         }
     }
-
-    fun onEvent(event: ThemeSettingsEvent) {
-        when (event) {
-            is ThemeSettingsEvent.ModeSelected ->
-                viewModelScope.launch {
-                    appSettingsRepository.update { it.copy(themeMode = event.mode.stored) }
-                }
-        }
-    }
-}
 
 data class ThemeSettingsState(
     val selected: ThemeMode = ThemeMode.System,
 )
 
 sealed interface ThemeSettingsEvent {
-    data class ModeSelected(val mode: ThemeMode) : ThemeSettingsEvent
+    data class ModeSelected(
+        val mode: ThemeMode,
+    ) : ThemeSettingsEvent
 }

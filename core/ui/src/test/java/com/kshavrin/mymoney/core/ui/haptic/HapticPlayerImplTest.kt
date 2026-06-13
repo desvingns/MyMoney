@@ -92,7 +92,6 @@ import org.junit.Test
  *     the no-vibrator gating test above.
  */
 class HapticPlayerImplTest {
-
     /**
      * Single live-import guard so the placeholder cannot silently drift
      * away from the production contract over the coming phases. Constructs
@@ -119,6 +118,7 @@ class HapticPlayerImplTest {
 
     private class RecordingHapticPlayer : HapticPlayer {
         val calls: MutableList<HapticKind> = mutableListOf()
+
         override fun fire(kind: HapticKind) {
             calls += kind
         }

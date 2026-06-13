@@ -102,13 +102,14 @@ fun TransactionDetailRoute(
                     // AS-9: same 5s window as S12. Indefinite duration defers dismissal to the
                     // timeout so the soft-delete becomes final exactly after 5 seconds. We pop
                     // back to S12 only after the window resolves so the snackbar stays visible.
-                    val result = withTimeoutOrNull(UNDO_WINDOW_MILLIS) {
-                        snackbarHostState.showSnackbar(
-                            message = undoMessage,
-                            actionLabel = undoAction,
-                            duration = SnackbarDuration.Indefinite,
-                        )
-                    }
+                    val result =
+                        withTimeoutOrNull(UNDO_WINDOW_MILLIS) {
+                            snackbarHostState.showSnackbar(
+                                message = undoMessage,
+                                actionLabel = undoAction,
+                                duration = SnackbarDuration.Indefinite,
+                            )
+                        }
                     if (result == SnackbarResult.ActionPerformed) {
                         viewModel.onEvent(TransactionDetailEvent.UndoDeleteClicked(action.transactionId))
                     }
@@ -228,10 +229,14 @@ fun TransactionDetailContent(
     }
 
     if (datePickerVisible) {
-        val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = state.occurredAt
-                .atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
-        )
+        val datePickerState =
+            rememberDatePickerState(
+                initialSelectedDateMillis =
+                    state.occurredAt
+                        .atStartOfDay(ZoneOffset.UTC)
+                        .toInstant()
+                        .toEpochMilli(),
+            )
         DatePickerDialog(
             onDismissRequest = { datePickerVisible = false },
             confirmButton = {
@@ -263,25 +268,28 @@ private fun TransferEditBody(
     modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(Spacing.m)
-            .verticalScroll(rememberScrollState()),
+        modifier =
+            modifier
+                .fillMaxSize()
+                .padding(Spacing.m)
+                .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(Spacing.m),
     ) {
         Card(modifier = Modifier.fillMaxWidth()) {
             AmountFieldSection(
-                state = AmountFieldState(
-                    display = state.amountInput,
-                    expression = state.expression,
-                    currencyCode = state.currency?.code,
-                    note = state.note,
-                    occurredAt = state.occurredAt,
-                    accountChipLabel = buildAccountChipLabel(
-                        state.account?.name,
-                        state.currency?.code,
+                state =
+                    AmountFieldState(
+                        display = state.amountInput,
+                        expression = state.expression,
+                        currencyCode = state.currency?.code,
+                        note = state.note,
+                        occurredAt = state.occurredAt,
+                        accountChipLabel =
+                            buildAccountChipLabel(
+                                state.account?.name,
+                                state.currency?.code,
+                            ),
                     ),
-                ),
                 onEvent = { e -> dispatchAmountEvent(e, onEvent, onDatePickerRequested) },
                 modifier = Modifier.padding(Spacing.m),
             )
@@ -343,36 +351,42 @@ private fun AccountDropdown(
     }
 }
 
-private fun titleRes(kind: TransactionKind): Int = when (kind) {
-    TransactionKind.Expense -> R.string.detail_title_expense
-    TransactionKind.Income -> R.string.detail_title_income
-    TransactionKind.Transfer -> R.string.detail_title_transfer
-}
+private fun titleRes(kind: TransactionKind): Int =
+    when (kind) {
+        TransactionKind.Expense -> R.string.detail_title_expense
+        TransactionKind.Income -> R.string.detail_title_income
+        TransactionKind.Transfer -> R.string.detail_title_transfer
+    }
 
-private fun buildAccountChipLabel(name: String?, code: String?): String {
+private fun buildAccountChipLabel(
+    name: String?,
+    code: String?,
+): String {
     if (name == null) return ""
     return if (code != null) "$name · $code" else name
 }
 
-private fun TransactionDetailState.toTransactionFormState(): TransactionFormState = TransactionFormState(
-    amountInput = amountInput,
-    expression = expression,
-    currencyCode = currency?.code,
-    currencySymbol = currency?.symbol,
-    note = note,
-    occurredAt = occurredAt,
-    categories = categories.map { it.toTransactionFormCategory() },
-    categoryStep = categoryStep,
-    chooseCategoryEnabled = amount > BigDecimal.ZERO,
-    mode = TransactionFormMode.Edit,
-)
+private fun TransactionDetailState.toTransactionFormState(): TransactionFormState =
+    TransactionFormState(
+        amountInput = amountInput,
+        expression = expression,
+        currencyCode = currency?.code,
+        currencySymbol = currency?.symbol,
+        note = note,
+        occurredAt = occurredAt,
+        categories = categories.map { it.toTransactionFormCategory() },
+        categoryStep = categoryStep,
+        chooseCategoryEnabled = amount > BigDecimal.ZERO,
+        mode = TransactionFormMode.Edit,
+    )
 
-private fun Category.toTransactionFormCategory(): TransactionFormCategory = TransactionFormCategory(
-    id = id,
-    name = name,
-    colorHex = colorHex,
-    iconKey = iconKey,
-)
+private fun Category.toTransactionFormCategory(): TransactionFormCategory =
+    TransactionFormCategory(
+        id = id,
+        name = name,
+        colorHex = colorHex,
+        iconKey = iconKey,
+    )
 
 private fun dispatchTransactionFormEvent(
     event: TransactionFormEvent,
@@ -410,13 +424,14 @@ private fun dispatchAmountEvent(
     onDateChipClicked: () -> Unit,
 ) {
     when (e) {
-        is AmountFieldEvent.Keypad -> when (val k = e.event) {
-            is KeypadEvent.Digit -> onEvent(TransactionDetailEvent.KeypadDigit(k.d))
-            is KeypadEvent.Op -> onEvent(TransactionDetailEvent.KeypadOperator(k.op))
-            KeypadEvent.Dot -> onEvent(TransactionDetailEvent.KeypadDot)
-            KeypadEvent.Backspace -> onEvent(TransactionDetailEvent.KeypadBackspace)
-            KeypadEvent.Equals -> onEvent(TransactionDetailEvent.KeypadEquals)
-        }
+        is AmountFieldEvent.Keypad ->
+            when (val k = e.event) {
+                is KeypadEvent.Digit -> onEvent(TransactionDetailEvent.KeypadDigit(k.d))
+                is KeypadEvent.Op -> onEvent(TransactionDetailEvent.KeypadOperator(k.op))
+                KeypadEvent.Dot -> onEvent(TransactionDetailEvent.KeypadDot)
+                KeypadEvent.Backspace -> onEvent(TransactionDetailEvent.KeypadBackspace)
+                KeypadEvent.Equals -> onEvent(TransactionDetailEvent.KeypadEquals)
+            }
         is AmountFieldEvent.NoteChanged -> onEvent(TransactionDetailEvent.NoteChanged(e.text))
         is AmountFieldEvent.DateChanged -> onEvent(TransactionDetailEvent.DateChanged(e.date))
         AmountFieldEvent.AccountChipClicked -> Unit

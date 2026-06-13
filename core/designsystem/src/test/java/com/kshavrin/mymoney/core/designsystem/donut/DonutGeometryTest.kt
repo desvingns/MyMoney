@@ -11,13 +11,16 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 class DonutGeometryTest {
-
-    private fun slice(id: Long, fraction: Float) = CategorySlice(
-        categoryId = id,
-        color = Color.Red,
-        fraction = fraction,
-        label = "Slice-$id",
-    )
+    private fun slice(
+        id: Long,
+        fraction: Float,
+    ) =
+        CategorySlice(
+            categoryId = id,
+            color = Color.Red,
+            fraction = fraction,
+            label = "Slice-$id",
+        )
 
     @Test
     fun computeSliceArcs_evenSlices() {
@@ -72,45 +75,48 @@ class DonutGeometryTest {
     @Test
     fun hitTest_insideAnnulus_returnsSlice() {
         val arcs = DonutGeometry.computeSliceArcs(listOf(slice(1, 0.5f), slice(2, 0.5f)))
-        val hit = DonutGeometry.hitTest(
-            offsetX = 100f,
-            offsetY = 0f,
-            centerX = 0f,
-            centerY = 0f,
-            innerRadius = 50f,
-            outerRadius = 150f,
-            arcs = arcs,
-        )
+        val hit =
+            DonutGeometry.hitTest(
+                offsetX = 100f,
+                offsetY = 0f,
+                centerX = 0f,
+                centerY = 0f,
+                innerRadius = 50f,
+                outerRadius = 150f,
+                arcs = arcs,
+            )
         assertNotNull(hit)
     }
 
     @Test
     fun hitTest_outsideOuter_returnsNull() {
         val arcs = DonutGeometry.computeSliceArcs(listOf(slice(1, 1f)))
-        val hit = DonutGeometry.hitTest(
-            offsetX = 200f,
-            offsetY = 0f,
-            centerX = 0f,
-            centerY = 0f,
-            innerRadius = 50f,
-            outerRadius = 150f,
-            arcs = arcs,
-        )
+        val hit =
+            DonutGeometry.hitTest(
+                offsetX = 200f,
+                offsetY = 0f,
+                centerX = 0f,
+                centerY = 0f,
+                innerRadius = 50f,
+                outerRadius = 150f,
+                arcs = arcs,
+            )
         assertNull(hit)
     }
 
     @Test
     fun hitTest_insideInner_returnsNull() {
         val arcs = DonutGeometry.computeSliceArcs(listOf(slice(1, 1f)))
-        val hit = DonutGeometry.hitTest(
-            offsetX = 30f,
-            offsetY = 0f,
-            centerX = 0f,
-            centerY = 0f,
-            innerRadius = 50f,
-            outerRadius = 150f,
-            arcs = arcs,
-        )
+        val hit =
+            DonutGeometry.hitTest(
+                offsetX = 30f,
+                offsetY = 0f,
+                centerX = 0f,
+                centerY = 0f,
+                innerRadius = 50f,
+                outerRadius = 150f,
+                arcs = arcs,
+            )
         assertNull(hit)
     }
 
@@ -121,26 +127,28 @@ class DonutGeometryTest {
         val arcs = DonutGeometry.computeSliceArcs(listOf(firstSlice, secondSlice))
         val radius = 100f
 
-        val gapHit = DonutGeometry.hitTest(
-            offsetX = pointAtAngleDegrees(angleDegrees = 90f, radius = radius).first,
-            offsetY = pointAtAngleDegrees(angleDegrees = 90f, radius = radius).second,
-            centerX = 0f,
-            centerY = 0f,
-            innerRadius = 50f,
-            outerRadius = 150f,
-            arcs = arcs,
-            sliceGapDegrees = 5f,
-        )
-        val visibleArcHit = DonutGeometry.hitTest(
-            offsetX = pointAtAngleDegrees(angleDegrees = 87f, radius = radius).first,
-            offsetY = pointAtAngleDegrees(angleDegrees = 87f, radius = radius).second,
-            centerX = 0f,
-            centerY = 0f,
-            innerRadius = 50f,
-            outerRadius = 150f,
-            arcs = arcs,
-            sliceGapDegrees = 5f,
-        )
+        val gapHit =
+            DonutGeometry.hitTest(
+                offsetX = pointAtAngleDegrees(angleDegrees = 90f, radius = radius).first,
+                offsetY = pointAtAngleDegrees(angleDegrees = 90f, radius = radius).second,
+                centerX = 0f,
+                centerY = 0f,
+                innerRadius = 50f,
+                outerRadius = 150f,
+                arcs = arcs,
+                sliceGapDegrees = 5f,
+            )
+        val visibleArcHit =
+            DonutGeometry.hitTest(
+                offsetX = pointAtAngleDegrees(angleDegrees = 87f, radius = radius).first,
+                offsetY = pointAtAngleDegrees(angleDegrees = 87f, radius = radius).second,
+                centerX = 0f,
+                centerY = 0f,
+                innerRadius = 50f,
+                outerRadius = 150f,
+                arcs = arcs,
+                sliceGapDegrees = 5f,
+            )
 
         assertNull(gapHit)
         assertEquals(firstSlice, visibleArcHit)
@@ -158,26 +166,28 @@ class DonutGeometryTest {
         val visibleAngle =
             narrowArc.startAngleDegrees + boundedGap / 2f + (narrowArc.sweepDegrees - boundedGap) / 2f
 
-        val hiddenGapHit = DonutGeometry.hitTest(
-            offsetX = pointAtAngleDegrees(angleDegrees = hiddenGapAngle, radius = radius).first,
-            offsetY = pointAtAngleDegrees(angleDegrees = hiddenGapAngle, radius = radius).second,
-            centerX = 0f,
-            centerY = 0f,
-            innerRadius = 50f,
-            outerRadius = 150f,
-            arcs = arcs,
-            sliceGapDegrees = 5f,
-        )
-        val visibleArcHit = DonutGeometry.hitTest(
-            offsetX = pointAtAngleDegrees(angleDegrees = visibleAngle, radius = radius).first,
-            offsetY = pointAtAngleDegrees(angleDegrees = visibleAngle, radius = radius).second,
-            centerX = 0f,
-            centerY = 0f,
-            innerRadius = 50f,
-            outerRadius = 150f,
-            arcs = arcs,
-            sliceGapDegrees = 5f,
-        )
+        val hiddenGapHit =
+            DonutGeometry.hitTest(
+                offsetX = pointAtAngleDegrees(angleDegrees = hiddenGapAngle, radius = radius).first,
+                offsetY = pointAtAngleDegrees(angleDegrees = hiddenGapAngle, radius = radius).second,
+                centerX = 0f,
+                centerY = 0f,
+                innerRadius = 50f,
+                outerRadius = 150f,
+                arcs = arcs,
+                sliceGapDegrees = 5f,
+            )
+        val visibleArcHit =
+            DonutGeometry.hitTest(
+                offsetX = pointAtAngleDegrees(angleDegrees = visibleAngle, radius = radius).first,
+                offsetY = pointAtAngleDegrees(angleDegrees = visibleAngle, radius = radius).second,
+                centerX = 0f,
+                centerY = 0f,
+                innerRadius = 50f,
+                outerRadius = 150f,
+                arcs = arcs,
+                sliceGapDegrees = 5f,
+            )
 
         assertEquals(2.16f, boundedGap, 0.001f)
         assertNull(hiddenGapHit)
@@ -189,26 +199,28 @@ class DonutGeometryTest {
         val shiftedSlice = slice(1, 1f)
         val arcs = DonutGeometry.computeSliceArcs(listOf(shiftedSlice))
 
-        val hitWithoutOffset = DonutGeometry.hitTest(
-            offsetX = 0f,
-            offsetY = 180f,
-            centerX = 0f,
-            centerY = 0f,
-            innerRadius = 50f,
-            outerRadius = 150f,
-            arcs = arcs,
-            explodedOffset = 0f,
-        )
-        val hitWithOffset = DonutGeometry.hitTest(
-            offsetX = 0f,
-            offsetY = 180f,
-            centerX = 0f,
-            centerY = 0f,
-            innerRadius = 50f,
-            outerRadius = 150f,
-            arcs = arcs,
-            explodedOffset = 80f,
-        )
+        val hitWithoutOffset =
+            DonutGeometry.hitTest(
+                offsetX = 0f,
+                offsetY = 180f,
+                centerX = 0f,
+                centerY = 0f,
+                innerRadius = 50f,
+                outerRadius = 150f,
+                arcs = arcs,
+                explodedOffset = 0f,
+            )
+        val hitWithOffset =
+            DonutGeometry.hitTest(
+                offsetX = 0f,
+                offsetY = 180f,
+                centerX = 0f,
+                centerY = 0f,
+                innerRadius = 50f,
+                outerRadius = 150f,
+                arcs = arcs,
+                explodedOffset = 80f,
+            )
 
         assertNull(hitWithoutOffset)
         assertEquals(shiftedSlice, hitWithOffset)
@@ -312,9 +324,10 @@ class DonutGeometryTest {
         val hhTop = 87.4f
         val hhBot = 73.9f
         val count = 4
-        val points = (0 until count).map { i ->
-            DonutGeometry.framePoint(t = i.toFloat() / count, hw = hw, hhTop = hhTop, hhBot = hhBot)
-        }
+        val points =
+            (0 until count).map { i ->
+                DonutGeometry.framePoint(t = i.toFloat() / count, hw = hw, hhTop = hhTop, hhBot = hhBot)
+            }
         points.forEach { p ->
             // each point must lie ON the rectangle edge (one coordinate at ±hw or ±hhTop/hhBot)
             val onHorizontal = abs(p.y + hhTop) < 0.5f || abs(p.y - hhBot) < 0.5f
@@ -332,9 +345,10 @@ class DonutGeometryTest {
         val hhTop = 87.4f
         val hhBot = 73.9f
         val count = 8
-        val points = (0 until count).map { i ->
-            DonutGeometry.framePoint(t = i.toFloat() / count, hw = hw, hhTop = hhTop, hhBot = hhBot)
-        }
+        val points =
+            (0 until count).map { i ->
+                DonutGeometry.framePoint(t = i.toFloat() / count, hw = hw, hhTop = hhTop, hhBot = hhBot)
+            }
         for (i in points.indices) {
             for (j in i + 1 until points.size) {
                 val dx = abs(points[i].x - points[j].x)
@@ -357,9 +371,10 @@ class DonutGeometryTest {
 
     @Test
     fun `computeSliceArcs three equal slices each sweep 120 degrees`() {
-        val arcs = DonutGeometry.computeSliceArcs(
-            listOf(slice(1, 1f / 3f), slice(2, 1f / 3f), slice(3, 1f / 3f)),
-        )
+        val arcs =
+            DonutGeometry.computeSliceArcs(
+                listOf(slice(1, 1f / 3f), slice(2, 1f / 3f), slice(3, 1f / 3f)),
+            )
         arcs.forEach { assertEquals(120f, it.sweepDegrees, 0.5f) }
     }
 
@@ -427,17 +442,19 @@ class DonutGeometryTest {
 
     @Test
     fun `mid angle zero projects contour icon center to the right of donut center`() {
-        val arc = SliceArc(
-            slice = slice(1, 1f),
-            startAngleDegrees = -30f,
-            sweepDegrees = 60f,
-        )
+        val arc =
+            SliceArc(
+                slice = slice(1, 1f),
+                startAngleDegrees = -30f,
+                sweepDegrees = 60f,
+            )
 
-        val iconCenter = contourPoint(
-            arc = arc,
-            radius = 100f + 8f + 20f,
-            explodedOffset = 12f,
-        )
+        val iconCenter =
+            contourPoint(
+                arc = arc,
+                radius = 100f + 8f + 20f,
+                explodedOffset = 12f,
+            )
 
         assertEquals(140f, iconCenter.first, 0.001f)
         assertEquals(0f, iconCenter.second, 0.001f)
@@ -446,17 +463,19 @@ class DonutGeometryTest {
 
     @Test
     fun `mid angle minus ninety projects contour icon center above donut center`() {
-        val arc = SliceArc(
-            slice = slice(1, 1f),
-            startAngleDegrees = -120f,
-            sweepDegrees = 60f,
-        )
+        val arc =
+            SliceArc(
+                slice = slice(1, 1f),
+                startAngleDegrees = -120f,
+                sweepDegrees = 60f,
+            )
 
-        val iconCenter = contourPoint(
-            arc = arc,
-            radius = 100f + 8f + 20f,
-            explodedOffset = 12f,
-        )
+        val iconCenter =
+            contourPoint(
+                arc = arc,
+                radius = 100f + 8f + 20f,
+                explodedOffset = 12f,
+            )
 
         assertEquals(0f, iconCenter.first, 0.001f)
         assertEquals(-140f, iconCenter.second, 0.001f)
@@ -469,84 +488,91 @@ class DonutGeometryTest {
 
     @Test
     fun `projectAngleToFrame zero degrees exits at right-edge midpoint`() {
-        val p = DonutGeometry.projectAngleToFrame(
-            angleRadians = rad(0f),
-            halfWidth = 100f,
-            halfHeightTop = 80f,
-            halfHeightBottom = 80f,
-        )
+        val p =
+            DonutGeometry.projectAngleToFrame(
+                angleRadians = rad(0f),
+                halfWidth = 100f,
+                halfHeightTop = 80f,
+                halfHeightBottom = 80f,
+            )
         assertEquals(100f, p.x, 0.01f)
         assertEquals(0f, p.y, 0.01f)
     }
 
     @Test
     fun `projectAngleToFrame ninety degrees exits at bottom-edge midpoint`() {
-        val p = DonutGeometry.projectAngleToFrame(
-            angleRadians = rad(90f),
-            halfWidth = 100f,
-            halfHeightTop = 80f,
-            halfHeightBottom = 60f,
-        )
+        val p =
+            DonutGeometry.projectAngleToFrame(
+                angleRadians = rad(90f),
+                halfWidth = 100f,
+                halfHeightTop = 80f,
+                halfHeightBottom = 60f,
+            )
         assertEquals(0f, p.x, 0.01f)
         assertEquals(60f, p.y, 0.01f)
     }
 
     @Test
     fun `projectAngleToFrame one-eighty degrees exits at left-edge midpoint`() {
-        val p = DonutGeometry.projectAngleToFrame(
-            angleRadians = rad(180f),
-            halfWidth = 100f,
-            halfHeightTop = 80f,
-            halfHeightBottom = 80f,
-        )
+        val p =
+            DonutGeometry.projectAngleToFrame(
+                angleRadians = rad(180f),
+                halfWidth = 100f,
+                halfHeightTop = 80f,
+                halfHeightBottom = 80f,
+            )
         assertEquals(-100f, p.x, 0.01f)
         assertEquals(0f, p.y, 0.01f)
     }
 
     @Test
     fun `projectAngleToFrame two-seventy degrees exits at top-edge midpoint`() {
-        val p = DonutGeometry.projectAngleToFrame(
-            angleRadians = rad(270f),
-            halfWidth = 100f,
-            halfHeightTop = 70f,
-            halfHeightBottom = 60f,
-        )
+        val p =
+            DonutGeometry.projectAngleToFrame(
+                angleRadians = rad(270f),
+                halfWidth = 100f,
+                halfHeightTop = 70f,
+                halfHeightBottom = 60f,
+            )
         assertEquals(0f, p.x, 0.01f)
         assertEquals(-70f, p.y, 0.01f)
     }
 
     @Test
     fun `projectAngleToFrame forty-five degrees on square exits at corner`() {
-        val p = DonutGeometry.projectAngleToFrame(
-            angleRadians = rad(45f),
-            halfWidth = 100f,
-            halfHeightTop = 100f,
-            halfHeightBottom = 100f,
-        )
+        val p =
+            DonutGeometry.projectAngleToFrame(
+                angleRadians = rad(45f),
+                halfWidth = 100f,
+                halfHeightTop = 100f,
+                halfHeightBottom = 100f,
+            )
         assertEquals(100f, p.x, 0.01f)
         assertEquals(100f, p.y, 0.01f)
     }
 
     @Test
     fun `projectAngleToFrame one-thirty-five degrees on square exits at bottom-left corner`() {
-        val p = DonutGeometry.projectAngleToFrame(
-            angleRadians = rad(135f),
-            halfWidth = 100f,
-            halfHeightTop = 100f,
-            halfHeightBottom = 100f,
-        )
+        val p =
+            DonutGeometry.projectAngleToFrame(
+                angleRadians = rad(135f),
+                halfWidth = 100f,
+                halfHeightTop = 100f,
+                halfHeightBottom = 100f,
+            )
         assertEquals(-100f, p.x, 0.01f)
         assertEquals(100f, p.y, 0.01f)
     }
 
     @Test
     fun `projectAngleToFrame diagonal on wide rect exits on left-right edge first`() {
-        val p = DonutGeometry.projectAngleToFrame(
-            angleRadians = rad(45f),
-            halfWidth = 200f,
-            halfHeightTop = 50f,
-            halfHeightBottom = 50f,
-        )
+        val p =
+            DonutGeometry.projectAngleToFrame(
+                angleRadians = rad(45f),
+                halfWidth = 200f,
+                halfHeightTop = 50f,
+                halfHeightBottom = 50f,
+            )
         // 45° ray reaches the bottom edge (y=50) before the far right edge (x=200)
         assertEquals(50f, p.y, 0.01f)
         assertEquals(50f, p.x, 0.01f)
@@ -554,12 +580,13 @@ class DonutGeometryTest {
 
     @Test
     fun `projectAngleToFrame diagonal on tall rect exits on top-bottom-blocked side first`() {
-        val p = DonutGeometry.projectAngleToFrame(
-            angleRadians = rad(45f),
-            halfWidth = 50f,
-            halfHeightTop = 200f,
-            halfHeightBottom = 200f,
-        )
+        val p =
+            DonutGeometry.projectAngleToFrame(
+                angleRadians = rad(45f),
+                halfWidth = 50f,
+                halfHeightTop = 200f,
+                halfHeightBottom = 200f,
+            )
         // 45° ray reaches the right edge (x=50) before the far bottom edge (y=200)
         assertEquals(50f, p.x, 0.01f)
         assertEquals(50f, p.y, 0.01f)
@@ -567,18 +594,22 @@ class DonutGeometryTest {
 
     @Test
     fun `projectAngleToFrame pure-vertical ray does not divide by zero`() {
-        val p = DonutGeometry.projectAngleToFrame(
-            angleRadians = rad(90f),
-            halfWidth = 100f,
-            halfHeightTop = 40f,
-            halfHeightBottom = 40f,
-        )
+        val p =
+            DonutGeometry.projectAngleToFrame(
+                angleRadians = rad(90f),
+                halfWidth = 100f,
+                halfHeightTop = 40f,
+                halfHeightBottom = 40f,
+            )
         assertTrue("x must be finite", p.x.isFinite())
         assertTrue("y must be finite", p.y.isFinite())
         assertEquals(40f, p.y, 0.01f)
     }
 
-    private fun pointAtAngleDegrees(angleDegrees: Float, radius: Float): Pair<Float, Float> {
+    private fun pointAtAngleDegrees(
+        angleDegrees: Float,
+        radius: Float,
+    ): Pair<Float, Float> {
         val radians = Math.toRadians(angleDegrees.toDouble())
         return (radius * cos(radians)).toFloat() to (radius * sin(radians)).toFloat()
     }

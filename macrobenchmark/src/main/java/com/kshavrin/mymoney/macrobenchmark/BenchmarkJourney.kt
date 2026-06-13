@@ -37,11 +37,12 @@ internal fun MacrobenchmarkScope.openTransactionsList() {
     check(waitForReadyBalance(TIMEOUT_MILLIS)) {
         "Dashboard balance was not rendered"
     }
-    val balance = checkNotNull(
-        device.findObject(By.text(readyBalancePattern)),
-    ) {
-        "Dashboard balance was not rendered"
-    }
+    val balance =
+        checkNotNull(
+            device.findObject(By.text(readyBalancePattern)),
+        ) {
+            "Dashboard balance was not rendered"
+        }
     balance.click()
     check(device.wait(Until.hasObject(By.text(transactionsTitlePattern)), TIMEOUT_MILLIS)) {
         "Transactions list did not render"
@@ -60,19 +61,20 @@ internal fun MacrobenchmarkScope.scrollTransactionsList() {
 
 private fun MacrobenchmarkScope.awaitLaunchScreen(): LaunchScreen {
     var launchScreen = LaunchScreen.Missing
-    val appeared = waitUntil(TIMEOUT_MILLIS) {
-        when {
-            hasDashboardSignal() -> {
-                launchScreen = LaunchScreen.Dashboard
-                true
+    val appeared =
+        waitUntil(TIMEOUT_MILLIS) {
+            when {
+                hasDashboardSignal() -> {
+                    launchScreen = LaunchScreen.Dashboard
+                    true
+                }
+                hasOnboardingSignal() -> {
+                    launchScreen = LaunchScreen.Onboarding
+                    true
+                }
+                else -> false
             }
-            hasOnboardingSignal() -> {
-                launchScreen = LaunchScreen.Onboarding
-                true
-            }
-            else -> false
         }
-    }
     return if (appeared) launchScreen else LaunchScreen.Missing
 }
 
@@ -85,17 +87,19 @@ private fun MacrobenchmarkScope.completeOnboarding() {
     }
 
     repeat(3) {
-        val next = checkNotNull(device.wait(Until.findObject(By.text(nextPattern)), TIMEOUT_MILLIS)) {
-            "Onboarding Next button was not found"
-        }
+        val next =
+            checkNotNull(device.wait(Until.findObject(By.text(nextPattern)), TIMEOUT_MILLIS)) {
+                "Onboarding Next button was not found"
+            }
         next.click()
         device.waitForIdle()
     }
-    val getStarted = checkNotNull(
-        device.wait(Until.findObject(By.text(getStartedPattern)), TIMEOUT_MILLIS),
-    ) {
-        "Onboarding completion button was not found"
-    }
+    val getStarted =
+        checkNotNull(
+            device.wait(Until.findObject(By.text(getStartedPattern)), TIMEOUT_MILLIS),
+        ) {
+            "Onboarding completion button was not found"
+        }
     getStarted.click()
 }
 
@@ -113,7 +117,10 @@ private fun MacrobenchmarkScope.hasOnboardingSignal(): Boolean =
         device.hasObject(By.text(skipPattern)) ||
         device.hasObject(By.text(getStartedPattern))
 
-private fun waitUntil(timeoutMillis: Long, condition: () -> Boolean): Boolean {
+private fun waitUntil(
+    timeoutMillis: Long,
+    condition: () -> Boolean,
+): Boolean {
     val deadline = SystemClock.uptimeMillis() + timeoutMillis
     while (SystemClock.uptimeMillis() < deadline) {
         if (condition()) return true

@@ -16,8 +16,10 @@ import java.time.Instant
  *   without a real Room max-20-distinct store.
  */
 class FakeSearchHistoryRepository : SearchHistoryRepository {
-
-    data class AddCall(val query: String, val now: Instant)
+    data class AddCall(
+        val query: String,
+        val now: Instant,
+    )
 
     val addCalls: MutableList<AddCall> = mutableListOf()
     var pruneCount: Int = 0
@@ -31,7 +33,10 @@ class FakeSearchHistoryRepository : SearchHistoryRepository {
 
     override fun observe(): Flow<List<String>> = history.asStateFlow()
 
-    override suspend fun add(query: String, now: Instant) {
+    override suspend fun add(
+        query: String,
+        now: Instant,
+    ) {
         addCalls.add(AddCall(query, now))
     }
 

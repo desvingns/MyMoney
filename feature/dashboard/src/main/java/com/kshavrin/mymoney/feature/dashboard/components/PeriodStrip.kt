@@ -16,9 +16,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -39,9 +39,10 @@ fun PeriodStrip(
     var showRangePicker by remember { mutableStateOf(false) }
 
     Row(
-        modifier = modifier
-            .horizontalScroll(rememberScrollState())
-            .padding(horizontal = Spacing.l),
+        modifier =
+            modifier
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = Spacing.l),
         horizontalArrangement = Arrangement.spacedBy(Spacing.s),
     ) {
         PeriodChip(
@@ -101,7 +102,11 @@ fun PeriodStrip(
 }
 
 @Composable
-private fun PeriodChip(text: String, selected: Boolean, onClick: () -> Unit) {
+private fun PeriodChip(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
     FilterChip(
         selected = selected,
         onClick = onClick,

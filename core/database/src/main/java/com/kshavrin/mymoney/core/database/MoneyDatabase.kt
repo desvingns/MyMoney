@@ -44,13 +44,22 @@ import com.kshavrin.mymoney.core.database.entity.TransactionEntity
 @TypeConverters(MoneyTypeConverters::class)
 abstract class MoneyDatabase : RoomDatabase() {
     abstract fun currencyDao(): CurrencyDao
+
     abstract fun currencyRateDao(): CurrencyRateDao
+
     abstract fun accountDao(): AccountDao
+
     abstract fun categoryDao(): CategoryDao
+
     abstract fun transactionDao(): TransactionDao
+
     abstract fun budgetDao(): BudgetDao
+
     abstract fun recurringTemplateDao(): RecurringTemplateDao
+
     abstract fun syncLogDao(): SyncLogDao
+
     abstract fun searchHistoryDao(): SearchHistoryDao
+
     abstract fun goalDao(): GoalDao
 }

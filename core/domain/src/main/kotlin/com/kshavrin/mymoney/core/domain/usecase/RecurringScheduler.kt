@@ -7,44 +7,57 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 import javax.inject.Inject
 
-class RecurringScheduler @Inject constructor() {
-
-    fun computeNextRun(template: RecurringTemplate, now: Instant, zone: ZoneId = ZoneId.systemDefault()): Instant {
-        val current = template.nextRunAt.atZone(zone)
-        val next = when (template.recurrenceKind.lowercase()) {
-            "daily" -> current.plusDays(template.interval.toLong())
-            "weekly" -> nextWeekly(current, template)
-            "monthly" -> current.plusMonths(template.interval.toLong())
-            "yearly" -> current.plusYears(template.interval.toLong())
-            else -> throw IllegalArgumentException("Unknown recurrenceKind: ${template.recurrenceKind}")
+class RecurringScheduler
+    @Inject
+    constructor() {
+        fun computeNextRun(
+            template: RecurringTemplate,
+            now: Instant,
+            zone: ZoneId = ZoneId.systemDefault(),
+        ): Instant {
+            val current = template.nextRunAt.atZone(zone)
+            val next =
+                when (template.recurrenceKind.lowercase()) {
+                    "daily" -> current.plusDays(template.interval.toLong())
+                    "weekly" -> nextWeekly(current, template)
+                    "monthly" -> current.plusMonths(template.interval.toLong())
+                    "yearly" -> current.plusYears(template.interval.toLong())
+                    else -> throw IllegalArgumentException("Unknown recurrenceKind: ${template.recurrenceKind}")
+                }
+            return next.toInstant()
         }
-        return next.toInstant()
-    }
 
-    private fun nextWeekly(current: ZonedDateTime, template: RecurringTemplate): ZonedDateTime {
-        val byDayMask = template.byDay?.split(",")?.mapNotNull { token ->
-            DAY_MAP[token.trim().uppercase()]
-        }?.toSet() ?: return current.plusWeeks(template.interval.toLong())
+        private fun nextWeekly(
+            current: ZonedDateTime,
+            template: RecurringTemplate,
+        ): ZonedDateTime {
+            val byDayMask =
+                template.byDay
+                    ?.split(",")
+                    ?.mapNotNull { token ->
+                        DAY_MAP[token.trim().uppercase()]
+                    }?.toSet() ?: return current.plusWeeks(template.interval.toLong())
 
-        if (byDayMask.isEmpty()) return current.plusWeeks(template.interval.toLong())
+            if (byDayMask.isEmpty()) return current.plusWeeks(template.interval.toLong())
 
-        var candidate = current.plusDays(1)
-        repeat(7 * template.interval) {
-            if (candidate.dayOfWeek in byDayMask) return candidate
-            candidate = candidate.plusDays(1)
+            var candidate = current.plusDays(1)
+            repeat(7 * template.interval) {
+                if (candidate.dayOfWeek in byDayMask) return candidate
+                candidate = candidate.plusDays(1)
+            }
+            return current.plusWeeks(template.interval.toLong())
         }
-        return current.plusWeeks(template.interval.toLong())
-    }
 
-    private companion object {
-        val DAY_MAP = mapOf(
-            "MO" to DayOfWeek.MONDAY,
-            "TU" to DayOfWeek.TUESDAY,
-            "WE" to DayOfWeek.WEDNESDAY,
-            "TH" to DayOfWeek.THURSDAY,
-            "FR" to DayOfWeek.FRIDAY,
-            "SA" to DayOfWeek.SATURDAY,
-            "SU" to DayOfWeek.SUNDAY,
-        )
+        private companion object {
+            val DAY_MAP =
+                mapOf(
+                    "MO" to DayOfWeek.MONDAY,
+                    "TU" to DayOfWeek.TUESDAY,
+                    "WE" to DayOfWeek.WEDNESDAY,
+                    "TH" to DayOfWeek.THURSDAY,
+                    "FR" to DayOfWeek.FRIDAY,
+                    "SA" to DayOfWeek.SATURDAY,
+                    "SU" to DayOfWeek.SUNDAY,
+                )
+        }
     }
-}

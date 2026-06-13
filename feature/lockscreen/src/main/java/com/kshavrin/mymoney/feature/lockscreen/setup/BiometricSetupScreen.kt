@@ -120,9 +120,10 @@ fun BiometricSetupContent(
         },
     ) { innerPadding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
         ) {
             ListItem(
                 headlineContent = { Text(stringResource(R.string.biometric_enable_toggle)) },
@@ -178,9 +179,10 @@ private fun UnavailabilityNotice(
                 text = stringResource(R.string.biometric_enrol_required),
                 color = BIOMETRIC_ERROR_COLOR,
                 style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier
-                    .clickable(onClick = onOpenSystemSettings)
-                    .padding(horizontal = Spacing.l, vertical = Spacing.s),
+                modifier =
+                    Modifier
+                        .clickable(onClick = onOpenSystemSettings)
+                        .padding(horizontal = Spacing.l, vertical = Spacing.s),
             )
     }
 }
@@ -201,9 +203,10 @@ private fun IdleTimeoutRow(
                     Icon(Icons.Filled.ArrowDropDown, contentDescription = null)
                 }
             },
-            modifier = Modifier
-                .testTag(LOCK_SETUP_IDLE_TIMEOUT_TAG)
-                .clickable { expanded = true },
+            modifier =
+                Modifier
+                    .testTag(LOCK_SETUP_IDLE_TIMEOUT_TAG)
+                    .clickable { expanded = true },
         )
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             IDLE_TIMEOUT_OPTIONS.forEach { seconds ->
@@ -265,9 +268,10 @@ private fun PinSetupDialog(
                 verticalArrangement = Arrangement.spacedBy(Spacing.m),
             ) {
                 Text(
-                    text = stringResource(
-                        if (firstPin == null) R.string.pin_setup_enter else R.string.pin_setup_confirm,
-                    ),
+                    text =
+                        stringResource(
+                            if (firstPin == null) R.string.pin_setup_enter else R.string.pin_setup_confirm,
+                        ),
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth(),
@@ -289,12 +293,13 @@ private fun PinSetupDialog(
     )
 }
 
-private fun idleTimeoutLabelRes(seconds: Int): Int = when (seconds) {
-    30 -> R.string.biometric_idle_timeout_30s
-    60 -> R.string.biometric_idle_timeout_1m
-    120 -> R.string.biometric_idle_timeout_2m
-    else -> R.string.biometric_idle_timeout_5m
-}
+private fun idleTimeoutLabelRes(seconds: Int): Int =
+    when (seconds) {
+        30 -> R.string.biometric_idle_timeout_30s
+        60 -> R.string.biometric_idle_timeout_1m
+        120 -> R.string.biometric_idle_timeout_2m
+        else -> R.string.biometric_idle_timeout_5m
+    }
 
 private fun systemBiometricSettingsIntent(): Intent =
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -311,23 +316,29 @@ private fun launchBiometricPrompt(
     onFailure: () -> Unit,
 ) {
     val executor = ContextCompat.getMainExecutor(activity)
-    val prompt = BiometricPrompt(
-        activity,
-        executor,
-        object : BiometricPrompt.AuthenticationCallback() {
-            override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                onSuccess()
-            }
+    val prompt =
+        BiometricPrompt(
+            activity,
+            executor,
+            object : BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                    onSuccess()
+                }
 
-            override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
-                onFailure()
-            }
-        },
-    )
-    val info = BiometricPrompt.PromptInfo.Builder()
-        .setTitle(title)
-        .setNegativeButtonText(cancel)
-        .setAllowedAuthenticators(BIOMETRIC_STRONG)
-        .build()
+                override fun onAuthenticationError(
+                    errorCode: Int,
+                    errString: CharSequence,
+                ) {
+                    onFailure()
+                }
+            },
+        )
+    val info =
+        BiometricPrompt.PromptInfo
+            .Builder()
+            .setTitle(title)
+            .setNegativeButtonText(cancel)
+            .setAllowedAuthenticators(BIOMETRIC_STRONG)
+            .build()
     prompt.authenticate(info)
 }

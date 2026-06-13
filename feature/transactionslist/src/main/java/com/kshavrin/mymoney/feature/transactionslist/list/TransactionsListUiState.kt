@@ -25,10 +25,11 @@ data class TransactionsListUiState(
     val hasCategoryFilter: Boolean get() = categoryId != null && !categoryName.isNullOrBlank()
 
     val sortedGroups: List<CategoryRecordGroup>
-        get() = when (sort) {
-            RecordSort.TotalDesc -> groups.sortedByDescending { it.total.amount }
-            RecordSort.TotalAsc -> groups.sortedBy { it.total.amount }
-        }
+        get() =
+            when (sort) {
+                RecordSort.TotalDesc -> groups.sortedByDescending { it.total.amount }
+                RecordSort.TotalAsc -> groups.sortedBy { it.total.amount }
+            }
 
     val isEmpty: Boolean get() = !isLoading && groups.isEmpty()
 

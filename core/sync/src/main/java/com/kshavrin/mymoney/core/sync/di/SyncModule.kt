@@ -13,15 +13,14 @@ import com.kshavrin.mymoney.core.sync.gdrive.GoogleDriveRepository
 import com.kshavrin.mymoney.core.sync.remoteconfig.RemoteConfigRepositoryImpl
 import dagger.Binds
 import dagger.Module
-import dagger.multibindings.IntoSet
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import dagger.multibindings.IntoSet
 import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class SyncModule {
-
     @Binds
     @Singleton
     abstract fun bindRemoteConfigRepository(impl: RemoteConfigRepositoryImpl): RemoteConfigRepository

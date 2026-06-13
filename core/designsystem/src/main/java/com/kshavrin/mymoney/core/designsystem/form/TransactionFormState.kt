@@ -19,12 +19,25 @@ data class TransactionFormState(
 )
 
 sealed interface TransactionFormEvent {
-    data class Keypad(val event: KeypadEvent) : TransactionFormEvent
-    data class NoteChanged(val text: String) : TransactionFormEvent
+    data class Keypad(
+        val event: KeypadEvent,
+    ) : TransactionFormEvent
+
+    data class NoteChanged(
+        val text: String,
+    ) : TransactionFormEvent
+
     data object DateHeaderClicked : TransactionFormEvent
+
     data object SelectCategoryClicked : TransactionFormEvent
+
     data object BackToAmount : TransactionFormEvent
+
     data object AddCategoryClicked : TransactionFormEvent
-    data class CategoryPicked(val categoryId: Long) : TransactionFormEvent
+
+    data class CategoryPicked(
+        val categoryId: Long,
+    ) : TransactionFormEvent
+
     data object DeleteClicked : TransactionFormEvent
 }

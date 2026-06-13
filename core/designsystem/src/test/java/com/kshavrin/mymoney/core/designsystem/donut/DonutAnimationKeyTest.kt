@@ -6,8 +6,11 @@ import org.junit.Assert.assertNotEquals
 import org.junit.Test
 
 class DonutAnimationKeyTest {
-
-    private fun slice(id: Long, fraction: Float, label: String = "L"): CategorySlice =
+    private fun slice(
+        id: Long,
+        fraction: Float,
+        label: String = "L",
+    ): CategorySlice =
         CategorySlice(categoryId = id, color = Color.Red, fraction = fraction, label = label)
 
     @Test
@@ -21,16 +24,17 @@ class DonutAnimationKeyTest {
     @Test
     fun `key ignores fields other than id and fraction`() {
         val a = listOf(slice(1L, 0.5f, label = "Food"))
-        val b = listOf(
-            CategorySlice(
-                categoryId = 1L,
-                color = Color.Blue,
-                fraction = 0.5f,
-                label = "Other",
-                iconKey = "ic",
-                hasBudgetAlert = true,
-            ),
-        )
+        val b =
+            listOf(
+                CategorySlice(
+                    categoryId = 1L,
+                    color = Color.Blue,
+                    fraction = 0.5f,
+                    label = "Other",
+                    iconKey = "ic",
+                    hasBudgetAlert = true,
+                ),
+            )
 
         assertEquals(donutAnimationKey(a), donutAnimationKey(b))
     }

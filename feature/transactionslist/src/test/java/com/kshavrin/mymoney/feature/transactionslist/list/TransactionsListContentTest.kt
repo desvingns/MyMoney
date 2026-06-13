@@ -1,8 +1,8 @@
 package com.kshavrin.mymoney.feature.transactionslist.list
 
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
-import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.CategoryRecordGroup
+import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
@@ -99,16 +99,16 @@ import java.time.Instant
  * ```
  */
 class TransactionsListContentTest {
-
-    private val usd = Currency(
-        id = 1L,
-        code = "USD",
-        symbol = "$",
-        name = "US Dollar",
-        decimalDigits = 2,
-        isActive = true,
-        sortOrder = 0,
-    )
+    private val usd =
+        Currency(
+            id = 1L,
+            code = "USD",
+            symbol = "$",
+            name = "US Dollar",
+            decimalDigits = 2,
+            isActive = true,
+            sortOrder = 0,
+        )
 
     private fun money(amount: String) = Money(BigDecimal(amount), usd)
 
@@ -131,24 +131,28 @@ class TransactionsListContentTest {
 
     @Test
     fun `sortedGroups orders by total descending by default`() {
-        val state = TransactionsListUiState(
-            groups = listOf(
-                group(10L, CategoryKind.Expense, "30.00", 2),
-                group(20L, CategoryKind.Income, "100.00", 1),
-            ),
-        )
+        val state =
+            TransactionsListUiState(
+                groups =
+                    listOf(
+                        group(10L, CategoryKind.Expense, "30.00", 2),
+                        group(20L, CategoryKind.Income, "100.00", 1),
+                    ),
+            )
         assertEquals(listOf(20L, 10L), state.sortedGroups.map { it.categoryId })
     }
 
     @Test
     fun `sortedGroups orders by total ascending when sort is TotalAsc`() {
-        val state = TransactionsListUiState(
-            sort = RecordSort.TotalAsc,
-            groups = listOf(
-                group(10L, CategoryKind.Expense, "30.00", 2),
-                group(20L, CategoryKind.Income, "100.00", 1),
-            ),
-        )
+        val state =
+            TransactionsListUiState(
+                sort = RecordSort.TotalAsc,
+                groups =
+                    listOf(
+                        group(10L, CategoryKind.Expense, "30.00", 2),
+                        group(20L, CategoryKind.Income, "100.00", 1),
+                    ),
+            )
         assertEquals(listOf(10L, 20L), state.sortedGroups.map { it.categoryId })
     }
 
@@ -227,14 +231,15 @@ class TransactionsListContentTest {
 
     @Test
     fun `isTransfersEmpty is false when transfers are present`() {
-        val record = TransferRecord(
-            id = 1L,
-            fromAccountName = "A",
-            toAccountName = "B",
-            amount = money("100.00"),
-            toAmount = null,
-            occurredAt = Instant.parse("2026-06-10T00:00:00Z"),
-        )
+        val record =
+            TransferRecord(
+                id = 1L,
+                fromAccountName = "A",
+                toAccountName = "B",
+                amount = money("100.00"),
+                toAmount = null,
+                occurredAt = Instant.parse("2026-06-10T00:00:00Z"),
+            )
         assertFalse(TransactionsListUiState(isLoading = false, transfers = listOf(record)).isTransfersEmpty)
     }
 
@@ -262,22 +267,23 @@ class TransactionsListContentTest {
 
     @Test
     fun `leaf LazyColumn key is derived from the transaction id`() {
-        val tx = Transaction(
-            id = 7L,
-            kind = TransactionKind.Expense,
-            amount = BigDecimal("1.00"),
-            currencyId = 1L,
-            accountId = 1L,
-            categoryId = 10L,
-            note = null,
-            occurredAt = Instant.parse("2026-05-20T09:00:00Z"),
-            createdAt = Instant.parse("2026-05-20T09:00:00Z"),
-            updatedAt = Instant.parse("2026-05-20T09:00:00Z"),
-            isDeleted = false,
-            toAccountId = null,
-            toAmount = null,
-            exchangeRate = null,
-        )
+        val tx =
+            Transaction(
+                id = 7L,
+                kind = TransactionKind.Expense,
+                amount = BigDecimal("1.00"),
+                currencyId = 1L,
+                accountId = 1L,
+                categoryId = 10L,
+                note = null,
+                occurredAt = Instant.parse("2026-05-20T09:00:00Z"),
+                createdAt = Instant.parse("2026-05-20T09:00:00Z"),
+                updatedAt = Instant.parse("2026-05-20T09:00:00Z"),
+                isDeleted = false,
+                toAccountId = null,
+                toAmount = null,
+                exchangeRate = null,
+            )
         assertEquals("tx_7", "tx_${tx.id}")
     }
 }

@@ -23,7 +23,6 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class MonefyBalanceBarUiTest {
-
     @get:Rule
     val composeTestRule = createComposeRule()
 
@@ -72,11 +71,16 @@ class MonefyBalanceBarUiTest {
             }
         }
 
-        val barBounds = composeTestRule.onNodeWithTag(BALANCE_BAR_TAG)
-            .fetchSemanticsNode().boundsInRoot
-        val textBounds = composeTestRule
-            .onNodeWithText("${targetString(R.string.balance_bar_label)} 100,00 RUB", useUnmergedTree = true)
-            .fetchSemanticsNode().boundsInRoot
+        val barBounds =
+            composeTestRule
+                .onNodeWithTag(BALANCE_BAR_TAG)
+                .fetchSemanticsNode()
+                .boundsInRoot
+        val textBounds =
+            composeTestRule
+                .onNodeWithText("${targetString(R.string.balance_bar_label)} 100,00 RUB", useUnmergedTree = true)
+                .fetchSemanticsNode()
+                .boundsInRoot
 
         assertTrue(
             "balance bar must leave room for a glyph to the left of the amount",
@@ -125,16 +129,23 @@ class MonefyBalanceBarUiTest {
     }
 
     private fun amountImageContainsColor(argb: Int): Boolean {
-        val image = composeTestRule
-            .onNode(hasText(targetString(R.string.balance_bar_label), substring = true))
-            .captureToImage()
+        val image =
+            composeTestRule
+                .onNode(hasText(targetString(R.string.balance_bar_label), substring = true))
+                .captureToImage()
         val pixels = IntArray(image.width * image.height)
         image.readPixels(pixels)
         return pixels.any { colorsMatch(it, argb) }
     }
 
-    private fun colorsMatch(a: Int, b: Int): Boolean {
-        fun ch(v: Int, shift: Int) = (v shr shift) and 0xFF
+    private fun colorsMatch(
+        a: Int,
+        b: Int,
+    ): Boolean {
+        fun ch(
+            v: Int,
+            shift: Int,
+        ) = (v shr shift) and 0xFF
         val tolerance = 12
         return kotlin.math.abs(ch(a, 16) - ch(b, 16)) <= tolerance &&
             kotlin.math.abs(ch(a, 8) - ch(b, 8)) <= tolerance &&

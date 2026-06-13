@@ -2,13 +2,13 @@ package com.kshavrin.mymoney.feature.dictionaries.categories
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
-import androidx.compose.ui.test.hasScrollAction
-import androidx.compose.ui.test.hasText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.domain.model.Category
@@ -24,36 +24,43 @@ import java.time.Instant
 
 @RunWith(AndroidJUnit4::class)
 class CategoriesListContentUiTest {
-
     @get:Rule
     val composeTestRule = createComposeRule()
 
     // --- helpers ---
 
-    private fun category(id: Long, name: String, kind: CategoryKind, sortOrder: Int = 0): Category = Category(
-        id = id,
-        name = name,
-        kind = kind,
-        iconKey = "ic_cat_food",
-        colorHex = "#7AC794",
-        sortOrder = sortOrder,
-        isDefault = false,
-        isArchived = false,
-        createdAt = Instant.parse("2026-05-29T00:00:00Z"),
-    )
+    private fun category(
+        id: Long,
+        name: String,
+        kind: CategoryKind,
+        sortOrder: Int = 0,
+    ): Category =
+        Category(
+            id = id,
+            name = name,
+            kind = kind,
+            iconKey = "ic_cat_food",
+            colorHex = "#7AC794",
+            sortOrder = sortOrder,
+            isDefault = false,
+            isArchived = false,
+            createdAt = Instant.parse("2026-05-29T00:00:00Z"),
+        )
 
     private fun str(id: Int): String =
         InstrumentationRegistry.getInstrumentation().targetContext.getString(id)
 
     /** Builds a long expense list (9 items) so the income section is off-screen initially. */
-    private fun longExpenseList(): List<Category> = (1..9).map { i ->
-        category(id = i.toLong(), name = "Expense$i", kind = CategoryKind.Expense, sortOrder = i)
-    }
+    private fun longExpenseList(): List<Category> =
+        (1..9).map { i ->
+            category(id = i.toLong(), name = "Expense$i", kind = CategoryKind.Expense, sortOrder = i)
+        }
 
-    private fun incomeList(): List<Category> = listOf(
-        category(id = 20L, name = "Salary", kind = CategoryKind.Income, sortOrder = 0),
-        category(id = 21L, name = "Gift", kind = CategoryKind.Income, sortOrder = 1),
-    )
+    private fun incomeList(): List<Category> =
+        listOf(
+            category(id = 20L, name = "Salary", kind = CategoryKind.Income, sortOrder = 0),
+            category(id = 21L, name = "Gift", kind = CategoryKind.Income, sortOrder = 1),
+        )
 
     // --- tests ---
 
@@ -63,10 +70,11 @@ class CategoriesListContentUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 CategoriesListContent(
-                    state = CategoriesListState(
-                        expense = listOf(category(10L, "Food", CategoryKind.Expense)),
-                        income = listOf(category(20L, "Salary", CategoryKind.Income)),
-                    ),
+                    state =
+                        CategoriesListState(
+                            expense = listOf(category(10L, "Food", CategoryKind.Expense)),
+                            income = listOf(category(20L, "Salary", CategoryKind.Income)),
+                        ),
                     onEvent = { events += it },
                 )
             }
@@ -75,8 +83,10 @@ class CategoriesListContentUiTest {
         composeTestRule.onNodeWithText(str(R.string.dictionaries_section_expense)).assertIsDisplayed()
         composeTestRule.onNodeWithText(str(R.string.dictionaries_section_income)).assertIsDisplayed()
 
-        composeTestRule.onNodeWithContentDescription(str(R.string.dictionaries_add))
-            .assertIsEnabled().performClick()
+        composeTestRule
+            .onNodeWithContentDescription(str(R.string.dictionaries_add))
+            .assertIsEnabled()
+            .performClick()
         composeTestRule.onNodeWithText("Food").performClick()
         composeTestRule.onNodeWithContentDescription(str(R.string.dictionaries_back)).performClick()
 
@@ -109,10 +119,11 @@ class CategoriesListContentUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 CategoriesListContent(
-                    state = CategoriesListState(
-                        expense = longExpenseList(),
-                        income = incomeList(),
-                    ),
+                    state =
+                        CategoriesListState(
+                            expense = longExpenseList(),
+                            income = incomeList(),
+                        ),
                     onEvent = {},
                 )
             }
@@ -136,13 +147,15 @@ class CategoriesListContentUiTest {
         // Verifies drag-reorder isolation: a Reordered event for Expense must carry kind=Expense
         // and must NOT produce any Reordered(Income, …) side-effect.
         val events = mutableListOf<CategoriesListEvent>()
-        val expenses = listOf(
-            category(1L, "Food", CategoryKind.Expense, sortOrder = 0),
-            category(2L, "Transport", CategoryKind.Expense, sortOrder = 1),
-        )
-        val incomes = listOf(
-            category(10L, "Salary", CategoryKind.Income, sortOrder = 0),
-        )
+        val expenses =
+            listOf(
+                category(1L, "Food", CategoryKind.Expense, sortOrder = 0),
+                category(2L, "Transport", CategoryKind.Expense, sortOrder = 1),
+            )
+        val incomes =
+            listOf(
+                category(10L, "Salary", CategoryKind.Income, sortOrder = 0),
+            )
 
         composeTestRule.setContent {
             MyMoneyTheme {
@@ -181,13 +194,15 @@ class CategoriesListContentUiTest {
     @Test
     fun reorderIncomeEmitsReorderedIncomeEventOnly() {
         val events = mutableListOf<CategoriesListEvent>()
-        val expenses = listOf(
-            category(1L, "Food", CategoryKind.Expense, sortOrder = 0),
-        )
-        val incomes = listOf(
-            category(10L, "Salary", CategoryKind.Income, sortOrder = 0),
-            category(11L, "Gift", CategoryKind.Income, sortOrder = 1),
-        )
+        val expenses =
+            listOf(
+                category(1L, "Food", CategoryKind.Expense, sortOrder = 0),
+            )
+        val incomes =
+            listOf(
+                category(10L, "Salary", CategoryKind.Income, sortOrder = 0),
+                category(11L, "Gift", CategoryKind.Income, sortOrder = 1),
+            )
 
         composeTestRule.setContent {
             MyMoneyTheme {
@@ -227,10 +242,11 @@ class CategoriesListContentUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 CategoriesListContent(
-                    state = CategoriesListState(
-                        expense = listOf(category(1L, "Food", CategoryKind.Expense)),
-                        income = listOf(category(10L, "Salary", CategoryKind.Income)),
-                    ),
+                    state =
+                        CategoriesListState(
+                            expense = listOf(category(1L, "Food", CategoryKind.Expense)),
+                            income = listOf(category(10L, "Salary", CategoryKind.Income)),
+                        ),
                     onEvent = {},
                 )
             }

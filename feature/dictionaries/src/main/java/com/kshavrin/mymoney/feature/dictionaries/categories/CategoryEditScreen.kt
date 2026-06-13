@@ -95,8 +95,11 @@ fun CategoryEditContent(
                 title = {
                     Text(
                         stringResource(
-                            if (state.isCreateMode) R.string.dictionaries_category_new
-                            else R.string.dictionaries_category_edit,
+                            if (state.isCreateMode) {
+                                R.string.dictionaries_category_new
+                            } else {
+                                R.string.dictionaries_category_edit
+                            },
                         ),
                     )
                 },
@@ -118,11 +121,12 @@ fun CategoryEditContent(
         },
     ) { innerPadding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(16.dp)
+                    .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             OutlinedTextField(
@@ -181,9 +185,10 @@ fun CategoryEditContent(
             if (!state.isCreateMode) {
                 OutlinedButton(
                     onClick = { onEvent(CategoryEditEvent.DeleteClicked) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 16.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(top = 16.dp),
                 ) {
                     Text(stringResource(R.string.dictionaries_delete))
                 }

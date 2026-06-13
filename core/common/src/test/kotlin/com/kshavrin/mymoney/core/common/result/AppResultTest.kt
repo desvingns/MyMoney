@@ -8,7 +8,6 @@ import org.junit.Assert.fail
 import org.junit.Test
 
 class AppResultTest {
-
     @Test
     fun `onSuccess invokes action on Success and returns same instance`() {
         val original: AppResult<Int> = AppResult.Success(42)
@@ -66,7 +65,11 @@ class AppResultTest {
         val error = IllegalStateException("boom")
         val original: AppResult<Int> = AppResult.Error(error)
 
-        val mapped = original.map<Int, String> { fail("transform must not run on Error"); "unreached" }
+        val mapped =
+            original.map<Int, String> {
+                fail("transform must not run on Error")
+                "unreached"
+            }
 
         assertTrue(mapped is AppResult.Error)
         assertSame(error, (mapped as AppResult.Error).cause)
@@ -76,7 +79,11 @@ class AppResultTest {
     fun `getOrElse returns data on Success without invoking default`() {
         val original: AppResult<Int> = AppResult.Success(42)
 
-        val value = original.getOrElse { fail("default must not run on Success"); -1 }
+        val value =
+            original.getOrElse {
+                fail("default must not run on Success")
+                -1
+            }
 
         assertEquals(42, value)
     }
@@ -87,7 +94,11 @@ class AppResultTest {
         val original: AppResult<Int> = AppResult.Error(error)
         var receivedCause: Throwable? = null
 
-        val value = original.getOrElse { t -> receivedCause = t; -1 }
+        val value =
+            original.getOrElse { t ->
+                receivedCause = t
+                -1
+            }
 
         assertEquals(-1, value)
         assertSame(error, receivedCause)

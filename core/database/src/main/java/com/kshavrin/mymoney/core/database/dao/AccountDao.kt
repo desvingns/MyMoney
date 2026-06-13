@@ -18,14 +18,16 @@ abstract class AccountDao {
     @Query("SELECT * FROM account WHERE is_default = 1 LIMIT 1")
     abstract suspend fun findDefault(): AccountEntity?
 
-    @Query("""
+    @Query(
+        """
         SELECT a.initial_balance
              + COALESCE((SELECT SUM(amount) FROM `transaction` WHERE account_id = :id AND kind = 'income'   AND is_deleted = 0), 0)
              - COALESCE((SELECT SUM(amount) FROM `transaction` WHERE account_id = :id AND kind = 'expense'  AND is_deleted = 0), 0)
              - COALESCE((SELECT SUM(amount) FROM `transaction` WHERE account_id = :id AND kind = 'transfer' AND is_deleted = 0), 0)
              + COALESCE((SELECT SUM(to_amount) FROM `transaction` WHERE to_account_id = :id AND kind = 'transfer' AND is_deleted = 0), 0)
         FROM account a WHERE a.id = :id
-    """)
+    """,
+    )
     abstract suspend fun computeBalance(id: Long): Double
 
     @Upsert

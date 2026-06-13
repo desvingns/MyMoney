@@ -37,10 +37,11 @@ data class TransactionDetailState(
     val isTransfer: Boolean get() = kind == TransactionKind.Transfer
 
     val isCrossCurrency: Boolean
-        get() = isTransfer &&
-            currency != null &&
-            targetCurrency != null &&
-            currency.id != targetCurrency.id
+        get() =
+            isTransfer &&
+                currency != null &&
+                targetCurrency != null &&
+                currency.id != targetCurrency.id
 
     val canSave: Boolean
         get() = isLoaded && !isSaving && isDirty && amount > BigDecimal.ZERO

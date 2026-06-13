@@ -19,16 +19,18 @@ fun MonefyBalancePill(
     modifier: Modifier = Modifier,
     onClick: () -> Unit = {},
 ) {
-    val targetColor = if (isPositive) {
-        MaterialTheme.colorScheme.primary
-    } else {
-        MaterialTheme.colorScheme.tertiary
-    }
-    val contentColor = if (isPositive) {
-        MaterialTheme.colorScheme.onPrimary
-    } else {
-        MaterialTheme.colorScheme.onTertiary
-    }
+    val targetColor =
+        if (isPositive) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.tertiary
+        }
+    val contentColor =
+        if (isPositive) {
+            MaterialTheme.colorScheme.onPrimary
+        } else {
+            MaterialTheme.colorScheme.onTertiary
+        }
     val animatedColor by animateColorAsState(
         targetValue = targetColor,
         animationSpec = tween(durationMillis = 400),
@@ -37,10 +39,11 @@ fun MonefyBalancePill(
     Card(
         modifier = modifier,
         shape = MaterialTheme.shapes.extraLarge,
-        colors = CardDefaults.cardColors(
-            containerColor = animatedColor,
-            contentColor = contentColor,
-        ),
+        colors =
+            CardDefaults.cardColors(
+                containerColor = animatedColor,
+                contentColor = contentColor,
+            ),
         onClick = onClick,
     ) {
         Text(

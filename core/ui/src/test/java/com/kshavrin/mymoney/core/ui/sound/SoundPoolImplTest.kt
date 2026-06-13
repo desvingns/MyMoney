@@ -97,7 +97,6 @@ import org.junit.Test
  *     hardcoded empty string; revisit when the content pipeline lands.
  */
 class SoundPoolImplTest {
-
     /**
      * Timing-contract guard (JVM-level).
      *
@@ -132,14 +131,15 @@ class SoundPoolImplTest {
      */
     @Test
     fun `SoundKey to raw asset name mapping covers all six keys`() {
-        val expectedAssetNames = mapOf(
-            SoundKey.KEYPAD_TAP to "tap",
-            SoundKey.SAVE_OK to "kaching",
-            SoundKey.SWIPE to "swipe",
-            SoundKey.DELETE to "pop",
-            SoundKey.MILESTONE to "confetti",
-            SoundKey.ERROR to "buzz",
-        )
+        val expectedAssetNames =
+            mapOf(
+                SoundKey.KEYPAD_TAP to "tap",
+                SoundKey.SAVE_OK to "kaching",
+                SoundKey.SWIPE to "swipe",
+                SoundKey.DELETE to "pop",
+                SoundKey.MILESTONE to "confetti",
+                SoundKey.ERROR to "buzz",
+            )
         assertEquals(
             "asset name table must cover every SoundKey — update both the map and assetNameFor()",
             SoundKey.entries.toSet(),
@@ -172,6 +172,7 @@ class SoundPoolImplTest {
 
     private class RecordingSoundPlayer : SoundPlayer {
         val calls: MutableList<SoundKey> = mutableListOf()
+
         override fun play(key: SoundKey) {
             calls += key
         }

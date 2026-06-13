@@ -17,7 +17,10 @@ interface CloudSyncBackend {
 
     fun connect(payload: String) = Unit
 
-    suspend fun upload(localFile: File, remoteName: String): Result<Unit>
+    suspend fun upload(
+        localFile: File,
+        remoteName: String,
+    ): Result<Unit>
 
     suspend fun listSnapshots(): Result<List<RemoteSnapshot>>
 

@@ -17,7 +17,6 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import com.kshavrin.mymoney.core.designsystem.keypad.Operator
 import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.AccountType
 import com.kshavrin.mymoney.core.domain.model.Category
@@ -26,10 +25,6 @@ import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import com.kshavrin.mymoney.feature.transactionslist.R
-import java.math.BigDecimal
-import java.time.Instant
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import org.junit.Assert.assertEquals
@@ -37,11 +32,14 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.math.BigDecimal
+import java.time.Instant
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
 
 @RunWith(AndroidJUnit4::class)
 class TransactionDetailContentUiTest {
-
     @get:Rule
     val composeTestRule = createComposeRule()
 
@@ -213,7 +211,8 @@ class TransactionDetailContentUiTest {
         composeTestRule
             .onNode(hasText("Savings") and hasClickAction())
             .performClick()
-        composeTestRule.onAllNodes(hasSetTextAction())[1]
+        composeTestRule
+            .onAllNodes(hasSetTextAction())[1]
             .performScrollTo()
             .performTextInput("0.92")
 
@@ -255,9 +254,10 @@ class TransactionDetailContentUiTest {
                 val snackbarHostState = remember { SnackbarHostState() }
                 if (captureSnackbar) {
                     LaunchedEffect(snackbarHostState) {
-                        val data = snapshotFlow { snackbarHostState.currentSnackbarData }
-                            .filterNotNull()
-                            .first()
+                        val data =
+                            snapshotFlow { snackbarHostState.currentSnackbarData }
+                                .filterNotNull()
+                                .first()
                         onSnackbarMessage(data.visuals.message)
                         data.dismiss()
                     }
@@ -328,10 +328,11 @@ class TransactionDetailContentUiTest {
     fun `category grid is shown when categoryStep is true`() {
         val category = category(id = 10L, name = "Food")
         setContent(
-            state = loadedExpenseState().copy(
-                categoryStep = true,
-                categories = listOf(category),
-            ),
+            state =
+                loadedExpenseState().copy(
+                    categoryStep = true,
+                    categories = listOf(category),
+                ),
         )
 
         composeTestRule
@@ -345,10 +346,11 @@ class TransactionDetailContentUiTest {
         val category = category(id = 10L, name = "Food")
 
         setContent(
-            state = loadedExpenseState().copy(
-                categoryStep = true,
-                categories = listOf(category),
-            ),
+            state =
+                loadedExpenseState().copy(
+                    categoryStep = true,
+                    categories = listOf(category),
+                ),
             onEvent = { event -> capturedEvents += event },
         )
 
@@ -384,47 +386,55 @@ class TransactionDetailContentUiTest {
         confirmDeleteVisible: Boolean = false,
         occurredAt: LocalDate = LocalDate.of(2026, 5, 17),
         errorBannerRes: Int? = null,
-    ): TransactionDetailState = TransactionDetailState(
-        transactionId = 42L,
-        kind = TransactionKind.Expense,
-        amount = BigDecimal("12.34"),
-        amountInput = "12.34",
-        note = "",
-        occurredAt = occurredAt,
-        account = account(id = 1L, name = "Cash", currencyId = 1L),
-        currency = currency(id = 1L, code = "USD"),
-        category = category(id = 10L, name = "Food"),
-        accounts = listOf(
-            account(id = 1L, name = "Cash", currencyId = 1L),
-            account(id = 2L, name = "Card", currencyId = 1L),
-        ),
-        isLoaded = true,
-        isDirty = isDirty,
-        confirmDeleteVisible = confirmDeleteVisible,
-        errorBannerRes = errorBannerRes,
-    )
+    ): TransactionDetailState =
+        TransactionDetailState(
+            transactionId = 42L,
+            kind = TransactionKind.Expense,
+            amount = BigDecimal("12.34"),
+            amountInput = "12.34",
+            note = "",
+            occurredAt = occurredAt,
+            account = account(id = 1L, name = "Cash", currencyId = 1L),
+            currency = currency(id = 1L, code = "USD"),
+            category = category(id = 10L, name = "Food"),
+            accounts =
+                listOf(
+                    account(id = 1L, name = "Cash", currencyId = 1L),
+                    account(id = 2L, name = "Card", currencyId = 1L),
+                ),
+            isLoaded = true,
+            isDirty = isDirty,
+            confirmDeleteVisible = confirmDeleteVisible,
+            errorBannerRes = errorBannerRes,
+        )
 
-    private fun loadedTransferState(): TransactionDetailState = TransactionDetailState(
-        transactionId = 43L,
-        kind = TransactionKind.Transfer,
-        amount = BigDecimal("50"),
-        amountInput = "50",
-        occurredAt = LocalDate.of(2026, 5, 17),
-        account = account(id = 1L, name = "Cash", currencyId = 1L),
-        targetAccount = account(id = 2L, name = "Card", currencyId = 2L),
-        currency = currency(id = 1L, code = "USD"),
-        targetCurrency = currency(id = 2L, code = "EUR"),
-        rateInput = "",
-        accounts = listOf(
-            account(id = 1L, name = "Cash", currencyId = 1L),
-            account(id = 2L, name = "Card", currencyId = 2L),
-            account(id = 3L, name = "Savings", currencyId = 2L),
-        ),
-        isLoaded = true,
-        isDirty = true,
-    )
+    private fun loadedTransferState(): TransactionDetailState =
+        TransactionDetailState(
+            transactionId = 43L,
+            kind = TransactionKind.Transfer,
+            amount = BigDecimal("50"),
+            amountInput = "50",
+            occurredAt = LocalDate.of(2026, 5, 17),
+            account = account(id = 1L, name = "Cash", currencyId = 1L),
+            targetAccount = account(id = 2L, name = "Card", currencyId = 2L),
+            currency = currency(id = 1L, code = "USD"),
+            targetCurrency = currency(id = 2L, code = "EUR"),
+            rateInput = "",
+            accounts =
+                listOf(
+                    account(id = 1L, name = "Cash", currencyId = 1L),
+                    account(id = 2L, name = "Card", currencyId = 2L),
+                    account(id = 3L, name = "Savings", currencyId = 2L),
+                ),
+            isLoaded = true,
+            isDirty = true,
+        )
 
-    private fun account(id: Long, name: String, currencyId: Long): Account {
+    private fun account(
+        id: Long,
+        name: String,
+        currencyId: Long,
+    ): Account {
         val now = Instant.parse("2026-05-28T00:00:00Z")
         return Account(
             id = id,
@@ -442,34 +452,47 @@ class TransactionDetailContentUiTest {
         )
     }
 
-    private fun category(id: Long, name: String): Category = Category(
-        id = id,
-        name = name,
-        kind = CategoryKind.Expense,
-        iconKey = "ic_cat_food",
-        colorHex = "#7AC794",
-        sortOrder = 0,
-        isDefault = false,
-        isArchived = false,
-        createdAt = Instant.parse("2026-05-28T00:00:00Z"),
-    )
+    private fun category(
+        id: Long,
+        name: String,
+    ): Category =
+        Category(
+            id = id,
+            name = name,
+            kind = CategoryKind.Expense,
+            iconKey = "ic_cat_food",
+            colorHex = "#7AC794",
+            sortOrder = 0,
+            isDefault = false,
+            isArchived = false,
+            createdAt = Instant.parse("2026-05-28T00:00:00Z"),
+        )
 
-    private fun currency(id: Long, code: String): Currency = Currency(
-        id = id,
-        code = code,
-        symbol = code,
-        name = code,
-        decimalDigits = 2,
-        isActive = true,
-        sortOrder = 0,
-    )
+    private fun currency(
+        id: Long,
+        code: String,
+    ): Currency =
+        Currency(
+            id = id,
+            code = code,
+            symbol = code,
+            name = code,
+            decimalDigits = 2,
+            isActive = true,
+            sortOrder = 0,
+        )
 
     private fun dateLabel(date: LocalDate): String {
-        val locale = InstrumentationRegistry.getInstrumentation()
-            .targetContext.resources.configuration.locales[0]
+        val locale =
+            InstrumentationRegistry
+                .getInstrumentation()
+                .targetContext.resources.configuration.locales[0]
         return date.format(DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy", locale))
     }
 
-    private fun targetString(resourceId: Int, vararg formatArgs: Any): String =
+    private fun targetString(
+        resourceId: Int,
+        vararg formatArgs: Any,
+    ): String =
         InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId, *formatArgs)
 }

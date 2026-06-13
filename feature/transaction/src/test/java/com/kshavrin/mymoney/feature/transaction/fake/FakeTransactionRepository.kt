@@ -14,7 +14,6 @@ import kotlinx.coroutines.flow.flowOf
 import java.time.Instant
 
 class FakeTransactionRepository : TransactionRepository {
-
     val upserted: MutableList<Transaction> = mutableListOf()
 
     private val transactions = MutableStateFlow<List<Transaction>>(emptyList())
@@ -29,15 +28,29 @@ class FakeTransactionRepository : TransactionRepository {
         from: Instant,
         to: Instant,
     ): Flow<PagingData<Transaction>> = flowOf(PagingData.empty())
+
     override suspend fun findById(id: Long): Transaction? = transactions.value.firstOrNull { it.id == id }
-    override suspend fun findByPeriod(accountId: Long, period: Period): List<Transaction> = emptyList()
+
+    override suspend fun findByPeriod(
+        accountId: Long,
+        period: Period,
+    ): List<Transaction> = emptyList()
+
     override suspend fun getCategorySummary(
         accountId: Long,
         period: Period,
         kind: TransactionKind,
     ): List<CategorySummary> = emptyList()
-    override suspend fun getCategoryGroups(accountId: Long, period: Period): List<CategoryGroup> = emptyList()
-    override suspend fun searchByNote(query: String, limit: Int): List<Transaction> = emptyList()
+
+    override suspend fun getCategoryGroups(
+        accountId: Long,
+        period: Period,
+    ): List<CategoryGroup> = emptyList()
+
+    override suspend fun searchByNote(
+        query: String,
+        limit: Int,
+    ): List<Transaction> = emptyList()
 
     override suspend fun upsert(transaction: Transaction): Long {
         val id = if (transaction.id == 0L) (transactions.value.maxOfOrNull { it.id } ?: 0L) + 1L else transaction.id
@@ -47,16 +60,24 @@ class FakeTransactionRepository : TransactionRepository {
         return id
     }
 
-    override suspend fun softDelete(id: Long, now: Instant) {
-        transactions.value = transactions.value.map {
-            if (it.id == id) it.copy(isDeleted = true, updatedAt = now) else it
-        }
+    override suspend fun softDelete(
+        id: Long,
+        now: Instant,
+    ) {
+        transactions.value =
+            transactions.value.map {
+                if (it.id == id) it.copy(isDeleted = true, updatedAt = now) else it
+            }
     }
 
-    override suspend fun restore(id: Long, now: Instant) {
-        transactions.value = transactions.value.map {
-            if (it.id == id) it.copy(isDeleted = false, updatedAt = now) else it
-        }
+    override suspend fun restore(
+        id: Long,
+        now: Instant,
+    ) {
+        transactions.value =
+            transactions.value.map {
+                if (it.id == id) it.copy(isDeleted = false, updatedAt = now) else it
+            }
     }
 
     override suspend fun pruneDeleted(before: Instant) {

@@ -13,46 +13,47 @@ import java.math.BigDecimal
 import java.time.Instant
 
 class GoalMapperTest {
-
     private val createdAt = Instant.parse("2026-06-01T10:00:00Z")
     private val updatedAt = Instant.parse("2026-06-02T12:00:00Z")
     private val termMonthsValue = 240
 
-    private fun savingsEntity() = GoalEntity(
-        id = 7L,
-        name = "Car",
-        iconKey = "ic_goal_car",
-        colorHex = "#7AC794",
-        accountId = 3L,
-        variant = "SAVINGS",
-        targetAmount = 500_000.50,
-        startingCapital = 10_000.0,
-        monthlyContribution = 20_000.0,
-        annualRatePercent = null,
-        downPayment = null,
-        termMonths = null,
-        createdAt = createdAt.toEpochMilli(),
-        updatedAt = updatedAt.toEpochMilli(),
-        isArchived = false,
-    )
+    private fun savingsEntity() =
+        GoalEntity(
+            id = 7L,
+            name = "Car",
+            iconKey = "ic_goal_car",
+            colorHex = "#7AC794",
+            accountId = 3L,
+            variant = "SAVINGS",
+            targetAmount = 500_000.50,
+            startingCapital = 10_000.0,
+            monthlyContribution = 20_000.0,
+            annualRatePercent = null,
+            downPayment = null,
+            termMonths = null,
+            createdAt = createdAt.toEpochMilli(),
+            updatedAt = updatedAt.toEpochMilli(),
+            isArchived = false,
+        )
 
-    private fun creditEntity() = GoalEntity(
-        id = 12L,
-        name = "Mortgage",
-        iconKey = "ic_goal_house",
-        colorHex = "#4A90D9",
-        accountId = 1L,
-        variant = "CREDIT",
-        targetAmount = 10_000_000.0,
-        startingCapital = 2_000_000.0,
-        monthlyContribution = 85_000.0,
-        annualRatePercent = 12.5,
-        downPayment = 2_000_000.0,
-        termMonths = termMonthsValue,
-        createdAt = createdAt.toEpochMilli(),
-        updatedAt = updatedAt.toEpochMilli(),
-        isArchived = true,
-    )
+    private fun creditEntity() =
+        GoalEntity(
+            id = 12L,
+            name = "Mortgage",
+            iconKey = "ic_goal_house",
+            colorHex = "#4A90D9",
+            accountId = 1L,
+            variant = "CREDIT",
+            targetAmount = 10_000_000.0,
+            startingCapital = 2_000_000.0,
+            monthlyContribution = 85_000.0,
+            annualRatePercent = 12.5,
+            downPayment = 2_000_000.0,
+            termMonths = termMonthsValue,
+            createdAt = createdAt.toEpochMilli(),
+            updatedAt = updatedAt.toEpochMilli(),
+            isArchived = true,
+        )
 
     @Test
     fun `SAVINGS entity toDomain preserves all scalar fields`() {
@@ -141,23 +142,24 @@ class GoalMapperTest {
 
     @Test
     fun `toEntity then toDomain preserves createdAt and updatedAt epoch-milli`() {
-        val goal = Goal(
-            id = 0L,
-            name = "Trip",
-            iconKey = "ic_goal_plane",
-            colorHex = "#FF5733",
-            accountId = 2L,
-            variant = GoalVariant.SAVINGS,
-            targetAmount = BigDecimal("150000.00"),
-            startingCapital = BigDecimal("5000.00"),
-            monthlyContribution = BigDecimal("10000.00"),
-            annualRatePercent = null,
-            downPayment = null,
-            termMonths = null,
-            createdAt = createdAt,
-            updatedAt = updatedAt,
-            isArchived = false,
-        )
+        val goal =
+            Goal(
+                id = 0L,
+                name = "Trip",
+                iconKey = "ic_goal_plane",
+                colorHex = "#FF5733",
+                accountId = 2L,
+                variant = GoalVariant.SAVINGS,
+                targetAmount = BigDecimal("150000.00"),
+                startingCapital = BigDecimal("5000.00"),
+                monthlyContribution = BigDecimal("10000.00"),
+                annualRatePercent = null,
+                downPayment = null,
+                termMonths = null,
+                createdAt = createdAt,
+                updatedAt = updatedAt,
+                isArchived = false,
+            )
 
         val restored = goal.toEntity().toDomain()
 
@@ -200,16 +202,19 @@ class GoalMapperTest {
 
     @Test
     fun `non-empty breakdown round-trips preserving rows names and BigDecimal amounts`() {
-        val breakdown = ContributionBreakdown(
-            enabled = true,
-            incomes = listOf(
-                ContributionItem("Salary", BigDecimal("120000.55")),
-                ContributionItem("Bonus", BigDecimal("3000.00")),
-            ),
-            expenses = listOf(
-                ContributionItem("Rent", BigDecimal("45000.10")),
-            ),
-        )
+        val breakdown =
+            ContributionBreakdown(
+                enabled = true,
+                incomes =
+                    listOf(
+                        ContributionItem("Salary", BigDecimal("120000.55")),
+                        ContributionItem("Bonus", BigDecimal("3000.00")),
+                    ),
+                expenses =
+                    listOf(
+                        ContributionItem("Rent", BigDecimal("45000.10")),
+                    ),
+            )
 
         val restored = goalWithBreakdown(breakdown).toEntity().toDomain().contributionBreakdown
 
@@ -226,10 +231,11 @@ class GoalMapperTest {
 
     @Test
     fun `disabled breakdown with rows still serializes and round-trips`() {
-        val breakdown = ContributionBreakdown(
-            enabled = false,
-            incomes = listOf(ContributionItem("Side gig", BigDecimal("7500.00"))),
-        )
+        val breakdown =
+            ContributionBreakdown(
+                enabled = false,
+                incomes = listOf(ContributionItem("Side gig", BigDecimal("7500.00"))),
+            )
 
         val entity = goalWithBreakdown(breakdown).toEntity()
         assertTrue(entity.contributionBreakdown != null)
@@ -247,13 +253,18 @@ class GoalMapperTest {
         // with BigDecimal("3000") (scale=0), but the column stores the plain string so scale
         // must survive if the original string representation was "3000.00".
         val amount = BigDecimal("3000.00")
-        val breakdown = ContributionBreakdown(
-            enabled = true,
-            incomes = listOf(ContributionItem("Salary", amount)),
-        )
+        val breakdown =
+            ContributionBreakdown(
+                enabled = true,
+                incomes = listOf(ContributionItem("Salary", amount)),
+            )
 
-        val restoredAmount = goalWithBreakdown(breakdown).toEntity().toDomain()
-            .contributionBreakdown.incomes[0].amount
+        val restoredAmount =
+            goalWithBreakdown(breakdown)
+                .toEntity()
+                .toDomain()
+                .contributionBreakdown.incomes[0]
+                .amount
 
         assertEquals("3000.00", restoredAmount.toPlainString())
         assertEquals(2, restoredAmount.scale())
@@ -264,13 +275,18 @@ class GoalMapperTest {
         // Double cannot represent 123456789.99 exactly; serializing via toPlainString() bypasses
         // that loss entirely. We verify the value matches the original plain string precisely.
         val amount = BigDecimal("123456789.99")
-        val breakdown = ContributionBreakdown(
-            enabled = true,
-            incomes = listOf(ContributionItem("Precise", amount)),
-        )
+        val breakdown =
+            ContributionBreakdown(
+                enabled = true,
+                incomes = listOf(ContributionItem("Precise", amount)),
+            )
 
-        val restoredAmount = goalWithBreakdown(breakdown).toEntity().toDomain()
-            .contributionBreakdown.incomes[0].amount
+        val restoredAmount =
+            goalWithBreakdown(breakdown)
+                .toEntity()
+                .toDomain()
+                .contributionBreakdown.incomes[0]
+                .amount
 
         assertEquals("123456789.99", restoredAmount.toPlainString())
         assertEquals(0, amount.compareTo(restoredAmount))
@@ -279,10 +295,11 @@ class GoalMapperTest {
     @Test
     fun `negative amount is preserved exactly through round-trip`() {
         // SPEC: negative amounts are allowed in breakdown items (net monthly can be negative).
-        val breakdown = ContributionBreakdown(
-            enabled = true,
-            expenses = listOf(ContributionItem("Overspend", BigDecimal("-500.50"))),
-        )
+        val breakdown =
+            ContributionBreakdown(
+                enabled = true,
+                expenses = listOf(ContributionItem("Overspend", BigDecimal("-500.50"))),
+            )
 
         val restored = goalWithBreakdown(breakdown).toEntity().toDomain().contributionBreakdown
 
@@ -294,10 +311,11 @@ class GoalMapperTest {
     @Test
     fun `blank item name is preserved through round-trip`() {
         // SPEC: blank/optional names — an empty string name must survive serialization unchanged.
-        val breakdown = ContributionBreakdown(
-            enabled = true,
-            incomes = listOf(ContributionItem("", BigDecimal("1000.00"))),
-        )
+        val breakdown =
+            ContributionBreakdown(
+                enabled = true,
+                incomes = listOf(ContributionItem("", BigDecimal("1000.00"))),
+            )
 
         val restored = goalWithBreakdown(breakdown).toEntity().toDomain().contributionBreakdown
 
@@ -308,14 +326,16 @@ class GoalMapperTest {
 
     @Test
     fun `breakdown with only expenses and no incomes round-trips correctly`() {
-        val breakdown = ContributionBreakdown(
-            enabled = true,
-            incomes = emptyList(),
-            expenses = listOf(
-                ContributionItem("Rent", BigDecimal("30000.00")),
-                ContributionItem("Utilities", BigDecimal("5000.00")),
-            ),
-        )
+        val breakdown =
+            ContributionBreakdown(
+                enabled = true,
+                incomes = emptyList(),
+                expenses =
+                    listOf(
+                        ContributionItem("Rent", BigDecimal("30000.00")),
+                        ContributionItem("Utilities", BigDecimal("5000.00")),
+                    ),
+            )
 
         val restored = goalWithBreakdown(breakdown).toEntity().toDomain().contributionBreakdown
 
@@ -330,18 +350,21 @@ class GoalMapperTest {
 
     @Test
     fun `multiple incomes and multiple expenses round-trip preserving order`() {
-        val breakdown = ContributionBreakdown(
-            enabled = true,
-            incomes = listOf(
-                ContributionItem("Job A", BigDecimal("80000.00")),
-                ContributionItem("Job B", BigDecimal("40000.00")),
-                ContributionItem("Freelance", BigDecimal("15000.50")),
-            ),
-            expenses = listOf(
-                ContributionItem("Mortgage", BigDecimal("55000.00")),
-                ContributionItem("Car", BigDecimal("12000.00")),
-            ),
-        )
+        val breakdown =
+            ContributionBreakdown(
+                enabled = true,
+                incomes =
+                    listOf(
+                        ContributionItem("Job A", BigDecimal("80000.00")),
+                        ContributionItem("Job B", BigDecimal("40000.00")),
+                        ContributionItem("Freelance", BigDecimal("15000.50")),
+                    ),
+                expenses =
+                    listOf(
+                        ContributionItem("Mortgage", BigDecimal("55000.00")),
+                        ContributionItem("Car", BigDecimal("12000.00")),
+                    ),
+            )
 
         val restored = goalWithBreakdown(breakdown).toEntity().toDomain().contributionBreakdown
 
@@ -362,7 +385,8 @@ class GoalMapperTest {
         assertNull(goalWithBreakdown(ContributionBreakdown(enabled = false)).toEntity().contributionBreakdown)
 
         assertTrue(
-            goalWithBreakdown(ContributionBreakdown(enabled = true)).toEntity()
+            goalWithBreakdown(ContributionBreakdown(enabled = true))
+                .toEntity()
                 .contributionBreakdown != null,
         )
         assertTrue(
@@ -372,22 +396,23 @@ class GoalMapperTest {
         )
     }
 
-    private fun goalWithBreakdown(breakdown: ContributionBreakdown) = Goal(
-        id = 1L,
-        name = "Trip",
-        iconKey = "ic_goal_plane",
-        colorHex = "#FF5733",
-        accountId = 2L,
-        variant = GoalVariant.SAVINGS,
-        targetAmount = BigDecimal("150000.00"),
-        startingCapital = BigDecimal("5000.00"),
-        monthlyContribution = BigDecimal("10000.00"),
-        annualRatePercent = null,
-        downPayment = null,
-        termMonths = null,
-        createdAt = createdAt,
-        updatedAt = updatedAt,
-        isArchived = false,
-        contributionBreakdown = breakdown,
-    )
+    private fun goalWithBreakdown(breakdown: ContributionBreakdown) =
+        Goal(
+            id = 1L,
+            name = "Trip",
+            iconKey = "ic_goal_plane",
+            colorHex = "#FF5733",
+            accountId = 2L,
+            variant = GoalVariant.SAVINGS,
+            targetAmount = BigDecimal("150000.00"),
+            startingCapital = BigDecimal("5000.00"),
+            monthlyContribution = BigDecimal("10000.00"),
+            annualRatePercent = null,
+            downPayment = null,
+            termMonths = null,
+            createdAt = createdAt,
+            updatedAt = updatedAt,
+            isArchived = false,
+            contributionBreakdown = breakdown,
+        )
 }

@@ -15,32 +15,40 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class RecurringTemplateRepositoryImpl @Inject constructor(
-    private val dao: RecurringTemplateDao,
-    @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
-) : RecurringTemplateRepository {
+class RecurringTemplateRepositoryImpl
+    @Inject
+    constructor(
+        private val dao: RecurringTemplateDao,
+        @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+    ) : RecurringTemplateRepository {
+        override suspend fun findDue(now: Instant): List<RecurringTemplate> =
+            withContext(ioDispatcher) {
+                dao.findDue(now.toEpochMilli()).map { it.toDomain() }
+            }
 
-    override suspend fun findDue(now: Instant): List<RecurringTemplate> = withContext(ioDispatcher) {
-        dao.findDue(now.toEpochMilli()).map { it.toDomain() }
+        override fun observeAll(): Flow<List<RecurringTemplate>> = dao.observeAll().map { list -> list.map { it.toDomain() } }
+
+        override suspend fun upsert(template: RecurringTemplate): Long =
+            withContext(ioDispatcher) {
+                require(template.amount.signum() > 0) { "amount must be > 0; got ${template.amount}" }
+                require(template.interval >= 1) { "interval must be >= 1" }
+                val endsAt = template.endsAt
+                if (endsAt != null) {
+                    require(endsAt.isAfter(template.startsAt)) { "endsAt must be after startsAt" }
+                }
+                dao.upsert(template.toEntity())
+            }
+
+        override suspend fun updateNextRun(
+            id: Long,
+            nextRunAt: Instant,
+        ) =
+            withContext(ioDispatcher) {
+                dao.updateNextRun(id, nextRunAt.toEpochMilli())
+            }
+
+        override suspend fun deactivate(id: Long) =
+            withContext(ioDispatcher) {
+                dao.deactivate(id)
+            }
     }
-
-    override fun observeAll(): Flow<List<RecurringTemplate>> = dao.observeAll().map { list -> list.map { it.toDomain() } }
-
-    override suspend fun upsert(template: RecurringTemplate): Long = withContext(ioDispatcher) {
-        require(template.amount.signum() > 0) { "amount must be > 0; got ${template.amount}" }
-        require(template.interval >= 1) { "interval must be >= 1" }
-        val endsAt = template.endsAt
-        if (endsAt != null) {
-            require(endsAt.isAfter(template.startsAt)) { "endsAt must be after startsAt" }
-        }
-        dao.upsert(template.toEntity())
-    }
-
-    override suspend fun updateNextRun(id: Long, nextRunAt: Instant) = withContext(ioDispatcher) {
-        dao.updateNextRun(id, nextRunAt.toEpochMilli())
-    }
-
-    override suspend fun deactivate(id: Long) = withContext(ioDispatcher) {
-        dao.deactivate(id)
-    }
-}

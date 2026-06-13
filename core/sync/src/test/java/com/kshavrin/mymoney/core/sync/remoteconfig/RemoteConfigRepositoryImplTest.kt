@@ -12,16 +12,16 @@ import org.junit.Test
  * never reached and no Android runtime / Robolectric is required.
  */
 class RemoteConfigRepositoryImplTest {
-
     private val repository = RemoteConfigRepositoryImpl()
 
     @Test
-    fun `refresh is a no-op success when Firebase is disabled`() = runTest {
-        val result = repository.refresh()
+    fun `refresh is a no-op success when Firebase is disabled`() =
+        runTest {
+            val result = repository.refresh()
 
-        assertTrue(result.isSuccess)
-        assertEquals(Unit, result.getOrNull())
-    }
+            assertTrue(result.isSuccess)
+            assertEquals(Unit, result.getOrNull())
+        }
 
     @Test
     fun `recurringTemplatesEnabled returns in-app default true`() {

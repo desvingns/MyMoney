@@ -5,8 +5,12 @@ import kotlinx.coroutines.flow.Flow
 
 interface BudgetRepository {
     fun observeActive(): Flow<List<Budget>>
+
     suspend fun findForCategory(categoryId: Long): Budget?
+
     suspend fun findTotalBudget(): Budget?
+
     suspend fun upsert(budget: Budget): Long
+
     suspend fun deactivate(id: Long)
 }

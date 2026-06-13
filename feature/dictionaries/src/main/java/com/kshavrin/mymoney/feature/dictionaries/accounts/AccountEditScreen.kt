@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -35,7 +36,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kshavrin.mymoney.core.designsystem.form.FormBottomBar
@@ -78,8 +78,11 @@ fun AccountEditContent(
                 title = {
                     Text(
                         stringResource(
-                            if (state.isCreateMode) R.string.dictionaries_account_new
-                            else R.string.dictionaries_account_edit,
+                            if (state.isCreateMode) {
+                                R.string.dictionaries_account_new
+                            } else {
+                                R.string.dictionaries_account_edit
+                            },
                         ),
                     )
                 },
@@ -101,11 +104,12 @@ fun AccountEditContent(
         },
     ) { innerPadding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(16.dp)
+                    .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             OutlinedTextField(
@@ -127,8 +131,9 @@ fun AccountEditContent(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(
-                    text = selectedCurrency?.let { "${it.code} (${it.symbol})" }
-                        ?: stringResource(R.string.dictionaries_field_currency),
+                    text =
+                        selectedCurrency?.let { "${it.code} (${it.symbol})" }
+                            ?: stringResource(R.string.dictionaries_field_currency),
                     modifier = Modifier.weight(1f),
                 )
                 Icon(Icons.Filled.ArrowDropDown, contentDescription = null)
@@ -210,12 +215,13 @@ fun AccountEditContent(
             }
 
             if (state.errorMessage != null) {
-                val errorText = when (state.errorMessage) {
-                    "name_required" -> stringResource(R.string.dictionaries_error_name_required)
-                    "currency_required" -> stringResource(R.string.dictionaries_error_currency_required)
-                    "balance_format" -> stringResource(R.string.dictionaries_error_initial_balance_format)
-                    else -> stringResource(R.string.dictionaries_error_generic)
-                }
+                val errorText =
+                    when (state.errorMessage) {
+                        "name_required" -> stringResource(R.string.dictionaries_error_name_required)
+                        "currency_required" -> stringResource(R.string.dictionaries_error_currency_required)
+                        "balance_format" -> stringResource(R.string.dictionaries_error_initial_balance_format)
+                        else -> stringResource(R.string.dictionaries_error_generic)
+                    }
                 Text(
                     text = errorText,
                     color = MaterialTheme.colorScheme.error,
@@ -226,9 +232,10 @@ fun AccountEditContent(
             if (!state.isCreateMode) {
                 OutlinedButton(
                     onClick = { onEvent(AccountEditEvent.DeleteClicked) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 16.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(top = 16.dp),
                 ) {
                     Text(stringResource(R.string.dictionaries_delete))
                 }

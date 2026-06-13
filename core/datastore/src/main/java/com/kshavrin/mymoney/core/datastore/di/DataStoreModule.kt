@@ -2,9 +2,9 @@ package com.kshavrin.mymoney.core.datastore.di
 
 import android.content.Context
 import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStoreFile
-import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import com.kshavrin.mymoney.core.common.di.IoDispatcher
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepositoryImpl
@@ -25,16 +25,16 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object DataStoreModule {
-
     @Provides
     @Singleton
     fun providePreferencesDataStore(
         @ApplicationContext context: Context,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
-    ): DataStore<Preferences> = PreferenceDataStoreFactory.create(
-        scope = CoroutineScope(SupervisorJob() + ioDispatcher),
-        produceFile = { context.preferencesDataStoreFile(DATASTORE_FILE_NAME) },
-    )
+    ): DataStore<Preferences> =
+        PreferenceDataStoreFactory.create(
+            scope = CoroutineScope(SupervisorJob() + ioDispatcher),
+            produceFile = { context.preferencesDataStoreFile(DATASTORE_FILE_NAME) },
+        )
 
     private const val DATASTORE_FILE_NAME = "app_settings"
 }
@@ -42,7 +42,6 @@ object DataStoreModule {
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class DataStoreBindings {
-
     @Binds
     @Singleton
     abstract fun bindAppSettingsRepository(impl: AppSettingsRepositoryImpl): AppSettingsRepository

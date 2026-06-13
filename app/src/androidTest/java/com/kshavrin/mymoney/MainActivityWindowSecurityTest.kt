@@ -19,7 +19,6 @@ import javax.inject.Inject
 @HiltAndroidTest
 @RunWith(AndroidJUnit4::class)
 class MainActivityWindowSecurityTest {
-
     @get:Rule(order = 0)
     val hiltRule = HiltAndroidRule(this)
 
@@ -32,22 +31,24 @@ class MainActivityWindowSecurityTest {
     }
 
     @Test
-    fun `launch with biometric lock enabled applies secure window flag`() = runTest {
-        seedSettings(biometricLockEnabled = true)
+    fun `launch with biometric lock enabled applies secure window flag`() =
+        runTest {
+            seedSettings(biometricLockEnabled = true)
 
-        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
-            scenario.waitForFlagSecure(expected = true)
+            ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+                scenario.waitForFlagSecure(expected = true)
+            }
         }
-    }
 
     @Test
-    fun `launch with biometric lock disabled leaves secure window flag cleared`() = runTest {
-        seedSettings(biometricLockEnabled = false)
+    fun `launch with biometric lock disabled leaves secure window flag cleared`() =
+        runTest {
+            seedSettings(biometricLockEnabled = false)
 
-        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
-            scenario.waitForFlagSecure(expected = false)
+            ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+                scenario.waitForFlagSecure(expected = false)
+            }
         }
-    }
 
     private suspend fun seedSettings(biometricLockEnabled: Boolean) {
         appSettingsRepository.reset()

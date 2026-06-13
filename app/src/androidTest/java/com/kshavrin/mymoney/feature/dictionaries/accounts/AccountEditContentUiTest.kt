@@ -26,7 +26,6 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class AccountEditContentUiTest {
-
     @get:Rule
     val composeTestRule = createComposeRule()
 
@@ -39,10 +38,11 @@ class AccountEditContentUiTest {
                     mutableStateOf(
                         AccountEditState(
                             currencyId = 10L,
-                            availableCurrencies = listOf(
-                                currency(10L, "EUR", "€"),
-                                currency(20L, "GBP", "£"),
-                            ),
+                            availableCurrencies =
+                                listOf(
+                                    currency(10L, "EUR", "€"),
+                                    currency(20L, "GBP", "£"),
+                                ),
                         ),
                     )
                 }
@@ -50,14 +50,15 @@ class AccountEditContentUiTest {
                     state = state,
                     onEvent = { event ->
                         events += event
-                        state = when (event) {
-                            is AccountEditEvent.NameChanged -> state.copy(name = event.value)
-                            is AccountEditEvent.CurrencyChanged -> state.copy(currencyId = event.id)
-                            is AccountEditEvent.InitialBalanceChanged -> state.copy(initialBalanceText = event.value)
-                            is AccountEditEvent.TypeChanged -> state.copy(type = event.value)
-                            is AccountEditEvent.IsDefaultChanged -> state.copy(isDefault = event.value)
-                            else -> state
-                        }
+                        state =
+                            when (event) {
+                                is AccountEditEvent.NameChanged -> state.copy(name = event.value)
+                                is AccountEditEvent.CurrencyChanged -> state.copy(currencyId = event.id)
+                                is AccountEditEvent.InitialBalanceChanged -> state.copy(initialBalanceText = event.value)
+                                is AccountEditEvent.TypeChanged -> state.copy(type = event.value)
+                                is AccountEditEvent.IsDefaultChanged -> state.copy(isDefault = event.value)
+                                else -> state
+                            }
                     },
                 )
             }
@@ -68,16 +69,22 @@ class AccountEditContentUiTest {
         composeTestRule.onNodeWithText("GBP (£)").performClick()
         // Then top-down: text inputs raise the keyboard, scroll-to reaches Column children below it
         // (proven in S22). The colour picker is never touched, so no LazyVerticalGrid scroll.
-        composeTestRule.onNodeWithText(targetString(R.string.dictionaries_field_name))
+        composeTestRule
+            .onNodeWithText(targetString(R.string.dictionaries_field_name))
             .performTextInput("Savings Acc")
         // Balance field carries the default value "0" (unique on screen); match its editable text
         // rather than the floated label, then replace it wholesale.
-        composeTestRule.onNodeWithText("0")
-            .performScrollTo().performTextReplacement("150")
-        composeTestRule.onNodeWithText(targetString(R.string.dictionaries_type_bank))
-            .performScrollTo().performClick()
+        composeTestRule
+            .onNodeWithText("0")
+            .performScrollTo()
+            .performTextReplacement("150")
+        composeTestRule
+            .onNodeWithText(targetString(R.string.dictionaries_type_bank))
+            .performScrollTo()
+            .performClick()
         composeTestRule.onNode(isToggleable()).performScrollTo().performClick()
-        composeTestRule.onNodeWithText(targetString(R.string.dictionaries_save))
+        composeTestRule
+            .onNodeWithText(targetString(R.string.dictionaries_save))
             .performClick()
 
         composeTestRule.runOnIdle {
@@ -101,21 +108,24 @@ class AccountEditContentUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 AccountEditContent(
-                    state = AccountEditState(
-                        isCreateMode = false,
-                        name = "Wallet",
-                        errorMessage = "currency_required",
-                        blockedDeleteCount = 2,
-                    ),
+                    state =
+                        AccountEditState(
+                            isCreateMode = false,
+                            name = "Wallet",
+                            errorMessage = "currency_required",
+                            blockedDeleteCount = 2,
+                        ),
                     onEvent = { events += it },
                 )
             }
         }
 
-        composeTestRule.onNodeWithText(targetString(R.string.dictionaries_error_currency_required))
+        composeTestRule
+            .onNodeWithText(targetString(R.string.dictionaries_error_currency_required))
             .performScrollTo()
             .assertIsDisplayed()
-        composeTestRule.onNodeWithText(targetString(R.string.dictionaries_blocked_delete_title))
+        composeTestRule
+            .onNodeWithText(targetString(R.string.dictionaries_blocked_delete_title))
             .assertIsDisplayed()
         composeTestRule.onNodeWithText(targetString(R.string.dictionaries_ok)).performClick()
 
@@ -157,7 +167,8 @@ class AccountEditContentUiTest {
             }
         }
 
-        composeTestRule.onNodeWithText(targetString(R.string.dictionaries_save))
+        composeTestRule
+            .onNodeWithText(targetString(R.string.dictionaries_save))
             .assertIsDisplayed()
             .performClick()
 
@@ -178,9 +189,11 @@ class AccountEditContentUiTest {
             }
         }
 
-        composeTestRule.onNodeWithText(targetString(R.string.dictionaries_save))
+        composeTestRule
+            .onNodeWithText(targetString(R.string.dictionaries_save))
             .assertIsDisplayed()
-        composeTestRule.onNodeWithText(targetString(R.string.dictionaries_delete))
+        composeTestRule
+            .onNodeWithText(targetString(R.string.dictionaries_delete))
             .performScrollTo()
             .assertIsDisplayed()
             .performClick()
@@ -190,15 +203,20 @@ class AccountEditContentUiTest {
         }
     }
 
-    private fun currency(id: Long, code: String, symbol: String): Currency = Currency(
-        id = id,
-        code = code,
-        symbol = symbol,
-        name = code,
-        decimalDigits = 2,
-        isActive = true,
-        sortOrder = 0,
-    )
+    private fun currency(
+        id: Long,
+        code: String,
+        symbol: String,
+    ): Currency =
+        Currency(
+            id = id,
+            code = code,
+            symbol = symbol,
+            name = code,
+            decimalDigits = 2,
+            isActive = true,
+            sortOrder = 0,
+        )
 
     private fun targetString(resourceId: Int): String =
         InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)

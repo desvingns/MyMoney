@@ -53,9 +53,10 @@ fun MonefyBalanceBar(
                 style = MaterialTheme.typography.titleMedium,
                 color = pillContent,
                 textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
             )
         }
         Icon(

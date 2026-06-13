@@ -153,7 +153,6 @@ import org.junit.Test
  *   - Per-press scale animation: visual polish, not a contract.
  */
 class MonefyKeypadTest {
-
     /**
      * Single placeholder method so the test class is non-empty and shows
      * up in the test report as a single skipped/pending entry per CI run.
@@ -177,6 +176,7 @@ class MonefyKeypadTest {
 
     private class FakeSoundPlayer : SoundPlayer {
         val calls: MutableList<SoundKey> = mutableListOf()
+
         override fun play(key: SoundKey) {
             calls += key
         }

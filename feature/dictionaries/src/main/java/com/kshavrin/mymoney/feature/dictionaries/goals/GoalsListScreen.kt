@@ -103,9 +103,10 @@ fun GoalsListContent(
             GoalsEmptyState(modifier = Modifier.fillMaxSize().padding(innerPadding))
         } else {
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
             ) {
                 items(state.rows, key = { it.id }) { goal ->
                     GoalRowItem(
@@ -142,26 +143,32 @@ private fun GoalsEmptyState(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun GoalRowItem(goal: Goal, onClick: () -> Unit) {
-    val amountText = MoneyFormatter.format(
-        amount = goal.targetAmount,
-        currencySymbol = "",
-        decimalDigits = 2,
-        locale = Locale.getDefault(),
-    )
+private fun GoalRowItem(
+    goal: Goal,
+    onClick: () -> Unit,
+) {
+    val amountText =
+        MoneyFormatter.format(
+            amount = goal.targetAmount,
+            currencySymbol = "",
+            decimalDigits = 2,
+            locale = Locale.getDefault(),
+        )
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(Spacing.l),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(Spacing.l),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.m),
     ) {
         Box(
-            modifier = Modifier
-                .size(Spacing.goalListIconCircleSize)
-                .clip(CircleShape)
-                .background(parseHexColor(goal.colorHex)),
+            modifier =
+                Modifier
+                    .size(Spacing.goalListIconCircleSize)
+                    .clip(CircleShape)
+                    .background(parseHexColor(goal.colorHex)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -185,24 +192,28 @@ private fun GoalRowItem(goal: Goal, onClick: () -> Unit) {
 
 @Composable
 private fun GoalVariantChip(variant: GoalVariant) {
-    val labelRes = when (variant) {
-        GoalVariant.SAVINGS -> R.string.goals_variant_savings
-        GoalVariant.CREDIT -> R.string.goals_variant_credit
-    }
-    val containerColor = when (variant) {
-        GoalVariant.SAVINGS -> MaterialTheme.colorScheme.goalSavingsChipContainer
-        GoalVariant.CREDIT -> MaterialTheme.colorScheme.goalCreditChipContainer
-    }
-    val contentColor = when (variant) {
-        GoalVariant.SAVINGS -> MaterialTheme.colorScheme.goalSavingsChipContent
-        GoalVariant.CREDIT -> MaterialTheme.colorScheme.goalCreditChipContent
-    }
+    val labelRes =
+        when (variant) {
+            GoalVariant.SAVINGS -> R.string.goals_variant_savings
+            GoalVariant.CREDIT -> R.string.goals_variant_credit
+        }
+    val containerColor =
+        when (variant) {
+            GoalVariant.SAVINGS -> MaterialTheme.colorScheme.goalSavingsChipContainer
+            GoalVariant.CREDIT -> MaterialTheme.colorScheme.goalCreditChipContainer
+        }
+    val contentColor =
+        when (variant) {
+            GoalVariant.SAVINGS -> MaterialTheme.colorScheme.goalSavingsChipContent
+            GoalVariant.CREDIT -> MaterialTheme.colorScheme.goalCreditChipContent
+        }
     AssistChip(
         onClick = {},
         label = { Text(stringResource(labelRes)) },
-        colors = AssistChipDefaults.assistChipColors(
-            containerColor = containerColor,
-            labelColor = contentColor,
-        ),
+        colors =
+            AssistChipDefaults.assistChipColors(
+                containerColor = containerColor,
+                labelColor = contentColor,
+            ),
     )
 }

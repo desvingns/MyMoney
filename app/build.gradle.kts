@@ -11,26 +11,34 @@ plugins {
     alias(libs.plugins.androidx.baselineprofile)
 }
 
-val releaseSigningProperties = Properties().apply {
-    val localPropertiesFile = rootProject.file("local.properties")
-    if (localPropertiesFile.isFile) {
-        localPropertiesFile.inputStream().use(::load)
+val releaseSigningProperties =
+    Properties().apply {
+        val localPropertiesFile = rootProject.file("local.properties")
+        if (localPropertiesFile.isFile) {
+            localPropertiesFile.inputStream().use(::load)
+        }
     }
-}
-val releaseSigningKeys = listOf(
-    "keystore.path",
-    "keystore.pass",
-    "keystore.key.alias",
-    "keystore.key.pass",
-)
-val hasReleaseSigningConfig = releaseSigningKeys.all { key ->
-    !releaseSigningProperties.getProperty(key).isNullOrBlank()
-}
+val releaseSigningKeys =
+    listOf(
+        "keystore.path",
+        "keystore.pass",
+        "keystore.key.alias",
+        "keystore.key.pass",
+    )
+val hasReleaseSigningConfig =
+    releaseSigningKeys.all { key ->
+        !releaseSigningProperties.getProperty(key).isNullOrBlank()
+    }
 
 // google-services is applied only when a google-services.json is present
 // (firebase.enabled=true); the default build ships without Firebase.
 if (providers.gradleProperty("firebase.enabled").orNull == "true") {
-    apply(plugin = libs.plugins.gms.google.services.get().pluginId)
+    apply(
+        plugin =
+            libs.plugins.gms.google.services
+                .get()
+                .pluginId,
+    )
 }
 
 android {
@@ -80,7 +88,7 @@ android {
             isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                "proguard-rules.pro",
             )
             if (hasReleaseSigningConfig) {
                 signingConfig = signingConfigs.getByName("release")
@@ -103,13 +111,14 @@ android {
 
     packaging {
         resources {
-            excludes += listOf(
-                "META-INF/DEPENDENCIES",
-                "META-INF/INDEX.LIST",
-                "META-INF/LICENSE.md",
-                "META-INF/NOTICE.md",
-                "META-INF/*.kotlin_module",
-            )
+            excludes +=
+                listOf(
+                    "META-INF/DEPENDENCIES",
+                    "META-INF/INDEX.LIST",
+                    "META-INF/LICENSE.md",
+                    "META-INF/NOTICE.md",
+                    "META-INF/*.kotlin_module",
+                )
         }
     }
 }

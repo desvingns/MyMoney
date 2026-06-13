@@ -16,17 +16,17 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class DashboardDrawerBackPressUiTest {
-
     @get:Rule
     val composeTestRule = createAndroidComposeRule<ComponentActivity>()
 
     @Test
     fun `system back dismisses the left drawer and closes both drawer flags`() {
         val capturedEvents = mutableListOf<DashboardEvent>()
-        val currentState = setStatefulDashboardContent(
-            initialState = DashboardState(isLoading = false, leftDrawerOpen = true),
-            onCapturedEvent = { event -> capturedEvents += event },
-        )
+        val currentState =
+            setStatefulDashboardContent(
+                initialState = DashboardState(isLoading = false, leftDrawerOpen = true),
+                onCapturedEvent = { event -> capturedEvents += event },
+            )
         composeTestRule.waitForIdle()
 
         pressBack()
@@ -41,10 +41,11 @@ class DashboardDrawerBackPressUiTest {
     @Test
     fun `system back dismisses the right drawer and closes both drawer flags`() {
         val capturedEvents = mutableListOf<DashboardEvent>()
-        val currentState = setStatefulDashboardContent(
-            initialState = DashboardState(isLoading = false, rightDrawerOpen = true),
-            onCapturedEvent = { event -> capturedEvents += event },
-        )
+        val currentState =
+            setStatefulDashboardContent(
+                initialState = DashboardState(isLoading = false, rightDrawerOpen = true),
+                onCapturedEvent = { event -> capturedEvents += event },
+            )
         composeTestRule.waitForIdle()
 
         pressBack()
@@ -67,21 +68,25 @@ class DashboardDrawerBackPressUiTest {
                     state = state,
                     onEvent = { event ->
                         onCapturedEvent(event)
-                        state = when (event) {
-                            DashboardEvent.LeftDrawerToggled -> state.copy(
-                                leftDrawerOpen = !state.leftDrawerOpen,
-                                rightDrawerOpen = false,
-                            )
-                            DashboardEvent.RightDrawerToggled -> state.copy(
-                                rightDrawerOpen = !state.rightDrawerOpen,
-                                leftDrawerOpen = false,
-                            )
-                            DashboardEvent.DrawerDismissed -> state.copy(
-                                leftDrawerOpen = false,
-                                rightDrawerOpen = false,
-                            )
-                            else -> state
-                        }
+                        state =
+                            when (event) {
+                                DashboardEvent.LeftDrawerToggled ->
+                                    state.copy(
+                                        leftDrawerOpen = !state.leftDrawerOpen,
+                                        rightDrawerOpen = false,
+                                    )
+                                DashboardEvent.RightDrawerToggled ->
+                                    state.copy(
+                                        rightDrawerOpen = !state.rightDrawerOpen,
+                                        leftDrawerOpen = false,
+                                    )
+                                DashboardEvent.DrawerDismissed ->
+                                    state.copy(
+                                        leftDrawerOpen = false,
+                                        rightDrawerOpen = false,
+                                    )
+                                else -> state
+                            }
                     },
                 )
             }

@@ -16,52 +16,55 @@ class StartupBenchmark {
     val benchmarkRule = MacrobenchmarkRule()
 
     @Test
-    fun coldStartupToDashboard() = benchmarkRule.measureRepeated(
-        packageName = TARGET_PACKAGE,
-        metrics = listOf(StartupTimingMetric()),
-        compilationMode = CompilationMode.Partial(),
-        startupMode = StartupMode.COLD,
-        iterations = 10,
-        setupBlock = {
-            launchDashboard()
-            killProcess()
-        },
-    ) {
-        startActivityAndWait()
-        awaitDashboard()
-    }
+    fun coldStartupToDashboard() =
+        benchmarkRule.measureRepeated(
+            packageName = TARGET_PACKAGE,
+            metrics = listOf(StartupTimingMetric()),
+            compilationMode = CompilationMode.Partial(),
+            startupMode = StartupMode.COLD,
+            iterations = 10,
+            setupBlock = {
+                launchDashboard()
+                killProcess()
+            },
+        ) {
+            startActivityAndWait()
+            awaitDashboard()
+        }
 
     @Test
-    fun dashboardRenderFrames() = benchmarkRule.measureRepeated(
-        packageName = TARGET_PACKAGE,
-        metrics = listOf(FrameTimingMetric()),
-        compilationMode = CompilationMode.Partial(),
-        startupMode = StartupMode.COLD,
-        iterations = 10,
-        setupBlock = {
-            launchDashboard()
-            killProcess()
-        },
-    ) {
-        startActivityAndWait()
-        awaitDashboard()
-    }
+    fun dashboardRenderFrames() =
+        benchmarkRule.measureRepeated(
+            packageName = TARGET_PACKAGE,
+            metrics = listOf(FrameTimingMetric()),
+            compilationMode = CompilationMode.Partial(),
+            startupMode = StartupMode.COLD,
+            iterations = 10,
+            setupBlock = {
+                launchDashboard()
+                killProcess()
+            },
+        ) {
+            startActivityAndWait()
+            awaitDashboard()
+        }
 
     @Test
-    fun transactionsListNavigationAndScrollFrames() = benchmarkRule.measureRepeated(
-        packageName = TARGET_PACKAGE,
-        metrics = listOf(FrameTimingMetric()),
-        compilationMode = CompilationMode.Partial(),
-        startupMode = StartupMode.COLD,
-        iterations = 10,
-        setupBlock = {
-            launchDashboard()
-            killProcess()
-        },
-    ) {
-        startActivityAndWait()
-        awaitDashboard()
-        openTransactionsList()
-        scrollTransactionsList()
-    }
+    fun transactionsListNavigationAndScrollFrames() =
+        benchmarkRule.measureRepeated(
+            packageName = TARGET_PACKAGE,
+            metrics = listOf(FrameTimingMetric()),
+            compilationMode = CompilationMode.Partial(),
+            startupMode = StartupMode.COLD,
+            iterations = 10,
+            setupBlock = {
+                launchDashboard()
+                killProcess()
+            },
+        ) {
+            startActivityAndWait()
+            awaitDashboard()
+            openTransactionsList()
+            scrollTransactionsList()
+        }
 }

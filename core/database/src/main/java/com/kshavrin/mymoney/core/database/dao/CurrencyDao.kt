@@ -27,5 +27,8 @@ interface CurrencyDao {
     suspend fun upsertAll(items: List<CurrencyEntity>)
 
     @Query("UPDATE currency SET is_active = :active WHERE id = :id")
-    suspend fun setActive(id: Long, active: Boolean)
+    suspend fun setActive(
+        id: Long,
+        active: Boolean,
+    )
 }

@@ -16,17 +16,16 @@ import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import com.kshavrin.mymoney.feature.transactionslist.R
-import java.math.BigDecimal
-import java.time.Instant
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.math.BigDecimal
+import java.time.Instant
 
 @RunWith(AndroidJUnit4::class)
 class SearchContentUiTest {
-
     @get:Rule
     val composeTestRule = createComposeRule()
 
@@ -167,12 +166,13 @@ class SearchContentUiTest {
         val capturedEvents = mutableListOf<SearchEvent>()
 
         setContent(
-            state = SearchState(
-                query = "coffee",
-                phase = SearchPhase.Results,
-                results = listOf(searchRow(id = 42L, note = "Coffee")),
-                currencies = listOf(currency(id = 1L)),
-            ),
+            state =
+                SearchState(
+                    query = "coffee",
+                    phase = SearchPhase.Results,
+                    results = listOf(searchRow(id = 42L, note = "Coffee")),
+                    currencies = listOf(currency(id = 1L)),
+                ),
             contextualOverlay = true,
             onEvent = { event -> capturedEvents += event },
         )
@@ -190,10 +190,11 @@ class SearchContentUiTest {
     @Test
     fun `empty results state shows no matches message`() {
         setContent(
-            state = SearchState(
-                query = "missing",
-                phase = SearchPhase.EmptyResults,
-            ),
+            state =
+                SearchState(
+                    query = "missing",
+                    phase = SearchPhase.EmptyResults,
+                ),
             contextualOverlay = true,
         )
 
@@ -205,10 +206,11 @@ class SearchContentUiTest {
     @Test
     fun `error state shows search error message`() {
         setContent(
-            state = SearchState(
-                query = "coffee",
-                phase = SearchPhase.Error,
-            ),
+            state =
+                SearchState(
+                    query = "coffee",
+                    phase = SearchPhase.Error,
+                ),
         )
 
         composeTestRule
@@ -237,25 +239,30 @@ class SearchContentUiTest {
         }
     }
 
-    private fun searchRow(id: Long, note: String): SearchRow = SearchRow(
-        id = id,
-        kind = TransactionKind.Expense,
-        amount = BigDecimal("12.34"),
-        currencyId = 1L,
-        categoryId = 10L,
-        note = note,
-        occurredAt = Instant.parse("2026-05-28T00:00:00Z"),
-    )
+    private fun searchRow(
+        id: Long,
+        note: String,
+    ): SearchRow =
+        SearchRow(
+            id = id,
+            kind = TransactionKind.Expense,
+            amount = BigDecimal("12.34"),
+            currencyId = 1L,
+            categoryId = 10L,
+            note = note,
+            occurredAt = Instant.parse("2026-05-28T00:00:00Z"),
+        )
 
-    private fun currency(id: Long): Currency = Currency(
-        id = id,
-        code = "USD",
-        symbol = "$",
-        name = "US Dollar",
-        decimalDigits = 2,
-        isActive = true,
-        sortOrder = 0,
-    )
+    private fun currency(id: Long): Currency =
+        Currency(
+            id = id,
+            code = "USD",
+            symbol = "$",
+            name = "US Dollar",
+            decimalDigits = 2,
+            isActive = true,
+            sortOrder = 0,
+        )
 
     private fun targetString(resourceId: Int): String =
         InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)

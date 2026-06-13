@@ -15,7 +15,6 @@ import kotlinx.coroutines.flow.asStateFlow
  *   (AC5: a cross-currency rate change writes one; a same-currency transfer writes none).
  */
 class FakeCurrencyRateRepository : CurrencyRateRepository {
-
     val upserts: MutableList<CurrencyRate> = mutableListOf()
     val deletedIds: MutableList<Long> = mutableListOf()
 
@@ -25,7 +24,10 @@ class FakeCurrencyRateRepository : CurrencyRateRepository {
         rates.value = (rates.value + items).distinctBy { it.id }
     }
 
-    override suspend fun findRate(fromCurrencyId: Long, toCurrencyId: Long): CurrencyRate? =
+    override suspend fun findRate(
+        fromCurrencyId: Long,
+        toCurrencyId: Long,
+    ): CurrencyRate? =
         rates.value.firstOrNull {
             it.fromCurrencyId == fromCurrencyId && it.toCurrencyId == toCurrencyId
         }

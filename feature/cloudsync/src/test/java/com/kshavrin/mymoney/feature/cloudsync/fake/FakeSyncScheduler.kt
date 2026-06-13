@@ -4,7 +4,6 @@ import com.kshavrin.mymoney.core.sync.SyncScheduler
 import com.kshavrin.mymoney.core.sync.SyncTarget
 
 class FakeSyncScheduler : SyncScheduler {
-
     var enableCount = 0
         private set
     var disableCount = 0

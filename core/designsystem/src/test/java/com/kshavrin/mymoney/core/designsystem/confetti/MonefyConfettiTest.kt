@@ -78,7 +78,6 @@ import org.junit.Test
  *   - Frame-by-frame motion: belongs to manual / screenshot QA.
  */
 class MonefyConfettiTest {
-
     /**
      * Single placeholder method so the class shows up as one pending entry
      * per CI run and keeps the production symbol referenced. The body is a

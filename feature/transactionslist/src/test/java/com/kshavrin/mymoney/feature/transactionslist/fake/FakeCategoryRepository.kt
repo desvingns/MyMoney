@@ -9,7 +9,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 
 class FakeCategoryRepository : CategoryRepository {
-
     private val categories = MutableStateFlow<List<Category>>(emptyList())
 
     fun seed(vararg items: Category) {
@@ -20,8 +19,12 @@ class FakeCategoryRepository : CategoryRepository {
         categories.map { list -> list.filter { it.kind == kind } }
 
     override fun observeAll(): Flow<List<Category>> = categories.asStateFlow()
+
     override suspend fun findById(id: Long): Category? = categories.value.firstOrNull { it.id == id }
+
     override suspend fun upsert(category: Category): Long = category.id
+
     override suspend fun upsertAll(categories: List<Category>) = Unit
+
     override suspend fun archive(id: Long) = Unit
 }

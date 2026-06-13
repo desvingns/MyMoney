@@ -91,7 +91,6 @@ import org.junit.Test
  * mirror.
  */
 class TransferScreenContractTest {
-
     // ---- account selection events (FROM / TO cards) ----
 
     @Test
@@ -204,19 +203,21 @@ class TransferScreenContractTest {
      *
      * Keep this in lock-step with TransferScreen.kt.
      */
-    private fun dispatch(e: AmountFieldEvent): TransferEvent? = when (e) {
-        is AmountFieldEvent.Keypad -> when (val k = e.event) {
-            is KeypadEvent.Digit -> TransferEvent.KeypadDigit(k.d)
-            is KeypadEvent.Op -> TransferEvent.KeypadOperator(k.op)
-            KeypadEvent.Dot -> TransferEvent.KeypadDot
-            KeypadEvent.Backspace -> TransferEvent.KeypadBackspace
-            KeypadEvent.Equals -> TransferEvent.KeypadEquals
+    private fun dispatch(e: AmountFieldEvent): TransferEvent? =
+        when (e) {
+            is AmountFieldEvent.Keypad ->
+                when (val k = e.event) {
+                    is KeypadEvent.Digit -> TransferEvent.KeypadDigit(k.d)
+                    is KeypadEvent.Op -> TransferEvent.KeypadOperator(k.op)
+                    KeypadEvent.Dot -> TransferEvent.KeypadDot
+                    KeypadEvent.Backspace -> TransferEvent.KeypadBackspace
+                    KeypadEvent.Equals -> TransferEvent.KeypadEquals
+                }
+            is AmountFieldEvent.NoteChanged -> TransferEvent.NoteChanged(e.text)
+            is AmountFieldEvent.DateChanged -> TransferEvent.DateChanged(e.date)
+            AmountFieldEvent.AccountChipClicked -> null
+            AmountFieldEvent.DateChipClicked -> null
         }
-        is AmountFieldEvent.NoteChanged -> TransferEvent.NoteChanged(e.text)
-        is AmountFieldEvent.DateChanged -> TransferEvent.DateChanged(e.date)
-        AmountFieldEvent.AccountChipClicked -> null
-        AmountFieldEvent.DateChipClicked -> null
-    }
 
     private fun showRatePanel(state: TransferState): Boolean {
         val source = state.sourceCurrency ?: return false
@@ -224,13 +225,17 @@ class TransferScreenContractTest {
         return source.id != target.id && state.ratePreviewText.isNotBlank()
     }
 
-    private fun currency(id: Long, code: String): Currency = Currency(
-        id = id,
-        code = code,
-        symbol = code,
-        name = code,
-        decimalDigits = 2,
-        isActive = true,
-        sortOrder = 0,
-    )
+    private fun currency(
+        id: Long,
+        code: String,
+    ): Currency =
+        Currency(
+            id = id,
+            code = code,
+            symbol = code,
+            name = code,
+            decimalDigits = 2,
+            isActive = true,
+            sortOrder = 0,
+        )
 }

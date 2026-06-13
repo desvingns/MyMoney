@@ -8,7 +8,6 @@ import java.io.IOException
 import java.net.SocketTimeoutException
 
 class GoogleDriveRepositoryTest {
-
     // --- mapGdriveError ------------------------------------------------------
     //
     // The §9.5 error-classification seam is the only part of GoogleDriveRepository
@@ -19,7 +18,10 @@ class GoogleDriveRepositoryTest {
     // IO boundary, so we never need a real SDK exception). GdriveHttpException's
     // constructor demands a non-null cause, so every marker carries a throwaway.
 
-    private fun gdriveError(statusCode: Int, reason: String? = null): GdriveHttpException =
+    private fun gdriveError(
+        statusCode: Int,
+        reason: String? = null,
+    ): GdriveHttpException =
         GdriveHttpException(statusCode, reason, IOException("cause"))
 
     @Test

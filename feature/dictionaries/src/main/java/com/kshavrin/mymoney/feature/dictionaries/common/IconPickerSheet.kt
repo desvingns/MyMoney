@@ -53,18 +53,18 @@ fun IconPickerSheet(
             ) {
                 items(iconKeys) { key ->
                     Box(
-                        modifier = Modifier
-                            .size(56.dp)
-                            .semantics { contentDescription = key }
-                            .clip(CircleShape)
-                            .background(
-                                if (key == selectedIconKey) {
-                                    MaterialTheme.colorScheme.primaryContainer
-                                } else {
-                                    MaterialTheme.colorScheme.surfaceVariant
-                                },
-                            )
-                            .clickable { onIconSelected(key) },
+                        modifier =
+                            Modifier
+                                .size(56.dp)
+                                .semantics { contentDescription = key }
+                                .clip(CircleShape)
+                                .background(
+                                    if (key == selectedIconKey) {
+                                        MaterialTheme.colorScheme.primaryContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.surfaceVariant
+                                    },
+                                ).clickable { onIconSelected(key) },
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(

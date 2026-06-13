@@ -30,6 +30,7 @@ object Spacing {
     val dashboardDonutLeaderLineThickness = 1.dp
     val goalListIconCircleSize = 40.dp
     val goalListIconSize = 22.dp
+
     // Edit-form delete button — taller than a standard OutlinedButton so the
     // destructive action stays clearly separate from the save FAB.
     val transactionFormDeleteButtonHeight = 52.dp

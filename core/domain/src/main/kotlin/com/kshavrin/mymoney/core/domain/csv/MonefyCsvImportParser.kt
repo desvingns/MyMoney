@@ -12,7 +12,9 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 enum class CsvImportFormat {
-    MyMoney, Monefy, Unknown
+    MyMoney,
+    Monefy,
+    Unknown,
 }
 
 data class MonefyCsvRow(
@@ -31,7 +33,6 @@ data class MonefyCsvImport(
 )
 
 object MonefyCsvImportParser {
-
     val MONEFY_HEADER: List<String> =
         listOf("date", "account", "category", "amount", "currency", "converted amount", "currency", "description")
 
@@ -58,7 +59,8 @@ object MonefyCsvImportParser {
      * so "Кафе и  рестораны" merges into the seeded "Кафе и рестораны".
      */
     fun normalizeName(raw: String): String =
-        Normalizer.normalize(raw, Normalizer.Form.NFC)
+        Normalizer
+            .normalize(raw, Normalizer.Form.NFC)
             .replace(WHITESPACE_RUN, " ")
             .trim()
             .lowercase(Locale.ROOT)
@@ -70,12 +72,13 @@ object MonefyCsvImportParser {
         return MonefyCsvImport(format = format, rows = rows)
     }
 
-    fun detectFormat(header: List<String>?): CsvImportFormat = when {
-        header == null -> CsvImportFormat.Unknown
-        header.map { it.trim() } == MONEFY_HEADER -> CsvImportFormat.Monefy
-        header == MYMONEY_HEADER || header == MYMONEY_TRANSFER_HEADER -> CsvImportFormat.MyMoney
-        else -> CsvImportFormat.Unknown
-    }
+    fun detectFormat(header: List<String>?): CsvImportFormat =
+        when {
+            header == null -> CsvImportFormat.Unknown
+            header.map { it.trim() } == MONEFY_HEADER -> CsvImportFormat.Monefy
+            header == MYMONEY_HEADER || header == MYMONEY_TRANSFER_HEADER -> CsvImportFormat.MyMoney
+            else -> CsvImportFormat.Unknown
+        }
 
     fun parse(records: List<List<String>>): List<MonefyCsvRow> =
         records.drop(1).mapIndexed { index, fields ->
@@ -83,12 +86,14 @@ object MonefyCsvImportParser {
             if (fields.size < MONEFY_HEADER.size) {
                 throw IOException("Invalid Monefy CSV row $rowNumber: expected ${MONEFY_HEADER.size} fields")
             }
-            val date = runCatching { LocalDate.parse(fields[0].trim(), DATE_FORMATTER) }
-                .getOrElse { throw IOException("Invalid Monefy CSV row $rowNumber: date must be dd/MM/yyyy") }
+            val date =
+                runCatching { LocalDate.parse(fields[0].trim(), DATE_FORMATTER) }
+                    .getOrElse { throw IOException("Invalid Monefy CSV row $rowNumber: date must be dd/MM/yyyy") }
             val accountName = fields[1].trim()
             val categoryName = fields[2].trim()
-            val amount = parseAmount(fields[3])
-                ?: throw IOException("Invalid Monefy CSV row $rowNumber: amount must be a number")
+            val amount =
+                parseAmount(fields[3])
+                    ?: throw IOException("Invalid Monefy CSV row $rowNumber: amount must be a number")
             if (amount.signum() == 0) {
                 throw IOException("Invalid Monefy CSV row $rowNumber: amount must not be zero")
             }
@@ -150,39 +155,41 @@ object MonefyCsvImportParser {
                         field.append(char)
                     }
                 }
-                closedQuote -> when (char) {
-                    '"' -> {
-                        field.append('"')
-                        inQuotes = true
-                        closedQuote = false
-                    }
-                    ',' -> finishField()
-                    '\r' -> {
-                        consumeLineFeedAfterCarriageReturn()
-                        finishRow()
-                    }
-                    '\n' -> finishRow()
-                    else -> throw IOException("Unexpected character after quoted CSV field")
-                }
-                else -> when (char) {
-                    '"' -> {
-                        if (fieldStarted || field.isNotEmpty()) {
-                            throw IOException("Unexpected quote in CSV field")
+                closedQuote ->
+                    when (char) {
+                        '"' -> {
+                            field.append('"')
+                            inQuotes = true
+                            closedQuote = false
                         }
-                        inQuotes = true
-                        fieldStarted = true
+                        ',' -> finishField()
+                        '\r' -> {
+                            consumeLineFeedAfterCarriageReturn()
+                            finishRow()
+                        }
+                        '\n' -> finishRow()
+                        else -> throw IOException("Unexpected character after quoted CSV field")
                     }
-                    ',' -> finishField()
-                    '\r' -> {
-                        consumeLineFeedAfterCarriageReturn()
-                        finishRow()
+                else ->
+                    when (char) {
+                        '"' -> {
+                            if (fieldStarted || field.isNotEmpty()) {
+                                throw IOException("Unexpected quote in CSV field")
+                            }
+                            inQuotes = true
+                            fieldStarted = true
+                        }
+                        ',' -> finishField()
+                        '\r' -> {
+                            consumeLineFeedAfterCarriageReturn()
+                            finishRow()
+                        }
+                        '\n' -> finishRow()
+                        else -> {
+                            field.append(char)
+                            fieldStarted = true
+                        }
                     }
-                    '\n' -> finishRow()
-                    else -> {
-                        field.append(char)
-                        fieldStarted = true
-                    }
-                }
             }
         }
     }
@@ -190,11 +197,12 @@ object MonefyCsvImportParser {
     // Monefy groups thousands with U+00A0 (non-breaking space, not ASCII space) and uses ',' as the
     // decimal separator, so both space variants must be stripped before swapping comma for a dot.
     private fun parseAmount(raw: String): BigDecimal? {
-        val normalized = raw
-            .replace(" ", "")
-            .replace(" ", "")
-            .replace(',', '.')
-            .trim()
+        val normalized =
+            raw
+                .replace(" ", "")
+                .replace(" ", "")
+                .replace(',', '.')
+                .trim()
         if (normalized.isEmpty()) return null
         return normalized.toBigDecimalOrNull()
     }

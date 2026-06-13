@@ -6,7 +6,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SyncExceptionTest {
-
     @Test
     fun `SyncException is a Throwable`() {
         val ex = SyncException(SyncError.Network)
@@ -31,14 +30,15 @@ class SyncExceptionTest {
 
     @Test
     fun `SyncError declares the six expected values in the expected order`() {
-        val expected = listOf(
-            SyncError.Network,
-            SyncError.Auth,
-            SyncError.Quota,
-            SyncError.Conflict,
-            SyncError.Server,
-            SyncError.Unknown,
-        )
+        val expected =
+            listOf(
+                SyncError.Network,
+                SyncError.Auth,
+                SyncError.Quota,
+                SyncError.Conflict,
+                SyncError.Server,
+                SyncError.Unknown,
+            )
 
         assertEquals(expected, SyncError.values().toList())
     }

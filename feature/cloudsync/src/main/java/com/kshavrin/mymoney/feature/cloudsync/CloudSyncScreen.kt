@@ -88,11 +88,12 @@ fun CloudSyncContent(
         },
     ) { innerPadding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(Spacing.l),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .verticalScroll(rememberScrollState())
+                    .padding(Spacing.l),
             verticalArrangement = Arrangement.spacedBy(Spacing.m),
         ) {
             TargetCard(
@@ -164,9 +165,10 @@ private fun TargetCard(
 ) {
     Card(modifier = modifier.fillMaxWidth()) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Spacing.l),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(Spacing.l),
             verticalArrangement = Arrangement.spacedBy(Spacing.s),
         ) {
             Text(text = title, style = MaterialTheme.typography.titleMedium)
@@ -226,7 +228,10 @@ private fun TargetCard(
 }
 
 @Composable
-private fun SyncLogRow(entry: SyncLogEntry, modifier: Modifier = Modifier) {
+private fun SyncLogRow(
+    entry: SyncLogEntry,
+    modifier: Modifier = Modifier,
+) {
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -245,7 +250,8 @@ private fun SyncLogRow(entry: SyncLogEntry, modifier: Modifier = Modifier) {
 }
 
 private val TIMESTAMP_FORMAT: DateTimeFormatter =
-    DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT)
+    DateTimeFormatter
+        .ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT)
         .withLocale(Locale.getDefault())
 
 private fun formatTimestamp(epochMillis: Long): String =
@@ -253,7 +259,8 @@ private fun formatTimestamp(epochMillis: Long): String =
 
 private const val CLOUD_SYNC_AUTO_SYNC_TAG = "cloud_sync_auto_sync"
 
-private fun SyncTarget.controlTag(control: String): String = when (this) {
-    SyncTarget.Dropbox -> "cloud_sync_dropbox_$control"
-    SyncTarget.GoogleDrive -> "cloud_sync_google_drive_$control"
-}
+private fun SyncTarget.controlTag(control: String): String =
+    when (this) {
+        SyncTarget.Dropbox -> "cloud_sync_dropbox_$control"
+        SyncTarget.GoogleDrive -> "cloud_sync_google_drive_$control"
+    }

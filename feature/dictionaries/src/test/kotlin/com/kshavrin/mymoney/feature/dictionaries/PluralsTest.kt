@@ -22,7 +22,6 @@ import javax.xml.parsers.DocumentBuilderFactory
  * (Gradle's default unit-test working dir) or the repo root as the working directory.
  */
 class PluralsTest {
-
     private val enFile = resolveResFile("feature/dictionaries", "values/plurals.xml")
     private val ruFile = resolveResFile("feature/dictionaries", "values-ru/plurals.xml")
 
@@ -100,13 +99,17 @@ class PluralsTest {
         // Matches positional/format tokens: %d, %s, %1$s, %2$d, %.2f, %% (literal percent ignored).
         val FORMAT_TOKEN = Regex("""%(?:\d+\$)?[-+ 0,(]*\d*(?:\.\d+)?[a-zA-Z]""")
 
-        fun resolveResFile(module: String, relativeWithinRes: String): File {
-            val candidates = listOf(
-                // Working dir = the module directory (Gradle default for unit tests).
-                File("src/main/res/$relativeWithinRes"),
-                // Working dir = repo root.
-                File("$module/src/main/res/$relativeWithinRes"),
-            )
+        fun resolveResFile(
+            module: String,
+            relativeWithinRes: String,
+        ): File {
+            val candidates =
+                listOf(
+                    // Working dir = the module directory (Gradle default for unit tests).
+                    File("src/main/res/$relativeWithinRes"),
+                    // Working dir = repo root.
+                    File("$module/src/main/res/$relativeWithinRes"),
+                )
             return candidates.firstOrNull(File::isFile)
                 ?: candidates.first().absoluteFile
         }
@@ -118,10 +121,11 @@ class PluralsTest {
         /** name -> (quantity -> item text). */
         fun parseItems(file: File): Map<String, Map<String, String>> {
             require(file.isFile) { "plurals file not found: ${file.path}" }
-            val factory = DocumentBuilderFactory.newInstance().apply {
-                isNamespaceAware = false
-                isExpandEntityReferences = false
-            }
+            val factory =
+                DocumentBuilderFactory.newInstance().apply {
+                    isNamespaceAware = false
+                    isExpandEntityReferences = false
+                }
             val doc = factory.newDocumentBuilder().parse(file)
             val pluralNodes = doc.getElementsByTagName("plurals")
             val result = LinkedHashMap<String, Map<String, String>>()
@@ -140,6 +144,10 @@ class PluralsTest {
         }
 
         fun formatTokens(text: String): List<String> =
-            FORMAT_TOKEN.findAll(text).map { it.value }.sorted().toList()
+            FORMAT_TOKEN
+                .findAll(text)
+                .map { it.value }
+                .sorted()
+                .toList()
     }
 }

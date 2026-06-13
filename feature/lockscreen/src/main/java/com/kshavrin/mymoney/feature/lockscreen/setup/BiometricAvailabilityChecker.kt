@@ -22,24 +22,25 @@ interface BiometricAvailabilityChecker {
 }
 
 @Singleton
-class AndroidBiometricAvailabilityChecker @Inject constructor(
-    @ApplicationContext private val context: Context,
-) : BiometricAvailabilityChecker {
-    override fun availability(): BiometricAvailability =
-        when (BiometricManager.from(context).canAuthenticate(BIOMETRIC_STRONG)) {
-            BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE,
-            BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE,
-            -> BiometricAvailability.NoHardware
+class AndroidBiometricAvailabilityChecker
+    @Inject
+    constructor(
+        @ApplicationContext private val context: Context,
+    ) : BiometricAvailabilityChecker {
+        override fun availability(): BiometricAvailability =
+            when (BiometricManager.from(context).canAuthenticate(BIOMETRIC_STRONG)) {
+                BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE,
+                BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE,
+                -> BiometricAvailability.NoHardware
 
-            BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED -> BiometricAvailability.NotEnrolled
-            else -> BiometricAvailability.Available
-        }
-}
+                BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED -> BiometricAvailability.NotEnrolled
+                else -> BiometricAvailability.Available
+            }
+    }
 
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class BiometricAvailabilityModule {
-
     @Binds
     @Singleton
     abstract fun bindBiometricAvailabilityChecker(

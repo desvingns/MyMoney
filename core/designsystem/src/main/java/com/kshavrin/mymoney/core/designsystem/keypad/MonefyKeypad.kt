@@ -92,16 +92,18 @@ private fun RowScope.KeypadKey(
 ) {
     val scale = remember { Animatable(1f) }
     val scope = rememberCoroutineScope()
-    val container: Color = if (operator) {
-        MaterialTheme.colorScheme.surfaceVariant
-    } else {
-        MaterialTheme.colorScheme.surface
-    }
-    val content: Color = if (operator) {
-        MaterialTheme.colorScheme.secondary
-    } else {
-        MaterialTheme.colorScheme.onSurface
-    }
+    val container: Color =
+        if (operator) {
+            MaterialTheme.colorScheme.surfaceVariant
+        } else {
+            MaterialTheme.colorScheme.surface
+        }
+    val content: Color =
+        if (operator) {
+            MaterialTheme.colorScheme.secondary
+        } else {
+            MaterialTheme.colorScheme.onSurface
+        }
     OutlinedButton(
         onClick = {
             scope.launch {
@@ -116,16 +118,18 @@ private fun RowScope.KeypadKey(
             }
             onPress()
         },
-        modifier = Modifier
-            .weight(1f)
-            .aspectRatio(1f)
-            .scale(scale.value),
+        modifier =
+            Modifier
+                .weight(1f)
+                .aspectRatio(1f)
+                .scale(scale.value),
         shape = MaterialTheme.shapes.medium,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-        colors = ButtonDefaults.outlinedButtonColors(
-            containerColor = container,
-            contentColor = content,
-        ),
+        colors =
+            ButtonDefaults.outlinedButtonColors(
+                containerColor = container,
+                contentColor = content,
+            ),
     ) {
         Text(text = label, style = MaterialTheme.typography.titleLarge)
     }

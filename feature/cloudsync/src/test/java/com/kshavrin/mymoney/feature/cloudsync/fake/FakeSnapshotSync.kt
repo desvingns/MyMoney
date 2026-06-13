@@ -11,7 +11,6 @@ import com.kshavrin.mymoney.core.sync.SyncTarget
  * tests can assert the ViewModel drove the right seam.
  */
 class FakeSnapshotSync : SnapshotSync {
-
     private val connected = mutableMapOf<SyncTarget, Boolean>()
     private val labels = mutableMapOf<SyncTarget, Result<String>>()
 
@@ -19,29 +18,55 @@ class FakeSnapshotSync : SnapshotSync {
     private val keepLocalResults = mutableMapOf<SyncTarget, Result<SyncOutcome>>()
     private val keepRemoteResults = mutableMapOf<SyncTarget, Result<SyncOutcome>>()
 
+    private val pushResults = mutableMapOf<SyncTarget, Result<SyncOutcome>>()
+
     val connectCalls = mutableListOf<Pair<SyncTarget, String>>()
     val disconnectCalls = mutableListOf<SyncTarget>()
     val syncNowCalls = mutableListOf<SyncTarget>()
+    val pushCalls = mutableListOf<SyncTarget>()
     val keepLocalCalls = mutableListOf<SyncTarget>()
     val keepRemoteCalls = mutableListOf<SyncTarget>()
+    var autoSyncConnectedCalls = 0
 
-    fun setConnected(target: SyncTarget, value: Boolean) {
+    fun setConnected(
+        target: SyncTarget,
+        value: Boolean,
+    ) {
         connected[target] = value
     }
 
-    fun setAccountLabel(target: SyncTarget, result: Result<String>) {
+    fun setAccountLabel(
+        target: SyncTarget,
+        result: Result<String>,
+    ) {
         labels[target] = result
     }
 
-    fun setSyncNowResult(target: SyncTarget, result: Result<SyncOutcome>) {
+    fun setSyncNowResult(
+        target: SyncTarget,
+        result: Result<SyncOutcome>,
+    ) {
         syncNowResults[target] = result
     }
 
-    fun setKeepLocalResult(target: SyncTarget, result: Result<SyncOutcome>) {
+    fun setPushResult(
+        target: SyncTarget,
+        result: Result<SyncOutcome>,
+    ) {
+        pushResults[target] = result
+    }
+
+    fun setKeepLocalResult(
+        target: SyncTarget,
+        result: Result<SyncOutcome>,
+    ) {
         keepLocalResults[target] = result
     }
 
-    fun setKeepRemoteResult(target: SyncTarget, result: Result<SyncOutcome>) {
+    fun setKeepRemoteResult(
+        target: SyncTarget,
+        result: Result<SyncOutcome>,
+    ) {
         keepRemoteResults[target] = result
     }
 
@@ -55,6 +80,16 @@ class FakeSnapshotSync : SnapshotSync {
         return syncNowResults[target] ?: Result.success(SyncOutcome.UpToDate)
     }
 
+    override suspend fun push(target: SyncTarget): Result<SyncOutcome> {
+        pushCalls += target
+        return pushResults[target] ?: Result.success(SyncOutcome.Pushed)
+    }
+
+    override suspend fun autoSyncConnected(): Result<Unit> {
+        autoSyncConnectedCalls++
+        return Result.success(Unit)
+    }
+
     override suspend fun keepLocal(target: SyncTarget): Result<SyncOutcome> {
         keepLocalCalls += target
         return keepLocalResults[target] ?: Result.success(SyncOutcome.Pushed)
@@ -65,7 +100,10 @@ class FakeSnapshotSync : SnapshotSync {
         return keepRemoteResults[target] ?: Result.success(SyncOutcome.Pulled)
     }
 
-    override fun connect(target: SyncTarget, payload: String) {
+    override fun connect(
+        target: SyncTarget,
+        payload: String,
+    ) {
         connectCalls += target to payload
     }
 

@@ -19,7 +19,6 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class SwipeToDeleteUiTest {
-
     @get:Rule
     val composeTestRule = createComposeRule()
 
@@ -31,9 +30,10 @@ class SwipeToDeleteUiTest {
             MyMoneyTheme {
                 SwipeToDelete(
                     onDelete = { deleteCalls += 1 },
-                    modifier = Modifier
-                        .width(320.dp)
-                        .height(72.dp),
+                    modifier =
+                        Modifier
+                            .width(320.dp)
+                            .height(72.dp),
                 ) {
                     Text(
                         text = "Coffee",

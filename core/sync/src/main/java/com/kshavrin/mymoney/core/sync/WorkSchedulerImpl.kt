@@ -13,37 +13,40 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class WorkSchedulerImpl @Inject constructor(
-    @ApplicationContext private val context: Context,
-) : WorkScheduler {
+class WorkSchedulerImpl
+    @Inject
+    constructor(
+        @ApplicationContext private val context: Context,
+    ) : WorkScheduler {
+        private val workManager: WorkManager get() = WorkManager.getInstance(context)
 
-    private val workManager: WorkManager get() = WorkManager.getInstance(context)
-
-    override fun scheduleDailyJobs() {
-        val recurring = PeriodicWorkRequestBuilder<RecurringWorker>(PERIOD_HOURS, TimeUnit.HOURS)
-            .setConstraints(Constraints.NONE)
-            .build()
-        workManager.enqueueUniquePeriodicWork(
-            RecurringWorker.UNIQUE_PERIODIC,
-            ExistingPeriodicWorkPolicy.KEEP,
-            recurring,
-        )
-
-        val prune = PeriodicWorkRequestBuilder<PruneDeletedWorker>(PERIOD_HOURS, TimeUnit.HOURS)
-            .setConstraints(
-                Constraints.Builder()
-                    .setRequiresBatteryNotLow(true)
-                    .build(),
+        override fun scheduleDailyJobs() {
+            val recurring =
+                PeriodicWorkRequestBuilder<RecurringWorker>(PERIOD_HOURS, TimeUnit.HOURS)
+                    .setConstraints(Constraints.NONE)
+                    .build()
+            workManager.enqueueUniquePeriodicWork(
+                RecurringWorker.UNIQUE_PERIODIC,
+                ExistingPeriodicWorkPolicy.KEEP,
+                recurring,
             )
-            .build()
-        workManager.enqueueUniquePeriodicWork(
-            PruneDeletedWorker.UNIQUE_PERIODIC,
-            ExistingPeriodicWorkPolicy.KEEP,
-            prune,
-        )
-    }
 
-    private companion object {
-        const val PERIOD_HOURS = 24L
+            val prune =
+                PeriodicWorkRequestBuilder<PruneDeletedWorker>(PERIOD_HOURS, TimeUnit.HOURS)
+                    .setConstraints(
+                        Constraints
+                            .Builder()
+                            .setRequiresBatteryNotLow(true)
+                            .build(),
+                    ).build()
+            workManager.enqueueUniquePeriodicWork(
+                PruneDeletedWorker.UNIQUE_PERIODIC,
+                ExistingPeriodicWorkPolicy.KEEP,
+                prune,
+            )
+        }
+
+        private companion object {
+            const val PERIOD_HOURS = 24L
+        }
     }
-}

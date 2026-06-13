@@ -80,10 +80,11 @@ fun OnboardingContent(
 ) {
     val isLastPage = currentPage == ONBOARDING_PAGE_COUNT - 1
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(Spacing.l),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .padding(Spacing.l),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Row(
@@ -97,9 +98,10 @@ fun OnboardingContent(
 
         HorizontalPager(
             state = pagerState,
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
         ) { page ->
             OnboardingSlide(page = page)
         }
@@ -123,13 +125,15 @@ fun OnboardingContent(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text(
-                text = stringResource(
-                    id = if (isLastPage) {
-                        R.string.onboarding_get_started
-                    } else {
-                        R.string.onboarding_next
-                    },
-                ),
+                text =
+                    stringResource(
+                        id =
+                            if (isLastPage) {
+                                R.string.onboarding_get_started
+                            } else {
+                                R.string.onboarding_next
+                            },
+                    ),
             )
         }
     }
@@ -171,32 +175,36 @@ private fun PagerDotsIndicator(
     modifier: Modifier = Modifier,
 ) {
     val indicatorDescription = stringResource(id = R.string.onboarding_pager_indicator_description)
-    val indicatorState = stringResource(
-        id = R.string.onboarding_pager_indicator_state,
-        currentPage + 1,
-        pageCount,
-    )
+    val indicatorState =
+        stringResource(
+            id = R.string.onboarding_pager_indicator_state,
+            currentPage + 1,
+            pageCount,
+        )
     Row(
-        modifier = modifier
-            .testTag(ONBOARDING_PAGER_INDICATOR_TAG)
-            .semantics {
-                contentDescription = indicatorDescription
-                stateDescription = indicatorState
-            },
+        modifier =
+            modifier
+                .testTag(ONBOARDING_PAGER_INDICATOR_TAG)
+                .semantics {
+                    contentDescription = indicatorDescription
+                    stateDescription = indicatorState
+                },
         horizontalArrangement = Arrangement.spacedBy(Spacing.s),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         repeat(pageCount) { index ->
             val isActive = index == currentPage
             Surface(
-                modifier = Modifier
-                    .size(if (isActive) 12.dp else 8.dp)
-                    .clip(CircleShape),
-                color = if (isActive) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.outline
-                },
+                modifier =
+                    Modifier
+                        .size(if (isActive) 12.dp else 8.dp)
+                        .clip(CircleShape),
+                color =
+                    if (isActive) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.outline
+                    },
                 content = {},
             )
         }
@@ -212,25 +220,26 @@ private data class OnboardingSlideRes(
     @StringRes val bodyRes: Int,
 )
 
-private val ONBOARDING_PAGES = listOf(
-    OnboardingSlideRes(
-        heroRes = R.drawable.onboarding_hero_1,
-        headlineRes = R.string.onboarding_slide_1_headline,
-        bodyRes = R.string.onboarding_slide_1_body,
-    ),
-    OnboardingSlideRes(
-        heroRes = R.drawable.onboarding_hero_2,
-        headlineRes = R.string.onboarding_slide_2_headline,
-        bodyRes = R.string.onboarding_slide_2_body,
-    ),
-    OnboardingSlideRes(
-        heroRes = R.drawable.onboarding_hero_3,
-        headlineRes = R.string.onboarding_slide_3_headline,
-        bodyRes = R.string.onboarding_slide_3_body,
-    ),
-    OnboardingSlideRes(
-        heroRes = R.drawable.onboarding_hero_4,
-        headlineRes = R.string.onboarding_slide_4_headline,
-        bodyRes = R.string.onboarding_slide_4_body,
-    ),
-)
+private val ONBOARDING_PAGES =
+    listOf(
+        OnboardingSlideRes(
+            heroRes = R.drawable.onboarding_hero_1,
+            headlineRes = R.string.onboarding_slide_1_headline,
+            bodyRes = R.string.onboarding_slide_1_body,
+        ),
+        OnboardingSlideRes(
+            heroRes = R.drawable.onboarding_hero_2,
+            headlineRes = R.string.onboarding_slide_2_headline,
+            bodyRes = R.string.onboarding_slide_2_body,
+        ),
+        OnboardingSlideRes(
+            heroRes = R.drawable.onboarding_hero_3,
+            headlineRes = R.string.onboarding_slide_3_headline,
+            bodyRes = R.string.onboarding_slide_3_body,
+        ),
+        OnboardingSlideRes(
+            heroRes = R.drawable.onboarding_hero_4,
+            headlineRes = R.string.onboarding_slide_4_headline,
+            bodyRes = R.string.onboarding_slide_4_body,
+        ),
+    )

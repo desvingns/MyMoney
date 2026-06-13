@@ -8,7 +8,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import java.math.BigDecimal
 
 class FakeAccountRepository : AccountRepository {
-
     private val state = MutableStateFlow<List<Account>>(emptyList())
     private val balances = mutableMapOf<Long, BigDecimal>()
 
@@ -16,7 +15,10 @@ class FakeAccountRepository : AccountRepository {
         state.value = (state.value + accounts).distinctBy { it.id }
     }
 
-    fun setBalance(accountId: Long, balance: BigDecimal) {
+    fun setBalance(
+        accountId: Long,
+        balance: BigDecimal,
+    ) {
         balances[accountId] = balance
     }
 

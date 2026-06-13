@@ -6,7 +6,6 @@ import java.text.DecimalFormatSymbols
 import java.util.Locale
 
 object MoneyFormatter {
-
     fun format(
         amount: BigDecimal,
         currencySymbol: String,
@@ -16,11 +15,12 @@ object MoneyFormatter {
     ): String {
         val symbols = DecimalFormatSymbols.getInstance(locale)
         val pattern = if (decimalDigits > 0) "#,##0.${"0".repeat(decimalDigits)}" else "#,##0"
-        val formatter = DecimalFormat(pattern, symbols).apply {
-            isGroupingUsed = true
-            maximumFractionDigits = decimalDigits
-            minimumFractionDigits = decimalDigits
-        }
+        val formatter =
+            DecimalFormat(pattern, symbols).apply {
+                isGroupingUsed = true
+                maximumFractionDigits = decimalDigits
+                minimumFractionDigits = decimalDigits
+            }
         val number = formatter.format(amount)
         return when (symbolPosition) {
             SymbolPosition.BEFORE -> "$currencySymbol$number"

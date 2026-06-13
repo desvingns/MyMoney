@@ -82,7 +82,6 @@ import java.math.BigDecimal
  * ```
  */
 class TransactionDetailContentTest {
-
     private val usd = Currency(1L, "USD", "$", "US Dollar", 2, true, 0)
     private val eur = Currency(2L, "EUR", "€", "Euro", 2, true, 1)
 
@@ -102,11 +101,12 @@ class TransactionDetailContentTest {
     @Test
     fun `title resource is selected per transaction kind`() {
         // Mirror of TransactionDetailScreen.titleRes(kind).
-        fun titleRes(kind: TransactionKind): Int = when (kind) {
-            TransactionKind.Expense -> R.string.detail_title_expense
-            TransactionKind.Income -> R.string.detail_title_income
-            TransactionKind.Transfer -> R.string.detail_title_transfer
-        }
+        fun titleRes(kind: TransactionKind): Int =
+            when (kind) {
+                TransactionKind.Expense -> R.string.detail_title_expense
+                TransactionKind.Income -> R.string.detail_title_income
+                TransactionKind.Transfer -> R.string.detail_title_transfer
+            }
         assertEquals(R.string.detail_title_expense, titleRes(TransactionKind.Expense))
         assertEquals(R.string.detail_title_income, titleRes(TransactionKind.Income))
         assertEquals(R.string.detail_title_transfer, titleRes(TransactionKind.Transfer))

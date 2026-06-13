@@ -5,7 +5,10 @@ import kotlinx.coroutines.flow.Flow
 
 interface GoalRepository {
     fun observeActive(): Flow<List<Goal>>
+
     suspend fun findById(id: Long): Goal?
+
     suspend fun upsert(goal: Goal): Long
+
     suspend fun archive(id: Long)
 }

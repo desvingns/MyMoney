@@ -64,8 +64,11 @@ fun CurrencyEditContent(
                 title = {
                     Text(
                         stringResource(
-                            if (state.isCreateMode) R.string.dictionaries_currency_new
-                            else R.string.dictionaries_currency_edit,
+                            if (state.isCreateMode) {
+                                R.string.dictionaries_currency_new
+                            } else {
+                                R.string.dictionaries_currency_edit
+                            },
                         ),
                     )
                 },
@@ -87,24 +90,28 @@ fun CurrencyEditContent(
         },
     ) { innerPadding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(16.dp)
+                    .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            val codeLockedSupporting: @Composable (() -> Unit)? = if (state.isCodeLocked) {
-                {
-                    Text(
-                        pluralStringResource(
-                            R.plurals.currency_code_locked,
-                            state.dependentAccountCount,
-                            state.dependentAccountCount,
-                        ),
-                    )
+            val codeLockedSupporting: @Composable (() -> Unit)? =
+                if (state.isCodeLocked) {
+                    {
+                        Text(
+                            pluralStringResource(
+                                R.plurals.currency_code_locked,
+                                state.dependentAccountCount,
+                                state.dependentAccountCount,
+                            ),
+                        )
+                    }
+                } else {
+                    null
                 }
-            } else null
             OutlinedTextField(
                 value = state.code,
                 onValueChange = { onEvent(CurrencyEditEvent.CodeChanged(it)) },
@@ -153,12 +160,13 @@ fun CurrencyEditContent(
             }
 
             if (state.errorMessage != null) {
-                val errorText = when (state.errorMessage) {
-                    "code_format" -> stringResource(R.string.dictionaries_error_code_format)
-                    "symbol_required" -> stringResource(R.string.dictionaries_error_symbol_required)
-                    "decimal_digits" -> stringResource(R.string.dictionaries_error_decimal_digits)
-                    else -> stringResource(R.string.dictionaries_error_generic)
-                }
+                val errorText =
+                    when (state.errorMessage) {
+                        "code_format" -> stringResource(R.string.dictionaries_error_code_format)
+                        "symbol_required" -> stringResource(R.string.dictionaries_error_symbol_required)
+                        "decimal_digits" -> stringResource(R.string.dictionaries_error_decimal_digits)
+                        else -> stringResource(R.string.dictionaries_error_generic)
+                    }
                 Text(
                     text = errorText,
                     color = MaterialTheme.colorScheme.error,
@@ -169,9 +177,10 @@ fun CurrencyEditContent(
             if (!state.isCreateMode) {
                 OutlinedButton(
                     onClick = { onEvent(CurrencyEditEvent.DeleteClicked) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 16.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(top = 16.dp),
                 ) {
                     Text(stringResource(R.string.dictionaries_delete))
                 }

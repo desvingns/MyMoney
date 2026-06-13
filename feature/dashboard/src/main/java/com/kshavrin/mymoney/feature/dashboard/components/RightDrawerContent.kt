@@ -22,11 +22,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.graphics.vector.ImageVector
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.feature.dashboard.DashboardEvent
 import com.kshavrin.mymoney.feature.dashboard.R
@@ -34,9 +34,10 @@ import com.kshavrin.mymoney.feature.dashboard.R
 @Composable
 fun RightDrawerContent(onEvent: (DashboardEvent) -> Unit) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(Spacing.l),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(Spacing.l),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Spacing.l),
     ) {
@@ -88,12 +89,13 @@ private fun RightDrawerItem(
     testTag: String,
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = Spacing.xs)
-            .semantics(mergeDescendants = true) {}
-            .testTag(testTag),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(vertical = Spacing.xs)
+                .semantics(mergeDescendants = true) {}
+                .testTag(testTag),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(

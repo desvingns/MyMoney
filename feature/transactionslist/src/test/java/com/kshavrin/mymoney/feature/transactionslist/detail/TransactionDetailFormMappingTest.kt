@@ -21,7 +21,6 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -39,7 +38,6 @@ import java.util.TimeZone
  * Save FAB).
  */
 class TransactionDetailFormMappingTest {
-
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
@@ -54,71 +52,76 @@ class TransactionDetailFormMappingTest {
     private lateinit var categoryRepo: FakeCategoryRepository
     private lateinit var rateRepo: FakeCurrencyRateRepository
 
-    private val usd = Currency(
-        id = 1L,
-        code = "USD",
-        symbol = "$",
-        name = "US Dollar",
-        decimalDigits = 2,
-        isActive = true,
-        sortOrder = 0,
-    )
+    private val usd =
+        Currency(
+            id = 1L,
+            code = "USD",
+            symbol = "$",
+            name = "US Dollar",
+            decimalDigits = 2,
+            isActive = true,
+            sortOrder = 0,
+        )
 
-    private val cashUsd = Account(
-        id = 7L,
-        name = "Cash",
-        currencyId = usd.id,
-        initialBalance = BigDecimal.ZERO,
-        type = AccountType.Cash,
-        colorHex = "#7AC794",
-        iconKey = "ic_acc_cash",
-        isDefault = true,
-        sortOrder = 0,
-        createdAt = createdAt,
-        updatedAt = createdAt,
-        isArchived = false,
-    )
+    private val cashUsd =
+        Account(
+            id = 7L,
+            name = "Cash",
+            currencyId = usd.id,
+            initialBalance = BigDecimal.ZERO,
+            type = AccountType.Cash,
+            colorHex = "#7AC794",
+            iconKey = "ic_acc_cash",
+            isDefault = true,
+            sortOrder = 0,
+            createdAt = createdAt,
+            updatedAt = createdAt,
+            isArchived = false,
+        )
 
-    private val foodCategory = Category(
-        id = 10L,
-        name = "Food",
-        kind = CategoryKind.Expense,
-        iconKey = "ic_cat_food",
-        colorHex = "#FF8888",
-        sortOrder = 0,
-        isDefault = false,
-        isArchived = false,
-        createdAt = createdAt,
-    )
+    private val foodCategory =
+        Category(
+            id = 10L,
+            name = "Food",
+            kind = CategoryKind.Expense,
+            iconKey = "ic_cat_food",
+            colorHex = "#FF8888",
+            sortOrder = 0,
+            isDefault = false,
+            isArchived = false,
+            createdAt = createdAt,
+        )
 
-    private val entertainmentCategory = Category(
-        id = 11L,
-        name = "Entertainment",
-        kind = CategoryKind.Expense,
-        iconKey = "ic_cat_fun",
-        colorHex = "#8888FF",
-        sortOrder = 1,
-        isDefault = false,
-        isArchived = false,
-        createdAt = createdAt,
-    )
+    private val entertainmentCategory =
+        Category(
+            id = 11L,
+            name = "Entertainment",
+            kind = CategoryKind.Expense,
+            iconKey = "ic_cat_fun",
+            colorHex = "#8888FF",
+            sortOrder = 1,
+            isDefault = false,
+            isArchived = false,
+            createdAt = createdAt,
+        )
 
-    private fun expense(id: Long = 100L) = Transaction(
-        id = id,
-        kind = TransactionKind.Expense,
-        amount = BigDecimal("12.50"),
-        currencyId = usd.id,
-        accountId = cashUsd.id,
-        categoryId = foodCategory.id,
-        note = "Lunch",
-        occurredAt = localMidnight(originalDate),
-        createdAt = createdAt,
-        updatedAt = createdAt,
-        isDeleted = false,
-        toAccountId = null,
-        toAmount = null,
-        exchangeRate = null,
-    )
+    private fun expense(id: Long = 100L) =
+        Transaction(
+            id = id,
+            kind = TransactionKind.Expense,
+            amount = BigDecimal("12.50"),
+            currencyId = usd.id,
+            accountId = cashUsd.id,
+            categoryId = foodCategory.id,
+            note = "Lunch",
+            occurredAt = localMidnight(originalDate),
+            createdAt = createdAt,
+            updatedAt = createdAt,
+            isDeleted = false,
+            toAccountId = null,
+            toAmount = null,
+            exchangeRate = null,
+        )
 
     @Before
     fun setUp() {
@@ -147,9 +150,10 @@ class TransactionDetailFormMappingTest {
             currencyRepository = currencyRepo,
             categoryRepository = categoryRepo,
             currencyRateRepository = rateRepo,
-            savedStateHandle = SavedStateHandle(
-                mapOf(TransactionDetailViewModel.KEY_TRANSACTION_ID to transactionId),
-            ),
+            savedStateHandle =
+                SavedStateHandle(
+                    mapOf(TransactionDetailViewModel.KEY_TRANSACTION_ID to transactionId),
+                ),
         )
 
     private fun localMidnight(date: LocalDate): Instant =
@@ -158,131 +162,139 @@ class TransactionDetailFormMappingTest {
     // ---- AC1: state→TransactionFormState mapping -----------------------------------------------
 
     @Test
-    fun `toTransactionFormState maps amount input from the loaded expense`() = runTest {
-        val tx = expense()
-        transactionRepo.seed(tx)
-        val viewModel = buildViewModel(tx.id)
+    fun `toTransactionFormState maps amount input from the loaded expense`() =
+        runTest {
+            val tx = expense()
+            transactionRepo.seed(tx)
+            val viewModel = buildViewModel(tx.id)
 
-        viewModel.state.test {
-            val state = expectMostRecentItem()
-            assertTrue("state must be loaded before checking form mapping", state.isLoaded)
-            // CalculatorEngine seeds "12.50" → display is "12.5" (trailing zero stripped)
-            // Just verify non-empty and non-zero; the exact display is CalculatorEngine's concern.
-            assertTrue(
-                "amountInput must be non-empty after loading",
-                state.amountInput.isNotEmpty(),
-            )
-            assertEquals(
-                "amount BigDecimal must match the transaction amount",
-                0,
-                BigDecimal("12.50").compareTo(state.amount),
-            )
-            cancelAndIgnoreRemainingEvents()
+            viewModel.state.test {
+                val state = expectMostRecentItem()
+                assertTrue("state must be loaded before checking form mapping", state.isLoaded)
+                // CalculatorEngine seeds "12.50" → display is "12.5" (trailing zero stripped)
+                // Just verify non-empty and non-zero; the exact display is CalculatorEngine's concern.
+                assertTrue(
+                    "amountInput must be non-empty after loading",
+                    state.amountInput.isNotEmpty(),
+                )
+                assertEquals(
+                    "amount BigDecimal must match the transaction amount",
+                    0,
+                    BigDecimal("12.50").compareTo(state.amount),
+                )
+                cancelAndIgnoreRemainingEvents()
+            }
         }
-    }
 
     @Test
-    fun `toTransactionFormState maps note from the loaded expense`() = runTest {
-        val tx = expense()
-        transactionRepo.seed(tx)
-        val viewModel = buildViewModel(tx.id)
+    fun `toTransactionFormState maps note from the loaded expense`() =
+        runTest {
+            val tx = expense()
+            transactionRepo.seed(tx)
+            val viewModel = buildViewModel(tx.id)
 
-        viewModel.state.test {
-            val state = expectMostRecentItem()
-            assertEquals("note must be pre-filled from the transaction", "Lunch", state.note)
-            cancelAndIgnoreRemainingEvents()
+            viewModel.state.test {
+                val state = expectMostRecentItem()
+                assertEquals("note must be pre-filled from the transaction", "Lunch", state.note)
+                cancelAndIgnoreRemainingEvents()
+            }
         }
-    }
 
     @Test
-    fun `toTransactionFormState maps occurredAt from the loaded expense`() = runTest {
-        val tx = expense()
-        transactionRepo.seed(tx)
-        val viewModel = buildViewModel(tx.id)
+    fun `toTransactionFormState maps occurredAt from the loaded expense`() =
+        runTest {
+            val tx = expense()
+            transactionRepo.seed(tx)
+            val viewModel = buildViewModel(tx.id)
 
-        viewModel.state.test {
-            val state = expectMostRecentItem()
-            assertEquals(
-                "occurredAt must be pre-filled from the transaction",
-                originalDate,
-                state.occurredAt,
-            )
-            cancelAndIgnoreRemainingEvents()
+            viewModel.state.test {
+                val state = expectMostRecentItem()
+                assertEquals(
+                    "occurredAt must be pre-filled from the transaction",
+                    originalDate,
+                    state.occurredAt,
+                )
+                cancelAndIgnoreRemainingEvents()
+            }
         }
-    }
 
     @Test
-    fun `toTransactionFormState maps category from the loaded expense`() = runTest {
-        val tx = expense()
-        transactionRepo.seed(tx)
-        val viewModel = buildViewModel(tx.id)
+    fun `toTransactionFormState maps category from the loaded expense`() =
+        runTest {
+            val tx = expense()
+            transactionRepo.seed(tx)
+            val viewModel = buildViewModel(tx.id)
 
-        viewModel.state.test {
-            val state = expectMostRecentItem()
-            assertNotNull("category must be pre-filled from the transaction", state.category)
-            assertEquals(foodCategory.id, state.category?.id)
-            assertEquals(foodCategory.name, state.category?.name)
-            cancelAndIgnoreRemainingEvents()
+            viewModel.state.test {
+                val state = expectMostRecentItem()
+                assertNotNull("category must be pre-filled from the transaction", state.category)
+                assertEquals(foodCategory.id, state.category?.id)
+                assertEquals(foodCategory.name, state.category?.name)
+                cancelAndIgnoreRemainingEvents()
+            }
         }
-    }
 
     @Test
-    fun `toTransactionFormState includes expense categories of the matching kind only`() = runTest {
-        val tx = expense()
-        transactionRepo.seed(tx)
-        val viewModel = buildViewModel(tx.id)
+    fun `toTransactionFormState includes expense categories of the matching kind only`() =
+        runTest {
+            val tx = expense()
+            transactionRepo.seed(tx)
+            val viewModel = buildViewModel(tx.id)
 
-        viewModel.state.test {
-            val state = expectMostRecentItem()
-            assertTrue(
-                "category list must contain Food (Expense kind)",
-                state.categories.any { it.id == foodCategory.id },
-            )
-            assertTrue(
-                "category list must contain Entertainment (Expense kind)",
-                state.categories.any { it.id == entertainmentCategory.id },
-            )
-            cancelAndIgnoreRemainingEvents()
+            viewModel.state.test {
+                val state = expectMostRecentItem()
+                assertTrue(
+                    "category list must contain Food (Expense kind)",
+                    state.categories.any { it.id == foodCategory.id },
+                )
+                assertTrue(
+                    "category list must contain Entertainment (Expense kind)",
+                    state.categories.any { it.id == entertainmentCategory.id },
+                )
+                cancelAndIgnoreRemainingEvents()
+            }
         }
-    }
 
     @Test
-    fun `toTransactionFormState sets mode to Edit for a loaded expense`() = runTest {
-        val tx = expense()
-        transactionRepo.seed(tx)
-        val viewModel = buildViewModel(tx.id)
+    fun `toTransactionFormState sets mode to Edit for a loaded expense`() =
+        runTest {
+            val tx = expense()
+            transactionRepo.seed(tx)
+            val viewModel = buildViewModel(tx.id)
 
-        viewModel.state.test {
-            val s = expectMostRecentItem()
-            // The Screen maps state to TransactionFormState with mode = Edit.
-            // Verify via the toTransactionFormState extension on the screen (mirrored here).
-            val formState = com.kshavrin.mymoney.core.designsystem.form.TransactionFormState(
-                amountInput = s.amountInput,
-                expression = s.expression,
-                currencyCode = s.currency?.code,
-                currencySymbol = s.currency?.symbol,
-                note = s.note,
-                occurredAt = s.occurredAt,
-                categories = s.categories.map {
-                    com.kshavrin.mymoney.core.designsystem.form.TransactionFormCategory(
-                        id = it.id,
-                        name = it.name,
-                        colorHex = it.colorHex,
-                        iconKey = it.iconKey,
+            viewModel.state.test {
+                val s = expectMostRecentItem()
+                // The Screen maps state to TransactionFormState with mode = Edit.
+                // Verify via the toTransactionFormState extension on the screen (mirrored here).
+                val formState =
+                    com.kshavrin.mymoney.core.designsystem.form.TransactionFormState(
+                        amountInput = s.amountInput,
+                        expression = s.expression,
+                        currencyCode = s.currency?.code,
+                        currencySymbol = s.currency?.symbol,
+                        note = s.note,
+                        occurredAt = s.occurredAt,
+                        categories =
+                            s.categories.map {
+                                com.kshavrin.mymoney.core.designsystem.form.TransactionFormCategory(
+                                    id = it.id,
+                                    name = it.name,
+                                    colorHex = it.colorHex,
+                                    iconKey = it.iconKey,
+                                )
+                            },
+                        categoryStep = s.categoryStep,
+                        chooseCategoryEnabled = s.amount > BigDecimal.ZERO,
+                        mode = TransactionFormMode.Edit,
                     )
-                },
-                categoryStep = s.categoryStep,
-                chooseCategoryEnabled = s.amount > BigDecimal.ZERO,
-                mode = TransactionFormMode.Edit,
-            )
-            assertEquals(
-                "Edit-mode screen must produce TransactionFormMode.Edit",
-                TransactionFormMode.Edit,
-                formState.mode,
-            )
-            cancelAndIgnoreRemainingEvents()
+                assertEquals(
+                    "Edit-mode screen must produce TransactionFormMode.Edit",
+                    TransactionFormMode.Edit,
+                    formState.mode,
+                )
+                cancelAndIgnoreRemainingEvents()
+            }
         }
-    }
 
     // ---- AC2: category is editable in Edit mode ------------------------------------------------
 
@@ -294,7 +306,10 @@ class TransactionDetailFormMappingTest {
             val viewModel = buildViewModel(tx.id)
 
             // Wait for load so amount > 0
-            viewModel.state.test { expectMostRecentItem(); cancelAndIgnoreRemainingEvents() }
+            viewModel.state.test {
+                expectMostRecentItem()
+                cancelAndIgnoreRemainingEvents()
+            }
 
             viewModel.onEvent(TransactionDetailEvent.SelectCategoryClicked)
 
@@ -315,7 +330,10 @@ class TransactionDetailFormMappingTest {
             val viewModel = buildViewModel(tx.id)
 
             // Open category step
-            viewModel.state.test { expectMostRecentItem(); cancelAndIgnoreRemainingEvents() }
+            viewModel.state.test {
+                expectMostRecentItem()
+                cancelAndIgnoreRemainingEvents()
+            }
             viewModel.onEvent(TransactionDetailEvent.SelectCategoryClicked)
             viewModel.onEvent(TransactionDetailEvent.CategoryPicked(entertainmentCategory.id))
 
@@ -343,89 +361,105 @@ class TransactionDetailFormMappingTest {
         }
 
     @Test
-    fun `CategoryPicked in Edit mode marks the form as dirty`() = runTest {
-        val tx = expense()
-        transactionRepo.seed(tx)
-        val viewModel = buildViewModel(tx.id)
+    fun `CategoryPicked in Edit mode marks the form as dirty`() =
+        runTest {
+            val tx = expense()
+            transactionRepo.seed(tx)
+            val viewModel = buildViewModel(tx.id)
 
-        viewModel.state.test { expectMostRecentItem(); cancelAndIgnoreRemainingEvents() }
-        viewModel.onEvent(TransactionDetailEvent.SelectCategoryClicked)
-        viewModel.onEvent(TransactionDetailEvent.CategoryPicked(entertainmentCategory.id))
+            viewModel.state.test {
+                expectMostRecentItem()
+                cancelAndIgnoreRemainingEvents()
+            }
+            viewModel.onEvent(TransactionDetailEvent.SelectCategoryClicked)
+            viewModel.onEvent(TransactionDetailEvent.CategoryPicked(entertainmentCategory.id))
 
-        viewModel.state.test {
-            val state = expectMostRecentItem()
-            assertTrue("picking a different category must flip isDirty", state.isDirty)
-            assertTrue("dirty with amount>0 -> canSave must be true", state.canSave)
-            cancelAndIgnoreRemainingEvents()
+            viewModel.state.test {
+                val state = expectMostRecentItem()
+                assertTrue("picking a different category must flip isDirty", state.isDirty)
+                assertTrue("dirty with amount>0 -> canSave must be true", state.canSave)
+                cancelAndIgnoreRemainingEvents()
+            }
         }
-    }
 
     @Test
-    fun `picking the same category in Edit mode leaves the form not dirty`() = runTest {
-        val tx = expense()
-        transactionRepo.seed(tx)
-        val viewModel = buildViewModel(tx.id)
+    fun `picking the same category in Edit mode leaves the form not dirty`() =
+        runTest {
+            val tx = expense()
+            transactionRepo.seed(tx)
+            val viewModel = buildViewModel(tx.id)
 
-        viewModel.state.test { expectMostRecentItem(); cancelAndIgnoreRemainingEvents() }
-        viewModel.onEvent(TransactionDetailEvent.SelectCategoryClicked)
-        // Pick the same category that was originally loaded
-        viewModel.onEvent(TransactionDetailEvent.CategoryPicked(foodCategory.id))
+            viewModel.state.test {
+                expectMostRecentItem()
+                cancelAndIgnoreRemainingEvents()
+            }
+            viewModel.onEvent(TransactionDetailEvent.SelectCategoryClicked)
+            // Pick the same category that was originally loaded
+            viewModel.onEvent(TransactionDetailEvent.CategoryPicked(foodCategory.id))
 
-        viewModel.state.test {
-            val state = expectMostRecentItem()
-            assertFalse(
-                "picking the original category must leave the form not dirty",
-                state.isDirty,
-            )
-            assertFalse("not dirty -> canSave must be false", state.canSave)
-            cancelAndIgnoreRemainingEvents()
+            viewModel.state.test {
+                val state = expectMostRecentItem()
+                assertFalse(
+                    "picking the original category must leave the form not dirty",
+                    state.isDirty,
+                )
+                assertFalse("not dirty -> canSave must be false", state.canSave)
+                cancelAndIgnoreRemainingEvents()
+            }
         }
-    }
 
     @Test
-    fun `BackToAmount closes the category step without changing the category`() = runTest {
-        val tx = expense()
-        transactionRepo.seed(tx)
-        val viewModel = buildViewModel(tx.id)
+    fun `BackToAmount closes the category step without changing the category`() =
+        runTest {
+            val tx = expense()
+            transactionRepo.seed(tx)
+            val viewModel = buildViewModel(tx.id)
 
-        viewModel.state.test { expectMostRecentItem(); cancelAndIgnoreRemainingEvents() }
-        viewModel.onEvent(TransactionDetailEvent.SelectCategoryClicked)
-        viewModel.onEvent(TransactionDetailEvent.BackToAmount)
+            viewModel.state.test {
+                expectMostRecentItem()
+                cancelAndIgnoreRemainingEvents()
+            }
+            viewModel.onEvent(TransactionDetailEvent.SelectCategoryClicked)
+            viewModel.onEvent(TransactionDetailEvent.BackToAmount)
 
-        viewModel.state.test {
-            val state = expectMostRecentItem()
-            assertFalse("BackToAmount must close the category step", state.categoryStep)
-            assertEquals(
-                "BackToAmount must not change the category",
-                foodCategory.id,
-                state.category?.id,
-            )
-            assertFalse("BackToAmount must not dirty the form", state.isDirty)
-            cancelAndIgnoreRemainingEvents()
+            viewModel.state.test {
+                val state = expectMostRecentItem()
+                assertFalse("BackToAmount must close the category step", state.categoryStep)
+                assertEquals(
+                    "BackToAmount must not change the category",
+                    foodCategory.id,
+                    state.category?.id,
+                )
+                assertFalse("BackToAmount must not dirty the form", state.isDirty)
+                cancelAndIgnoreRemainingEvents()
+            }
         }
-    }
 
     // ---- AC3: explicit-save after category change ----------------------------------------------
 
     @Test
-    fun `SaveClicked after CategoryPicked persists the new category id`() = runTest {
-        val tx = expense()
-        transactionRepo.seed(tx)
-        val viewModel = buildViewModel(tx.id)
+    fun `SaveClicked after CategoryPicked persists the new category id`() =
+        runTest {
+            val tx = expense()
+            transactionRepo.seed(tx)
+            val viewModel = buildViewModel(tx.id)
 
-        viewModel.state.test { expectMostRecentItem(); cancelAndIgnoreRemainingEvents() }
-        viewModel.onEvent(TransactionDetailEvent.SelectCategoryClicked)
-        viewModel.onEvent(TransactionDetailEvent.CategoryPicked(entertainmentCategory.id))
-        viewModel.onEvent(TransactionDetailEvent.SaveClicked)
+            viewModel.state.test {
+                expectMostRecentItem()
+                cancelAndIgnoreRemainingEvents()
+            }
+            viewModel.onEvent(TransactionDetailEvent.SelectCategoryClicked)
+            viewModel.onEvent(TransactionDetailEvent.CategoryPicked(entertainmentCategory.id))
+            viewModel.onEvent(TransactionDetailEvent.SaveClicked)
 
-        val saved = transactionRepo.findById(tx.id)
-        assertNotNull("upsert must have written a row with the same id", saved)
-        assertEquals(
-            "saved row must carry the newly chosen category id",
-            entertainmentCategory.id,
-            saved!!.categoryId,
-        )
-    }
+            val saved = transactionRepo.findById(tx.id)
+            assertNotNull("upsert must have written a row with the same id", saved)
+            assertEquals(
+                "saved row must carry the newly chosen category id",
+                entertainmentCategory.id,
+                saved!!.categoryId,
+            )
+        }
 
     @Test
     fun `delete does not depend on category state — works regardless of whether category was changed`() =
@@ -434,7 +468,10 @@ class TransactionDetailFormMappingTest {
             transactionRepo.seed(tx)
             val viewModel = buildViewModel(tx.id)
 
-            viewModel.state.test { expectMostRecentItem(); cancelAndIgnoreRemainingEvents() }
+            viewModel.state.test {
+                expectMostRecentItem()
+                cancelAndIgnoreRemainingEvents()
+            }
             // Change the category (no save)
             viewModel.onEvent(TransactionDetailEvent.SelectCategoryClicked)
             viewModel.onEvent(TransactionDetailEvent.CategoryPicked(entertainmentCategory.id))
@@ -467,7 +504,10 @@ class TransactionDetailFormMappingTest {
             transactionRepo.seed(tx)
             val viewModel = buildViewModel(tx.id)
 
-            viewModel.state.test { expectMostRecentItem(); cancelAndIgnoreRemainingEvents() }
+            viewModel.state.test {
+                expectMostRecentItem()
+                cancelAndIgnoreRemainingEvents()
+            }
             // Drive amount to zero via multiple backspaces
             repeat(6) { viewModel.onEvent(TransactionDetailEvent.KeypadBackspace) }
 

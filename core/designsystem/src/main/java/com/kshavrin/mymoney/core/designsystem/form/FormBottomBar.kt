@@ -25,9 +25,10 @@ fun FormBottomBar(
         shadowElevation = Spacing.xs,
     ) {
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = Spacing.l, vertical = Spacing.m),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Spacing.l, vertical = Spacing.m),
         ) {
             Button(
                 onClick = onSave,

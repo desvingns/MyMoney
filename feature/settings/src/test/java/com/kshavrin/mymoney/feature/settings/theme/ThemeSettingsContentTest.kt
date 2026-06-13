@@ -86,12 +86,14 @@ import org.junit.Test
  * ```
  */
 class ThemeSettingsContentTest {
-
     /** Mirror of `ThemeMode.entries.forEach { ThemeRow(...) }` — one row per mode, in order. */
     private val rows: List<ThemeMode> = ThemeMode.entries.toList()
 
     /** Mirror of the per-row `selected = state.selected == mode` flag. */
-    private fun isRowSelected(state: ThemeSettingsState, mode: ThemeMode): Boolean =
+    private fun isRowSelected(
+        state: ThemeSettingsState,
+        mode: ThemeMode,
+    ): Boolean =
         state.selected == mode
 
     /** Mirror of the per-row `onClick = { onEvent(ThemeSettingsEvent.ModeSelected(mode)) }`. */
@@ -99,11 +101,12 @@ class ThemeSettingsContentTest {
         ThemeSettingsEvent.ModeSelected(mode)
 
     /** Mirror of the private `ThemeMode.labelRes` mapping in ThemeSettingsScreen. */
-    private fun labelRes(mode: ThemeMode): Int = when (mode) {
-        ThemeMode.System -> R.string.theme_system
-        ThemeMode.Light -> R.string.theme_light
-        ThemeMode.Dark -> R.string.theme_dark
-    }
+    private fun labelRes(mode: ThemeMode): Int =
+        when (mode) {
+            ThemeMode.System -> R.string.theme_system
+            ThemeMode.Light -> R.string.theme_light
+            ThemeMode.Dark -> R.string.theme_dark
+        }
 
     @Test
     fun `content renders exactly three rows one per theme mode in declaration order`() {

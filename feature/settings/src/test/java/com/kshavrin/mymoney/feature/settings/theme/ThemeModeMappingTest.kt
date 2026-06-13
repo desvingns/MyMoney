@@ -13,7 +13,6 @@ import org.junit.Test
  * Kotlin (enum + extension property) with no Android dependency, so they execute on the plain JVM.
  */
 class ThemeModeMappingTest {
-
     @Test
     fun `stored emits the exact wire strings system light dark`() {
         assertEquals("system", ThemeMode.System.stored)

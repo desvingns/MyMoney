@@ -5,7 +5,6 @@ import org.junit.Assert.assertSame
 import org.junit.Test
 
 class DispatchersModuleTest {
-
     @Test
     fun `provideIoDispatcher returns Dispatchers IO`() {
         val provided = DispatchersModule.provideIoDispatcher()

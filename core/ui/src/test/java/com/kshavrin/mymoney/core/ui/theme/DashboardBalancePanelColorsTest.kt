@@ -6,7 +6,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class DashboardBalancePanelColorsTest {
-
     @Test
     fun `light color scheme keeps the existing non negative dashboard balance tokens`() {
         assertEquals(Color(0xFFE9F7EF), LightColors.dashboardBalancePanelContainer)

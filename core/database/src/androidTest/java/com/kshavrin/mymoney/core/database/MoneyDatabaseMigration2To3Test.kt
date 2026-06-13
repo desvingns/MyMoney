@@ -14,16 +14,16 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class MoneyDatabaseMigration2To3Test {
-
     private val dbName = "migration-2-3-test.db"
 
     @get:Rule
-    val helper = MigrationTestHelper(
-        InstrumentationRegistry.getInstrumentation(),
-        MoneyDatabase::class.java,
-        emptyList(),
-        FrameworkSQLiteOpenHelperFactory(),
-    )
+    val helper =
+        MigrationTestHelper(
+            InstrumentationRegistry.getInstrumentation(),
+            MoneyDatabase::class.java,
+            emptyList(),
+            FrameworkSQLiteOpenHelperFactory(),
+        )
 
     @Test
     fun migrate2To3_adds_contribution_breakdown_column_and_preserves_existing_goal() {
@@ -55,19 +55,21 @@ class MoneyDatabaseMigration2To3Test {
                 "NULL, NULL, 2000, 2000, 0, '{\"enabled\":true,\"incomes\":[],\"expenses\":[]}')",
         )
 
-        db.query(
-            "SELECT `contribution_breakdown` FROM `goal` WHERE `name` = 'Trip'",
-        ).use { c ->
-            assertTrue(c.moveToFirst())
-            assertEquals("{\"enabled\":true,\"incomes\":[],\"expenses\":[]}", c.getString(0))
-        }
+        db
+            .query(
+                "SELECT `contribution_breakdown` FROM `goal` WHERE `name` = 'Trip'",
+            ).use { c ->
+                assertTrue(c.moveToFirst())
+                assertEquals("{\"enabled\":true,\"incomes\":[],\"expenses\":[]}", c.getString(0))
+            }
 
-        db.query(
-            "SELECT `contribution_breakdown` FROM `goal` WHERE `name` = 'Car'",
-        ).use { c ->
-            assertTrue(c.moveToFirst())
-            assertNull(c.getString(0))
-        }
+        db
+            .query(
+                "SELECT `contribution_breakdown` FROM `goal` WHERE `name` = 'Car'",
+            ).use { c ->
+                assertTrue(c.moveToFirst())
+                assertNull(c.getString(0))
+            }
 
         db.close()
     }
@@ -77,10 +79,11 @@ class MoneyDatabaseMigration2To3Test {
         // All goals that existed before the migration must have contribution_breakdown = NULL —
         // the migration is a pure ADD COLUMN with no default, so SQLite assigns NULL to all rows.
         helper.createDatabase(dbName, 2).apply {
-            val insertGoal = "INSERT INTO `goal` (`name`, `icon_key`, `color_hex`, `account_id`, `variant`, " +
-                "`target_amount`, `starting_capital`, `monthly_contribution`, " +
-                "`annual_rate_percent`, `term_date`, `created_at`, `updated_at`, `is_archived`) " +
-                "VALUES "
+            val insertGoal =
+                "INSERT INTO `goal` (`name`, `icon_key`, `color_hex`, `account_id`, `variant`, " +
+                    "`target_amount`, `starting_capital`, `monthly_contribution`, " +
+                    "`annual_rate_percent`, `term_date`, `created_at`, `updated_at`, `is_archived`) " +
+                    "VALUES "
             execSQL(insertGoal + "('Goal1', 'ic_goal_car', '#111111', 1, 'SAVINGS', 100.0, 0.0, 10.0, NULL, NULL, 1000, 1000, 0)")
             execSQL(insertGoal + "('Goal2', 'ic_goal_house', '#222222', 2, 'CREDIT', 200.0, 50.0, 20.0, 10.0, 19000, 2000, 2000, 0)")
             execSQL(insertGoal + "('Goal3', 'ic_goal_plane', '#333333', 3, 'SAVINGS', 300.0, 0.0, 30.0, NULL, NULL, 3000, 3000, 1)")
@@ -200,28 +203,29 @@ class MoneyDatabaseMigration2To3Test {
 
         val db = helper.runMigrationsAndValidate(dbName, 3, true, MIGRATION_2_3)
 
-        db.query(
-            "SELECT `name`, `icon_key`, `color_hex`, `account_id`, `variant`, " +
-                "`target_amount`, `starting_capital`, `monthly_contribution`, " +
-                "`annual_rate_percent`, `term_date`, `created_at`, `updated_at`, `is_archived`, " +
-                "`contribution_breakdown` FROM `goal` WHERE `name` = 'Integrity'",
-        ).use { c ->
-            assertTrue(c.moveToFirst())
-            assertEquals("Integrity", c.getString(0))
-            assertEquals("ic_goal_house", c.getString(1))
-            assertEquals("#FFFFFF", c.getString(2))
-            assertEquals(5L, c.getLong(3))
-            assertEquals("CREDIT", c.getString(4))
-            assertEquals(10_000_000.0, c.getDouble(5), 0.0)
-            assertEquals(2_000_000.0, c.getDouble(6), 0.0)
-            assertEquals(85_000.0, c.getDouble(7), 0.0)
-            assertEquals(12.5, c.getDouble(8), 0.0)
-            assertEquals(19000L, c.getLong(9))
-            assertEquals(1111L, c.getLong(10))
-            assertEquals(2222L, c.getLong(11))
-            assertEquals(1, c.getInt(12))
-            assertTrue("contribution_breakdown must be NULL for pre-migration row", c.isNull(13))
-        }
+        db
+            .query(
+                "SELECT `name`, `icon_key`, `color_hex`, `account_id`, `variant`, " +
+                    "`target_amount`, `starting_capital`, `monthly_contribution`, " +
+                    "`annual_rate_percent`, `term_date`, `created_at`, `updated_at`, `is_archived`, " +
+                    "`contribution_breakdown` FROM `goal` WHERE `name` = 'Integrity'",
+            ).use { c ->
+                assertTrue(c.moveToFirst())
+                assertEquals("Integrity", c.getString(0))
+                assertEquals("ic_goal_house", c.getString(1))
+                assertEquals("#FFFFFF", c.getString(2))
+                assertEquals(5L, c.getLong(3))
+                assertEquals("CREDIT", c.getString(4))
+                assertEquals(10_000_000.0, c.getDouble(5), 0.0)
+                assertEquals(2_000_000.0, c.getDouble(6), 0.0)
+                assertEquals(85_000.0, c.getDouble(7), 0.0)
+                assertEquals(12.5, c.getDouble(8), 0.0)
+                assertEquals(19000L, c.getLong(9))
+                assertEquals(1111L, c.getLong(10))
+                assertEquals(2222L, c.getLong(11))
+                assertEquals(1, c.getInt(12))
+                assertTrue("contribution_breakdown must be NULL for pre-migration row", c.isNull(13))
+            }
 
         db.close()
     }

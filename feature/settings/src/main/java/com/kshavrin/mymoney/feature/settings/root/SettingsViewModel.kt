@@ -13,39 +13,41 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class SettingsViewModel @Inject constructor(
-    private val appSettingsRepository: AppSettingsRepository,
-) : ViewModel() {
+class SettingsViewModel
+    @Inject
+    constructor(
+        private val appSettingsRepository: AppSettingsRepository,
+    ) : ViewModel() {
+        private val _state = MutableStateFlow(SettingsState())
+        val state: StateFlow<SettingsState> = _state.asStateFlow()
 
-    private val _state = MutableStateFlow(SettingsState())
-    val state: StateFlow<SettingsState> = _state.asStateFlow()
+        init {
+            viewModelScope.launch {
+                appSettingsRepository.settings.collect { settings ->
+                    _state.value =
+                        SettingsState(
+                            themeMode = ThemeMode.fromStored(settings.themeMode),
+                            language = AppLanguage.fromStored(settings.language),
+                            soundEnabled = settings.soundEnabled,
+                            hapticEnabled = settings.hapticEnabled,
+                        )
+                }
+            }
+        }
 
-    init {
-        viewModelScope.launch {
-            appSettingsRepository.settings.collect { settings ->
-                _state.value = SettingsState(
-                    themeMode = ThemeMode.fromStored(settings.themeMode),
-                    language = AppLanguage.fromStored(settings.language),
-                    soundEnabled = settings.soundEnabled,
-                    hapticEnabled = settings.hapticEnabled,
-                )
+        fun onEvent(event: SettingsEvent) {
+            when (event) {
+                is SettingsEvent.SoundToggled ->
+                    viewModelScope.launch {
+                        appSettingsRepository.update { it.copy(soundEnabled = event.enabled) }
+                    }
+                is SettingsEvent.HapticToggled ->
+                    viewModelScope.launch {
+                        appSettingsRepository.update { it.copy(hapticEnabled = event.enabled) }
+                    }
             }
         }
     }
-
-    fun onEvent(event: SettingsEvent) {
-        when (event) {
-            is SettingsEvent.SoundToggled ->
-                viewModelScope.launch {
-                    appSettingsRepository.update { it.copy(soundEnabled = event.enabled) }
-                }
-            is SettingsEvent.HapticToggled ->
-                viewModelScope.launch {
-                    appSettingsRepository.update { it.copy(hapticEnabled = event.enabled) }
-                }
-        }
-    }
-}
 
 data class SettingsState(
     val themeMode: ThemeMode = ThemeMode.System,
@@ -55,6 +57,11 @@ data class SettingsState(
 )
 
 sealed interface SettingsEvent {
-    data class SoundToggled(val enabled: Boolean) : SettingsEvent
-    data class HapticToggled(val enabled: Boolean) : SettingsEvent
+    data class SoundToggled(
+        val enabled: Boolean,
+    ) : SettingsEvent
+
+    data class HapticToggled(
+        val enabled: Boolean,
+    ) : SettingsEvent
 }

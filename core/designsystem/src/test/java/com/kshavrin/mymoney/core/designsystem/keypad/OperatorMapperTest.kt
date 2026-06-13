@@ -6,7 +6,6 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 class OperatorMapperTest {
-
     @Test
     fun `Operator Plus maps to CalculatorOperator Plus`() {
         assertEquals(CalculatorOperator.Plus, Operator.Plus.toCalculator())

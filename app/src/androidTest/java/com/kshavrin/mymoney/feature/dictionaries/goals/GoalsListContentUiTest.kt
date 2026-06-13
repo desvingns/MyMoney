@@ -21,7 +21,6 @@ import java.time.Instant
 
 @RunWith(AndroidJUnit4::class)
 class GoalsListContentUiTest {
-
     @get:Rule
     val composeTestRule = createComposeRule()
 
@@ -32,23 +31,24 @@ class GoalsListContentUiTest {
         name: String,
         variant: GoalVariant = GoalVariant.SAVINGS,
         iconKey: String = "ic_goal_home",
-    ): Goal = Goal(
-        id = id,
-        name = name,
-        iconKey = iconKey,
-        colorHex = "#4CAF50",
-        accountId = 1L,
-        variant = variant,
-        targetAmount = BigDecimal("5000.00"),
-        startingCapital = BigDecimal.ZERO,
-        monthlyContribution = BigDecimal("200.00"),
-        annualRatePercent = null,
-        downPayment = null,
-        termMonths = null,
-        createdAt = now,
-        updatedAt = now,
-        isArchived = false,
-    )
+    ): Goal =
+        Goal(
+            id = id,
+            name = name,
+            iconKey = iconKey,
+            colorHex = "#4CAF50",
+            accountId = 1L,
+            variant = variant,
+            targetAmount = BigDecimal("5000.00"),
+            startingCapital = BigDecimal.ZERO,
+            monthlyContribution = BigDecimal("200.00"),
+            annualRatePercent = null,
+            downPayment = null,
+            termMonths = null,
+            createdAt = now,
+            updatedAt = now,
+            isArchived = false,
+        )
 
     @Test
     fun `empty state shows the empty message and the add FAB`() {
@@ -74,9 +74,10 @@ class GoalsListContentUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 GoalsListContent(
-                    state = GoalsListState(
-                        rows = listOf(goal(1L, "Buy a house", GoalVariant.SAVINGS)),
-                    ),
+                    state =
+                        GoalsListState(
+                            rows = listOf(goal(1L, "Buy a house", GoalVariant.SAVINGS)),
+                        ),
                     onEvent = {},
                 )
             }
@@ -93,9 +94,10 @@ class GoalsListContentUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 GoalsListContent(
-                    state = GoalsListState(
-                        rows = listOf(goal(2L, "Mortgage", GoalVariant.CREDIT)),
-                    ),
+                    state =
+                        GoalsListState(
+                            rows = listOf(goal(2L, "Mortgage", GoalVariant.CREDIT)),
+                        ),
                     onEvent = {},
                 )
             }
@@ -112,12 +114,14 @@ class GoalsListContentUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 GoalsListContent(
-                    state = GoalsListState(
-                        rows = listOf(
-                            goal(1L, "Travel fund", iconKey = "ic_goal_travel"),
-                            goal(2L, "Emergency", iconKey = "ic_goal_emergency"),
+                    state =
+                        GoalsListState(
+                            rows =
+                                listOf(
+                                    goal(1L, "Travel fund", iconKey = "ic_goal_travel"),
+                                    goal(2L, "Emergency", iconKey = "ic_goal_emergency"),
+                                ),
                         ),
-                    ),
                     onEvent = {},
                 )
             }
@@ -170,9 +174,10 @@ class GoalsListContentUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 GoalsListContent(
-                    state = GoalsListState(
-                        rows = listOf(goal(7L, "Vacation")),
-                    ),
+                    state =
+                        GoalsListState(
+                            rows = listOf(goal(7L, "Vacation")),
+                        ),
                     onEvent = { events += it },
                 )
             }

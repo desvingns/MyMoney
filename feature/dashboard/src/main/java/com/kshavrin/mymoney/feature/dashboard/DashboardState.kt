@@ -27,38 +27,70 @@ data class DashboardState(
         get() = (dashboardSelection as? DashboardSelection.SpecificAccount)?.account
 
     val currentCurrency: Currency?
-        get() = when (val selection = dashboardSelection) {
-            is DashboardSelection.AllAccounts -> selection.currency
-            is DashboardSelection.SpecificAccount -> currencies.firstOrNull { it.id == selection.account.currencyId }
-            null -> null
-        }
+        get() =
+            when (val selection = dashboardSelection) {
+                is DashboardSelection.AllAccounts -> selection.currency
+                is DashboardSelection.SpecificAccount -> currencies.firstOrNull { it.id == selection.account.currencyId }
+                null -> null
+            }
 }
 
 sealed interface DashboardSelection {
-    data class SpecificAccount(val account: Account) : DashboardSelection
-    data class AllAccounts(val currency: Currency) : DashboardSelection
+    data class SpecificAccount(
+        val account: Account,
+    ) : DashboardSelection
+
+    data class AllAccounts(
+        val currency: Currency,
+    ) : DashboardSelection
 }
 
 sealed interface DashboardEvent {
-    data class PeriodChanged(val period: Period) : DashboardEvent
+    data class PeriodChanged(
+        val period: Period,
+    ) : DashboardEvent
+
     data object PreviousPeriod : DashboardEvent
+
     data object NextPeriod : DashboardEvent
-    data class AccountSelected(val accountId: Long) : DashboardEvent
+
+    data class AccountSelected(
+        val accountId: Long,
+    ) : DashboardEvent
+
     data object AllAccountsSelected : DashboardEvent
+
     data object LeftDrawerToggled : DashboardEvent
+
     data object RightDrawerToggled : DashboardEvent
+
     data object DrawerDismissed : DashboardEvent
+
     data object MinusFabClicked : DashboardEvent
+
     data object PlusFabClicked : DashboardEvent
+
     data object TransferClicked : DashboardEvent
+
     data object SearchClicked : DashboardEvent
+
     data object SettingsClicked : DashboardEvent
+
     data object CategoriesClicked : DashboardEvent
+
     data object AccountsClicked : DashboardEvent
+
     data object FinancialGoalsClicked : DashboardEvent
+
     data object CurrenciesClicked : DashboardEvent
+
     data object AboutClicked : DashboardEvent
+
     data object BalanceCardClicked : DashboardEvent
-    data class SliceClicked(val categoryId: Long) : DashboardEvent
+
+    data class SliceClicked(
+        val categoryId: Long,
+    ) : DashboardEvent
+
     data object ConfettiAcknowledged : DashboardEvent
 }

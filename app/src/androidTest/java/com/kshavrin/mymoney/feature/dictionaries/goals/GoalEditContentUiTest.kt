@@ -17,7 +17,6 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class GoalEditContentUiTest {
-
     @get:Rule
     val composeTestRule = createComposeRule()
 
@@ -35,7 +34,8 @@ class GoalEditContentUiTest {
             }
         }
 
-        composeTestRule.onNodeWithText(targetString(R.string.goal_save))
+        composeTestRule
+            .onNodeWithText(targetString(R.string.goal_save))
             .assertIsDisplayed()
             .assertIsEnabled()
             .performClick()
@@ -56,7 +56,8 @@ class GoalEditContentUiTest {
             }
         }
 
-        composeTestRule.onNodeWithText(targetString(R.string.goal_save))
+        composeTestRule
+            .onNodeWithText(targetString(R.string.goal_save))
             .assertIsDisplayed()
             .assertIsNotEnabled()
     }
@@ -73,7 +74,8 @@ class GoalEditContentUiTest {
             }
         }
 
-        composeTestRule.onNodeWithText(targetString(R.string.goal_save))
+        composeTestRule
+            .onNodeWithText(targetString(R.string.goal_save))
             .assertIsEnabled()
             .performClick()
 

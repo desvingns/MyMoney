@@ -15,16 +15,21 @@ class FakeCategoryRepository : CategoryRepository {
     }
 
     override fun observeByKind(kind: CategoryKind): Flow<List<Category>> = state.asStateFlow()
+
     override fun observeAll(): Flow<List<Category>> = state.asStateFlow()
+
     override suspend fun findById(id: Long) = state.value.firstOrNull { it.id == id }
+
     override suspend fun upsert(category: Category): Long {
         val id = if (category.id == 0L) (state.value.maxOfOrNull { it.id } ?: 0L) + 1L else category.id
         state.value = state.value.filterNot { it.id == id } + category.copy(id = id)
         return id
     }
+
     override suspend fun upsertAll(categories: List<Category>) {
         categories.forEach { upsert(it) }
     }
+
     override suspend fun archive(id: Long) {
         state.value = state.value.map { if (it.id == id) it.copy(isArchived = true) else it }
     }

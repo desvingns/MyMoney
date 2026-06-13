@@ -36,7 +36,6 @@ import kotlin.math.sin
 
 @RunWith(AndroidJUnit4::class)
 class MonefyDonutChartUiTest {
-
     @get:Rule
     val composeTestRule = createComposeRule()
 
@@ -45,11 +44,12 @@ class MonefyDonutChartUiTest {
         setChart(
             income = BigDecimal("450.00"),
             expense = BigDecimal("124.00"),
-            slices = listOf(
-                slice(label = "Food", fraction = 0.50f),
-                slice(label = "Transport", fraction = 0.25f),
-                slice(label = "Home", fraction = 0.25f),
-            ),
+            slices =
+                listOf(
+                    slice(label = "Food", fraction = 0.50f),
+                    slice(label = "Transport", fraction = 0.25f),
+                    slice(label = "Home", fraction = 0.25f),
+                ),
         )
 
         composeTestRule
@@ -59,8 +59,7 @@ class MonefyDonutChartUiTest {
                     expense = "124.00",
                     slices = listOf("Food" to 50, "Transport" to 25, "Home" to 25),
                 ),
-            )
-            .assertExists()
+            ).assertExists()
     }
 
     @Test
@@ -92,8 +91,7 @@ class MonefyDonutChartUiTest {
                     expense = "100.00",
                     slices = listOf("Coffee" to 3),
                 ),
-            )
-            .assertExists()
+            ).assertExists()
     }
 
     @Test
@@ -103,10 +101,11 @@ class MonefyDonutChartUiTest {
                 MonefyDonutChart(
                     income = BigDecimal.ZERO,
                     expense = BigDecimal("100.00"),
-                    slices = listOf(
-                        slice(label = "Trips", fraction = 0.01f),
-                        slice(label = "Food", fraction = 0.99f),
-                    ),
+                    slices =
+                        listOf(
+                            slice(label = "Trips", fraction = 0.01f),
+                            slice(label = "Food", fraction = 0.99f),
+                        ),
                     modifier = Modifier.size(240.dp),
                     showCategoryLabels = true,
                     labelMinFraction = 0f,
@@ -123,8 +122,7 @@ class MonefyDonutChartUiTest {
                     expense = "100.00",
                     slices = listOf("Trips" to 1, "Food" to 99),
                 ),
-            )
-            .assertExists()
+            ).assertExists()
     }
 
     @Test
@@ -150,8 +148,7 @@ class MonefyDonutChartUiTest {
                     expense = "124.00",
                     slices = listOf("Food" to 100),
                 ),
-            )
-            .assertExists()
+            ).assertExists()
     }
 
     @Test
@@ -163,11 +160,12 @@ class MonefyDonutChartUiTest {
                     expense = BigDecimal.ZERO,
                     slices = emptyList(),
                     modifier = Modifier.size(240.dp),
-                    emptyStateIcons = listOf(
-                        slice(label = "Food", fraction = 0f),
-                        slice(label = "Transport", fraction = 0f),
-                        slice(label = "Home", fraction = 0f),
-                    ),
+                    emptyStateIcons =
+                        listOf(
+                            slice(label = "Food", fraction = 0f),
+                            slice(label = "Transport", fraction = 0f),
+                            slice(label = "Home", fraction = 0f),
+                        ),
                     animationSpec = snap(),
                 )
             }
@@ -194,20 +192,22 @@ class MonefyDonutChartUiTest {
                     modifier = Modifier.size(240.dp),
                     currencySymbol = "₽",
                     centerDecimalDigits = 0,
-                    emptyStateIcons = listOf(
-                        slice(label = "Food", fraction = 0f),
-                        slice(label = "Transport", fraction = 0f),
-                        slice(label = "Home", fraction = 0f),
-                    ),
+                    emptyStateIcons =
+                        listOf(
+                            slice(label = "Food", fraction = 0f),
+                            slice(label = "Transport", fraction = 0f),
+                            slice(label = "Home", fraction = 0f),
+                        ),
                     animationSpec = snap(),
                 )
             }
         }
         composeTestRule.waitForIdle()
 
-        val image = composeTestRule
-            .onNodeWithContentDescription(expectedDescription(income = "321.45", expense = "67.89"))
-            .captureToImage()
+        val image =
+            composeTestRule
+                .onNodeWithContentDescription(expectedDescription(income = "321.45", expense = "67.89"))
+                .captureToImage()
         val pixels = IntArray(image.width * image.height)
         image.readPixels(pixels)
 
@@ -265,17 +265,17 @@ class MonefyDonutChartUiTest {
         composeTestRule
             .onNodeWithContentDescription(
                 expectedDescription(income = "0", expense = "0", slices = listOf("Food" to 0)),
-            )
-            .assertDoesNotExist()
+            ).assertDoesNotExist()
     }
 
     @Test
     fun `tapping an empty state placeholder icon invokes the matching callback exactly once`() {
-        val emptyStateIcons = listOf(
-            slice(label = "Food", fraction = 0f),
-            slice(label = "Transport", fraction = 0f),
-            slice(label = "Home", fraction = 0f),
-        )
+        val emptyStateIcons =
+            listOf(
+                slice(label = "Food", fraction = 0f),
+                slice(label = "Transport", fraction = 0f),
+                slice(label = "Home", fraction = 0f),
+            )
         val clickedSlices = mutableListOf<CategorySlice>()
         val chartSize = 240.dp
 
@@ -400,10 +400,11 @@ class MonefyDonutChartUiTest {
 
     @Test
     fun `empty state icons render at frame-projected positions`() {
-        val emptyStateIcons = listOf(
-            slice(label = "Food", fraction = 0f, color = Color(0xFF08A045), iconKey = "ic_cat_food"),
-            slice(label = "Transport", fraction = 0f, color = Color(0xFF0C63E7), iconKey = "ic_cat_transport"),
-        )
+        val emptyStateIcons =
+            listOf(
+                slice(label = "Food", fraction = 0f, color = Color(0xFF08A045), iconKey = "ic_cat_food"),
+                slice(label = "Transport", fraction = 0f, color = Color(0xFF0C63E7), iconKey = "ic_cat_transport"),
+            )
         val chartSize = 520.dp
 
         setChartInContainer(size = chartSize, containerColor = Color.White) {
@@ -425,12 +426,13 @@ class MonefyDonutChartUiTest {
         val iconProbeRadius = with(composeTestRule.density) { 18.dp.toPx() }
 
         emptyStateIcons.forEachIndexed { index, iconSlice ->
-            val iconCenter = emptyIconFrameCenter(
-                canvasWidth = image.width,
-                canvasHeight = image.height,
-                index = index,
-                count = emptyStateIcons.size,
-            )
+            val iconCenter =
+                emptyIconFrameCenter(
+                    canvasWidth = image.width,
+                    canvasHeight = image.height,
+                    index = index,
+                    count = emptyStateIcons.size,
+                )
             assertTrue(
                 "empty-state icon[$index] must render its category color at the frame-projected position",
                 regionContainsColor(
@@ -448,9 +450,10 @@ class MonefyDonutChartUiTest {
 
     @Test
     fun `empty state icon does not paint a solid background disc`() {
-        val emptyStateIcons = listOf(
-            slice(label = "Food", fraction = 0f, color = Color(0xFF08A045), iconKey = "ic_cat_food"),
-        )
+        val emptyStateIcons =
+            listOf(
+                slice(label = "Food", fraction = 0f, color = Color(0xFF08A045), iconKey = "ic_cat_food"),
+            )
         val chartSize = 520.dp
 
         setChartInContainer(size = chartSize, containerColor = Color.Black) {
@@ -470,12 +473,13 @@ class MonefyDonutChartUiTest {
         val pixels = IntArray(image.width * image.height)
         image.readPixels(pixels)
 
-        val iconCenter = emptyIconFrameCenter(
-            canvasWidth = image.width,
-            canvasHeight = image.height,
-            index = 0,
-            count = emptyStateIcons.size,
-        )
+        val iconCenter =
+            emptyIconFrameCenter(
+                canvasWidth = image.width,
+                canvasHeight = image.height,
+                index = 0,
+                count = emptyStateIcons.size,
+            )
         val iconSizePx = with(composeTestRule.density) { 40.dp.toPx() }
         val iconProbeRadius = with(composeTestRule.density) { 18.dp.toPx() }
         val fringe = with(composeTestRule.density) { 4.dp.toPx() }
@@ -508,12 +512,14 @@ class MonefyDonutChartUiTest {
         val fringeX2 = (iconCenter.x - perpUx * perpOffset).toInt()
         val fringeY2 = (iconCenter.y - perpUy * perpOffset).toInt()
 
-        val side1IsBlack = fringeX1 in 0 until image.width &&
-            fringeY1 in 0 until (pixels.size / image.width) &&
-            colorsMatch(pixels[fringeY1 * image.width + fringeX1], Color.Black.toArgb())
-        val side2IsBlack = fringeX2 in 0 until image.width &&
-            fringeY2 in 0 until (pixels.size / image.width) &&
-            colorsMatch(pixels[fringeY2 * image.width + fringeX2], Color.Black.toArgb())
+        val side1IsBlack =
+            fringeX1 in 0 until image.width &&
+                fringeY1 in 0 until (pixels.size / image.width) &&
+                colorsMatch(pixels[fringeY1 * image.width + fringeX1], Color.Black.toArgb())
+        val side2IsBlack =
+            fringeX2 in 0 until image.width &&
+                fringeY2 in 0 until (pixels.size / image.width) &&
+                colorsMatch(pixels[fringeY2 * image.width + fringeX2], Color.Black.toArgb())
 
         assertTrue(
             "area perpendicular to the leader line just outside the empty-state icon must remain " +
@@ -526,10 +532,11 @@ class MonefyDonutChartUiTest {
     @Test
     fun `empty state leader lines use category color not the leaderLineColor parameter`() {
         val leaderLineOverrideColor = Color.Magenta
-        val emptyStateIcons = listOf(
-            slice(label = "Food", fraction = 0f, color = Color(0xFF08A045), iconKey = "ic_cat_food"),
-            slice(label = "Transport", fraction = 0f, color = Color(0xFF0C63E7), iconKey = "ic_cat_transport"),
-        )
+        val emptyStateIcons =
+            listOf(
+                slice(label = "Food", fraction = 0f, color = Color(0xFF08A045), iconKey = "ic_cat_food"),
+                slice(label = "Transport", fraction = 0f, color = Color(0xFF0C63E7), iconKey = "ic_cat_transport"),
+            )
 
         setChartInContainer(size = 520.dp, containerColor = Color.White) {
             MonefyDonutChart(
@@ -563,9 +570,10 @@ class MonefyDonutChartUiTest {
         // We verify this by checking that no slice color appears in the text-label region
         // to the right of any icon (where % labels would normally sit in the populated path).
         val iconColor = Color(0xFFFF6600)
-        val emptyStateIcons = listOf(
-            slice(label = "Car", fraction = 0f, color = iconColor, iconKey = "ic_cat_food"),
-        )
+        val emptyStateIcons =
+            listOf(
+                slice(label = "Car", fraction = 0f, color = iconColor, iconKey = "ic_cat_food"),
+            )
         val chartSize = 520.dp
 
         setChartInContainer(size = chartSize, containerColor = Color.White) {
@@ -585,12 +593,13 @@ class MonefyDonutChartUiTest {
         val pixels = IntArray(image.width * image.height)
         image.readPixels(pixels)
 
-        val iconCenter = emptyIconFrameCenter(
-            canvasWidth = image.width,
-            canvasHeight = image.height,
-            index = 0,
-            count = emptyStateIcons.size,
-        )
+        val iconCenter =
+            emptyIconFrameCenter(
+                canvasWidth = image.width,
+                canvasHeight = image.height,
+                index = 0,
+                count = emptyStateIcons.size,
+            )
         val iconSizePx = with(composeTestRule.density) { 40.dp.toPx() }
         // The percentage text "100%" would normally appear just to the right of the icon.
         // For empty state icons (fraction=0), no percentage label should be drawn.
@@ -642,10 +651,11 @@ class MonefyDonutChartUiTest {
                 MonefyDonutChart(
                     income = BigDecimal("450.00"),
                     expense = BigDecimal("124.00"),
-                    slices = listOf(
-                        slice(label = "Food", fraction = 0.50f),
-                        slice(label = "Transport", fraction = 0.50f),
-                    ),
+                    slices =
+                        listOf(
+                            slice(label = "Food", fraction = 0.50f),
+                            slice(label = "Transport", fraction = 0.50f),
+                        ),
                     modifier = Modifier.size(240.dp),
                     emptyStateIcons = listOf(slice(label = "Placeholder", fraction = 0f)),
                     animationSpec = snap(),
@@ -660,8 +670,7 @@ class MonefyDonutChartUiTest {
                     expense = "124.00",
                     slices = listOf("Food" to 50, "Transport" to 50),
                 ),
-            )
-            .assertExists()
+            ).assertExists()
     }
 
     @Test
@@ -693,8 +702,7 @@ class MonefyDonutChartUiTest {
                     expense = "124.00",
                     slices = listOf("Food" to 50, "Transport" to 50),
                 ),
-            )
-            .performTouchInput {
+            ).performTouchInput {
                 click(
                     populatedIconCenter(
                         canvasSize = chartSize,
@@ -739,8 +747,7 @@ class MonefyDonutChartUiTest {
                     expense = "124.00",
                     slices = listOf("Food" to 50, "Transport" to 50),
                 ),
-            )
-            .performTouchInput {
+            ).performTouchInput {
                 click(
                     populatedRingCenter(
                         canvasSize = chartSize,
@@ -780,20 +787,22 @@ class MonefyDonutChartUiTest {
         image.readPixels(pixels)
         val iconProbeRadius = with(composeTestRule.density) { 18.dp.toPx() }
 
-        val rightIconCenter = populatedIconCenter(
-            canvasWidth = image.width,
-            canvasHeight = image.height,
-            slices = slices,
-            sliceIndex = 0,
-            explodedOffset = explodedOffset,
-        )
-        val leftIconCenter = populatedIconCenter(
-            canvasWidth = image.width,
-            canvasHeight = image.height,
-            slices = slices,
-            sliceIndex = 1,
-            explodedOffset = explodedOffset,
-        )
+        val rightIconCenter =
+            populatedIconCenter(
+                canvasWidth = image.width,
+                canvasHeight = image.height,
+                slices = slices,
+                sliceIndex = 0,
+                explodedOffset = explodedOffset,
+            )
+        val leftIconCenter =
+            populatedIconCenter(
+                canvasWidth = image.width,
+                canvasHeight = image.height,
+                slices = slices,
+                sliceIndex = 1,
+                explodedOffset = explodedOffset,
+            )
 
         assertTrue(
             "first slice icon must render at the frame-projected position for its mid-angle",
@@ -844,13 +853,14 @@ class MonefyDonutChartUiTest {
         val pixels = IntArray(image.width * image.height)
         image.readPixels(pixels)
 
-        val iconCenter = populatedIconCenter(
-            canvasWidth = image.width,
-            canvasHeight = image.height,
-            slices = slices,
-            sliceIndex = 0,
-            explodedOffset = explodedOffset,
-        )
+        val iconCenter =
+            populatedIconCenter(
+                canvasWidth = image.width,
+                canvasHeight = image.height,
+                slices = slices,
+                sliceIndex = 0,
+                explodedOffset = explodedOffset,
+            )
         val iconSizePx = with(composeTestRule.density) { 40.dp.toPx() }
         val iconProbeRadius = with(composeTestRule.density) { 18.dp.toPx() }
         val fringe = with(composeTestRule.density) { 4.dp.toPx() }
@@ -888,10 +898,14 @@ class MonefyDonutChartUiTest {
         val fringeX2 = (iconCenter.x - perpUx * perpOffset).toInt()
         val fringeY2 = (iconCenter.y - perpUy * perpOffset).toInt()
 
-        val side1IsBlack = fringeX1 in 0 until image.width && fringeY1 in 0 until (pixels.size / image.width) &&
-            colorsMatch(pixels[fringeY1 * image.width + fringeX1], Color.Black.toArgb())
-        val side2IsBlack = fringeX2 in 0 until image.width && fringeY2 in 0 until (pixels.size / image.width) &&
-            colorsMatch(pixels[fringeY2 * image.width + fringeX2], Color.Black.toArgb())
+        val side1IsBlack =
+            fringeX1 in 0 until image.width &&
+                fringeY1 in 0 until (pixels.size / image.width) &&
+                colorsMatch(pixels[fringeY1 * image.width + fringeX1], Color.Black.toArgb())
+        val side2IsBlack =
+            fringeX2 in 0 until image.width &&
+                fringeY2 in 0 until (pixels.size / image.width) &&
+                colorsMatch(pixels[fringeY2 * image.width + fringeX2], Color.Black.toArgb())
 
         assertTrue(
             "the area perpendicular to the leader line just outside the icon outline must stay transparent " +
@@ -919,8 +933,7 @@ class MonefyDonutChartUiTest {
                     expense = "124.00",
                     slices = listOf("Food" to 50, "Transport" to 50),
                 ),
-            )
-            .assertExists()
+            ).assertExists()
     }
 
     @Test
@@ -982,8 +995,7 @@ class MonefyDonutChartUiTest {
                     expense = "124.30",
                     slices = listOf("Food" to 100),
                 ),
-            )
-            .assertExists()
+            ).assertExists()
     }
 
     @Test
@@ -1008,8 +1020,7 @@ class MonefyDonutChartUiTest {
                     expense = "50.00",
                     slices = listOf("Bills" to 100),
                 ),
-            )
-            .assertExists()
+            ).assertExists()
     }
 
     // ---- DonutStyle enum ----
@@ -1021,10 +1032,11 @@ class MonefyDonutChartUiTest {
                 MonefyDonutChart(
                     income = BigDecimal("300.00"),
                     expense = BigDecimal("100.00"),
-                    slices = listOf(
-                        slice(label = "Food", fraction = 0.60f),
-                        slice(label = "Transport", fraction = 0.40f),
-                    ),
+                    slices =
+                        listOf(
+                            slice(label = "Food", fraction = 0.60f),
+                            slice(label = "Transport", fraction = 0.40f),
+                        ),
                     modifier = Modifier.size(240.dp),
                     style = DonutStyle.Flat,
                     animationSpec = snap(),
@@ -1038,8 +1050,7 @@ class MonefyDonutChartUiTest {
                     expense = "100.00",
                     slices = listOf("Food" to 60, "Transport" to 40),
                 ),
-            )
-            .assertExists()
+            ).assertExists()
     }
 
     @Test
@@ -1063,8 +1074,7 @@ class MonefyDonutChartUiTest {
                     expense = "100.00",
                     slices = listOf("Home" to 100),
                 ),
-            )
-            .assertExists()
+            ).assertExists()
     }
 
     // ---- ringThicknessFraction and sliceGapDegrees — semantics contract unchanged ----
@@ -1076,10 +1086,11 @@ class MonefyDonutChartUiTest {
                 MonefyDonutChart(
                     income = BigDecimal("400.00"),
                     expense = BigDecimal("200.00"),
-                    slices = listOf(
-                        slice(label = "Car", fraction = 0.50f),
-                        slice(label = "Pets", fraction = 0.50f),
-                    ),
+                    slices =
+                        listOf(
+                            slice(label = "Car", fraction = 0.50f),
+                            slice(label = "Pets", fraction = 0.50f),
+                        ),
                     modifier = Modifier.size(240.dp),
                     ringThicknessFraction = 0.39f,
                     sliceGapDegrees = 5f,
@@ -1094,8 +1105,7 @@ class MonefyDonutChartUiTest {
                     expense = "200.00",
                     slices = listOf("Car" to 50, "Pets" to 50),
                 ),
-            )
-            .assertExists()
+            ).assertExists()
     }
 
     @Test
@@ -1119,21 +1129,21 @@ class MonefyDonutChartUiTest {
                     expense = "100.00",
                     slices = listOf("Sport" to 100),
                 ),
-            )
-            .assertExists()
+            ).assertExists()
     }
 
     // ---- budget alert semantics preserved ----
 
     @Test
     fun `slice with hasBudgetAlert true is still included in semantics description`() {
-        val alertSlice = CategorySlice(
-            categoryId = 99L,
-            color = Color.Red,
-            fraction = 1.0f,
-            label = "Overbudget",
-            hasBudgetAlert = true,
-        )
+        val alertSlice =
+            CategorySlice(
+                categoryId = 99L,
+                color = Color.Red,
+                fraction = 1.0f,
+                label = "Overbudget",
+                hasBudgetAlert = true,
+            )
         composeTestRule.setContent {
             MyMoneyTheme {
                 MonefyDonutChart(
@@ -1180,8 +1190,7 @@ class MonefyDonutChartUiTest {
                     expense = "200.00",
                     slices = listOf(longName to 100),
                 ),
-            )
-            .assertExists()
+            ).assertExists()
     }
 
     @Test
@@ -1191,10 +1200,11 @@ class MonefyDonutChartUiTest {
                 MonefyDonutChart(
                     income = BigDecimal.ZERO,
                     expense = BigDecimal("150.00"),
-                    slices = listOf(
-                        slice(label = "Food", fraction = 0.60f),
-                        slice(label = "Home", fraction = 0.40f),
-                    ),
+                    slices =
+                        listOf(
+                            slice(label = "Food", fraction = 0.60f),
+                            slice(label = "Home", fraction = 0.40f),
+                        ),
                     modifier = Modifier.size(300.dp),
                     showCategoryLabels = true,
                     labelMinFraction = 0f,
@@ -1210,8 +1220,7 @@ class MonefyDonutChartUiTest {
                     expense = "150.00",
                     slices = listOf("Food" to 60, "Home" to 40),
                 ),
-            )
-            .assertExists()
+            ).assertExists()
     }
 
     // ---- iconScale param — composable renders without crash ----
@@ -1237,8 +1246,7 @@ class MonefyDonutChartUiTest {
                     expense = "50.00",
                     slices = listOf("Coffee" to 100),
                 ),
-            )
-            .assertExists()
+            ).assertExists()
     }
 
     // ---- frame-projection: single slice and many small slices do not crash ----
@@ -1252,14 +1260,15 @@ class MonefyDonutChartUiTest {
                 MonefyDonutChart(
                     income = BigDecimal("100.00"),
                     expense = BigDecimal("100.00"),
-                    slices = listOf(
-                        slice(
-                            label = "Everything",
-                            fraction = 1.0f,
-                            color = Color(0xFF08A045),
-                            iconKey = "ic_cat_food",
+                    slices =
+                        listOf(
+                            slice(
+                                label = "Everything",
+                                fraction = 1.0f,
+                                color = Color(0xFF08A045),
+                                iconKey = "ic_cat_food",
+                            ),
                         ),
-                    ),
                     modifier = Modifier.size(300.dp),
                     style = DonutStyle.Flat,
                     animationSpec = snap(),
@@ -1274,17 +1283,17 @@ class MonefyDonutChartUiTest {
                     expense = "100.00",
                     slices = listOf("Everything" to 100),
                 ),
-            )
-            .assertExists()
+            ).assertExists()
     }
 
     @Test
     fun `eight small slices with leader lines render without crash and all slices in semantics`() {
         // Previously, many small slices could collide when icons were placed radially.
         // With frame-projection, slices are clamped to canvas bounds — no crash expected.
-        val smallSlices = (1..8).map { i ->
-            slice(label = "Cat$i", fraction = 0.125f, color = Color(0xFF000000L + i * 0x111111L), iconKey = "ic_cat_food")
-        }
+        val smallSlices =
+            (1..8).map { i ->
+                slice(label = "Cat$i", fraction = 0.125f, color = Color(0xFF000000L + i * 0x111111L), iconKey = "ic_cat_food")
+            }
         composeTestRule.setContent {
             MyMoneyTheme {
                 MonefyDonutChart(
@@ -1305,8 +1314,7 @@ class MonefyDonutChartUiTest {
                     expense = "800.00",
                     slices = smallSlices.map { it.label to (it.fraction * 100f).toInt() },
                 ),
-            )
-            .assertExists()
+            ).assertExists()
     }
 
     // ---- zero-fraction slices are excluded from semantics description ----
@@ -1318,10 +1326,11 @@ class MonefyDonutChartUiTest {
                 MonefyDonutChart(
                     income = BigDecimal("100.00"),
                     expense = BigDecimal("50.00"),
-                    slices = listOf(
-                        slice(label = "Food", fraction = 0.80f),
-                        slice(label = "Ghost", fraction = 0.0f),
-                    ),
+                    slices =
+                        listOf(
+                            slice(label = "Food", fraction = 0.80f),
+                            slice(label = "Ghost", fraction = 0.0f),
+                        ),
                     modifier = Modifier.size(240.dp),
                     animationSpec = snap(),
                 )
@@ -1336,8 +1345,7 @@ class MonefyDonutChartUiTest {
                     expense = "50.00",
                     slices = listOf("Food" to 80, "Ghost" to 0),
                 ),
-            )
-            .assertExists()
+            ).assertExists()
     }
 
     private fun setChart(
@@ -1358,12 +1366,16 @@ class MonefyDonutChartUiTest {
         }
     }
 
-    private fun slice(label: String, fraction: Float) = CategorySlice(
-        categoryId = label.hashCode().toLong(),
-        color = Color.Green,
-        fraction = fraction,
-        label = label,
-    )
+    private fun slice(
+        label: String,
+        fraction: Float,
+    ) =
+        CategorySlice(
+            categoryId = label.hashCode().toLong(),
+            color = Color.Green,
+            fraction = fraction,
+            label = label,
+        )
 
     private fun slice(
         label: String,
@@ -1378,20 +1390,21 @@ class MonefyDonutChartUiTest {
         iconKey = iconKey,
     )
 
-    private fun contourSlices() = listOf(
-        slice(
-            label = "Food",
-            fraction = 0.50f,
-            color = Color(0xFF08A045),
-            iconKey = "ic_cat_food",
-        ),
-        slice(
-            label = "Transport",
-            fraction = 0.50f,
-            color = Color(0xFF0C63E7),
-            iconKey = "ic_cat_transport",
-        ),
-    )
+    private fun contourSlices() =
+        listOf(
+            slice(
+                label = "Food",
+                fraction = 0.50f,
+                color = Color(0xFF08A045),
+                iconKey = "ic_cat_food",
+            ),
+            slice(
+                label = "Transport",
+                fraction = 0.50f,
+                color = Color(0xFF0C63E7),
+                iconKey = "ic_cat_transport",
+            ),
+        )
 
     private fun expectedDescription(
         income: String,
@@ -1400,9 +1413,10 @@ class MonefyDonutChartUiTest {
     ): String {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val header = context.getString(R.string.donut_chart_cd, income, expense)
-        val sliceText = slices.joinToString(separator = " ") { (label, percent) ->
-            context.getString(R.string.donut_chart_slice, label, percent)
-        }
+        val sliceText =
+            slices.joinToString(separator = " ") { (label, percent) ->
+                context.getString(R.string.donut_chart_slice, label, percent)
+            }
         return if (sliceText.isEmpty()) header else "$header $sliceText"
     }
 
@@ -1440,12 +1454,13 @@ class MonefyDonutChartUiTest {
         val insetHalfHeightBottom = (canvasHeight - center.y - inset).coerceAtLeast(0f)
         val angleDegrees = DonutGeometry.evenAngles(count)[index]
         val angleRadians = Math.toRadians(angleDegrees.toDouble()).toFloat()
-        val projected = DonutGeometry.projectAngleToFrame(
-            angleRadians = angleRadians,
-            halfWidth = insetHalfWidth,
-            halfHeightTop = insetHalfHeightTop,
-            halfHeightBottom = insetHalfHeightBottom,
-        )
+        val projected =
+            DonutGeometry.projectAngleToFrame(
+                angleRadians = angleRadians,
+                halfWidth = insetHalfWidth,
+                halfHeightTop = insetHalfHeightTop,
+                halfHeightBottom = insetHalfHeightBottom,
+            )
         return Offset(center.x + projected.x, center.y + projected.y)
     }
 
@@ -1457,10 +1472,11 @@ class MonefyDonutChartUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 Box(
-                    modifier = Modifier
-                        .size(size)
-                        .background(containerColor)
-                        .testTag(CHART_CONTAINER_TAG),
+                    modifier =
+                        Modifier
+                            .size(size)
+                            .background(containerColor)
+                            .testTag(CHART_CONTAINER_TAG),
                 ) {
                     content()
                 }
@@ -1505,12 +1521,13 @@ class MonefyDonutChartUiTest {
         val insetHalfWidth = (canvasWidth / 2f - inset).coerceAtLeast(0f)
         val insetHalfHeightTop = (center.y - inset).coerceAtLeast(0f)
         val insetHalfHeightBottom = (canvasHeight - center.y - inset).coerceAtLeast(0f)
-        val projected = DonutGeometry.projectAngleToFrame(
-            angleRadians = mid,
-            halfWidth = insetHalfWidth,
-            halfHeightTop = insetHalfHeightTop,
-            halfHeightBottom = insetHalfHeightBottom,
-        )
+        val projected =
+            DonutGeometry.projectAngleToFrame(
+                angleRadians = mid,
+                halfWidth = insetHalfWidth,
+                halfHeightTop = insetHalfHeightTop,
+                halfHeightBottom = insetHalfHeightBottom,
+            )
         return Offset(
             x = center.x + explodedDx + projected.x,
             y = center.y + explodedDy + projected.y,
@@ -1538,7 +1555,10 @@ class MonefyDonutChartUiTest {
         )
     }
 
-    private fun imageContainsColor(pixels: IntArray, argb: Int): Boolean =
+    private fun imageContainsColor(
+        pixels: IntArray,
+        argb: Int,
+    ): Boolean =
         pixels.any { colorsMatch(it, argb) }
 
     private fun regionContainsColor(
@@ -1564,8 +1584,14 @@ class MonefyDonutChartUiTest {
         return false
     }
 
-    private fun colorsMatch(a: Int, b: Int): Boolean {
-        fun ch(v: Int, shift: Int) = (v shr shift) and 0xFF
+    private fun colorsMatch(
+        a: Int,
+        b: Int,
+    ): Boolean {
+        fun ch(
+            v: Int,
+            shift: Int,
+        ) = (v shr shift) and 0xFF
         val tolerance = 16
         return kotlin.math.abs(ch(a, 16) - ch(b, 16)) <= tolerance &&
             kotlin.math.abs(ch(a, 8) - ch(b, 8)) <= tolerance &&

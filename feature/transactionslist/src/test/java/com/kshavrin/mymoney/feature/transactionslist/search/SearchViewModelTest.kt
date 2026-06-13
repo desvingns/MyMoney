@@ -34,7 +34,6 @@ import java.time.Instant
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class SearchViewModelTest {
-
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule(StandardTestDispatcher())
 
@@ -44,15 +43,16 @@ class SearchViewModelTest {
     private lateinit var historyRepo: FakeSearchHistoryRepository
     private lateinit var currencyRepo: FakeCurrencyRepository
 
-    private val usd = Currency(
-        id = 1L,
-        code = "USD",
-        symbol = "$",
-        name = "US Dollar",
-        decimalDigits = 2,
-        isActive = true,
-        sortOrder = 0,
-    )
+    private val usd =
+        Currency(
+            id = 1L,
+            code = "USD",
+            symbol = "$",
+            name = "US Dollar",
+            decimalDigits = 2,
+            isActive = true,
+            sortOrder = 0,
+        )
 
     private fun expense(
         id: Long,
@@ -85,11 +85,12 @@ class SearchViewModelTest {
 
     private fun buildViewModel(
         transactionRepository: TransactionRepository = transactionRepo,
-    ): SearchViewModel = SearchViewModel(
-        transactionRepository = transactionRepository,
-        searchHistoryRepository = historyRepo,
-        currencyRepository = currencyRepo,
-    )
+    ): SearchViewModel =
+        SearchViewModel(
+            transactionRepository = transactionRepository,
+            searchHistoryRepository = historyRepo,
+            currencyRepository = currencyRepo,
+        )
 
     // ---- AC1: 200 ms debounce (TDD §4.9 line 784) --------------------------------------------
 
@@ -371,12 +372,14 @@ class SearchViewModelTest {
     fun `superseded search cancellation does not drive the Error phase`() =
         runTest(mainDispatcherRule.testDispatcher.scheduler) {
             setUpRepos()
-            val blockingRepo = CancellableSearchRepository(
-                blockingQuery = "cof",
-                resultsByQuery = mapOf(
-                    "coffee" to listOf(expense(id = 3L, note = "Coffee")),
-                ),
-            )
+            val blockingRepo =
+                CancellableSearchRepository(
+                    blockingQuery = "cof",
+                    resultsByQuery =
+                        mapOf(
+                            "coffee" to listOf(expense(id = 3L, note = "Coffee")),
+                        ),
+                )
             val viewModel = buildViewModel(transactionRepository = blockingRepo)
             advanceUntilIdle()
 
@@ -393,7 +396,11 @@ class SearchViewModelTest {
             assertEquals(listOf("cof"), blockingRepo.cancelledQueries)
             assertEquals(SearchPhase.Results, viewModel.state.value.phase)
             assertEquals("coffee", viewModel.state.value.query)
-            assertEquals(listOf(3L), viewModel.state.value.results.map { it.id })
+            assertEquals(
+                listOf(3L),
+                viewModel.state.value.results
+                    .map { it.id },
+            )
         }
 
     // ---- AC: Error state (searchByNote throws) -----------------------------------------------
@@ -454,7 +461,10 @@ class SearchViewModelTest {
         val startedQueries: MutableList<String> = mutableListOf()
         val cancelledQueries: MutableList<String> = mutableListOf()
 
-        override suspend fun searchByNote(query: String, limit: Int): List<Transaction> {
+        override suspend fun searchByNote(
+            query: String,
+            limit: Int,
+        ): List<Transaction> {
             startedQueries += query
             if (query == blockingQuery) {
                 try {

@@ -1,5 +1,6 @@
 package com.kshavrin.mymoney.core.domain.fake
 
+import androidx.paging.PagingData
 import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.Budget
 import com.kshavrin.mymoney.core.domain.model.Category
@@ -19,7 +20,6 @@ import com.kshavrin.mymoney.core.domain.repository.CurrencyRateRepository
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
 import com.kshavrin.mymoney.core.domain.repository.RecurringTemplateRepository
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
-import androidx.paging.PagingData
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -29,40 +29,59 @@ import java.time.Instant
 
 class FakeCurrencyRepository : CurrencyRepository {
     private val state = MutableStateFlow<List<Currency>>(emptyList())
+
     fun seed(vararg currencies: Currency) {
         state.value = (state.value + currencies).distinctBy { it.id }.toList()
     }
+
     override fun observeActive() = state.asStateFlow()
+
     override fun observeAll() = state.asStateFlow()
+
     override suspend fun findById(id: Long) = state.value.firstOrNull { it.id == id }
+
     override suspend fun findByCode(code: String) = state.value.firstOrNull { it.code.equals(code, ignoreCase = true) }
+
     override suspend fun upsert(currency: Currency): Long {
         val id = if (currency.id == 0L) (state.value.maxOfOrNull { it.id } ?: 0L) + 1L else currency.id
         val withId = currency.copy(id = id)
         state.value = state.value.filterNot { it.id == id } + withId
         return id
     }
+
     override suspend fun upsertAll(currencies: List<Currency>) {
         currencies.forEach { upsert(it) }
     }
-    override suspend fun setActive(id: Long, active: Boolean) {
+
+    override suspend fun setActive(
+        id: Long,
+        active: Boolean,
+    ) {
         state.value = state.value.map { if (it.id == id) it.copy(isActive = active) else it }
     }
 }
 
 class FakeCurrencyRateRepository : CurrencyRateRepository {
     private val state = MutableStateFlow<List<CurrencyRate>>(emptyList())
+
     fun seed(rate: CurrencyRate) {
         val id = if (rate.id == 0L) (state.value.maxOfOrNull { it.id } ?: 0L) + 1L else rate.id
         state.value = state.value.filterNot { it.id == id } + rate.copy(id = id)
     }
-    override suspend fun findRate(fromCurrencyId: Long, toCurrencyId: Long) =
+
+    override suspend fun findRate(
+        fromCurrencyId: Long,
+        toCurrencyId: Long,
+    ) =
         state.value.firstOrNull { it.fromCurrencyId == fromCurrencyId && it.toCurrencyId == toCurrencyId }
+
     override fun observeAll() = state.asStateFlow()
+
     override suspend fun upsert(rate: CurrencyRate): Long {
         seed(rate)
         return rate.id
     }
+
     override suspend fun deleteById(id: Long) {
         state.value = state.value.filterNot { it.id == id }
     }
@@ -70,44 +89,59 @@ class FakeCurrencyRateRepository : CurrencyRateRepository {
 
 class FakeAccountRepository : AccountRepository {
     private val state = MutableStateFlow<List<Account>>(emptyList())
+
     fun seed(vararg accounts: Account) {
         state.value = (state.value + accounts).distinctBy { it.id }
     }
+
     override fun observeActive(): Flow<List<Account>> = state.asStateFlow()
+
     override suspend fun findById(id: Long) = state.value.firstOrNull { it.id == id }
+
     override suspend fun findDefault() = state.value.firstOrNull { it.isDefault }
+
     override suspend fun computeBalance(accountId: Long): BigDecimal =
         state.value.firstOrNull { it.id == accountId }?.initialBalance ?: BigDecimal.ZERO
+
     override suspend fun upsert(account: Account): Long {
         val id = if (account.id == 0L) (state.value.maxOfOrNull { it.id } ?: 0L) + 1L else account.id
         state.value = state.value.filterNot { it.id == id } + account.copy(id = id)
         return id
     }
+
     override suspend fun archive(id: Long) {
         state.value = state.value.map { if (it.id == id) it.copy(isArchived = true) else it }
     }
+
     override suspend fun setDefault(id: Long) {
         state.value = state.value.map { it.copy(isDefault = it.id == id) }
     }
+
     override suspend fun countByCurrency(currencyId: Long): Int =
         state.value.count { it.currencyId == currencyId && !it.isArchived }
 }
 
 class FakeBudgetRepository : BudgetRepository {
     private val state = MutableStateFlow<List<Budget>>(emptyList())
+
     fun seed(vararg budgets: Budget) {
         state.value = (state.value + budgets).distinctBy { it.id }
     }
+
     override fun observeActive(): Flow<List<Budget>> = state.asStateFlow()
+
     override suspend fun findForCategory(categoryId: Long) =
         state.value.firstOrNull { it.categoryId == categoryId && it.isActive }
+
     override suspend fun findTotalBudget() =
         state.value.firstOrNull { it.categoryId == null && it.isActive }
+
     override suspend fun upsert(budget: Budget): Long {
         val id = if (budget.id == 0L) (state.value.maxOfOrNull { it.id } ?: 0L) + 1L else budget.id
         state.value = state.value.filterNot { it.id == id } + budget.copy(id = id)
         return id
     }
+
     override suspend fun deactivate(id: Long) {
         state.value = state.value.map { if (it.id == id) it.copy(isActive = false) else it }
     }
@@ -115,20 +149,27 @@ class FakeBudgetRepository : BudgetRepository {
 
 class FakeCategoryRepository : CategoryRepository {
     private val state = MutableStateFlow<List<Category>>(emptyList())
+
     fun seed(vararg categories: Category) {
         state.value = (state.value + categories).distinctBy { it.id }
     }
+
     override fun observeByKind(kind: CategoryKind): Flow<List<Category>> = state.asStateFlow()
+
     override fun observeAll(): Flow<List<Category>> = state.asStateFlow()
+
     override suspend fun findById(id: Long) = state.value.firstOrNull { it.id == id }
+
     override suspend fun upsert(category: Category): Long {
         val id = if (category.id == 0L) (state.value.maxOfOrNull { it.id } ?: 0L) + 1L else category.id
         state.value = state.value.filterNot { it.id == id } + category.copy(id = id)
         return id
     }
+
     override suspend fun upsertAll(categories: List<Category>) {
         categories.forEach { upsert(it) }
     }
+
     override suspend fun archive(id: Long) {
         state.value = state.value.map { if (it.id == id) it.copy(isArchived = true) else it }
     }
@@ -149,7 +190,11 @@ class FakeTransactionRepository : TransactionRepository {
         expenseSummary = rows.toList()
     }
 
-    fun seedExpenseSummary(accountId: Long, period: Period, vararg rows: CategorySummary) {
+    fun seedExpenseSummary(
+        accountId: Long,
+        period: Period,
+        vararg rows: CategorySummary,
+    ) {
         expenseSummaryByAccount[accountId to period] = rows.toList()
     }
 
@@ -157,7 +202,11 @@ class FakeTransactionRepository : TransactionRepository {
         incomeSummary = rows.toList()
     }
 
-    fun seedIncomeSummary(accountId: Long, period: Period, vararg rows: CategorySummary) {
+    fun seedIncomeSummary(
+        accountId: Long,
+        period: Period,
+        vararg rows: CategorySummary,
+    ) {
         incomeSummaryByAccount[accountId to period] = rows.toList()
     }
 
@@ -165,7 +214,11 @@ class FakeTransactionRepository : TransactionRepository {
         categoryGroups = rows.toList()
     }
 
-    fun seedCategoryGroups(accountId: Long, period: Period, vararg rows: CategoryGroup) {
+    fun seedCategoryGroups(
+        accountId: Long,
+        period: Period,
+        vararg rows: CategoryGroup,
+    ) {
         categoryGroupsByAccount[accountId to period] = rows.toList()
     }
 
@@ -173,46 +226,88 @@ class FakeTransactionRepository : TransactionRepository {
         periodTransactions = rows.toList()
     }
 
-    fun seedPeriodTransactions(accountId: Long, period: Period, vararg rows: Transaction) {
+    fun seedPeriodTransactions(
+        accountId: Long,
+        period: Period,
+        vararg rows: Transaction,
+    ) {
         periodTransactionsByAccount[accountId to period] = rows.toList()
     }
 
     fun upserted(): List<Transaction> = transactions.value
 
     override fun observeRecent(limit: Int): Flow<List<Transaction>> = transactions.asStateFlow()
+
     override fun observeAll(): Flow<List<Transaction>> = transactions.asStateFlow()
-    override fun paged(accountId: Long, categoryId: Long?, from: Instant, to: Instant): Flow<PagingData<Transaction>> =
+
+    override fun paged(
+        accountId: Long,
+        categoryId: Long?,
+        from: Instant,
+        to: Instant,
+    ): Flow<PagingData<Transaction>> =
         flowOf(PagingData.empty())
+
     override suspend fun findById(id: Long) = transactions.value.firstOrNull { it.id == id }
-    override suspend fun findByPeriod(accountId: Long, period: Period): List<Transaction> =
+
+    override suspend fun findByPeriod(
+        accountId: Long,
+        period: Period,
+    ): List<Transaction> =
         periodTransactionsByAccount[accountId to period] ?: periodTransactions
-    override suspend fun getCategorySummary(accountId: Long, period: Period, kind: TransactionKind): List<CategorySummary> =
+
+    override suspend fun getCategorySummary(
+        accountId: Long,
+        period: Period,
+        kind: TransactionKind,
+    ): List<CategorySummary> =
         when (kind) {
             TransactionKind.Expense -> expenseSummaryByAccount[accountId to period] ?: expenseSummary
             TransactionKind.Income -> incomeSummaryByAccount[accountId to period] ?: incomeSummary
             TransactionKind.Transfer -> emptyList()
         }
-    override suspend fun getCategoryGroups(accountId: Long, period: Period): List<CategoryGroup> =
+
+    override suspend fun getCategoryGroups(
+        accountId: Long,
+        period: Period,
+    ): List<CategoryGroup> =
         categoryGroupsByAccount[accountId to period] ?: categoryGroups
-    override suspend fun searchByNote(query: String, limit: Int): List<Transaction> = emptyList()
+
+    override suspend fun searchByNote(
+        query: String,
+        limit: Int,
+    ): List<Transaction> = emptyList()
+
     override suspend fun upsert(transaction: Transaction): Long {
         val id = if (transaction.id == 0L) (transactions.value.maxOfOrNull { it.id } ?: 0L) + 1L else transaction.id
         transactions.value = transactions.value.filterNot { it.id == id } + transaction.copy(id = id)
         return id
     }
-    override suspend fun softDelete(id: Long, now: Instant) {
+
+    override suspend fun softDelete(
+        id: Long,
+        now: Instant,
+    ) {
         transactions.value = transactions.value.map { if (it.id == id) it.copy(isDeleted = true, updatedAt = now) else it }
     }
-    override suspend fun restore(id: Long, now: Instant) {
+
+    override suspend fun restore(
+        id: Long,
+        now: Instant,
+    ) {
         transactions.value = transactions.value.map { if (it.id == id) it.copy(isDeleted = false, updatedAt = now) else it }
     }
+
     override suspend fun pruneDeleted(before: Instant) {
         transactions.value = transactions.value.filterNot { it.isDeleted && it.updatedAt.isBefore(before) }
     }
+
     override suspend fun countByAccount(id: Long): Int =
         transactions.value.count { !it.isDeleted && (it.accountId == id || it.toAccountId == id) }
+
     override suspend fun countByCategory(id: Long): Int =
         transactions.value.count { !it.isDeleted && it.categoryId == id }
+
     override suspend fun countByCurrency(id: Long): Int =
         transactions.value.count { !it.isDeleted && it.currencyId == id }
 }
@@ -240,7 +335,10 @@ class FakeRecurringTemplateRepository : RecurringTemplateRepository {
         return id
     }
 
-    override suspend fun updateNextRun(id: Long, nextRunAt: Instant) {
+    override suspend fun updateNextRun(
+        id: Long,
+        nextRunAt: Instant,
+    ) {
         updateNextRunCalls += id to nextRunAt
         templates.value = templates.value.map { if (it.id == id) it.copy(nextRunAt = nextRunAt) else it }
     }

@@ -51,11 +51,12 @@ fun MonefyAmountInput(
                     contentAlignment = Alignment.Center,
                 ) {
                     val fontSize: TextUnit = computeDisplayFontSize(display.length)
-                    val style: TextStyle = MaterialTheme.typography.headlineLarge.copy(
-                        fontSize = fontSize,
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        textAlign = TextAlign.Center,
-                    )
+                    val style: TextStyle =
+                        MaterialTheme.typography.headlineLarge.copy(
+                            fontSize = fontSize,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            textAlign = TextAlign.Center,
+                        )
                     BasicText(text = display, style = style)
                 }
                 if (onClear != null) {
@@ -74,9 +75,10 @@ fun MonefyAmountInput(
                 text = expression,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = Spacing.xs, end = Spacing.s),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(top = Spacing.xs, end = Spacing.s),
                 textAlign = TextAlign.End,
             )
         }
@@ -84,7 +86,10 @@ fun MonefyAmountInput(
 }
 
 @Composable
-private fun CurrencyLabel(symbol: String?, code: String?) {
+private fun CurrencyLabel(
+    symbol: String?,
+    code: String?,
+) {
     if (symbol == null && code == null) return
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         if (symbol != null) {
@@ -104,9 +109,10 @@ private fun CurrencyLabel(symbol: String?, code: String?) {
     }
 }
 
-internal fun computeDisplayFontSize(length: Int): TextUnit = when {
-    length >= 11 -> 24.sp
-    length >= 9 -> 28.sp
-    length >= 7 -> 32.sp
-    else -> 36.sp
-}
+internal fun computeDisplayFontSize(length: Int): TextUnit =
+    when {
+        length >= 11 -> 24.sp
+        length >= 9 -> 28.sp
+        length >= 7 -> 32.sp
+        else -> 36.sp
+    }

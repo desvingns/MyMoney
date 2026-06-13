@@ -66,13 +66,15 @@ import java.util.Locale
  * ```
  */
 class DateHeaderContractTest {
-
     /**
      * Mirror of the formatter built inside [DateHeader]:
      * `DateTimeFormatter.ofPattern("EEEE, d MMMM", locale)`.
      * Keep the pattern string in lock-step with DateHeader.kt.
      */
-    private fun headerText(date: LocalDate, locale: Locale): String =
+    private fun headerText(
+        date: LocalDate,
+        locale: Locale,
+    ): String =
         DateTimeFormatter.ofPattern("EEEE, d MMMM", locale).format(date)
 
     @Test

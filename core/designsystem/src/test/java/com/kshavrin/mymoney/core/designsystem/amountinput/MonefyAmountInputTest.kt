@@ -27,8 +27,10 @@ import org.junit.Test
  * unspecified would fail the test loudly.
  */
 class MonefyAmountInputTest {
-
-    private fun assertSp(expectedSp: Float, actual: TextUnit) {
+    private fun assertSp(
+        expectedSp: Float,
+        actual: TextUnit,
+    ) {
         assertTrue(
             "expected a TextUnit of type Sp but was ${actual.type}",
             actual.type == TextUnitType.Sp,

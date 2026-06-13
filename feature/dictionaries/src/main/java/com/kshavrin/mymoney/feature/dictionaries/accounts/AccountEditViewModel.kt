@@ -18,142 +18,145 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import java.math.BigDecimal
 import java.time.Instant
 import javax.inject.Inject
 
 @HiltViewModel
-class AccountEditViewModel @Inject constructor(
-    private val accountRepository: AccountRepository,
-    private val currencyRepository: CurrencyRepository,
-    private val transactionRepository: TransactionRepository,
-    savedStateHandle: SavedStateHandle,
-) : ViewModel() {
+class AccountEditViewModel
+    @Inject
+    constructor(
+        private val accountRepository: AccountRepository,
+        private val currencyRepository: CurrencyRepository,
+        private val transactionRepository: TransactionRepository,
+        savedStateHandle: SavedStateHandle,
+    ) : ViewModel() {
+        private val accountId: Long = savedStateHandle.get<Long>("id") ?: -1L
 
-    private val accountId: Long = savedStateHandle.get<Long>("id") ?: -1L
+        private val _state = MutableStateFlow(AccountEditState(isCreateMode = accountId == -1L))
+        val state: StateFlow<AccountEditState> = _state.asStateFlow()
 
-    private val _state = MutableStateFlow(AccountEditState(isCreateMode = accountId == -1L))
-    val state: StateFlow<AccountEditState> = _state.asStateFlow()
+        private val _actions = MutableSharedFlow<AccountEditAction>(extraBufferCapacity = 4)
+        val actions: SharedFlow<AccountEditAction> = _actions.asSharedFlow()
 
-    private val _actions = MutableSharedFlow<AccountEditAction>(extraBufferCapacity = 4)
-    val actions: SharedFlow<AccountEditAction> = _actions.asSharedFlow()
-
-    init {
-        viewModelScope.launch {
-            val activeCurrencies = currencyRepository.observeActive().first()
-            _state.value = _state.value.copy(availableCurrencies = activeCurrencies)
-            if (accountId != -1L) {
-                accountRepository.findById(accountId)?.let { existing ->
-                    _state.value = _state.value.copy(
-                        name = existing.name,
-                        currencyId = existing.currencyId,
-                        initialBalanceText = existing.initialBalance.toPlainString(),
-                        type = existing.type,
-                        colorHex = existing.colorHex,
-                        iconKey = existing.iconKey,
-                        isDefault = existing.isDefault,
-                        sortOrder = existing.sortOrder,
-                        isCreateMode = false,
-                    )
+        init {
+            viewModelScope.launch {
+                val activeCurrencies = currencyRepository.observeActive().first()
+                _state.value = _state.value.copy(availableCurrencies = activeCurrencies)
+                if (accountId != -1L) {
+                    accountRepository.findById(accountId)?.let { existing ->
+                        _state.value =
+                            _state.value.copy(
+                                name = existing.name,
+                                currencyId = existing.currencyId,
+                                initialBalanceText = existing.initialBalance.toPlainString(),
+                                type = existing.type,
+                                colorHex = existing.colorHex,
+                                iconKey = existing.iconKey,
+                                isDefault = existing.isDefault,
+                                sortOrder = existing.sortOrder,
+                                isCreateMode = false,
+                            )
+                    }
+                } else if (_state.value.currencyId == -1L) {
+                    activeCurrencies.firstOrNull()?.let { c ->
+                        _state.value = _state.value.copy(currencyId = c.id)
+                    }
                 }
-            } else if (_state.value.currencyId == -1L) {
-                activeCurrencies.firstOrNull()?.let { c ->
-                    _state.value = _state.value.copy(currencyId = c.id)
+            }
+        }
+
+        fun onEvent(event: AccountEditEvent) {
+            when (event) {
+                is AccountEditEvent.NameChanged ->
+                    _state.value = _state.value.copy(name = event.value, errorMessage = null)
+                is AccountEditEvent.CurrencyChanged ->
+                    _state.value = _state.value.copy(currencyId = event.id)
+                is AccountEditEvent.InitialBalanceChanged ->
+                    _state.value = _state.value.copy(initialBalanceText = event.value, errorMessage = null)
+                is AccountEditEvent.TypeChanged ->
+                    _state.value = _state.value.copy(type = event.value)
+                is AccountEditEvent.ColorChanged ->
+                    _state.value = _state.value.copy(colorHex = event.value)
+                is AccountEditEvent.IconChanged ->
+                    _state.value = _state.value.copy(iconKey = event.value)
+                is AccountEditEvent.IsDefaultChanged ->
+                    _state.value = _state.value.copy(isDefault = event.value)
+                AccountEditEvent.SaveClicked -> save()
+                AccountEditEvent.BackClicked ->
+                    viewModelScope.launch { _actions.emit(AccountEditAction.NavigateBack) }
+                AccountEditEvent.DeleteClicked -> attemptDelete()
+                AccountEditEvent.BlockedDeleteDismissed ->
+                    _state.value = _state.value.copy(blockedDeleteCount = null)
+            }
+        }
+
+        private fun save() {
+            if (_state.value.isSaving) return
+            val s = _state.value
+            if (s.name.isBlank() || s.name.length > 32) {
+                _state.value = s.copy(errorMessage = "name_required")
+                return
+            }
+            if (s.currencyId == -1L) {
+                _state.value = s.copy(errorMessage = "currency_required")
+                return
+            }
+            val parsedBalance = s.initialBalanceText.toBigDecimalOrNull()
+            if (parsedBalance == null) {
+                _state.value = s.copy(errorMessage = "balance_format")
+                return
+            }
+            _state.value = s.copy(isSaving = true)
+            viewModelScope.launch {
+                try {
+                    val now = Instant.now()
+                    val savedId =
+                        accountRepository.upsert(
+                            Account(
+                                id = if (accountId == -1L) 0L else accountId,
+                                name = s.name,
+                                currencyId = s.currencyId,
+                                initialBalance = parsedBalance,
+                                type = s.type,
+                                colorHex = s.colorHex,
+                                iconKey = s.iconKey,
+                                isDefault = s.isDefault,
+                                sortOrder = s.sortOrder,
+                                createdAt = now,
+                                updatedAt = now,
+                                isArchived = false,
+                            ),
+                        )
+                    if (s.isDefault) {
+                        accountRepository.setDefault(savedId)
+                    }
+                    _state.value = _state.value.copy(isSaving = false)
+                    _actions.emit(AccountEditAction.NavigateBack)
+                } catch (e: IllegalArgumentException) {
+                    _state.value =
+                        _state.value.copy(
+                            isSaving = false,
+                            errorMessage = e.message ?: "save_failed",
+                        )
+                } finally {
+                    _state.value = _state.value.copy(isSaving = false)
+                }
+            }
+        }
+
+        private fun attemptDelete() {
+            if (accountId == -1L) return
+            viewModelScope.launch {
+                val count = transactionRepository.countByAccount(accountId)
+                if (count > 0) {
+                    _state.value = _state.value.copy(blockedDeleteCount = count)
+                } else {
+                    accountRepository.archive(accountId)
+                    _actions.emit(AccountEditAction.NavigateBack)
                 }
             }
         }
     }
-
-    fun onEvent(event: AccountEditEvent) {
-        when (event) {
-            is AccountEditEvent.NameChanged ->
-                _state.value = _state.value.copy(name = event.value, errorMessage = null)
-            is AccountEditEvent.CurrencyChanged ->
-                _state.value = _state.value.copy(currencyId = event.id)
-            is AccountEditEvent.InitialBalanceChanged ->
-                _state.value = _state.value.copy(initialBalanceText = event.value, errorMessage = null)
-            is AccountEditEvent.TypeChanged ->
-                _state.value = _state.value.copy(type = event.value)
-            is AccountEditEvent.ColorChanged ->
-                _state.value = _state.value.copy(colorHex = event.value)
-            is AccountEditEvent.IconChanged ->
-                _state.value = _state.value.copy(iconKey = event.value)
-            is AccountEditEvent.IsDefaultChanged ->
-                _state.value = _state.value.copy(isDefault = event.value)
-            AccountEditEvent.SaveClicked -> save()
-            AccountEditEvent.BackClicked ->
-                viewModelScope.launch { _actions.emit(AccountEditAction.NavigateBack) }
-            AccountEditEvent.DeleteClicked -> attemptDelete()
-            AccountEditEvent.BlockedDeleteDismissed ->
-                _state.value = _state.value.copy(blockedDeleteCount = null)
-        }
-    }
-
-    private fun save() {
-        if (_state.value.isSaving) return
-        val s = _state.value
-        if (s.name.isBlank() || s.name.length > 32) {
-            _state.value = s.copy(errorMessage = "name_required")
-            return
-        }
-        if (s.currencyId == -1L) {
-            _state.value = s.copy(errorMessage = "currency_required")
-            return
-        }
-        val parsedBalance = s.initialBalanceText.toBigDecimalOrNull()
-        if (parsedBalance == null) {
-            _state.value = s.copy(errorMessage = "balance_format")
-            return
-        }
-        _state.value = s.copy(isSaving = true)
-        viewModelScope.launch {
-            try {
-                val now = Instant.now()
-                val savedId = accountRepository.upsert(
-                    Account(
-                        id = if (accountId == -1L) 0L else accountId,
-                        name = s.name,
-                        currencyId = s.currencyId,
-                        initialBalance = parsedBalance,
-                        type = s.type,
-                        colorHex = s.colorHex,
-                        iconKey = s.iconKey,
-                        isDefault = s.isDefault,
-                        sortOrder = s.sortOrder,
-                        createdAt = now,
-                        updatedAt = now,
-                        isArchived = false,
-                    ),
-                )
-                if (s.isDefault) {
-                    accountRepository.setDefault(savedId)
-                }
-                _state.value = _state.value.copy(isSaving = false)
-                _actions.emit(AccountEditAction.NavigateBack)
-            } catch (e: IllegalArgumentException) {
-                _state.value = _state.value.copy(
-                    isSaving = false,
-                    errorMessage = e.message ?: "save_failed",
-                )
-            } finally {
-                _state.value = _state.value.copy(isSaving = false)
-            }
-        }
-    }
-
-    private fun attemptDelete() {
-        if (accountId == -1L) return
-        viewModelScope.launch {
-            val count = transactionRepository.countByAccount(accountId)
-            if (count > 0) {
-                _state.value = _state.value.copy(blockedDeleteCount = count)
-            } else {
-                accountRepository.archive(accountId)
-                _actions.emit(AccountEditAction.NavigateBack)
-            }
-        }
-    }
-}
 
 data class AccountEditState(
     val isCreateMode: Boolean = true,
@@ -172,16 +175,40 @@ data class AccountEditState(
 )
 
 sealed interface AccountEditEvent {
-    data class NameChanged(val value: String) : AccountEditEvent
-    data class CurrencyChanged(val id: Long) : AccountEditEvent
-    data class InitialBalanceChanged(val value: String) : AccountEditEvent
-    data class TypeChanged(val value: AccountType) : AccountEditEvent
-    data class ColorChanged(val value: String) : AccountEditEvent
-    data class IconChanged(val value: String) : AccountEditEvent
-    data class IsDefaultChanged(val value: Boolean) : AccountEditEvent
+    data class NameChanged(
+        val value: String,
+    ) : AccountEditEvent
+
+    data class CurrencyChanged(
+        val id: Long,
+    ) : AccountEditEvent
+
+    data class InitialBalanceChanged(
+        val value: String,
+    ) : AccountEditEvent
+
+    data class TypeChanged(
+        val value: AccountType,
+    ) : AccountEditEvent
+
+    data class ColorChanged(
+        val value: String,
+    ) : AccountEditEvent
+
+    data class IconChanged(
+        val value: String,
+    ) : AccountEditEvent
+
+    data class IsDefaultChanged(
+        val value: Boolean,
+    ) : AccountEditEvent
+
     data object SaveClicked : AccountEditEvent
+
     data object BackClicked : AccountEditEvent
+
     data object DeleteClicked : AccountEditEvent
+
     data object BlockedDeleteDismissed : AccountEditEvent
 }
 

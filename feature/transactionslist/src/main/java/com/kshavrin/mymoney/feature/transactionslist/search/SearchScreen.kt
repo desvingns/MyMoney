@@ -83,16 +83,17 @@ fun SearchRoute(
     val voiceUnavailableMessage = stringResource(R.string.search_voice_unavailable)
     val voicePrompt = stringResource(R.string.search_voice_prompt)
 
-    val voiceLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartActivityForResult(),
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            result.data
-                ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
-                ?.firstOrNull()
-                ?.let { viewModel.onEvent(SearchEvent.VoiceResult(it)) }
+    val voiceLauncher =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.StartActivityForResult(),
+        ) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                result.data
+                    ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+                    ?.firstOrNull()
+                    ?.let { viewModel.onEvent(SearchEvent.VoiceResult(it)) }
+            }
         }
-    }
 
     LaunchedEffect(viewModel) {
         viewModel.actions.collect { action ->
@@ -159,15 +160,16 @@ fun SearchContent(
                 onLaunchVoice = onLaunchVoice,
             )
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .then(
-                        if (bodyTakesOver) {
-                            Modifier.background(MaterialTheme.colorScheme.surface)
-                        } else {
-                            Modifier
-                        },
-                    ),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .then(
+                            if (bodyTakesOver) {
+                                Modifier.background(MaterialTheme.colorScheme.surface)
+                            } else {
+                                Modifier
+                            },
+                        ),
             ) {
                 SearchBody(state = state, onEvent = onEvent)
             }
@@ -199,10 +201,11 @@ private fun MonefySearchTopBar(
     ) {
         Column(modifier = Modifier.statusBarsPadding()) {
             Row(
-                modifier = Modifier
-                    .height(64.dp)
-                    .fillMaxWidth()
-                    .padding(horizontal = Spacing.xs),
+                modifier =
+                    Modifier
+                        .height(64.dp)
+                        .fillMaxWidth()
+                        .padding(horizontal = Spacing.xs),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 IconButton(onClick = onBack) {
@@ -214,13 +217,15 @@ private fun MonefySearchTopBar(
                 BasicTextField(
                     value = query,
                     onValueChange = onQueryChange,
-                    modifier = Modifier
-                        .weight(1f)
-                        .focusRequester(focusRequester),
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .focusRequester(focusRequester),
                     singleLine = true,
-                    textStyle = MaterialTheme.typography.headlineSmall.copy(
-                        color = MaterialTheme.colorScheme.onPrimary,
-                    ),
+                    textStyle =
+                        MaterialTheme.typography.headlineSmall.copy(
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        ),
                     cursorBrush = SolidColor(MaterialTheme.colorScheme.onPrimary),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                     keyboardActions = KeyboardActions(onSearch = { onSearch() }),
@@ -269,21 +274,24 @@ private fun SearchBody(
 ) {
     when (state.phase) {
         SearchPhase.Empty -> SuggestionsRow(history = state.history, onEvent = onEvent, modifier = modifier)
-        SearchPhase.Loading -> Box(
-            modifier = modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center,
-        ) {
-            CircularProgressIndicator()
-        }
+        SearchPhase.Loading ->
+            Box(
+                modifier = modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator()
+            }
         SearchPhase.Results -> ResultsList(state = state, onEvent = onEvent, modifier = modifier)
-        SearchPhase.EmptyResults -> CenteredMessage(
-            text = stringResource(R.string.search_no_matches),
-            modifier = modifier,
-        )
-        SearchPhase.Error -> CenteredMessage(
-            text = stringResource(R.string.search_error),
-            modifier = modifier,
-        )
+        SearchPhase.EmptyResults ->
+            CenteredMessage(
+                text = stringResource(R.string.search_no_matches),
+                modifier = modifier,
+            )
+        SearchPhase.Error ->
+            CenteredMessage(
+                text = stringResource(R.string.search_error),
+                modifier = modifier,
+            )
     }
 }
 
@@ -295,9 +303,10 @@ private fun SuggestionsRow(
 ) {
     if (history.isEmpty()) return
     LazyRow(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = Spacing.l, vertical = Spacing.s),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.l, vertical = Spacing.s),
         horizontalArrangement = Arrangement.spacedBy(Spacing.s),
     ) {
         items(history, key = { it }) { query ->
@@ -333,20 +342,23 @@ private fun SearchResultRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val amountColor = when (row.kind) {
-        TransactionKind.Expense -> MaterialTheme.colorScheme.tertiary
-        TransactionKind.Income -> MaterialTheme.colorScheme.primary
-        TransactionKind.Transfer -> MaterialTheme.colorScheme.onSurfaceVariant
-    }
-    val leadingIcon = when (row.kind) {
-        TransactionKind.Transfer -> Icons.AutoMirrored.Filled.CompareArrows
-        else -> Icons.Filled.Category
-    }
+    val amountColor =
+        when (row.kind) {
+            TransactionKind.Expense -> MaterialTheme.colorScheme.tertiary
+            TransactionKind.Income -> MaterialTheme.colorScheme.primary
+            TransactionKind.Transfer -> MaterialTheme.colorScheme.onSurfaceVariant
+        }
+    val leadingIcon =
+        when (row.kind) {
+            TransactionKind.Transfer -> Icons.AutoMirrored.Filled.CompareArrows
+            else -> Icons.Filled.Category
+        }
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = Spacing.l, vertical = Spacing.m),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(horizontal = Spacing.l, vertical = Spacing.m),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.m),
     ) {
@@ -391,7 +403,10 @@ private fun SearchResultRow(
 }
 
 @Composable
-private fun CenteredMessage(text: String, modifier: Modifier = Modifier) {
+private fun CenteredMessage(
+    text: String,
+    modifier: Modifier = Modifier,
+) {
     Box(
         modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center,
@@ -426,16 +441,18 @@ private fun formatSignedAmount(
 ): String {
     val symbol = currency?.symbol ?: ""
     val digits = currency?.decimalDigits ?: 2
-    val formatted = MoneyFormatter.format(
-        amount = amount,
-        currencySymbol = symbol,
-        decimalDigits = digits,
-        locale = Locale.getDefault(),
-    )
-    val sign = when (kind) {
-        TransactionKind.Expense -> "-"
-        TransactionKind.Income -> "+"
-        TransactionKind.Transfer -> ""
-    }
+    val formatted =
+        MoneyFormatter.format(
+            amount = amount,
+            currencySymbol = symbol,
+            decimalDigits = digits,
+            locale = Locale.getDefault(),
+        )
+    val sign =
+        when (kind) {
+            TransactionKind.Expense -> "-"
+            TransactionKind.Income -> "+"
+            TransactionKind.Transfer -> ""
+        }
     return "$sign$formatted"
 }

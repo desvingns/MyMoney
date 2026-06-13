@@ -7,7 +7,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -138,30 +137,32 @@ fun DashboardContent(
     ) { innerPadding ->
         val swipeThresholdPx = with(LocalDensity.current) { 56.dp.toPx() }
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
         ) {
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .pointerInput(Unit) {
-                        var totalDrag = 0f
-                        detectHorizontalDragGestures(
-                            onDragStart = { totalDrag = 0f },
-                            onDragEnd = {
-                                if (totalDrag <= -swipeThresholdPx) {
-                                    soundPlayer.play(SoundKey.SWIPE)
-                                    hapticPlayer.fire(HapticKind.SOFT)
-                                    onEvent(DashboardEvent.NextPeriod)
-                                } else if (totalDrag >= swipeThresholdPx) {
-                                    soundPlayer.play(SoundKey.SWIPE)
-                                    hapticPlayer.fire(HapticKind.SOFT)
-                                    onEvent(DashboardEvent.PreviousPeriod)
-                                }
-                            },
-                        ) { _, dragAmount -> totalDrag += dragAmount }
-                    },
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .pointerInput(Unit) {
+                            var totalDrag = 0f
+                            detectHorizontalDragGestures(
+                                onDragStart = { totalDrag = 0f },
+                                onDragEnd = {
+                                    if (totalDrag <= -swipeThresholdPx) {
+                                        soundPlayer.play(SoundKey.SWIPE)
+                                        hapticPlayer.fire(HapticKind.SOFT)
+                                        onEvent(DashboardEvent.NextPeriod)
+                                    } else if (totalDrag >= swipeThresholdPx) {
+                                        soundPlayer.play(SoundKey.SWIPE)
+                                        hapticPlayer.fire(HapticKind.SOFT)
+                                        onEvent(DashboardEvent.PreviousPeriod)
+                                    }
+                                },
+                            ) { _, dragAmount -> totalDrag += dragAmount }
+                        },
             ) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -170,15 +171,23 @@ fun DashboardContent(
                         modifier = Modifier.fillMaxSize(),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        val balanceAmount = formatBalanceAmount(
-                            state = state,
-                            unavailableText = stringResource(R.string.dashboard_balance_unavailable_amount),
-                            locale = resourceLocale,
-                        )
-                        val isNegative = (state.balanceSnapshot?.net?.amount?.signum() ?: 0) < 0
-                        val overBudgetText = state.overBudgetAmount?.let { overage ->
-                            stringResource(R.string.dashboard_over_budget, formatMoney(overage, resourceLocale))
-                        }
+                        val balanceAmount =
+                            formatBalanceAmount(
+                                state = state,
+                                unavailableText = stringResource(R.string.dashboard_balance_unavailable_amount),
+                                locale = resourceLocale,
+                            )
+                        val isNegative =
+                            (
+                                state.balanceSnapshot
+                                    ?.net
+                                    ?.amount
+                                    ?.signum() ?: 0
+                            ) < 0
+                        val overBudgetText =
+                            state.overBudgetAmount?.let { overage ->
+                                stringResource(R.string.dashboard_over_budget, formatMoney(overage, resourceLocale))
+                            }
 
                         PeriodLabel(
                             period = state.period,
@@ -202,20 +211,22 @@ fun DashboardContent(
                         )
 
                         Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f)
-                                .testTag(DASHBOARD_DONUT_TAG),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f)
+                                    .testTag(DASHBOARD_DONUT_TAG),
                         ) {
                             val otherCategoryLabel = stringResource(R.string.category_other)
                             val otherCategoryColor = MaterialTheme.colorScheme.dashboardDonutOtherSlice
-                            val dashboardSlices = state.slices.map { slice ->
-                                if (slice.categoryId == OTHER_CATEGORY_ID) {
-                                    slice.copy(label = otherCategoryLabel, color = otherCategoryColor)
-                                } else {
-                                    slice
+                            val dashboardSlices =
+                                state.slices.map { slice ->
+                                    if (slice.categoryId == OTHER_CATEGORY_ID) {
+                                        slice.copy(label = otherCategoryLabel, color = otherCategoryColor)
+                                    } else {
+                                        slice
+                                    }
                                 }
-                            }
                             MonefyDonutChart(
                                 income = state.balanceSnapshot?.income?.amount ?: BigDecimal.ZERO,
                                 expense = state.balanceSnapshot?.expense?.amount ?: BigDecimal.ZERO,
@@ -317,9 +328,10 @@ private fun DashboardTopBar(
             IconButton(onClick = onNavigationClick) {
                 Icon(
                     imageVector = if (drawerOpen) Icons.AutoMirrored.Filled.ArrowBack else Icons.Filled.Menu,
-                    contentDescription = stringResource(
-                        if (drawerOpen) R.string.dashboard_back else R.string.dashboard_menu,
-                    ),
+                    contentDescription =
+                        stringResource(
+                            if (drawerOpen) R.string.dashboard_back else R.string.dashboard_menu,
+                        ),
                     tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.size(Spacing.xxl),
                 )
@@ -363,36 +375,37 @@ private fun DashboardBalancePanel(
     modifier: Modifier = Modifier,
 ) {
     val shape = MaterialTheme.shapes.dashboardBalancePanel
-    val containerColor = if (isNegative) {
-        MaterialTheme.colorScheme.dashboardBalancePanelContainerNegative
-    } else {
-        MaterialTheme.colorScheme.dashboardBalancePanelContainer
-    }
-    val contentColor = if (isNegative) {
-        MaterialTheme.colorScheme.dashboardBalancePanelContentNegative
-    } else {
-        MaterialTheme.colorScheme.dashboardBalancePanelContent
-    }
+    val containerColor =
+        if (isNegative) {
+            MaterialTheme.colorScheme.dashboardBalancePanelContainerNegative
+        } else {
+            MaterialTheme.colorScheme.dashboardBalancePanelContainer
+        }
+    val contentColor =
+        if (isNegative) {
+            MaterialTheme.colorScheme.dashboardBalancePanelContentNegative
+        } else {
+            MaterialTheme.colorScheme.dashboardBalancePanelContent
+        }
     Column(
-        modifier = modifier
-            .widthIn(max = Spacing.dashboardBalancePanelMaxWidth)
-            .fillMaxWidth()
-            .height(Spacing.dashboardBalancePanelHeight)
-            .padding(horizontal = Spacing.none)
-            .shadow(
-                elevation = Spacing.s,
-                shape = shape,
-                ambientColor = MaterialTheme.colorScheme.dashboardBalancePanelShadow,
-                spotColor = MaterialTheme.colorScheme.dashboardBalancePanelShadow,
-            )
-            .background(containerColor, shape)
-            .border(
-                width = Spacing.dashboardBalancePanelBorderWidth,
-                color = MaterialTheme.colorScheme.dashboardBalancePanelOutline,
-                shape = shape,
-            )
-            .clickable(onClick = onClick)
-            .padding(horizontal = Spacing.m, vertical = Spacing.s),
+        modifier =
+            modifier
+                .widthIn(max = Spacing.dashboardBalancePanelMaxWidth)
+                .fillMaxWidth()
+                .height(Spacing.dashboardBalancePanelHeight)
+                .padding(horizontal = Spacing.none)
+                .shadow(
+                    elevation = Spacing.s,
+                    shape = shape,
+                    ambientColor = MaterialTheme.colorScheme.dashboardBalancePanelShadow,
+                    spotColor = MaterialTheme.colorScheme.dashboardBalancePanelShadow,
+                ).background(containerColor, shape)
+                .border(
+                    width = Spacing.dashboardBalancePanelBorderWidth,
+                    color = MaterialTheme.colorScheme.dashboardBalancePanelOutline,
+                    shape = shape,
+                ).clickable(onClick = onClick)
+                .padding(horizontal = Spacing.m, vertical = Spacing.s),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
@@ -427,12 +440,16 @@ private fun formatBalanceAmount(
     )
 }
 
-private fun formatMoney(money: Money, locale: Locale): String = MoneyFormatter.format(
-    amount = money.amount,
-    currencySymbol = money.currency.symbol,
-    decimalDigits = money.currency.decimalDigits,
-    locale = locale,
-)
+private fun formatMoney(
+    money: Money,
+    locale: Locale,
+): String =
+    MoneyFormatter.format(
+        amount = money.amount,
+        currencySymbol = money.currency.symbol,
+        decimalDigits = money.currency.decimalDigits,
+        locale = locale,
+    )
 
 const val DASHBOARD_TOP_BAR_TITLE_TAG = "dashboard_top_bar_title"
 const val DASHBOARD_TOP_BAR_SUBTITLE_TAG = "dashboard_top_bar_subtitle"

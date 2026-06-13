@@ -37,7 +37,6 @@ import org.junit.Test
  *      Compose-UI test will use once Robolectric is wired.
  */
 class MonefyKeypadContractTest {
-
     // ---- KeypadEvent: sealed-interface hierarchy ----
 
     @Test
@@ -83,13 +82,14 @@ class MonefyKeypadContractTest {
 
     @Test
     fun `the five KeypadEvent kinds are mutually distinct`() {
-        val events: List<KeypadEvent> = listOf(
-            KeypadEvent.Digit(0),
-            KeypadEvent.Op(Operator.Plus),
-            KeypadEvent.Dot,
-            KeypadEvent.Backspace,
-            KeypadEvent.Equals,
-        )
+        val events: List<KeypadEvent> =
+            listOf(
+                KeypadEvent.Digit(0),
+                KeypadEvent.Op(Operator.Plus),
+                KeypadEvent.Dot,
+                KeypadEvent.Backspace,
+                KeypadEvent.Equals,
+            )
         // No two are the same class
         val classNames = events.map { it::class.simpleName }.toSet()
         assertEquals("five distinct subclasses expected", 5, classNames.size)
@@ -259,11 +259,25 @@ class MonefyKeypadContractTest {
     fun `the sixteen visible keypad labels are exhaustively covered`() {
         // SPEC (form-chrome restyle): digits 0..9 (10) + operators (4) + dot + equals = 16.
         // Backspace (⌫) is NO LONGER on the keypad — it moved to the amount box.
-        val labels = listOf(
-            "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
-            "+", "−", "×", "÷",
-            ".", "=",
-        )
+        val labels =
+            listOf(
+                "0",
+                "1",
+                "2",
+                "3",
+                "4",
+                "5",
+                "6",
+                "7",
+                "8",
+                "9",
+                "+",
+                "−",
+                "×",
+                "÷",
+                ".",
+                "=",
+            )
         assertEquals(16, labels.size)
         for (label in labels) {
             assertNotNull("label '$label' must map to an event", simulatePress(label))
@@ -284,25 +298,26 @@ class MonefyKeypadContractTest {
      * box owns backspace now (its ✕ clear affordance emits
      * KeypadEvent.Backspace via MonefyAmountInput.onClear).
      */
-    private fun simulatePress(label: String): KeypadEvent? = when (label) {
-        "0" -> KeypadEvent.Digit(0)
-        "1" -> KeypadEvent.Digit(1)
-        "2" -> KeypadEvent.Digit(2)
-        "3" -> KeypadEvent.Digit(3)
-        "4" -> KeypadEvent.Digit(4)
-        "5" -> KeypadEvent.Digit(5)
-        "6" -> KeypadEvent.Digit(6)
-        "7" -> KeypadEvent.Digit(7)
-        "8" -> KeypadEvent.Digit(8)
-        "9" -> KeypadEvent.Digit(9)
-        "+" -> KeypadEvent.Op(Operator.Plus)
-        "−" -> KeypadEvent.Op(Operator.Minus)
-        "×" -> KeypadEvent.Op(Operator.Multiply)
-        "÷" -> KeypadEvent.Op(Operator.Divide)
-        "." -> KeypadEvent.Dot
-        "=" -> KeypadEvent.Equals
-        else -> null
-    }
+    private fun simulatePress(label: String): KeypadEvent? =
+        when (label) {
+            "0" -> KeypadEvent.Digit(0)
+            "1" -> KeypadEvent.Digit(1)
+            "2" -> KeypadEvent.Digit(2)
+            "3" -> KeypadEvent.Digit(3)
+            "4" -> KeypadEvent.Digit(4)
+            "5" -> KeypadEvent.Digit(5)
+            "6" -> KeypadEvent.Digit(6)
+            "7" -> KeypadEvent.Digit(7)
+            "8" -> KeypadEvent.Digit(8)
+            "9" -> KeypadEvent.Digit(9)
+            "+" -> KeypadEvent.Op(Operator.Plus)
+            "−" -> KeypadEvent.Op(Operator.Minus)
+            "×" -> KeypadEvent.Op(Operator.Multiply)
+            "÷" -> KeypadEvent.Op(Operator.Divide)
+            "." -> KeypadEvent.Dot
+            "=" -> KeypadEvent.Equals
+            else -> null
+        }
 
     @Test
     fun `simulator and production wiring must stay aligned (smoke)`() {
@@ -325,6 +340,7 @@ class MonefyKeypadContractTest {
     /** Test double for SoundPlayer; mirrors the doc-only one in the placeholder UI test. */
     private class FakeSoundPlayer : SoundPlayer {
         val calls: MutableList<SoundKey> = mutableListOf()
+
         override fun play(key: SoundKey) {
             calls += key
         }

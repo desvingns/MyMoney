@@ -55,16 +55,16 @@ import com.kshavrin.mymoney.core.designsystem.form.FormBottomBar
 import com.kshavrin.mymoney.core.designsystem.icon.goalIcon
 import com.kshavrin.mymoney.core.domain.model.GoalStatus
 import com.kshavrin.mymoney.core.domain.model.GoalVariant
+import com.kshavrin.mymoney.core.ui.theme.goalBreakdownRowLabel
+import com.kshavrin.mymoney.core.ui.theme.goalBreakdownSectionContainer
+import com.kshavrin.mymoney.core.ui.theme.goalBreakdownSectionHeader
+import com.kshavrin.mymoney.core.ui.theme.goalBreakdownSectionOutline
 import com.kshavrin.mymoney.core.ui.theme.goalCreditProjectionAmount
 import com.kshavrin.mymoney.core.ui.theme.goalCreditProjectionContainer
 import com.kshavrin.mymoney.core.ui.theme.goalCreditProjectionContent
 import com.kshavrin.mymoney.core.ui.theme.goalCreditProjectionLabel
 import com.kshavrin.mymoney.core.ui.theme.goalCreditUnderfundedContainer
 import com.kshavrin.mymoney.core.ui.theme.goalCreditUnderfundedContent
-import com.kshavrin.mymoney.core.ui.theme.goalBreakdownRowLabel
-import com.kshavrin.mymoney.core.ui.theme.goalBreakdownSectionContainer
-import com.kshavrin.mymoney.core.ui.theme.goalBreakdownSectionHeader
-import com.kshavrin.mymoney.core.ui.theme.goalBreakdownSectionOutline
 import com.kshavrin.mymoney.core.ui.theme.goalFormReadOnlyContainer
 import com.kshavrin.mymoney.feature.dictionaries.R
 import com.kshavrin.mymoney.feature.dictionaries.common.GOAL_ICON_KEYS
@@ -120,11 +120,12 @@ fun GoalEditContent(
         },
     ) { innerPadding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(16.dp)
+                    .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             OutlinedTextField(
@@ -140,12 +141,13 @@ fun GoalEditContent(
                 style = MaterialTheme.typography.titleSmall,
             )
             Box(
-                modifier = Modifier
-                    .size(56.dp)
-                    .semantics { contentDescription = state.iconKey }
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .clickable { iconPickerVisible = true },
+                modifier =
+                    Modifier
+                        .size(56.dp)
+                        .semantics { contentDescription = state.iconKey }
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .clickable { iconPickerVisible = true },
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -186,9 +188,10 @@ fun GoalEditContent(
                     trailingIcon = {
                         ExposedDropdownMenuDefaults.TrailingIcon(expanded = accountMenuOpen)
                     },
-                    modifier = Modifier
-                        .menuAnchor()
-                        .fillMaxWidth(),
+                    modifier =
+                        Modifier
+                            .menuAnchor()
+                            .fillMaxWidth(),
                 )
                 ExposedDropdownMenu(
                     expanded = accountMenuOpen,
@@ -219,11 +222,12 @@ fun GoalEditContent(
 
             state.capitalDelta?.let { delta ->
                 val amount = state.capitalDeltaAmountFormatted.orEmpty()
-                val text = when {
-                    delta.signum() > 0 -> stringResource(R.string.goal_remaining_on_account, amount)
-                    delta.signum() < 0 -> stringResource(R.string.goal_short_on_account, amount)
-                    else -> stringResource(R.string.goal_capital_exact)
-                }
+                val text =
+                    when {
+                        delta.signum() > 0 -> stringResource(R.string.goal_remaining_on_account, amount)
+                        delta.signum() < 0 -> stringResource(R.string.goal_short_on_account, amount)
+                        else -> stringResource(R.string.goal_capital_exact)
+                    }
                 Text(text = text, style = MaterialTheme.typography.bodySmall)
             }
 
@@ -287,14 +291,15 @@ fun GoalEditContent(
             )
 
             state.savingsProjection?.let { projection ->
-                val text = when (projection.status) {
-                    GoalStatus.ALREADY_ACHIEVED -> stringResource(R.string.goal_already_achieved)
-                    GoalStatus.UNREACHABLE -> stringResource(R.string.goal_unreachable)
-                    GoalStatus.ON_TRACK -> {
-                        val date = projection.achievementDate?.format(GOAL_DATE_FORMATTER).orEmpty()
-                        stringResource(R.string.goal_achievement_date, date)
+                val text =
+                    when (projection.status) {
+                        GoalStatus.ALREADY_ACHIEVED -> stringResource(R.string.goal_already_achieved)
+                        GoalStatus.UNREACHABLE -> stringResource(R.string.goal_unreachable)
+                        GoalStatus.ON_TRACK -> {
+                            val date = projection.achievementDate?.format(GOAL_DATE_FORMATTER).orEmpty()
+                            stringResource(R.string.goal_achievement_date, date)
+                        }
                     }
-                }
                 Text(text = text)
             }
 
@@ -370,17 +375,19 @@ private fun CreditFields(
                     style = MaterialTheme.typography.goalCreditProjectionAmount,
                 )
                 Text(
-                    text = stringResource(
-                        R.string.goal_years_to_down_payment,
-                        monthsToYearsLabel(state.loanProjectionAccumulationMonths),
-                    ),
+                    text =
+                        stringResource(
+                            R.string.goal_years_to_down_payment,
+                            monthsToYearsLabel(state.loanProjectionAccumulationMonths),
+                        ),
                     style = MaterialTheme.typography.goalCreditProjectionLabel,
                 )
                 Text(
-                    text = stringResource(
-                        R.string.goal_total_years_to_payoff,
-                        monthsToYearsLabel(state.loanProjectionTotalMonths),
-                    ),
+                    text =
+                        stringResource(
+                            R.string.goal_total_years_to_payoff,
+                            monthsToYearsLabel(state.loanProjectionTotalMonths),
+                        ),
                     style = MaterialTheme.typography.goalCreditProjectionLabel,
                 )
             }
@@ -397,17 +404,19 @@ private fun CreditFields(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Text(
-                    text = stringResource(
-                        R.string.goal_total_interest,
-                        state.loanProjectionTotalInterestFormatted.orEmpty(),
-                    ),
+                    text =
+                        stringResource(
+                            R.string.goal_total_interest,
+                            state.loanProjectionTotalInterestFormatted.orEmpty(),
+                        ),
                     style = MaterialTheme.typography.goalCreditProjectionLabel,
                 )
                 Text(
-                    text = stringResource(
-                        R.string.goal_total_paid,
-                        state.loanProjectionTotalPaidFormatted.orEmpty(),
-                    ),
+                    text =
+                        stringResource(
+                            R.string.goal_total_paid,
+                            state.loanProjectionTotalPaidFormatted.orEmpty(),
+                        ),
                     style = MaterialTheme.typography.goalCreditProjectionLabel,
                 )
             }
@@ -432,8 +441,11 @@ private fun CreditFields(
 
 @Composable
 private fun monthsToYearsLabel(months: Int?): String =
-    if (months == null) stringResource(R.string.goal_accumulation_unreachable)
-    else stringResource(R.string.goal_years_months, months / 12, months % 12)
+    if (months == null) {
+        stringResource(R.string.goal_accumulation_unreachable)
+    } else {
+        stringResource(R.string.goal_years_months, months / 12, months % 12)
+    }
 
 @Composable
 private fun BreakdownSection(

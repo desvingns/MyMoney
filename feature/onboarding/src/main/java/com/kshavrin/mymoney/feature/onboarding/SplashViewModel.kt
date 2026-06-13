@@ -12,21 +12,22 @@ import java.time.Instant
 import javax.inject.Inject
 
 @HiltViewModel
-class SplashViewModel @Inject constructor(
-    private val initialDataSeeder: InitialDataSeeder,
-) : ViewModel() {
+class SplashViewModel
+    @Inject
+    constructor(
+        private val initialDataSeeder: InitialDataSeeder,
+    ) : ViewModel() {
+        private val _state = MutableStateFlow(SplashState())
+        val state: StateFlow<SplashState> = _state.asStateFlow()
 
-    private val _state = MutableStateFlow(SplashState())
-    val state: StateFlow<SplashState> = _state.asStateFlow()
-
-    fun initialise() {
-        if (_state.value.destination != SplashDestination.Pending) return
-        viewModelScope.launch {
-            initialDataSeeder.seedIfNeeded(Instant.now())
-            _state.value = _state.value.copy(destination = SplashDestination.Onboarding)
+        fun initialise() {
+            if (_state.value.destination != SplashDestination.Pending) return
+            viewModelScope.launch {
+                initialDataSeeder.seedIfNeeded(Instant.now())
+                _state.value = _state.value.copy(destination = SplashDestination.Onboarding)
+            }
         }
     }
-}
 
 data class SplashState(
     val destination: SplashDestination = SplashDestination.Pending,

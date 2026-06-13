@@ -16,50 +16,53 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class SyncSchedulerImpl @Inject constructor(
-    @ApplicationContext private val context: Context,
-) : SyncScheduler {
+class SyncSchedulerImpl
+    @Inject
+    constructor(
+        @ApplicationContext private val context: Context,
+    ) : SyncScheduler {
+        private val workManager: WorkManager get() = WorkManager.getInstance(context)
 
-    private val workManager: WorkManager get() = WorkManager.getInstance(context)
-
-    override fun enablePeriodicSync() {
-        val request = PeriodicWorkRequestBuilder<SyncWorker>(PERIOD_HOURS, TimeUnit.HOURS)
-            .setConstraints(
-                Constraints.Builder()
-                    .setRequiredNetworkType(NetworkType.UNMETERED)
-                    .setRequiresBatteryNotLow(true)
-                    .build(),
+        override fun enablePeriodicSync() {
+            val request =
+                PeriodicWorkRequestBuilder<SyncWorker>(PERIOD_HOURS, TimeUnit.HOURS)
+                    .setConstraints(
+                        Constraints
+                            .Builder()
+                            .setRequiredNetworkType(NetworkType.UNMETERED)
+                            .setRequiresBatteryNotLow(true)
+                            .build(),
+                    ).build()
+            workManager.enqueueUniquePeriodicWork(
+                SyncWorker.UNIQUE_PERIODIC,
+                ExistingPeriodicWorkPolicy.KEEP,
+                request,
             )
-            .build()
-        workManager.enqueueUniquePeriodicWork(
-            SyncWorker.UNIQUE_PERIODIC,
-            ExistingPeriodicWorkPolicy.KEEP,
-            request,
-        )
-    }
+        }
 
-    override fun disablePeriodicSync() {
-        workManager.cancelUniqueWork(SyncWorker.UNIQUE_PERIODIC)
-    }
+        override fun disablePeriodicSync() {
+            workManager.cancelUniqueWork(SyncWorker.UNIQUE_PERIODIC)
+        }
 
-    override fun syncNow(target: SyncTarget?) {
-        val request = OneTimeWorkRequestBuilder<SyncWorker>()
-            .setInputData(workDataOf(SyncWorker.KEY_TARGET to target?.name))
-            .setConstraints(
-                Constraints.Builder()
-                    .setRequiredNetworkType(NetworkType.CONNECTED)
-                    .setRequiresBatteryNotLow(true)
-                    .build(),
+        override fun syncNow(target: SyncTarget?) {
+            val request =
+                OneTimeWorkRequestBuilder<SyncWorker>()
+                    .setInputData(workDataOf(SyncWorker.KEY_TARGET to target?.name))
+                    .setConstraints(
+                        Constraints
+                            .Builder()
+                            .setRequiredNetworkType(NetworkType.CONNECTED)
+                            .setRequiresBatteryNotLow(true)
+                            .build(),
+                    ).build()
+            workManager.enqueueUniqueWork(
+                SyncWorker.UNIQUE_MANUAL,
+                ExistingWorkPolicy.REPLACE,
+                request,
             )
-            .build()
-        workManager.enqueueUniqueWork(
-            SyncWorker.UNIQUE_MANUAL,
-            ExistingWorkPolicy.REPLACE,
-            request,
-        )
-    }
+        }
 
-    private companion object {
-        const val PERIOD_HOURS = 6L
+        private companion object {
+            const val PERIOD_HOURS = 6L
+        }
     }
-}

@@ -24,9 +24,10 @@ import com.kshavrin.mymoney.core.ui.theme.Spacing
 fun PreviewSamplePalette() {
     Surface(color = MaterialTheme.colorScheme.background) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Spacing.l),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(Spacing.l),
             verticalArrangement = Arrangement.spacedBy(Spacing.s),
         ) {
             Text("Display Large", style = MaterialTheme.typography.displayLarge)
@@ -67,7 +68,10 @@ fun PreviewSamplePalette() {
 }
 
 @Composable
-private fun SwatchRow(label: String, color: Color) {
+private fun SwatchRow(
+    label: String,
+    color: Color,
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(Spacing.s),
@@ -80,10 +84,11 @@ private fun SwatchRow(label: String, color: Color) {
 @Composable
 private fun Swatch(color: Color) {
     Surface(
-        modifier = Modifier
-            .size(24.dp)
-            .clip(RoundedCornerShape(Spacing.xs))
-            .background(color),
+        modifier =
+            Modifier
+                .size(24.dp)
+                .clip(RoundedCornerShape(Spacing.xs))
+                .background(color),
         color = color,
         content = {},
     )

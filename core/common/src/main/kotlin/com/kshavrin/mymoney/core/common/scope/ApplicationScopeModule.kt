@@ -14,7 +14,6 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object ApplicationScopeModule {
-
     @Provides
     @Singleton
     @ApplicationScope

@@ -22,7 +22,6 @@ import org.junit.Test
  * a documented placeholder in [HapticPlayerImplTest].
  */
 class HapticPlayerContractTest {
-
     // ---- HapticKind: exact membership ----
 
     @Test
@@ -128,6 +127,7 @@ class HapticPlayerContractTest {
      */
     private class FakeHapticPlayer : HapticPlayer {
         val calls: MutableList<HapticKind> = mutableListOf()
+
         override fun fire(kind: HapticKind) {
             calls += kind
         }

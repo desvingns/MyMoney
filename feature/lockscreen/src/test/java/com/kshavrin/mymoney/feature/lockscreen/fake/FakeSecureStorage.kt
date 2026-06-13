@@ -6,7 +6,6 @@ import com.kshavrin.mymoney.core.datastore.model.SecureSettings
 class FakeSecureStorage(
     initial: SecureSettings = SecureSettings(),
 ) : SecureStorage {
-
     private var current: SecureSettings = initial
 
     var onWritePinHash: ((String?) -> Unit)? = null
@@ -31,12 +30,16 @@ class FakeSecureStorage(
         current = current.copy(pinHash = hash)
     }
 
-    override fun writePinLockout(failedPinAttempts: Int, deadlineEpochMs: Long?) {
+    override fun writePinLockout(
+        failedPinAttempts: Int,
+        deadlineEpochMs: Long?,
+    ) {
         writtenPinLockouts += failedPinAttempts to deadlineEpochMs
-        current = current.copy(
-            failedPinAttempts = failedPinAttempts,
-            pinLockoutDeadlineEpochMs = deadlineEpochMs,
-        )
+        current =
+            current.copy(
+                failedPinAttempts = failedPinAttempts,
+                pinLockoutDeadlineEpochMs = deadlineEpochMs,
+            )
     }
 
     override fun clearAll() {
@@ -48,10 +51,14 @@ class FakeSecureStorage(
         current = current.copy(pinHash = hash)
     }
 
-    fun seedPinLockout(failedPinAttempts: Int, deadlineEpochMs: Long?) {
-        current = current.copy(
-            failedPinAttempts = failedPinAttempts,
-            pinLockoutDeadlineEpochMs = deadlineEpochMs,
-        )
+    fun seedPinLockout(
+        failedPinAttempts: Int,
+        deadlineEpochMs: Long?,
+    ) {
+        current =
+            current.copy(
+                failedPinAttempts = failedPinAttempts,
+                pinLockoutDeadlineEpochMs = deadlineEpochMs,
+            )
     }
 }

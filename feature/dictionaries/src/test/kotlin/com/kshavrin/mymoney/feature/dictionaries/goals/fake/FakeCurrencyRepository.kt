@@ -7,7 +7,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 class FakeCurrencyRepository : CurrencyRepository {
-
     private val state = MutableStateFlow<List<Currency>>(emptyList())
 
     fun seed(vararg currencies: Currency) {
@@ -34,7 +33,10 @@ class FakeCurrencyRepository : CurrencyRepository {
         currencies.forEach { upsert(it) }
     }
 
-    override suspend fun setActive(id: Long, active: Boolean) {
+    override suspend fun setActive(
+        id: Long,
+        active: Boolean,
+    ) {
         state.value = state.value.map { if (it.id == id) it.copy(isActive = active) else it }
     }
 }

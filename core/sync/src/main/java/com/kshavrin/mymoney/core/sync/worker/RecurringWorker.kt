@@ -11,22 +11,24 @@ import kotlinx.coroutines.CancellationException
 import java.time.Instant
 
 @HiltWorker
-class RecurringWorker @AssistedInject constructor(
-    @Assisted appContext: Context,
-    @Assisted params: WorkerParameters,
-    private val generateDueRecurring: GenerateDueRecurringUseCase,
-) : CoroutineWorker(appContext, params) {
+class RecurringWorker
+    @AssistedInject
+    constructor(
+        @Assisted appContext: Context,
+        @Assisted params: WorkerParameters,
+        private val generateDueRecurring: GenerateDueRecurringUseCase,
+    ) : CoroutineWorker(appContext, params) {
+        override suspend fun doWork(): Result =
+            runCatching { generateDueRecurring(Instant.now()) }.fold(
+                onSuccess = { Result.success() },
+                onFailure = {
+                    if (it is CancellationException) throw it
+                    if (runAttemptCount < MAX_RETRIES) Result.retry() else Result.failure()
+                },
+            )
 
-    override suspend fun doWork(): Result = runCatching { generateDueRecurring(Instant.now()) }.fold(
-        onSuccess = { Result.success() },
-        onFailure = {
-            if (it is CancellationException) throw it
-            if (runAttemptCount < MAX_RETRIES) Result.retry() else Result.failure()
-        },
-    )
-
-    companion object {
-        const val MAX_RETRIES = 3
-        const val UNIQUE_PERIODIC = "recurring"
+        companion object {
+            const val MAX_RETRIES = 3
+            const val UNIQUE_PERIODIC = "recurring"
+        }
     }
-}

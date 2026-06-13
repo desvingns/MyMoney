@@ -34,290 +34,329 @@ import java.time.LocalDate
 import javax.inject.Inject
 
 @HiltViewModel
-class GoalEditViewModel @Inject constructor(
-    private val goalRepository: GoalRepository,
-    private val accountRepository: AccountRepository,
-    private val currencyRepository: CurrencyRepository,
-    private val savingsProjector: GoalSavingsProjector,
-    private val loanCalculator: GoalLoanCalculator,
-    private val contributionCalculator: ContributionCalculator,
-    savedStateHandle: SavedStateHandle,
-) : ViewModel() {
+class GoalEditViewModel
+    @Inject
+    constructor(
+        private val goalRepository: GoalRepository,
+        private val accountRepository: AccountRepository,
+        private val currencyRepository: CurrencyRepository,
+        private val savingsProjector: GoalSavingsProjector,
+        private val loanCalculator: GoalLoanCalculator,
+        private val contributionCalculator: ContributionCalculator,
+        savedStateHandle: SavedStateHandle,
+    ) : ViewModel() {
+        private val goalId: Long = savedStateHandle.get<Long>("id") ?: -1L
 
-    private val goalId: Long = savedStateHandle.get<Long>("id") ?: -1L
+        private val _state = MutableStateFlow(GoalEditState(id = goalId, isCreateMode = goalId == -1L))
+        val state: StateFlow<GoalEditState> = _state.asStateFlow()
 
-    private val _state = MutableStateFlow(GoalEditState(id = goalId, isCreateMode = goalId == -1L))
-    val state: StateFlow<GoalEditState> = _state.asStateFlow()
+        private val _actions = MutableSharedFlow<GoalEditAction>(extraBufferCapacity = 4)
+        val actions: SharedFlow<GoalEditAction> = _actions.asSharedFlow()
 
-    private val _actions = MutableSharedFlow<GoalEditAction>(extraBufferCapacity = 4)
-    val actions: SharedFlow<GoalEditAction> = _actions.asSharedFlow()
-
-    init {
-        viewModelScope.launch {
-            val accounts = accountRepository.observeActive().first()
-            _state.value = _state.value.copy(accounts = accounts)
-            if (goalId != -1L) {
-                goalRepository.findById(goalId)?.let { existing ->
-                    val breakdown = existing.contributionBreakdown
-                    _state.value = _state.value.copy(
-                        name = existing.name,
-                        iconKey = existing.iconKey,
-                        variant = existing.variant,
-                        accountId = existing.accountId,
-                        startingCapital = existing.startingCapital.toPlainString(),
-                        monthlyContribution = existing.monthlyContribution.toPlainString(),
-                        targetAmount = existing.targetAmount.toPlainString(),
-                        annualRatePercent = existing.annualRatePercent?.toPlainString().orEmpty(),
-                        downPayment = existing.downPayment?.toPlainString().orEmpty(),
-                        termYears = existing.termMonths?.let { (it / 12).toString() }.orEmpty(),
-                        isCreateMode = false,
-                        advancedContribution = breakdown.enabled,
-                        incomeRows = breakdown.incomes.map { it.toRowUi() },
-                        expenseRows = breakdown.expenses.map { it.toRowUi() },
-                    )
-                    selectAccount(existing.accountId)
+        init {
+            viewModelScope.launch {
+                val accounts = accountRepository.observeActive().first()
+                _state.value = _state.value.copy(accounts = accounts)
+                if (goalId != -1L) {
+                    goalRepository.findById(goalId)?.let { existing ->
+                        val breakdown = existing.contributionBreakdown
+                        _state.value =
+                            _state.value.copy(
+                                name = existing.name,
+                                iconKey = existing.iconKey,
+                                variant = existing.variant,
+                                accountId = existing.accountId,
+                                startingCapital = existing.startingCapital.toPlainString(),
+                                monthlyContribution = existing.monthlyContribution.toPlainString(),
+                                targetAmount = existing.targetAmount.toPlainString(),
+                                annualRatePercent = existing.annualRatePercent?.toPlainString().orEmpty(),
+                                downPayment = existing.downPayment?.toPlainString().orEmpty(),
+                                termYears = existing.termMonths?.let { (it / 12).toString() }.orEmpty(),
+                                isCreateMode = false,
+                                advancedContribution = breakdown.enabled,
+                                incomeRows = breakdown.incomes.map { it.toRowUi() },
+                                expenseRows = breakdown.expenses.map { it.toRowUi() },
+                            )
+                        selectAccount(existing.accountId)
+                    }
+                } else {
+                    accounts.firstOrNull()?.let { selectAccount(it.id) }
                 }
-            } else {
-                accounts.firstOrNull()?.let { selectAccount(it.id) }
             }
         }
-    }
 
-    fun onEvent(event: GoalEditEvent) {
-        when (event) {
-            is GoalEditEvent.NameChanged ->
-                _state.value = _state.value.copy(name = event.value)
-            is GoalEditEvent.IconSelected ->
-                _state.value = _state.value.copy(iconKey = event.iconKey)
-            is GoalEditEvent.VariantChanged -> {
-                _state.value = if (event.variant == GoalVariant.SAVINGS) {
-                    _state.value.copy(
-                        variant = event.variant,
-                        annualRatePercent = "",
-                        downPayment = "",
-                        termYears = "",
-                    )
-                } else {
-                    _state.value.copy(variant = event.variant)
-                }
-                recompute()
-            }
-            is GoalEditEvent.RateChanged -> {
-                _state.value = _state.value.copy(annualRatePercent = event.value)
-                recompute()
-            }
-            is GoalEditEvent.DownPaymentChanged -> {
-                _state.value = _state.value.copy(downPayment = event.value)
-                recompute()
-            }
-            is GoalEditEvent.TermYearsChanged -> {
-                _state.value = _state.value.copy(termYears = event.value)
-                recompute()
-            }
-            is GoalEditEvent.AccountSelected ->
-                viewModelScope.launch { selectAccount(event.id) }
-            is GoalEditEvent.StartingCapitalChanged -> {
-                _state.value = _state.value.copy(startingCapital = event.value)
-                recompute()
-            }
-            is GoalEditEvent.MonthlyChanged -> {
-                _state.value = _state.value.copy(monthlyContribution = event.value)
-                recompute()
-            }
-            is GoalEditEvent.TargetChanged -> {
-                _state.value = _state.value.copy(targetAmount = event.value)
-                recompute()
-            }
-            is GoalEditEvent.AdvancedToggled -> {
-                if (event.enabled) {
-                    val seedIncomes = _state.value.incomeRows.isEmpty() &&
-                        _state.value.expenseRows.isEmpty()
-                    _state.value = _state.value.copy(
-                        advancedContribution = true,
-                        incomeRows = if (seedIncomes) listOf(ContributionRowUi()) else _state.value.incomeRows,
-                        expenseRows = if (seedIncomes) listOf(ContributionRowUi()) else _state.value.expenseRows,
-                    )
+        fun onEvent(event: GoalEditEvent) {
+            when (event) {
+                is GoalEditEvent.NameChanged ->
+                    _state.value = _state.value.copy(name = event.value)
+                is GoalEditEvent.IconSelected ->
+                    _state.value = _state.value.copy(iconKey = event.iconKey)
+                is GoalEditEvent.VariantChanged -> {
+                    _state.value =
+                        if (event.variant == GoalVariant.SAVINGS) {
+                            _state.value.copy(
+                                variant = event.variant,
+                                annualRatePercent = "",
+                                downPayment = "",
+                                termYears = "",
+                            )
+                        } else {
+                            _state.value.copy(variant = event.variant)
+                        }
                     recompute()
+                }
+                is GoalEditEvent.RateChanged -> {
+                    _state.value = _state.value.copy(annualRatePercent = event.value)
+                    recompute()
+                }
+                is GoalEditEvent.DownPaymentChanged -> {
+                    _state.value = _state.value.copy(downPayment = event.value)
+                    recompute()
+                }
+                is GoalEditEvent.TermYearsChanged -> {
+                    _state.value = _state.value.copy(termYears = event.value)
+                    recompute()
+                }
+                is GoalEditEvent.AccountSelected ->
+                    viewModelScope.launch { selectAccount(event.id) }
+                is GoalEditEvent.StartingCapitalChanged -> {
+                    _state.value = _state.value.copy(startingCapital = event.value)
+                    recompute()
+                }
+                is GoalEditEvent.MonthlyChanged -> {
+                    _state.value = _state.value.copy(monthlyContribution = event.value)
+                    recompute()
+                }
+                is GoalEditEvent.TargetChanged -> {
+                    _state.value = _state.value.copy(targetAmount = event.value)
+                    recompute()
+                }
+                is GoalEditEvent.AdvancedToggled -> {
+                    if (event.enabled) {
+                        val seedIncomes =
+                            _state.value.incomeRows.isEmpty() &&
+                                _state.value.expenseRows.isEmpty()
+                        _state.value =
+                            _state.value.copy(
+                                advancedContribution = true,
+                                incomeRows = if (seedIncomes) listOf(ContributionRowUi()) else _state.value.incomeRows,
+                                expenseRows = if (seedIncomes) listOf(ContributionRowUi()) else _state.value.expenseRows,
+                            )
+                        recompute()
+                    } else {
+                        _state.value = _state.value.copy(advancedContribution = false)
+                    }
+                }
+                GoalEditEvent.IncomeAdded -> {
+                    _state.value =
+                        _state.value.copy(
+                            incomeRows = _state.value.incomeRows + ContributionRowUi(),
+                        )
+                    recompute()
+                }
+                GoalEditEvent.ExpenseAdded -> {
+                    _state.value =
+                        _state.value.copy(
+                            expenseRows = _state.value.expenseRows + ContributionRowUi(),
+                        )
+                    recompute()
+                }
+                is GoalEditEvent.IncomeRemoved -> {
+                    _state.value =
+                        _state.value.copy(
+                            incomeRows = _state.value.incomeRows.removeAt(event.index),
+                        )
+                    recompute()
+                }
+                is GoalEditEvent.ExpenseRemoved -> {
+                    _state.value =
+                        _state.value.copy(
+                            expenseRows = _state.value.expenseRows.removeAt(event.index),
+                        )
+                    recompute()
+                }
+                is GoalEditEvent.IncomeNameChanged -> {
+                    _state.value =
+                        _state.value.copy(
+                            incomeRows =
+                                _state.value.incomeRows.updateAt(event.index) {
+                                    it.copy(name = event.value)
+                                },
+                        )
+                    recompute()
+                }
+                is GoalEditEvent.IncomeAmountChanged -> {
+                    _state.value =
+                        _state.value.copy(
+                            incomeRows =
+                                _state.value.incomeRows.updateAt(event.index) {
+                                    it.copy(amount = event.value)
+                                },
+                        )
+                    recompute()
+                }
+                is GoalEditEvent.ExpenseNameChanged -> {
+                    _state.value =
+                        _state.value.copy(
+                            expenseRows =
+                                _state.value.expenseRows.updateAt(event.index) {
+                                    it.copy(name = event.value)
+                                },
+                        )
+                    recompute()
+                }
+                is GoalEditEvent.ExpenseAmountChanged -> {
+                    _state.value =
+                        _state.value.copy(
+                            expenseRows =
+                                _state.value.expenseRows.updateAt(event.index) {
+                                    it.copy(amount = event.value)
+                                },
+                        )
+                    recompute()
+                }
+                GoalEditEvent.SaveClicked -> save()
+                GoalEditEvent.BackClicked ->
+                    viewModelScope.launch { _actions.emit(GoalEditAction.NavigateBack) }
+            }
+        }
+
+        private suspend fun selectAccount(accountId: Long) {
+            val account =
+                _state.value.accounts.firstOrNull { it.id == accountId }
+                    ?: accountRepository.findById(accountId)
+            val balance = accountRepository.computeBalance(accountId)
+            val symbol = account?.let { currencyRepository.findById(it.currencyId)?.symbol }.orEmpty()
+            _state.value =
+                _state.value.copy(
+                    accountId = accountId,
+                    currentBalance = balance,
+                    currencySymbol = symbol,
+                    currentBalanceFormatted = formatMoney(balance, symbol),
+                )
+            recompute()
+        }
+
+        private fun recompute() {
+            var s = _state.value
+            if (s.advancedContribution) {
+                val derived = contributionCalculator(s.toBreakdown()).toPlainString()
+                s = s.copy(monthlyContribution = derived)
+                _state.value = s
+            }
+            val target = s.targetAmount.parseMoney()
+            val capital = s.startingCapital.parseMoney()
+            val monthly = s.monthlyContribution.parseMoney()
+
+            val projection =
+                savingsProjector(
+                    SavingsGoalInput(
+                        targetAmount = target,
+                        startingCapital = capital,
+                        monthlyContribution = monthly,
+                    ),
+                    LocalDate.now(),
+                )
+
+            val delta = s.currentBalance?.let { capitalVsBalanceDelta(it, capital) }
+
+            val termMonths =
+                s.termYears
+                    .trim()
+                    .toIntOrNull()
+                    ?.times(12)
+            val loanProjection =
+                if (
+                    s.variant == GoalVariant.CREDIT &&
+                    termMonths != null &&
+                    termMonths >= 1
+                ) {
+                    loanCalculator(
+                        LoanGoalInput(
+                            targetAmount = target,
+                            startingCapital = capital,
+                            downPayment = s.downPayment.parseMoney(),
+                            annualRatePercent = s.annualRatePercent.parseMoney(),
+                            termMonths = termMonths,
+                            monthlyContribution = monthly,
+                        ),
+                    )
                 } else {
-                    _state.value = _state.value.copy(advancedContribution = false)
+                    null
+                }
+
+            val canSave =
+                s.variant != GoalVariant.CREDIT ||
+                    (termMonths != null && termMonths >= 1)
+
+            _state.value =
+                s.copy(
+                    savingsProjection = projection,
+                    capitalDelta = delta,
+                    capitalDeltaAmountFormatted = delta?.let { formatMoney(it.abs(), s.currencySymbol) },
+                    loanProjection = loanProjection,
+                    loanProjectionTotalInterestFormatted =
+                        loanProjection?.let {
+                            formatMoney(it.totalInterest, s.currencySymbol)
+                        },
+                    loanProjectionTotalPaidFormatted =
+                        loanProjection?.let {
+                            formatMoney(it.totalPaid, s.currencySymbol)
+                        },
+                    loanProjectionMonthlyPaymentFormatted =
+                        loanProjection?.let {
+                            formatMoney(it.baseMonthlyPayment, s.currencySymbol)
+                        },
+                    loanProjectionAccumulationMonths = loanProjection?.accumulationMonths,
+                    loanProjectionTotalMonths = loanProjection?.totalMonthsToPayoff,
+                    canSave = canSave,
+                )
+        }
+
+        private fun save() {
+            if (_state.value.isSaving) return
+            val s = _state.value
+            if (!s.canSave) return
+            val isCredit = s.variant == GoalVariant.CREDIT
+            _state.value = s.copy(isSaving = true)
+            viewModelScope.launch {
+                try {
+                    val now = Instant.now()
+                    goalRepository.upsert(
+                        Goal(
+                            id = if (s.id == -1L) 0L else s.id,
+                            name = s.name,
+                            iconKey = s.iconKey,
+                            colorHex = s.colorHex,
+                            accountId = s.accountId,
+                            variant = s.variant,
+                            targetAmount = s.targetAmount.parseMoney(),
+                            startingCapital = s.startingCapital.parseMoney(),
+                            monthlyContribution = s.monthlyContribution.parseMoney(),
+                            annualRatePercent = if (isCredit) s.annualRatePercent.parseMoney() else null,
+                            downPayment = if (isCredit) s.downPayment.parseMoney() else null,
+                            termMonths =
+                                if (isCredit) {
+                                    s.termYears
+                                        .trim()
+                                        .toIntOrNull()
+                                        ?.times(12)
+                                } else {
+                                    null
+                                },
+                            createdAt = now,
+                            updatedAt = now,
+                            isArchived = false,
+                            contributionBreakdown = s.toBreakdown(),
+                        ),
+                    )
+                    _actions.emit(GoalEditAction.NavigateBack)
+                } finally {
+                    _state.value = _state.value.copy(isSaving = false)
                 }
             }
-            GoalEditEvent.IncomeAdded -> {
-                _state.value = _state.value.copy(
-                    incomeRows = _state.value.incomeRows + ContributionRowUi(),
-                )
-                recompute()
-            }
-            GoalEditEvent.ExpenseAdded -> {
-                _state.value = _state.value.copy(
-                    expenseRows = _state.value.expenseRows + ContributionRowUi(),
-                )
-                recompute()
-            }
-            is GoalEditEvent.IncomeRemoved -> {
-                _state.value = _state.value.copy(
-                    incomeRows = _state.value.incomeRows.removeAt(event.index),
-                )
-                recompute()
-            }
-            is GoalEditEvent.ExpenseRemoved -> {
-                _state.value = _state.value.copy(
-                    expenseRows = _state.value.expenseRows.removeAt(event.index),
-                )
-                recompute()
-            }
-            is GoalEditEvent.IncomeNameChanged -> {
-                _state.value = _state.value.copy(
-                    incomeRows = _state.value.incomeRows.updateAt(event.index) {
-                        it.copy(name = event.value)
-                    },
-                )
-                recompute()
-            }
-            is GoalEditEvent.IncomeAmountChanged -> {
-                _state.value = _state.value.copy(
-                    incomeRows = _state.value.incomeRows.updateAt(event.index) {
-                        it.copy(amount = event.value)
-                    },
-                )
-                recompute()
-            }
-            is GoalEditEvent.ExpenseNameChanged -> {
-                _state.value = _state.value.copy(
-                    expenseRows = _state.value.expenseRows.updateAt(event.index) {
-                        it.copy(name = event.value)
-                    },
-                )
-                recompute()
-            }
-            is GoalEditEvent.ExpenseAmountChanged -> {
-                _state.value = _state.value.copy(
-                    expenseRows = _state.value.expenseRows.updateAt(event.index) {
-                        it.copy(amount = event.value)
-                    },
-                )
-                recompute()
-            }
-            GoalEditEvent.SaveClicked -> save()
-            GoalEditEvent.BackClicked ->
-                viewModelScope.launch { _actions.emit(GoalEditAction.NavigateBack) }
         }
     }
-
-    private suspend fun selectAccount(accountId: Long) {
-        val account = _state.value.accounts.firstOrNull { it.id == accountId }
-            ?: accountRepository.findById(accountId)
-        val balance = accountRepository.computeBalance(accountId)
-        val symbol = account?.let { currencyRepository.findById(it.currencyId)?.symbol }.orEmpty()
-        _state.value = _state.value.copy(
-            accountId = accountId,
-            currentBalance = balance,
-            currencySymbol = symbol,
-            currentBalanceFormatted = formatMoney(balance, symbol),
-        )
-        recompute()
-    }
-
-    private fun recompute() {
-        var s = _state.value
-        if (s.advancedContribution) {
-            val derived = contributionCalculator(s.toBreakdown()).toPlainString()
-            s = s.copy(monthlyContribution = derived)
-            _state.value = s
-        }
-        val target = s.targetAmount.parseMoney()
-        val capital = s.startingCapital.parseMoney()
-        val monthly = s.monthlyContribution.parseMoney()
-
-        val projection = savingsProjector(
-            SavingsGoalInput(
-                targetAmount = target,
-                startingCapital = capital,
-                monthlyContribution = monthly,
-            ),
-            LocalDate.now(),
-        )
-
-        val delta = s.currentBalance?.let { capitalVsBalanceDelta(it, capital) }
-
-        val termMonths = s.termYears.trim().toIntOrNull()?.times(12)
-        val loanProjection = if (
-            s.variant == GoalVariant.CREDIT &&
-            termMonths != null && termMonths >= 1
-        ) {
-            loanCalculator(
-                LoanGoalInput(
-                    targetAmount = target,
-                    startingCapital = capital,
-                    downPayment = s.downPayment.parseMoney(),
-                    annualRatePercent = s.annualRatePercent.parseMoney(),
-                    termMonths = termMonths,
-                    monthlyContribution = monthly,
-                ),
-            )
-        } else {
-            null
-        }
-
-        val canSave = s.variant != GoalVariant.CREDIT ||
-            (termMonths != null && termMonths >= 1)
-
-        _state.value = s.copy(
-            savingsProjection = projection,
-            capitalDelta = delta,
-            capitalDeltaAmountFormatted = delta?.let { formatMoney(it.abs(), s.currencySymbol) },
-            loanProjection = loanProjection,
-            loanProjectionTotalInterestFormatted = loanProjection?.let {
-                formatMoney(it.totalInterest, s.currencySymbol)
-            },
-            loanProjectionTotalPaidFormatted = loanProjection?.let {
-                formatMoney(it.totalPaid, s.currencySymbol)
-            },
-            loanProjectionMonthlyPaymentFormatted = loanProjection?.let {
-                formatMoney(it.baseMonthlyPayment, s.currencySymbol)
-            },
-            loanProjectionAccumulationMonths = loanProjection?.accumulationMonths,
-            loanProjectionTotalMonths = loanProjection?.totalMonthsToPayoff,
-            canSave = canSave,
-        )
-    }
-
-    private fun save() {
-        if (_state.value.isSaving) return
-        val s = _state.value
-        if (!s.canSave) return
-        val isCredit = s.variant == GoalVariant.CREDIT
-        _state.value = s.copy(isSaving = true)
-        viewModelScope.launch {
-            try {
-                val now = Instant.now()
-                goalRepository.upsert(
-                    Goal(
-                        id = if (s.id == -1L) 0L else s.id,
-                        name = s.name,
-                        iconKey = s.iconKey,
-                        colorHex = s.colorHex,
-                        accountId = s.accountId,
-                        variant = s.variant,
-                        targetAmount = s.targetAmount.parseMoney(),
-                        startingCapital = s.startingCapital.parseMoney(),
-                        monthlyContribution = s.monthlyContribution.parseMoney(),
-                        annualRatePercent = if (isCredit) s.annualRatePercent.parseMoney() else null,
-                        downPayment = if (isCredit) s.downPayment.parseMoney() else null,
-                        termMonths = if (isCredit) s.termYears.trim().toIntOrNull()?.times(12) else null,
-                        createdAt = now,
-                        updatedAt = now,
-                        isArchived = false,
-                        contributionBreakdown = s.toBreakdown(),
-                    ),
-                )
-                _actions.emit(GoalEditAction.NavigateBack)
-            } finally {
-                _state.value = _state.value.copy(isSaving = false)
-            }
-        }
-    }
-}
 
 private fun String.parseMoney(): BigDecimal =
     trim().toBigDecimalOrNull() ?: BigDecimal.ZERO
@@ -335,13 +374,19 @@ private fun GoalEditState.toBreakdown(): ContributionBreakdown =
         expenses = expenseRows.toItems(),
     )
 
-private fun <T> List<T>.updateAt(index: Int, transform: (T) -> T): List<T> =
+private fun <T> List<T>.updateAt(
+    index: Int,
+    transform: (T) -> T,
+): List<T> =
     if (index in indices) toMutableList().also { it[index] = transform(it[index]) } else this
 
 private fun <T> List<T>.removeAt(index: Int): List<T> =
     if (index in indices) toMutableList().also { it.removeAt(index) } else this
 
-private fun formatMoney(amount: BigDecimal, symbol: String): String {
+private fun formatMoney(
+    amount: BigDecimal,
+    symbol: String,
+): String {
     val plain = amount.stripTrailingZeros().toPlainString()
     return if (symbol.isBlank()) plain else "$plain $symbol"
 }
@@ -386,26 +431,84 @@ data class ContributionRowUi(
 )
 
 sealed interface GoalEditEvent {
-    data class NameChanged(val value: String) : GoalEditEvent
-    data class IconSelected(val iconKey: String) : GoalEditEvent
-    data class VariantChanged(val variant: GoalVariant) : GoalEditEvent
-    data class AccountSelected(val id: Long) : GoalEditEvent
-    data class StartingCapitalChanged(val value: String) : GoalEditEvent
-    data class MonthlyChanged(val value: String) : GoalEditEvent
-    data class TargetChanged(val value: String) : GoalEditEvent
-    data class RateChanged(val value: String) : GoalEditEvent
-    data class DownPaymentChanged(val value: String) : GoalEditEvent
-    data class TermYearsChanged(val value: String) : GoalEditEvent
-    data class AdvancedToggled(val enabled: Boolean) : GoalEditEvent
+    data class NameChanged(
+        val value: String,
+    ) : GoalEditEvent
+
+    data class IconSelected(
+        val iconKey: String,
+    ) : GoalEditEvent
+
+    data class VariantChanged(
+        val variant: GoalVariant,
+    ) : GoalEditEvent
+
+    data class AccountSelected(
+        val id: Long,
+    ) : GoalEditEvent
+
+    data class StartingCapitalChanged(
+        val value: String,
+    ) : GoalEditEvent
+
+    data class MonthlyChanged(
+        val value: String,
+    ) : GoalEditEvent
+
+    data class TargetChanged(
+        val value: String,
+    ) : GoalEditEvent
+
+    data class RateChanged(
+        val value: String,
+    ) : GoalEditEvent
+
+    data class DownPaymentChanged(
+        val value: String,
+    ) : GoalEditEvent
+
+    data class TermYearsChanged(
+        val value: String,
+    ) : GoalEditEvent
+
+    data class AdvancedToggled(
+        val enabled: Boolean,
+    ) : GoalEditEvent
+
     data object IncomeAdded : GoalEditEvent
+
     data object ExpenseAdded : GoalEditEvent
-    data class IncomeRemoved(val index: Int) : GoalEditEvent
-    data class ExpenseRemoved(val index: Int) : GoalEditEvent
-    data class IncomeNameChanged(val index: Int, val value: String) : GoalEditEvent
-    data class IncomeAmountChanged(val index: Int, val value: String) : GoalEditEvent
-    data class ExpenseNameChanged(val index: Int, val value: String) : GoalEditEvent
-    data class ExpenseAmountChanged(val index: Int, val value: String) : GoalEditEvent
+
+    data class IncomeRemoved(
+        val index: Int,
+    ) : GoalEditEvent
+
+    data class ExpenseRemoved(
+        val index: Int,
+    ) : GoalEditEvent
+
+    data class IncomeNameChanged(
+        val index: Int,
+        val value: String,
+    ) : GoalEditEvent
+
+    data class IncomeAmountChanged(
+        val index: Int,
+        val value: String,
+    ) : GoalEditEvent
+
+    data class ExpenseNameChanged(
+        val index: Int,
+        val value: String,
+    ) : GoalEditEvent
+
+    data class ExpenseAmountChanged(
+        val index: Int,
+        val value: String,
+    ) : GoalEditEvent
+
     data object SaveClicked : GoalEditEvent
+
     data object BackClicked : GoalEditEvent
 }
 

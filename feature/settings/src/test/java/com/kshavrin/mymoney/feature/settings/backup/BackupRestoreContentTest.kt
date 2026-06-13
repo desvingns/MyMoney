@@ -101,7 +101,6 @@ import org.junit.Test
  * ```
  */
 class BackupRestoreContentTest {
-
     /** Mirror of the export/import `enabled = !state.inProgress` flag. */
     private fun actionsEnabled(state: BackupRestoreState): Boolean = !state.inProgress
 

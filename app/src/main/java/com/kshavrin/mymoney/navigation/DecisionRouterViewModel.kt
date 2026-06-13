@@ -12,23 +12,25 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class DecisionRouterViewModel @Inject constructor(
-    private val appSettingsRepository: AppSettingsRepository,
-) : ViewModel() {
+class DecisionRouterViewModel
+    @Inject
+    constructor(
+        private val appSettingsRepository: AppSettingsRepository,
+    ) : ViewModel() {
+        private val _state = MutableStateFlow(DecisionDestination.Pending)
+        val state: StateFlow<DecisionDestination> = _state.asStateFlow()
 
-    private val _state = MutableStateFlow(DecisionDestination.Pending)
-    val state: StateFlow<DecisionDestination> = _state.asStateFlow()
-
-    init {
-        viewModelScope.launch {
-            val settings = appSettingsRepository.settings.first()
-            _state.value = if (settings.onboardingCompletedAt == null) {
-                DecisionDestination.Splash
-            } else {
-                DecisionDestination.Dashboard
+        init {
+            viewModelScope.launch {
+                val settings = appSettingsRepository.settings.first()
+                _state.value =
+                    if (settings.onboardingCompletedAt == null) {
+                        DecisionDestination.Splash
+                    } else {
+                        DecisionDestination.Dashboard
+                    }
             }
         }
     }
-}
 
 enum class DecisionDestination { Pending, Splash, Dashboard }

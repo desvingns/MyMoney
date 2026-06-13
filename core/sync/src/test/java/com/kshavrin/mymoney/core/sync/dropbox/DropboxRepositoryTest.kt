@@ -13,8 +13,8 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.fail
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Test
 import java.io.IOException
 import java.net.SocketTimeoutException
@@ -22,7 +22,6 @@ import java.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class DropboxRepositoryTest {
-
     // --- mapDropboxError -----------------------------------------------------
     //
     // The seam matches on class.simpleName for SDK types (so it stays SDK-free
@@ -32,11 +31,17 @@ class DropboxRepositoryTest {
     // branch, so an IOException-derived class would short-circuit to Network and
     // never reach the name match we want to exercise.
     private class InvalidAccessTokenException : Exception()
+
     private class SpaceError : Exception()
+
     private class RateLimitException : Exception()
+
     private class ServerException : Exception()
+
     private class DbxException : Exception()
+
     private class NetworkIOException : Exception()
+
     private class SomethingNobodyMaps : Exception()
 
     @Test
@@ -98,37 +103,43 @@ class DropboxRepositoryTest {
     }
 
     @Test
-    fun `runOnIo rethrows CancellationException without mapping`() = runTest {
-        val storage = ThrowingSecureStorage(CancellationException("cancelled"))
+    fun `runOnIo rethrows CancellationException without mapping`() =
+        runTest {
+            val storage = ThrowingSecureStorage(CancellationException("cancelled"))
 
-        try {
-            repository(secureStorage = storage).accountLabel()
-            fail("Expected CancellationException")
-        } catch (_: CancellationException) {
+            try {
+                repository(secureStorage = storage).accountLabel()
+                fail("Expected CancellationException")
+            } catch (_: CancellationException) {
+            }
+
+            assertEquals(1, storage.readCalls)
         }
-
-        assertEquals(1, storage.readCalls)
-    }
 
     @Test
-    fun `runOnIo keeps existing IOException mapping after retry exhaustion`() = runTest {
-        val dispatcher = StandardTestDispatcher(testScheduler)
-        val storage = ThrowingSecureStorage(IOException("offline"))
+    fun `runOnIo keeps existing IOException mapping after retry exhaustion`() =
+        runTest {
+            val dispatcher = StandardTestDispatcher(testScheduler)
+            val storage = ThrowingSecureStorage(IOException("offline"))
 
-        val result = async {
-            repository(secureStorage = storage, dispatcher = dispatcher).accountLabel()
+            val result =
+                async {
+                    repository(secureStorage = storage, dispatcher = dispatcher).accountLabel()
+                }
+            advanceUntilIdle()
+
+            val failure = result.await().exceptionOrNull()
+            assertTrue(failure is SyncException)
+            assertEquals(SyncError.Network, (failure as SyncException).syncError)
+            assertEquals(3, storage.readCalls)
         }
-        advanceUntilIdle()
-
-        val failure = result.await().exceptionOrNull()
-        assertTrue(failure is SyncException)
-        assertEquals(SyncError.Network, (failure as SyncException).syncError)
-        assertEquals(3, storage.readCalls)
-    }
 
     // --- snapshotsToDelete ---------------------------------------------------
 
-    private fun snapshot(name: String, modifiedAtEpochMs: Long): RemoteSnapshot =
+    private fun snapshot(
+        name: String,
+        modifiedAtEpochMs: Long,
+    ): RemoteSnapshot =
         RemoteSnapshot(
             id = "/Apps/MyMoney/$name",
             name = name,
@@ -153,21 +164,23 @@ class DropboxRepositoryTest {
 
     @Test
     fun `snapshotsToDelete returns empty when keep equals the list size`() {
-        val all = listOf(
-            snapshot("a", 1_000L),
-            snapshot("b", 2_000L),
-            snapshot("c", 3_000L),
-        )
+        val all =
+            listOf(
+                snapshot("a", 1_000L),
+                snapshot("b", 2_000L),
+                snapshot("c", 3_000L),
+            )
 
         assertTrue(snapshotsToDelete(all, keep = 3).isEmpty())
     }
 
     @Test
     fun `snapshotsToDelete returns empty when keep exceeds the list size`() {
-        val all = listOf(
-            snapshot("a", 1_000L),
-            snapshot("b", 2_000L),
-        )
+        val all =
+            listOf(
+                snapshot("a", 1_000L),
+                snapshot("b", 2_000L),
+            )
 
         assertTrue(snapshotsToDelete(all, keep = 10).isEmpty())
     }
@@ -208,10 +221,11 @@ class DropboxRepositoryTest {
     private fun repository(
         secureStorage: SecureStorage = FakeSecureStorage(),
         dispatcher: kotlinx.coroutines.CoroutineDispatcher = UnconfinedTestDispatcher(),
-    ): DropboxRepository = DropboxRepository(
-        secureStorage = secureStorage,
-        ioDispatcher = dispatcher,
-    )
+    ): DropboxRepository =
+        DropboxRepository(
+            secureStorage = secureStorage,
+            ioDispatcher = dispatcher,
+        )
 
     private class FakeSecureStorage(
         private var settings: SecureSettings = SecureSettings(),

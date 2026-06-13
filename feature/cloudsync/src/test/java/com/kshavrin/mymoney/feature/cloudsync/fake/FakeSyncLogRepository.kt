@@ -4,14 +4,16 @@ import com.kshavrin.mymoney.core.domain.model.SyncLogEntry
 import com.kshavrin.mymoney.core.domain.repository.SyncLogRepository
 
 class FakeSyncLogRepository : SyncLogRepository {
-
     private val byTarget = mutableMapOf<String, List<SyncLogEntry>>()
 
     val insertCalls = mutableListOf<SyncLogEntry>()
     val pruneCalls = mutableListOf<String>()
     val recentByTargetCalls = mutableListOf<Pair<String, Int>>()
 
-    fun seedRecent(target: String, entries: List<SyncLogEntry>) {
+    fun seedRecent(
+        target: String,
+        entries: List<SyncLogEntry>,
+    ) {
         byTarget[target] = entries
     }
 
@@ -20,7 +22,10 @@ class FakeSyncLogRepository : SyncLogRepository {
         return insertCalls.size.toLong()
     }
 
-    override suspend fun recentByTarget(target: String, limit: Int): List<SyncLogEntry> {
+    override suspend fun recentByTarget(
+        target: String,
+        limit: Int,
+    ): List<SyncLogEntry> {
         recentByTargetCalls += target to limit
         return byTarget[target].orEmpty()
     }

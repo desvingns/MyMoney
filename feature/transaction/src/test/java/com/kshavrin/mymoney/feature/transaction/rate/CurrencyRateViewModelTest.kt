@@ -21,32 +21,33 @@ import org.junit.Test
 import java.time.Instant
 
 class CurrencyRateViewModelTest {
-
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
     private lateinit var currencyRepository: FakeCurrencyRepository
     private lateinit var currencyRateRepository: FakeCurrencyRateRepository
 
-    private val usd = Currency(
-        id = 1L,
-        code = "USD",
-        symbol = "$",
-        name = "US Dollar",
-        decimalDigits = 2,
-        isActive = true,
-        sortOrder = 0,
-    )
+    private val usd =
+        Currency(
+            id = 1L,
+            code = "USD",
+            symbol = "$",
+            name = "US Dollar",
+            decimalDigits = 2,
+            isActive = true,
+            sortOrder = 0,
+        )
 
-    private val eur = Currency(
-        id = 2L,
-        code = "EUR",
-        symbol = "EUR",
-        name = "Euro",
-        decimalDigits = 2,
-        isActive = true,
-        sortOrder = 1,
-    )
+    private val eur =
+        Currency(
+            id = 2L,
+            code = "EUR",
+            symbol = "EUR",
+            name = "Euro",
+            decimalDigits = 2,
+            isActive = true,
+            sortOrder = 1,
+        )
 
     @Before
     fun setUp() {
@@ -55,66 +56,70 @@ class CurrencyRateViewModelTest {
         currencyRepository.seed(usd, eur)
     }
 
-    private fun buildViewModel(): CurrencyRateViewModel = CurrencyRateViewModel(
-        currencyRepository = currencyRepository,
-        currencyRateRepository = currencyRateRepository,
-        savedStateHandle = SavedStateHandle(
-            mapOf(
-                CurrencyRateViewModel.KEY_FROM_ID to usd.id,
-                CurrencyRateViewModel.KEY_TO_ID to eur.id,
-            ),
-        ),
-    )
-
-    @Test
-    fun `SaveClicked for a new pair upserts id zero and stores a new rate`() = runTest {
-        val viewModel = buildViewModel()
-        advanceUntilIdle()
-
-        viewModel.onEvent(CurrencyRateEvent.RateInputChanged("0.9"))
-
-        viewModel.actions.test {
-            viewModel.onEvent(CurrencyRateEvent.SaveClicked)
-
-            assertEquals(CurrencyRateAction.NavigateBackWithRate(0.9), awaitItem())
-            cancelAndIgnoreRemainingEvents()
-        }
-
-        assertEquals(1, currencyRateRepository.upserts.size)
-        assertEquals(0L, currencyRateRepository.upserts.single().id)
-        assertEquals(0.9, currencyRateRepository.requireStoredRate(usd.id, eur.id).rate, 0.0001)
-    }
-
-    @Test
-    fun `SaveClicked for an existing pair reuses the stored id and updates that rate`() = runTest {
-        currencyRateRepository.seed(
-            CurrencyRate(
-                id = 7L,
-                fromCurrencyId = usd.id,
-                toCurrencyId = eur.id,
-                rate = 0.9,
-                updatedAt = Instant.parse("2026-06-11T10:00:00Z"),
-            ),
+    private fun buildViewModel(): CurrencyRateViewModel =
+        CurrencyRateViewModel(
+            currencyRepository = currencyRepository,
+            currencyRateRepository = currencyRateRepository,
+            savedStateHandle =
+                SavedStateHandle(
+                    mapOf(
+                        CurrencyRateViewModel.KEY_FROM_ID to usd.id,
+                        CurrencyRateViewModel.KEY_TO_ID to eur.id,
+                    ),
+                ),
         )
-        val viewModel = buildViewModel()
-        advanceUntilIdle()
 
-        assertEquals("0.9", viewModel.state.value.rateInput)
+    @Test
+    fun `SaveClicked for a new pair upserts id zero and stores a new rate`() =
+        runTest {
+            val viewModel = buildViewModel()
+            advanceUntilIdle()
 
-        viewModel.onEvent(CurrencyRateEvent.RateInputChanged("0.95"))
+            viewModel.onEvent(CurrencyRateEvent.RateInputChanged("0.9"))
 
-        viewModel.actions.test {
-            viewModel.onEvent(CurrencyRateEvent.SaveClicked)
+            viewModel.actions.test {
+                viewModel.onEvent(CurrencyRateEvent.SaveClicked)
 
-            assertEquals(CurrencyRateAction.NavigateBackWithRate(0.95), awaitItem())
-            cancelAndIgnoreRemainingEvents()
+                assertEquals(CurrencyRateAction.NavigateBackWithRate(0.9), awaitItem())
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            assertEquals(1, currencyRateRepository.upserts.size)
+            assertEquals(0L, currencyRateRepository.upserts.single().id)
+            assertEquals(0.9, currencyRateRepository.requireStoredRate(usd.id, eur.id).rate, 0.0001)
         }
 
-        assertEquals(1, currencyRateRepository.upserts.size)
-        assertEquals(7L, currencyRateRepository.upserts.single().id)
-        assertEquals(1, currencyRateRepository.storedRates().size)
-        assertEquals(0.95, currencyRateRepository.requireStoredRate(usd.id, eur.id).rate, 0.0001)
-    }
+    @Test
+    fun `SaveClicked for an existing pair reuses the stored id and updates that rate`() =
+        runTest {
+            currencyRateRepository.seed(
+                CurrencyRate(
+                    id = 7L,
+                    fromCurrencyId = usd.id,
+                    toCurrencyId = eur.id,
+                    rate = 0.9,
+                    updatedAt = Instant.parse("2026-06-11T10:00:00Z"),
+                ),
+            )
+            val viewModel = buildViewModel()
+            advanceUntilIdle()
+
+            assertEquals("0.9", viewModel.state.value.rateInput)
+
+            viewModel.onEvent(CurrencyRateEvent.RateInputChanged("0.95"))
+
+            viewModel.actions.test {
+                viewModel.onEvent(CurrencyRateEvent.SaveClicked)
+
+                assertEquals(CurrencyRateAction.NavigateBackWithRate(0.95), awaitItem())
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            assertEquals(1, currencyRateRepository.upserts.size)
+            assertEquals(7L, currencyRateRepository.upserts.single().id)
+            assertEquals(1, currencyRateRepository.storedRates().size)
+            assertEquals(0.95, currencyRateRepository.requireStoredRate(usd.id, eur.id).rate, 0.0001)
+        }
 
     @Test
     fun `SaveClicked with an unparsable rate shows the invalid-rate error and does not write`() =
@@ -140,12 +145,18 @@ class CurrencyRateViewModelTest {
 
         fun storedRates(): List<CurrencyRate> = rates.value
 
-        fun requireStoredRate(fromCurrencyId: Long, toCurrencyId: Long): CurrencyRate =
+        fun requireStoredRate(
+            fromCurrencyId: Long,
+            toCurrencyId: Long,
+        ): CurrencyRate =
             rates.value.first {
                 it.fromCurrencyId == fromCurrencyId && it.toCurrencyId == toCurrencyId
             }
 
-        override suspend fun findRate(fromCurrencyId: Long, toCurrencyId: Long): CurrencyRate? =
+        override suspend fun findRate(
+            fromCurrencyId: Long,
+            toCurrencyId: Long,
+        ): CurrencyRate? =
             rates.value.firstOrNull {
                 it.fromCurrencyId == fromCurrencyId && it.toCurrencyId == toCurrencyId
             }
@@ -164,9 +175,10 @@ class CurrencyRateViewModelTest {
                     newId
                 }
                 rates.value.any { it.id == rate.id } -> {
-                    rates.value = rates.value.map { current ->
-                        if (current.id == rate.id) rate else current
-                    }
+                    rates.value =
+                        rates.value.map { current ->
+                            if (current.id == rate.id) rate else current
+                        }
                     rate.id
                 }
                 else -> 0L

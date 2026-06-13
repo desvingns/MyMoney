@@ -9,7 +9,6 @@ import org.junit.Test
 import java.math.BigDecimal
 
 class CalculatorEngineTest {
-
     private lateinit var engine: CalculatorEngine
 
     @Before

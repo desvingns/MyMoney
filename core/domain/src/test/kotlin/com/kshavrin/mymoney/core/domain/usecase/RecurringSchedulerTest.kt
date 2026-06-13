@@ -9,7 +9,6 @@ import java.time.Instant
 import java.time.ZoneOffset
 
 class RecurringSchedulerTest {
-
     private val zone = ZoneOffset.UTC
 
     private fun template(

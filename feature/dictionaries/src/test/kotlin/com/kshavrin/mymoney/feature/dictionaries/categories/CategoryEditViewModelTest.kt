@@ -17,7 +17,6 @@ import org.junit.Rule
 import org.junit.Test
 
 class CategoryEditViewModelTest {
-
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
@@ -26,36 +25,38 @@ class CategoryEditViewModelTest {
 
     private fun buildViewModel(
         categoryRepository: CategoryRepository = categoryRepo,
-    ): CategoryEditViewModel = CategoryEditViewModel(
-        categoryRepository = categoryRepository,
-        transactionRepository = transactionRepo,
-        savedStateHandle = SavedStateHandle(),
-    )
+    ): CategoryEditViewModel =
+        CategoryEditViewModel(
+            categoryRepository = categoryRepository,
+            transactionRepository = transactionRepo,
+            savedStateHandle = SavedStateHandle(),
+        )
 
     @Test
-    fun `double SaveClicked performs one upsert and emits one NavigateBack`() = runTest {
-        val blockingRepo = BlockingCategoryRepository()
-        val viewModel = buildViewModel(categoryRepository = blockingRepo)
+    fun `double SaveClicked performs one upsert and emits one NavigateBack`() =
+        runTest {
+            val blockingRepo = BlockingCategoryRepository()
+            val viewModel = buildViewModel(categoryRepository = blockingRepo)
 
-        viewModel.onEvent(CategoryEditEvent.NameChanged("Food"))
-        viewModel.onEvent(CategoryEditEvent.KindChanged(CategoryKind.Expense))
+            viewModel.onEvent(CategoryEditEvent.NameChanged("Food"))
+            viewModel.onEvent(CategoryEditEvent.KindChanged(CategoryKind.Expense))
 
-        viewModel.actions.test {
-            viewModel.onEvent(CategoryEditEvent.SaveClicked)
-            assertTrue(viewModel.state.value.isSaving)
-            viewModel.onEvent(CategoryEditEvent.SaveClicked)
+            viewModel.actions.test {
+                viewModel.onEvent(CategoryEditEvent.SaveClicked)
+                assertTrue(viewModel.state.value.isSaving)
+                viewModel.onEvent(CategoryEditEvent.SaveClicked)
 
-            assertEquals(1, blockingRepo.startedUpserts.size)
+                assertEquals(1, blockingRepo.startedUpserts.size)
 
-            blockingRepo.release()
-            advanceUntilIdle()
+                blockingRepo.release()
+                advanceUntilIdle()
 
-            assertEquals(1, blockingRepo.persistedUpserts.size)
-            assertEquals(CategoryEditAction.NavigateBack, awaitItem())
-            expectNoEvents()
-            cancelAndIgnoreRemainingEvents()
+                assertEquals(1, blockingRepo.persistedUpserts.size)
+                assertEquals(CategoryEditAction.NavigateBack, awaitItem())
+                expectNoEvents()
+                cancelAndIgnoreRemainingEvents()
+            }
         }
-    }
 
     private class BlockingCategoryRepository(
         private val delegate: FakeCategoryRepository = FakeCategoryRepository(),

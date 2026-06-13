@@ -22,13 +22,13 @@ import androidx.compose.material.icons.outlined.Fastfood
 import androidx.compose.material.icons.outlined.FitnessCenter
 import androidx.compose.material.icons.outlined.Flight
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.HomeWork
 import androidx.compose.material.icons.outlined.HomeRepairService
+import androidx.compose.material.icons.outlined.HomeWork
 import androidx.compose.material.icons.outlined.Hotel
 import androidx.compose.material.icons.outlined.Liquor
 import androidx.compose.material.icons.outlined.LiveTv
-import androidx.compose.material.icons.outlined.LocalCafe
 import androidx.compose.material.icons.outlined.LocalBar
+import androidx.compose.material.icons.outlined.LocalCafe
 import androidx.compose.material.icons.outlined.LocalGasStation
 import androidx.compose.material.icons.outlined.LocalGroceryStore
 import androidx.compose.material.icons.outlined.LocalOffer
@@ -37,9 +37,9 @@ import androidx.compose.material.icons.outlined.LocalPharmacy
 import androidx.compose.material.icons.outlined.LocalTaxi
 import androidx.compose.material.icons.outlined.Luggage
 import androidx.compose.material.icons.outlined.MedicalServices
+import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.MonetizationOn
 import androidx.compose.material.icons.outlined.Paid
-import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.outlined.Percent
 import androidx.compose.material.icons.outlined.Redeem
@@ -48,13 +48,13 @@ import androidx.compose.material.icons.outlined.RestaurantMenu
 import androidx.compose.material.icons.outlined.Savings
 import androidx.compose.material.icons.outlined.School
 import androidx.compose.material.icons.outlined.Sell
-import androidx.compose.material.icons.outlined.ShowChart
 import androidx.compose.material.icons.outlined.ShoppingBasket
+import androidx.compose.material.icons.outlined.ShowChart
 import androidx.compose.material.icons.outlined.Spa
 import androidx.compose.material.icons.outlined.Stars
 import androidx.compose.material.icons.outlined.Subscriptions
-import androidx.compose.material.icons.outlined.Tram
 import androidx.compose.material.icons.outlined.Train
+import androidx.compose.material.icons.outlined.Tram
 import androidx.compose.material.icons.outlined.TrendingUp
 import androidx.compose.material.icons.outlined.VolunteerActivism
 import androidx.compose.material.icons.outlined.WaterDrop
@@ -77,79 +77,79 @@ import com.kshavrin.mymoney.core.designsystem.icon.CategoryVectors.Hygiene
 import com.kshavrin.mymoney.core.designsystem.icon.CategoryVectors.Pets
 import com.kshavrin.mymoney.core.designsystem.icon.CategoryVectors.Shoes
 
-fun categoryIcon(iconKey: String): ImageVector = when (iconKey) {
-    "ic_cat_bills" -> Icons.Outlined.LocalOffer
-    "ic_cat_food" -> Icons.Outlined.ShoppingBasket
-    "ic_cat_entertainment" -> Icons.Outlined.LocalBar
-    "ic_cat_taxi" -> Icons.Outlined.LocalTaxi
-    "ic_cat_housing" -> Icons.Outlined.Home
-    "ic_cat_sport" -> Icons.AutoMirrored.Outlined.DirectionsRun
-    "ic_cat_gifts" -> Icons.Outlined.CardGiftcard
-    "ic_cat_phone" -> Icons.Outlined.Call
-    "ic_cat_transport" -> Icons.Outlined.Train
-    "ic_cat_cafe" -> Icons.Outlined.Restaurant
-    "ic_cat_car" -> Icons.Outlined.DirectionsCar
-    "ic_cat_salary" -> Icons.Outlined.Payments
-    "ic_cat_hygiene" -> Hygiene
-    "ic_cat_pets" -> Pets
-    "ic_cat_health" -> Health
-    "ic_cat_clothing" -> Clothing
-    "ic_cat_groceries" -> Icons.Outlined.LocalGroceryStore
-    "ic_cat_restaurant" -> Icons.Outlined.RestaurantMenu
-    "ic_cat_fastfood" -> Icons.Outlined.Fastfood
-    "ic_cat_coffee" -> Icons.Outlined.LocalCafe
-    "ic_cat_bar" -> Icons.Outlined.WineBar
-    "ic_cat_alcohol" -> Icons.Outlined.Liquor
-    "ic_cat_bus" -> Icons.Outlined.DirectionsBus
-    "ic_cat_tram" -> Icons.Outlined.Tram
-    "ic_cat_flight" -> Icons.Outlined.Flight
-    "ic_cat_bike" -> Icons.Outlined.DirectionsBike
-    "ic_cat_fuel" -> Icons.Outlined.LocalGasStation
-    "ic_cat_parking" -> Icons.Outlined.LocalParking
-    "ic_cat_shoes" -> Shoes
-    "ic_cat_electronics" -> Icons.Outlined.Devices
-    "ic_cat_books" -> Icons.Outlined.MenuBook
-    "ic_cat_rent" -> Icons.Outlined.Apartment
-    "ic_cat_utilities" -> Icons.Outlined.Bolt
-    "ic_cat_water" -> Icons.Outlined.WaterDrop
-    "ic_cat_furniture" -> Icons.Outlined.Chair
-    "ic_cat_repair" -> Icons.Outlined.HomeRepairService
-    "ic_cat_pharmacy" -> Icons.Outlined.LocalPharmacy
-    "ic_cat_doctor" -> Icons.Outlined.MedicalServices
-    "ic_cat_dentist" -> Dentist
-    "ic_cat_gym" -> Icons.Outlined.FitnessCenter
-    "ic_cat_beauty" -> Icons.Outlined.Spa
-    "ic_cat_education" -> Icons.Outlined.School
-    "ic_cat_kids" -> Icons.Outlined.ChildCare
-    "ic_cat_baby" -> Icons.Outlined.ChildFriendly
-    "ic_cat_travel" -> Icons.Outlined.Luggage
-    "ic_cat_hotel" -> Icons.Outlined.Hotel
-    "ic_cat_subscription" -> Icons.Outlined.Subscriptions
-    "ic_cat_streaming" -> Icons.Outlined.LiveTv
-    "ic_cat_internet" -> Icons.Outlined.Wifi
-    "ic_cat_charity" -> Icons.Outlined.VolunteerActivism
-    "ic_cat_freelance" -> Icons.Outlined.Work
-    "ic_cat_bonus" -> Icons.Outlined.Stars
-    "ic_cat_dividends" -> Icons.Outlined.TrendingUp
-    "ic_cat_interest" -> Icons.Outlined.Percent
-    "ic_cat_rent_income" -> Icons.Outlined.HomeWork
-    "ic_cat_business_income" -> Icons.Outlined.BusinessCenter
-    "ic_cat_sale" -> Icons.Outlined.Sell
-    "ic_cat_refund" -> Icons.Outlined.AssignmentReturn
-    "ic_cat_gift_received" -> Icons.Outlined.Redeem
-    "ic_cat_cashback" -> Icons.Outlined.Paid
-    "ic_cat_pension" -> Icons.Outlined.Elderly
-    "ic_cat_scholarship" -> Icons.Outlined.WorkspacePremium
-    "ic_cat_investment_return" -> Icons.Outlined.ShowChart
-    "ic_cat_royalties" -> Icons.Outlined.Copyright
-    "ic_cat_tips" -> Icons.Outlined.MonetizationOn
-    "ic_cat_deposit_income" -> Icons.Outlined.Savings
-    "ic_cat_other" -> Icons.Outlined.Category
-    else -> Icons.Outlined.Category
-}
+fun categoryIcon(iconKey: String): ImageVector =
+    when (iconKey) {
+        "ic_cat_bills" -> Icons.Outlined.LocalOffer
+        "ic_cat_food" -> Icons.Outlined.ShoppingBasket
+        "ic_cat_entertainment" -> Icons.Outlined.LocalBar
+        "ic_cat_taxi" -> Icons.Outlined.LocalTaxi
+        "ic_cat_housing" -> Icons.Outlined.Home
+        "ic_cat_sport" -> Icons.AutoMirrored.Outlined.DirectionsRun
+        "ic_cat_gifts" -> Icons.Outlined.CardGiftcard
+        "ic_cat_phone" -> Icons.Outlined.Call
+        "ic_cat_transport" -> Icons.Outlined.Train
+        "ic_cat_cafe" -> Icons.Outlined.Restaurant
+        "ic_cat_car" -> Icons.Outlined.DirectionsCar
+        "ic_cat_salary" -> Icons.Outlined.Payments
+        "ic_cat_hygiene" -> Hygiene
+        "ic_cat_pets" -> Pets
+        "ic_cat_health" -> Health
+        "ic_cat_clothing" -> Clothing
+        "ic_cat_groceries" -> Icons.Outlined.LocalGroceryStore
+        "ic_cat_restaurant" -> Icons.Outlined.RestaurantMenu
+        "ic_cat_fastfood" -> Icons.Outlined.Fastfood
+        "ic_cat_coffee" -> Icons.Outlined.LocalCafe
+        "ic_cat_bar" -> Icons.Outlined.WineBar
+        "ic_cat_alcohol" -> Icons.Outlined.Liquor
+        "ic_cat_bus" -> Icons.Outlined.DirectionsBus
+        "ic_cat_tram" -> Icons.Outlined.Tram
+        "ic_cat_flight" -> Icons.Outlined.Flight
+        "ic_cat_bike" -> Icons.Outlined.DirectionsBike
+        "ic_cat_fuel" -> Icons.Outlined.LocalGasStation
+        "ic_cat_parking" -> Icons.Outlined.LocalParking
+        "ic_cat_shoes" -> Shoes
+        "ic_cat_electronics" -> Icons.Outlined.Devices
+        "ic_cat_books" -> Icons.Outlined.MenuBook
+        "ic_cat_rent" -> Icons.Outlined.Apartment
+        "ic_cat_utilities" -> Icons.Outlined.Bolt
+        "ic_cat_water" -> Icons.Outlined.WaterDrop
+        "ic_cat_furniture" -> Icons.Outlined.Chair
+        "ic_cat_repair" -> Icons.Outlined.HomeRepairService
+        "ic_cat_pharmacy" -> Icons.Outlined.LocalPharmacy
+        "ic_cat_doctor" -> Icons.Outlined.MedicalServices
+        "ic_cat_dentist" -> Dentist
+        "ic_cat_gym" -> Icons.Outlined.FitnessCenter
+        "ic_cat_beauty" -> Icons.Outlined.Spa
+        "ic_cat_education" -> Icons.Outlined.School
+        "ic_cat_kids" -> Icons.Outlined.ChildCare
+        "ic_cat_baby" -> Icons.Outlined.ChildFriendly
+        "ic_cat_travel" -> Icons.Outlined.Luggage
+        "ic_cat_hotel" -> Icons.Outlined.Hotel
+        "ic_cat_subscription" -> Icons.Outlined.Subscriptions
+        "ic_cat_streaming" -> Icons.Outlined.LiveTv
+        "ic_cat_internet" -> Icons.Outlined.Wifi
+        "ic_cat_charity" -> Icons.Outlined.VolunteerActivism
+        "ic_cat_freelance" -> Icons.Outlined.Work
+        "ic_cat_bonus" -> Icons.Outlined.Stars
+        "ic_cat_dividends" -> Icons.Outlined.TrendingUp
+        "ic_cat_interest" -> Icons.Outlined.Percent
+        "ic_cat_rent_income" -> Icons.Outlined.HomeWork
+        "ic_cat_business_income" -> Icons.Outlined.BusinessCenter
+        "ic_cat_sale" -> Icons.Outlined.Sell
+        "ic_cat_refund" -> Icons.Outlined.AssignmentReturn
+        "ic_cat_gift_received" -> Icons.Outlined.Redeem
+        "ic_cat_cashback" -> Icons.Outlined.Paid
+        "ic_cat_pension" -> Icons.Outlined.Elderly
+        "ic_cat_scholarship" -> Icons.Outlined.WorkspacePremium
+        "ic_cat_investment_return" -> Icons.Outlined.ShowChart
+        "ic_cat_royalties" -> Icons.Outlined.Copyright
+        "ic_cat_tips" -> Icons.Outlined.MonetizationOn
+        "ic_cat_deposit_income" -> Icons.Outlined.Savings
+        "ic_cat_other" -> Icons.Outlined.Category
+        else -> Icons.Outlined.Category
+    }
 
 private object CategoryVectors {
-
     val Hygiene: ImageVector by lazy {
         categoryVector("category_hygiene") {
             moveTo(4f, 13f)
@@ -267,19 +267,23 @@ private object CategoryVectors {
     }
 }
 
-private fun categoryVector(name: String, pathBuilder: PathBuilder.() -> Unit): ImageVector =
-    ImageVector.Builder(
-        name = name,
-        defaultWidth = 24.dp,
-        defaultHeight = 24.dp,
-        viewportWidth = 24f,
-        viewportHeight = 24f,
-    ).apply {
-        addPath(
-            pathData = PathData(pathBuilder),
-            stroke = SolidColor(Color.Black),
-            strokeLineWidth = 1.6f,
-            strokeLineCap = StrokeCap.Round,
-            strokeLineJoin = StrokeJoin.Round,
-        )
-    }.build()
+private fun categoryVector(
+    name: String,
+    pathBuilder: PathBuilder.() -> Unit,
+): ImageVector =
+    ImageVector
+        .Builder(
+            name = name,
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f,
+        ).apply {
+            addPath(
+                pathData = PathData(pathBuilder),
+                stroke = SolidColor(Color.Black),
+                strokeLineWidth = 1.6f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            )
+        }.build()

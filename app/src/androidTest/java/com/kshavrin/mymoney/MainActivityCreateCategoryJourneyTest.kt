@@ -1,8 +1,8 @@
 package com.kshavrin.mymoney
 
 import androidx.compose.ui.test.hasClickAction
-import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
@@ -20,10 +20,6 @@ import com.kshavrin.mymoney.core.designsystem.form.CATEGORY_GRID_ADD_CELL_TAG
 import com.kshavrin.mymoney.core.designsystem.form.CATEGORY_GRID_TAG
 import com.kshavrin.mymoney.core.domain.repository.CategoryRepository
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
-import com.kshavrin.mymoney.feature.dashboard.R as DashboardR
-import com.kshavrin.mymoney.feature.dictionaries.R as DictionariesR
-import com.kshavrin.mymoney.feature.onboarding.R as OnboardingR
-import com.kshavrin.mymoney.feature.transaction.R as TransactionR
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import kotlinx.coroutines.flow.first
@@ -34,6 +30,10 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import java.math.BigDecimal
 import javax.inject.Inject
+import com.kshavrin.mymoney.feature.dashboard.R as DashboardR
+import com.kshavrin.mymoney.feature.dictionaries.R as DictionariesR
+import com.kshavrin.mymoney.feature.onboarding.R as OnboardingR
+import com.kshavrin.mymoney.feature.transaction.R as TransactionR
 
 /**
  * J3 — create-a-category round trip preserves the amount and applies the new category (AS-4).
@@ -45,7 +45,6 @@ import javax.inject.Inject
 @HiltAndroidTest
 @RunWith(AndroidJUnit4::class)
 class MainActivityCreateCategoryJourneyTest {
-
     @get:Rule(order = 0)
     val hiltRule = HiltAndroidRule(this)
 
@@ -59,47 +58,48 @@ class MainActivityCreateCategoryJourneyTest {
     lateinit var categoryRepository: CategoryRepository
 
     @Test
-    fun createCategoryFromEmbeddedGridPreservesAmountAndAppliesNewCategory() = runTest {
-        hiltRule.inject()
+    fun createCategoryFromEmbeddedGridPreservesAmountAndAppliesNewCategory() =
+        runTest {
+            hiltRule.inject()
 
-        // Onboarding -> Dashboard
-        val skip = targetString(OnboardingR.string.onboarding_skip)
-        waitForText(skip)
-        composeRule.onNodeWithText(skip).performClick()
+            // Onboarding -> Dashboard
+            val skip = targetString(OnboardingR.string.onboarding_skip)
+            waitForText(skip)
+            composeRule.onNodeWithText(skip).performClick()
 
-        // Dashboard -> Add expense form
-        val expenseFab = targetString(DashboardR.string.fab_expense)
-        waitForContentDescription(expenseFab)
-        composeRule.onNodeWithContentDescription(expenseFab).performClick()
+            // Dashboard -> Add expense form
+            val expenseFab = targetString(DashboardR.string.fab_expense)
+            waitForContentDescription(expenseFab)
+            composeRule.onNodeWithContentDescription(expenseFab).performClick()
 
-        waitForText(targetString(TransactionR.string.new_expense_title))
-        composeRule.onNode(hasText("0") and hasClickAction()).performClick()
-        composeRule.onNode(hasText("9") and hasClickAction()).performClick()
-        composeRule.onNodeWithText(targetString(TransactionR.string.choose_category_button)).performClick()
+            waitForText(targetString(TransactionR.string.new_expense_title))
+            composeRule.onNode(hasText("0") and hasClickAction()).performClick()
+            composeRule.onNode(hasText("9") and hasClickAction()).performClick()
+            composeRule.onNodeWithText(targetString(TransactionR.string.choose_category_button)).performClick()
 
-        composeRule
-            .onNodeWithTag(CATEGORY_GRID_TAG)
-            .performScrollToNode(hasTestTag(CATEGORY_GRID_ADD_CELL_TAG))
-        composeRule
-            .onNodeWithTag(CATEGORY_GRID_ADD_CELL_TAG)
-            .performScrollTo()
-            .performClick()
+            composeRule
+                .onNodeWithTag(CATEGORY_GRID_TAG)
+                .performScrollToNode(hasTestTag(CATEGORY_GRID_ADD_CELL_TAG))
+            composeRule
+                .onNodeWithTag(CATEGORY_GRID_ADD_CELL_TAG)
+                .performScrollTo()
+                .performClick()
 
-        waitForText(targetString(DictionariesR.string.dictionaries_field_name))
-        composeRule.onNode(hasSetTextAction()).performTextInput(NEW_CATEGORY)
-        composeRule.onNodeWithText(targetString(DictionariesR.string.dictionaries_save)).performClick()
+            waitForText(targetString(DictionariesR.string.dictionaries_field_name))
+            composeRule.onNode(hasSetTextAction()).performTextInput(NEW_CATEGORY)
+            composeRule.onNodeWithText(targetString(DictionariesR.string.dictionaries_save)).performClick()
 
-        // Back on the dashboard once the expense auto-saved.
-        waitForContentDescription(expenseFab)
+            // Back on the dashboard once the expense auto-saved.
+            waitForContentDescription(expenseFab)
 
-        // AS-4: exactly one expense, with the preserved amount 9 and the newly created category.
-        val newCategory = categoryRepository.observeAll().first().first { it.name == NEW_CATEGORY }
-        val txns = transactionRepository.observeAll().first()
-        assertEquals("expected a single saved expense", 1, txns.size)
-        val saved = txns.single()
-        assertEquals(0, BigDecimal("9").compareTo(saved.amount))
-        assertEquals(newCategory.id, saved.categoryId)
-    }
+            // AS-4: exactly one expense, with the preserved amount 9 and the newly created category.
+            val newCategory = categoryRepository.observeAll().first().first { it.name == NEW_CATEGORY }
+            val txns = transactionRepository.observeAll().first()
+            assertEquals("expected a single saved expense", 1, txns.size)
+            val saved = txns.single()
+            assertEquals(0, BigDecimal("9").compareTo(saved.amount))
+            assertEquals(newCategory.id, saved.categoryId)
+        }
 
     private fun waitForText(text: String) {
         composeRule.waitUntil(TIMEOUT) {

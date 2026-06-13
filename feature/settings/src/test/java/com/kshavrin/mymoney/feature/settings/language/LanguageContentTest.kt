@@ -86,12 +86,14 @@ import org.junit.Test
  * ```
  */
 class LanguageContentTest {
-
     /** Mirror of `AppLanguage.entries.forEach { LanguageRow(...) }` — one row per language, in order. */
     private val rows: List<AppLanguage> = AppLanguage.entries.toList()
 
     /** Mirror of the per-row `selected = state.selected == language` flag. */
-    private fun isRowSelected(state: LanguageState, language: AppLanguage): Boolean =
+    private fun isRowSelected(
+        state: LanguageState,
+        language: AppLanguage,
+    ): Boolean =
         state.selected == language
 
     /** Mirror of the per-row `onClick = { onEvent(LanguageEvent.LanguageSelected(language)) }`. */
@@ -99,11 +101,12 @@ class LanguageContentTest {
         LanguageEvent.LanguageSelected(language)
 
     /** Mirror of the private `AppLanguage.labelRes` mapping in LanguageScreen. */
-    private fun labelRes(language: AppLanguage): Int = when (language) {
-        AppLanguage.System -> R.string.language_system
-        AppLanguage.English -> R.string.language_en
-        AppLanguage.Russian -> R.string.language_ru
-    }
+    private fun labelRes(language: AppLanguage): Int =
+        when (language) {
+            AppLanguage.System -> R.string.language_system
+            AppLanguage.English -> R.string.language_en
+            AppLanguage.Russian -> R.string.language_ru
+        }
 
     @Test
     fun `content renders exactly three rows one per language in declaration order`() {

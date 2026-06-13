@@ -47,8 +47,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.zIndex
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Period
@@ -84,9 +84,10 @@ fun LeftDrawerContent(
     }
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(Spacing.l),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(Spacing.l),
     ) {
         state.currentCurrency?.let { currency ->
             CurrencyHeaderRow(
@@ -150,9 +151,10 @@ fun LeftDrawerContent(
                         accountsExpanded = false
                         onEvent(DashboardEvent.AccountSelected(accountId))
                     },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .zIndex(1f),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .zIndex(1f),
                 )
             }
         }
@@ -180,7 +182,7 @@ fun LeftDrawerContent(
                 TextButton(onClick = { showRangePicker = false }) {
                     Text(stringResource(R.string.period_cancel))
                 }
-            }
+            },
         ) {
             DateRangePicker(state = pickerState)
         }
@@ -205,7 +207,7 @@ fun LeftDrawerContent(
                 TextButton(onClick = { showSingleDatePicker = false }) {
                     Text(stringResource(R.string.period_cancel))
                 }
-            }
+            },
         ) {
             DatePicker(state = pickerState)
         }
@@ -230,8 +232,9 @@ private fun AccountDropdown(
         Column {
             AccountDropdownRow(
                 label = stringResource(R.string.left_drawer_all_accounts),
-                subtitle = (selection as? DashboardSelection.AllAccounts)?.currency?.code
-                    ?: currencies.firstOrNull()?.code,
+                subtitle =
+                    (selection as? DashboardSelection.AllAccounts)?.currency?.code
+                        ?: currencies.firstOrNull()?.code,
                 selected = selection is DashboardSelection.AllAccounts,
                 leadingIcon = {
                     Icon(
@@ -271,10 +274,11 @@ private fun CurrencyHeaderRow(
     onClick: () -> Unit,
 ) {
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(drawerRowShape)
-            .clickable(onClick = onClick),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(drawerRowShape)
+                .clickable(onClick = onClick),
         shape = drawerRowShape,
         color = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.onSurface,
@@ -320,18 +324,20 @@ private fun AccountDropdownRow(
     leadingIcon: @Composable () -> Unit,
     onClick: () -> Unit,
 ) {
-    val backgroundColor = if (selected) {
-        MaterialTheme.colorScheme.primaryContainer
-    } else {
-        MaterialTheme.colorScheme.surface
-    }
+    val backgroundColor =
+        if (selected) {
+            MaterialTheme.colorScheme.primaryContainer
+        } else {
+            MaterialTheme.colorScheme.surface
+        }
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(backgroundColor)
-            .clickable(onClick = onClick)
-            .semantics(mergeDescendants = true) { this.selected = selected }
-            .padding(horizontal = Spacing.m, vertical = 10.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .background(backgroundColor)
+                .clickable(onClick = onClick)
+                .semantics(mergeDescendants = true) { this.selected = selected }
+                .padding(horizontal = Spacing.m, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Surface(
@@ -374,42 +380,47 @@ private fun DrawerOutlinedRow(
     enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
-    val backgroundColor = if (selected) {
-        MaterialTheme.colorScheme.primaryContainer
-    } else {
-        MaterialTheme.colorScheme.surface
-    }
-    val contentColor = if (selected) {
-        MaterialTheme.colorScheme.onPrimaryContainer
-    } else {
-        MaterialTheme.colorScheme.onSurface
-    }
+    val backgroundColor =
+        if (selected) {
+            MaterialTheme.colorScheme.primaryContainer
+        } else {
+            MaterialTheme.colorScheme.surface
+        }
+    val contentColor =
+        if (selected) {
+            MaterialTheme.colorScheme.onPrimaryContainer
+        } else {
+            MaterialTheme.colorScheme.onSurface
+        }
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = Spacing.xs)
-            .clip(drawerRowShape)
-            .background(backgroundColor)
-            .border(1.dp, MaterialTheme.colorScheme.outline, drawerRowShape)
-            .clickable(enabled = enabled, onClick = onClick)
-            .semantics(mergeDescendants = true) { this.selected = selected }
-            .padding(horizontal = Spacing.m, vertical = Spacing.m),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = Spacing.xs)
+                .clip(drawerRowShape)
+                .background(backgroundColor)
+                .border(1.dp, MaterialTheme.colorScheme.outline, drawerRowShape)
+                .clickable(enabled = enabled, onClick = onClick)
+                .semantics(mergeDescendants = true) { this.selected = selected }
+                .padding(horizontal = Spacing.m, vertical = Spacing.m),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Start,
     ) {
         Surface(
             modifier = Modifier.size(40.dp),
             shape = MaterialTheme.shapes.extraLarge,
-            color = if (selected) {
-                MaterialTheme.colorScheme.primary
-            } else {
-                MaterialTheme.colorScheme.surfaceVariant
-            },
-            contentColor = if (selected) {
-                MaterialTheme.colorScheme.onPrimary
-            } else {
-                MaterialTheme.colorScheme.secondary
-            },
+            color =
+                if (selected) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.surfaceVariant
+                },
+            contentColor =
+                if (selected) {
+                    MaterialTheme.colorScheme.onPrimary
+                } else {
+                    MaterialTheme.colorScheme.secondary
+                },
         ) {
             Row(
                 modifier = Modifier.size(40.dp),
@@ -444,27 +455,30 @@ private fun PeriodButton(
     onClick: () -> Unit,
     leadingIcon: ImageVector? = null,
 ) {
-    val backgroundColor = if (selected) {
-        MaterialTheme.colorScheme.primaryContainer
-    } else {
-        MaterialTheme.colorScheme.surface
-    }
-    val contentColor = if (selected) {
-        MaterialTheme.colorScheme.onPrimaryContainer
-    } else {
-        MaterialTheme.colorScheme.onSurface
-    }
+    val backgroundColor =
+        if (selected) {
+            MaterialTheme.colorScheme.primaryContainer
+        } else {
+            MaterialTheme.colorScheme.surface
+        }
+    val contentColor =
+        if (selected) {
+            MaterialTheme.colorScheme.onPrimaryContainer
+        } else {
+            MaterialTheme.colorScheme.onSurface
+        }
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(84.dp)
-            .padding(vertical = Spacing.xs)
-            .clip(drawerRowShape)
-            .background(backgroundColor)
-            .border(1.dp, MaterialTheme.colorScheme.outline, drawerRowShape)
-            .clickable(onClick = onClick)
-            .semantics(mergeDescendants = true) { this.selected = selected }
-            .padding(horizontal = Spacing.m),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(84.dp)
+                .padding(vertical = Spacing.xs)
+                .clip(drawerRowShape)
+                .background(backgroundColor)
+                .border(1.dp, MaterialTheme.colorScheme.outline, drawerRowShape)
+                .clickable(onClick = onClick)
+                .semantics(mergeDescendants = true) { this.selected = selected }
+                .padding(horizontal = Spacing.m),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,
     ) {

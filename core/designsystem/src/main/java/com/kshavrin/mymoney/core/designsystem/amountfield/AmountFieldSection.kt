@@ -40,10 +40,20 @@ data class AmountFieldState(
 )
 
 sealed interface AmountFieldEvent {
-    data class Keypad(val event: KeypadEvent) : AmountFieldEvent
-    data class NoteChanged(val text: String) : AmountFieldEvent
-    data class DateChanged(val date: LocalDate) : AmountFieldEvent
+    data class Keypad(
+        val event: KeypadEvent,
+    ) : AmountFieldEvent
+
+    data class NoteChanged(
+        val text: String,
+    ) : AmountFieldEvent
+
+    data class DateChanged(
+        val date: LocalDate,
+    ) : AmountFieldEvent
+
     data object AccountChipClicked : AmountFieldEvent
+
     data object DateChipClicked : AmountFieldEvent
 }
 

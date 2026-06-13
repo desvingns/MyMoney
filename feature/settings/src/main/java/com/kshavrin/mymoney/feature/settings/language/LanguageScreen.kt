@@ -61,10 +61,11 @@ fun LanguageContent(
         },
     ) { innerPadding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .selectableGroup(),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .selectableGroup(),
         ) {
             AppLanguage.entries.forEach { language ->
                 LanguageRow(
@@ -84,10 +85,11 @@ private fun LanguageRow(
     onClick: () -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .selectable(selected = selected, onClick = onClick, role = Role.RadioButton)
-            .padding(horizontal = Spacing.l, vertical = Spacing.m),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .selectable(selected = selected, onClick = onClick, role = Role.RadioButton)
+                .padding(horizontal = Spacing.l, vertical = Spacing.m),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.m),
     ) {
@@ -101,8 +103,9 @@ private fun LanguageRow(
 }
 
 private val AppLanguage.labelRes: Int
-    get() = when (this) {
-        AppLanguage.System -> R.string.language_system
-        AppLanguage.English -> R.string.language_en
-        AppLanguage.Russian -> R.string.language_ru
-    }
+    get() =
+        when (this) {
+            AppLanguage.System -> R.string.language_system
+            AppLanguage.English -> R.string.language_en
+            AppLanguage.Russian -> R.string.language_ru
+        }

@@ -22,7 +22,6 @@ import java.time.Instant
 
 @RunWith(AndroidJUnit4::class)
 class AccountsListContentUiTest {
-
     @get:Rule
     val composeTestRule = createComposeRule()
 
@@ -32,15 +31,17 @@ class AccountsListContentUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 AccountsListContent(
-                    state = AccountsListState(
-                        rows = listOf(
-                            AccountRow(
-                                account = account(1L, "Cash", currencyId = 10L, isDefault = true),
-                                balance = BigDecimal("100.00"),
-                                currency = currency(10L, "USD", "$"),
-                            ),
+                    state =
+                        AccountsListState(
+                            rows =
+                                listOf(
+                                    AccountRow(
+                                        account = account(1L, "Cash", currencyId = 10L, isDefault = true),
+                                        balance = BigDecimal("100.00"),
+                                        currency = currency(10L, "USD", "$"),
+                                    ),
+                                ),
                         ),
-                    ),
                     onEvent = { events += it },
                 )
             }
@@ -48,11 +49,14 @@ class AccountsListContentUiTest {
 
         composeTestRule.onNodeWithText("Cash").assertIsDisplayed()
         composeTestRule.onNodeWithText(targetString(R.string.dictionaries_default_badge)).assertIsDisplayed()
-        composeTestRule.onNodeWithText(targetString(R.string.dictionaries_balance_label), substring = true)
+        composeTestRule
+            .onNodeWithText(targetString(R.string.dictionaries_balance_label), substring = true)
             .assertIsDisplayed()
 
-        composeTestRule.onNodeWithContentDescription(targetString(R.string.dictionaries_add))
-            .assertIsEnabled().performClick()
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.dictionaries_add))
+            .assertIsEnabled()
+            .performClick()
         // Click the name text (unmerged) rather than the merged row node: the row's geometric
         // centre can land on the trailing "Default" AssistChip, whose onClick={} swallows the tap.
         composeTestRule.onNodeWithText("Cash", useUnmergedTree = true).performClick()
@@ -82,30 +86,41 @@ class AccountsListContentUiTest {
         composeTestRule.onNodeWithContentDescription(targetString(R.string.dictionaries_add)).assertIsEnabled()
     }
 
-    private fun account(id: Long, name: String, currencyId: Long, isDefault: Boolean): Account = Account(
-        id = id,
-        name = name,
-        currencyId = currencyId,
-        initialBalance = BigDecimal.ZERO,
-        type = AccountType.Cash,
-        colorHex = "#4A8FCB",
-        iconKey = "ic_account_cash",
-        isDefault = isDefault,
-        sortOrder = 0,
-        createdAt = Instant.parse("2026-05-29T00:00:00Z"),
-        updatedAt = Instant.parse("2026-05-29T00:00:00Z"),
-        isArchived = false,
-    )
+    private fun account(
+        id: Long,
+        name: String,
+        currencyId: Long,
+        isDefault: Boolean,
+    ): Account =
+        Account(
+            id = id,
+            name = name,
+            currencyId = currencyId,
+            initialBalance = BigDecimal.ZERO,
+            type = AccountType.Cash,
+            colorHex = "#4A8FCB",
+            iconKey = "ic_account_cash",
+            isDefault = isDefault,
+            sortOrder = 0,
+            createdAt = Instant.parse("2026-05-29T00:00:00Z"),
+            updatedAt = Instant.parse("2026-05-29T00:00:00Z"),
+            isArchived = false,
+        )
 
-    private fun currency(id: Long, code: String, symbol: String): Currency = Currency(
-        id = id,
-        code = code,
-        symbol = symbol,
-        name = code,
-        decimalDigits = 2,
-        isActive = true,
-        sortOrder = 0,
-    )
+    private fun currency(
+        id: Long,
+        code: String,
+        symbol: String,
+    ): Currency =
+        Currency(
+            id = id,
+            code = code,
+            symbol = symbol,
+            name = code,
+            decimalDigits = 2,
+            isActive = true,
+            sortOrder = 0,
+        )
 
     private fun targetString(resourceId: Int): String =
         InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)

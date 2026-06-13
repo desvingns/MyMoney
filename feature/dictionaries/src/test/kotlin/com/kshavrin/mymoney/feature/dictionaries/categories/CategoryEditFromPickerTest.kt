@@ -17,7 +17,6 @@ import org.junit.Test
 import java.time.Instant
 
 class CategoryEditFromPickerTest {
-
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
@@ -43,154 +42,167 @@ class CategoryEditFromPickerTest {
         id: Long,
         name: String = "Food",
         kind: CategoryKind = CategoryKind.Expense,
-    ): Category = Category(
-        id = id,
-        name = name,
-        kind = kind,
-        iconKey = "ic_cat_food",
-        colorHex = "#7A9685",
-        sortOrder = 0,
-        isDefault = false,
-        isArchived = false,
-        createdAt = now,
-    )
-
-    @Test
-    fun `create mode with kind INCOME pre-fills state kind to Income`() = runTest {
-        val handle = SavedStateHandle(
-            mapOf(
-                "id" to -1L,
-                "kind" to "Income",
-            ),
+    ): Category =
+        Category(
+            id = id,
+            name = name,
+            kind = kind,
+            iconKey = "ic_cat_food",
+            colorHex = "#7A9685",
+            sortOrder = 0,
+            isDefault = false,
+            isArchived = false,
+            createdAt = now,
         )
 
-        val viewModel = buildViewModel(handle)
-
-        val state = viewModel.state.value
-        assertEquals(true, state.isCreateMode)
-        assertEquals(CategoryKind.Income, state.kind)
-    }
-
     @Test
-    fun `create mode without kind defaults to Expense`() = runTest {
-        val handle = SavedStateHandle(mapOf("id" to -1L))
+    fun `create mode with kind INCOME pre-fills state kind to Income`() =
+        runTest {
+            val handle =
+                SavedStateHandle(
+                    mapOf(
+                        "id" to -1L,
+                        "kind" to "Income",
+                    ),
+                )
 
-        val viewModel = buildViewModel(handle)
+            val viewModel = buildViewModel(handle)
 
-        val state = viewModel.state.value
-        assertEquals(true, state.isCreateMode)
-        assertEquals(CategoryKind.Expense, state.kind)
-    }
-
-    @Test
-    fun `create mode with fromPicker true and valid name emits NavigateBackToPickerWithId on save`() = runTest {
-        val handle = SavedStateHandle(
-            mapOf(
-                "id" to -1L,
-                "kind" to "Expense",
-                "fromPicker" to true,
-            ),
-        )
-        val viewModel = buildViewModel(handle)
-        viewModel.onEvent(CategoryEditEvent.NameChanged("Coffee"))
-
-        viewModel.actions.test {
-            viewModel.onEvent(CategoryEditEvent.SaveClicked)
-
-            val action = awaitItem()
-            assertTrue(
-                "expected NavigateBackToPickerWithId but was $action",
-                action is CategoryEditAction.NavigateBackToPickerWithId,
-            )
-            val emitted = action as CategoryEditAction.NavigateBackToPickerWithId
-            val persisted = categoryRepo.observeAll().first()
-            assertEquals(1, persisted.size)
-            assertEquals(emitted.id, persisted.single().id)
-            assertEquals(1L, emitted.id)
-            cancelAndIgnoreRemainingEvents()
+            val state = viewModel.state.value
+            assertEquals(true, state.isCreateMode)
+            assertEquals(CategoryKind.Income, state.kind)
         }
-    }
 
     @Test
-    fun `create mode with fromPicker false and valid name emits NavigateBack on save`() = runTest {
-        val handle = SavedStateHandle(
-            mapOf(
-                "id" to -1L,
-                "kind" to "Expense",
-                "fromPicker" to false,
-            ),
-        )
-        val viewModel = buildViewModel(handle)
-        viewModel.onEvent(CategoryEditEvent.NameChanged("Coffee"))
+    fun `create mode without kind defaults to Expense`() =
+        runTest {
+            val handle = SavedStateHandle(mapOf("id" to -1L))
 
-        viewModel.actions.test {
-            viewModel.onEvent(CategoryEditEvent.SaveClicked)
+            val viewModel = buildViewModel(handle)
 
-            val action = awaitItem()
-            assertEquals(CategoryEditAction.NavigateBack, action)
-            cancelAndIgnoreRemainingEvents()
+            val state = viewModel.state.value
+            assertEquals(true, state.isCreateMode)
+            assertEquals(CategoryKind.Expense, state.kind)
         }
-    }
 
     @Test
-    fun `create mode without fromPicker key defaults to NavigateBack on save`() = runTest {
-        val handle = SavedStateHandle(mapOf("id" to -1L))
-        val viewModel = buildViewModel(handle)
-        viewModel.onEvent(CategoryEditEvent.NameChanged("Coffee"))
+    fun `create mode with fromPicker true and valid name emits NavigateBackToPickerWithId on save`() =
+        runTest {
+            val handle =
+                SavedStateHandle(
+                    mapOf(
+                        "id" to -1L,
+                        "kind" to "Expense",
+                        "fromPicker" to true,
+                    ),
+                )
+            val viewModel = buildViewModel(handle)
+            viewModel.onEvent(CategoryEditEvent.NameChanged("Coffee"))
 
-        viewModel.actions.test {
-            viewModel.onEvent(CategoryEditEvent.SaveClicked)
+            viewModel.actions.test {
+                viewModel.onEvent(CategoryEditEvent.SaveClicked)
 
-            val action = awaitItem()
-            assertEquals(CategoryEditAction.NavigateBack, action)
-            cancelAndIgnoreRemainingEvents()
+                val action = awaitItem()
+                assertTrue(
+                    "expected NavigateBackToPickerWithId but was $action",
+                    action is CategoryEditAction.NavigateBackToPickerWithId,
+                )
+                val emitted = action as CategoryEditAction.NavigateBackToPickerWithId
+                val persisted = categoryRepo.observeAll().first()
+                assertEquals(1, persisted.size)
+                assertEquals(emitted.id, persisted.single().id)
+                assertEquals(1L, emitted.id)
+                cancelAndIgnoreRemainingEvents()
+            }
         }
-    }
 
     @Test
-    fun `edit mode with fromPicker true emits regular NavigateBack and not NavigateBackToPickerWithId`() = runTest {
-        categoryRepo.seed(seededCategory(id = 5L, name = "Food"))
-        val handle = SavedStateHandle(
-            mapOf(
-                "id" to 5L,
-                "fromPicker" to true,
-            ),
-        )
-        val viewModel = buildViewModel(handle)
-        viewModel.onEvent(CategoryEditEvent.NameChanged("Food edited"))
+    fun `create mode with fromPicker false and valid name emits NavigateBack on save`() =
+        runTest {
+            val handle =
+                SavedStateHandle(
+                    mapOf(
+                        "id" to -1L,
+                        "kind" to "Expense",
+                        "fromPicker" to false,
+                    ),
+                )
+            val viewModel = buildViewModel(handle)
+            viewModel.onEvent(CategoryEditEvent.NameChanged("Coffee"))
 
-        viewModel.actions.test {
-            viewModel.onEvent(CategoryEditEvent.SaveClicked)
+            viewModel.actions.test {
+                viewModel.onEvent(CategoryEditEvent.SaveClicked)
 
-            val action = awaitItem()
-            assertEquals(CategoryEditAction.NavigateBack, action)
-            assertTrue(
-                "edit mode must NOT emit NavigateBackToPickerWithId",
-                action !is CategoryEditAction.NavigateBackToPickerWithId,
-            )
-            cancelAndIgnoreRemainingEvents()
+                val action = awaitItem()
+                assertEquals(CategoryEditAction.NavigateBack, action)
+                cancelAndIgnoreRemainingEvents()
+            }
         }
-    }
 
     @Test
-    fun `fromPicker save uses sequential id assignment starting at 1L when repo is empty`() = runTest {
-        val handle = SavedStateHandle(
-            mapOf(
-                "id" to -1L,
-                "kind" to "Income",
-                "fromPicker" to true,
-            ),
-        )
-        val viewModel = buildViewModel(handle)
-        viewModel.onEvent(CategoryEditEvent.NameChanged("Salary"))
+    fun `create mode without fromPicker key defaults to NavigateBack on save`() =
+        runTest {
+            val handle = SavedStateHandle(mapOf("id" to -1L))
+            val viewModel = buildViewModel(handle)
+            viewModel.onEvent(CategoryEditEvent.NameChanged("Coffee"))
 
-        viewModel.actions.test {
-            viewModel.onEvent(CategoryEditEvent.SaveClicked)
+            viewModel.actions.test {
+                viewModel.onEvent(CategoryEditEvent.SaveClicked)
 
-            val action = awaitItem()
-            assertTrue(action is CategoryEditAction.NavigateBackToPickerWithId)
-            assertEquals(1L, (action as CategoryEditAction.NavigateBackToPickerWithId).id)
-            cancelAndIgnoreRemainingEvents()
+                val action = awaitItem()
+                assertEquals(CategoryEditAction.NavigateBack, action)
+                cancelAndIgnoreRemainingEvents()
+            }
         }
-    }
+
+    @Test
+    fun `edit mode with fromPicker true emits regular NavigateBack and not NavigateBackToPickerWithId`() =
+        runTest {
+            categoryRepo.seed(seededCategory(id = 5L, name = "Food"))
+            val handle =
+                SavedStateHandle(
+                    mapOf(
+                        "id" to 5L,
+                        "fromPicker" to true,
+                    ),
+                )
+            val viewModel = buildViewModel(handle)
+            viewModel.onEvent(CategoryEditEvent.NameChanged("Food edited"))
+
+            viewModel.actions.test {
+                viewModel.onEvent(CategoryEditEvent.SaveClicked)
+
+                val action = awaitItem()
+                assertEquals(CategoryEditAction.NavigateBack, action)
+                assertTrue(
+                    "edit mode must NOT emit NavigateBackToPickerWithId",
+                    action !is CategoryEditAction.NavigateBackToPickerWithId,
+                )
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `fromPicker save uses sequential id assignment starting at 1L when repo is empty`() =
+        runTest {
+            val handle =
+                SavedStateHandle(
+                    mapOf(
+                        "id" to -1L,
+                        "kind" to "Income",
+                        "fromPicker" to true,
+                    ),
+                )
+            val viewModel = buildViewModel(handle)
+            viewModel.onEvent(CategoryEditEvent.NameChanged("Salary"))
+
+            viewModel.actions.test {
+                viewModel.onEvent(CategoryEditEvent.SaveClicked)
+
+                val action = awaitItem()
+                assertTrue(action is CategoryEditAction.NavigateBackToPickerWithId)
+                assertEquals(1L, (action as CategoryEditAction.NavigateBackToPickerWithId).id)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
 }

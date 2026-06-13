@@ -14,8 +14,11 @@ class FakeCurrencyRepository : CurrencyRepository {
     }
 
     override fun observeActive(): Flow<List<Currency>> = state.asStateFlow()
+
     override fun observeAll(): Flow<List<Currency>> = state.asStateFlow()
+
     override suspend fun findById(id: Long): Currency? = state.value.firstOrNull { it.id == id }
+
     override suspend fun findByCode(code: String): Currency? =
         state.value.firstOrNull { it.code.equals(code, ignoreCase = true) }
 
@@ -29,7 +32,10 @@ class FakeCurrencyRepository : CurrencyRepository {
         currencies.forEach { upsert(it) }
     }
 
-    override suspend fun setActive(id: Long, active: Boolean) {
+    override suspend fun setActive(
+        id: Long,
+        active: Boolean,
+    ) {
         state.value = state.value.map { if (it.id == id) it.copy(isActive = active) else it }
     }
 }

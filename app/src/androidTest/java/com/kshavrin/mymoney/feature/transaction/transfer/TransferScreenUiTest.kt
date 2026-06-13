@@ -16,26 +16,25 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
 import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.AccountType
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import com.kshavrin.mymoney.feature.transaction.R
-import java.math.BigDecimal
-import java.time.Instant
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.math.BigDecimal
+import java.time.Instant
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import kotlin.math.abs
+import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
 
 @RunWith(AndroidJUnit4::class)
 class TransferScreenUiTest {
-
     @get:Rule
     val composeTestRule = createComposeRule()
 
@@ -74,18 +73,21 @@ class TransferScreenUiTest {
             }
         }
 
-        val sourceBounds = composeTestRule
-            .onNodeWithContentDescription(targetString(R.string.source_label))
-            .fetchSemanticsNode()
-            .boundsInRoot
-        val arrowBounds = composeTestRule
-            .onNodeWithContentDescription(targetString(R.string.transfer_direction_cd))
-            .fetchSemanticsNode()
-            .boundsInRoot
-        val targetBounds = composeTestRule
-            .onNodeWithContentDescription(targetString(R.string.target_label))
-            .fetchSemanticsNode()
-            .boundsInRoot
+        val sourceBounds =
+            composeTestRule
+                .onNodeWithContentDescription(targetString(R.string.source_label))
+                .fetchSemanticsNode()
+                .boundsInRoot
+        val arrowBounds =
+            composeTestRule
+                .onNodeWithContentDescription(targetString(R.string.transfer_direction_cd))
+                .fetchSemanticsNode()
+                .boundsInRoot
+        val targetBounds =
+            composeTestRule
+                .onNodeWithContentDescription(targetString(R.string.target_label))
+                .fetchSemanticsNode()
+                .boundsInRoot
 
         assertTrue("source selector must stay above the arrow", sourceBounds.bottom <= arrowBounds.top)
         assertTrue("target selector must stay below the arrow", arrowBounds.bottom <= targetBounds.top)
@@ -103,10 +105,11 @@ class TransferScreenUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 TransferScreen(
-                    state = TransferState(
-                        currencies = listOf(sourceCurrency),
-                        sourceAccount = sourceAccount,
-                    ),
+                    state =
+                        TransferState(
+                            currencies = listOf(sourceCurrency),
+                            sourceAccount = sourceAccount,
+                        ),
                     onEvent = {},
                 )
             }
@@ -127,10 +130,11 @@ class TransferScreenUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 TransferScreen(
-                    state = TransferState(
-                        targetAccount = targetAccount,
-                        targetCurrency = targetCurrency,
-                    ),
+                    state =
+                        TransferState(
+                            targetAccount = targetAccount,
+                            targetCurrency = targetCurrency,
+                        ),
                     onEvent = {},
                 )
             }
@@ -361,11 +365,12 @@ class TransferScreenUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 TransferScreen(
-                    state = TransferState(
-                        sourceCurrency = sourceCurrency,
-                        targetCurrency = targetCurrency,
-                        ratePreviewText = "1 USD = 0.92 EUR",
-                    ),
+                    state =
+                        TransferState(
+                            sourceCurrency = sourceCurrency,
+                            targetCurrency = targetCurrency,
+                            ratePreviewText = "1 USD = 0.92 EUR",
+                        ),
                     onEvent = { event -> capturedEvents += event },
                 )
             }
@@ -392,13 +397,14 @@ class TransferScreenUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 TransferScreen(
-                    state = TransferState(
-                        sourceAccount = sourceAccount,
-                        targetAccount = targetAccount,
-                        sourceCurrency = sourceCurrency,
-                        targetCurrency = targetCurrency,
-                        ratePreviewText = ratePreview,
-                    ),
+                    state =
+                        TransferState(
+                            sourceAccount = sourceAccount,
+                            targetAccount = targetAccount,
+                            sourceCurrency = sourceCurrency,
+                            targetCurrency = targetCurrency,
+                            ratePreviewText = ratePreview,
+                        ),
                     onEvent = {},
                 )
             }
@@ -428,14 +434,15 @@ class TransferScreenUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 TransferScreen(
-                    state = TransferState(
-                        sourceAccount = sourceAccount,
-                        targetAccount = targetAccount,
-                        sourceCurrency = currency,
-                        targetCurrency = currency,
-                        amount = BigDecimal.ONE,
-                        amountInput = "1",
-                    ),
+                    state =
+                        TransferState(
+                            sourceAccount = sourceAccount,
+                            targetAccount = targetAccount,
+                            sourceCurrency = currency,
+                            targetCurrency = currency,
+                            amount = BigDecimal.ONE,
+                            amountInput = "1",
+                        ),
                     onEvent = { event -> capturedEvents += event },
                 )
             }
@@ -478,12 +485,18 @@ class TransferScreenUiTest {
         InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)
 
     private fun dateLabel(date: LocalDate): String {
-        val locale = InstrumentationRegistry.getInstrumentation()
-            .targetContext.resources.configuration.locales[0]
+        val locale =
+            InstrumentationRegistry
+                .getInstrumentation()
+                .targetContext.resources.configuration.locales[0]
         return date.format(DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy", locale))
     }
 
-    private fun account(id: Long, name: String, currencyId: Long = 1L): Account {
+    private fun account(
+        id: Long,
+        name: String,
+        currencyId: Long = 1L,
+    ): Account {
         val now = Instant.parse("2026-05-27T00:00:00Z")
         return Account(
             id = id,
@@ -501,13 +514,17 @@ class TransferScreenUiTest {
         )
     }
 
-    private fun currency(id: Long, code: String): Currency = Currency(
-        id = id,
-        code = code,
-        symbol = code,
-        name = code,
-        decimalDigits = 2,
-        isActive = true,
-        sortOrder = 0,
-    )
+    private fun currency(
+        id: Long,
+        code: String,
+    ): Currency =
+        Currency(
+            id = id,
+            code = code,
+            symbol = code,
+            name = code,
+            decimalDigits = 2,
+            isActive = true,
+            sortOrder = 0,
+        )
 }

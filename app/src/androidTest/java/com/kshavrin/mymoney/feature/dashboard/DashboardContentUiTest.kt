@@ -1,6 +1,10 @@
 package com.kshavrin.mymoney.feature.dashboard
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.test.assertCountEquals
@@ -17,31 +21,25 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
-import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
 import androidx.compose.ui.unit.dp
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.common.money.MoneyFormatter
-import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
 import com.kshavrin.mymoney.core.designsystem.donut.CategorySlice
 import com.kshavrin.mymoney.core.domain.model.BalanceSnapshot
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.domain.model.Period
-import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
+import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanelContainer
 import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanelContainerNegative
 import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanelContent
@@ -62,10 +60,10 @@ import org.junit.runner.RunWith
 import java.math.BigDecimal
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
+import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
 
 @RunWith(AndroidJUnit4::class)
 class DashboardContentUiTest {
-
     @get:Rule
     val composeTestRule = createComposeRule()
 
@@ -147,8 +145,9 @@ class DashboardContentUiTest {
             }
         }
 
-        val transferButtons = composeTestRule
-            .onAllNodesWithContentDescription(targetString(R.string.dashboard_transfer))
+        val transferButtons =
+            composeTestRule
+                .onAllNodesWithContentDescription(targetString(R.string.dashboard_transfer))
 
         transferButtons.assertCountEquals(1)
         transferButtons[0].assertIsEnabled().performClick()
@@ -183,15 +182,16 @@ class DashboardContentUiTest {
 
     @Test
     fun `top bar renders wordmark title and currency subtitle`() {
-        val usd = Currency(
-            id = 1L,
-            code = "USD",
-            symbol = "$",
-            name = "US Dollar",
-            decimalDigits = 2,
-            isActive = true,
-            sortOrder = 0,
-        )
+        val usd =
+            Currency(
+                id = 1L,
+                code = "USD",
+                symbol = "$",
+                name = "US Dollar",
+                decimalDigits = 2,
+                isActive = true,
+                sortOrder = 0,
+            )
 
         composeTestRule.setContent {
             MyMoneyTheme {
@@ -214,15 +214,16 @@ class DashboardContentUiTest {
 
     @Test
     fun `top bar title and currency subtitle use onPrimary in light theme`() {
-        val usd = Currency(
-            id = 1L,
-            code = "USD",
-            symbol = "$",
-            name = "US Dollar",
-            decimalDigits = 2,
-            isActive = true,
-            sortOrder = 0,
-        )
+        val usd =
+            Currency(
+                id = 1L,
+                code = "USD",
+                symbol = "$",
+                name = "US Dollar",
+                decimalDigits = 2,
+                isActive = true,
+                sortOrder = 0,
+            )
         var expectedTint = 0
 
         composeTestRule.setContent {
@@ -257,11 +258,12 @@ class DashboardContentUiTest {
                 expectedContainer = MaterialTheme.colorScheme.dashboardBalancePanelContainerNegative.toArgb()
                 expectedContent = MaterialTheme.colorScheme.dashboardBalancePanelContentNegative.toArgb()
                 DashboardContent(
-                    state = dashboardState(
-                        currency = usd,
-                        balanceSnapshot = balanceSnapshot(netAmount = "-123.45", currency = usd),
-                        isLoading = false,
-                    ),
+                    state =
+                        dashboardState(
+                            currency = usd,
+                            balanceSnapshot = balanceSnapshot(netAmount = "-123.45", currency = usd),
+                            isLoading = false,
+                        ),
                     onEvent = {},
                 )
             }
@@ -284,11 +286,12 @@ class DashboardContentUiTest {
                 expectedContainer = MaterialTheme.colorScheme.dashboardBalancePanelContainer.toArgb()
                 expectedContent = MaterialTheme.colorScheme.dashboardBalancePanelContent.toArgb()
                 DashboardContent(
-                    state = dashboardState(
-                        currency = usd,
-                        balanceSnapshot = balanceSnapshot(netAmount = "123.45", currency = usd),
-                        isLoading = false,
-                    ),
+                    state =
+                        dashboardState(
+                            currency = usd,
+                            balanceSnapshot = balanceSnapshot(netAmount = "123.45", currency = usd),
+                            isLoading = false,
+                        ),
                     onEvent = {},
                 )
             }
@@ -311,11 +314,12 @@ class DashboardContentUiTest {
                 expectedContainer = MaterialTheme.colorScheme.dashboardBalancePanelContainer.toArgb()
                 expectedContent = MaterialTheme.colorScheme.dashboardBalancePanelContent.toArgb()
                 DashboardContent(
-                    state = dashboardState(
-                        currency = usd,
-                        balanceSnapshot = balanceSnapshot(netAmount = "0.00", currency = usd),
-                        isLoading = false,
-                    ),
+                    state =
+                        dashboardState(
+                            currency = usd,
+                            balanceSnapshot = balanceSnapshot(netAmount = "0.00", currency = usd),
+                            isLoading = false,
+                        ),
                     onEvent = {},
                 )
             }
@@ -330,41 +334,45 @@ class DashboardContentUiTest {
     @Test
     fun `balance panel renders localized label and grouped net amount as separate text nodes and emits balance card event`() {
         val capturedEvents = mutableListOf<DashboardEvent>()
-        val usd = Currency(
-            id = 1L,
-            code = "USD",
-            symbol = "$",
-            name = "US Dollar",
-            decimalDigits = 2,
-            isActive = true,
-            sortOrder = 0,
-        )
+        val usd =
+            Currency(
+                id = 1L,
+                code = "USD",
+                symbol = "$",
+                name = "US Dollar",
+                decimalDigits = 2,
+                isActive = true,
+                sortOrder = 0,
+            )
 
         composeTestRule.setContent {
             MyMoneyTheme {
                 DashboardContent(
-                    state = dashboardState(
-                        currency = usd,
-                        balanceSnapshot = BalanceSnapshot(
-                            income = Money(BigDecimal("20000.00"), usd),
-                            expense = Money(BigDecimal("7654.33"), usd),
-                            net = Money(BigDecimal("12345.67"), usd),
-                            byCategory = emptyList(),
+                    state =
+                        dashboardState(
+                            currency = usd,
+                            balanceSnapshot =
+                                BalanceSnapshot(
+                                    income = Money(BigDecimal("20000.00"), usd),
+                                    expense = Money(BigDecimal("7654.33"), usd),
+                                    net = Money(BigDecimal("12345.67"), usd),
+                                    byCategory = emptyList(),
+                                ),
+                            isLoading = false,
                         ),
-                        isLoading = false,
-                    ),
                     onEvent = { event -> capturedEvents += event },
                 )
             }
         }
 
-        val expectedBalanceAmount = MoneyFormatter.format(
-            amount = BigDecimal("12345.67"),
-            currencySymbol = usd.symbol,
-            decimalDigits = usd.decimalDigits,
-            locale = targetLocale(),
-            symbolPosition = MoneyFormatter.SymbolPosition.AFTER,
-        )
+        val expectedBalanceAmount =
+            MoneyFormatter.format(
+                amount = BigDecimal("12345.67"),
+                currencySymbol = usd.symbol,
+                decimalDigits = usd.decimalDigits,
+                locale = targetLocale(),
+                symbolPosition = MoneyFormatter.SymbolPosition.AFTER,
+            )
 
         composeTestRule
             .onNodeWithTag(BALANCE_BAR_TAG)
@@ -386,51 +394,62 @@ class DashboardContentUiTest {
 
     @Test
     fun `balance panel sits below the period row and above the donut`() {
-        val usd = Currency(
-            id = 1L,
-            code = "USD",
-            symbol = "$",
-            name = "US Dollar",
-            decimalDigits = 2,
-            isActive = true,
-            sortOrder = 0,
-        )
+        val usd =
+            Currency(
+                id = 1L,
+                code = "USD",
+                symbol = "$",
+                name = "US Dollar",
+                decimalDigits = 2,
+                isActive = true,
+                sortOrder = 0,
+            )
 
         composeTestRule.setContent {
             MyMoneyTheme {
                 DashboardContent(
-                    state = dashboardState(
-                        currency = usd,
-                        balanceSnapshot = BalanceSnapshot(
-                            income = Money(BigDecimal("20000.00"), usd),
-                            expense = Money(BigDecimal("7654.33"), usd),
-                            net = Money(BigDecimal("12345.67"), usd),
-                            byCategory = emptyList(),
+                    state =
+                        dashboardState(
+                            currency = usd,
+                            balanceSnapshot =
+                                BalanceSnapshot(
+                                    income = Money(BigDecimal("20000.00"), usd),
+                                    expense = Money(BigDecimal("7654.33"), usd),
+                                    net = Money(BigDecimal("12345.67"), usd),
+                                    byCategory = emptyList(),
+                                ),
+                            period = Period.Month(YearMonth.of(2026, 4)),
+                            isLoading = false,
                         ),
-                        period = Period.Month(YearMonth.of(2026, 4)),
-                        isLoading = false,
-                    ),
                     onEvent = {},
                 )
             }
         }
 
-        val periodLabel = YearMonth.of(2026, 4)
-            .atDay(1)
-            .format(DateTimeFormatter.ofPattern("LLLL yyyy", targetLocale()))
-        val balanceBounds = composeTestRule.onNodeWithTag(BALANCE_BAR_TAG)
-            .fetchSemanticsNode().boundsInRoot
-        val periodBottom = composeTestRule
-            .onNodeWithText(periodLabel)
-            .fetchSemanticsNode()
-            .boundsInRoot
-            .bottom
+        val periodLabel =
+            YearMonth
+                .of(2026, 4)
+                .atDay(1)
+                .format(DateTimeFormatter.ofPattern("LLLL yyyy", targetLocale()))
+        val balanceBounds =
+            composeTestRule
+                .onNodeWithTag(BALANCE_BAR_TAG)
+                .fetchSemanticsNode()
+                .boundsInRoot
+        val periodBottom =
+            composeTestRule
+                .onNodeWithText(periodLabel)
+                .fetchSemanticsNode()
+                .boundsInRoot
+                .bottom
         // The donut announces its income/expense totals; match on the localized prefix
         // ahead of the format placeholders so the chart node is uniquely located.
         val donutCdPrefix = targetString(DesignSystemR.string.donut_chart_cd).substringBefore('%').trim()
-        val donutTop = composeTestRule
-            .onNode(hasContentDescription(donutCdPrefix, substring = true))
-            .fetchSemanticsNode().boundsInRoot.top
+        val donutTop =
+            composeTestRule
+                .onNode(hasContentDescription(donutCdPrefix, substring = true))
+                .fetchSemanticsNode()
+                .boundsInRoot.top
 
         assertTrue("balance panel must sit below the period row", balanceBounds.top > periodBottom)
         assertTrue("balance panel must not overlap the donut", balanceBounds.bottom <= donutTop)
@@ -438,71 +457,82 @@ class DashboardContentUiTest {
 
     @Test
     fun `year dashboard gives the donut stage and fabs reference scale`() {
-        val usd = Currency(
-            id = 1L,
-            code = "USD",
-            symbol = "$",
-            name = "US Dollar",
-            decimalDigits = 2,
-            isActive = true,
-            sortOrder = 0,
-        )
+        val usd =
+            Currency(
+                id = 1L,
+                code = "USD",
+                symbol = "$",
+                name = "US Dollar",
+                decimalDigits = 2,
+                isActive = true,
+                sortOrder = 0,
+            )
 
         composeTestRule.setContent {
             MyMoneyTheme {
                 DashboardContent(
-                    state = dashboardState(
-                        currency = usd,
-                        balanceSnapshot = BalanceSnapshot(
-                            income = Money(BigDecimal("2442740.80"), usd),
-                            expense = Money(BigDecimal("1699483.00"), usd),
-                            net = Money(BigDecimal("743257.80"), usd),
-                            byCategory = emptyList(),
+                    state =
+                        dashboardState(
+                            currency = usd,
+                            balanceSnapshot =
+                                BalanceSnapshot(
+                                    income = Money(BigDecimal("2442740.80"), usd),
+                                    expense = Money(BigDecimal("1699483.00"), usd),
+                                    net = Money(BigDecimal("743257.80"), usd),
+                                    byCategory = emptyList(),
+                                ),
+                            period = Period.Year(2026),
+                            slices =
+                                listOf(
+                                    CategorySlice(1L, Color(0xFFECC400), 0.27f, "Car", "car"),
+                                    CategorySlice(2L, Color(0xFF77C99B), 0.21f, "Pets", "pets"),
+                                    CategorySlice(3L, Color(0xFFE879B0), 0.17f, "Groceries", "groceries"),
+                                    CategorySlice(4L, Color(0xFF9CC7DB), 0.05f, "Home", "home"),
+                                ),
+                            isLoading = false,
                         ),
-                        period = Period.Year(2026),
-                        slices = listOf(
-                            CategorySlice(1L, Color(0xFFECC400), 0.27f, "Car", "car"),
-                            CategorySlice(2L, Color(0xFF77C99B), 0.21f, "Pets", "pets"),
-                            CategorySlice(3L, Color(0xFFE879B0), 0.17f, "Groceries", "groceries"),
-                            CategorySlice(4L, Color(0xFF9CC7DB), 0.05f, "Home", "home"),
-                        ),
-                        isLoading = false,
-                    ),
                     onEvent = {},
                 )
             }
         }
 
-        val donutBounds = composeTestRule
-            .onNodeWithTag(DASHBOARD_DONUT_TAG)
-            .assertIsDisplayed()
-            .assertWidthIsAtLeast(360.dp)
-            .assertHeightIsAtLeast(360.dp)
-            .fetchSemanticsNode()
-            .boundsInRoot
-        val balanceBounds = composeTestRule
-            .onNodeWithTag(BALANCE_BAR_TAG)
-            .assertIsDisplayed()
-            .fetchSemanticsNode()
-            .boundsInRoot
-        val expenseFab = composeTestRule
-            .onNodeWithContentDescription(targetString(R.string.fab_expense))
-            .assertIsDisplayed()
-            .assertHasClickAction()
-            .assertWidthIsAtLeast(Spacing.dashboardFabSize)
-            .assertHeightIsAtLeast(Spacing.dashboardFabSize)
-            .fetchSemanticsNode()
-            .boundsInRoot
-        val incomeFab = composeTestRule
-            .onNodeWithContentDescription(targetString(R.string.fab_income))
-            .assertIsDisplayed()
-            .assertHasClickAction()
-            .assertWidthIsAtLeast(Spacing.dashboardFabSize)
-            .assertHeightIsAtLeast(Spacing.dashboardFabSize)
-            .fetchSemanticsNode()
-            .boundsInRoot
-        val rootWidth = InstrumentationRegistry.getInstrumentation()
-            .targetContext.resources.displayMetrics.widthPixels.toFloat()
+        val donutBounds =
+            composeTestRule
+                .onNodeWithTag(DASHBOARD_DONUT_TAG)
+                .assertIsDisplayed()
+                .assertWidthIsAtLeast(360.dp)
+                .assertHeightIsAtLeast(360.dp)
+                .fetchSemanticsNode()
+                .boundsInRoot
+        val balanceBounds =
+            composeTestRule
+                .onNodeWithTag(BALANCE_BAR_TAG)
+                .assertIsDisplayed()
+                .fetchSemanticsNode()
+                .boundsInRoot
+        val expenseFab =
+            composeTestRule
+                .onNodeWithContentDescription(targetString(R.string.fab_expense))
+                .assertIsDisplayed()
+                .assertHasClickAction()
+                .assertWidthIsAtLeast(Spacing.dashboardFabSize)
+                .assertHeightIsAtLeast(Spacing.dashboardFabSize)
+                .fetchSemanticsNode()
+                .boundsInRoot
+        val incomeFab =
+            composeTestRule
+                .onNodeWithContentDescription(targetString(R.string.fab_income))
+                .assertIsDisplayed()
+                .assertHasClickAction()
+                .assertWidthIsAtLeast(Spacing.dashboardFabSize)
+                .assertHeightIsAtLeast(Spacing.dashboardFabSize)
+                .fetchSemanticsNode()
+                .boundsInRoot
+        val rootWidth =
+            InstrumentationRegistry
+                .getInstrumentation()
+                .targetContext.resources.displayMetrics.widthPixels
+                .toFloat()
         val donutWidthRatio = donutBounds.width / rootWidth
 
         assertTrue(
@@ -519,45 +549,50 @@ class DashboardContentUiTest {
 
     @Test
     fun `dashboard content relabels and recolors the sentinel other slice at the compose boundary`() {
-        val usd = Currency(
-            id = 1L,
-            code = "USD",
-            symbol = "$",
-            name = "US Dollar",
-            decimalDigits = 2,
-            isActive = true,
-            sortOrder = 0,
-        )
+        val usd =
+            Currency(
+                id = 1L,
+                code = "USD",
+                symbol = "$",
+                name = "US Dollar",
+                decimalDigits = 2,
+                isActive = true,
+                sortOrder = 0,
+            )
         var expectedOtherColor = 0
-        val expectedDescription = expectedDonutDescription(
-            income = "0",
-            expense = "10.00",
-            slices = listOf(targetString(R.string.category_other) to 100),
-        )
+        val expectedDescription =
+            expectedDonutDescription(
+                income = "0",
+                expense = "10.00",
+                slices = listOf(targetString(R.string.category_other) to 100),
+            )
 
         composeTestRule.setContent {
             MyMoneyTheme {
                 expectedOtherColor = MaterialTheme.colorScheme.dashboardDonutOtherSlice.toArgb()
                 DashboardContent(
-                    state = dashboardState(
-                        currency = usd,
-                        balanceSnapshot = BalanceSnapshot(
-                            income = Money(BigDecimal.ZERO, usd),
-                            expense = Money(BigDecimal("10.00"), usd),
-                            net = Money(BigDecimal("-10.00"), usd),
-                            byCategory = emptyList(),
+                    state =
+                        dashboardState(
+                            currency = usd,
+                            balanceSnapshot =
+                                BalanceSnapshot(
+                                    income = Money(BigDecimal.ZERO, usd),
+                                    expense = Money(BigDecimal("10.00"), usd),
+                                    net = Money(BigDecimal("-10.00"), usd),
+                                    byCategory = emptyList(),
+                                ),
+                            slices =
+                                listOf(
+                                    CategorySlice(
+                                        categoryId = OTHER_CATEGORY_ID,
+                                        color = Color.Unspecified,
+                                        fraction = 1.0f,
+                                        label = "",
+                                        iconKey = OTHER_CATEGORY_ICON_KEY,
+                                    ),
+                                ),
+                            isLoading = false,
                         ),
-                        slices = listOf(
-                            CategorySlice(
-                                categoryId = OTHER_CATEGORY_ID,
-                                color = Color.Unspecified,
-                                fraction = 1.0f,
-                                label = "",
-                                iconKey = OTHER_CATEGORY_ICON_KEY,
-                            ),
-                        ),
-                        isLoading = false,
-                    ),
                     onEvent = {},
                 )
             }
@@ -576,13 +611,14 @@ class DashboardContentUiTest {
     @Test
     fun `right drawer rows display and emit their destination events`() {
         val capturedEvents = mutableListOf<DashboardEvent>()
-        val drawerRows = listOf(
-            RIGHT_DRAWER_SETTINGS_TAG,
-            RIGHT_DRAWER_CATEGORIES_TAG,
-            RIGHT_DRAWER_ACCOUNTS_TAG,
-            RIGHT_DRAWER_CURRENCIES_TAG,
-            RIGHT_DRAWER_ABOUT_TAG,
-        )
+        val drawerRows =
+            listOf(
+                RIGHT_DRAWER_SETTINGS_TAG,
+                RIGHT_DRAWER_CATEGORIES_TAG,
+                RIGHT_DRAWER_ACCOUNTS_TAG,
+                RIGHT_DRAWER_CURRENCIES_TAG,
+                RIGHT_DRAWER_ABOUT_TAG,
+            )
 
         setStatefulDashboardContent(
             initialState = DashboardState(isLoading = false, rightDrawerOpen = true),
@@ -647,21 +683,24 @@ class DashboardContentUiTest {
         )
         composeTestRule.waitForIdle()
 
-        val accountsBounds = composeTestRule
-            .onNodeWithTag(RIGHT_DRAWER_ACCOUNTS_TAG, useUnmergedTree = true)
-            .assertIsDisplayed()
-            .fetchSemanticsNode()
-            .boundsInRoot
-        val goalsBounds = composeTestRule
-            .onNodeWithTag(RIGHT_DRAWER_FINANCIAL_GOALS_TAG, useUnmergedTree = true)
-            .assertIsDisplayed()
-            .fetchSemanticsNode()
-            .boundsInRoot
-        val currenciesBounds = composeTestRule
-            .onNodeWithTag(RIGHT_DRAWER_CURRENCIES_TAG, useUnmergedTree = true)
-            .assertIsDisplayed()
-            .fetchSemanticsNode()
-            .boundsInRoot
+        val accountsBounds =
+            composeTestRule
+                .onNodeWithTag(RIGHT_DRAWER_ACCOUNTS_TAG, useUnmergedTree = true)
+                .assertIsDisplayed()
+                .fetchSemanticsNode()
+                .boundsInRoot
+        val goalsBounds =
+            composeTestRule
+                .onNodeWithTag(RIGHT_DRAWER_FINANCIAL_GOALS_TAG, useUnmergedTree = true)
+                .assertIsDisplayed()
+                .fetchSemanticsNode()
+                .boundsInRoot
+        val currenciesBounds =
+            composeTestRule
+                .onNodeWithTag(RIGHT_DRAWER_CURRENCIES_TAG, useUnmergedTree = true)
+                .assertIsDisplayed()
+                .fetchSemanticsNode()
+                .boundsInRoot
 
         assertTrue(
             "financial goals item must sit below accounts",
@@ -676,9 +715,11 @@ class DashboardContentUiTest {
     @Test
     fun `dashboard shows the current period as a static localized label`() {
         val period = Period.Month(YearMonth.of(2026, 4))
-        val expectedLabel = YearMonth.of(2026, 4)
-            .atDay(1)
-            .format(DateTimeFormatter.ofPattern("LLLL yyyy", targetLocale()))
+        val expectedLabel =
+            YearMonth
+                .of(2026, 4)
+                .atDay(1)
+                .format(DateTimeFormatter.ofPattern("LLLL yyyy", targetLocale()))
 
         composeTestRule.setContent {
             MyMoneyTheme {
@@ -804,10 +845,11 @@ class DashboardContentUiTest {
     fun `scrim tap dismisses the left drawer and closes both drawer flags`() {
         val capturedEvents = mutableListOf<DashboardEvent>()
 
-        val currentState = setStatefulDashboardContent(
-            initialState = DashboardState(isLoading = false, leftDrawerOpen = true),
-            onCapturedEvent = { event -> capturedEvents += event },
-        )
+        val currentState =
+            setStatefulDashboardContent(
+                initialState = DashboardState(isLoading = false, leftDrawerOpen = true),
+                onCapturedEvent = { event -> capturedEvents += event },
+            )
         composeTestRule.waitForIdle()
 
         tapDashboardScrim(xFraction = 0.9f)
@@ -823,10 +865,11 @@ class DashboardContentUiTest {
     fun `scrim tap dismisses the right drawer and closes both drawer flags`() {
         val capturedEvents = mutableListOf<DashboardEvent>()
 
-        val currentState = setStatefulDashboardContent(
-            initialState = DashboardState(isLoading = false, rightDrawerOpen = true),
-            onCapturedEvent = { event -> capturedEvents += event },
-        )
+        val currentState =
+            setStatefulDashboardContent(
+                initialState = DashboardState(isLoading = false, rightDrawerOpen = true),
+                onCapturedEvent = { event -> capturedEvents += event },
+            )
         composeTestRule.waitForIdle()
 
         tapDashboardScrim(xFraction = 0.1f)
@@ -927,10 +970,11 @@ class DashboardContentUiTest {
     fun `back arrow closes the left drawer`() {
         val capturedEvents = mutableListOf<DashboardEvent>()
 
-        val currentState = setStatefulDashboardContent(
-            initialState = DashboardState(isLoading = false, leftDrawerOpen = true),
-            onCapturedEvent = { event -> capturedEvents += event },
-        )
+        val currentState =
+            setStatefulDashboardContent(
+                initialState = DashboardState(isLoading = false, leftDrawerOpen = true),
+                onCapturedEvent = { event -> capturedEvents += event },
+            )
 
         composeTestRule
             .onNodeWithContentDescription(targetString(R.string.dashboard_back))
@@ -948,10 +992,11 @@ class DashboardContentUiTest {
     fun `back arrow closes the right drawer`() {
         val capturedEvents = mutableListOf<DashboardEvent>()
 
-        val currentState = setStatefulDashboardContent(
-            initialState = DashboardState(isLoading = false, rightDrawerOpen = true),
-            onCapturedEvent = { event -> capturedEvents += event },
-        )
+        val currentState =
+            setStatefulDashboardContent(
+                initialState = DashboardState(isLoading = false, rightDrawerOpen = true),
+                onCapturedEvent = { event -> capturedEvents += event },
+            )
 
         composeTestRule
             .onNodeWithContentDescription(targetString(R.string.dashboard_back))
@@ -1067,12 +1112,13 @@ class DashboardContentUiTest {
             }
         }
 
-        val panelWidthPx = composeTestRule
-            .onNodeWithTag(BALANCE_BAR_TAG)
-            .assertIsDisplayed()
-            .fetchSemanticsNode()
-            .boundsInRoot
-            .width
+        val panelWidthPx =
+            composeTestRule
+                .onNodeWithTag(BALANCE_BAR_TAG)
+                .assertIsDisplayed()
+                .fetchSemanticsNode()
+                .boundsInRoot
+                .width
         val panelWidthDp = with(composeTestRule.density) { panelWidthPx.toDp() }
         val maxWidthDp = Spacing.dashboardBalancePanelMaxWidth
         assertTrue(
@@ -1131,18 +1177,21 @@ class DashboardContentUiTest {
                     state = state,
                     onEvent = { event ->
                         onCapturedEvent(event)
-                        state = when (event) {
-                            DashboardEvent.LeftDrawerToggled -> state.copy(
-                                leftDrawerOpen = !state.leftDrawerOpen,
-                                rightDrawerOpen = false,
-                            )
-                            DashboardEvent.RightDrawerToggled -> state.copy(
-                                rightDrawerOpen = !state.rightDrawerOpen,
-                                leftDrawerOpen = false,
-                            )
-                            DashboardEvent.DrawerDismissed -> state.copy(leftDrawerOpen = false, rightDrawerOpen = false)
-                            else -> state
-                        }
+                        state =
+                            when (event) {
+                                DashboardEvent.LeftDrawerToggled ->
+                                    state.copy(
+                                        leftDrawerOpen = !state.leftDrawerOpen,
+                                        rightDrawerOpen = false,
+                                    )
+                                DashboardEvent.RightDrawerToggled ->
+                                    state.copy(
+                                        rightDrawerOpen = !state.rightDrawerOpen,
+                                        leftDrawerOpen = false,
+                                    )
+                                DashboardEvent.DrawerDismissed -> state.copy(leftDrawerOpen = false, rightDrawerOpen = false)
+                                else -> state
+                            }
                     },
                 )
             }
@@ -1154,16 +1203,19 @@ class DashboardContentUiTest {
         val rootBounds = composeTestRule.onRoot().fetchSemanticsNode().boundsInRoot
         composeTestRule.onRoot().performTouchInput {
             click(
-                position = Offset(
-                    x = rootBounds.width * xFraction,
-                    y = rootBounds.height * 0.5f,
-                ),
+                position =
+                    Offset(
+                        x = rootBounds.width * xFraction,
+                        y = rootBounds.height * 0.5f,
+                    ),
             )
         }
     }
 
-    private fun targetLocale() = InstrumentationRegistry.getInstrumentation()
-        .targetContext.resources.configuration.locales[0]
+    private fun targetLocale() =
+        InstrumentationRegistry
+            .getInstrumentation()
+            .targetContext.resources.configuration.locales[0]
 
     private fun expectedDonutDescription(
         income: String,
@@ -1172,9 +1224,10 @@ class DashboardContentUiTest {
     ): String {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val header = context.getString(DesignSystemR.string.donut_chart_cd, income, expense)
-        val sliceText = slices.joinToString(separator = " ") { (label, percent) ->
-            context.getString(DesignSystemR.string.donut_chart_slice, label, percent)
-        }
+        val sliceText =
+            slices.joinToString(separator = " ") { (label, percent) ->
+                context.getString(DesignSystemR.string.donut_chart_slice, label, percent)
+            }
         return if (sliceText.isEmpty()) header else "$header $sliceText"
     }
 
@@ -1194,18 +1247,28 @@ class DashboardContentUiTest {
         )
     }
 
-    private fun nodeImageContainsColor(tag: String, argb: Int): Boolean {
-        val image = composeTestRule
-            .onNodeWithTag(tag)
-            .assertIsDisplayed()
-            .captureToImage()
+    private fun nodeImageContainsColor(
+        tag: String,
+        argb: Int,
+    ): Boolean {
+        val image =
+            composeTestRule
+                .onNodeWithTag(tag)
+                .assertIsDisplayed()
+                .captureToImage()
         val pixels = IntArray(image.width * image.height)
         image.readPixels(pixels)
         return pixels.any { colorsMatch(it, argb) }
     }
 
-    private fun colorsMatch(a: Int, b: Int): Boolean {
-        fun channel(value: Int, shift: Int) = (value shr shift) and 0xFF
+    private fun colorsMatch(
+        a: Int,
+        b: Int,
+    ): Boolean {
+        fun channel(
+            value: Int,
+            shift: Int,
+        ) = (value shr shift) and 0xFF
         val tolerance = 12
         return kotlin.math.abs(channel(a, 16) - channel(b, 16)) <= tolerance &&
             kotlin.math.abs(channel(a, 8) - channel(b, 8)) <= tolerance &&
@@ -1227,15 +1290,16 @@ class DashboardContentUiTest {
         isLoading = isLoading,
     )
 
-    private fun usdCurrency() = Currency(
-        id = 1L,
-        code = "USD",
-        symbol = "$",
-        name = "US Dollar",
-        decimalDigits = 2,
-        isActive = true,
-        sortOrder = 0,
-    )
+    private fun usdCurrency() =
+        Currency(
+            id = 1L,
+            code = "USD",
+            symbol = "$",
+            name = "US Dollar",
+            decimalDigits = 2,
+            isActive = true,
+            sortOrder = 0,
+        )
 
     private fun balanceSnapshot(
         netAmount: String,
@@ -1260,8 +1324,11 @@ class DashboardContentUiTest {
         val drawerRow = composeTestRule.onNode(hasText(drawerLabel) and hasClickAction())
         drawerRow.assertIsDisplayed()
 
-        val rootWidth = InstrumentationRegistry.getInstrumentation()
-            .targetContext.resources.displayMetrics.widthPixels.toFloat()
+        val rootWidth =
+            InstrumentationRegistry
+                .getInstrumentation()
+                .targetContext.resources.displayMetrics.widthPixels
+                .toFloat()
         val rowWidth = drawerRow.fetchSemanticsNode().boundsInRoot.width
         val horizontalPadding = with(composeTestRule.density) { (Spacing.l * 2).toPx() }
         val ratio = (rowWidth + horizontalPadding) / rootWidth
@@ -1276,13 +1343,17 @@ class DashboardContentUiTest {
         val drawerRow = composeTestRule.onNode(hasText(drawerLabel) and hasClickAction())
         drawerRow.assertIsDisplayed()
 
-        val rootWidth = InstrumentationRegistry.getInstrumentation()
-            .targetContext.resources.displayMetrics.widthPixels.toFloat()
+        val rootWidth =
+            InstrumentationRegistry
+                .getInstrumentation()
+                .targetContext.resources.displayMetrics.widthPixels
+                .toFloat()
         val rowBounds = drawerRow.fetchSemanticsNode().boundsInRoot
-        val labelBounds = composeTestRule
-            .onNodeWithText(drawerLabel, useUnmergedTree = true)
-            .fetchSemanticsNode()
-            .boundsInRoot
+        val labelBounds =
+            composeTestRule
+                .onNodeWithText(drawerLabel, useUnmergedTree = true)
+                .fetchSemanticsNode()
+                .boundsInRoot
         val horizontalPadding = with(composeTestRule.density) { Spacing.l.toPx() }
         val panelRight = rowBounds.right + horizontalPadding
 

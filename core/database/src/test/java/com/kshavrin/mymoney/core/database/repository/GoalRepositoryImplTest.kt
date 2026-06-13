@@ -20,7 +20,6 @@ import java.math.BigDecimal
 import java.time.Instant
 
 class GoalRepositoryImplTest {
-
     private inner class FakeGoalDao : GoalDao() {
         private val store = MutableStateFlow<Map<Long, GoalEntity>>(emptyMap())
         private var nextId = 1L
@@ -36,10 +35,14 @@ class GoalRepositoryImplTest {
 
         override suspend fun findById(id: Long): GoalEntity? = store.value[id]
 
-        override suspend fun archive(id: Long, now: Long) {
-            store.value = store.value.mapValues { (k, v) ->
-                if (k == id) v.copy(isArchived = true, updatedAt = now) else v
-            }
+        override suspend fun archive(
+            id: Long,
+            now: Long,
+        ) {
+            store.value =
+                store.value.mapValues { (k, v) ->
+                    if (k == id) v.copy(isArchived = true, updatedAt = now) else v
+                }
         }
     }
 
@@ -76,85 +79,93 @@ class GoalRepositoryImplTest {
     )
 
     @Test
-    fun `observeActive emits domain goals after upsert`() = runTest(dispatcher) {
-        val id = repo.upsert(savingsGoal())
+    fun `observeActive emits domain goals after upsert`() =
+        runTest(dispatcher) {
+            val id = repo.upsert(savingsGoal())
 
-        repo.observeActive().test {
-            val items = awaitItem()
-            assertEquals(1, items.size)
-            assertEquals(id, items.first().id)
-            assertEquals("Car", items.first().name)
-            assertEquals(GoalVariant.SAVINGS, items.first().variant)
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
-    fun `observeActive emits empty list when no goals exist`() = runTest(dispatcher) {
-        repo.observeActive().test {
-            assertTrue(awaitItem().isEmpty())
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
-    fun `findById returns domain goal for existing id`() = runTest(dispatcher) {
-        val id = repo.upsert(savingsGoal(name = "House"))
-
-        val found = repo.findById(id)
-
-        assertNotNull(found)
-        assertEquals("House", found!!.name)
-        assertEquals(id, found.id)
-    }
-
-    @Test
-    fun `findById returns null for unknown id`() = runTest(dispatcher) {
-        assertNull(repo.findById(999L))
-    }
-
-    @Test
-    fun `archive hides goal from observeActive but findById still returns it`() = runTest(dispatcher) {
-        val id = repo.upsert(savingsGoal(name = "Vacation"))
-        repo.archive(id)
-
-        repo.observeActive().test {
-            assertTrue(awaitItem().isEmpty())
-            cancelAndIgnoreRemainingEvents()
+            repo.observeActive().test {
+                val items = awaitItem()
+                assertEquals(1, items.size)
+                assertEquals(id, items.first().id)
+                assertEquals("Car", items.first().name)
+                assertEquals(GoalVariant.SAVINGS, items.first().variant)
+                cancelAndIgnoreRemainingEvents()
+            }
         }
 
-        val found = repo.findById(id)
-        assertNotNull(found)
-        assertTrue(found!!.isArchived)
-    }
-
     @Test
-    fun `upsert with existing id updates the stored goal`() = runTest(dispatcher) {
-        val id = repo.upsert(savingsGoal(name = "Old"))
-        repo.upsert(savingsGoal(id = id, name = "Updated"))
-
-        val found = repo.findById(id)
-        assertEquals("Updated", found!!.name)
-    }
-
-    @Test
-    fun `observeActive orders goals by createdAt descending`() = runTest(dispatcher) {
-        val older = Instant.parse("2026-05-01T00:00:00Z")
-        val newer = Instant.parse("2026-06-01T00:00:00Z")
-
-        val olderId = repo.upsert(savingsGoal(name = "Older", createdAt = older))
-        val newerId = repo.upsert(savingsGoal(name = "Newer", createdAt = newer))
-
-        repo.observeActive().test {
-            val items = awaitItem()
-            assertEquals(listOf(newerId, olderId), items.map { it.id })
-            cancelAndIgnoreRemainingEvents()
+    fun `observeActive emits empty list when no goals exist`() =
+        runTest(dispatcher) {
+            repo.observeActive().test {
+                assertTrue(awaitItem().isEmpty())
+                cancelAndIgnoreRemainingEvents()
+            }
         }
-    }
 
     @Test
-    fun `upsert returns assigned id greater than zero for new goal`() = runTest(dispatcher) {
-        val id = repo.upsert(savingsGoal())
-        assertTrue(id > 0L)
-    }
+    fun `findById returns domain goal for existing id`() =
+        runTest(dispatcher) {
+            val id = repo.upsert(savingsGoal(name = "House"))
+
+            val found = repo.findById(id)
+
+            assertNotNull(found)
+            assertEquals("House", found!!.name)
+            assertEquals(id, found.id)
+        }
+
+    @Test
+    fun `findById returns null for unknown id`() =
+        runTest(dispatcher) {
+            assertNull(repo.findById(999L))
+        }
+
+    @Test
+    fun `archive hides goal from observeActive but findById still returns it`() =
+        runTest(dispatcher) {
+            val id = repo.upsert(savingsGoal(name = "Vacation"))
+            repo.archive(id)
+
+            repo.observeActive().test {
+                assertTrue(awaitItem().isEmpty())
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            val found = repo.findById(id)
+            assertNotNull(found)
+            assertTrue(found!!.isArchived)
+        }
+
+    @Test
+    fun `upsert with existing id updates the stored goal`() =
+        runTest(dispatcher) {
+            val id = repo.upsert(savingsGoal(name = "Old"))
+            repo.upsert(savingsGoal(id = id, name = "Updated"))
+
+            val found = repo.findById(id)
+            assertEquals("Updated", found!!.name)
+        }
+
+    @Test
+    fun `observeActive orders goals by createdAt descending`() =
+        runTest(dispatcher) {
+            val older = Instant.parse("2026-05-01T00:00:00Z")
+            val newer = Instant.parse("2026-06-01T00:00:00Z")
+
+            val olderId = repo.upsert(savingsGoal(name = "Older", createdAt = older))
+            val newerId = repo.upsert(savingsGoal(name = "Newer", createdAt = newer))
+
+            repo.observeActive().test {
+                val items = awaitItem()
+                assertEquals(listOf(newerId, olderId), items.map { it.id })
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `upsert returns assigned id greater than zero for new goal`() =
+        runTest(dispatcher) {
+            val id = repo.upsert(savingsGoal())
+            assertTrue(id > 0L)
+        }
 }

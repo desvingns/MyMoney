@@ -36,9 +36,10 @@ fun TwoFabLayout(
     incomeLabel: String = stringResource(R.string.fab_income_label),
 ) {
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = Spacing.dashboardFabHorizontalPadding, vertical = Spacing.l),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.dashboardFabHorizontalPadding, vertical = Spacing.l),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.Top,
     ) {
@@ -52,17 +53,19 @@ fun TwoFabLayout(
                 containerColor = containerColor,
                 contentColor = expenseColor,
                 shape = CircleShape,
-                elevation = FloatingActionButtonDefaults.elevation(
-                    defaultElevation = Spacing.none,
-                    pressedElevation = Spacing.none,
-                ),
-                modifier = Modifier
-                    .size(Spacing.dashboardFabSize)
-                    .border(
-                        width = Spacing.dashboardFabOutlineWidth,
-                        color = expenseColor,
-                        shape = CircleShape,
+                elevation =
+                    FloatingActionButtonDefaults.elevation(
+                        defaultElevation = Spacing.none,
+                        pressedElevation = Spacing.none,
                     ),
+                modifier =
+                    Modifier
+                        .size(Spacing.dashboardFabSize)
+                        .border(
+                            width = Spacing.dashboardFabOutlineWidth,
+                            color = expenseColor,
+                            shape = CircleShape,
+                        ),
             ) {
                 Icon(
                     Icons.Filled.Remove,
@@ -85,17 +88,19 @@ fun TwoFabLayout(
                 containerColor = containerColor,
                 contentColor = incomeColor,
                 shape = CircleShape,
-                elevation = FloatingActionButtonDefaults.elevation(
-                    defaultElevation = Spacing.none,
-                    pressedElevation = Spacing.none,
-                ),
-                modifier = Modifier
-                    .size(Spacing.dashboardFabSize)
-                    .border(
-                        width = Spacing.dashboardFabOutlineWidth,
-                        color = incomeColor,
-                        shape = CircleShape,
+                elevation =
+                    FloatingActionButtonDefaults.elevation(
+                        defaultElevation = Spacing.none,
+                        pressedElevation = Spacing.none,
                     ),
+                modifier =
+                    Modifier
+                        .size(Spacing.dashboardFabSize)
+                        .border(
+                            width = Spacing.dashboardFabOutlineWidth,
+                            color = incomeColor,
+                            shape = CircleShape,
+                        ),
             ) {
                 Icon(
                     Icons.Filled.Add,

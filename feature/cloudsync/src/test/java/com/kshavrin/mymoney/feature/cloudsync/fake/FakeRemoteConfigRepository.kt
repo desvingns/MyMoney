@@ -6,7 +6,6 @@ class FakeRemoteConfigRepository(
     private var dropboxEnabled: Boolean = true,
     private var gdriveEnabled: Boolean = true,
 ) : RemoteConfigRepository {
-
     var refreshCount = 0
         private set
 

@@ -46,9 +46,10 @@ internal fun AssetWebViewScreen(
         },
     ) { innerPadding ->
         AndroidView(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
             factory = { context ->
                 WebView(context).apply {
                     settings.javaScriptEnabled = false

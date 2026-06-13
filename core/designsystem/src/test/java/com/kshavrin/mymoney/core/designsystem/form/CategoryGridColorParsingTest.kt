@@ -5,7 +5,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class CategoryGridColorParsingTest {
-
     @Test
     fun `parses six digit hex colors with an implicit opaque alpha channel`() {
         val parsed = parseHexColor("#7AC794", fallback = Color.Black)

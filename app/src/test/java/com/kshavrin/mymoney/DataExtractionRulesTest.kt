@@ -9,7 +9,6 @@ import java.io.File
 import javax.xml.parsers.DocumentBuilderFactory
 
 class DataExtractionRulesTest {
-
     private val extractionRulesFile = resolveResFile("data_extraction_rules.xml")
 
     @Test
@@ -49,9 +48,11 @@ class DataExtractionRulesTest {
 
     private fun parseSection(name: String): ParsedRules {
         assertTrue("Missing ${extractionRulesFile.path}", extractionRulesFile.isFile)
-        val document = DocumentBuilderFactory.newInstance()
-            .newDocumentBuilder()
-            .parse(extractionRulesFile)
+        val document =
+            DocumentBuilderFactory
+                .newInstance()
+                .newDocumentBuilder()
+                .parse(extractionRulesFile)
         val sections = document.getElementsByTagName(name)
         assertEquals("Expected one <$name> section", 1, sections.length)
         val section = sections.item(0) as Element
@@ -73,10 +74,11 @@ class DataExtractionRulesTest {
 
     private companion object {
         fun resolveResFile(fileName: String): File {
-            val candidates = listOf(
-                File("src/main/res/xml/$fileName"),
-                File("app/src/main/res/xml/$fileName"),
-            )
+            val candidates =
+                listOf(
+                    File("src/main/res/xml/$fileName"),
+                    File("app/src/main/res/xml/$fileName"),
+                )
             return candidates.firstOrNull(File::isFile)
                 ?: candidates.first().absoluteFile
         }

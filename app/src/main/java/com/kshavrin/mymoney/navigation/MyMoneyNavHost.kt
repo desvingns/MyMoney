@@ -7,8 +7,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
@@ -121,13 +121,29 @@ fun MyMoneyNavHost(
         }
         composable(
             route = "${Destinations.TRANSACTIONS_LIST}?accountId={accountId}&currencyId={currencyId}&categoryId={categoryId}&from={from}&to={to}",
-            arguments = listOf(
-                navArgument("accountId") { type = NavType.LongType; defaultValue = -1L },
-                navArgument("currencyId") { type = NavType.LongType; defaultValue = -1L },
-                navArgument("categoryId") { type = NavType.LongType; defaultValue = -1L },
-                navArgument("from") { type = NavType.LongType; defaultValue = -1L },
-                navArgument("to") { type = NavType.LongType; defaultValue = -1L },
-            ),
+            arguments =
+                listOf(
+                    navArgument("accountId") {
+                        type = NavType.LongType
+                        defaultValue = -1L
+                    },
+                    navArgument("currencyId") {
+                        type = NavType.LongType
+                        defaultValue = -1L
+                    },
+                    navArgument("categoryId") {
+                        type = NavType.LongType
+                        defaultValue = -1L
+                    },
+                    navArgument("from") {
+                        type = NavType.LongType
+                        defaultValue = -1L
+                    },
+                    navArgument("to") {
+                        type = NavType.LongType
+                        defaultValue = -1L
+                    },
+                ),
         ) {
             com.kshavrin.mymoney.feature.transactionslist.list.TransactionsListRoute(
                 onOpenDetail = { id -> navController.navigate("${Destinations.TRANSACTION_DETAIL}/$id") },
@@ -145,9 +161,10 @@ fun MyMoneyNavHost(
         }
         composable(
             route = "${Destinations.TRANSACTION_DETAIL}/{transactionId}",
-            arguments = listOf(
-                navArgument("transactionId") { type = NavType.LongType },
-            ),
+            arguments =
+                listOf(
+                    navArgument("transactionId") { type = NavType.LongType },
+                ),
         ) { entry ->
             com.kshavrin.mymoney.feature.transactionslist.detail.TransactionDetailRoute(
                 onBack = { navController.popBackStack() },
@@ -175,12 +192,20 @@ fun MyMoneyNavHost(
         }
         composable(
             route = "${Destinations.CURRENCY_RATE}?fromId={fromId}&toId={toId}",
-            arguments = listOf(
-                navArgument("fromId") { type = NavType.LongType; defaultValue = -1L },
-                navArgument("toId") { type = NavType.LongType; defaultValue = -1L },
-            ),
+            arguments =
+                listOf(
+                    navArgument("fromId") {
+                        type = NavType.LongType
+                        defaultValue = -1L
+                    },
+                    navArgument("toId") {
+                        type = NavType.LongType
+                        defaultValue = -1L
+                    },
+                ),
         ) {
-            com.kshavrin.mymoney.feature.transaction.rate.CurrencyRateRoute(navController = navController)
+            com.kshavrin.mymoney.feature.transaction.rate
+                .CurrencyRateRoute(navController = navController)
         }
         composable(Destinations.CATEGORIES_LIST) {
             com.kshavrin.mymoney.feature.dictionaries.categories.CategoriesListRoute(
@@ -191,11 +216,22 @@ fun MyMoneyNavHost(
         }
         composable(
             route = "${Destinations.CATEGORY_EDIT}/{id}?kind={kind}&fromPicker={fromPicker}",
-            arguments = listOf(
-                navArgument("id") { type = NavType.LongType; defaultValue = -1L },
-                navArgument("kind") { type = NavType.StringType; nullable = true; defaultValue = null },
-                navArgument("fromPicker") { type = NavType.BoolType; defaultValue = false },
-            ),
+            arguments =
+                listOf(
+                    navArgument("id") {
+                        type = NavType.LongType
+                        defaultValue = -1L
+                    },
+                    navArgument("kind") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                    navArgument("fromPicker") {
+                        type = NavType.BoolType
+                        defaultValue = false
+                    },
+                ),
         ) {
             com.kshavrin.mymoney.feature.dictionaries.categories.CategoryEditRoute(
                 navController = navController,
@@ -210,7 +246,13 @@ fun MyMoneyNavHost(
         }
         composable(
             route = "${Destinations.ACCOUNT_EDIT}/{id}",
-            arguments = listOf(navArgument("id") { type = NavType.LongType; defaultValue = -1L }),
+            arguments =
+                listOf(
+                    navArgument("id") {
+                        type = NavType.LongType
+                        defaultValue = -1L
+                    },
+                ),
         ) {
             com.kshavrin.mymoney.feature.dictionaries.accounts.AccountEditRoute(
                 onBack = { navController.popBackStack() },
@@ -225,7 +267,13 @@ fun MyMoneyNavHost(
         }
         composable(
             route = "${Destinations.FINANCIAL_GOAL_EDIT}/{id}",
-            arguments = listOf(navArgument("id") { type = NavType.LongType; defaultValue = -1L }),
+            arguments =
+                listOf(
+                    navArgument("id") {
+                        type = NavType.LongType
+                        defaultValue = -1L
+                    },
+                ),
         ) {
             com.kshavrin.mymoney.feature.dictionaries.goals.GoalEditRoute(
                 onBack = { navController.popBackStack() },
@@ -240,7 +288,13 @@ fun MyMoneyNavHost(
         }
         composable(
             route = "${Destinations.CURRENCY_EDIT}/{id}",
-            arguments = listOf(navArgument("id") { type = NavType.LongType; defaultValue = -1L }),
+            arguments =
+                listOf(
+                    navArgument("id") {
+                        type = NavType.LongType
+                        defaultValue = -1L
+                    },
+                ),
         ) {
             com.kshavrin.mymoney.feature.dictionaries.currencies.CurrencyEditRoute(
                 onBack = { navController.popBackStack() },
@@ -314,9 +368,10 @@ private fun DecisionRouter(
     LaunchedEffect(state) {
         when (state) {
             DecisionDestination.Pending -> Unit
-            DecisionDestination.Splash -> navController.navigate(Destinations.SPLASH) {
-                popUpTo(Destinations.DECISION) { inclusive = true }
-            }
+            DecisionDestination.Splash ->
+                navController.navigate(Destinations.SPLASH) {
+                    popUpTo(Destinations.DECISION) { inclusive = true }
+                }
             DecisionDestination.Dashboard -> {
                 navController.navigate(Destinations.DASHBOARD) {
                     popUpTo(Destinations.DECISION) { inclusive = true }

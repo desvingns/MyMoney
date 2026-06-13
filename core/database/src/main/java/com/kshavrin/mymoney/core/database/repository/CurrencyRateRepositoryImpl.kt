@@ -14,24 +14,31 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class CurrencyRateRepositoryImpl @Inject constructor(
-    private val dao: CurrencyRateDao,
-    @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
-) : CurrencyRateRepository {
+class CurrencyRateRepositoryImpl
+    @Inject
+    constructor(
+        private val dao: CurrencyRateDao,
+        @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+    ) : CurrencyRateRepository {
+        override suspend fun findRate(
+            fromCurrencyId: Long,
+            toCurrencyId: Long,
+        ): CurrencyRate? =
+            withContext(ioDispatcher) {
+                dao.findRate(fromCurrencyId, toCurrencyId)?.toDomain()
+            }
 
-    override suspend fun findRate(fromCurrencyId: Long, toCurrencyId: Long): CurrencyRate? = withContext(ioDispatcher) {
-        dao.findRate(fromCurrencyId, toCurrencyId)?.toDomain()
+        override fun observeAll(): Flow<List<CurrencyRate>> = dao.observeAll().map { list -> list.map { it.toDomain() } }
+
+        override suspend fun upsert(rate: CurrencyRate): Long =
+            withContext(ioDispatcher) {
+                require(rate.rate > 0) { "rate must be > 0; got ${rate.rate}" }
+                require(rate.fromCurrencyId != rate.toCurrencyId) { "fromCurrencyId must differ from toCurrencyId" }
+                dao.upsert(rate.toEntity())
+            }
+
+        override suspend fun deleteById(id: Long) =
+            withContext(ioDispatcher) {
+                dao.deleteById(id)
+            }
     }
-
-    override fun observeAll(): Flow<List<CurrencyRate>> = dao.observeAll().map { list -> list.map { it.toDomain() } }
-
-    override suspend fun upsert(rate: CurrencyRate): Long = withContext(ioDispatcher) {
-        require(rate.rate > 0) { "rate must be > 0; got ${rate.rate}" }
-        require(rate.fromCurrencyId != rate.toCurrencyId) { "fromCurrencyId must differ from toCurrencyId" }
-        dao.upsert(rate.toEntity())
-    }
-
-    override suspend fun deleteById(id: Long) = withContext(ioDispatcher) {
-        dao.deleteById(id)
-    }
-}

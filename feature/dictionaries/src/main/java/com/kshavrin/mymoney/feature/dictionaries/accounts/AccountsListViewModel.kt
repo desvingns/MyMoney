@@ -21,51 +21,54 @@ import java.math.BigDecimal
 import javax.inject.Inject
 
 @HiltViewModel
-class AccountsListViewModel @Inject constructor(
-    private val accountRepository: AccountRepository,
-    private val currencyRepository: CurrencyRepository,
-    private val balanceCalculator: BalanceCalculator,
-) : ViewModel() {
+class AccountsListViewModel
+    @Inject
+    constructor(
+        private val accountRepository: AccountRepository,
+        private val currencyRepository: CurrencyRepository,
+        private val balanceCalculator: BalanceCalculator,
+    ) : ViewModel() {
+        private val _state = MutableStateFlow(AccountsListState())
+        val state: StateFlow<AccountsListState> = _state.asStateFlow()
 
-    private val _state = MutableStateFlow(AccountsListState())
-    val state: StateFlow<AccountsListState> = _state.asStateFlow()
+        private val _actions = MutableSharedFlow<AccountsListAction>(extraBufferCapacity = 4)
+        val actions: SharedFlow<AccountsListAction> = _actions.asSharedFlow()
 
-    private val _actions = MutableSharedFlow<AccountsListAction>(extraBufferCapacity = 4)
-    val actions: SharedFlow<AccountsListAction> = _actions.asSharedFlow()
+        init {
+            viewModelScope.launch {
+                combine(
+                    accountRepository.observeActive(),
+                    currencyRepository.observeAll(),
+                ) { accounts, currencies -> accounts to currencies }
+                    .collect { (accounts, currencies) ->
+                        val rows =
+                            accounts
+                                .filter { !it.isArchived }
+                                .sortedBy { it.sortOrder }
+                                .map { account ->
+                                    val balance =
+                                        runCatching {
+                                            balanceCalculator(account.id, Period.All).net.amount
+                                        }.getOrDefault(BigDecimal.ZERO)
+                                    val currency = currencies.firstOrNull { it.id == account.currencyId }
+                                    AccountRow(account = account, balance = balance, currency = currency)
+                                }
+                        _state.value = _state.value.copy(rows = rows)
+                    }
+            }
+        }
 
-    init {
-        viewModelScope.launch {
-            combine(
-                accountRepository.observeActive(),
-                currencyRepository.observeAll(),
-            ) { accounts, currencies -> accounts to currencies }
-                .collect { (accounts, currencies) ->
-                    val rows = accounts
-                        .filter { !it.isArchived }
-                        .sortedBy { it.sortOrder }
-                        .map { account ->
-                            val balance = runCatching {
-                                balanceCalculator(account.id, Period.All).net.amount
-                            }.getOrDefault(BigDecimal.ZERO)
-                            val currency = currencies.firstOrNull { it.id == account.currencyId }
-                            AccountRow(account = account, balance = balance, currency = currency)
-                        }
-                    _state.value = _state.value.copy(rows = rows)
-                }
+        fun onEvent(event: AccountsListEvent) {
+            when (event) {
+                AccountsListEvent.AddClicked ->
+                    viewModelScope.launch { _actions.emit(AccountsListAction.NavigateAdd) }
+                is AccountsListEvent.ItemClicked ->
+                    viewModelScope.launch { _actions.emit(AccountsListAction.NavigateEdit(event.id)) }
+                AccountsListEvent.BackClicked ->
+                    viewModelScope.launch { _actions.emit(AccountsListAction.NavigateBack) }
+            }
         }
     }
-
-    fun onEvent(event: AccountsListEvent) {
-        when (event) {
-            AccountsListEvent.AddClicked ->
-                viewModelScope.launch { _actions.emit(AccountsListAction.NavigateAdd) }
-            is AccountsListEvent.ItemClicked ->
-                viewModelScope.launch { _actions.emit(AccountsListAction.NavigateEdit(event.id)) }
-            AccountsListEvent.BackClicked ->
-                viewModelScope.launch { _actions.emit(AccountsListAction.NavigateBack) }
-        }
-    }
-}
 
 data class AccountsListState(
     val rows: List<AccountRow> = emptyList(),
@@ -79,12 +82,20 @@ data class AccountRow(
 
 sealed interface AccountsListEvent {
     data object AddClicked : AccountsListEvent
-    data class ItemClicked(val id: Long) : AccountsListEvent
+
+    data class ItemClicked(
+        val id: Long,
+    ) : AccountsListEvent
+
     data object BackClicked : AccountsListEvent
 }
 
 sealed interface AccountsListAction {
     data object NavigateAdd : AccountsListAction
-    data class NavigateEdit(val id: Long) : AccountsListAction
+
+    data class NavigateEdit(
+        val id: Long,
+    ) : AccountsListAction
+
     data object NavigateBack : AccountsListAction
 }

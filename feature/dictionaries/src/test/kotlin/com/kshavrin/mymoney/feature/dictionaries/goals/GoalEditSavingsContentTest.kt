@@ -136,7 +136,6 @@ import java.time.LocalDate
  * ```
  */
 class GoalEditSavingsContentTest {
-
     private val now: Instant = Instant.parse("2026-06-06T10:00:00Z")
 
     private fun anAccount(
@@ -320,32 +319,35 @@ class GoalEditSavingsContentTest {
 
     @Test
     fun `ON_TRACK projection has a non-null achievementDate`() {
-        val projection = SavingsProjection(
-            monthsToGoal = 18,
-            achievementDate = LocalDate.of(2027, 12, 6),
-            status = GoalStatus.ON_TRACK,
-        )
+        val projection =
+            SavingsProjection(
+                monthsToGoal = 18,
+                achievementDate = LocalDate.of(2027, 12, 6),
+                status = GoalStatus.ON_TRACK,
+            )
         assertEquals(GoalStatus.ON_TRACK, projection.status)
         assertNotNull("ON_TRACK must carry achievementDate", projection.achievementDate)
     }
 
     @Test
     fun `ALREADY_ACHIEVED projection renders its own text branch`() {
-        val projection = SavingsProjection(
-            monthsToGoal = 0,
-            achievementDate = LocalDate.now(),
-            status = GoalStatus.ALREADY_ACHIEVED,
-        )
+        val projection =
+            SavingsProjection(
+                monthsToGoal = 0,
+                achievementDate = LocalDate.now(),
+                status = GoalStatus.ALREADY_ACHIEVED,
+            )
         assertEquals(GoalStatus.ALREADY_ACHIEVED, projection.status)
     }
 
     @Test
     fun `UNREACHABLE projection has a null achievementDate`() {
-        val projection = SavingsProjection(
-            monthsToGoal = null,
-            achievementDate = null,
-            status = GoalStatus.UNREACHABLE,
-        )
+        val projection =
+            SavingsProjection(
+                monthsToGoal = null,
+                achievementDate = null,
+                status = GoalStatus.UNREACHABLE,
+            )
         assertEquals(GoalStatus.UNREACHABLE, projection.status)
         assertNull("UNREACHABLE must carry null achievementDate", projection.achievementDate)
     }
@@ -470,11 +472,12 @@ class GoalEditSavingsContentTest {
 
     @Test
     fun `advancedContribution true reveals income and expense sections`() {
-        val state = defaultState().copy(
-            advancedContribution = true,
-            incomeRows = listOf(ContributionRowUi()),
-            expenseRows = listOf(ContributionRowUi()),
-        )
+        val state =
+            defaultState().copy(
+                advancedContribution = true,
+                incomeRows = listOf(ContributionRowUi()),
+                expenseRows = listOf(ContributionRowUi()),
+            )
         assertTrue("sections must be visible when advancedContribution is true", state.advancedContribution)
         assertFalse("income rows must be non-empty when advanced is on", state.incomeRows.isEmpty())
         assertFalse("expense rows must be non-empty when advanced is on", state.expenseRows.isEmpty())
@@ -589,12 +592,13 @@ class GoalEditSavingsContentTest {
 
     @Test
     fun `breakdown section renders computed total in monthlyContribution when advanced is on`() {
-        val state = defaultState().copy(
-            advancedContribution = true,
-            monthlyContribution = "35000",
-            incomeRows = listOf(ContributionRowUi(name = "Job", amount = "50000")),
-            expenseRows = listOf(ContributionRowUi(name = "Bills", amount = "15000")),
-        )
+        val state =
+            defaultState().copy(
+                advancedContribution = true,
+                monthlyContribution = "35000",
+                incomeRows = listOf(ContributionRowUi(name = "Job", amount = "50000")),
+                expenseRows = listOf(ContributionRowUi(name = "Bills", amount = "15000")),
+            )
         assertEquals(
             "computed total must be reflected in monthlyContribution",
             "35000",

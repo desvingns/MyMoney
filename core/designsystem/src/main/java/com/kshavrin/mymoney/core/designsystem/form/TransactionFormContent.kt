@@ -35,9 +35,10 @@ fun TransactionFormContent(
     modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(Spacing.m),
+        modifier =
+            modifier
+                .fillMaxSize()
+                .padding(Spacing.m),
     ) {
         DateHeader(
             date = state.occurredAt,
@@ -48,11 +49,12 @@ fun TransactionFormContent(
             state = state,
             onEvent = onEvent,
             showNote = !state.categoryStep,
-            amountInputModifier = if (state.categoryStep) {
-                Modifier.clickable { onEvent(TransactionFormEvent.BackToAmount) }
-            } else {
-                Modifier
-            },
+            amountInputModifier =
+                if (state.categoryStep) {
+                    Modifier.clickable { onEvent(TransactionFormEvent.BackToAmount) }
+                } else {
+                    Modifier
+                },
             modifier = Modifier.padding(top = Spacing.m),
         )
 
@@ -61,9 +63,10 @@ fun TransactionFormContent(
                 categories = state.categories,
                 onCategoryClick = { onEvent(TransactionFormEvent.CategoryPicked(it)) },
                 onAddClick = { onEvent(TransactionFormEvent.AddCategoryClicked) },
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(top = Spacing.m),
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .padding(top = Spacing.m),
             )
         } else {
             Column(
@@ -76,11 +79,12 @@ fun TransactionFormContent(
                 Button(
                     onClick = { onEvent(TransactionFormEvent.SelectCategoryClicked) },
                     enabled = state.chooseCategoryEnabled,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .padding(top = Spacing.s)
-                        .defaultMinSize(minHeight = Spacing.transactionFormChooseCategoryMinHeight),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .padding(top = Spacing.s)
+                            .defaultMinSize(minHeight = Spacing.transactionFormChooseCategoryMinHeight),
                 ) {
                     Text(stringResource(R.string.transaction_form_choose_category_button))
                 }
@@ -102,14 +106,16 @@ private fun DeleteButton(
 ) {
     Button(
         onClick = onClick,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.transactionFormDeleteContainer,
-            contentColor = MaterialTheme.colorScheme.transactionFormDeleteContent,
-        ),
-        modifier = modifier
-            .fillMaxWidth()
-            .height(Spacing.transactionFormDeleteButtonHeight)
-            .testTag(TRANSACTION_FORM_DELETE_TAG),
+        colors =
+            ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.transactionFormDeleteContainer,
+                contentColor = MaterialTheme.colorScheme.transactionFormDeleteContent,
+            ),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .height(Spacing.transactionFormDeleteButtonHeight)
+                .testTag(TRANSACTION_FORM_DELETE_TAG),
     ) {
         Icon(
             imageVector = Icons.Filled.Delete,

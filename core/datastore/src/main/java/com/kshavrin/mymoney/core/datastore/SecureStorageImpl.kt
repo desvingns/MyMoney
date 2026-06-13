@@ -11,13 +11,13 @@ import com.kshavrin.mymoney.core.common.di.IoDispatcher
 import com.kshavrin.mymoney.core.common.exception.reportToSentry
 import com.kshavrin.mymoney.core.datastore.model.SecureSettings
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.io.IOException
 import java.security.GeneralSecurityException
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.runBlocking
 
 @Singleton
 class SecureStorageImpl private constructor(
@@ -27,7 +27,6 @@ class SecureStorageImpl private constructor(
     prefsCreator: (Context, MasterKey) -> SharedPreferences,
     prefsDeleter: (Context, String) -> Unit,
 ) : SecureStorage {
-
     @Inject
     constructor(
         @ApplicationContext context: Context,
@@ -59,17 +58,19 @@ class SecureStorageImpl private constructor(
         )
     }
 
-    override fun read(): SecureSettings = SecureSettings(
-        dropboxRefreshToken = prefs.getString(KEY_DROPBOX_TOKEN, null),
-        gdriveAccountEmail = prefs.getString(KEY_GDRIVE_EMAIL, null),
-        pinHash = prefs.getString(KEY_PIN_HASH, null),
-        failedPinAttempts = prefs.getInt(KEY_FAILED_PIN_ATTEMPTS, 0),
-        pinLockoutDeadlineEpochMs = if (prefs.contains(KEY_PIN_LOCKOUT_DEADLINE_EPOCH_MS)) {
-            prefs.getLong(KEY_PIN_LOCKOUT_DEADLINE_EPOCH_MS, 0L)
-        } else {
-            null
-        },
-    )
+    override fun read(): SecureSettings =
+        SecureSettings(
+            dropboxRefreshToken = prefs.getString(KEY_DROPBOX_TOKEN, null),
+            gdriveAccountEmail = prefs.getString(KEY_GDRIVE_EMAIL, null),
+            pinHash = prefs.getString(KEY_PIN_HASH, null),
+            failedPinAttempts = prefs.getInt(KEY_FAILED_PIN_ATTEMPTS, 0),
+            pinLockoutDeadlineEpochMs =
+                if (prefs.contains(KEY_PIN_LOCKOUT_DEADLINE_EPOCH_MS)) {
+                    prefs.getLong(KEY_PIN_LOCKOUT_DEADLINE_EPOCH_MS, 0L)
+                } else {
+                    null
+                },
+        )
 
     override fun writeDropboxRefreshToken(token: String?) {
         prefs.edit().apply {
@@ -92,7 +93,10 @@ class SecureStorageImpl private constructor(
         }
     }
 
-    override fun writePinLockout(failedPinAttempts: Int, deadlineEpochMs: Long?) {
+    override fun writePinLockout(
+        failedPinAttempts: Int,
+        deadlineEpochMs: Long?,
+    ) {
         prefs.edit().apply {
             putInt(KEY_FAILED_PIN_ATTEMPTS, failedPinAttempts)
             if (deadlineEpochMs == null) {
@@ -123,15 +127,16 @@ class SecureStorageImpl private constructor(
             prefsCreator: (Context, MasterKey) -> SharedPreferences,
             prefsDeleter: (Context, String) -> Unit,
         ): SharedPreferences {
-            val prefs = try {
-                prefsCreator(context, createMasterKey(context))
-            } catch (e: GeneralSecurityException) {
-                e.reportToSentry()
-                recoverPrefs(context, prefsCreator, prefsDeleter)
-            } catch (e: IOException) {
-                e.reportToSentry()
-                recoverPrefs(context, prefsCreator, prefsDeleter)
-            }
+            val prefs =
+                try {
+                    prefsCreator(context, createMasterKey(context))
+                } catch (e: GeneralSecurityException) {
+                    e.reportToSentry()
+                    recoverPrefs(context, prefsCreator, prefsDeleter)
+                } catch (e: IOException) {
+                    e.reportToSentry()
+                    recoverPrefs(context, prefsCreator, prefsDeleter)
+                }
             if (dataStore != null && ioDispatcher != null) {
                 resetLockIfPinMissing(prefs, dataStore, ioDispatcher)
             }
@@ -163,11 +168,15 @@ class SecureStorageImpl private constructor(
         }
 
         fun createMasterKey(context: Context): MasterKey =
-            MasterKey.Builder(context)
+            MasterKey
+                .Builder(context)
                 .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
                 .build()
 
-        fun createEncryptedPrefs(context: Context, masterKey: MasterKey): SharedPreferences =
+        fun createEncryptedPrefs(
+            context: Context,
+            masterKey: MasterKey,
+        ): SharedPreferences =
             EncryptedSharedPreferences.create(
                 context,
                 FILE_NAME,
@@ -176,7 +185,10 @@ class SecureStorageImpl private constructor(
                 EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
             )
 
-        fun deletePrefs(context: Context, fileName: String) {
+        fun deletePrefs(
+            context: Context,
+            fileName: String,
+        ) {
             if (!context.deleteSharedPreferences(fileName)) {
                 val sharedPrefsDir = File(context.applicationInfo.dataDir, "shared_prefs")
                 File(sharedPrefsDir, "$fileName.xml").delete()

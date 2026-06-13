@@ -18,5 +18,8 @@ abstract class GoalDao {
     abstract suspend fun findById(id: Long): GoalEntity?
 
     @Query("UPDATE goal SET is_archived = 1, updated_at = :now WHERE id = :id")
-    abstract suspend fun archive(id: Long, now: Long)
+    abstract suspend fun archive(
+        id: Long,
+        now: Long,
+    )
 }

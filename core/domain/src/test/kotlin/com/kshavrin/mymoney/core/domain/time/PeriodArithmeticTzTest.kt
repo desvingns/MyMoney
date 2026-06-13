@@ -11,15 +11,24 @@ import java.time.YearMonth
 import java.time.ZoneId
 
 class PeriodArithmeticTzTest {
-
     private val newYork = ZoneId.of("America/New_York")
     private val moscow = ZoneId.of("Europe/Moscow")
 
-    private fun startMillis(date: LocalDate, zone: ZoneId): Long =
+    private fun startMillis(
+        date: LocalDate,
+        zone: ZoneId,
+    ): Long =
         date.atStartOfDay(zone).toInstant().toEpochMilli()
 
-    private fun endMillis(date: LocalDate, zone: ZoneId): Long =
-        date.atTime(LocalTime.MAX).atZone(zone).toInstant().toEpochMilli()
+    private fun endMillis(
+        date: LocalDate,
+        zone: ZoneId,
+    ): Long =
+        date
+            .atTime(LocalTime.MAX)
+            .atZone(zone)
+            .toInstant()
+            .toEpochMilli()
 
     @Test
     fun `Day range in New York starts and ends at local midnight boundaries`() {

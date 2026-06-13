@@ -18,9 +18,6 @@ import com.kshavrin.mymoney.core.domain.model.TransactionKind
 import com.kshavrin.mymoney.core.domain.repository.AccountRepository
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
-import com.kshavrin.mymoney.feature.dashboard.R as DashboardR
-import com.kshavrin.mymoney.feature.onboarding.R as OnboardingR
-import com.kshavrin.mymoney.feature.transaction.R as TransactionR
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import kotlinx.coroutines.flow.first
@@ -33,6 +30,9 @@ import org.junit.runner.RunWith
 import java.math.BigDecimal
 import java.time.Instant
 import javax.inject.Inject
+import com.kshavrin.mymoney.feature.dashboard.R as DashboardR
+import com.kshavrin.mymoney.feature.onboarding.R as OnboardingR
+import com.kshavrin.mymoney.feature.transaction.R as TransactionR
 
 /**
  * J2 — cross-currency transfer (AS-6, AS-7, TDD §4.8).
@@ -48,7 +48,6 @@ import javax.inject.Inject
 @HiltAndroidTest
 @RunWith(AndroidJUnit4::class)
 class MainActivityTransferJourneyTest {
-
     @get:Rule(order = 0)
     val hiltRule = HiltAndroidRule(this)
 
@@ -74,9 +73,10 @@ class MainActivityTransferJourneyTest {
 
         // Precondition: a second account in a DIFFERENT currency than the seeded Cash account.
         val cash = runBlocking { accountRepository.observeActive().first().first() }
-        val otherCurrency = runBlocking {
-            currencyRepository.observeActive().first().first { it.id != cash.currencyId }
-        }
+        val otherCurrency =
+            runBlocking {
+                currencyRepository.observeActive().first().first { it.id != cash.currencyId }
+            }
         val now = Instant.now()
         runBlocking {
             accountRepository.upsert(
@@ -102,14 +102,16 @@ class MainActivityTransferJourneyTest {
         // Dashboard -> Transfer form
         val expenseFab = targetString(DashboardR.string.fab_expense)
         waitForContentDescription(expenseFab)
-        composeRule.onAllNodesWithContentDescription(targetString(DashboardR.string.dashboard_transfer))[0]
+        composeRule
+            .onAllNodesWithContentDescription(targetString(DashboardR.string.dashboard_transfer))[0]
             .performClick()
 
         // S03 transfer form: select the second account as target (source defaults to Cash).
         waitForText(targetString(TransactionR.string.new_transfer_title))
-        composeRule.onNode(
-            hasText(targetString(TransactionR.string.target_label)) and hasClickAction(),
-        ).performClick()
+        composeRule
+            .onNode(
+                hasText(targetString(TransactionR.string.target_label)) and hasClickAction(),
+            ).performClick()
         waitForText(SAVINGS)
         composeRule.onNodeWithText(SAVINGS).performClick()
 
@@ -125,7 +127,8 @@ class MainActivityTransferJourneyTest {
             composeRule.onAllNodesWithText("5").fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNode(hasText("5") and hasClickAction()).performClick()
-        composeRule.onNodeWithContentDescription(targetString(TransactionR.string.currency_rate_save))
+        composeRule
+            .onNodeWithContentDescription(targetString(TransactionR.string.currency_rate_save))
             .performClick()
 
         // Back on the dashboard.
@@ -143,7 +146,13 @@ class MainActivityTransferJourneyTest {
     }
 
     private fun savingsAccountId(): Long =
-        runBlocking { accountRepository.observeActive().first().first { it.name == SAVINGS }.id }
+        runBlocking {
+            accountRepository
+                .observeActive()
+                .first()
+                .first { it.name == SAVINGS }
+                .id
+        }
 
     private fun waitForText(text: String) {
         composeRule.waitUntil(TIMEOUT) {

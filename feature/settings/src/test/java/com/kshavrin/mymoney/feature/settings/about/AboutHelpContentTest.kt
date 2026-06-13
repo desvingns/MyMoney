@@ -126,30 +126,31 @@ import org.junit.Test
  * ```
  */
 class AboutHelpContentTest {
-
     private enum class Row { Version, Privacy, Help, Licences }
 
     /** Mirror of the four [ListItem]s in [AboutHelpContent], top to bottom. */
     private val rows: List<Row> = listOf(Row.Version, Row.Privacy, Row.Help, Row.Licences)
 
     /** Mirror of the headline `stringResource` for each row. */
-    private fun headlineRes(row: Row): Int = when (row) {
-        Row.Version -> R.string.about_version
-        Row.Privacy -> R.string.about_privacy
-        Row.Help -> R.string.about_help
-        Row.Licences -> R.string.about_licences
-    }
+    private fun headlineRes(row: Row): Int =
+        when (row) {
+            Row.Version -> R.string.about_version
+            Row.Privacy -> R.string.about_privacy
+            Row.Help -> R.string.about_help
+            Row.Licences -> R.string.about_licences
+        }
 
     /**
      * Mirror of the per-row `Modifier.clickable(onClick = …)` wiring. The Version row has no
      * `clickable` modifier (it carries supportingContent instead), so it routes to no callback.
      */
-    private fun callbackKeyForRowClick(row: Row): String? = when (row) {
-        Row.Version -> null
-        Row.Privacy -> "onOpenPrivacy"
-        Row.Help -> "onOpenHelp"
-        Row.Licences -> "onOpenLicences"
-    }
+    private fun callbackKeyForRowClick(row: Row): String? =
+        when (row) {
+            Row.Version -> null
+            Row.Privacy -> "onOpenPrivacy"
+            Row.Help -> "onOpenHelp"
+            Row.Licences -> "onOpenLicences"
+        }
 
     @Test
     fun `content renders exactly four rows in declaration order`() {

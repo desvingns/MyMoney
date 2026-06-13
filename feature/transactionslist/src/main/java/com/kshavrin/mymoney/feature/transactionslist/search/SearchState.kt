@@ -14,8 +14,12 @@ data class SearchState(
 
 sealed interface SearchPhase {
     data object Empty : SearchPhase
+
     data object Loading : SearchPhase
+
     data object Results : SearchPhase
+
     data object EmptyResults : SearchPhase
+
     data object Error : SearchPhase
 }

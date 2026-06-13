@@ -71,10 +71,11 @@ fun ThemeSettingsContent(
         },
     ) { innerPadding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .selectableGroup(),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .selectableGroup(),
         ) {
             ThemeMode.entries.forEach { mode ->
                 ThemeRow(
@@ -94,10 +95,11 @@ private fun ThemeRow(
     onClick: () -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .selectable(selected = selected, onClick = onClick, role = Role.RadioButton)
-            .padding(horizontal = Spacing.l, vertical = Spacing.m),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .selectable(selected = selected, onClick = onClick, role = Role.RadioButton)
+                .padding(horizontal = Spacing.l, vertical = Spacing.m),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.m),
     ) {
@@ -123,15 +125,17 @@ private fun ThemeSwatch(mode: ThemeMode) {
 }
 
 private val ThemeMode.labelRes: Int
-    get() = when (this) {
-        ThemeMode.System -> R.string.theme_system
-        ThemeMode.Light -> R.string.theme_light
-        ThemeMode.Dark -> R.string.theme_dark
-    }
+    get() =
+        when (this) {
+            ThemeMode.System -> R.string.theme_system
+            ThemeMode.Light -> R.string.theme_light
+            ThemeMode.Dark -> R.string.theme_dark
+        }
 
 @Composable
-private fun ThemeMode.previewBackground(): Color = when (this) {
-    ThemeMode.System -> if (isSystemInDarkTheme()) DarkColors.background else LightColors.background
-    ThemeMode.Light -> LightColors.background
-    ThemeMode.Dark -> DarkColors.background
-}
+private fun ThemeMode.previewBackground(): Color =
+    when (this) {
+        ThemeMode.System -> if (isSystemInDarkTheme()) DarkColors.background else LightColors.background
+        ThemeMode.Light -> LightColors.background
+        ThemeMode.Dark -> DarkColors.background
+    }

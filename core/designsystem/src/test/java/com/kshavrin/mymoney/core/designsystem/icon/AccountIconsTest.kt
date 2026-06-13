@@ -54,36 +54,36 @@ import org.junit.Test
  * comparison; `assertSame` / `assertNotSame` use reference identity.
  */
 class AccountIconsTest {
-
     private val fallback: ImageVector = Icons.Outlined.AccountBalanceWallet
 
     /** All 24 keys from AccountIcons.kt (local copy — :core:designsystem may not import :feature). */
-    private val allKeys: List<String> = listOf(
-        "ic_account_wallet",
-        "ic_account_cash",
-        "ic_account_cash_bills",
-        "ic_account_coins",
-        "ic_account_card",
-        "ic_account_debit_card",
-        "ic_account_credit_score",
-        "ic_account_ewallet",
-        "ic_account_bank",
-        "ic_account_atm",
-        "ic_account_savings",
-        "ic_account_safe",
-        "ic_account_investment",
-        "ic_account_crypto",
-        "ic_account_currency_exchange",
-        "ic_account_loan",
-        "ic_account_cheque",
-        "ic_account_business",
-        "ic_account_pension",
-        "ic_account_insurance",
-        "ic_account_rewards",
-        "ic_account_gift_card",
-        "ic_account_transit_card",
-        "ic_account_family",
-    )
+    private val allKeys: List<String> =
+        listOf(
+            "ic_account_wallet",
+            "ic_account_cash",
+            "ic_account_cash_bills",
+            "ic_account_coins",
+            "ic_account_card",
+            "ic_account_debit_card",
+            "ic_account_credit_score",
+            "ic_account_ewallet",
+            "ic_account_bank",
+            "ic_account_atm",
+            "ic_account_savings",
+            "ic_account_safe",
+            "ic_account_investment",
+            "ic_account_crypto",
+            "ic_account_currency_exchange",
+            "ic_account_loan",
+            "ic_account_cheque",
+            "ic_account_business",
+            "ic_account_pension",
+            "ic_account_insurance",
+            "ic_account_rewards",
+            "ic_account_gift_card",
+            "ic_account_transit_card",
+            "ic_account_family",
+        )
 
     /** The 23 keys that must each resolve to a distinct, non-fallback vector. */
     private val nonWalletKeys: List<String> = allKeys.filterNot { it == "ic_account_wallet" }

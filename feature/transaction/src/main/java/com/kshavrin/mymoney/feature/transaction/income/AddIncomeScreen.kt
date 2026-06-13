@@ -75,7 +75,8 @@ fun AddIncomeRoute(
                 }
                 AddIncomeAction.ShowSavedConfetti,
                 is AddIncomeAction.FireHaptic,
-                is AddIncomeAction.PlaySound -> Unit
+                is AddIncomeAction.PlaySound,
+                -> Unit
             }
         }
     }
@@ -133,12 +134,13 @@ fun AddIncomeScreen(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
-                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary,
-                ),
+                colors =
+                    TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                        navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                        actionIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                    ),
             )
         },
         snackbarHost = {
@@ -169,24 +171,26 @@ fun AddIncomeScreen(
     }
 }
 
-private fun AddIncomeState.toTransactionFormState(): TransactionFormState = TransactionFormState(
-    amountInput = amountInput,
-    expression = expression,
-    currencyCode = currency?.code,
-    currencySymbol = currency?.symbol,
-    note = note,
-    occurredAt = occurredAt,
-    categories = categories.map { it.toTransactionFormCategory() },
-    categoryStep = categoryStep,
-    chooseCategoryEnabled = amount > BigDecimal.ZERO,
-)
+private fun AddIncomeState.toTransactionFormState(): TransactionFormState =
+    TransactionFormState(
+        amountInput = amountInput,
+        expression = expression,
+        currencyCode = currency?.code,
+        currencySymbol = currency?.symbol,
+        note = note,
+        occurredAt = occurredAt,
+        categories = categories.map { it.toTransactionFormCategory() },
+        categoryStep = categoryStep,
+        chooseCategoryEnabled = amount > BigDecimal.ZERO,
+    )
 
-private fun Category.toTransactionFormCategory(): TransactionFormCategory = TransactionFormCategory(
-    id = id,
-    name = name,
-    colorHex = colorHex,
-    iconKey = iconKey,
-)
+private fun Category.toTransactionFormCategory(): TransactionFormCategory =
+    TransactionFormCategory(
+        id = id,
+        name = name,
+        colorHex = colorHex,
+        iconKey = iconKey,
+    )
 
 private fun dispatchTransactionFormEvent(
     event: TransactionFormEvent,

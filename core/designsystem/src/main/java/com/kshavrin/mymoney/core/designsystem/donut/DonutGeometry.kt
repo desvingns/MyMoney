@@ -7,13 +7,20 @@ import kotlin.math.hypot
 import kotlin.math.sin
 
 object DonutGeometry {
-
     private const val EPSILON = 1e-6f
 
-    fun gapForSweep(sweepDegrees: Float, maxGapDegrees: Float): Float =
+    fun gapForSweep(
+        sweepDegrees: Float,
+        maxGapDegrees: Float,
+    ): Float =
         minOf(maxGapDegrees.coerceAtLeast(0f), sweepDegrees * 0.6f)
 
-    fun framePoint(t: Float, hw: Float, hhTop: Float, hhBot: Float): FrameOffset {
+    fun framePoint(
+        t: Float,
+        hw: Float,
+        hhTop: Float,
+        hhBot: Float,
+    ): FrameOffset {
         val side = hhTop + hhBot
         val perimeter = 4f * hw + 2f * side
         var d = ((t % 1f) + 1f) % 1f * perimeter
@@ -77,24 +84,26 @@ object DonutGeometry {
         sliceGapDegrees: Float = 0f,
         explodedOffset: Float = 0f,
     ): CategorySlice? {
-        return arcs.firstOrNull { arc ->
-            val midAngle = midAngleRadians(arc)
-            val arcCenterX = centerX + explodedOffset * cos(midAngle)
-            val arcCenterY = centerY + explodedOffset * sin(midAngle)
-            val dx = offsetX - arcCenterX
-            val dy = offsetY - arcCenterY
-            val distance = hypot(dx, dy)
-            if (distance < innerRadius || distance > outerRadius) return@firstOrNull false
-            val angleDegrees = normalizeDegrees(
-                Math.toDegrees(atan2(dy.toDouble(), dx.toDouble())).toFloat(),
-            )
-            val gap = gapForSweep(arc.sweepDegrees, sliceGapDegrees)
-            containsAngle(
-                angleDegrees = angleDegrees,
-                startAngleDegrees = arc.startAngleDegrees + gap / 2f,
-                sweepDegrees = (arc.sweepDegrees - gap).coerceAtLeast(0f),
-            )
-        }?.slice
+        return arcs
+            .firstOrNull { arc ->
+                val midAngle = midAngleRadians(arc)
+                val arcCenterX = centerX + explodedOffset * cos(midAngle)
+                val arcCenterY = centerY + explodedOffset * sin(midAngle)
+                val dx = offsetX - arcCenterX
+                val dy = offsetY - arcCenterY
+                val distance = hypot(dx, dy)
+                if (distance < innerRadius || distance > outerRadius) return@firstOrNull false
+                val angleDegrees =
+                    normalizeDegrees(
+                        Math.toDegrees(atan2(dy.toDouble(), dx.toDouble())).toFloat(),
+                    )
+                val gap = gapForSweep(arc.sweepDegrees, sliceGapDegrees)
+                containsAngle(
+                    angleDegrees = angleDegrees,
+                    startAngleDegrees = arc.startAngleDegrees + gap / 2f,
+                    sweepDegrees = (arc.sweepDegrees - gap).coerceAtLeast(0f),
+                )
+            }?.slice
     }
 
     private fun containsAngle(
@@ -117,4 +126,7 @@ data class SliceArc(
     val sweepDegrees: Float,
 )
 
-data class FrameOffset(val x: Float, val y: Float)
+data class FrameOffset(
+    val x: Float,
+    val y: Float,
+)

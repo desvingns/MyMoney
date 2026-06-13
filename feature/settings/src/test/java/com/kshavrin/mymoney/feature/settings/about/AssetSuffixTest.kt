@@ -79,7 +79,6 @@ import org.junit.Test
  * ```
  */
 class AssetSuffixTest {
-
     /**
      * Mirror of the pure branch inside `assetSuffix()`, factored out so the en/ru/default contract
      * can be exercised on the JVM. This is intentionally identical to the production decision:

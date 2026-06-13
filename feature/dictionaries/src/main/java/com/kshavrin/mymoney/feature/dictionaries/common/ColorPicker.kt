@@ -35,41 +35,43 @@ fun ColorPicker(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         // Bounded max height: this grid is hosted inside a Column(verticalScroll) (e.g. CategoryEdit
         // S22), where an unbounded LazyVerticalGrid is measured with infinite height and crashes.
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(max = 240.dp),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .heightIn(max = 240.dp),
     ) {
         items(palette) { hex ->
             val color = parseHexColor(hex)
             val selected = hex.equals(selectedHex, ignoreCase = true)
             Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .semantics { contentDescription = hex }
-                    .clip(CircleShape)
-                    .background(color)
-                    .then(
-                        if (selected) {
-                            Modifier.border(
-                                width = 3.dp,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                shape = CircleShape,
-                            )
-                        } else {
-                            Modifier
-                        },
-                    )
-                    .clickable { onColorSelected(hex) }
-                    .minimumInteractiveComponentSize(),
+                modifier =
+                    Modifier
+                        .size(40.dp)
+                        .semantics { contentDescription = hex }
+                        .clip(CircleShape)
+                        .background(color)
+                        .then(
+                            if (selected) {
+                                Modifier.border(
+                                    width = 3.dp,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    shape = CircleShape,
+                                )
+                            } else {
+                                Modifier
+                            },
+                        ).clickable { onColorSelected(hex) }
+                        .minimumInteractiveComponentSize(),
             )
         }
     }
 }
 
-internal fun parseHexColor(hex: String): Color = try {
-    val cleaned = hex.removePrefix("#")
-    val argb = if (cleaned.length == 6) "FF$cleaned" else cleaned
-    Color(argb.toLong(16))
-} catch (_: Exception) {
-    Color.Gray
-}
+internal fun parseHexColor(hex: String): Color =
+    try {
+        val cleaned = hex.removePrefix("#")
+        val argb = if (cleaned.length == 6) "FF$cleaned" else cleaned
+        Color(argb.toLong(16))
+    } catch (_: Exception) {
+        Color.Gray
+    }

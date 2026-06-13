@@ -16,17 +16,16 @@ import com.kshavrin.mymoney.feature.lockscreen.setup.PinHasher
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
-import javax.inject.Inject
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import javax.inject.Inject
 
 @HiltAndroidTest
 @RunWith(AndroidJUnit4::class)
 class LockOverlayUiTest {
-
     @get:Rule(order = 0)
     val hiltRule = HiltAndroidRule(this)
 
@@ -151,7 +150,8 @@ class LockOverlayUiTest {
         composeRule.waitUntil(timeoutMillis = 5_000) {
             composeRule
                 .onAllNodesWithText(stringRes(R.string.lock_pin_prompt))
-                .fetchSemanticsNodes().isNotEmpty()
+                .fetchSemanticsNodes()
+                .isNotEmpty()
         }
         composeRule
             .onNodeWithText(stringRes(R.string.lock_pin_prompt))
@@ -168,7 +168,6 @@ class LockOverlayUiTest {
             .onNodeWithText(digit.toString())
             .performClick()
     }
-
 }
 
 @AndroidEntryPoint

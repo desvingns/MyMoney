@@ -13,7 +13,6 @@ import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AppThemeViewModelTest {
-
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
@@ -32,49 +31,53 @@ class AppThemeViewModelTest {
     }
 
     @Test
-    fun `themeMode maps the persisted light setting once collected`() = runTest {
-        val viewModel = buildViewModel(stored = "light")
+    fun `themeMode maps the persisted light setting once collected`() =
+        runTest {
+            val viewModel = buildViewModel(stored = "light")
 
-        viewModel.themeMode.test {
-            assertEquals(ThemeMode.Light, expectMostRecentItem())
-            cancelAndIgnoreRemainingEvents()
+            viewModel.themeMode.test {
+                assertEquals(ThemeMode.Light, expectMostRecentItem())
+                cancelAndIgnoreRemainingEvents()
+            }
         }
-    }
 
     @Test
-    fun `themeMode maps the persisted dark setting once collected`() = runTest {
-        val viewModel = buildViewModel(stored = "dark")
+    fun `themeMode maps the persisted dark setting once collected`() =
+        runTest {
+            val viewModel = buildViewModel(stored = "dark")
 
-        viewModel.themeMode.test {
-            assertEquals(ThemeMode.Dark, expectMostRecentItem())
-            cancelAndIgnoreRemainingEvents()
+            viewModel.themeMode.test {
+                assertEquals(ThemeMode.Dark, expectMostRecentItem())
+                cancelAndIgnoreRemainingEvents()
+            }
         }
-    }
 
     @Test
-    fun `themeMode maps an unknown persisted setting to System`() = runTest {
-        val viewModel = buildViewModel(stored = "neon")
+    fun `themeMode maps an unknown persisted setting to System`() =
+        runTest {
+            val viewModel = buildViewModel(stored = "neon")
 
-        viewModel.themeMode.test {
-            assertEquals(ThemeMode.System, expectMostRecentItem())
-            cancelAndIgnoreRemainingEvents()
+            viewModel.themeMode.test {
+                assertEquals(ThemeMode.System, expectMostRecentItem())
+                cancelAndIgnoreRemainingEvents()
+            }
         }
-    }
 
     @Test
-    fun `themeMode re-emits live when the persisted setting changes`() = runTest {
-        val viewModel = buildViewModel(stored = "system")
+    fun `themeMode re-emits live when the persisted setting changes`() =
+        runTest {
+            val viewModel = buildViewModel(stored = "system")
 
-        viewModel.themeMode.test {
-            assertEquals(ThemeMode.System, awaitItem())
+            viewModel.themeMode.test {
+                assertEquals(ThemeMode.System, awaitItem())
 
-            repository.update { it.copy(themeMode = "dark") }
-            assertEquals(ThemeMode.Dark, awaitItem())
+                repository.update { it.copy(themeMode = "dark") }
+                assertEquals(ThemeMode.Dark, awaitItem())
 
-            repository.update { it.copy(themeMode = "light") }
-            assertEquals(ThemeMode.Light, awaitItem())
+                repository.update { it.copy(themeMode = "light") }
+                assertEquals(ThemeMode.Light, awaitItem())
 
-            cancelAndIgnoreRemainingEvents()
+                cancelAndIgnoreRemainingEvents()
+            }
         }
-    }
 }

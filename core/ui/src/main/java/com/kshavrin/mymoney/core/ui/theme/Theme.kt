@@ -13,23 +13,26 @@ import androidx.core.view.WindowCompat
 enum class ThemeMode {
     System,
     Light,
-    Dark;
+    Dark,
+    ;
 
     companion object {
-        fun fromStored(value: String): ThemeMode = when (value) {
-            "light" -> Light
-            "dark" -> Dark
-            else -> System
-        }
+        fun fromStored(value: String): ThemeMode =
+            when (value) {
+                "light" -> Light
+                "dark" -> Dark
+                else -> System
+            }
     }
 }
 
 val ThemeMode.stored: String
-    get() = when (this) {
-        ThemeMode.System -> "system"
-        ThemeMode.Light -> "light"
-        ThemeMode.Dark -> "dark"
-    }
+    get() =
+        when (this) {
+            ThemeMode.System -> "system"
+            ThemeMode.Light -> "light"
+            ThemeMode.Dark -> "dark"
+        }
 
 @Composable
 fun MyMoneyTheme(
@@ -37,11 +40,12 @@ fun MyMoneyTheme(
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit,
 ) {
-    val darkTheme = when (themeMode) {
-        ThemeMode.System -> isSystemInDarkTheme()
-        ThemeMode.Light -> false
-        ThemeMode.Dark -> true
-    }
+    val darkTheme =
+        when (themeMode) {
+            ThemeMode.System -> isSystemInDarkTheme()
+            ThemeMode.Light -> false
+            ThemeMode.Dark -> true
+        }
     MyMoneyTheme(darkTheme = darkTheme, dynamicColor = dynamicColor, content = content)
 }
 

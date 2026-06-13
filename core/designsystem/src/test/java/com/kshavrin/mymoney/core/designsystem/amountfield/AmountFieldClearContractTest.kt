@@ -106,7 +106,6 @@ import org.junit.Test
  * [com.kshavrin.mymoney.core.designsystem.amountinput.MonefyAmountInputTest].
  */
 class AmountFieldClearContractTest {
-
     /**
      * Pure mirror of the `onClear` lambda in [AmountFieldSection]:
      *

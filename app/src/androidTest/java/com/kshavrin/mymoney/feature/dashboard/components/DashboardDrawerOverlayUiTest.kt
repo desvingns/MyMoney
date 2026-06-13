@@ -2,8 +2,8 @@ package com.kshavrin.mymoney.feature.dashboard.components
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.click
@@ -21,7 +21,6 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class DashboardDrawerOverlayUiTest {
-
     @get:Rule
     val composeTestRule = createComposeRule()
 
@@ -30,9 +29,10 @@ class DashboardDrawerOverlayUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .testTag(OVERLAY_ROOT_TAG),
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .testTag(OVERLAY_ROOT_TAG),
                 ) {
                     DashboardDrawerOverlay(
                         open = true,
@@ -40,23 +40,28 @@ class DashboardDrawerOverlayUiTest {
                         onDismiss = {},
                     ) {
                         Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .testTag(DRAWER_PANEL_TAG),
+                            modifier =
+                                Modifier
+                                    .fillMaxSize()
+                                    .testTag(DRAWER_PANEL_TAG),
                         )
                     }
                 }
             }
         }
 
-        val rootWidth = InstrumentationRegistry.getInstrumentation()
-            .targetContext.resources.displayMetrics.widthPixels.toFloat()
-        val panelWidth = composeTestRule
-            .onNodeWithTag(DRAWER_PANEL_TAG)
-            .assertIsDisplayed()
-            .fetchSemanticsNode()
-            .boundsInRoot
-            .width
+        val rootWidth =
+            InstrumentationRegistry
+                .getInstrumentation()
+                .targetContext.resources.displayMetrics.widthPixels
+                .toFloat()
+        val panelWidth =
+            composeTestRule
+                .onNodeWithTag(DRAWER_PANEL_TAG)
+                .assertIsDisplayed()
+                .fetchSemanticsNode()
+                .boundsInRoot
+                .width
         val ratio = panelWidth / rootWidth
 
         assertTrue("drawer width ratio $ratio must stay within [0.60, 0.68]", ratio in 0.60f..0.68f)
@@ -67,9 +72,10 @@ class DashboardDrawerOverlayUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .testTag(OVERLAY_ROOT_TAG),
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .testTag(OVERLAY_ROOT_TAG),
                 ) {
                     DashboardDrawerOverlay(
                         open = false,
@@ -77,9 +83,10 @@ class DashboardDrawerOverlayUiTest {
                         onDismiss = {},
                     ) {
                         Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .testTag(DRAWER_PANEL_TAG),
+                            modifier =
+                                Modifier
+                                    .fillMaxSize()
+                                    .testTag(DRAWER_PANEL_TAG),
                         )
                     }
                 }
@@ -96,9 +103,10 @@ class DashboardDrawerOverlayUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .testTag(OVERLAY_ROOT_TAG),
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .testTag(OVERLAY_ROOT_TAG),
                 ) {
                     DashboardDrawerOverlay(
                         open = true,
@@ -106,19 +114,21 @@ class DashboardDrawerOverlayUiTest {
                         onDismiss = { dismissCount += 1 },
                     ) {
                         Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .testTag(DRAWER_PANEL_TAG),
+                            modifier =
+                                Modifier
+                                    .fillMaxSize()
+                                    .testTag(DRAWER_PANEL_TAG),
                         )
                     }
                 }
             }
         }
 
-        val rootBounds = composeTestRule
-            .onNodeWithTag(OVERLAY_ROOT_TAG)
-            .fetchSemanticsNode()
-            .boundsInRoot
+        val rootBounds =
+            composeTestRule
+                .onNodeWithTag(OVERLAY_ROOT_TAG)
+                .fetchSemanticsNode()
+                .boundsInRoot
         composeTestRule
             .onNodeWithTag(OVERLAY_ROOT_TAG)
             .performTouchInput {

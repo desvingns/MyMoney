@@ -12,15 +12,17 @@ import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
 @HiltViewModel
-class AppThemeViewModel @Inject constructor(
-    appSettingsRepository: AppSettingsRepository,
-) : ViewModel() {
-
-    val themeMode: StateFlow<ThemeMode> = appSettingsRepository.settings
-        .map { ThemeMode.fromStored(it.themeMode) }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = ThemeMode.System,
-        )
-}
+class AppThemeViewModel
+    @Inject
+    constructor(
+        appSettingsRepository: AppSettingsRepository,
+    ) : ViewModel() {
+        val themeMode: StateFlow<ThemeMode> =
+            appSettingsRepository.settings
+                .map { ThemeMode.fromStored(it.themeMode) }
+                .stateIn(
+                    scope = viewModelScope,
+                    started = SharingStarted.WhileSubscribed(5_000),
+                    initialValue = ThemeMode.System,
+                )
+    }

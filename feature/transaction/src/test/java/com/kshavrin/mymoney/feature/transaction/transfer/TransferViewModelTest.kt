@@ -38,7 +38,6 @@ import java.time.ZoneId
 import java.util.TimeZone
 
 class TransferViewModelTest {
-
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
@@ -52,45 +51,48 @@ class TransferViewModelTest {
     private lateinit var rateRepo: FakeCurrencyRateRepository
     private lateinit var settingsRepo: FakeAppSettingsRepository
 
-    private val usd = Currency(
-        id = 1L,
-        code = "USD",
-        symbol = "$",
-        name = "US Dollar",
-        decimalDigits = 2,
-        isActive = true,
-        sortOrder = 0,
-    )
+    private val usd =
+        Currency(
+            id = 1L,
+            code = "USD",
+            symbol = "$",
+            name = "US Dollar",
+            decimalDigits = 2,
+            isActive = true,
+            sortOrder = 0,
+        )
 
-    private val cashAccount = Account(
-        id = 1L,
-        name = "Cash",
-        currencyId = usd.id,
-        initialBalance = BigDecimal.ZERO,
-        type = AccountType.Cash,
-        colorHex = "#7AC794",
-        iconKey = "ic_acc_cash",
-        isDefault = true,
-        sortOrder = 0,
-        createdAt = createdAt,
-        updatedAt = createdAt,
-        isArchived = false,
-    )
+    private val cashAccount =
+        Account(
+            id = 1L,
+            name = "Cash",
+            currencyId = usd.id,
+            initialBalance = BigDecimal.ZERO,
+            type = AccountType.Cash,
+            colorHex = "#7AC794",
+            iconKey = "ic_acc_cash",
+            isDefault = true,
+            sortOrder = 0,
+            createdAt = createdAt,
+            updatedAt = createdAt,
+            isArchived = false,
+        )
 
-    private val bankAccount = Account(
-        id = 2L,
-        name = "Bank",
-        currencyId = usd.id,
-        initialBalance = BigDecimal.ZERO,
-        type = AccountType.Card,
-        colorHex = "#4E92DF",
-        iconKey = "ic_acc_card",
-        isDefault = false,
-        sortOrder = 1,
-        createdAt = createdAt,
-        updatedAt = createdAt,
-        isArchived = false,
-    )
+    private val bankAccount =
+        Account(
+            id = 2L,
+            name = "Bank",
+            currencyId = usd.id,
+            initialBalance = BigDecimal.ZERO,
+            type = AccountType.Card,
+            colorHex = "#4E92DF",
+            iconKey = "ic_acc_card",
+            isDefault = false,
+            sortOrder = 1,
+            createdAt = createdAt,
+            updatedAt = createdAt,
+            isArchived = false,
+        )
 
     @Before
     fun setUp() {
@@ -113,115 +115,124 @@ class TransferViewModelTest {
 
     private fun buildViewModel(
         transactionRepository: TransactionRepository = transactionRepo,
-    ): TransferViewModel = TransferViewModel(
-        transactionRepository = transactionRepository,
-        accountRepository = accountRepo,
-        currencyRepository = currencyRepo,
-        currencyRateRepository = rateRepo,
-        transferExecutor = TransferExecutor(
-            accountRepository = accountRepo,
-            currencyRateRepository = rateRepo,
+    ): TransferViewModel =
+        TransferViewModel(
             transactionRepository = transactionRepository,
-            defaultDispatcher = mainDispatcherRule.testDispatcher,
-        ),
-        appSettingsRepository = settingsRepo,
-        savedStateHandle = SavedStateHandle(),
-    )
+            accountRepository = accountRepo,
+            currencyRepository = currencyRepo,
+            currencyRateRepository = rateRepo,
+            transferExecutor =
+                TransferExecutor(
+                    accountRepository = accountRepo,
+                    currencyRateRepository = rateRepo,
+                    transactionRepository = transactionRepository,
+                    defaultDispatcher = mainDispatcherRule.testDispatcher,
+                ),
+            appSettingsRepository = settingsRepo,
+            savedStateHandle = SavedStateHandle(),
+        )
 
     private fun localMidnight(date: LocalDate): Instant =
         date.atStartOfDay(ZoneId.systemDefault()).toInstant()
 
     @Test
-    fun `SaveClicked stores transfer occurredAt at local midnight in the system timezone`() = runTest {
-        val viewModel = buildViewModel()
-        val saveDate = LocalDate.parse("2026-06-10")
+    fun `SaveClicked stores transfer occurredAt at local midnight in the system timezone`() =
+        runTest {
+            val viewModel = buildViewModel()
+            val saveDate = LocalDate.parse("2026-06-10")
 
-        advanceUntilIdle()
-        viewModel.onEvent(TransferEvent.KeypadDigit(7))
-        viewModel.onEvent(TransferEvent.DateChanged(saveDate))
-        viewModel.onEvent(TransferEvent.TargetAccountChanged(bankAccount.id))
-        viewModel.onEvent(TransferEvent.SaveClicked)
-        advanceUntilIdle()
-
-        val saved = transactionRepo.upserted.single()
-        assertEquals(TransactionKind.Transfer, saved.kind)
-        assertEquals(cashAccount.id, saved.accountId)
-        assertEquals(bankAccount.id, saved.toAccountId)
-        assertEquals(localMidnight(saveDate), saved.occurredAt)
-        assertEquals(0, BigDecimal("7").compareTo(saved.amount))
-        assertEquals(0, BigDecimal("7").compareTo(saved.toAmount))
-    }
-
-    @Test
-    fun `double SaveClicked performs one transfer upsert and emits one NavigateBack`() = runTest {
-        val blockingRepo = BlockingTransactionRepository()
-        val viewModel = buildViewModel(transactionRepository = blockingRepo)
-
-        advanceUntilIdle()
-        viewModel.onEvent(TransferEvent.KeypadDigit(7))
-        viewModel.onEvent(TransferEvent.TargetAccountChanged(bankAccount.id))
-
-        viewModel.actions.test {
+            advanceUntilIdle()
+            viewModel.onEvent(TransferEvent.KeypadDigit(7))
+            viewModel.onEvent(TransferEvent.DateChanged(saveDate))
+            viewModel.onEvent(TransferEvent.TargetAccountChanged(bankAccount.id))
             viewModel.onEvent(TransferEvent.SaveClicked)
-            assertEquals(true, viewModel.state.value.isSaving)
-            viewModel.onEvent(TransferEvent.SaveClicked)
-
-            assertEquals(1, blockingRepo.startedUpserts.size)
-
-            blockingRepo.release()
             advanceUntilIdle()
 
-            assertEquals(1, blockingRepo.persistedUpserts.size)
-            assertEquals(TransferAction.NavigateBack, awaitItem())
-            expectNoEvents()
-            cancelAndIgnoreRemainingEvents()
+            val saved = transactionRepo.upserted.single()
+            assertEquals(TransactionKind.Transfer, saved.kind)
+            assertEquals(cashAccount.id, saved.accountId)
+            assertEquals(bankAccount.id, saved.toAccountId)
+            assertEquals(localMidnight(saveDate), saved.occurredAt)
+            assertEquals(0, BigDecimal("7").compareTo(saved.amount))
+            assertEquals(0, BigDecimal("7").compareTo(saved.toAmount))
         }
-    }
 
     @Test
-    fun `cancelling save does not show error banner or emit navigation`() = runTest {
-        val blockingRepo = BlockingTransactionRepository()
-        val viewModel = buildViewModel(transactionRepository = blockingRepo)
+    fun `double SaveClicked performs one transfer upsert and emits one NavigateBack`() =
+        runTest {
+            val blockingRepo = BlockingTransactionRepository()
+            val viewModel = buildViewModel(transactionRepository = blockingRepo)
 
-        advanceUntilIdle()
-        viewModel.onEvent(TransferEvent.KeypadDigit(7))
-        viewModel.onEvent(TransferEvent.TargetAccountChanged(bankAccount.id))
+            advanceUntilIdle()
+            viewModel.onEvent(TransferEvent.KeypadDigit(7))
+            viewModel.onEvent(TransferEvent.TargetAccountChanged(bankAccount.id))
 
-        viewModel.actions.test {
+            viewModel.actions.test {
+                viewModel.onEvent(TransferEvent.SaveClicked)
+                assertEquals(true, viewModel.state.value.isSaving)
+                viewModel.onEvent(TransferEvent.SaveClicked)
+
+                assertEquals(1, blockingRepo.startedUpserts.size)
+
+                blockingRepo.release()
+                advanceUntilIdle()
+
+                assertEquals(1, blockingRepo.persistedUpserts.size)
+                assertEquals(TransferAction.NavigateBack, awaitItem())
+                expectNoEvents()
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `cancelling save does not show error banner or emit navigation`() =
+        runTest {
+            val blockingRepo = BlockingTransactionRepository()
+            val viewModel = buildViewModel(transactionRepository = blockingRepo)
+
+            advanceUntilIdle()
+            viewModel.onEvent(TransferEvent.KeypadDigit(7))
+            viewModel.onEvent(TransferEvent.TargetAccountChanged(bankAccount.id))
+
+            viewModel.actions.test {
+                viewModel.onEvent(TransferEvent.SaveClicked)
+                assertEquals(true, viewModel.state.value.isSaving)
+                assertEquals(1, blockingRepo.startedUpserts.size)
+
+                viewModel.viewModelScope.cancel()
+                advanceUntilIdle()
+
+                assertTrue(blockingRepo.persistedUpserts.isEmpty())
+                assertNull(viewModel.state.value.errorBannerRes)
+                assertEquals(0L, viewModel.state.value.savedSignal)
+                expectNoEvents()
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `save failure keeps existing transfer error banner mapping`() =
+        runTest {
+            val viewModel = buildViewModel(transactionRepository = FailingTransactionRepository())
+
+            advanceUntilIdle()
+            viewModel.onEvent(TransferEvent.KeypadDigit(7))
+            viewModel.onEvent(TransferEvent.TargetAccountChanged(bankAccount.id))
             viewModel.onEvent(TransferEvent.SaveClicked)
-            assertEquals(true, viewModel.state.value.isSaving)
-            assertEquals(1, blockingRepo.startedUpserts.size)
-
-            viewModel.viewModelScope.cancel()
             advanceUntilIdle()
 
-            assertTrue(blockingRepo.persistedUpserts.isEmpty())
-            assertNull(viewModel.state.value.errorBannerRes)
+            assertEquals(false, viewModel.state.value.isSaving)
+            assertEquals(com.kshavrin.mymoney.feature.transaction.R.string.error_save_failed, viewModel.state.value.errorBannerRes)
             assertEquals(0L, viewModel.state.value.savedSignal)
-            expectNoEvents()
-            cancelAndIgnoreRemainingEvents()
         }
-    }
-
-    @Test
-    fun `save failure keeps existing transfer error banner mapping`() = runTest {
-        val viewModel = buildViewModel(transactionRepository = FailingTransactionRepository())
-
-        advanceUntilIdle()
-        viewModel.onEvent(TransferEvent.KeypadDigit(7))
-        viewModel.onEvent(TransferEvent.TargetAccountChanged(bankAccount.id))
-        viewModel.onEvent(TransferEvent.SaveClicked)
-        advanceUntilIdle()
-
-        assertEquals(false, viewModel.state.value.isSaving)
-        assertEquals(com.kshavrin.mymoney.feature.transaction.R.string.error_save_failed, viewModel.state.value.errorBannerRes)
-        assertEquals(0L, viewModel.state.value.savedSignal)
-    }
 
     private class FakeCurrencyRateRepository : CurrencyRateRepository {
         private val rates = MutableStateFlow<List<CurrencyRate>>(emptyList())
 
-        override suspend fun findRate(fromCurrencyId: Long, toCurrencyId: Long): CurrencyRate? =
+        override suspend fun findRate(
+            fromCurrencyId: Long,
+            toCurrencyId: Long,
+        ): CurrencyRate? =
             rates.value.firstOrNull {
                 it.fromCurrencyId == fromCurrencyId && it.toCurrencyId == toCurrencyId
             }
@@ -263,9 +274,7 @@ class TransferViewModelTest {
     private class FailingTransactionRepository(
         private val delegate: FakeTransactionRepository = FakeTransactionRepository(),
     ) : TransactionRepository by delegate {
-        override suspend fun upsert(transaction: Transaction): Long {
-            throw IllegalStateException("boom")
-        }
+        override suspend fun upsert(transaction: Transaction): Long = throw IllegalStateException("boom")
     }
 
     companion object {

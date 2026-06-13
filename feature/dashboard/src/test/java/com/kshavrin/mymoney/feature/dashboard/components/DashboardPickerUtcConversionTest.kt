@@ -11,7 +11,6 @@ import java.time.ZoneOffset
 import java.util.TimeZone
 
 class DashboardPickerUtcConversionTest {
-
     private lateinit var originalTimeZone: TimeZone
 
     @Before
@@ -32,9 +31,11 @@ class DashboardPickerUtcConversionTest {
 
         val convertedDate = materialPickerUtcMillisToLocalDate(pickerMillis)
 
-        val legacySystemDefaultDate = Instant.ofEpochMilli(pickerMillis)
-            .atZone(ZoneId.systemDefault())
-            .toLocalDate()
+        val legacySystemDefaultDate =
+            Instant
+                .ofEpochMilli(pickerMillis)
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate()
 
         assertEquals(LocalDate.of(2026, 6, 10), convertedDate)
         assertEquals(LocalDate.of(2026, 6, 9), legacySystemDefaultDate)
@@ -50,12 +51,16 @@ class DashboardPickerUtcConversionTest {
         val convertedStart = materialPickerUtcMillisToLocalDate(startMillis)
         val convertedEnd = materialPickerUtcMillisToLocalDate(endMillis)
 
-        val legacySystemDefaultStart = Instant.ofEpochMilli(startMillis)
-            .atZone(ZoneId.systemDefault())
-            .toLocalDate()
-        val legacySystemDefaultEnd = Instant.ofEpochMilli(endMillis)
-            .atZone(ZoneId.systemDefault())
-            .toLocalDate()
+        val legacySystemDefaultStart =
+            Instant
+                .ofEpochMilli(startMillis)
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate()
+        val legacySystemDefaultEnd =
+            Instant
+                .ofEpochMilli(endMillis)
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate()
 
         assertEquals(LocalDate.of(2026, 6, 10), convertedStart)
         assertEquals(LocalDate.of(2026, 6, 15), convertedEnd)

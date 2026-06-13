@@ -23,7 +23,6 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class CategoryEditContentUiTest {
-
     @get:Rule
     val composeTestRule = createComposeRule()
 
@@ -37,26 +36,31 @@ class CategoryEditContentUiTest {
                     state = state,
                     onEvent = { event ->
                         events += event
-                        state = when (event) {
-                            is CategoryEditEvent.NameChanged -> state.copy(name = event.value)
-                            is CategoryEditEvent.KindChanged -> state.copy(kind = event.value)
-                            is CategoryEditEvent.ColorChanged -> state.copy(colorHex = event.value)
-                            else -> state
-                        }
+                        state =
+                            when (event) {
+                                is CategoryEditEvent.NameChanged -> state.copy(name = event.value)
+                                is CategoryEditEvent.KindChanged -> state.copy(kind = event.value)
+                                is CategoryEditEvent.ColorChanged -> state.copy(colorHex = event.value)
+                                else -> state
+                            }
                     },
                 )
             }
         }
 
-        composeTestRule.onNodeWithText(targetString(R.string.dictionaries_field_name))
+        composeTestRule
+            .onNodeWithText(targetString(R.string.dictionaries_field_name))
             .performTextInput("Coffee")
-        composeTestRule.onNodeWithText(targetString(R.string.dictionaries_kind_income))
-            .performScrollTo().performClick()
+        composeTestRule
+            .onNodeWithText(targetString(R.string.dictionaries_kind_income))
+            .performScrollTo()
+            .performClick()
         // #9C5BB8 is the first palette swatch (always visible). performScrollTo on a
         // LazyVerticalGrid item deadlocks the nested scroll inside Column(verticalScroll)
         // (waitForIdle never settles), so click it directly.
         composeTestRule.onNodeWithContentDescription("#9C5BB8").performClick()
-        composeTestRule.onNodeWithText(targetString(R.string.dictionaries_save))
+        composeTestRule
+            .onNodeWithText(targetString(R.string.dictionaries_save))
             .performClick()
 
         composeTestRule.runOnIdle {
@@ -99,12 +103,13 @@ class CategoryEditContentUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 CategoryEditContent(
-                    state = CategoryEditState(
-                        isCreateMode = false,
-                        name = "Food",
-                        errorMessage = "name_required_or_too_long",
-                        blockedDeleteCount = 3,
-                    ),
+                    state =
+                        CategoryEditState(
+                            isCreateMode = false,
+                            name = "Food",
+                            errorMessage = "name_required_or_too_long",
+                            blockedDeleteCount = 3,
+                        ),
                     onEvent = { events += it },
                 )
             }
@@ -131,7 +136,8 @@ class CategoryEditContentUiTest {
             }
         }
 
-        composeTestRule.onNodeWithText(targetString(R.string.dictionaries_save))
+        composeTestRule
+            .onNodeWithText(targetString(R.string.dictionaries_save))
             .assertIsDisplayed()
             .performClick()
 
@@ -152,9 +158,11 @@ class CategoryEditContentUiTest {
             }
         }
 
-        composeTestRule.onNodeWithText(targetString(R.string.dictionaries_save))
+        composeTestRule
+            .onNodeWithText(targetString(R.string.dictionaries_save))
             .assertIsDisplayed()
-        composeTestRule.onNodeWithText(targetString(R.string.dictionaries_delete))
+        composeTestRule
+            .onNodeWithText(targetString(R.string.dictionaries_delete))
             .performScrollTo()
             .assertIsDisplayed()
             .performClick()

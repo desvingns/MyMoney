@@ -50,19 +50,20 @@ fun MonefyConfetti(
 
     if (!trigger && progress == 0f) return
 
-    val particles = remember {
-        List(PARTICLE_COUNT) {
-            ConfettiParticle(
-                angleDegrees = -90f + (Random.nextFloat() - 0.5f) * 160f,
-                speed = 600f + Random.nextFloat() * 900f,
-                drift = (Random.nextFloat() - 0.5f) * 320f,
-                spin = (Random.nextFloat() - 0.5f) * 1440f,
-                color = CONFETTI_COLORS.random(),
-                width = 8f + Random.nextFloat() * 8f,
-                height = 4f + Random.nextFloat() * 6f,
-            )
+    val particles =
+        remember {
+            List(PARTICLE_COUNT) {
+                ConfettiParticle(
+                    angleDegrees = -90f + (Random.nextFloat() - 0.5f) * 160f,
+                    speed = 600f + Random.nextFloat() * 900f,
+                    drift = (Random.nextFloat() - 0.5f) * 320f,
+                    spin = (Random.nextFloat() - 0.5f) * 1440f,
+                    color = CONFETTI_COLORS.random(),
+                    width = 8f + Random.nextFloat() * 8f,
+                    height = 4f + Random.nextFloat() * 6f,
+                )
+            }
         }
-    }
 
     Box(modifier = modifier.fillMaxSize()) {
         Canvas(modifier = Modifier.fillMaxSize()) {
@@ -71,10 +72,12 @@ fun MonefyConfetti(
             val alpha = (1f - progress).coerceIn(0f, 1f)
             particles.forEach { particle ->
                 val angleRadians = Math.toRadians(particle.angleDegrees.toDouble()).toFloat()
-                val x = origin.x + particle.speed * progress * cos(angleRadians) +
-                    particle.drift * progress
-                val y = origin.y + particle.speed * progress * sin(angleRadians) +
-                    gravity * progress * progress
+                val x =
+                    origin.x + particle.speed * progress * cos(angleRadians) +
+                        particle.drift * progress
+                val y =
+                    origin.y + particle.speed * progress * sin(angleRadians) +
+                        gravity * progress * progress
                 rotate(degrees = particle.spin * progress, pivot = Offset(x, y)) {
                     drawRect(
                         color = particle.color.copy(alpha = alpha),
@@ -87,14 +90,15 @@ fun MonefyConfetti(
     }
 }
 
-private val CONFETTI_COLORS = listOf(
-    Color(0xFF7AC794),
-    Color(0xFFF66561),
-    Color(0xFFC9A227),
-    Color(0xFF4A8FCB),
-    Color(0xFFE0729A),
-    Color(0xFF8E6FD8),
-)
+private val CONFETTI_COLORS =
+    listOf(
+        Color(0xFF7AC794),
+        Color(0xFFF66561),
+        Color(0xFFC9A227),
+        Color(0xFF4A8FCB),
+        Color(0xFFE0729A),
+        Color(0xFF8E6FD8),
+    )
 
 private data class ConfettiParticle(
     val angleDegrees: Float,

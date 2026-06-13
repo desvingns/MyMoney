@@ -18,7 +18,10 @@ interface RecurringTemplateDao {
     suspend fun upsert(template: RecurringTemplateEntity): Long
 
     @Query("UPDATE recurring_template SET next_run_at = :nextRunAt WHERE id = :id")
-    suspend fun updateNextRun(id: Long, nextRunAt: Long)
+    suspend fun updateNextRun(
+        id: Long,
+        nextRunAt: Long,
+    )
 
     @Query("UPDATE recurring_template SET is_active = 0 WHERE id = :id")
     suspend fun deactivate(id: Long)

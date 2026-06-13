@@ -5,7 +5,6 @@ import java.math.MathContext
 import java.math.RoundingMode
 
 class CalculatorEngine {
-
     private var currentOperand: String = "0"
     private var leftOperand: BigDecimal? = null
     private var op: CalculatorOperator? = null
@@ -148,16 +147,18 @@ class CalculatorEngine {
         val left = leftOperand ?: currentValue
         val right = currentValue
         val pending = op ?: return left
-        val result = when (pending) {
-            CalculatorOperator.Plus -> left.add(right, MATH_CONTEXT)
-            CalculatorOperator.Minus -> left.subtract(right, MATH_CONTEXT)
-            CalculatorOperator.Multiply -> left.multiply(right, MATH_CONTEXT)
-            CalculatorOperator.Divide -> if (right.signum() == 0) {
-                BigDecimal.ZERO
-            } else {
-                left.divide(right, MATH_CONTEXT)
+        val result =
+            when (pending) {
+                CalculatorOperator.Plus -> left.add(right, MATH_CONTEXT)
+                CalculatorOperator.Minus -> left.subtract(right, MATH_CONTEXT)
+                CalculatorOperator.Multiply -> left.multiply(right, MATH_CONTEXT)
+                CalculatorOperator.Divide ->
+                    if (right.signum() == 0) {
+                        BigDecimal.ZERO
+                    } else {
+                        left.divide(right, MATH_CONTEXT)
+                    }
             }
-        }
         return result.normalize()
     }
 
@@ -183,21 +184,23 @@ class CalculatorEngine {
         private val MATH_CONTEXT = MathContext.DECIMAL64
 
         private val CalculatorOperator.symbol: String
-            get() = when (this) {
-                CalculatorOperator.Plus -> "+"
-                CalculatorOperator.Minus -> "−"
-                CalculatorOperator.Multiply -> "×"
-                CalculatorOperator.Divide -> "÷"
-            }
+            get() =
+                when (this) {
+                    CalculatorOperator.Plus -> "+"
+                    CalculatorOperator.Minus -> "−"
+                    CalculatorOperator.Multiply -> "×"
+                    CalculatorOperator.Divide -> "÷"
+                }
 
         private fun digitCount(operand: String): Int =
             operand.count { it.isDigit() }
 
-        private fun String.toBigDecimalOrZero(): BigDecimal = when {
-            isEmpty() || this == "-" || this == "." || this == "-." -> BigDecimal.ZERO
-            endsWith(".") -> dropLast(1).toBigDecimal()
-            else -> toBigDecimal()
-        }
+        private fun String.toBigDecimalOrZero(): BigDecimal =
+            when {
+                isEmpty() || this == "-" || this == "." || this == "-." -> BigDecimal.ZERO
+                endsWith(".") -> dropLast(1).toBigDecimal()
+                else -> toBigDecimal()
+            }
 
         private fun BigDecimal.normalize(): BigDecimal {
             val stripped = stripTrailingZeros()
@@ -209,13 +212,18 @@ class CalculatorEngine {
             return if (normalized.scale() <= 0) {
                 normalized.toPlainString()
             } else {
-                normalized.setScale(
-                    minOf(normalized.scale(), MAX_DIGITS),
-                    RoundingMode.HALF_UP,
-                ).stripTrailingZeros().let { stripped ->
-                    if (stripped.scale() <= 0) stripped.setScale(0).toPlainString()
-                    else stripped.toPlainString()
-                }
+                normalized
+                    .setScale(
+                        minOf(normalized.scale(), MAX_DIGITS),
+                        RoundingMode.HALF_UP,
+                    ).stripTrailingZeros()
+                    .let { stripped ->
+                        if (stripped.scale() <= 0) {
+                            stripped.setScale(0).toPlainString()
+                        } else {
+                            stripped.toPlainString()
+                        }
+                    }
             }
         }
     }

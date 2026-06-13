@@ -90,9 +90,10 @@ fun AccountsListContent(
         },
     ) { innerPadding ->
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
         ) {
             items(state.rows, key = { it.account.id }) { row ->
                 AccountRowItem(
@@ -106,29 +107,35 @@ fun AccountsListContent(
 }
 
 @Composable
-private fun AccountRowItem(row: AccountRow, onClick: () -> Unit) {
+private fun AccountRowItem(
+    row: AccountRow,
+    onClick: () -> Unit,
+) {
     val currencySymbol = row.currency?.symbol ?: ""
     val decimalDigits = row.currency?.decimalDigits ?: 2
-    val balanceText = MoneyFormatter.format(
-        amount = row.balance,
-        currencySymbol = currencySymbol,
-        decimalDigits = decimalDigits,
-        locale = Locale.getDefault(),
-    )
+    val balanceText =
+        MoneyFormatter.format(
+            amount = row.balance,
+            currencySymbol = currencySymbol,
+            decimalDigits = decimalDigits,
+            locale = Locale.getDefault(),
+        )
 
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(16.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(parseHexColor(row.account.colorHex)),
+            modifier =
+                Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(parseHexColor(row.account.colorHex)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(

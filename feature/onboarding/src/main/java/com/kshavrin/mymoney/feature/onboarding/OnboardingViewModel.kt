@@ -11,21 +11,22 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class OnboardingViewModel @Inject constructor(
-    private val appSettingsRepository: AppSettingsRepository,
-) : ViewModel() {
+class OnboardingViewModel
+    @Inject
+    constructor(
+        private val appSettingsRepository: AppSettingsRepository,
+    ) : ViewModel() {
+        private val _state = MutableStateFlow(OnboardingState())
+        val state: StateFlow<OnboardingState> = _state.asStateFlow()
 
-    private val _state = MutableStateFlow(OnboardingState())
-    val state: StateFlow<OnboardingState> = _state.asStateFlow()
-
-    fun completeOnboarding() {
-        if (_state.value.completed) return
-        viewModelScope.launch {
-            appSettingsRepository.update { it.copy(onboardingCompletedAt = System.currentTimeMillis()) }
-            _state.value = _state.value.copy(completed = true)
+        fun completeOnboarding() {
+            if (_state.value.completed) return
+            viewModelScope.launch {
+                appSettingsRepository.update { it.copy(onboardingCompletedAt = System.currentTimeMillis()) }
+                _state.value = _state.value.copy(completed = true)
+            }
         }
     }
-}
 
 data class OnboardingState(
     val completed: Boolean = false,

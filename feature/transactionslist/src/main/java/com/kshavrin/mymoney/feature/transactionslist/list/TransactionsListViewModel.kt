@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -66,6 +67,21 @@ class TransactionsListViewModel @Inject constructor(
 
     init {
         load()
+        observeTransactionChanges()
+    }
+
+    private fun observeTransactionChanges() {
+        viewModelScope.launch {
+            transactionRepository.observeRecent(limit = 1)
+                .drop(1)
+                .collect {
+                    try {
+                        reload()
+                    } catch (t: Throwable) {
+                        t.reportToSentry()
+                    }
+                }
+        }
     }
 
     fun onEvent(event: TransactionsListEvent) {

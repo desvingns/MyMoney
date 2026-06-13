@@ -25,14 +25,15 @@ class BudgetEvaluator
                             ?: BigDecimal.ZERO
                     }
                 val limit = budget.amount
-                if (limit.signum() == 0) return@mapNotNull null
-                val pct = spent.toFloat() / limit.toFloat()
+                if (limit.signum() <= 0) return@mapNotNull null
+                val warnPct = budget.alertThresholdPct.toBigDecimal()
                 val state =
                     when {
-                        pct >= 1f -> BudgetState.Over
-                        pct >= budget.alertThresholdPct / 100f -> BudgetState.ThresholdHit
+                        spent >= limit -> BudgetState.Over
+                        spent.multiply(BigDecimal(100)) >= limit.multiply(warnPct) -> BudgetState.ThresholdHit
                         else -> BudgetState.Under
                     }
+                val pct = spent.toFloat() / limit.toFloat()
                 BudgetStatus(
                     budgetId = budget.id,
                     categoryId = budget.categoryId,

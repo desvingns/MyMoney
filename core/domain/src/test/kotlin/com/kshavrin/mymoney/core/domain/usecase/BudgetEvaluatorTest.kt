@@ -57,6 +57,62 @@ class BudgetEvaluatorTest {
         assertEquals(BudgetState.Under, result[0].state)
     }
 
+    @Test
+    fun large_budget_just_below_limit_is_threshold_not_over() {
+        val snapshot = snapshot(expense = "9999999.50", byCategory = mapOf(100L to "9999999.50"))
+        val budgets =
+            listOf(
+                Budget(1L, 100L, "month", Instant.EPOCH, BigDecimal("10000000.00"), 1L, alertThresholdPct = 80, isActive = true),
+            )
+        val result = BudgetEvaluator().evaluate(snapshot, budgets)
+        assertEquals(BudgetState.ThresholdHit, result[0].state)
+    }
+
+    @Test
+    fun large_budget_at_limit_is_over() {
+        val snapshot = snapshot(expense = "10000000.00", byCategory = mapOf(100L to "10000000.00"))
+        val budgets =
+            listOf(
+                Budget(1L, 100L, "month", Instant.EPOCH, BigDecimal("10000000.00"), 1L, alertThresholdPct = 80, isActive = true),
+            )
+        val result = BudgetEvaluator().evaluate(snapshot, budgets)
+        assertEquals(BudgetState.Over, result[0].state)
+    }
+
+    @Test
+    fun large_budget_just_below_threshold_is_under() {
+        val snapshot = snapshot(expense = "7999999.99", byCategory = mapOf(100L to "7999999.99"))
+        val budgets =
+            listOf(
+                Budget(1L, 100L, "month", Instant.EPOCH, BigDecimal("10000000.00"), 1L, alertThresholdPct = 80, isActive = true),
+            )
+        val result = BudgetEvaluator().evaluate(snapshot, budgets)
+        assertEquals(BudgetState.Under, result[0].state)
+    }
+
+    @Test
+    fun large_budget_at_threshold_is_threshold() {
+        val snapshot = snapshot(expense = "8000000.00", byCategory = mapOf(100L to "8000000.00"))
+        val budgets =
+            listOf(
+                Budget(1L, 100L, "month", Instant.EPOCH, BigDecimal("10000000.00"), 1L, alertThresholdPct = 80, isActive = true),
+            )
+        val result = BudgetEvaluator().evaluate(snapshot, budgets)
+        assertEquals(BudgetState.ThresholdHit, result[0].state)
+    }
+
+    @Test
+    fun non_positive_limit_is_not_evaluated() {
+        val snapshot = snapshot(expense = "50.00", byCategory = mapOf(100L to "50.00"))
+        val budgets =
+            listOf(
+                Budget(1L, 100L, "month", Instant.EPOCH, BigDecimal.ZERO, 1L, alertThresholdPct = 80, isActive = true),
+                Budget(2L, 100L, "month", Instant.EPOCH, BigDecimal("-10.00"), 1L, alertThresholdPct = 80, isActive = true),
+            )
+        val result = BudgetEvaluator().evaluate(snapshot, budgets)
+        assertEquals(emptyList<BudgetStatus>(), result)
+    }
+
     private fun snapshot(
         expense: String,
         byCategory: Map<Long, String>,

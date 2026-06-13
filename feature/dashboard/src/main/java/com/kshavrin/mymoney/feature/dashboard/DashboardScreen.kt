@@ -50,6 +50,7 @@ import com.kshavrin.mymoney.core.designsystem.donut.MonefyDonutChart
 import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.ui.feedback.LocalHapticPlayer
 import com.kshavrin.mymoney.core.ui.feedback.LocalSoundPlayer
+import com.kshavrin.mymoney.core.ui.flow.CollectActions
 import com.kshavrin.mymoney.core.ui.haptic.HapticKind
 import com.kshavrin.mymoney.core.ui.sound.SoundKey
 import com.kshavrin.mymoney.core.ui.theme.Spacing
@@ -84,9 +85,7 @@ fun DashboardRoute(
 ) {
     val state by viewModel.state.collectAsState()
 
-    LaunchedEffect(viewModel) {
-        viewModel.actions.collect { action -> onAction(action) }
-    }
+    CollectActions(flow = viewModel.actions, key = viewModel) { action -> onAction(action) }
 
     DashboardContent(state = state, onEvent = viewModel::onEvent)
 }

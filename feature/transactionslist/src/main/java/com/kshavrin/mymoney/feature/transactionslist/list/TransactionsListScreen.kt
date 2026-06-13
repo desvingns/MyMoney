@@ -42,6 +42,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -79,6 +80,7 @@ import com.kshavrin.mymoney.core.ui.theme.transferRowAmount
 import com.kshavrin.mymoney.core.ui.theme.transferRowMeta
 import com.kshavrin.mymoney.core.ui.theme.transferRowRoute
 import com.kshavrin.mymoney.feature.transactionslist.R
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import java.math.BigDecimal
 import java.time.Instant
@@ -98,6 +100,7 @@ fun TransactionsListRoute(
 ) {
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarScope = rememberCoroutineScope()
     val undoMessage = stringResource(R.string.transactions_list_delete_undo)
     val undoAction = stringResource(R.string.transactions_list_undo_action)
 
@@ -106,15 +109,17 @@ fun TransactionsListRoute(
             when (action) {
                 is TransactionsListAction.OpenDetail -> onOpenDetail(action.transactionId)
                 is TransactionsListAction.ShowUndoSnackbar -> {
-                    val result = withTimeoutOrNull(UNDO_WINDOW_MILLIS) {
-                        snackbarHostState.showSnackbar(
-                            message = undoMessage,
-                            actionLabel = undoAction,
-                            duration = SnackbarDuration.Indefinite,
-                        )
-                    }
-                    if (result == SnackbarResult.ActionPerformed) {
-                        viewModel.onEvent(TransactionsListEvent.UndoDeleteClicked(action.transactionId))
+                    snackbarScope.launch {
+                        val result = withTimeoutOrNull(UNDO_WINDOW_MILLIS) {
+                            snackbarHostState.showSnackbar(
+                                message = undoMessage,
+                                actionLabel = undoAction,
+                                duration = SnackbarDuration.Indefinite,
+                            )
+                        }
+                        if (result == SnackbarResult.ActionPerformed) {
+                            viewModel.onEvent(TransactionsListEvent.UndoDeleteClicked(action.transactionId))
+                        }
                     }
                 }
             }

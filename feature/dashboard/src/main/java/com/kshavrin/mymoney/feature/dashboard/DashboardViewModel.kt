@@ -22,6 +22,7 @@ import com.kshavrin.mymoney.core.domain.usecase.BalanceCalculator
 import com.kshavrin.mymoney.core.domain.usecase.ObserveBudgetAlertsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -61,6 +62,8 @@ class DashboardViewModel @Inject constructor(
     val actions: SharedFlow<DashboardAction> = _actions.asSharedFlow()
 
     private val budgetAlertSelection = MutableStateFlow<BudgetAlertSelection?>(null)
+
+    private var recomputeJob: Job? = null
 
     init {
         observeAccountsAndCurrencies()
@@ -247,7 +250,8 @@ class DashboardViewModel @Inject constructor(
         val state = _state.value
         val selection = state.dashboardSelection ?: return
         val period = _state.value.period
-        viewModelScope.launch {
+        recomputeJob?.cancel()
+        recomputeJob = viewModelScope.launch {
             val snapshot = when (selection) {
                 is DashboardSelection.SpecificAccount -> balanceCalculator(selection.account.id, period)
                 is DashboardSelection.AllAccounts -> balanceCalculator.forAccounts(

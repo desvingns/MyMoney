@@ -29,7 +29,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -37,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.kshavrin.mymoney.core.ui.flow.CollectActions
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.feature.settings.R
 import java.time.Instant
@@ -93,25 +93,23 @@ fun BackupRestoreRoute(
         }
     }
 
-    LaunchedEffect(viewModel) {
-        viewModel.actions.collect { action ->
-            when (action) {
-                BackupRestoreAction.ExportSucceeded -> snackbarHostState.showSnackbar(exportMessage)
-                BackupRestoreAction.CsvExportSucceeded -> snackbarHostState.showSnackbar(csvExportMessage)
-                BackupRestoreAction.CsvImportSucceeded -> snackbarHostState.showSnackbar(csvImportMessage)
-                BackupRestoreAction.RestartAfterRestore -> {
-                    Toast.makeText(context, restoreMessage, Toast.LENGTH_LONG).show()
-                    relaunchApplication(context)
+    CollectActions(flow = viewModel.actions, key = viewModel) { action ->
+        when (action) {
+            BackupRestoreAction.ExportSucceeded -> snackbarHostState.showSnackbar(exportMessage)
+            BackupRestoreAction.CsvExportSucceeded -> snackbarHostState.showSnackbar(csvExportMessage)
+            BackupRestoreAction.CsvImportSucceeded -> snackbarHostState.showSnackbar(csvImportMessage)
+            BackupRestoreAction.RestartAfterRestore -> {
+                Toast.makeText(context, restoreMessage, Toast.LENGTH_LONG).show()
+                relaunchApplication(context)
+            }
+            is BackupRestoreAction.RestartToOnboardingAfterReset -> {
+                val message = if (action.hadFailures) {
+                    context.getString(R.string.backup_reset_error)
+                } else {
+                    resetMessage
                 }
-                is BackupRestoreAction.RestartToOnboardingAfterReset -> {
-                    val message = if (action.hadFailures) {
-                        context.getString(R.string.backup_reset_error)
-                    } else {
-                        resetMessage
-                    }
-                    Toast.makeText(context, message, Toast.LENGTH_LONG).show()
-                    relaunchApplication(context)
-                }
+                Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                relaunchApplication(context)
             }
         }
     }

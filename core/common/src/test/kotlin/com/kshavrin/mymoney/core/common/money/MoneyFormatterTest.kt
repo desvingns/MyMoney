@@ -61,4 +61,18 @@ class MoneyFormatterTest {
 
         assertEquals("0.13", result)
     }
+
+    @Test
+    fun `rounds half up 0 point 135 to 0 point 14 at 2 fraction digits`() {
+        val result =
+            MoneyFormatter.format(
+                amount = BigDecimal("0.135"),
+                currencySymbol = "",
+                decimalDigits = 2,
+                locale = Locale.US,
+                symbolPosition = MoneyFormatter.SymbolPosition.BEFORE,
+            )
+
+        assertEquals("0.14", result)
+    }
 }

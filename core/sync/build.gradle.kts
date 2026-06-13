@@ -18,11 +18,6 @@ android {
             "HAS_FIREBASE",
             (providers.gradleProperty("firebase.enabled").orNull == "true").toString(),
         )
-        buildConfigField(
-            "boolean",
-            "SYNC_DISABLED",
-            (providers.gradleProperty("sync.enabled").orNull != "true").toString(),
-        )
 
         val dropboxAppKey =
             providers.gradleProperty("dropbox.appKey").orNull ?: "PLACEHOLDER_DROPBOX_APP_KEY"

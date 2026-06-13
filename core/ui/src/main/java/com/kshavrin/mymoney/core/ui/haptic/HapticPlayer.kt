@@ -85,14 +85,10 @@ class HapticPlayerImpl
                     .compose()
             }
 
-        private fun resolveVibrator(context: Context): Vibrator? =
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                val manager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
-                manager?.defaultVibrator
-            } else {
-                @Suppress("DEPRECATION")
-                context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
-            }
+        private fun resolveVibrator(context: Context): Vibrator? {
+            val manager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
+            return manager?.defaultVibrator
+        }
 
         private companion object {
             const val SOFT_SCALE = 0.5f

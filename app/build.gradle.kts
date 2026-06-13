@@ -60,11 +60,6 @@ android {
             "HAS_FIREBASE",
             (providers.gradleProperty("firebase.enabled").orNull == "true").toString(),
         )
-        buildConfigField(
-            "boolean",
-            "SYNC_DISABLED",
-            (providers.gradleProperty("sync.enabled").orNull != "true").toString(),
-        )
     }
 
     signingConfigs {
@@ -133,7 +128,6 @@ dependencies {
     implementation(project(":core:designsystem"))
     implementation(project(":core:database"))
     implementation(project(":core:datastore"))
-    implementation(project(":core:network"))
     implementation(project(":core:sync"))
     implementation(project(":core:domain"))
     implementation(project(":core:common"))

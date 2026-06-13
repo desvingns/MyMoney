@@ -30,7 +30,6 @@ googleApiServicesDrive = "v3-rev20240914-2.0.0"
 playServicesAuth = "21.2.0"
 firebaseBom = "33.5.1"
 sentryAndroid = "7.18.0"
-coilCompose = "3.0.0-rc02"
 junit = "4.13.2"
 androidxTestJunit = "1.2.1"
 androidxTestRunner = "1.6.2"
@@ -112,12 +111,9 @@ androidx-test-uiautomator = { group = "androidx.test.uiautomator", name = "uiaut
 
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
 firebase-config-ktx = { group = "com.google.firebase", name = "firebase-config-ktx" }
-firebase-analytics-ktx = { group = "com.google.firebase", name = "firebase-analytics-ktx" }
 
-sentry-android = { group = "io.sentry", name = "sentry-android", version.ref = "sentryAndroid" }
 sentry-android-core = { group = "io.sentry", name = "sentry-android-core", version.ref = "sentryAndroid" }
 sentry-core = { group = "io.sentry", name = "sentry", version.ref = "sentryAndroid" }
-coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coilCompose" }
 
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-test-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxTestJunit" }

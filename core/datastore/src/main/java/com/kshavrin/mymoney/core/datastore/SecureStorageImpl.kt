@@ -46,13 +46,18 @@ class SecureStorageImpl private constructor(
         prefsCreator: (Context, MasterKey) -> SharedPreferences,
     ) : this(context, dataStore, ioDispatcher, prefsCreator, ::deletePrefs)
 
-    private val prefs: SharedPreferences = createPrefs(
-        context = context,
-        dataStore = dataStore,
-        ioDispatcher = ioDispatcher,
-        prefsCreator = prefsCreator,
-        prefsDeleter = prefsDeleter,
-    )
+    // Built lazily so EncryptedSharedPreferences / Keystore work stays off the
+    // MainActivity inject path. The recovery factory (audit3-lock-security-04) is
+    // preserved inside createPrefs.
+    private val prefs: SharedPreferences by lazy {
+        createPrefs(
+            context = context,
+            dataStore = dataStore,
+            ioDispatcher = ioDispatcher,
+            prefsCreator = prefsCreator,
+            prefsDeleter = prefsDeleter,
+        )
+    }
 
     override fun read(): SecureSettings = SecureSettings(
         dropboxRefreshToken = prefs.getString(KEY_DROPBOX_TOKEN, null),

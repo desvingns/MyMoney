@@ -12,6 +12,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -51,7 +53,9 @@ class SoundPoolImpl @Inject constructor(
         )
         .build()
 
-    private val soundIds: Map<SoundKey, Int> = loadAll()
+    // Populated asynchronously off the cold-start path. Until prefetch completes a
+    // missing key simply degrades to silence (see play()).
+    private val soundIds = ConcurrentHashMap<SoundKey, Int>()
 
     private val soundEnabled = MutableStateFlow(true)
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
@@ -60,6 +64,7 @@ class SoundPoolImpl @Inject constructor(
         appSettingsRepository.settings
             .onEach { soundEnabled.value = it.soundEnabled }
             .launchIn(scope)
+        scope.launch { loadAll() }
     }
 
     override fun play(key: SoundKey) {
@@ -69,8 +74,10 @@ class SoundPoolImpl @Inject constructor(
         soundPool.play(id, VOLUME, VOLUME, PRIORITY, NO_LOOP, NORMAL_RATE)
     }
 
-    private fun loadAll(): Map<SoundKey, Int> = SoundKey.entries.associateWith { key ->
-        loadByName(assetNameFor(key))
+    private fun loadAll() {
+        SoundKey.entries.forEach { key ->
+            soundIds[key] = loadByName(assetNameFor(key))
+        }
     }
 
     private fun loadByName(name: String): Int {

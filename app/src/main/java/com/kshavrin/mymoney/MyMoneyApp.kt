@@ -48,7 +48,9 @@ class MyMoneyApp : Application(), Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
-        workScheduler.scheduleDailyJobs()
+        applicationScope.launch(ioDispatcher) {
+            workScheduler.scheduleDailyJobs()
+        }
         if (BuildConfig.SENTRY_DSN.isNotBlank()) {
             SentryAndroid.init(this) { options ->
                 options.dsn = BuildConfig.SENTRY_DSN

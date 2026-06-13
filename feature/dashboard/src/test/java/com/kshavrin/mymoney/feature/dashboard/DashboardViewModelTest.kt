@@ -600,6 +600,38 @@ class DashboardViewModelTest {
     }
 
     @Test
+    fun `donut slices contain only expense category balances — transfers are never present`() = runTest {
+        val (viewModel, store) = buildViewModel()
+        try {
+            val expenseBalance = expenseCategoryBalance(categoryId = 10L, amount = "120.00", iconKey = "food")
+            val transferBalance = com.kshavrin.mymoney.core.domain.model.CategoryBalance(
+                categoryId = 77L,
+                categoryName = "transfer-category",
+                colorHex = "#888888",
+                total = Money(java.math.BigDecimal("250.00"), usd),
+                fraction = 0f,
+                iconKey = "ic_transfer",
+                isExpense = false,
+            )
+            val snapshot = com.kshavrin.mymoney.core.domain.model.BalanceSnapshot(
+                income = Money(java.math.BigDecimal.ZERO, usd),
+                expense = Money(java.math.BigDecimal("120.00"), usd),
+                net = Money(java.math.BigDecimal("-120.00"), usd),
+                byCategory = listOf(expenseBalance, transferBalance),
+            )
+
+            val slices = viewModel.snapshotToSlices(snapshot, alertCategoryIds = emptySet())
+
+            assertFalse("transfer category must never appear in donut slices", slices.any { it.categoryId == 77L })
+            assertEquals(setOf(10L), slices.map { it.categoryId }.toSet())
+            assertEquals(1.0f, slices.single { it.categoryId == 10L }.fraction, 0.0001f)
+        } finally {
+            store.clear()
+            runCurrent()
+        }
+    }
+
+    @Test
     fun `donut slices are empty when there are no expenses even if income exists`() = runTest {
         transactionRepository.seedIncomeSummary(
             cash.id,

@@ -55,11 +55,17 @@ class TransactionRepositoryImplTest {
 
         override suspend fun listByPeriod(accountId: Long, from: Long, to: Long): List<TransactionEntity> = emptyList()
 
+        var getTransfersCalls: MutableList<Triple<Long?, Long, Long>> = mutableListOf()
+        var transferRows: List<com.kshavrin.mymoney.core.database.projection.TransferRow> = emptyList()
+
         override suspend fun getTransfers(
             accountId: Long?,
             from: Long,
             to: Long,
-        ) = emptyList<com.kshavrin.mymoney.core.database.projection.TransferRow>()
+        ): List<com.kshavrin.mymoney.core.database.projection.TransferRow> {
+            getTransfersCalls.add(Triple(accountId, from, to))
+            return transferRows
+        }
 
         override suspend fun searchByNote(q: String, limit: Int): List<TransactionEntity> = emptyList()
 
@@ -149,6 +155,55 @@ class TransactionRepositoryImplTest {
             fakeDao.updateCalls,
         )
         assertTrue(fakeDao.updateCalls.all { it.updatedAt == sharedUpdatedAt.toEpochMilli() })
+    }
+
+    @Test
+    fun `getTransfers maps DbTransferRow to DomainTransferRow and forwards period as epoch millis`() = runTest(dispatcher) {
+        val occurredAt = Instant.parse("2026-06-10T12:00:00Z")
+        fakeDao.transferRows = listOf(
+            com.kshavrin.mymoney.core.database.projection.TransferRow(
+                id = 77L,
+                fromAccountName = "Наличные",
+                toAccountName = "Карта",
+                amount = 500.0,
+                toAmount = 450.0,
+                currencyId = 8L,
+                occurredAt = occurredAt.toEpochMilli(),
+            ),
+        )
+
+        val period = com.kshavrin.mymoney.core.domain.model.Period.Month(
+            java.time.YearMonth.of(2026, 6),
+        )
+        val rows = repository.getTransfers(accountId = 3L, period = period)
+
+        assertEquals(1, rows.size)
+        val row = rows.single()
+        assertEquals(77L, row.id)
+        assertEquals("Наличные", row.fromAccountName)
+        assertEquals("Карта", row.toAccountName)
+        assertEquals(0, java.math.BigDecimal("500.0").compareTo(row.amount))
+        assertEquals(0, java.math.BigDecimal("450.0").compareTo(row.toAmount))
+        assertEquals(8L, row.currencyId)
+        assertEquals(occurredAt, row.occurredAt)
+
+        val (calledAccountId, from, to) = fakeDao.getTransfersCalls.single()
+        assertEquals(3L, calledAccountId)
+        val range = com.kshavrin.mymoney.core.domain.time.PeriodArithmetic.toEpochMillisRange(period)
+        assertEquals(range.first, from)
+        assertEquals(range.last, to)
+    }
+
+    @Test
+    fun `getTransfers with null accountId passes null through to the DAO`() = runTest(dispatcher) {
+        val period = com.kshavrin.mymoney.core.domain.model.Period.Month(
+            java.time.YearMonth.of(2026, 6),
+        )
+
+        repository.getTransfers(accountId = null, period = period)
+
+        val (calledAccountId, _, _) = fakeDao.getTransfersCalls.single()
+        assertEquals(null, calledAccountId)
     }
 
     private fun transactionEntity(

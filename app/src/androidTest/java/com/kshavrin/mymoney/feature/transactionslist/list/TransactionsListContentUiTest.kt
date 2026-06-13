@@ -20,6 +20,7 @@ import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
+import com.kshavrin.mymoney.core.domain.model.TransferRecord
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import com.kshavrin.mymoney.feature.transactionslist.R
 import java.math.BigDecimal
@@ -425,6 +426,189 @@ class TransactionsListContentUiTest {
         toAccountId = null,
         toAmount = null,
         exchangeRate = null,
+    )
+
+    // ----- Transfer tab Compose-UI tests -----
+
+    @Test
+    fun `Operations and Transfers tabs are both visible`() {
+        setContent()
+
+        composeTestRule
+            .onNodeWithTag(RecordsTestTags.TAB_OPERATIONS)
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithTag(RecordsTestTags.TAB_TRANSFERS)
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun `tapping the Transfers tab emits TabSelected Transfers event`() {
+        val capturedEvents = mutableListOf<TransactionsListEvent>()
+
+        setContent(onEvent = { capturedEvents += it })
+
+        composeTestRule
+            .onNodeWithTag(RecordsTestTags.TAB_TRANSFERS)
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(TransactionsListEvent.TabSelected(RecordsTab.Transfers)), capturedEvents)
+        }
+    }
+
+    @Test
+    fun `tapping the Operations tab emits TabSelected Operations event`() {
+        val capturedEvents = mutableListOf<TransactionsListEvent>()
+
+        setContent(
+            state = TransactionsListUiState(
+                currency = currency(),
+                activeTab = RecordsTab.Transfers,
+                isLoading = false,
+            ),
+            onEvent = { capturedEvents += it },
+        )
+
+        composeTestRule
+            .onNodeWithTag(RecordsTestTags.TAB_OPERATIONS)
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(TransactionsListEvent.TabSelected(RecordsTab.Operations)), capturedEvents)
+        }
+    }
+
+    @Test
+    fun `Transfers tab shows transfer row with from and to account names`() {
+        val transferRecord = transferRecord(id = 55L, from = "Наличные", to = "Карта", amount = "500.00")
+
+        setContent(
+            state = TransactionsListUiState(
+                currency = currency(),
+                activeTab = RecordsTab.Transfers,
+                transfers = listOf(transferRecord),
+                isLoading = false,
+            ),
+        )
+
+        composeTestRule
+            .onNodeWithTag(RecordsTestTags.transfer(55L))
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText(
+                targetString(
+                    com.kshavrin.mymoney.feature.transactionslist.R.string.transactions_list_transfer_route,
+                    "Наличные",
+                    "Карта",
+                ),
+                useUnmergedTree = true,
+            )
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun `tapping a transfer row emits RowClicked with the transfer id`() {
+        val capturedEvents = mutableListOf<TransactionsListEvent>()
+        val transferRecord = transferRecord(id = 55L, from = "Cash", to = "Card", amount = "200.00")
+
+        setContent(
+            state = TransactionsListUiState(
+                currency = currency(),
+                activeTab = RecordsTab.Transfers,
+                transfers = listOf(transferRecord),
+                isLoading = false,
+            ),
+            onEvent = { capturedEvents += it },
+        )
+
+        composeTestRule
+            .onNodeWithTag(RecordsTestTags.transfer(55L))
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(TransactionsListEvent.RowClicked(55L)), capturedEvents)
+        }
+    }
+
+    @Test
+    fun `Transfers tab shows empty state when there are no transfers`() {
+        setContent(
+            state = TransactionsListUiState(
+                currency = currency(),
+                activeTab = RecordsTab.Transfers,
+                transfers = emptyList(),
+                isLoading = false,
+            ),
+        )
+
+        composeTestRule
+            .onNodeWithTag(RecordsTestTags.TRANSFERS_EMPTY)
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText(
+                targetString(com.kshavrin.mymoney.feature.transactionslist.R.string.transactions_list_transfers_empty),
+            )
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun `Operations tab does not show transfer rows`() {
+        val transferRecord = transferRecord(id = 77L, from = "A", to = "B", amount = "100.00")
+
+        setContent(
+            state = TransactionsListUiState(
+                currency = currency(),
+                activeTab = RecordsTab.Operations,
+                transfers = listOf(transferRecord),
+                isLoading = false,
+                groups = emptyList(),
+            ),
+        )
+
+        composeTestRule
+            .onNodeWithTag(RecordsTestTags.transfer(77L))
+            .assertDoesNotExist()
+        composeTestRule
+            .onNodeWithTag(RecordsTestTags.EMPTY)
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun `transfer row is not displayed on Operations tab — category filter does not apply to transfers tab`() {
+        val transferRecord = transferRecord(id = 88L, from = "A", to = "B", amount = "50.00")
+
+        setContent(
+            state = TransactionsListUiState(
+                currency = currency(),
+                activeTab = RecordsTab.Transfers,
+                transfers = listOf(transferRecord),
+                isLoading = false,
+                categoryId = 10L,
+                categoryName = "Food",
+            ),
+        )
+
+        composeTestRule
+            .onNodeWithTag(RecordsTestTags.transfer(88L))
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithTag(RecordsTestTags.FILTER)
+            .assertDoesNotExist()
+    }
+
+    private fun transferRecord(
+        id: Long,
+        from: String,
+        to: String,
+        amount: String,
+    ): TransferRecord = TransferRecord(
+        id = id,
+        fromAccountName = from,
+        toAccountName = to,
+        amount = money(amount),
+        toAmount = null,
+        occurredAt = java.time.Instant.parse("2026-06-10T12:00:00Z"),
     )
 
     private fun targetString(resourceId: Int, vararg formatArgs: Any): String =

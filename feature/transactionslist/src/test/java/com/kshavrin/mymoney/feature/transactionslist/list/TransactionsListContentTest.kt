@@ -6,6 +6,7 @@ import com.kshavrin.mymoney.core.domain.model.CategoryRecordGroup
 import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
+import com.kshavrin.mymoney.core.domain.model.TransferRecord
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -209,6 +210,48 @@ class TransactionsListContentTest {
         assertEquals("records_sort", RecordsTestTags.SORT)
         assertEquals("records_empty", RecordsTestTags.EMPTY)
         assertEquals("records_filter", RecordsTestTags.FILTER)
+    }
+
+    @Test
+    fun `testTag constants cover the transfers tab`() {
+        assertEquals("records_tab_operations", RecordsTestTags.TAB_OPERATIONS)
+        assertEquals("records_tab_transfers", RecordsTestTags.TAB_TRANSFERS)
+        assertEquals("records_transfers_empty", RecordsTestTags.TRANSFERS_EMPTY)
+        assertEquals("records_transfer_99", RecordsTestTags.transfer(99L))
+    }
+
+    @Test
+    fun `isTransfersEmpty is true when transfers list is empty and not loading`() {
+        assertTrue(TransactionsListUiState(isLoading = false, transfers = emptyList()).isTransfersEmpty)
+    }
+
+    @Test
+    fun `isTransfersEmpty is false when transfers are present`() {
+        val record = TransferRecord(
+            id = 1L,
+            fromAccountName = "A",
+            toAccountName = "B",
+            amount = money("100.00"),
+            toAmount = null,
+            occurredAt = Instant.parse("2026-06-10T00:00:00Z"),
+        )
+        assertFalse(TransactionsListUiState(isLoading = false, transfers = listOf(record)).isTransfersEmpty)
+    }
+
+    @Test
+    fun `isTransfersEmpty is false while loading even when transfers list is empty`() {
+        assertFalse("loading state is not considered empty", TransactionsListUiState(isLoading = true, transfers = emptyList()).isTransfersEmpty)
+    }
+
+    @Test
+    fun `activeTab default is Operations`() {
+        assertEquals(RecordsTab.Operations, TransactionsListUiState().activeTab)
+    }
+
+    @Test
+    fun `activeTab can be set to Transfers`() {
+        val state = TransactionsListUiState(activeTab = RecordsTab.Transfers)
+        assertEquals(RecordsTab.Transfers, state.activeTab)
     }
 
     @Test

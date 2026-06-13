@@ -9,6 +9,7 @@ import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
 import com.kshavrin.mymoney.core.domain.repository.CategoryGroup
+import com.kshavrin.mymoney.core.domain.repository.TransferRow
 import com.kshavrin.mymoney.core.domain.usecase.BalanceCalculator
 import com.kshavrin.mymoney.core.domain.usecase.GetCategoryRecordsUseCase
 import com.kshavrin.mymoney.core.domain.usecase.GetTransferRecordsUseCase
@@ -488,6 +489,171 @@ class TransactionsListViewModelTest {
             assertEquals(null, state.categoryId)
             assertEquals(null, state.categoryName)
             assertFalse(state.hasCategoryFilter)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    // ----- Transfers tab tests -----
+
+    @Test
+    fun `transfers are loaded and exposed in state after init`() = runTest {
+        val transferRow = TransferRow(
+            id = 55L,
+            fromAccountName = "Наличные",
+            toAccountName = "Карта",
+            amount = BigDecimal("500.00"),
+            toAmount = null,
+            currencyId = usd.id,
+            occurredAt = now,
+        )
+        transactionRepo.seedTransfers(transferRow)
+
+        buildViewModel().state.test {
+            val state = expectMostRecentItem()
+            assertFalse(state.isLoading)
+            assertEquals(1, state.transfers.size)
+            val record = state.transfers.single()
+            assertEquals(55L, record.id)
+            assertEquals("Наличные", record.fromAccountName)
+            assertEquals("Карта", record.toAccountName)
+            assertEquals(0, BigDecimal("500.00").compareTo(record.amount.amount))
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `isTransfersEmpty is true when there are no transfers and loading is complete`() = runTest {
+        buildViewModel().state.test {
+            val state = expectMostRecentItem()
+            assertFalse(state.isLoading)
+            assertTrue(state.isTransfersEmpty)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `isTransfersEmpty is false when transfers are present`() = runTest {
+        val transferRow = TransferRow(
+            id = 1L,
+            fromAccountName = "A",
+            toAccountName = "B",
+            amount = BigDecimal("100.00"),
+            toAmount = null,
+            currencyId = usd.id,
+            occurredAt = now,
+        )
+        transactionRepo.seedTransfers(transferRow)
+
+        buildViewModel().state.test {
+            val state = expectMostRecentItem()
+            assertFalse(state.isTransfersEmpty)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `TabSelected Operations keeps Operations tab active`() = runTest {
+        val viewModel = buildViewModel()
+
+        viewModel.state.test {
+            expectMostRecentItem()
+
+            viewModel.onEvent(TransactionsListEvent.TabSelected(RecordsTab.Operations))
+
+            assertEquals(RecordsTab.Operations, viewModel.state.value.activeTab)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `TabSelected Transfers switches active tab to Transfers`() = runTest {
+        val viewModel = buildViewModel()
+
+        viewModel.state.test {
+            expectMostRecentItem()
+
+            viewModel.onEvent(TransactionsListEvent.TabSelected(RecordsTab.Transfers))
+
+            val state = awaitItem()
+            assertEquals(RecordsTab.Transfers, state.activeTab)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `TabSelected same tab twice does not emit duplicate state`() = runTest {
+        val viewModel = buildViewModel()
+
+        viewModel.state.test {
+            expectMostRecentItem()
+
+            viewModel.onEvent(TransactionsListEvent.TabSelected(RecordsTab.Transfers))
+            awaitItem()
+
+            viewModel.onEvent(TransactionsListEvent.TabSelected(RecordsTab.Transfers))
+            expectNoEvents()
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `RowClicked on a transfer id emits OpenDetail with that id`() = runTest {
+        val viewModel = buildViewModel()
+
+        viewModel.actions.test {
+            viewModel.onEvent(TransactionsListEvent.RowClicked(id = 55L))
+
+            val action = awaitItem()
+            assertTrue(
+                "expected OpenDetail(55) but was $action",
+                action is TransactionsListAction.OpenDetail && action.transactionId == 55L,
+            )
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `Operations tab groups do not include transfers`() = runTest {
+        transactionRepo.seedCategoryGroups(cashAccount.id, foodGroup)
+        val transferRow = TransferRow(
+            id = 99L,
+            fromAccountName = "Cash",
+            toAccountName = "Card",
+            amount = BigDecimal("200.00"),
+            toAmount = null,
+            currencyId = usd.id,
+            occurredAt = now,
+        )
+        transactionRepo.seedTransfers(transferRow)
+
+        buildViewModel().state.test {
+            val state = expectMostRecentItem()
+            assertEquals(listOf(10L), state.groups.map { it.categoryId })
+            assertEquals(1, state.transfers.size)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `category filter on Operations tab does not affect transfers tab`() = runTest {
+        transactionRepo.seedCategoryGroups(cashAccount.id, foodGroup, salaryGroup)
+        transactionRepo.seedPeriodTransactions(cashAccount.id, tx(1L, 10L, TransactionKind.Expense, BigDecimal("10.00"), now))
+        val transferRow = TransferRow(
+            id = 77L,
+            fromAccountName = "A",
+            toAccountName = "B",
+            amount = BigDecimal("50.00"),
+            toAmount = null,
+            currencyId = usd.id,
+            occurredAt = now,
+        )
+        transactionRepo.seedTransfers(transferRow)
+
+        buildViewModel(handleOf(categoryId = 10L)).state.test {
+            val state = expectMostRecentItem()
+            assertEquals(listOf(10L), state.groups.map { it.categoryId })
+            assertEquals(1, state.transfers.size)
+            assertEquals(77L, state.transfers.single().id)
             cancelAndIgnoreRemainingEvents()
         }
     }

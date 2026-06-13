@@ -30,6 +30,7 @@ import com.kshavrin.mymoney.core.domain.time.PeriodArithmetic
 import com.kshavrin.mymoney.core.domain.usecase.BalanceCalculator
 import com.kshavrin.mymoney.core.domain.usecase.BudgetEvaluator
 import com.kshavrin.mymoney.core.domain.usecase.ObserveBudgetAlertsUseCase
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -1283,6 +1284,110 @@ class DashboardViewModelTest {
         }
     }
 
+    // -------------------------------------------------------------------------
+    // Recompute cancellation test — requires a suspending gate on getCategorySummary
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `rapid period changes cancel the superseded recompute and only the last period balance is applied`() = runTest {
+        val may = Period.Month(YearMonth.of(2026, 5))
+        val june = Period.Month(YearMonth.of(2026, 6))
+
+        // Gate keyed on Period: when the ViewModel requests getCategorySummary for May,
+        // this deferred blocks the call until we release it — simulating a slow DB query
+        // for the first period change. The second (june) change arrives while may is
+        // suspended, which should cancel may's job via recomputeJob?.cancel().
+        val mayGate = CompletableDeferred<Unit>()
+
+        val gatedTransactionRepository = object : FakeDashboardTransactionRepository() {
+            override suspend fun getCategorySummary(
+                accountId: Long,
+                period: Period,
+                kind: TransactionKind,
+            ): List<CategorySummary> {
+                if (period == may) {
+                    mayGate.await()
+                }
+                return super.getCategorySummary(accountId, period, kind)
+            }
+        }
+        gatedTransactionRepository.seedExpenseSummary(
+            cash.id, may, summary(categoryId = 11L, amount = "50.00"),
+        )
+        gatedTransactionRepository.seedExpenseSummary(
+            cash.id, june, summary(categoryId = 22L, amount = "80.00"),
+        )
+
+        val dispatcher = mainDispatcherRule.testDispatcher
+        val calculator = BalanceCalculator(
+            accountRepository = accountRepository,
+            currencyRepository = currencyRepository,
+            transactionRepository = gatedTransactionRepository,
+            defaultDispatcher = dispatcher,
+        )
+        val alerts = ObserveBudgetAlertsUseCase(
+            transactionRepository = gatedTransactionRepository,
+            budgetRepository = budgetRepository,
+            balanceCalculator = calculator,
+            budgetEvaluator = BudgetEvaluator(),
+            defaultDispatcher = dispatcher,
+        )
+        val store = ViewModelStore()
+        val factory = object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>): T = DashboardViewModel(
+                accountRepository = accountRepository,
+                currencyRepository = currencyRepository,
+                balanceCalculator = calculator,
+                appSettingsRepository = settingsRepository,
+                transactionRepository = gatedTransactionRepository,
+                observeBudgetAlertsUseCase = alerts,
+                categoryRepository = categoryRepository,
+            ) as T
+        }
+        val viewModel = ViewModelProvider(store, factory)[DashboardViewModel::class.java]
+
+        try {
+            // Let the ViewModel finish its startup recompute (uses initialPeriod, not may).
+            runCurrent()
+
+            // First user-triggered period change → may. getCategorySummary for may now suspends
+            // at mayGate, so the recompute coroutine is blocked.
+            viewModel.onEvent(DashboardEvent.PeriodChanged(may))
+            runCurrent()
+
+            // Second user-triggered period change → june arrives while may's recompute is
+            // still suspended. recomputeJob?.cancel() must kill the may coroutine and launch
+            // a new one for june.
+            viewModel.onEvent(DashboardEvent.PeriodChanged(june))
+            // Release mayGate — the may coroutine resumes momentarily but its Job has been
+            // cancelled, so any state update from the May snapshot must be a no-op.
+            mayGate.complete(Unit)
+
+            // Let all pending work settle.
+            runCurrent()
+
+            // June is the current period and its balance is visible.
+            assertEquals(june, viewModel.state.value.period)
+            assertEquals(
+                setOf(22L),
+                viewModel.state.value.slices.map { it.categoryId }.toSet(),
+            )
+            assertEquals(
+                0,
+                java.math.BigDecimal("80.00").compareTo(viewModel.state.value.balanceSnapshot?.expense?.amount),
+            )
+            // May's category (11L) must never appear — its recompute was cancelled.
+            assertTrue(
+                "superseded period slice must not appear after cancellation",
+                viewModel.state.value.slices.none { it.categoryId == 11L },
+            )
+        } finally {
+            store.clear()
+            runCurrent()
+        }
+    }
+
     private fun buildViewModel(): Pair<DashboardViewModel, ViewModelStore> {
         val dispatcher = mainDispatcherRule.testDispatcher
         val calculator = BalanceCalculator(
@@ -1471,7 +1576,7 @@ private class FakeDashboardCategoryRepository : CategoryRepository {
     override suspend fun archive(id: Long) = Unit
 }
 
-private class FakeDashboardTransactionRepository : TransactionRepository {
+private open class FakeDashboardTransactionRepository : TransactionRepository {
     private val state = MutableStateFlow<List<Transaction>>(emptyList())
     private val expenseSummaries = mutableMapOf<Pair<Long, Period>, List<CategorySummary>>()
     private val incomeSummaries = mutableMapOf<Pair<Long, Period>, List<CategorySummary>>()

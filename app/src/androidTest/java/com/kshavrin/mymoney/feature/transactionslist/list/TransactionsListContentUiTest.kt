@@ -1,6 +1,8 @@
 package com.kshavrin.mymoney.feature.transactionslist.list
 
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
@@ -610,6 +612,82 @@ class TransactionsListContentUiTest {
         toAmount = null,
         occurredAt = java.time.Instant.parse("2026-06-10T12:00:00Z"),
     )
+
+    // ----- Undo snackbar non-blocking test -----
+
+    /**
+     * Regression guard for the ShowUndoSnackbar blocking fix.
+     *
+     * Before the fix the [TransactionsListScreen]'s LaunchedEffect collected actions
+     * sequentially: ShowUndoSnackbar would call showSnackbar() which suspends for the full
+     * UNDO_WINDOW_MILLIS, meaning OpenDetail actions emitted while the snackbar was up were
+     * never dispatched until the window expired. After the fix the snackbar is launched in a
+     * child coroutine (snackbarScope.launch { ... }), so the collect loop is free immediately.
+     *
+     * This test pins that contract at the Content layer: even when a snackbar is already
+     * showing (SnackbarHostState occupied), tapping a transaction row still fires RowClicked
+     * immediately without waiting for the snackbar to dismiss.
+     */
+    @Test
+    fun `row tap fires RowClicked immediately while an undo snackbar is already showing`() {
+        val capturedEvents = mutableListOf<TransactionsListEvent>()
+        val tx = transaction(id = 99L, categoryId = 10L)
+        val snackbarHostState = SnackbarHostState()
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                // Show the snackbar asynchronously in the background — the content must
+                // remain interactive while the snackbar persists.
+                LaunchedEffect(Unit) {
+                    snackbarHostState.showSnackbar(
+                        message = "Deleted",
+                        actionLabel = "Undo",
+                        duration = SnackbarDuration.Indefinite,
+                    )
+                }
+                TransactionsListContent(
+                    state = TransactionsListUiState(
+                        currency = currency(),
+                        isLoading = false,
+                        expandedCategoryIds = setOf(10L),
+                        groups = listOf(
+                            group(
+                                id = 10L,
+                                kind = CategoryKind.Expense,
+                                total = "12.34",
+                                count = 1,
+                                transactions = listOf(tx),
+                            ),
+                        ),
+                    ),
+                    snackbarHostState = snackbarHostState,
+                    onEvent = { event -> capturedEvents += event },
+                    onSearch = {},
+                    onTransfer = {},
+                    onOverflow = {},
+                    onBack = {},
+                )
+            }
+        }
+
+        // Wait for the snackbar to appear before tapping the row.
+        composeTestRule.waitUntil(timeoutMillis = 3_000) {
+            snackbarHostState.currentSnackbarData != null
+        }
+
+        composeTestRule
+            .onNodeWithTag(RecordsTestTags.transaction(99L))
+            .performClick()
+
+        // Row tap must register immediately — asserting within runOnIdle which resolves
+        // after the frame following the click settles, long before any snackbar timeout.
+        composeTestRule.runOnIdle {
+            assertEquals(
+                listOf(TransactionsListEvent.RowClicked(99L)),
+                capturedEvents,
+            )
+        }
+    }
 
     private fun targetString(resourceId: Int, vararg formatArgs: Any): String =
         InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId, *formatArgs)

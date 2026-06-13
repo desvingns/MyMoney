@@ -37,6 +37,7 @@ import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextMeasurer
@@ -197,168 +198,192 @@ fun MonefyDonutChart(
             if (sliceText.isEmpty()) chartHeader else "$chartHeader $sliceText"
         }
 
-    Box(
-        modifier =
-            modifier.semantics(mergeDescendants = true) {
-                contentDescription = chartDescription
-            },
-    ) {
-        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-            val viewConfiguration = LocalViewConfiguration.current
-            val iconSizeDp = calloutIconSize * (iconScale / 1.7f)
-            val iconTouchRadiusDp = (iconSizeDp + Spacing.m) / 2f
-            val chartHalf = minOf(maxWidth, maxHeight) / 2f
-            val iconCenterRadius =
-                chartHalf * outerRadiusFraction + Spacing.s + iconSizeDp / 2f + explodedOffset
-            val iconTouchOverflow = maxOf(Spacing.none, iconCenterRadius + iconTouchRadiusDp - chartHalf)
-            val minimumTouchTargetSize =
-                DpSize(
-                    width =
-                        maxOf(
-                            viewConfiguration.minimumTouchTargetSize.width,
-                            maxWidth + iconTouchOverflow * 2f,
-                        ),
-                    height =
-                        maxOf(
-                            viewConfiguration.minimumTouchTargetSize.height,
-                            maxHeight + iconTouchOverflow * 2f,
-                        ),
-                )
-            val donutViewConfiguration =
-                remember(viewConfiguration, minimumTouchTargetSize) {
-                    DonutViewConfiguration(
-                        base = viewConfiguration,
-                        minimumTouchTargetSize = minimumTouchTargetSize,
+    val openCategoryActionLabel = stringResource(R.string.donut_chart_open_category_action)
+
+    Box(modifier = modifier) {
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .semantics(mergeDescendants = true) {
+                        contentDescription = chartDescription
+                    },
+        ) {
+            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                val viewConfiguration = LocalViewConfiguration.current
+                val iconSizeDp = calloutIconSize * (iconScale / 1.7f)
+                val iconTouchRadiusDp = (iconSizeDp + Spacing.m) / 2f
+                val chartHalf = minOf(maxWidth, maxHeight) / 2f
+                val iconCenterRadius =
+                    chartHalf * outerRadiusFraction + Spacing.s + iconSizeDp / 2f + explodedOffset
+                val iconTouchOverflow = maxOf(Spacing.none, iconCenterRadius + iconTouchRadiusDp - chartHalf)
+                val minimumTouchTargetSize =
+                    DpSize(
+                        width =
+                            maxOf(
+                                viewConfiguration.minimumTouchTargetSize.width,
+                                maxWidth + iconTouchOverflow * 2f,
+                            ),
+                        height =
+                            maxOf(
+                                viewConfiguration.minimumTouchTargetSize.height,
+                                maxHeight + iconTouchOverflow * 2f,
+                            ),
                     )
-                }
-            CompositionLocalProvider(LocalViewConfiguration provides donutViewConfiguration) {
-                Canvas(
-                    modifier =
-                        Modifier
-                            .fillMaxSize()
-                            .pointerInput(
-                                arcs,
-                                emptyStateIcons,
-                                outerRadiusFraction,
-                                ringThicknessFraction,
-                                sliceGapDegrees,
-                                iconScale,
-                                calloutIconSize,
-                                explodedOffset,
-                                onSliceClick,
-                                onEmptyCategoryClick,
-                            ) {
-                                detectTapGestures { offset ->
-                                    val center = Offset(size.width / 2f, size.height / 2f)
-                                    val outerRadius = min(size.width, size.height) / 2f * outerRadiusFraction
-                                    if (arcs.isEmpty()) {
+                val donutViewConfiguration =
+                    remember(viewConfiguration, minimumTouchTargetSize) {
+                        DonutViewConfiguration(
+                            base = viewConfiguration,
+                            minimumTouchTargetSize = minimumTouchTargetSize,
+                        )
+                    }
+                CompositionLocalProvider(LocalViewConfiguration provides donutViewConfiguration) {
+                    Canvas(
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .pointerInput(
+                                    arcs,
+                                    emptyStateIcons,
+                                    outerRadiusFraction,
+                                    ringThicknessFraction,
+                                    sliceGapDegrees,
+                                    iconScale,
+                                    calloutIconSize,
+                                    explodedOffset,
+                                    onSliceClick,
+                                    onEmptyCategoryClick,
+                                ) {
+                                    detectTapGestures { offset ->
+                                        val center = Offset(size.width / 2f, size.height / 2f)
+                                        val outerRadius = min(size.width, size.height) / 2f * outerRadiusFraction
+                                        if (arcs.isEmpty()) {
+                                            val iconSize = calloutIconSize.toPx() * (iconScale / 1.7f)
+                                            val iconTouchRadius = (iconSize + Spacing.m.toPx()) / 2f
+                                            val inset = iconSize / 2f + Spacing.s.toPx()
+                                            val insetHalfWidth = (size.width / 2f - inset).coerceAtLeast(0f)
+                                            val insetHalfHeightTop = (center.y - inset).coerceAtLeast(0f)
+                                            val insetHalfHeightBottom =
+                                                (size.height - center.y - inset).coerceAtLeast(0f)
+                                            val angles = DonutGeometry.evenAngles(emptyStateIcons.size)
+                                            val hit =
+                                                emptyStateIcons.firstOrNullIndexed { index, _ ->
+                                                    val slot =
+                                                        emptyIconFrameSlot(
+                                                            center = center,
+                                                            angleDegrees = angles[index],
+                                                            insetHalfWidth = insetHalfWidth,
+                                                            insetHalfHeightTop = insetHalfHeightTop,
+                                                            insetHalfHeightBottom = insetHalfHeightBottom,
+                                                        )
+                                                    hypot(offset.x - slot.x, offset.y - slot.y) <= iconTouchRadius
+                                                }
+                                            if (hit != null) onEmptyCategoryClick?.invoke(hit)
+                                            return@detectTapGestures
+                                        }
+                                        val strokeWidth = outerRadius * ringThicknessFraction
+                                        val innerRadius = outerRadius - strokeWidth
+                                        val explodedOffsetPx = explodedOffset.toPx()
                                         val iconSize = calloutIconSize.toPx() * (iconScale / 1.7f)
+                                        val iconMargin = Spacing.s.toPx()
                                         val iconTouchRadius = (iconSize + Spacing.m.toPx()) / 2f
-                                        val inset = iconSize / 2f + Spacing.s.toPx()
+                                        val inset = iconSize / 2f + iconMargin
                                         val insetHalfWidth = (size.width / 2f - inset).coerceAtLeast(0f)
                                         val insetHalfHeightTop = (center.y - inset).coerceAtLeast(0f)
-                                        val insetHalfHeightBottom =
-                                            (size.height - center.y - inset).coerceAtLeast(0f)
-                                        val angles = DonutGeometry.evenAngles(emptyStateIcons.size)
+                                        val insetHalfHeightBottom = (size.height - center.y - inset).coerceAtLeast(0f)
+                                        val iconHit =
+                                            layoutSlices(arcs)
+                                                .firstOrNull { placed ->
+                                                    if (
+                                                        progress.value < 1f ||
+                                                        placed.slice.fraction <= 0f
+                                                    ) {
+                                                        return@firstOrNull false
+                                                    }
+                                                    val slot =
+                                                        placed.frameIconCenter(
+                                                            center = center,
+                                                            insetHalfWidth = insetHalfWidth,
+                                                            insetHalfHeightTop = insetHalfHeightTop,
+                                                            insetHalfHeightBottom = insetHalfHeightBottom,
+                                                            explodedOffset = placed.explodedOffset(explodedOffsetPx),
+                                                        )
+                                                    hypot(offset.x - slot.x, offset.y - slot.y) <= iconTouchRadius
+                                                }?.slice
+                                        if (iconHit != null) {
+                                            onSliceClick?.invoke(iconHit)
+                                            return@detectTapGestures
+                                        }
                                         val hit =
-                                            emptyStateIcons.firstOrNullIndexed { index, _ ->
-                                                val slot =
-                                                    emptyIconFrameSlot(
-                                                        center = center,
-                                                        angleDegrees = angles[index],
-                                                        insetHalfWidth = insetHalfWidth,
-                                                        insetHalfHeightTop = insetHalfHeightTop,
-                                                        insetHalfHeightBottom = insetHalfHeightBottom,
-                                                    )
-                                                hypot(offset.x - slot.x, offset.y - slot.y) <= iconTouchRadius
-                                            }
-                                        if (hit != null) onEmptyCategoryClick?.invoke(hit)
-                                        return@detectTapGestures
+                                            DonutGeometry.hitTest(
+                                                offsetX = offset.x,
+                                                offsetY = offset.y,
+                                                centerX = center.x,
+                                                centerY = center.y,
+                                                innerRadius = innerRadius,
+                                                outerRadius = outerRadius,
+                                                arcs = arcs,
+                                                sliceGapDegrees = sliceGapDegrees,
+                                                explodedOffset = explodedOffsetPx,
+                                            )
+                                        if (hit != null) onSliceClick?.invoke(hit)
                                     }
-                                    val strokeWidth = outerRadius * ringThicknessFraction
-                                    val innerRadius = outerRadius - strokeWidth
-                                    val explodedOffsetPx = explodedOffset.toPx()
-                                    val iconSize = calloutIconSize.toPx() * (iconScale / 1.7f)
-                                    val iconMargin = Spacing.s.toPx()
-                                    val iconTouchRadius = (iconSize + Spacing.m.toPx()) / 2f
-                                    val inset = iconSize / 2f + iconMargin
-                                    val insetHalfWidth = (size.width / 2f - inset).coerceAtLeast(0f)
-                                    val insetHalfHeightTop = (center.y - inset).coerceAtLeast(0f)
-                                    val insetHalfHeightBottom = (size.height - center.y - inset).coerceAtLeast(0f)
-                                    val iconHit =
-                                        layoutSlices(arcs)
-                                            .firstOrNull { placed ->
-                                                if (
-                                                    progress.value < 1f ||
-                                                    placed.slice.fraction <= 0f
-                                                ) {
-                                                    return@firstOrNull false
-                                                }
-                                                val slot =
-                                                    placed.frameIconCenter(
-                                                        center = center,
-                                                        insetHalfWidth = insetHalfWidth,
-                                                        insetHalfHeightTop = insetHalfHeightTop,
-                                                        insetHalfHeightBottom = insetHalfHeightBottom,
-                                                        explodedOffset = placed.explodedOffset(explodedOffsetPx),
-                                                    )
-                                                hypot(offset.x - slot.x, offset.y - slot.y) <= iconTouchRadius
-                                            }?.slice
-                                    if (iconHit != null) {
-                                        onSliceClick?.invoke(iconHit)
-                                        return@detectTapGestures
-                                    }
-                                    val hit =
-                                        DonutGeometry.hitTest(
-                                            offsetX = offset.x,
-                                            offsetY = offset.y,
-                                            centerX = center.x,
-                                            centerY = center.y,
-                                            innerRadius = innerRadius,
-                                            outerRadius = outerRadius,
-                                            arcs = arcs,
-                                            sliceGapDegrees = sliceGapDegrees,
-                                            explodedOffset = explodedOffsetPx,
-                                        )
-                                    if (hit != null) onSliceClick?.invoke(hit)
-                                }
-                            },
-                ) {
-                    drawDonutChart(
-                        incomeText = incomeText,
-                        expenseText = expenseText,
-                        slices = slices,
-                        arcs = arcs,
-                        emptyStateIcons = emptyStateIcons,
-                        iconPainters = iconPainters,
-                        extrudedRingPaints = extrudedRingPaints,
-                        progress = progress.value,
-                        textMeasurer = textMeasurer,
-                        outlineColor = outlineColor,
-                        budgetAlertColor = budgetAlertColor,
-                        badgeBorderColor = badgeBorderColor,
-                        incomeColor = incomeColor,
-                        expenseColor = expenseColor,
-                        outerRadiusFraction = outerRadiusFraction,
-                        ringThicknessFraction = ringThicknessFraction,
-                        sliceGapDegrees = sliceGapDegrees,
-                        iconScale = iconScale,
-                        explodedOffset = explodedOffset,
-                        style = style,
-                        calloutIconSize = calloutIconSize,
-                        labelMinFraction = labelMinFraction,
-                        showCategoryLabels = showCategoryLabels,
-                        centerTextStyle = centerTextStyle,
-                        centerDividerColor = centerDividerColor,
-                        centerDividerWidth = centerDividerWidth,
-                        centerDividerThickness = centerDividerThickness,
-                        calloutLabelStyle = calloutLabelStyle,
-                        calloutPercentageStyle = calloutPercentageStyle,
-                        calloutLabelColor = calloutLabelColor,
-                        leaderLineThickness = leaderLineThickness,
-                    )
+                                },
+                    ) {
+                        drawDonutChart(
+                            incomeText = incomeText,
+                            expenseText = expenseText,
+                            slices = slices,
+                            arcs = arcs,
+                            emptyStateIcons = emptyStateIcons,
+                            iconPainters = iconPainters,
+                            extrudedRingPaints = extrudedRingPaints,
+                            progress = progress.value,
+                            textMeasurer = textMeasurer,
+                            outlineColor = outlineColor,
+                            budgetAlertColor = budgetAlertColor,
+                            badgeBorderColor = badgeBorderColor,
+                            incomeColor = incomeColor,
+                            expenseColor = expenseColor,
+                            outerRadiusFraction = outerRadiusFraction,
+                            ringThicknessFraction = ringThicknessFraction,
+                            sliceGapDegrees = sliceGapDegrees,
+                            iconScale = iconScale,
+                            explodedOffset = explodedOffset,
+                            style = style,
+                            calloutIconSize = calloutIconSize,
+                            labelMinFraction = labelMinFraction,
+                            showCategoryLabels = showCategoryLabels,
+                            centerTextStyle = centerTextStyle,
+                            centerDividerColor = centerDividerColor,
+                            centerDividerWidth = centerDividerWidth,
+                            centerDividerThickness = centerDividerThickness,
+                            calloutLabelStyle = calloutLabelStyle,
+                            calloutPercentageStyle = calloutPercentageStyle,
+                            calloutLabelColor = calloutLabelColor,
+                            leaderLineThickness = leaderLineThickness,
+                        )
+                    }
                 }
             }
+        }
+        slices.forEach { slice ->
+            if (slice.fraction <= 0f) return@forEach
+            val sliceDescription =
+                String.format(sliceTemplate, slice.label, (slice.fraction * 100f).roundToInt())
+            Box(
+                modifier =
+                    Modifier
+                        .semantics(mergeDescendants = true) {
+                            contentDescription = sliceDescription
+                            if (onSliceClick != null) {
+                                onClick(label = openCategoryActionLabel) {
+                                    onSliceClick(slice)
+                                    true
+                                }
+                            }
+                        },
+            )
         }
     }
 }

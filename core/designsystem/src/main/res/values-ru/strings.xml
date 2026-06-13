@@ -8,6 +8,13 @@
     <string name="donut_chart_slice">%1$s, %2$d%%</string>
     <string name="donut_chart_budget_alert">предупреждение бюджета</string>
     <string name="keypad_backspace_cd">Удалить символ</string>
+    <string name="keypad_op_plus_cd">Плюс</string>
+    <string name="keypad_op_minus_cd">Минус</string>
+    <string name="keypad_op_multiply_cd">Умножить</string>
+    <string name="keypad_op_divide_cd">Разделить</string>
+    <string name="keypad_op_equals_cd">Равно</string>
+    <string name="balance_bar_open_records_action">Открыть записи</string>
+    <string name="donut_chart_open_category_action">Открыть категорию</string>
     <string name="transaction_form_choose_category_button">ВЫБОР КАТЕГОРИИ</string>
     <string name="transaction_form_add_category_cta">+ ДОБАВИТЬ</string>
     <string name="transaction_form_delete_button">Удалить</string>

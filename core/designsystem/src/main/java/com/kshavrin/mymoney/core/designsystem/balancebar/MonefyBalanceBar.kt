@@ -15,6 +15,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.kshavrin.mymoney.core.designsystem.R
@@ -31,9 +33,16 @@ fun MonefyBalanceBar(
     val pillColor = MaterialTheme.colorScheme.primary
     val pillContent = MaterialTheme.colorScheme.onPrimary
     val flankTint = pillColor.copy(alpha = 0.7f)
+    val openRecordsLabel = stringResource(R.string.balance_bar_open_records_action)
+    val rowDescription = "$label $amount"
 
     Row(
-        modifier = modifier.clickable(onClick = onClick),
+        modifier =
+            modifier
+                .clickable(onClickLabel = openRecordsLabel, onClick = onClick)
+                .semantics(mergeDescendants = true) {
+                    contentDescription = rowDescription
+                },
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

@@ -19,7 +19,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.kshavrin.mymoney.core.designsystem.R
 import com.kshavrin.mymoney.core.ui.feedback.LocalHapticPlayer
 import com.kshavrin.mymoney.core.ui.feedback.LocalSoundPlayer
 import com.kshavrin.mymoney.core.ui.haptic.HapticKind
@@ -52,7 +56,12 @@ fun MonefyKeypad(
             KeypadKey(label = "1", onPress = { handlePress(KeypadEvent.Digit(1)) })
             KeypadKey(label = "2", onPress = { handlePress(KeypadEvent.Digit(2)) })
             KeypadKey(label = "3", onPress = { handlePress(KeypadEvent.Digit(3)) })
-            KeypadKey(label = "+", onPress = { handlePress(KeypadEvent.Op(Operator.Plus)) }, operator = true)
+            KeypadKey(
+                label = "+",
+                onPress = { handlePress(KeypadEvent.Op(Operator.Plus)) },
+                operator = true,
+                contentDescription = stringResource(R.string.keypad_op_plus_cd),
+            )
         }
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -61,7 +70,12 @@ fun MonefyKeypad(
             KeypadKey(label = "4", onPress = { handlePress(KeypadEvent.Digit(4)) })
             KeypadKey(label = "5", onPress = { handlePress(KeypadEvent.Digit(5)) })
             KeypadKey(label = "6", onPress = { handlePress(KeypadEvent.Digit(6)) })
-            KeypadKey(label = "−", onPress = { handlePress(KeypadEvent.Op(Operator.Minus)) }, operator = true)
+            KeypadKey(
+                label = "−",
+                onPress = { handlePress(KeypadEvent.Op(Operator.Minus)) },
+                operator = true,
+                contentDescription = stringResource(R.string.keypad_op_minus_cd),
+            )
         }
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -70,7 +84,12 @@ fun MonefyKeypad(
             KeypadKey(label = "7", onPress = { handlePress(KeypadEvent.Digit(7)) })
             KeypadKey(label = "8", onPress = { handlePress(KeypadEvent.Digit(8)) })
             KeypadKey(label = "9", onPress = { handlePress(KeypadEvent.Digit(9)) })
-            KeypadKey(label = "×", onPress = { handlePress(KeypadEvent.Op(Operator.Multiply)) }, operator = true)
+            KeypadKey(
+                label = "×",
+                onPress = { handlePress(KeypadEvent.Op(Operator.Multiply)) },
+                operator = true,
+                contentDescription = stringResource(R.string.keypad_op_multiply_cd),
+            )
         }
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -78,8 +97,18 @@ fun MonefyKeypad(
         ) {
             KeypadKey(label = ".", onPress = { handlePress(KeypadEvent.Dot) })
             KeypadKey(label = "0", onPress = { handlePress(KeypadEvent.Digit(0)) })
-            KeypadKey(label = "=", onPress = { handlePress(KeypadEvent.Equals) }, operator = true)
-            KeypadKey(label = "÷", onPress = { handlePress(KeypadEvent.Op(Operator.Divide)) }, operator = true)
+            KeypadKey(
+                label = "=",
+                onPress = { handlePress(KeypadEvent.Equals) },
+                operator = true,
+                contentDescription = stringResource(R.string.keypad_op_equals_cd),
+            )
+            KeypadKey(
+                label = "÷",
+                onPress = { handlePress(KeypadEvent.Op(Operator.Divide)) },
+                operator = true,
+                contentDescription = stringResource(R.string.keypad_op_divide_cd),
+            )
         }
     }
 }
@@ -89,6 +118,7 @@ private fun RowScope.KeypadKey(
     label: String,
     onPress: () -> Unit,
     operator: Boolean = false,
+    contentDescription: String? = null,
 ) {
     val scale = remember { Animatable(1f) }
     val scope = rememberCoroutineScope()
@@ -122,7 +152,14 @@ private fun RowScope.KeypadKey(
             Modifier
                 .weight(1f)
                 .aspectRatio(1f)
-                .scale(scale.value),
+                .scale(scale.value)
+                .then(
+                    if (contentDescription != null) {
+                        Modifier.semantics { this.contentDescription = contentDescription }
+                    } else {
+                        Modifier
+                    },
+                ),
         shape = MaterialTheme.shapes.medium,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         colors =

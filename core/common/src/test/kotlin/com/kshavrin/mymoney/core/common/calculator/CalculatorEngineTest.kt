@@ -127,14 +127,17 @@ class CalculatorEngineTest {
     }
 
     @Test
-    fun `division by zero is handled gracefully and yields display 0 without crashing`() {
+    fun `division by zero keeps the left operand and clears the pending operation`() {
         engine.inputDigit(1)
+        engine.inputDigit(0)
         engine.inputDigit(0)
         engine.inputOperator(CalculatorOperator.Divide)
         engine.inputDigit(0)
         engine.equals()
 
-        assertEquals("0", engine.display)
+        assertEquals("100", engine.display)
+        assertEquals(0, engine.currentValue.compareTo(BigDecimal("100")))
+        assertNull(engine.pendingOp)
     }
 
     @Test

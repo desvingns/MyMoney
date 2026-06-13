@@ -26,13 +26,12 @@ class MoneyFormatterTest {
         val result =
             MoneyFormatter.format(
                 amount = BigDecimal("1234.56"),
-                currencySymbol = "₽",
+                currencySymbol = "\u20BD",
                 decimalDigits = 2,
                 locale = ruLocale,
                 symbolPosition = MoneyFormatter.SymbolPosition.AFTER,
             )
-        // RU locale uses non-breaking space for grouping; verify suffix + prefix instead of full string.
-        assertTrue(result.endsWith(",56 ₽"))
+        assertTrue(result.endsWith(",56 \u20BD"))
         assertTrue(result.startsWith("1"))
     }
 
@@ -41,11 +40,25 @@ class MoneyFormatterTest {
         val result =
             MoneyFormatter.format(
                 amount = BigDecimal("1234"),
-                currencySymbol = "¥",
+                currencySymbol = "\u00A5",
                 decimalDigits = 0,
                 locale = Locale.JAPAN,
                 symbolPosition = MoneyFormatter.SymbolPosition.BEFORE,
             )
-        assertEquals("¥1,234", result)
+        assertEquals("\u00A51,234", result)
+    }
+
+    @Test
+    fun rounds_half_up_on_boundary_values() {
+        val result =
+            MoneyFormatter.format(
+                amount = BigDecimal("0.125"),
+                currencySymbol = "",
+                decimalDigits = 2,
+                locale = Locale.US,
+                symbolPosition = MoneyFormatter.SymbolPosition.BEFORE,
+            )
+
+        assertEquals("0.13", result)
     }
 }

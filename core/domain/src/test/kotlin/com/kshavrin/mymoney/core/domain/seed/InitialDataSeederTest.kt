@@ -3,7 +3,17 @@ package com.kshavrin.mymoney.core.domain.seed
 import com.kshavrin.mymoney.core.domain.fake.FakeAccountRepository
 import com.kshavrin.mymoney.core.domain.fake.FakeCategoryRepository
 import com.kshavrin.mymoney.core.domain.fake.FakeCurrencyRepository
+import com.kshavrin.mymoney.core.domain.model.Account
+import com.kshavrin.mymoney.core.domain.model.Category
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
+import com.kshavrin.mymoney.core.domain.model.Currency
+import com.kshavrin.mymoney.core.domain.repository.AccountRepository
+import com.kshavrin.mymoney.core.domain.repository.CategoryRepository
+import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
+import com.kshavrin.mymoney.core.domain.transaction.TransactionRunner
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -11,6 +21,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.math.BigDecimal
 import java.time.Instant
 import java.util.Locale
 
@@ -23,7 +34,7 @@ class InitialDataSeederTest {
             val currencyRepo = FakeCurrencyRepository()
             val accountRepo = FakeAccountRepository()
             val categoryRepo = FakeCategoryRepository()
-            val seeder = InitialDataSeeder(currencyRepo, accountRepo, categoryRepo, UnconfinedTestDispatcher())
+            val seeder = createSeeder(currencyRepo, accountRepo, categoryRepo)
 
             val seeded = seeder.seedIfNeeded(now, Locale.US)
 
@@ -39,7 +50,7 @@ class InitialDataSeederTest {
             val currencyRepo = FakeCurrencyRepository()
             val accountRepo = FakeAccountRepository()
             val categoryRepo = FakeCategoryRepository()
-            val seeder = InitialDataSeeder(currencyRepo, accountRepo, categoryRepo, UnconfinedTestDispatcher())
+            val seeder = createSeeder(currencyRepo, accountRepo, categoryRepo)
 
             seeder.seedIfNeeded(now, Locale.US)
             val secondRun = seeder.seedIfNeeded(now, Locale.US)
@@ -55,7 +66,7 @@ class InitialDataSeederTest {
             val currencyRepo = FakeCurrencyRepository()
             val accountRepo = FakeAccountRepository()
             val categoryRepo = FakeCategoryRepository()
-            val seeder = InitialDataSeeder(currencyRepo, accountRepo, categoryRepo, UnconfinedTestDispatcher())
+            val seeder = createSeeder(currencyRepo, accountRepo, categoryRepo)
 
             seeder.seedIfNeeded(now, Locale("ru"))
 
@@ -80,7 +91,7 @@ class InitialDataSeederTest {
             val currencyRepo = FakeCurrencyRepository()
             val accountRepo = FakeAccountRepository()
             val categoryRepo = FakeCategoryRepository()
-            val seeder = InitialDataSeeder(currencyRepo, accountRepo, categoryRepo, UnconfinedTestDispatcher())
+            val seeder = createSeeder(currencyRepo, accountRepo, categoryRepo)
 
             seeder.seedIfNeeded(now, Locale.ENGLISH)
 
@@ -103,19 +114,17 @@ class InitialDataSeederTest {
         runTest {
             val ruCategoryRepo = FakeCategoryRepository()
             val ruSeeder =
-                InitialDataSeeder(
+                createSeeder(
                     FakeCurrencyRepository(),
                     FakeAccountRepository(),
                     ruCategoryRepo,
-                    UnconfinedTestDispatcher(),
                 )
             val enCategoryRepo = FakeCategoryRepository()
             val enSeeder =
-                InitialDataSeeder(
+                createSeeder(
                     FakeCurrencyRepository(),
                     FakeAccountRepository(),
                     enCategoryRepo,
-                    UnconfinedTestDispatcher(),
                 )
 
             ruSeeder.seedIfNeeded(now, Locale("ru"))
@@ -134,11 +143,10 @@ class InitialDataSeederTest {
         runTest {
             val categoryRepo = FakeCategoryRepository()
             val seeder =
-                InitialDataSeeder(
+                createSeeder(
                     FakeCurrencyRepository(),
                     FakeAccountRepository(),
                     categoryRepo,
-                    UnconfinedTestDispatcher(),
                 )
 
             seeder.seedIfNeeded(now, Locale("ru"))
@@ -152,11 +160,10 @@ class InitialDataSeederTest {
         runTest {
             val accountRepo = FakeAccountRepository()
             val seeder =
-                InitialDataSeeder(
+                createSeeder(
                     FakeCurrencyRepository(),
                     accountRepo,
                     FakeCategoryRepository(),
-                    UnconfinedTestDispatcher(),
                 )
 
             seeder.seedIfNeeded(now, Locale.ENGLISH)
@@ -171,17 +178,15 @@ class InitialDataSeederTest {
         runTest {
             val ruCategoryRepo = FakeCategoryRepository()
             val enCategoryRepo = FakeCategoryRepository()
-            InitialDataSeeder(
+            createSeeder(
                 FakeCurrencyRepository(),
                 FakeAccountRepository(),
                 ruCategoryRepo,
-                UnconfinedTestDispatcher(),
             ).seedIfNeeded(now, Locale("ru"))
-            InitialDataSeeder(
+            createSeeder(
                 FakeCurrencyRepository(),
                 FakeAccountRepository(),
                 enCategoryRepo,
-                UnconfinedTestDispatcher(),
             ).seedIfNeeded(now, Locale.ENGLISH)
 
             val ruColors = ruCategoryRepo.observeAll().first().map { it.colorHex }
@@ -194,11 +199,10 @@ class InitialDataSeederTest {
         runTest {
             val categoryRepo = FakeCategoryRepository()
             val seeder =
-                InitialDataSeeder(
+                createSeeder(
                     FakeCurrencyRepository(),
                     FakeAccountRepository(),
                     categoryRepo,
-                    UnconfinedTestDispatcher(),
                 )
 
             seeder.seedIfNeeded(now, Locale.ENGLISH)
@@ -213,11 +217,10 @@ class InitialDataSeederTest {
         runTest {
             val categoryRepo = FakeCategoryRepository()
             val seeder =
-                InitialDataSeeder(
+                createSeeder(
                     FakeCurrencyRepository(),
                     FakeAccountRepository(),
                     categoryRepo,
-                    UnconfinedTestDispatcher(),
                 )
 
             seeder.seedIfNeeded(now, Locale("ru"))
@@ -256,11 +259,10 @@ class InitialDataSeederTest {
         runTest {
             val categoryRepo = FakeCategoryRepository()
             val seeder =
-                InitialDataSeeder(
+                createSeeder(
                     FakeCurrencyRepository(),
                     FakeAccountRepository(),
                     categoryRepo,
-                    UnconfinedTestDispatcher(),
                 )
 
             seeder.seedIfNeeded(now, Locale.ENGLISH)
@@ -300,11 +302,10 @@ class InitialDataSeederTest {
             val accountRepo = FakeAccountRepository()
             val categoryRepo = FakeCategoryRepository()
             val seeder =
-                InitialDataSeeder(
+                createSeeder(
                     FakeCurrencyRepository(),
                     accountRepo,
                     categoryRepo,
-                    UnconfinedTestDispatcher(),
                 )
 
             seeder.seedIfNeeded(now, Locale.FRENCH)
@@ -324,12 +325,40 @@ class InitialDataSeederTest {
         }
 
     @Test
+    fun `rolls back currencies and accounts when category seeding fails so retry can seed fully`() =
+        runTest {
+            val currencyRepo = RollbackCurrencyRepository()
+            val accountRepo = RollbackAccountRepository()
+            val categoryRepo = RollbackCategoryRepository().apply { failOnUpsertAll = true }
+            val transactionRunner = FakeRollbackTransactionRunner(currencyRepo, accountRepo, categoryRepo)
+            val seeder = createSeeder(currencyRepo, accountRepo, categoryRepo, transactionRunner)
+
+            try {
+                seeder.seedIfNeeded(now, Locale.US)
+            } catch (_: IllegalStateException) {
+            }
+
+            assertTrue(currencyRepo.observeAll().first().isEmpty())
+            assertTrue(accountRepo.observeActive().first().isEmpty())
+            assertTrue(categoryRepo.observeAll().first().isEmpty())
+
+            categoryRepo.failOnUpsertAll = false
+
+            val seeded = seeder.seedIfNeeded(now, Locale.US)
+
+            assertTrue(seeded)
+            assertEquals(20, currencyRepo.observeAll().first().size)
+            assertEquals(1, accountRepo.observeActive().first().size)
+            assertEquals(17, categoryRepo.observeAll().first().size)
+        }
+
+    @Test
     fun `one-shot guard leaves repositories untouched on second call`() =
         runTest {
             val currencyRepo = FakeCurrencyRepository()
             val accountRepo = FakeAccountRepository()
             val categoryRepo = FakeCategoryRepository()
-            val seeder = InitialDataSeeder(currencyRepo, accountRepo, categoryRepo, UnconfinedTestDispatcher())
+            val seeder = createSeeder(currencyRepo, accountRepo, categoryRepo)
 
             seeder.seedIfNeeded(now, Locale.ENGLISH)
             val accountsBefore = accountRepo.observeActive().first().toList()
@@ -347,11 +376,10 @@ class InitialDataSeederTest {
         runTest {
             val categoryRepo = FakeCategoryRepository()
             val seeder =
-                InitialDataSeeder(
+                createSeeder(
                     FakeCurrencyRepository(),
                     FakeAccountRepository(),
                     categoryRepo,
-                    UnconfinedTestDispatcher(),
                 )
 
             seeder.seedIfNeeded(now, Locale.ENGLISH)
@@ -371,11 +399,10 @@ class InitialDataSeederTest {
         runTest {
             val categoryRepo = FakeCategoryRepository()
             val seeder =
-                InitialDataSeeder(
+                createSeeder(
                     FakeCurrencyRepository(),
                     FakeAccountRepository(),
                     categoryRepo,
-                    UnconfinedTestDispatcher(),
                 )
 
             seeder.seedIfNeeded(now, Locale.ENGLISH)
@@ -389,4 +416,160 @@ class InitialDataSeederTest {
                     .sorted()
             assertEquals((0 until 2).toList(), incomeOrders)
         }
+
+    private fun createSeeder(
+        currencyRepository: CurrencyRepository,
+        accountRepository: AccountRepository,
+        categoryRepository: CategoryRepository,
+        transactionRunner: TransactionRunner = NoOpTransactionRunner,
+    ) = InitialDataSeeder(
+        currencyRepository = currencyRepository,
+        accountRepository = accountRepository,
+        categoryRepository = categoryRepository,
+        transactionRunner = transactionRunner,
+        ioDispatcher = UnconfinedTestDispatcher(),
+    )
+
+    private object NoOpTransactionRunner : TransactionRunner {
+        override suspend fun <T> runInTransaction(block: suspend () -> T): T = block()
+    }
+
+    private interface RollbackRepository<T> {
+        fun snapshot(): List<T>
+
+        fun restore(snapshot: List<T>)
+    }
+
+    private class FakeRollbackTransactionRunner(
+        private val currencyRepository: RollbackCurrencyRepository,
+        private val accountRepository: RollbackAccountRepository,
+        private val categoryRepository: RollbackCategoryRepository,
+    ) : TransactionRunner {
+        override suspend fun <T> runInTransaction(block: suspend () -> T): T {
+            val currencies = currencyRepository.snapshot()
+            val accounts = accountRepository.snapshot()
+            val categories = categoryRepository.snapshot()
+            return try {
+                block()
+            } catch (t: Throwable) {
+                currencyRepository.restore(currencies)
+                accountRepository.restore(accounts)
+                categoryRepository.restore(categories)
+                throw t
+            }
+        }
+    }
+
+    private class RollbackCurrencyRepository :
+        CurrencyRepository,
+        RollbackRepository<Currency> {
+        private val state = MutableStateFlow<List<Currency>>(emptyList())
+
+        override fun observeActive(): StateFlow<List<Currency>> = state.asStateFlow()
+
+        override fun observeAll(): StateFlow<List<Currency>> = state.asStateFlow()
+
+        override suspend fun findById(id: Long): Currency? = state.value.firstOrNull { it.id == id }
+
+        override suspend fun findByCode(code: String): Currency? =
+            state.value.firstOrNull { it.code.equals(code, ignoreCase = true) }
+
+        override suspend fun upsert(currency: Currency): Long {
+            val id = if (currency.id == 0L) (state.value.maxOfOrNull { it.id } ?: 0L) + 1L else currency.id
+            state.value = state.value.filterNot { it.id == id } + currency.copy(id = id)
+            return id
+        }
+
+        override suspend fun upsertAll(currencies: List<Currency>) {
+            currencies.forEach { upsert(it) }
+        }
+
+        override suspend fun setActive(
+            id: Long,
+            active: Boolean,
+        ) {
+            state.value = state.value.map { if (it.id == id) it.copy(isActive = active) else it }
+        }
+
+        override fun snapshot(): List<Currency> = state.value.toList()
+
+        override fun restore(snapshot: List<Currency>) {
+            state.value = snapshot
+        }
+    }
+
+    private class RollbackAccountRepository :
+        AccountRepository,
+        RollbackRepository<Account> {
+        private val state = MutableStateFlow<List<Account>>(emptyList())
+
+        override fun observeActive(): StateFlow<List<Account>> = state.asStateFlow()
+
+        override suspend fun findById(id: Long): Account? = state.value.firstOrNull { it.id == id }
+
+        override suspend fun findDefault(): Account? = state.value.firstOrNull { it.isDefault }
+
+        override suspend fun computeBalance(accountId: Long): BigDecimal =
+            state.value.firstOrNull { it.id == accountId }?.initialBalance ?: BigDecimal.ZERO
+
+        override suspend fun upsert(account: Account): Long {
+            val id = if (account.id == 0L) (state.value.maxOfOrNull { it.id } ?: 0L) + 1L else account.id
+            state.value = state.value.filterNot { it.id == id } + account.copy(id = id)
+            return id
+        }
+
+        override suspend fun archive(id: Long) {
+            state.value = state.value.map { if (it.id == id) it.copy(isArchived = true) else it }
+        }
+
+        override suspend fun setDefault(id: Long) {
+            state.value = state.value.map { it.copy(isDefault = it.id == id) }
+        }
+
+        override suspend fun countByCurrency(currencyId: Long): Int =
+            state.value.count { it.currencyId == currencyId && !it.isArchived }
+
+        override fun snapshot(): List<Account> = state.value.toList()
+
+        override fun restore(snapshot: List<Account>) {
+            state.value = snapshot
+        }
+    }
+
+    private class RollbackCategoryRepository :
+        CategoryRepository,
+        RollbackRepository<Category> {
+        private val state = MutableStateFlow<List<Category>>(emptyList())
+
+        var failOnUpsertAll: Boolean = false
+
+        override fun observeByKind(kind: CategoryKind): StateFlow<List<Category>> = state.asStateFlow()
+
+        override fun observeAll(): StateFlow<List<Category>> = state.asStateFlow()
+
+        override suspend fun findById(id: Long): Category? = state.value.firstOrNull { it.id == id }
+
+        override suspend fun upsert(category: Category): Long {
+            val id = if (category.id == 0L) (state.value.maxOfOrNull { it.id } ?: 0L) + 1L else category.id
+            state.value = state.value.filterNot { it.id == id } + category.copy(id = id)
+            return id
+        }
+
+        override suspend fun upsertAll(categories: List<Category>) {
+            if (failOnUpsertAll) {
+                throw IllegalStateException("boom")
+            }
+            categories.forEach { upsert(it) }
+        }
+
+        override suspend fun archive(id: Long) {
+            state.value = state.value.map { if (it.id == id) it.copy(isArchived = true) else it }
+        }
+
+        override fun snapshot(): List<Category> = state.value.toList()
+
+        override fun restore(snapshot: List<Category>) {
+            state.value = snapshot
+        }
+    }
 }

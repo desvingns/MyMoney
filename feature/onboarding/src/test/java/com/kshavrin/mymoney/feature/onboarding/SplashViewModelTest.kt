@@ -2,7 +2,6 @@ package com.kshavrin.mymoney.feature.onboarding
 
 import app.cash.turbine.test
 import com.kshavrin.mymoney.core.domain.model.Account
-import com.kshavrin.mymoney.core.domain.model.AccountType
 import com.kshavrin.mymoney.core.domain.model.Category
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.core.domain.model.Currency
@@ -10,6 +9,7 @@ import com.kshavrin.mymoney.core.domain.repository.AccountRepository
 import com.kshavrin.mymoney.core.domain.repository.CategoryRepository
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
 import com.kshavrin.mymoney.core.domain.seed.InitialDataSeeder
+import com.kshavrin.mymoney.core.domain.transaction.TransactionRunner
 import com.kshavrin.mymoney.feature.onboarding.util.MainDispatcherRule
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,7 +19,8 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertThrows
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import java.math.BigDecimal
@@ -36,12 +37,7 @@ class SplashViewModelTest {
             val categoryRepository = FakeCategoryRepository()
             val viewModel =
                 SplashViewModel(
-                    InitialDataSeeder(
-                        currencyRepository = currencyRepository,
-                        accountRepository = accountRepository,
-                        categoryRepository = categoryRepository,
-                        ioDispatcher = mainDispatcherRule.testDispatcher,
-                    ),
+                    createSeeder(currencyRepository, accountRepository, categoryRepository),
                 )
 
             viewModel.state.test {
@@ -65,33 +61,57 @@ class SplashViewModelTest {
         }
 
     @Test
-    fun `initialise propagates seeder failure and leaves destination pending`() {
-        val failure =
-            assertThrows(IllegalStateException::class.java) {
-                runTest {
-                    val currencyRepository =
-                        FakeCurrencyRepository().apply {
-                            observeAllFailure = IllegalStateException("boom")
-                        }
-                    val viewModel =
-                        SplashViewModel(
-                            InitialDataSeeder(
-                                currencyRepository = currencyRepository,
-                                accountRepository = FakeAccountRepository(),
-                                categoryRepository = FakeCategoryRepository(),
-                                ioDispatcher = mainDispatcherRule.testDispatcher,
-                            ),
-                        )
-
-                    viewModel.initialise()
-                    advanceUntilIdle()
-
-                    assertEquals(SplashDestination.Pending, viewModel.state.value.destination)
-                    assertEquals(1, currencyRepository.observeAllCalls)
+    fun `initialise keeps destination pending and marks seed failed so retry can succeed`() =
+        runTest {
+            val currencyRepository =
+                FakeCurrencyRepository().apply {
+                    observeAllFailure = IllegalStateException("boom")
                 }
-            }
+            val accountRepository = FakeAccountRepository()
+            val categoryRepository = FakeCategoryRepository()
+            val viewModel =
+                SplashViewModel(
+                    createSeeder(currencyRepository, accountRepository, categoryRepository),
+                )
 
-        assertEquals("boom", failure.message)
+            viewModel.initialise()
+            advanceUntilIdle()
+
+            assertEquals(SplashDestination.Pending, viewModel.state.value.destination)
+            assertTrue(viewModel.state.value.seedFailed)
+            assertEquals(1, currencyRepository.observeAllCalls)
+            assertEquals(0, currencyRepository.upsertAllCalls)
+
+            currencyRepository.observeAllFailure = null
+
+            viewModel.retry()
+
+            assertFalse(viewModel.state.value.seedFailed)
+            advanceUntilIdle()
+
+            assertEquals(SplashDestination.Onboarding, viewModel.state.value.destination)
+            assertFalse(viewModel.state.value.seedFailed)
+            assertEquals(2, currencyRepository.observeAllCalls)
+            assertEquals(1, currencyRepository.upsertAllCalls)
+            assertEquals(20, currencyRepository.snapshot().size)
+            assertEquals(1, accountRepository.snapshot().size)
+            assertEquals(17, categoryRepository.snapshot().size)
+        }
+
+    private fun createSeeder(
+        currencyRepository: CurrencyRepository,
+        accountRepository: AccountRepository,
+        categoryRepository: CategoryRepository,
+    ) = InitialDataSeeder(
+        currencyRepository = currencyRepository,
+        accountRepository = accountRepository,
+        categoryRepository = categoryRepository,
+        transactionRunner = NoOpTransactionRunner,
+        ioDispatcher = mainDispatcherRule.testDispatcher,
+    )
+
+    private object NoOpTransactionRunner : TransactionRunner {
+        override suspend fun <T> runInTransaction(block: suspend () -> T): T = block()
     }
 
     private class FakeCurrencyRepository : CurrencyRepository {

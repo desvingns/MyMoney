@@ -1,0 +1,7 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>UseCheckOrError:AppSettingsRepositoryImpl.kt$AppSettingsRepositoryImpl$throw IllegalStateException("firstPositiveSeen is monotonic — cannot flip true to false")</ID>
+  </CurrentIssues>
+</SmellBaseline>

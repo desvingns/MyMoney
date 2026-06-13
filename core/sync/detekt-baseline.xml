@@ -1,0 +1,11 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>InstanceOfCheckForException:DropboxRepository.kt$DropboxRepository$t is CancellationException</ID>
+    <ID>InstanceOfCheckForException:SnapshotSyncRepository.kt$SnapshotSyncRepository$t is CancellationException</ID>
+    <ID>TooGenericExceptionCaught:DropboxRepository.kt$DropboxRepository$t: Throwable</ID>
+    <ID>TooGenericExceptionCaught:GoogleDriveRepository.kt$GoogleDriveRepository$t: Throwable</ID>
+    <ID>TooGenericExceptionCaught:SnapshotSyncRepository.kt$SnapshotSyncRepository$t: Throwable</ID>
+  </CurrentIssues>
+</SmellBaseline>

@@ -1,0 +1,15 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>InstanceOfCheckForException:SearchViewModel.kt$SearchViewModel$t is CancellationException</ID>
+    <ID>InstanceOfCheckForException:TransactionDetailViewModel.kt$TransactionDetailViewModel$t is CancellationException</ID>
+    <ID>SwallowedException:SearchScreen.kt$e: ActivityNotFoundException</ID>
+    <ID>TooGenericExceptionCaught:SearchViewModel.kt$SearchViewModel$t: Throwable</ID>
+    <ID>TooGenericExceptionCaught:TransactionDetailViewModel.kt$TransactionDetailViewModel$t: Throwable</ID>
+    <ID>TooGenericExceptionCaught:TransactionsListViewModel.kt$TransactionsListViewModel$t: Throwable</ID>
+    <ID>UnusedParameter:SearchViewModel.kt$SearchViewModel$query: String</ID>
+    <ID>UnusedParameter:TransactionsListScreen.kt$kind: TransactionKind</ID>
+    <ID>UseCheckOrError:TransactionDetailViewModelTest.kt$TransactionDetailViewModelTest.FailingTransactionRepository$throw IllegalStateException("boom")</ID>
+  </CurrentIssues>
+</SmellBaseline>

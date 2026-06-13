@@ -1,0 +1,19 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>InstanceOfCheckForException:AddExpenseViewModel.kt$AddExpenseViewModel$t is CancellationException</ID>
+    <ID>InstanceOfCheckForException:AddIncomeViewModel.kt$AddIncomeViewModel$t is CancellationException</ID>
+    <ID>InstanceOfCheckForException:TransferViewModel.kt$TransferViewModel$t is CancellationException</ID>
+    <ID>TooGenericExceptionCaught:AddExpenseViewModel.kt$AddExpenseViewModel$t: Throwable</ID>
+    <ID>TooGenericExceptionCaught:AddIncomeViewModel.kt$AddIncomeViewModel$t: Throwable</ID>
+    <ID>TooGenericExceptionCaught:CurrencyRateViewModel.kt$CurrencyRateViewModel$t: Throwable</ID>
+    <ID>TooGenericExceptionCaught:TransferViewModel.kt$TransferViewModel$t: Throwable</ID>
+    <ID>UnusedPrivateProperty:AddExpenseViewModel.kt$AddExpenseViewModel$savedStateHandle: SavedStateHandle</ID>
+    <ID>UnusedPrivateProperty:AddIncomeViewModel.kt$AddIncomeViewModel$savedStateHandle: SavedStateHandle</ID>
+    <ID>UnusedPrivateProperty:TransferViewModel.kt$TransferViewModel$private val savedStateHandle: SavedStateHandle</ID>
+    <ID>UseCheckOrError:AddExpenseViewModelTest.kt$AddExpenseViewModelTest.FailOnceCategoryRepository$throw IllegalStateException("boom")</ID>
+    <ID>UseCheckOrError:AddIncomeViewModelTest.kt$AddIncomeViewModelTest.FailingTransactionRepository$throw IllegalStateException("boom")</ID>
+    <ID>UseCheckOrError:TransferViewModelTest.kt$TransferViewModelTest.FailingTransactionRepository$throw IllegalStateException("boom")</ID>
+  </CurrentIssues>
+</SmellBaseline>

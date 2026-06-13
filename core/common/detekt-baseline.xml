@@ -1,0 +1,7 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>SwallowedException:CalculatorEngineTest.kt$CalculatorEngineTest$e: IllegalArgumentException</ID>
+  </CurrentIssues>
+</SmellBaseline>

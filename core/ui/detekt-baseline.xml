@@ -1,0 +1,8 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>UnusedParameter:Theme.kt$dynamicColor: Boolean = false</ID>
+    <ID>UnusedPrivateMember:PreviewSamplePalette.kt$@ThemePreviews @Composable private fun PreviewSamplePalettePreview()</ID>
+  </CurrentIssues>
+</SmellBaseline>

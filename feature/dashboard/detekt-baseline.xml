@@ -1,0 +1,7 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>UnusedPrivateMember:LeftDrawerContent.kt$@Composable private fun DrawerOutlinedRow( label: String, subtitle: String? = null, selected: Boolean, leadingIcon: @Composable () -&gt; Unit, enabled: Boolean = true, onClick: () -&gt; Unit, )</ID>
+  </CurrentIssues>
+</SmellBaseline>

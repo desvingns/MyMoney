@@ -1,0 +1,11 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>UnusedParameter:RecurringScheduler.kt$RecurringScheduler$now: Instant</ID>
+    <ID>UseCheckOrError:BalanceCalculator.kt$BalanceCalculator$throw IllegalStateException("Currency ${account.currencyId} not found")</ID>
+    <ID>UseCheckOrError:GetCategoryRecordsUseCase.kt$GetCategoryRecordsUseCase$throw IllegalStateException("Currency ${account.currencyId} not found")</ID>
+    <ID>UseCheckOrError:GetTransferRecordsUseCase.kt$GetTransferRecordsUseCase$throw IllegalStateException("Currency ${row.currencyId} not found")</ID>
+    <ID>UseCheckOrError:InitialDataSeeder.kt$InitialDataSeeder$throw IllegalStateException("USD seed missing")</ID>
+  </CurrentIssues>
+</SmellBaseline>

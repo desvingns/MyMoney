@@ -44,6 +44,8 @@ profileInstaller = "1.4.1"
 benchmark = "1.4.1"
 uiAutomator = "2.3.0"
 kover = "0.9.1"
+detekt = "1.23.7"
+ktlintGradle = "12.1.2"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -157,3 +159,5 @@ hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 gms-google-services = { id = "com.google.gms.google-services", version.ref = "gmsGoogleServices" }
 gms-oss-licenses = { id = "com.google.android.gms.oss-licenses-plugin", version.ref = "gmsOssLicenses" }
 kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
+detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
+ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlintGradle" }

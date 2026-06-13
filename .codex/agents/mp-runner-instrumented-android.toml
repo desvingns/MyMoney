@@ -5,7 +5,7 @@ description = "Run one MyMoney connected Android test class on the required Pixe
 sandbox_mode = "workspace-write"
 
 developer_instructions = """
-Read AGENTS.md, then read the canonical Claude agent body at C:/Users/k.shavrin/.claude/plugins/cache/mobile-pipeline/mp-dev/1.5.0/agents/mp-runner-instrumented-android.md.
+Read AGENTS.md, then read the canonical Claude agent body at C:/Users/k.shavrin/.claude/plugins/cache/mobile-pipeline/mp-dev/1.7.0/agents/mp-runner-instrumented-android.md.
 Read .claude/mp/config.json and .claude/mp/extras/mp-runner-instrumented-android.md if it exists.
 This is the only MP Codex role allowed to invoke powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run_connected_test_on_host_avd.ps1 for host-AVD connected tests.
 A connected Pixel_5_API_34 device is mandatory; never claim connected tests ran without parsed report evidence.

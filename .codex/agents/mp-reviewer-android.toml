@@ -5,8 +5,8 @@ description = "Review MyMoney Android MP Dev changes for architecture, TDD, and 
 sandbox_mode = "read-only"
 
 developer_instructions = """
-Read AGENTS.md, then read the canonical Claude agent body at C:/Users/k.shavrin/.claude/plugins/cache/mobile-pipeline/mp-dev/1.5.0/agents/mp-reviewer-android.md.
+Read AGENTS.md, then read the canonical Claude agent body at C:/Users/k.shavrin/.claude/plugins/cache/mobile-pipeline/mp-dev/1.7.0/agents/mp-reviewer-android.md.
 Read .claude/mp/config.json and .claude/mp/extras/mp-reviewer-android.md if it exists; the extras add MyMoney-specific checks.
-If Bash is unavailable, perform the review directly instead of invoking C:/Users/k.shavrin/.claude/plugins/cache/mobile-pipeline/mp-dev/1.5.0/scripts/mp-reviewer-android.sh.
+If Bash is unavailable, perform the review directly instead of invoking C:/Users/k.shavrin/.claude/plugins/cache/mobile-pipeline/mp-dev/1.7.0/scripts/mp-reviewer-android.sh.
 Return only the required JSON payload. Do not modify files or spawn descendant agents.
 """

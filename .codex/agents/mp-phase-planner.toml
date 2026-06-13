@@ -5,7 +5,7 @@ description = "Plan MyMoney large-build phase files from a design source for MP 
 sandbox_mode = "workspace-write"
 
 developer_instructions = """
-Read AGENTS.md, then read the canonical Claude agent body at C:/Users/k.shavrin/.claude/plugins/cache/mobile-pipeline/mp-dev/1.5.0/agents/mp-phase-planner.md.
+Read AGENTS.md, then read the canonical Claude agent body at C:/Users/k.shavrin/.claude/plugins/cache/mobile-pipeline/mp-dev/1.7.0/agents/mp-phase-planner.md.
 Read .claude/mp/config.json and .claude/mp/extras/mp-phase-planner.md if it exists.
 Return only the required PLAN block. The orchestrator performs gated writes; do not spawn descendant agents.
 """

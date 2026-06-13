@@ -26,6 +26,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -62,6 +63,17 @@ class TransferViewModelTest {
             sortOrder = 0,
         )
 
+    private val eur =
+        Currency(
+            id = 2L,
+            code = "EUR",
+            symbol = "EUR",
+            name = "Euro",
+            decimalDigits = 2,
+            isActive = true,
+            sortOrder = 1,
+        )
+
     private val cashAccount =
         Account(
             id = 1L,
@@ -89,6 +101,22 @@ class TransferViewModelTest {
             iconKey = "ic_acc_card",
             isDefault = false,
             sortOrder = 1,
+            createdAt = createdAt,
+            updatedAt = createdAt,
+            isArchived = false,
+        )
+
+    private val euroAccount =
+        Account(
+            id = 3L,
+            name = "Euro wallet",
+            currencyId = eur.id,
+            initialBalance = BigDecimal.ZERO,
+            type = AccountType.Cash,
+            colorHex = "#E1B12C",
+            iconKey = "ic_acc_wallet",
+            isDefault = false,
+            sortOrder = 2,
             createdAt = createdAt,
             updatedAt = createdAt,
             isArchived = false,
@@ -224,6 +252,85 @@ class TransferViewModelTest {
             assertEquals(false, viewModel.state.value.isSaving)
             assertEquals(com.kshavrin.mymoney.feature.transaction.R.string.error_save_failed, viewModel.state.value.errorBannerRes)
             assertEquals(0L, viewModel.state.value.savedSignal)
+        }
+
+    @Test
+    fun `SaveClicked with zero amount shows enter amount error and skips persistence`() =
+        runTest {
+            val viewModel = buildViewModel()
+
+            advanceUntilIdle()
+            viewModel.onEvent(TransferEvent.TargetAccountChanged(bankAccount.id))
+            viewModel.onEvent(TransferEvent.SaveClicked)
+            advanceUntilIdle()
+
+            assertEquals(
+                com.kshavrin.mymoney.feature.transaction.R.string.error_enter_amount_first,
+                viewModel.state.value.errorBannerRes,
+            )
+            assertTrue(transactionRepo.upserted.isEmpty())
+        }
+
+    @Test
+    fun `cross currency target without stored rate navigates to rate setup`() =
+        runTest {
+            currencyRepo.seed(eur)
+            accountRepo.seed(euroAccount)
+            val viewModel = buildViewModel()
+
+            advanceUntilIdle()
+            viewModel.actions.test {
+                viewModel.onEvent(TransferEvent.TargetAccountChanged(euroAccount.id))
+                advanceUntilIdle()
+
+                assertEquals(TransferAction.NavigateToRateSetup(usd.id, eur.id), awaitItem())
+                assertNull(viewModel.state.value.currentRate)
+                assertEquals("", viewModel.state.value.ratePreviewText)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `cross currency save uses stored rate converts toAmount and emits NavigateBack`() =
+        runTest {
+            currencyRepo.seed(eur)
+            accountRepo.seed(euroAccount)
+            rateRepo.upsert(
+                CurrencyRate(
+                    id = 0L,
+                    fromCurrencyId = usd.id,
+                    toCurrencyId = eur.id,
+                    rate = 0.92,
+                    updatedAt = createdAt,
+                ),
+            )
+            val viewModel = buildViewModel()
+
+            advanceUntilIdle()
+            viewModel.actions.test {
+                viewModel.onEvent(TransferEvent.KeypadDigit(1))
+                viewModel.onEvent(TransferEvent.KeypadDigit(0))
+                viewModel.onEvent(TransferEvent.KeypadDigit(0))
+                viewModel.onEvent(TransferEvent.TargetAccountChanged(euroAccount.id))
+                advanceUntilIdle()
+
+                assertEquals(0.92, viewModel.state.value.currentRate?.rate)
+                assertEquals("1 USD = 0.92 EUR", viewModel.state.value.ratePreviewText)
+                expectNoEvents()
+
+                viewModel.onEvent(TransferEvent.SaveClicked)
+                advanceUntilIdle()
+
+                val saved = transactionRepo.upserted.single()
+                assertEquals(0, BigDecimal("100").compareTo(saved.amount))
+                assertEquals(0, BigDecimal("92").compareTo(saved.toAmount))
+                assertEquals(0.92, saved.exchangeRate)
+                assertEquals(euroAccount.id, saved.toAccountId)
+                assertFalse(viewModel.state.value.isSaving)
+                assertEquals(TransferAction.NavigateBack, awaitItem())
+                expectNoEvents()
+                cancelAndIgnoreRemainingEvents()
+            }
         }
 
     private class FakeCurrencyRateRepository : CurrencyRateRepository {

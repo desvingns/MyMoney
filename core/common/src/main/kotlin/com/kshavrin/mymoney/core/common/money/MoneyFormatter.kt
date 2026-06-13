@@ -1,6 +1,7 @@
 package com.kshavrin.mymoney.core.common.money
 
 import java.math.BigDecimal
+import java.math.RoundingMode
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.util.Locale
@@ -20,6 +21,7 @@ object MoneyFormatter {
                 isGroupingUsed = true
                 maximumFractionDigits = decimalDigits
                 minimumFractionDigits = decimalDigits
+                roundingMode = RoundingMode.HALF_UP
             }
         val number = formatter.format(amount)
         return when (symbolPosition) {

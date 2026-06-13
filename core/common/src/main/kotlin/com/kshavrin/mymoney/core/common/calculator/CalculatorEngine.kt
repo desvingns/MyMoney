@@ -154,7 +154,7 @@ class CalculatorEngine {
                 CalculatorOperator.Multiply -> left.multiply(right, MATH_CONTEXT)
                 CalculatorOperator.Divide ->
                     if (right.signum() == 0) {
-                        BigDecimal.ZERO
+                        left
                     } else {
                         left.divide(right, MATH_CONTEXT)
                     }

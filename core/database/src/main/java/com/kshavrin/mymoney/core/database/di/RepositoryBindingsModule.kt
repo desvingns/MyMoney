@@ -11,6 +11,7 @@ import com.kshavrin.mymoney.core.database.repository.RecurringTemplateRepository
 import com.kshavrin.mymoney.core.database.repository.SearchHistoryRepositoryImpl
 import com.kshavrin.mymoney.core.database.repository.SyncLogRepositoryImpl
 import com.kshavrin.mymoney.core.database.repository.TransactionRepositoryImpl
+import com.kshavrin.mymoney.core.database.transaction.RoomTransactionRunner
 import com.kshavrin.mymoney.core.domain.repository.AccountRepository
 import com.kshavrin.mymoney.core.domain.repository.BackupRepository
 import com.kshavrin.mymoney.core.domain.repository.BudgetRepository
@@ -22,6 +23,7 @@ import com.kshavrin.mymoney.core.domain.repository.RecurringTemplateRepository
 import com.kshavrin.mymoney.core.domain.repository.SearchHistoryRepository
 import com.kshavrin.mymoney.core.domain.repository.SyncLogRepository
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
+import com.kshavrin.mymoney.core.domain.transaction.TransactionRunner
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -74,4 +76,8 @@ abstract class RepositoryBindingsModule {
     @Binds
     @Singleton
     abstract fun bindGoalRepository(impl: GoalRepositoryImpl): GoalRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindTransactionRunner(impl: RoomTransactionRunner): TransactionRunner
 }

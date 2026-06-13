@@ -9,6 +9,7 @@ import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.repository.AccountRepository
 import com.kshavrin.mymoney.core.domain.repository.CategoryRepository
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
+import com.kshavrin.mymoney.core.domain.transaction.TransactionRunner
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -25,6 +26,7 @@ class InitialDataSeeder
         private val currencyRepository: CurrencyRepository,
         private val accountRepository: AccountRepository,
         private val categoryRepository: CategoryRepository,
+        private val transactionRunner: TransactionRunner,
         @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     ) {
         suspend fun seedIfNeeded(
@@ -37,67 +39,69 @@ class InitialDataSeeder
                     return@withContext false
                 }
 
-                currencyRepository.upsertAll(DEFAULT_CURRENCIES)
-
                 val russian = locale.language == "ru"
 
-                val targetCode =
-                    runCatching {
-                        java.util.Currency
-                            .getInstance(locale)
-                            .currencyCode
-                    }.getOrNull() ?: "USD"
-                val targetCurrency =
-                    currencyRepository.findByCode(targetCode)
-                        ?: currencyRepository.findByCode("USD")
-                        ?: throw IllegalStateException("USD seed missing")
+                transactionRunner.runInTransaction {
+                    currencyRepository.upsertAll(DEFAULT_CURRENCIES)
 
-                accountRepository.upsert(
-                    Account(
-                        id = 0L,
-                        name = if (russian) ACCOUNT_NAME_RU else ACCOUNT_NAME_EN,
-                        currencyId = targetCurrency.id,
-                        initialBalance = BigDecimal.ZERO,
-                        type = AccountType.Cash,
-                        colorHex = "#7AC794",
-                        iconKey = "ic_account_cash",
-                        isDefault = true,
-                        sortOrder = 0,
-                        createdAt = now,
-                        updatedAt = now,
-                        isArchived = false,
-                    ),
-                )
+                    val targetCode =
+                        runCatching {
+                            java.util.Currency
+                                .getInstance(locale)
+                                .currencyCode
+                        }.getOrNull() ?: "USD"
+                    val targetCurrency =
+                        currencyRepository.findByCode(targetCode)
+                            ?: currencyRepository.findByCode("USD")
+                            ?: throw IllegalStateException("USD seed missing")
 
-                val expenseCategories =
-                    EXPENSE_CATEGORY_SEEDS.mapIndexed { index, seed ->
-                        Category(
+                    accountRepository.upsert(
+                        Account(
                             id = 0L,
-                            name = if (russian) seed.nameRu else seed.nameEn,
-                            kind = CategoryKind.Expense,
-                            iconKey = seed.iconKey,
-                            colorHex = seed.colorHex,
-                            sortOrder = index,
+                            name = if (russian) ACCOUNT_NAME_RU else ACCOUNT_NAME_EN,
+                            currencyId = targetCurrency.id,
+                            initialBalance = BigDecimal.ZERO,
+                            type = AccountType.Cash,
+                            colorHex = "#7AC794",
+                            iconKey = "ic_account_cash",
                             isDefault = true,
-                            isArchived = false,
+                            sortOrder = 0,
                             createdAt = now,
-                        )
-                    }
-                val incomeCategories =
-                    DEFAULT_INCOME_CATEGORIES.mapIndexed { index, seed ->
-                        Category(
-                            id = 0L,
-                            name = if (russian) seed.nameRu else seed.nameEn,
-                            kind = CategoryKind.Income,
-                            iconKey = seed.iconKey,
-                            colorHex = seed.colorHex,
-                            sortOrder = index,
-                            isDefault = true,
+                            updatedAt = now,
                             isArchived = false,
-                            createdAt = now,
-                        )
-                    }
-                categoryRepository.upsertAll(expenseCategories + incomeCategories)
+                        ),
+                    )
+
+                    val expenseCategories =
+                        EXPENSE_CATEGORY_SEEDS.mapIndexed { index, seed ->
+                            Category(
+                                id = 0L,
+                                name = if (russian) seed.nameRu else seed.nameEn,
+                                kind = CategoryKind.Expense,
+                                iconKey = seed.iconKey,
+                                colorHex = seed.colorHex,
+                                sortOrder = index,
+                                isDefault = true,
+                                isArchived = false,
+                                createdAt = now,
+                            )
+                        }
+                    val incomeCategories =
+                        DEFAULT_INCOME_CATEGORIES.mapIndexed { index, seed ->
+                            Category(
+                                id = 0L,
+                                name = if (russian) seed.nameRu else seed.nameEn,
+                                kind = CategoryKind.Income,
+                                iconKey = seed.iconKey,
+                                colorHex = seed.colorHex,
+                                sortOrder = index,
+                                isDefault = true,
+                                isArchived = false,
+                                createdAt = now,
+                            )
+                        }
+                    categoryRepository.upsertAll(expenseCategories + incomeCategories)
+                }
                 true
             }
 

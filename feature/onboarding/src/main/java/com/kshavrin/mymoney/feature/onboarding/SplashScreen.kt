@@ -2,10 +2,14 @@ package com.kshavrin.mymoney.feature.onboarding
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -14,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 
@@ -34,11 +39,17 @@ fun SplashScreen(
         }
     }
 
-    SplashContent()
+    SplashContent(
+        seedFailed = state.seedFailed,
+        onRetry = viewModel::retry,
+    )
 }
 
 @Composable
-fun SplashContent() {
+fun SplashContent(
+    seedFailed: Boolean = false,
+    onRetry: () -> Unit = {},
+) {
     Box(
         modifier =
             Modifier
@@ -46,10 +57,26 @@ fun SplashContent() {
                 .background(MaterialTheme.colorScheme.primary),
         contentAlignment = Alignment.Center,
     ) {
-        Image(
-            painter = painterResource(id = R.drawable.onboarding_hero_1),
-            contentDescription = stringResource(id = R.string.splash_logo_content_description),
-            modifier = Modifier.size(120.dp),
-        )
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(24.dp),
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.onboarding_hero_1),
+                contentDescription = stringResource(id = R.string.splash_logo_content_description),
+                modifier = Modifier.size(120.dp),
+            )
+            if (seedFailed) {
+                Text(
+                    text = stringResource(id = R.string.splash_seed_error),
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    style = MaterialTheme.typography.bodyLarge,
+                    textAlign = TextAlign.Center,
+                )
+                Button(onClick = onRetry) {
+                    Text(text = stringResource(id = R.string.splash_retry))
+                }
+            }
+        }
     }
 }

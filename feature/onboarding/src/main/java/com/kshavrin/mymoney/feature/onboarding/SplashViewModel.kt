@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.kshavrin.mymoney.core.common.exception.reportToSentry
 import com.kshavrin.mymoney.core.domain.seed.InitialDataSeeder
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -34,13 +35,15 @@ class SplashViewModel
 
         private fun seed() {
             viewModelScope.launch {
-                runCatching { initialDataSeeder.seedIfNeeded(Instant.now()) }
-                    .onSuccess {
-                        _state.value = _state.value.copy(destination = SplashDestination.Onboarding)
-                    }.onFailure { throwable ->
-                        throwable.reportToSentry()
-                        _state.value = _state.value.copy(seedFailed = true)
-                    }
+                try {
+                    initialDataSeeder.seedIfNeeded(Instant.now())
+                    _state.value = _state.value.copy(destination = SplashDestination.Onboarding)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (throwable: Throwable) {
+                    throwable.reportToSentry()
+                    _state.value = _state.value.copy(seedFailed = true)
+                }
             }
         }
     }

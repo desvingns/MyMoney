@@ -350,6 +350,405 @@ class MonefyCsvImportE2ETest {
             csvFile.delete()
         }
 
+    // -----------------------------------------------------------------------
+    // resolveAccountId: name + currency keying (bugfix coverage)
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `currency conflict creates a separate suffixed account and does not mix balances`() =
+        runTest {
+            val context = ApplicationProvider.getApplicationContext<Context>()
+            val now = System.currentTimeMillis()
+
+            val rubId =
+                db.currencyDao().upsert(
+                    CurrencyEntity(
+                        code = "RUB",
+                        symbol = "₽",
+                        name = "Russian Ruble",
+                        decimalDigits = 2,
+                        isActive = true,
+                        sortOrder = 0,
+                    ),
+                )
+            val usdId =
+                db.currencyDao().upsert(
+                    CurrencyEntity(
+                        code = "USD",
+                        symbol = "$",
+                        name = "US Dollar",
+                        decimalDigits = 2,
+                        isActive = true,
+                        sortOrder = 1,
+                    ),
+                )
+
+            db.accountDao().upsert(
+                AccountEntity(
+                    name = "Наличные",
+                    currencyId = rubId,
+                    initialBalance = 0.0,
+                    type = "cash",
+                    colorHex = "#EF5350",
+                    iconKey = "ic_account_cash",
+                    isDefault = true,
+                    sortOrder = 0,
+                    createdAt = now,
+                    updatedAt = now,
+                    isArchived = false,
+                ),
+            )
+            db.categoryDao().upsert(
+                CategoryEntity(
+                    name = "Зарплата",
+                    kind = "income",
+                    iconKey = "ic_cat_other",
+                    colorHex = "#9CCC65",
+                    sortOrder = 0,
+                    isDefault = true,
+                    isArchived = false,
+                    createdAt = now,
+                ),
+            )
+
+            val header = "date,account,category,amount,currency,converted amount,currency,description"
+            val csv =
+                buildString {
+                    append(header).append("\r\n")
+                    append("01/01/2020,Наличные,Зарплата,100,USD,100,USD,\r\n")
+                    append("02/01/2020,Наличные,Зарплата,200,USD,200,USD,\r\n")
+                }
+            val csvFile = File(context.cacheDir, "monefy_currency_conflict_test.csv")
+            csvFile.writeText(csv, Charsets.UTF_8)
+
+            val repo = BackupRepositoryImpl(context, db, Dispatchers.IO)
+            val result = repo.importTransactionsCsv("file://${csvFile.absolutePath}")
+            assertTrue(
+                "Import returned failure: ${result.exceptionOrNull()?.message}",
+                result.isSuccess,
+            )
+
+            val accounts = db.accountDao().observeActive().first()
+            assertEquals(
+                "Expected exactly two accounts: Наличные/RUB and Наличные (USD)/USD",
+                2,
+                accounts.size,
+            )
+
+            val rubAccount = accounts.single { it.currencyId == rubId }
+            assertEquals("Наличные", rubAccount.name)
+
+            val usdAccount = accounts.single { it.currencyId == usdId }
+            assertEquals("Наличные (USD)", usdAccount.name)
+
+            val transactions = db.transactionDao().observeAll().first()
+            assertEquals(2, transactions.size)
+            assertTrue(
+                "All USD-rows must reference the suffixed account, not the RUB account",
+                transactions.all { it.accountId == usdAccount.id },
+            )
+            assertTrue(
+                "No transaction must reference the RUB account",
+                transactions.none { it.accountId == rubAccount.id },
+            )
+
+            csvFile.delete()
+        }
+
+    @Test
+    fun `name and currency match reuses the existing account without creating a duplicate`() =
+        runTest {
+            val context = ApplicationProvider.getApplicationContext<Context>()
+            val now = System.currentTimeMillis()
+
+            val rubId =
+                db.currencyDao().upsert(
+                    CurrencyEntity(
+                        code = "RUB",
+                        symbol = "₽",
+                        name = "Russian Ruble",
+                        decimalDigits = 2,
+                        isActive = true,
+                        sortOrder = 0,
+                    ),
+                )
+
+            val seededAccountId =
+                db.accountDao().upsert(
+                    AccountEntity(
+                        name = "Карта",
+                        currencyId = rubId,
+                        initialBalance = 0.0,
+                        type = "card",
+                        colorHex = "#5C6BC0",
+                        iconKey = "ic_account_cash",
+                        isDefault = false,
+                        sortOrder = 0,
+                        createdAt = now,
+                        updatedAt = now,
+                        isArchived = false,
+                    ),
+                )
+            db.categoryDao().upsert(
+                CategoryEntity(
+                    name = "Продукты",
+                    kind = "expense",
+                    iconKey = "ic_cat_other",
+                    colorHex = "#EF5350",
+                    sortOrder = 0,
+                    isDefault = true,
+                    isArchived = false,
+                    createdAt = now,
+                ),
+            )
+
+            val accountsBefore =
+                db
+                    .accountDao()
+                    .observeActive()
+                    .first()
+                    .size
+
+            val header = "date,account,category,amount,currency,converted amount,currency,description"
+            val csv =
+                buildString {
+                    append(header).append("\r\n")
+                    append("01/01/2020,Карта,Продукты,-500,RUB,-500,RUB,\r\n")
+                    append("02/01/2020,Карта,Продукты,-300,RUB,-300,RUB,\r\n")
+                }
+            val csvFile = File(context.cacheDir, "monefy_name_currency_match_test.csv")
+            csvFile.writeText(csv, Charsets.UTF_8)
+
+            val repo = BackupRepositoryImpl(context, db, Dispatchers.IO)
+            val result = repo.importTransactionsCsv("file://${csvFile.absolutePath}")
+            assertTrue(
+                "Import returned failure: ${result.exceptionOrNull()?.message}",
+                result.isSuccess,
+            )
+
+            val accountsAfter = db.accountDao().observeActive().first()
+            assertEquals(
+                "No new account should be created when name+currency match",
+                accountsBefore,
+                accountsAfter.size,
+            )
+
+            val transactions = db.transactionDao().observeAll().first()
+            assertEquals(2, transactions.size)
+            assertTrue(
+                "All transactions must reference the pre-existing Карта/RUB account",
+                transactions.all { it.accountId == seededAccountId },
+            )
+
+            csvFile.delete()
+        }
+
+    @Test
+    fun `multiple rows for the same new name and currency create the suffixed account exactly once`() =
+        runTest {
+            val context = ApplicationProvider.getApplicationContext<Context>()
+            val now = System.currentTimeMillis()
+
+            val rubId =
+                db.currencyDao().upsert(
+                    CurrencyEntity(
+                        code = "RUB",
+                        symbol = "₽",
+                        name = "Russian Ruble",
+                        decimalDigits = 2,
+                        isActive = true,
+                        sortOrder = 0,
+                    ),
+                )
+            val usdId =
+                db.currencyDao().upsert(
+                    CurrencyEntity(
+                        code = "USD",
+                        symbol = "$",
+                        name = "US Dollar",
+                        decimalDigits = 2,
+                        isActive = true,
+                        sortOrder = 1,
+                    ),
+                )
+
+            db.accountDao().upsert(
+                AccountEntity(
+                    name = "Наличные",
+                    currencyId = rubId,
+                    initialBalance = 0.0,
+                    type = "cash",
+                    colorHex = "#EF5350",
+                    iconKey = "ic_account_cash",
+                    isDefault = true,
+                    sortOrder = 0,
+                    createdAt = now,
+                    updatedAt = now,
+                    isArchived = false,
+                ),
+            )
+            db.categoryDao().upsert(
+                CategoryEntity(
+                    name = "Зарплата",
+                    kind = "income",
+                    iconKey = "ic_cat_other",
+                    colorHex = "#9CCC65",
+                    sortOrder = 0,
+                    isDefault = true,
+                    isArchived = false,
+                    createdAt = now,
+                ),
+            )
+
+            val header = "date,account,category,amount,currency,converted amount,currency,description"
+            val csv =
+                buildString {
+                    append(header).append("\r\n")
+                    append("01/01/2020,Наличные,Зарплата,100,USD,100,USD,\r\n")
+                    append("02/01/2020,Наличные,Зарплата,200,USD,200,USD,\r\n")
+                    append("03/01/2020,Наличные,Зарплата,300,USD,300,USD,\r\n")
+                }
+            val csvFile = File(context.cacheDir, "monefy_single_new_account_test.csv")
+            csvFile.writeText(csv, Charsets.UTF_8)
+
+            val repo = BackupRepositoryImpl(context, db, Dispatchers.IO)
+            val result = repo.importTransactionsCsv("file://${csvFile.absolutePath}")
+            assertTrue(
+                "Import returned failure: ${result.exceptionOrNull()?.message}",
+                result.isSuccess,
+            )
+
+            val accounts = db.accountDao().observeActive().first()
+            assertEquals(
+                "Exactly two accounts expected: Наличные/RUB and Наличные (USD)/USD",
+                2,
+                accounts.size,
+            )
+
+            val usdAccounts = accounts.filter { it.currencyId == usdId }
+            assertEquals(
+                "Наличные (USD) must be created exactly once, not once per row",
+                1,
+                usdAccounts.size,
+            )
+            assertEquals("Наличные (USD)", usdAccounts.single().name)
+
+            val transactions = db.transactionDao().observeAll().first()
+            assertEquals(3, transactions.size)
+            val usdAccountId = usdAccounts.single().id
+            assertTrue(
+                "All three USD transactions must share the single suffixed account",
+                transactions.all { it.accountId == usdAccountId },
+            )
+
+            csvFile.delete()
+        }
+
+    @Test
+    fun `suffixed account name itself normalizes and matches on a subsequent import`() =
+        runTest {
+            val context = ApplicationProvider.getApplicationContext<Context>()
+            val now = System.currentTimeMillis()
+
+            val rubId =
+                db.currencyDao().upsert(
+                    CurrencyEntity(
+                        code = "RUB",
+                        symbol = "₽",
+                        name = "Russian Ruble",
+                        decimalDigits = 2,
+                        isActive = true,
+                        sortOrder = 0,
+                    ),
+                )
+            val usdId =
+                db.currencyDao().upsert(
+                    CurrencyEntity(
+                        code = "USD",
+                        symbol = "$",
+                        name = "US Dollar",
+                        decimalDigits = 2,
+                        isActive = true,
+                        sortOrder = 1,
+                    ),
+                )
+
+            db.accountDao().upsert(
+                AccountEntity(
+                    name = "Наличные",
+                    currencyId = rubId,
+                    initialBalance = 0.0,
+                    type = "cash",
+                    colorHex = "#EF5350",
+                    iconKey = "ic_account_cash",
+                    isDefault = true,
+                    sortOrder = 0,
+                    createdAt = now,
+                    updatedAt = now,
+                    isArchived = false,
+                ),
+            )
+            db.categoryDao().upsert(
+                CategoryEntity(
+                    name = "Зарплата",
+                    kind = "income",
+                    iconKey = "ic_cat_other",
+                    colorHex = "#9CCC65",
+                    sortOrder = 0,
+                    isDefault = true,
+                    isArchived = false,
+                    createdAt = now,
+                ),
+            )
+
+            val header = "date,account,category,amount,currency,converted amount,currency,description"
+            val firstCsv =
+                buildString {
+                    append(header).append("\r\n")
+                    append("01/01/2020,Наличные,Зарплата,100,USD,100,USD,\r\n")
+                }
+            val firstFile = File(context.cacheDir, "monefy_nfc_first.csv")
+            firstFile.writeText(firstCsv, Charsets.UTF_8)
+
+            val repo = BackupRepositoryImpl(context, db, Dispatchers.IO)
+            repo.importTransactionsCsv("file://${firstFile.absolutePath}")
+
+            val accountsBetween = db.accountDao().observeActive().first()
+            assertEquals(2, accountsBetween.size)
+
+            val secondCsv =
+                buildString {
+                    append(header).append("\r\n")
+                    append("04/01/2020,Наличные,Зарплата,50,USD,50,USD,\r\n")
+                }
+            val secondFile = File(context.cacheDir, "monefy_nfc_second.csv")
+            secondFile.writeText(secondCsv, Charsets.UTF_8)
+
+            val result2 = repo.importTransactionsCsv("file://${secondFile.absolutePath}")
+            assertTrue(
+                "Second import returned failure: ${result2.exceptionOrNull()?.message}",
+                result2.isSuccess,
+            )
+
+            val accountsAfter = db.accountDao().observeActive().first()
+            assertEquals(
+                "Second import of same name+currency must reuse Наличные (USD), not create a third account",
+                2,
+                accountsAfter.size,
+            )
+
+            val transactions = db.transactionDao().observeAll().first()
+            assertEquals(2, transactions.size)
+            val usdAccount = accountsAfter.single { it.currencyId == usdId }
+            assertTrue(
+                "Both USD transactions must point to the same suffixed account",
+                transactions.all { it.accountId == usdAccount.id },
+            )
+
+            firstFile.delete()
+            secondFile.delete()
+        }
+
     @Test
     fun monefy_csv_import_category_kind_aware_same_name_expense_and_income_create_separate_entries() =
         runTest {

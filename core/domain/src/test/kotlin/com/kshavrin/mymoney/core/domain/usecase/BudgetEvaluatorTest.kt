@@ -102,6 +102,17 @@ class BudgetEvaluatorTest {
     }
 
     @Test
+    fun zero_spent_is_under() {
+        val snapshot = snapshot(expense = "0.00", byCategory = mapOf(100L to "0.00"))
+        val budgets =
+            listOf(
+                Budget(1L, 100L, "month", Instant.EPOCH, BigDecimal("10000000.00"), 1L, alertThresholdPct = 80, isActive = true),
+            )
+        val result = BudgetEvaluator().evaluate(snapshot, budgets)
+        assertEquals(BudgetState.Under, result[0].state)
+    }
+
+    @Test
     fun non_positive_limit_is_not_evaluated() {
         val snapshot = snapshot(expense = "50.00", byCategory = mapOf(100L to "50.00"))
         val budgets =

@@ -657,4 +657,106 @@ class TransactionsListViewModelTest {
             cancelAndIgnoreRemainingEvents()
         }
     }
+
+    // ----- Reactivity / observeRecent tests -----
+
+    @Test
+    fun `table change triggers reload and updated group total is reflected in state`() = runTest {
+        val initialFood = foodGroup.copy(total = BigDecimal("100.00"))
+        transactionRepo.seedCategoryGroups(initialFood)
+        val viewModel = buildViewModel()
+
+        viewModel.state.test {
+            val before = expectMostRecentItem()
+            assertEquals(0, BigDecimal("100.00").compareTo(before.groups.single { it.categoryId == 10L }.total.amount))
+
+            val updatedFood = foodGroup.copy(total = BigDecimal("250.00"))
+            transactionRepo.updateCategoryGroups(updatedFood)
+            transactionRepo.triggerRecentChange()
+
+            val after = awaitItem()
+            assertEquals(0, BigDecimal("250.00").compareTo(after.groups.single { it.categoryId == 10L }.total.amount))
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `drop(1) contract — initial observeRecent emission does not produce a duplicate loaded state`() = runTest {
+        transactionRepo.seedCategoryGroups(foodGroup)
+        val viewModel = buildViewModel()
+
+        viewModel.state.test {
+            val loaded = expectMostRecentItem()
+            assertFalse(loaded.isLoading)
+            assertEquals(listOf(10L), loaded.groups.map { it.categoryId })
+            expectNoEvents()
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `filter and expanded groups survive a table-change reload`() = runTest {
+        transactionRepo.seedCategoryGroups(cashAccount.id, foodGroup, salaryGroup)
+        transactionRepo.seedPeriodTransactions(
+            cashAccount.id,
+            tx(1L, 10L, TransactionKind.Expense, BigDecimal("10.00"), now),
+        )
+        val viewModel = buildViewModel(handleOf(categoryId = 10L))
+
+        viewModel.state.test {
+            val before = expectMostRecentItem()
+            assertEquals(10L, before.categoryId)
+            assertEquals(setOf(10L), before.expandedCategoryIds)
+            assertEquals(0, BigDecimal("30.00").compareTo(before.groups.single { it.categoryId == 10L }.total.amount))
+
+            // Mutate the account-keyed category groups so the reload produces a structurally
+            // different state; a purely equal reload would be swallowed by the conflating StateFlow.
+            val updatedFood = foodGroup.copy(total = BigDecimal("75.00"))
+            transactionRepo.updateCategoryGroups(cashAccount.id, updatedFood, salaryGroup)
+            transactionRepo.triggerRecentChange()
+
+            val after = awaitItem()
+            // Sub-state preserved: category filter and expanded set intact.
+            assertEquals(10L, after.categoryId)
+            assertEquals(setOf(10L), after.expandedCategoryIds)
+            // Data actually refreshed: the new food total is visible.
+            assertEquals(0, BigDecimal("75.00").compareTo(after.groups.single { it.categoryId == 10L }.total.amount))
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `active Transfers tab survives a table-change reload`() = runTest {
+        transactionRepo.seedCategoryGroups(foodGroup)
+        val viewModel = buildViewModel()
+
+        viewModel.state.test {
+            expectMostRecentItem()
+
+            viewModel.onEvent(TransactionsListEvent.TabSelected(RecordsTab.Transfers))
+            assertEquals(RecordsTab.Transfers, awaitItem().activeTab)
+
+            // Mutate the transfers list so the reload produces a structurally different state;
+            // a purely equal reload would be swallowed by the conflating StateFlow.
+            val newTransfer = TransferRow(
+                id = 11L,
+                fromAccountName = "Cash",
+                toAccountName = "Card",
+                amount = BigDecimal("150.00"),
+                toAmount = null,
+                currencyId = usd.id,
+                occurredAt = now,
+            )
+            transactionRepo.updateTransfers(newTransfer)
+            transactionRepo.triggerRecentChange()
+
+            val afterReload = awaitItem()
+            // Sub-state preserved: active tab is still Transfers.
+            assertEquals(RecordsTab.Transfers, afterReload.activeTab)
+            // Data actually refreshed: the new transfer is visible.
+            assertEquals(1, afterReload.transfers.size)
+            assertEquals(11L, afterReload.transfers.single().id)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
 }

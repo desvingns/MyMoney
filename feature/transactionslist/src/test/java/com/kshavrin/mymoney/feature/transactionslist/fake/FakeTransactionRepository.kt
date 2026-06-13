@@ -9,9 +9,11 @@ import com.kshavrin.mymoney.core.domain.repository.CategorySummary
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
 import com.kshavrin.mymoney.core.domain.repository.TransferRow
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.merge
 import java.time.Instant
 
 /**
@@ -43,6 +45,14 @@ class FakeTransactionRepository : TransactionRepository {
     val searchCalls: MutableList<Pair<String, Int>> = mutableListOf()
 
     private val page = MutableStateFlow<List<Transaction>>(emptyList())
+
+    /**
+     * Extra change-signal channel for [observeRecent].  Allows tests to push a distinct emission
+     * without relying on structural-equality differences in [page].  Call [triggerRecentChange]
+     * to emit one item here; [observeRecent] merges both sources so the ViewModel's
+     * `drop(1).collect { reload() }` fires.
+     */
+    private val recentChangeTrigger = MutableSharedFlow<List<Transaction>>(extraBufferCapacity = 1)
 
     private var categoryGroups: List<CategoryGroup> = emptyList()
     private var periodTransactions: List<Transaction>? = null
@@ -93,6 +103,41 @@ class FakeTransactionRepository : TransactionRepository {
         searchResults = items.toList()
     }
 
+    /**
+     * Simulates a DB table-change notification arriving on [observeRecent].
+     * Emits a value on the dedicated [recentChangeTrigger] shared flow so the ViewModel's
+     * `drop(1).collect { reload() }` fires even when [page] contents are structurally unchanged.
+     */
+    fun triggerRecentChange() {
+        recentChangeTrigger.tryEmit(page.value)
+    }
+
+    /**
+     * Replaces the default (non-account-keyed) category groups after initial seeding so that the
+     * next reload picks up the updated totals.  Used to verify reactivity: seed, init VM, update
+     * groups, trigger, assert new amounts.
+     */
+    fun updateCategoryGroups(vararg groups: CategoryGroup) {
+        categoryGroups = groups.toList()
+    }
+
+    /**
+     * Replaces the account-keyed category groups after initial seeding so that the next reload
+     * picks up the updated totals.  Needed when the ViewModel was built with an accountId filter
+     * and the fake was seeded via [seedCategoryGroups(accountId, ...)].
+     */
+    fun updateCategoryGroups(accountId: Long, vararg groups: CategoryGroup) {
+        categoryGroupsByAccount[accountId] = groups.toList()
+    }
+
+    /**
+     * Replaces the non-account-keyed transfers list after initial seeding so that the next
+     * reload produces a structurally different state.
+     */
+    fun updateTransfers(vararg rows: TransferRow) {
+        transfers = rows.toList()
+    }
+
     /** Makes the next (and subsequent) [searchByNote] calls throw, to drive the Error state. */
     fun failSearchWith(error: Throwable = RuntimeException("search boom")) {
         searchError = error
@@ -108,7 +153,8 @@ class FakeTransactionRepository : TransactionRepository {
         return flowOf(PagingData.from(page.value))
     }
 
-    override fun observeRecent(limit: Int): Flow<List<Transaction>> = page.asStateFlow()
+    override fun observeRecent(limit: Int): Flow<List<Transaction>> =
+        merge(page.asStateFlow(), recentChangeTrigger)
     override fun observeAll(): Flow<List<Transaction>> = page.asStateFlow()
     override suspend fun findById(id: Long): Transaction? = page.value.firstOrNull { it.id == id }
     override suspend fun findByPeriod(accountId: Long, period: Period): List<Transaction> =

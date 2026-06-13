@@ -327,7 +327,7 @@ class BackupRepositoryImpl
 
             val now = Instant.now()
             val currenciesByCode = mutableMapOf<String, Long>()
-            val accountsByName = mutableMapOf<String, Long>()
+            val accountsByNameCurrency = mutableMapOf<Pair<String, Long>, Long>()
             val categoriesByNameKind = mutableMapOf<Pair<String, CategoryKind>, Long>()
             var latestImportFocus: CsvImportFocus? = null
 
@@ -348,7 +348,10 @@ class BackupRepositoryImpl
                         .first()
                         .map { it.toDomain() }
                 existingAccounts.forEach { account ->
-                    accountsByName.putIfAbsent(MonefyCsvImportParser.normalizeName(account.name), account.id)
+                    accountsByNameCurrency.putIfAbsent(
+                        MonefyCsvImportParser.normalizeName(account.name) to account.currencyId,
+                        account.id,
+                    )
                 }
                 var accountSortOrder = (existingAccounts.maxOfOrNull { it.sortOrder } ?: -1) + 1
 
@@ -371,13 +374,20 @@ class BackupRepositoryImpl
                 suspend fun resolveAccountId(
                     name: String,
                     currencyId: Long,
+                    currencyCode: String,
                 ): Long {
-                    val key = MonefyCsvImportParser.normalizeName(name)
-                    accountsByName[key]?.let { return it }
+                    val normalized = MonefyCsvImportParser.normalizeName(name)
+                    val nameMatchesOtherCurrency =
+                        accountsByNameCurrency.keys.any { (existingName, existingCurrencyId) ->
+                            existingName == normalized && existingCurrencyId != currencyId
+                        }
+                    val accountName = if (nameMatchesOtherCurrency) "${name.trim()} ($currencyCode)" else name.trim()
+                    val key = MonefyCsvImportParser.normalizeName(accountName) to currencyId
+                    accountsByNameCurrency[key]?.let { return it }
                     val account =
                         Account(
                             id = 0L,
-                            name = name.trim(),
+                            name = accountName,
                             currencyId = currencyId,
                             initialBalance = BigDecimal.ZERO,
                             type = AccountType.Cash,
@@ -389,7 +399,7 @@ class BackupRepositoryImpl
                             updatedAt = now,
                             isArchived = false,
                         )
-                    return database.accountDao().upsert(account.toEntity()).also { accountsByName[key] = it }
+                    return database.accountDao().upsert(account.toEntity()).also { accountsByNameCurrency[key] = it }
                 }
 
                 suspend fun resolveCategoryId(
@@ -415,7 +425,7 @@ class BackupRepositoryImpl
 
                 rows.forEach { row ->
                     val currencyId = resolveCurrencyId(row.currencyCode)
-                    val accountId = resolveAccountId(row.accountName, currencyId)
+                    val accountId = resolveAccountId(row.accountName, currencyId, row.currencyCode)
                     val categoryKind =
                         when (row.kind) {
                             TransactionKind.Expense -> CategoryKind.Expense

@@ -26,6 +26,7 @@ import com.kshavrin.mymoney.core.domain.repository.CategoryGroup
 import com.kshavrin.mymoney.core.domain.repository.CategorySummary
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
+import com.kshavrin.mymoney.core.domain.time.PeriodArithmetic
 import com.kshavrin.mymoney.core.domain.usecase.BalanceCalculator
 import com.kshavrin.mymoney.core.domain.usecase.BudgetEvaluator
 import com.kshavrin.mymoney.core.domain.usecase.ObserveBudgetAlertsUseCase
@@ -931,7 +932,17 @@ class DashboardViewModelTest {
 
             runCurrent()
 
-            assertEquals(listOf(DashboardAction.NavigateTransactionsByAccount(cash.id)), actions)
+            val expectedRange = PeriodArithmetic.toEpochMillisRange(initialPeriod)
+            assertEquals(
+                listOf(
+                    DashboardAction.NavigateTransactionsByAccount(
+                        accountId = cash.id,
+                        fromMillis = expectedRange.first,
+                        toMillis = expectedRange.last,
+                    ),
+                ),
+                actions,
+            )
         } finally {
             collector.cancel()
             store.clear()
@@ -977,8 +988,17 @@ class DashboardViewModelTest {
 
             runCurrent()
 
+            val expectedRange = PeriodArithmetic.toEpochMillisRange(initialPeriod)
             assertEquals(
-                listOf(DashboardAction.NavigateTransactionsByCategory(cash.id, usd.id, 77L)),
+                listOf(
+                    DashboardAction.NavigateTransactionsByCategory(
+                        accountId = cash.id,
+                        currencyId = usd.id,
+                        categoryId = 77L,
+                        fromMillis = expectedRange.first,
+                        toMillis = expectedRange.last,
+                    ),
+                ),
                 actions,
             )
         } finally {
@@ -1006,13 +1026,216 @@ class DashboardViewModelTest {
 
             runCurrent()
 
+            val expectedRange = PeriodArithmetic.toEpochMillisRange(initialPeriod)
             assertEquals(
                 listOf(
-                    DashboardAction.NavigateTransactionsByCurrency(usd.id),
-                    DashboardAction.NavigateTransactionsByCategory(accountId = null, currencyId = usd.id, categoryId = 77L),
+                    DashboardAction.NavigateTransactionsByCurrency(
+                        currencyId = usd.id,
+                        fromMillis = expectedRange.first,
+                        toMillis = expectedRange.last,
+                    ),
+                    DashboardAction.NavigateTransactionsByCategory(
+                        accountId = null,
+                        currencyId = usd.id,
+                        categoryId = 77L,
+                        fromMillis = expectedRange.first,
+                        toMillis = expectedRange.last,
+                    ),
                 ),
                 actions,
             )
+        } finally {
+            collector.cancel()
+            store.clear()
+            runCurrent()
+        }
+    }
+
+    @Test
+    fun `balance card on Year period carries epoch-millis range for that year`() = runTest {
+        val yearPeriod = Period.Year(2026)
+        val (viewModel, store) = buildViewModel()
+        val actions = mutableListOf<DashboardAction>()
+        val collector = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.actions.toList(actions)
+        }
+
+        try {
+            runCurrent()
+
+            viewModel.onEvent(DashboardEvent.PeriodChanged(yearPeriod))
+            runCurrent()
+
+            viewModel.onEvent(DashboardEvent.BalanceCardClicked)
+            runCurrent()
+
+            val expectedRange = PeriodArithmetic.toEpochMillisRange(yearPeriod)
+            assertEquals(1, actions.size)
+            val action = actions.single() as DashboardAction.NavigateTransactionsByAccount
+            assertEquals(cash.id, action.accountId)
+            assertEquals(expectedRange.first, action.fromMillis)
+            assertEquals(expectedRange.last, action.toMillis)
+        } finally {
+            collector.cancel()
+            store.clear()
+            runCurrent()
+        }
+    }
+
+    @Test
+    fun `balance card on CustomRange period carries exact custom epoch-millis range`() = runTest {
+        val customRange = Period.CustomRange(
+            start = LocalDate.of(2026, 3, 1),
+            end = LocalDate.of(2026, 3, 15),
+        )
+        val (viewModel, store) = buildViewModel()
+        val actions = mutableListOf<DashboardAction>()
+        val collector = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.actions.toList(actions)
+        }
+
+        try {
+            runCurrent()
+
+            viewModel.onEvent(DashboardEvent.PeriodChanged(customRange))
+            runCurrent()
+
+            viewModel.onEvent(DashboardEvent.BalanceCardClicked)
+            runCurrent()
+
+            val expectedRange = PeriodArithmetic.toEpochMillisRange(customRange)
+            assertEquals(1, actions.size)
+            val action = actions.single() as DashboardAction.NavigateTransactionsByAccount
+            assertEquals(cash.id, action.accountId)
+            assertEquals(expectedRange.first, action.fromMillis)
+            assertEquals(expectedRange.last, action.toMillis)
+        } finally {
+            collector.cancel()
+            store.clear()
+            runCurrent()
+        }
+    }
+
+    @Test
+    fun `slice click on Year period carries epoch-millis range for that year`() = runTest {
+        val yearPeriod = Period.Year(2026)
+        val (viewModel, store) = buildViewModel()
+        val actions = mutableListOf<DashboardAction>()
+        val collector = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.actions.toList(actions)
+        }
+
+        try {
+            runCurrent()
+
+            viewModel.onEvent(DashboardEvent.PeriodChanged(yearPeriod))
+            runCurrent()
+
+            viewModel.onEvent(DashboardEvent.SliceClicked(categoryId = 42L))
+            runCurrent()
+
+            val expectedRange = PeriodArithmetic.toEpochMillisRange(yearPeriod)
+            assertEquals(1, actions.size)
+            val action = actions.single() as DashboardAction.NavigateTransactionsByCategory
+            assertEquals(cash.id, action.accountId)
+            assertEquals(usd.id, action.currencyId)
+            assertEquals(42L, action.categoryId)
+            assertEquals(expectedRange.first, action.fromMillis)
+            assertEquals(expectedRange.last, action.toMillis)
+        } finally {
+            collector.cancel()
+            store.clear()
+            runCurrent()
+        }
+    }
+
+    @Test
+    fun `slice click on CustomRange period carries exact custom epoch-millis range`() = runTest {
+        val customRange = Period.CustomRange(
+            start = LocalDate.of(2026, 5, 10),
+            end = LocalDate.of(2026, 5, 20),
+        )
+        val (viewModel, store) = buildViewModel()
+        val actions = mutableListOf<DashboardAction>()
+        val collector = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.actions.toList(actions)
+        }
+
+        try {
+            runCurrent()
+
+            viewModel.onEvent(DashboardEvent.PeriodChanged(customRange))
+            runCurrent()
+
+            viewModel.onEvent(DashboardEvent.SliceClicked(categoryId = 55L))
+            runCurrent()
+
+            val expectedRange = PeriodArithmetic.toEpochMillisRange(customRange)
+            assertEquals(1, actions.size)
+            val action = actions.single() as DashboardAction.NavigateTransactionsByCategory
+            assertEquals(cash.id, action.accountId)
+            assertEquals(usd.id, action.currencyId)
+            assertEquals(55L, action.categoryId)
+            assertEquals(expectedRange.first, action.fromMillis)
+            assertEquals(expectedRange.last, action.toMillis)
+        } finally {
+            collector.cancel()
+            store.clear()
+            runCurrent()
+        }
+    }
+
+    @Test
+    fun `slice click on OTHER_CATEGORY_ID guard does not emit navigation even when period is non-default`() = runTest {
+        val yearPeriod = Period.Year(2026)
+        val (viewModel, store) = buildViewModel()
+        val actions = mutableListOf<DashboardAction>()
+        val collector = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.actions.toList(actions)
+        }
+
+        try {
+            runCurrent()
+
+            viewModel.onEvent(DashboardEvent.PeriodChanged(yearPeriod))
+            runCurrent()
+
+            viewModel.onEvent(DashboardEvent.SliceClicked(OTHER_CATEGORY_ID))
+            runCurrent()
+
+            assertTrue(actions.isEmpty())
+        } finally {
+            collector.cancel()
+            store.clear()
+            runCurrent()
+        }
+    }
+
+    @Test
+    fun `all accounts balance card on Year period carries epoch-millis range and no account id`() = runTest {
+        val yearPeriod = Period.Year(2026)
+        val (viewModel, store) = buildViewModel()
+        val actions = mutableListOf<DashboardAction>()
+        val collector = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.actions.toList(actions)
+        }
+
+        try {
+            runCurrent()
+
+            viewModel.onEvent(DashboardEvent.AllAccountsSelected)
+            viewModel.onEvent(DashboardEvent.PeriodChanged(yearPeriod))
+            runCurrent()
+
+            viewModel.onEvent(DashboardEvent.BalanceCardClicked)
+            runCurrent()
+
+            val expectedRange = PeriodArithmetic.toEpochMillisRange(yearPeriod)
+            assertEquals(1, actions.size)
+            val action = actions.single() as DashboardAction.NavigateTransactionsByCurrency
+            assertEquals(usd.id, action.currencyId)
+            assertEquals(expectedRange.first, action.fromMillis)
+            assertEquals(expectedRange.last, action.toMillis)
         } finally {
             collector.cancel()
             store.clear()

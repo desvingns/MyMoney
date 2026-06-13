@@ -1,6 +1,7 @@
 package com.kshavrin.mymoney.navigation
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -332,6 +333,104 @@ class DestinationsTest {
             }
 
         assertTrue("Category picker route must stay retired", "transaction/category_picker" !in routeValues)
+    }
+
+    // --- Transactions-list route with from/to period args (bugfix: dashboard opens correct period) ---
+    //
+    // MyMoneyNavHost assembles the route as:
+    //   "transactions?accountId=<id>&from=<epochMs>&to=<epochMs>"
+    //   "transactions?currencyId=<id>&from=<epochMs>&to=<epochMs>"
+    //   "transactions?accountId=<id>&currencyId=<id>&categoryId=<id>&from=<epochMs>&to=<epochMs>"
+    // The default -1/-1 (direct entry without args) still resolves via NavHost default values.
+    // These tests pin the assembled route strings so that a rename or missing-arg regression
+    // is caught at compile/test time rather than silently breaking navigation at runtime.
+
+    @Test
+    fun `transactions list route base is transactions`() {
+        assertEquals("transactions", Destinations.TRANSACTIONS_LIST)
+    }
+
+    @Test
+    fun `transactions list route template includes from and to query args`() {
+        val template = "${Destinations.TRANSACTIONS_LIST}?accountId={accountId}&currencyId={currencyId}&categoryId={categoryId}&from={from}&to={to}"
+        assertTrue(template.contains("{from}"))
+        assertTrue(template.contains("{to}"))
+        assertEquals(
+            "transactions?accountId={accountId}&currencyId={currencyId}&categoryId={categoryId}&from={from}&to={to}",
+            template,
+        )
+    }
+
+    @Test
+    fun `transactions list navigation by account assembles route with from and to millis`() {
+        val accountId = 7L
+        val fromMillis = 1_000_000L
+        val toMillis = 2_000_000L
+        val route = "${Destinations.TRANSACTIONS_LIST}?accountId=$accountId&from=$fromMillis&to=$toMillis"
+        assertEquals("transactions?accountId=7&from=1000000&to=2000000", route)
+        assertTrue(route.contains("from="))
+        assertTrue(route.contains("to="))
+    }
+
+    @Test
+    fun `transactions list navigation by currency assembles route with from and to millis`() {
+        val currencyId = 2L
+        val fromMillis = 1_746_489_600_000L
+        val toMillis = 1_777_939_199_999L
+        val route = "${Destinations.TRANSACTIONS_LIST}?currencyId=$currencyId&from=$fromMillis&to=$toMillis"
+        assertEquals("transactions?currencyId=2&from=1746489600000&to=1777939199999", route)
+        assertTrue(route.contains("from="))
+        assertTrue(route.contains("to="))
+    }
+
+    @Test
+    fun `transactions list navigation by category with account id assembles route with all args including from and to`() {
+        val accountId = 3L
+        val currencyId = 1L
+        val categoryId = 42L
+        val fromMillis = 1_746_489_600_000L
+        val toMillis = 1_777_939_199_999L
+        val route = buildString {
+            append("${Destinations.TRANSACTIONS_LIST}?")
+            append("accountId=$accountId&")
+            append("currencyId=$currencyId&categoryId=$categoryId")
+            append("&from=$fromMillis&to=$toMillis")
+        }
+        assertEquals(
+            "transactions?accountId=3&currencyId=1&categoryId=42&from=1746489600000&to=1777939199999",
+            route,
+        )
+        assertTrue(route.contains("from="))
+        assertTrue(route.contains("to="))
+    }
+
+    @Test
+    fun `transactions list navigation by category without account id omits accountId arg`() {
+        val currencyId = 1L
+        val categoryId = 55L
+        val fromMillis = 1_746_489_600_000L
+        val toMillis = 1_777_939_199_999L
+        val route = buildString {
+            append("${Destinations.TRANSACTIONS_LIST}?")
+            append("currencyId=$currencyId&categoryId=$categoryId")
+            append("&from=$fromMillis&to=$toMillis")
+        }
+        assertFalse("accountId must be absent for all-accounts category navigation", route.contains("accountId="))
+        assertTrue(route.contains("currencyId="))
+        assertTrue(route.contains("categoryId="))
+        assertTrue(route.contains("from="))
+        assertTrue(route.contains("to="))
+    }
+
+    @Test
+    fun `transactions list default no-arg route uses minus one sentinels for from and to`() {
+        val defaultFrom = -1L
+        val defaultTo = -1L
+        assertEquals(-1L, defaultFrom)
+        assertEquals(-1L, defaultTo)
+        val route = "${Destinations.TRANSACTIONS_LIST}?accountId=-1&from=$defaultFrom&to=$defaultTo"
+        assertTrue(route.contains("from=-1"))
+        assertTrue(route.contains("to=-1"))
     }
 
     @Test

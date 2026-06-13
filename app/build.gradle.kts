@@ -65,8 +65,6 @@ android {
             "SYNC_DISABLED",
             (providers.gradleProperty("sync.enabled").orNull != "true").toString(),
         )
-        // Temporary skip of the 4-slide tutorial; re-enabled later by flipping to true.
-        buildConfigField("boolean", "SHOW_ONBOARDING", "false")
     }
 
     signingConfigs {
@@ -82,6 +80,8 @@ android {
 
     buildTypes {
         debug {
+            // Dev convenience: skip the 4-slide tutorial on debug installs.
+            buildConfigField("boolean", "SHOW_ONBOARDING", "false")
         }
         release {
             isMinifyEnabled = true
@@ -90,6 +90,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            buildConfigField("boolean", "SHOW_ONBOARDING", "true")
             if (hasReleaseSigningConfig) {
                 signingConfig = signingConfigs.getByName("release")
             }

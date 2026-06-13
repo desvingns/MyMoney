@@ -4,6 +4,20 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.kover)
+}
+
+kover {
+    reports {
+        verify {
+            rule {
+                bound {
+                    minValue = 4
+                    coverageUnits = kotlinx.kover.gradle.plugin.dsl.CoverageUnit.LINE
+                }
+            }
+        }
+    }
 }
 
 android {

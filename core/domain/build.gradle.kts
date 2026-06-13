@@ -1,10 +1,24 @@
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.kover)
 }
 
 kotlin {
     jvmToolchain(17)
+}
+
+kover {
+    reports {
+        verify {
+            rule {
+                bound {
+                    minValue = 80
+                    coverageUnits = kotlinx.kover.gradle.plugin.dsl.CoverageUnit.LINE
+                }
+            }
+        }
+    }
 }
 
 dependencies {

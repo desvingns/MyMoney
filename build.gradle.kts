@@ -12,10 +12,26 @@ plugins {
     alias(libs.plugins.hilt) apply false
     alias(libs.plugins.gms.google.services) apply false
     alias(libs.plugins.gms.oss.licenses) apply false
+    alias(libs.plugins.kover)
 }
 
 subprojects {
     tasks.withType<KotlinCompile>().configureEach {
         compilerOptions.jvmTarget.set(JvmTarget.JVM_17)
+    }
+}
+
+dependencies {
+    kover(project(":core:domain"))
+    kover(project(":core:database"))
+    kover(project(":core:datastore"))
+}
+
+kover {
+    reports {
+        total {
+            html { onCheck = false }
+            xml { onCheck = false }
+        }
     }
 }

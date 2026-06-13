@@ -73,6 +73,7 @@ class GoalEditViewModel
                                 downPayment = existing.downPayment?.toPlainString().orEmpty(),
                                 termYears = existing.termMonths?.let { (it / 12).toString() }.orEmpty(),
                                 isCreateMode = false,
+                                createdAt = existing.createdAt,
                                 advancedContribution = breakdown.enabled,
                                 incomeRows = breakdown.incomes.map { it.toRowUi() },
                                 expenseRows = breakdown.expenses.map { it.toRowUi() },
@@ -106,11 +107,11 @@ class GoalEditViewModel
                     recompute()
                 }
                 is GoalEditEvent.RateChanged -> {
-                    _state.value = _state.value.copy(annualRatePercent = event.value)
+                    _state.value = _state.value.copy(annualRatePercent = event.value, errorMessage = null)
                     recompute()
                 }
                 is GoalEditEvent.DownPaymentChanged -> {
-                    _state.value = _state.value.copy(downPayment = event.value)
+                    _state.value = _state.value.copy(downPayment = event.value, errorMessage = null)
                     recompute()
                 }
                 is GoalEditEvent.TermYearsChanged -> {
@@ -120,15 +121,15 @@ class GoalEditViewModel
                 is GoalEditEvent.AccountSelected ->
                     viewModelScope.launch { selectAccount(event.id) }
                 is GoalEditEvent.StartingCapitalChanged -> {
-                    _state.value = _state.value.copy(startingCapital = event.value)
+                    _state.value = _state.value.copy(startingCapital = event.value, errorMessage = null)
                     recompute()
                 }
                 is GoalEditEvent.MonthlyChanged -> {
-                    _state.value = _state.value.copy(monthlyContribution = event.value)
+                    _state.value = _state.value.copy(monthlyContribution = event.value, errorMessage = null)
                     recompute()
                 }
                 is GoalEditEvent.TargetChanged -> {
-                    _state.value = _state.value.copy(targetAmount = event.value)
+                    _state.value = _state.value.copy(targetAmount = event.value, errorMessage = null)
                     recompute()
                 }
                 is GoalEditEvent.AdvancedToggled -> {
@@ -318,6 +319,22 @@ class GoalEditViewModel
             val s = _state.value
             if (!s.canSave) return
             val isCredit = s.variant == GoalVariant.CREDIT
+
+            val targetAmount = s.targetAmount.parseMoneyOrNull()
+            val startingCapital = s.startingCapital.parseMoneyOrNull()
+            val monthlyContribution = s.monthlyContribution.parseMoneyOrNull()
+            val annualRatePercent = if (isCredit) s.annualRatePercent.parseMoneyOrNull() else null
+            val downPayment = if (isCredit) s.downPayment.parseMoneyOrNull() else null
+            if (targetAmount == null ||
+                startingCapital == null ||
+                monthlyContribution == null ||
+                (isCredit && annualRatePercent == null) ||
+                (isCredit && downPayment == null)
+            ) {
+                _state.value = s.copy(errorMessage = "amount_format")
+                return
+            }
+
             _state.value = s.copy(isSaving = true)
             viewModelScope.launch {
                 try {
@@ -330,11 +347,11 @@ class GoalEditViewModel
                             colorHex = s.colorHex,
                             accountId = s.accountId,
                             variant = s.variant,
-                            targetAmount = s.targetAmount.parseMoney(),
-                            startingCapital = s.startingCapital.parseMoney(),
-                            monthlyContribution = s.monthlyContribution.parseMoney(),
-                            annualRatePercent = if (isCredit) s.annualRatePercent.parseMoney() else null,
-                            downPayment = if (isCredit) s.downPayment.parseMoney() else null,
+                            targetAmount = targetAmount,
+                            startingCapital = startingCapital,
+                            monthlyContribution = monthlyContribution,
+                            annualRatePercent = annualRatePercent,
+                            downPayment = downPayment,
                             termMonths =
                                 if (isCredit) {
                                     s.termYears
@@ -344,7 +361,7 @@ class GoalEditViewModel
                                 } else {
                                     null
                                 },
-                            createdAt = now,
+                            createdAt = s.createdAt ?: now,
                             updatedAt = now,
                             isArchived = false,
                             contributionBreakdown = s.toBreakdown(),
@@ -358,8 +375,11 @@ class GoalEditViewModel
         }
     }
 
+private fun String.parseMoneyOrNull(): BigDecimal? =
+    trim().replace(',', '.').toBigDecimalOrNull()
+
 private fun String.parseMoney(): BigDecimal =
-    trim().toBigDecimalOrNull() ?: BigDecimal.ZERO
+    parseMoneyOrNull() ?: BigDecimal.ZERO
 
 private fun ContributionItem.toRowUi(): ContributionRowUi =
     ContributionRowUi(name = name, amount = amount.toPlainString())
@@ -423,6 +443,8 @@ data class GoalEditState(
     val incomeRows: List<ContributionRowUi> = emptyList(),
     val expenseRows: List<ContributionRowUi> = emptyList(),
     val isSaving: Boolean = false,
+    val errorMessage: String? = null,
+    val createdAt: Instant? = null,
 )
 
 data class ContributionRowUi(

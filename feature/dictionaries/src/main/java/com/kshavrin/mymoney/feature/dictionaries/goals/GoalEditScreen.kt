@@ -211,11 +211,14 @@ fun GoalEditContent(
 
             Text(text = stringResource(R.string.goal_current_balance, state.currentBalanceFormatted))
 
+            val amountError = state.errorMessage == "amount_format"
+
             OutlinedTextField(
                 value = state.startingCapital,
                 onValueChange = { onEvent(GoalEditEvent.StartingCapitalChanged(it)) },
                 label = { Text(stringResource(R.string.goal_starting_capital)) },
                 singleLine = true,
+                isError = amountError,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -237,6 +240,7 @@ fun GoalEditContent(
                 label = { Text(stringResource(R.string.goal_monthly_contribution)) },
                 singleLine = true,
                 readOnly = state.advancedContribution,
+                isError = amountError,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -286,9 +290,18 @@ fun GoalEditContent(
                 onValueChange = { onEvent(GoalEditEvent.TargetChanged(it)) },
                 label = { Text(stringResource(R.string.goal_target_amount)) },
                 singleLine = true,
+                isError = amountError,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth(),
             )
+
+            if (amountError) {
+                Text(
+                    text = stringResource(R.string.goal_error_amount_format),
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
 
             state.savingsProjection?.let { projection ->
                 val text =
@@ -329,11 +342,14 @@ private fun CreditFields(
     state: GoalEditState,
     onEvent: (GoalEditEvent) -> Unit,
 ) {
+    val amountError = state.errorMessage == "amount_format"
+
     OutlinedTextField(
         value = state.annualRatePercent,
         onValueChange = { onEvent(GoalEditEvent.RateChanged(it)) },
         label = { Text(stringResource(R.string.goal_interest_rate)) },
         singleLine = true,
+        isError = amountError,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
         modifier = Modifier.fillMaxWidth(),
     )
@@ -343,6 +359,7 @@ private fun CreditFields(
         onValueChange = { onEvent(GoalEditEvent.DownPaymentChanged(it)) },
         label = { Text(stringResource(R.string.goal_down_payment)) },
         singleLine = true,
+        isError = amountError,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
         modifier = Modifier.fillMaxWidth(),
     )

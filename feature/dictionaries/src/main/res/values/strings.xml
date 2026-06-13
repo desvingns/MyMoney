@@ -87,6 +87,7 @@
     <string name="goal_total_interest">Total interest: %1$s</string>
     <string name="goal_total_paid">Total paid: %1$s</string>
     <string name="goal_underfunded">The monthly contribution is below the required payment</string>
+    <string name="goal_error_amount_format">Amounts must be valid numbers</string>
     <string name="goal_save">Save</string>
     <string name="goal_advanced_contribution">Advanced monthly-contribution settings</string>
     <string name="goal_monthly_income">Monthly income</string>

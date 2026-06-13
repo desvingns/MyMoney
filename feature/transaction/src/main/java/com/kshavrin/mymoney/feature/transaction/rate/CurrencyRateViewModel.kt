@@ -75,7 +75,7 @@ class CurrencyRateViewModel
         }
 
         private fun onRateInputChanged(text: String) {
-            val parsed = text.toDoubleOrNull()
+            val parsed = text.trim().replace(',', '.').toDoubleOrNull()
             val valid = parsed != null && parsed > 0.0
             _state.value =
                 _state.value.copy(

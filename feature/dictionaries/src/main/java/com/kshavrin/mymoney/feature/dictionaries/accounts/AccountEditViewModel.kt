@@ -55,6 +55,7 @@ class AccountEditViewModel
                                 isDefault = existing.isDefault,
                                 sortOrder = existing.sortOrder,
                                 isCreateMode = false,
+                                createdAt = existing.createdAt,
                             )
                     }
                 } else if (_state.value.currencyId == -1L) {
@@ -101,7 +102,11 @@ class AccountEditViewModel
                 _state.value = s.copy(errorMessage = "currency_required")
                 return
             }
-            val parsedBalance = s.initialBalanceText.toBigDecimalOrNull()
+            val parsedBalance =
+                s.initialBalanceText
+                    .trim()
+                    .replace(',', '.')
+                    .toBigDecimalOrNull()
             if (parsedBalance == null) {
                 _state.value = s.copy(errorMessage = "balance_format")
                 return
@@ -122,7 +127,7 @@ class AccountEditViewModel
                                 iconKey = s.iconKey,
                                 isDefault = s.isDefault,
                                 sortOrder = s.sortOrder,
-                                createdAt = now,
+                                createdAt = s.createdAt ?: now,
                                 updatedAt = now,
                                 isArchived = false,
                             ),
@@ -172,6 +177,7 @@ data class AccountEditState(
     val blockedDeleteCount: Int? = null,
     val errorMessage: String? = null,
     val isSaving: Boolean = false,
+    val createdAt: Instant? = null,
 )
 
 sealed interface AccountEditEvent {

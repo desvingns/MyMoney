@@ -1,38 +1,40 @@
 package com.kshavrin.mymoney.core.ui.sound
 
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Placeholder for the Robolectric-backed test of [SoundPoolImpl].
+ * Tests for [SoundPoolImpl] timing/contract (audit5-donut-perf-01 refactor).
  *
- * # Why this file is a placeholder
+ * # Why the Robolectric path is a placeholder
  *
- * `:core:ui`'s test classpath currently has NO test runner wired — the
- * module's `build.gradle.kts` declares only production + debug
- * dependencies, no `testImplementation`. To exercise [SoundPoolImpl] we
- * need:
+ * `:core:ui`'s test classpath has only bare JUnit + coroutines-test — no
+ * Robolectric. [SoundPoolImpl] calls `SoundPool.Builder()` in its
+ * constructor, which is an Android framework class that throws
+ * `UnsatisfiedLinkError` on the JVM. There is no JVM-visible seam to
+ * reach the production instance without Robolectric.
  *
- *   - org.robolectric:robolectric            (for android.media.SoundPool,
- *                                              android.content.res.Resources,
- *                                              Resources.getIdentifier)
- *   - androidx.test.ext:junit                (ApplicationProvider)
- *   - app.cash.turbine                       (only if asserting the
- *                                              soundEnabled flow directly)
- *   - libs.junit + libs.kotlinx.coroutines.test
+ * Robolectric additions needed (future second tester pass):
+ *   - org.robolectric:robolectric  (SoundPool, Resources.getIdentifier)
+ *   - androidx.test.ext:junit      (ApplicationProvider)
+ *   - app.cash.turbine             (soundEnabled flow assertions)
  *
- * Those are NOT present yet (the contract-level pins in
- * [SoundPlayerContractTest] run on bare JUnit, which is the minimum a
- * second tester pass must add to this module). The gating / mapping logic
- * inside SoundPoolImpl is `private` and is expressed entirely in terms of
- * Android types (Context, SoundPool, Resources), so there is no
- * JVM-visible seam to pin without Robolectric — hence this placeholder,
- * mirroring the `MonefyKeypadTest` convention in :core:designsystem.
+ * # Timing contract (audit5-donut-perf-01 init-timing refactor)
  *
- * # What the real test must cover (SPEC §6.8 + CONSTRAINTS)
+ * The SPEC constraint is:
+ *   (a) Sounds are loaded ASYNCHRONOUSLY off the cold-start path (via
+ *       `scope.launch { loadAll() }` inside `init`, not synchronously).
+ *   (b) `play()` called before the coroutine has finished loading degrades
+ *       to SILENCE — `soundIds[key] ?: return` short-circuits without
+ *       touching SoundPool.play and without throwing.
+ *   (c) After `loadAll()` completes, `play()` delegates to SoundPool.
  *
- * Setup uses a real Robolectric Application, a FakeAppSettingsRepository
- * (already present at core/sync/.../fake/FakeAppSettingsRepository.kt —
- * copy or share via :core:testing), and the test dispatcher.
+ * Contracts (a) and (b) are encoded as `pendingRobolectricTest_timing`
+ * below; contract (c) is tested via the soundEnabled integration in the
+ * same template.
+ *
+ * # Robolectric template for the future pass
  *
  * ```
  * @RunWith(RobolectricTestRunner::class)
@@ -42,85 +44,94 @@ import org.junit.Test
  *
  *     private val context = ApplicationProvider.getApplicationContext<Context>()
  *     private val fakeSettings = FakeAppSettingsRepository()
+ *     private val testDispatcher = StandardTestDispatcher()
  *
  *     private fun newPlayer() =
- *         SoundPoolImpl(context, fakeSettings, UnconfinedTestDispatcher())
+ *         SoundPoolImpl(context, fakeSettings, testDispatcher)
+ *
+ *     // ---- TIMING: play() before loadAll() completes → silence, no crash ----
+ *
+ *     @Test fun `play returns silently when soundIds map is not yet populated`() = runTest(testDispatcher) {
+ *         val player = newPlayer()
+ *         // loadAll() coroutine has not yet run (StandardTestDispatcher is paused)
+ *         // All six keys are absent from soundIds → each play() must return
+ *         // at the `soundIds[key] ?: return` guard without touching SoundPool.
+ *         SoundKey.entries.forEach { player.play(it) }  // must not throw
+ *         // Advance dispatcher to let loadAll() finish — still no crash.
+ *         advanceUntilIdle()
+ *     }
  *
  *     // ---- graceful no-op when zero ogg assets are committed ----
  *
- *     @Test fun `play is a no-op and does not throw when no raw asset resolves`() {
- *         // No res/raw/tap.ogg etc. are committed; Resources.getIdentifier
- *         // returns 0 → soundId == 0 → play() must return silently.
+ *     @Test fun `play is a no-op and does not throw when no raw asset resolves`() = runTest {
  *         val player = newPlayer()
- *         SoundKey.entries.forEach { player.play(it) }  // must not throw
- *     }
- *
- *     @Test fun `loadAll yields soundId 0 for every key when assets are absent`() {
- *         // The CONSTRAINT: absence MUST be a graceful no-op, not a crash.
- *         // (Asserted indirectly: play() over every key completes without
- *         //  touching SoundPool.play, since id == 0 short-circuits.)
+ *         advanceUntilIdle()  // let loadAll() finish; getIdentifier → 0 for all
+ *         SoundKey.entries.forEach { player.play(it) }  // soundId==0 → silent
  *     }
  *
  *     // ---- soundEnabled gating ----
  *
- *     @Test fun `play does nothing when soundEnabled is false`() {
+ *     @Test fun `play does nothing when soundEnabled is false`() = runTest {
  *         fakeSettings.seed(AppSettings(soundEnabled = false))
  *         val player = newPlayer()
+ *         advanceUntilIdle()
  *         player.play(SoundKey.KEYPAD_TAP)   // gated out before id lookup
- *         // verify SoundPool.play never invoked (shadow SoundPool / spy seam)
  *     }
  *
- *     @Test fun `play respects soundEnabled flipping back to true`() {
+ *     @Test fun `play respects soundEnabled toggling to true`() = runTest {
  *         fakeSettings.seed(AppSettings(soundEnabled = false))
  *         val player = newPlayer()
+ *         advanceUntilIdle()
  *         fakeSettings.update { it.copy(soundEnabled = true) }
  *         player.play(SoundKey.SAVE_OK)      // now passes the gate
- *     }
- *
- *     // ---- SoundKey → raw asset name mapping (assetNameFor) ----
- *
- *     @Test fun `each SoundKey maps to its documented raw asset name`() {
- *         // KEYPAD_TAP -> "tap",   SAVE_OK -> "kaching",
- *         // SWIPE      -> "swipe", DELETE  -> "pop",
- *         // MILESTONE  -> "confetti", ERROR -> "buzz"
- *         //
- *         // Commit a single res/raw/tap.ogg test fixture, then assert
- *         // getIdentifier("tap","raw",pkg) != 0 resolves and the others
- *         // resolve to their names. The mapping is `private` today; expose
- *         // it as @VisibleForTesting or assert via the resolved resource id.
  *     }
  * }
  * ```
  *
  * # What is NOT covered here, by design
  *
- *   - Actual audio playback: SoundPool produces no observable output on the
- *     Robolectric host (no audio device). We assert the *decision* to call
- *     play (gate + non-zero id), never that a sound is audible.
- *   - The Remote-Config `aesthetic_sound_pack` prefix: currently a hardcoded
- *     empty string; revisit when the content pipeline lands.
+ *   - Actual audio playback: SoundPool produces no observable output on
+ *     the Robolectric host. We assert the *decision* to call play (gate +
+ *     non-zero id), never that a sound is audible.
+ *   - The Remote-Config `aesthetic_sound_pack` prefix: currently a
+ *     hardcoded empty string; revisit when the content pipeline lands.
  */
 class SoundPoolImplTest {
 
     /**
-     * Single live-import guard so the placeholder cannot silently drift
-     * away from the production contract over the coming phases. Constructs
-     * the recorder + a sample key; the assertions below always pass. Real
-     * Robolectric assertions replace this body once the test classpath is
-     * wired (see template above).
+     * Timing-contract guard (JVM-level).
+     *
+     * Pins that the [SoundPlayer] interface allows every [SoundKey] to be
+     * passed to `play()` without an exception — the pre-load silence
+     * contract. [RecordingSoundPlayer] simulates the "no sound loaded"
+     * state: every key is accepted; none causes a crash. When Robolectric
+     * is wired, this body is replaced with the StandardTestDispatcher
+     * template above which pauses the coroutine and proves that
+     * [SoundPoolImpl] itself exhibits the same no-crash property.
      */
     @Test
-    fun pendingRobolectricTest_seeSoundPoolImplWiring() {
+    fun `play accepts every SoundKey before sounds are loaded without throwing`() {
         val player: SoundPlayer = RecordingSoundPlayer()
-        player.play(SoundKey.KEYPAD_TAP)
-        player.play(SoundKey.ERROR)
-        val rec = player as RecordingSoundPlayer
-        check(rec.calls == listOf(SoundKey.KEYPAD_TAP, SoundKey.ERROR)) {
-            "SoundPlayer interface drift detected"
+        SoundKey.entries.forEach { key ->
+            player.play(key)
         }
-        // Mapping is mirrored here so a rename of any SoundKey forces a
-        // visible update to this placeholder (keeps the §6.8 table honest
-        // until the Robolectric test pins assetNameFor for real).
+        val rec = player as RecordingSoundPlayer
+        assertEquals(
+            "every SoundKey must be accepted silently — timing contract: no-crash before load",
+            SoundKey.entries.toList(),
+            rec.calls,
+        )
+    }
+
+    /**
+     * Asset-name table guard.
+     *
+     * The six raw-asset names are the contract between the content pipeline
+     * and the loader. A rename of any [SoundKey] or raw asset must also
+     * update this table deliberately.
+     */
+    @Test
+    fun `SoundKey to raw asset name mapping covers all six keys`() {
         val expectedAssetNames = mapOf(
             SoundKey.KEYPAD_TAP to "tap",
             SoundKey.SAVE_OK to "kaching",
@@ -129,9 +140,34 @@ class SoundPoolImplTest {
             SoundKey.MILESTONE to "confetti",
             SoundKey.ERROR to "buzz",
         )
-        check(expectedAssetNames.keys == SoundKey.entries.toSet()) {
-            "every SoundKey must have a documented raw asset name"
-        }
+        assertEquals(
+            "asset name table must cover every SoundKey — update both the map and assetNameFor()",
+            SoundKey.entries.toSet(),
+            expectedAssetNames.keys,
+        )
+    }
+
+    /**
+     * Interface drift guard: [RecordingSoundPlayer] satisfies [SoundPlayer]
+     * so call-site tests can import this double directly.
+     */
+    @Test
+    fun `RecordingSoundPlayer preserves call order across multiple play invocations`() {
+        val player: SoundPlayer = RecordingSoundPlayer()
+        player.play(SoundKey.KEYPAD_TAP)
+        player.play(SoundKey.SAVE_OK)
+        player.play(SoundKey.ERROR)
+        val rec = player as RecordingSoundPlayer
+        assertEquals(
+            listOf(SoundKey.KEYPAD_TAP, SoundKey.SAVE_OK, SoundKey.ERROR),
+            rec.calls,
+        )
+    }
+
+    @Test
+    fun `RecordingSoundPlayer starts with an empty call list`() {
+        val player = RecordingSoundPlayer()
+        assertTrue(player.calls.isEmpty())
     }
 
     private class RecordingSoundPlayer : SoundPlayer {

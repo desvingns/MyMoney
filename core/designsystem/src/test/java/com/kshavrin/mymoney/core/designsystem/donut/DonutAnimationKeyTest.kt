@@ -63,4 +63,31 @@ class DonutAnimationKeyTest {
     fun `empty slices yield equal keys`() {
         assertEquals(donutAnimationKey(emptyList()), donutAnimationKey(emptyList()))
     }
+
+    @Test
+    fun `adding a new category to the list produces a different key`() {
+        val before = listOf(slice(1L, 0.5f), slice(2L, 0.5f))
+        val after = listOf(slice(1L, 0.4f), slice(2L, 0.4f), slice(3L, 0.2f))
+
+        assertNotEquals(donutAnimationKey(before), donutAnimationKey(after))
+    }
+
+    @Test
+    fun `removing a category from the list produces a different key`() {
+        val full = listOf(slice(1L, 0.5f), slice(2L, 0.3f), slice(3L, 0.2f))
+        val reduced = listOf(slice(1L, 0.7f), slice(2L, 0.3f))
+
+        assertNotEquals(donutAnimationKey(full), donutAnimationKey(reduced))
+    }
+
+    @Test
+    fun `balance recompute with same ids and fractions does not change the key`() {
+        val firstCompute = listOf(slice(10L, 0.60f), slice(20L, 0.40f))
+        val secondCompute = listOf(slice(10L, 0.60f), slice(20L, 0.40f))
+
+        assertEquals(
+            donutAnimationKey(firstCompute),
+            donutAnimationKey(secondCompute),
+        )
+    }
 }

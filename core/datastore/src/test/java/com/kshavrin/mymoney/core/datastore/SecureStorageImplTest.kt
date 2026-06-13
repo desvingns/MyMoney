@@ -15,6 +15,14 @@ import org.junit.Test
 import java.io.File
 import java.nio.file.Files
 
+/**
+ * JVM-level tests for [SecureStorageImpl] companion object methods.
+ *
+ * The lazy-init timing contract ("prefs not created until first access") is
+ * covered in [SecureStorageTest] (androidTest) because all constructors
+ * require an Android [android.content.Context] that is unavailable on the
+ * JVM without Robolectric.
+ */
 class SecureStorageImplTest {
 
     private lateinit var tempFile: File

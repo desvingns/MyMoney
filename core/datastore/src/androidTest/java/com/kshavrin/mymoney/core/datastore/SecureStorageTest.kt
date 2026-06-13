@@ -185,6 +185,65 @@ class SecureStorageTest {
         assertFalse(dataStore.data.first().toAppSettings().biometricLockEnabled)
     }
 
+    @Test
+    fun prefs_are_not_created_at_construction_time_lazy_init() = runTest {
+        var creatorCallCount = 0
+        val dataStore = newTempDataStore()
+        val prefsName = trackedPrefsName("lazy_init_guard")
+        val backingPrefs = context.getSharedPreferences(prefsName, Context.MODE_PRIVATE)
+
+        val storage = instantiateStorage(
+            dataStore = dataStore,
+            prefsCreator = { _, _ ->
+                creatorCallCount++
+                backingPrefs
+            },
+            prefsDeleter = { _, _ -> },
+        )
+
+        assertEquals(
+            "prefsCreator must NOT be called during SecureStorageImpl construction — lazy-init contract",
+            0,
+            creatorCallCount,
+        )
+
+        storage.read()
+
+        assertEquals(
+            "prefsCreator must be called exactly once after the first read() access",
+            1,
+            creatorCallCount,
+        )
+    }
+
+    @Test
+    fun prefs_creator_is_called_only_once_across_multiple_read_write_calls() = runTest {
+        var creatorCallCount = 0
+        val dataStore = newTempDataStore()
+        val prefsName = trackedPrefsName("lazy_init_once")
+        val backingPrefs = context.getSharedPreferences(prefsName, Context.MODE_PRIVATE)
+
+        val storage = instantiateStorage(
+            dataStore = dataStore,
+            prefsCreator = { _, _ ->
+                creatorCallCount++
+                backingPrefs
+            },
+            prefsDeleter = { _, _ -> },
+        )
+
+        storage.read()
+        storage.writePinHash("hash-one")
+        storage.read()
+        storage.writeDropboxRefreshToken("token-two")
+
+        assertEquals(
+            "by lazy must initialize prefs exactly once regardless of how many operations follow",
+            1,
+            creatorCallCount,
+        )
+    }
+
     private fun instantiateStorage(
         dataStore: DataStore<Preferences>,
         prefsCreator: (Context, androidx.security.crypto.MasterKey) -> SharedPreferences,

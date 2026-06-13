@@ -17,6 +17,10 @@
     <string name="transactions_list_collapse">Collapse category</string>
     <string name="transactions_list_count">%1$d</string>
     <string name="transactions_list_period_all">All</string>
+    <string name="transactions_list_tab_operations">Operations</string>
+    <string name="transactions_list_tab_transfers">Transfers</string>
+    <string name="transactions_list_transfers_empty">No transfers for this period</string>
+    <string name="transactions_list_transfer_route">%1$s → %2$s</string>
     <string name="detail_title_expense">Edit expense</string>
     <string name="detail_title_income">Edit income</string>
     <string name="detail_title_transfer">Edit transfer</string>

@@ -11,6 +11,7 @@ import com.kshavrin.mymoney.core.database.entity.SyncLogEntity
 import com.kshavrin.mymoney.core.database.entity.TransactionEntity
 import com.kshavrin.mymoney.core.database.projection.CategoryGroupRow
 import com.kshavrin.mymoney.core.database.projection.CategorySummaryRow
+import com.kshavrin.mymoney.core.database.projection.TransferRow
 import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.AccountType
 import com.kshavrin.mymoney.core.domain.model.Budget
@@ -28,6 +29,7 @@ import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
 import com.kshavrin.mymoney.core.domain.repository.CategoryGroup
 import com.kshavrin.mymoney.core.domain.repository.CategorySummary
+import com.kshavrin.mymoney.core.domain.repository.TransferRow as DomainTransferRow
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -331,4 +333,14 @@ internal fun CategoryGroupRow.toDomain(): CategoryGroup = CategoryGroup(
     kind = CategoryKind.fromString(kind),
     total = BigDecimal.valueOf(total),
     count = txCount,
+)
+
+internal fun TransferRow.toDomain(): DomainTransferRow = DomainTransferRow(
+    id = id,
+    fromAccountName = fromAccountName,
+    toAccountName = toAccountName,
+    amount = BigDecimal.valueOf(amount),
+    toAmount = toAmount?.let { BigDecimal.valueOf(it) },
+    currencyId = currencyId,
+    occurredAt = Instant.ofEpochMilli(occurredAt),
 )

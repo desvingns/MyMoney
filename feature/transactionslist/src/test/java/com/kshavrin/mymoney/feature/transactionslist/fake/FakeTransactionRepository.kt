@@ -7,6 +7,7 @@ import com.kshavrin.mymoney.core.domain.model.TransactionKind
 import com.kshavrin.mymoney.core.domain.repository.CategoryGroup
 import com.kshavrin.mymoney.core.domain.repository.CategorySummary
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
+import com.kshavrin.mymoney.core.domain.repository.TransferRow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -47,6 +48,17 @@ class FakeTransactionRepository : TransactionRepository {
     private var periodTransactions: List<Transaction>? = null
     private val categoryGroupsByAccount = mutableMapOf<Long, List<CategoryGroup>>()
     private val periodTransactionsByAccount = mutableMapOf<Long, List<Transaction>>()
+    private var transfers: List<TransferRow> = emptyList()
+    private val transfersByAccount = mutableMapOf<Long, List<TransferRow>>()
+
+    /** Seeds the transfer rows [getTransfers] returns for the «Переводы» tab (occurred-at desc). */
+    fun seedTransfers(vararg rows: TransferRow) {
+        transfers = rows.toList()
+    }
+
+    fun seedTransfers(accountId: Long, vararg rows: TransferRow) {
+        transfersByAccount[accountId] = rows.toList()
+    }
 
     /** Seeds the authoritative header rows [getCategoryGroups] returns (already total-desc ordered). */
     fun seedCategoryGroups(vararg groups: CategoryGroup) {
@@ -124,6 +136,8 @@ class FakeTransactionRepository : TransactionRepository {
         }
     override suspend fun getCategoryGroups(accountId: Long, period: Period): List<CategoryGroup> =
         categoryGroupsByAccount[accountId] ?: categoryGroups
+    override suspend fun getTransfers(accountId: Long?, period: Period): List<TransferRow> =
+        accountId?.let { transfersByAccount[it] } ?: transfers
     override suspend fun searchByNote(query: String, limit: Int): List<Transaction> {
         searchCalls.add(query to limit)
         searchError?.let { throw it }

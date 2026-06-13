@@ -17,6 +17,10 @@
     <string name="transactions_list_collapse">Свернуть категорию</string>
     <string name="transactions_list_count">%1$d</string>
     <string name="transactions_list_period_all">Все</string>
+    <string name="transactions_list_tab_operations">Операции</string>
+    <string name="transactions_list_tab_transfers">Переводы</string>
+    <string name="transactions_list_transfers_empty">Нет переводов за данный период</string>
+    <string name="transactions_list_transfer_route">%1$s → %2$s</string>
     <string name="detail_title_expense">Изменить расход</string>
     <string name="detail_title_income">Изменить доход</string>
     <string name="detail_title_transfer">Изменить перевод</string>

@@ -7,6 +7,7 @@ import androidx.room.Upsert
 import com.kshavrin.mymoney.core.database.entity.TransactionEntity
 import com.kshavrin.mymoney.core.database.projection.CategoryGroupRow
 import com.kshavrin.mymoney.core.database.projection.CategorySummaryRow
+import com.kshavrin.mymoney.core.database.projection.TransferRow
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -82,6 +83,25 @@ interface TransactionDao {
         ORDER BY occurred_at DESC, created_at DESC
     """)
     suspend fun listByPeriod(accountId: Long, from: Long, to: Long): List<TransactionEntity>
+
+    @Query("""
+        SELECT t.id AS id,
+               af.name AS fromAccountName,
+               at.name AS toAccountName,
+               t.amount AS amount,
+               t.to_amount AS toAmount,
+               t.currency_id AS currencyId,
+               t.occurred_at AS occurredAt
+        FROM `transaction` t
+        INNER JOIN account af ON af.id = t.account_id
+        INNER JOIN account at ON at.id = t.to_account_id
+        WHERE t.kind = 'transfer'
+          AND t.occurred_at BETWEEN :from AND :to
+          AND t.is_deleted = 0
+          AND (:accountId IS NULL OR t.account_id = :accountId OR t.to_account_id = :accountId)
+        ORDER BY t.occurred_at DESC, t.created_at DESC
+    """)
+    suspend fun getTransfers(accountId: Long?, from: Long, to: Long): List<TransferRow>
 
     @Query("""
         SELECT * FROM `transaction`

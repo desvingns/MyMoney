@@ -15,6 +15,7 @@ import com.kshavrin.mymoney.core.domain.model.TransactionKind
 import com.kshavrin.mymoney.core.domain.repository.CategoryGroup
 import com.kshavrin.mymoney.core.domain.repository.CategorySummary
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
+import com.kshavrin.mymoney.core.domain.repository.TransferRow
 import com.kshavrin.mymoney.core.domain.time.PeriodArithmetic
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
@@ -63,6 +64,11 @@ class TransactionRepositoryImpl @Inject constructor(
     override suspend fun getCategoryGroups(accountId: Long, period: Period): List<CategoryGroup> = withContext(ioDispatcher) {
         val range = PeriodArithmetic.toEpochMillisRange(period)
         dao.getCategoryGroups(accountId, range.first, range.last).map { it.toDomain() }
+    }
+
+    override suspend fun getTransfers(accountId: Long?, period: Period): List<TransferRow> = withContext(ioDispatcher) {
+        val range = PeriodArithmetic.toEpochMillisRange(period)
+        dao.getTransfers(accountId, range.first, range.last).map { it.toDomain() }
     }
 
     override suspend fun searchByNote(query: String, limit: Int): List<Transaction> = withContext(ioDispatcher) {

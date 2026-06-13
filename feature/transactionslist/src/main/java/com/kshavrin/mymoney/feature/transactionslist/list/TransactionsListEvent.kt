@@ -7,4 +7,5 @@ sealed interface TransactionsListEvent {
     data class SwipeDeleted(val id: Long) : TransactionsListEvent
     data class UndoDeleteClicked(val id: Long) : TransactionsListEvent
     data object SortClicked : TransactionsListEvent
+    data class TabSelected(val tab: RecordsTab) : TransactionsListEvent
 }

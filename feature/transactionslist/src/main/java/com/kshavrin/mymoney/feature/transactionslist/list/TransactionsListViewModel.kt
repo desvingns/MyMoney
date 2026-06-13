@@ -12,6 +12,7 @@ import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
 import com.kshavrin.mymoney.core.domain.usecase.BalanceCalculator
 import com.kshavrin.mymoney.core.domain.usecase.GetCategoryRecordsUseCase
+import com.kshavrin.mymoney.core.domain.usecase.GetTransferRecordsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -30,6 +31,7 @@ import javax.inject.Inject
 @HiltViewModel
 class TransactionsListViewModel @Inject constructor(
     private val getCategoryRecords: GetCategoryRecordsUseCase,
+    private val getTransferRecords: GetTransferRecordsUseCase,
     private val balanceCalculator: BalanceCalculator,
     private val accountRepository: AccountRepository,
     private val currencyRepository: CurrencyRepository,
@@ -74,7 +76,13 @@ class TransactionsListViewModel @Inject constructor(
             is TransactionsListEvent.SwipeDeleted -> onSwipeDeleted(event.id)
             is TransactionsListEvent.UndoDeleteClicked -> onUndoDelete(event.id)
             TransactionsListEvent.SortClicked -> toggleSort()
+            is TransactionsListEvent.TabSelected -> selectTab(event.tab)
         }
+    }
+
+    private fun selectTab(tab: RecordsTab) {
+        if (_state.value.activeTab == tab) return
+        _state.value = _state.value.copy(activeTab = tab)
     }
 
     private fun load() {
@@ -143,9 +151,11 @@ class TransactionsListViewModel @Inject constructor(
             is RecordsSelection.SpecificAccount -> balanceCalculator(selection.account.id, period)
             is RecordsSelection.AllAccounts -> balanceCalculator.forAccounts(selection.accounts, selection.currency, period)
         }
+        val transfers = getTransferRecords(accountId, period)
         val activeCategoryId = requestedCategoryId?.takeIf { id -> groups.any { it.categoryId == id } }
         _state.value = _state.value.copy(
             groups = groups,
+            transfers = transfers,
             net = snapshot.net,
             currency = snapshot.net.currency,
             categoryId = activeCategoryId,

@@ -34,6 +34,8 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -61,6 +63,7 @@ import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.domain.model.Period
 import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
+import com.kshavrin.mymoney.core.domain.model.TransferRecord
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.core.ui.theme.recordsHeaderBalance
 import com.kshavrin.mymoney.core.ui.theme.recordsHeaderBalanceContainer
@@ -71,6 +74,10 @@ import com.kshavrin.mymoney.core.ui.theme.recordsHeaderControl
 import com.kshavrin.mymoney.core.ui.theme.recordsHeaderSortContainer
 import com.kshavrin.mymoney.core.ui.theme.recordsHeaderSortTint
 import com.kshavrin.mymoney.core.ui.theme.recordsHeaderStripContainer
+import com.kshavrin.mymoney.core.ui.theme.transferArrowTint
+import com.kshavrin.mymoney.core.ui.theme.transferRowAmount
+import com.kshavrin.mymoney.core.ui.theme.transferRowMeta
+import com.kshavrin.mymoney.core.ui.theme.transferRowRoute
 import com.kshavrin.mymoney.feature.transactionslist.R
 import kotlinx.coroutines.withTimeoutOrNull
 import java.math.BigDecimal
@@ -191,57 +198,180 @@ fun TransactionsListContent(
                 net = state.net,
                 onSort = { onEvent(TransactionsListEvent.SortClicked) },
             )
-            if (state.hasCategoryFilter) {
-                CategoryFilterChip(
-                    name = state.categoryName.orEmpty(),
-                    onClear = { onEvent(TransactionsListEvent.CategoryFilterCleared) },
+            RecordsTabRow(
+                activeTab = state.activeTab,
+                onTabSelected = { tab -> onEvent(TransactionsListEvent.TabSelected(tab)) },
+            )
+            when (state.activeTab) {
+                RecordsTab.Operations -> OperationsTab(state = state, onEvent = onEvent)
+                RecordsTab.Transfers -> TransfersTab(state = state, onEvent = onEvent)
+            }
+        }
+    }
+}
+
+@Composable
+private fun RecordsTabRow(
+    activeTab: RecordsTab,
+    onTabSelected: (RecordsTab) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    TabRow(
+        selectedTabIndex = if (activeTab == RecordsTab.Operations) 0 else 1,
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Tab(
+            selected = activeTab == RecordsTab.Operations,
+            onClick = { onTabSelected(RecordsTab.Operations) },
+            text = { Text(stringResource(R.string.transactions_list_tab_operations)) },
+            modifier = Modifier.testTag(RecordsTestTags.TAB_OPERATIONS),
+        )
+        Tab(
+            selected = activeTab == RecordsTab.Transfers,
+            onClick = { onTabSelected(RecordsTab.Transfers) },
+            text = { Text(stringResource(R.string.transactions_list_tab_transfers)) },
+            modifier = Modifier.testTag(RecordsTestTags.TAB_TRANSFERS),
+        )
+    }
+}
+
+@Composable
+private fun OperationsTab(
+    state: TransactionsListUiState,
+    onEvent: (TransactionsListEvent) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier.fillMaxSize()) {
+        if (state.hasCategoryFilter) {
+            CategoryFilterChip(
+                name = state.categoryName.orEmpty(),
+                onClear = { onEvent(TransactionsListEvent.CategoryFilterCleared) },
+            )
+        }
+        if (state.isEmpty) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                Text(
+                    text = stringResource(R.string.transactions_list_empty),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .padding(Spacing.l)
+                        .testTag(RecordsTestTags.EMPTY),
                 )
             }
-            if (state.isEmpty) {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    Text(
-                        text = stringResource(R.string.transactions_list_empty),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .padding(Spacing.l)
-                            .testTag(RecordsTestTags.EMPTY),
-                    )
-                }
-            } else {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    state.sortedGroups.forEach { group ->
-                        val expanded = group.categoryId in state.expandedCategoryIds
-                        item(key = "cat_${group.categoryId}") {
-                            CategoryHeader(
-                                group = group,
-                                expanded = expanded,
-                                onClick = { onEvent(TransactionsListEvent.CategoryClicked(group.categoryId)) },
-                            )
-                        }
-                        if (expanded) {
-                            items(
-                                items = group.transactions,
-                                key = { tx -> "tx_${tx.id}" },
-                            ) { tx ->
-                                SwipeToDelete(
-                                    onDelete = { onEvent(TransactionsListEvent.SwipeDeleted(tx.id)) },
-                                ) {
-                                    TransactionLeaf(
-                                        transaction = tx,
-                                        colorHex = group.colorHex,
-                                        kind = group.kind,
-                                        currency = state.currency,
-                                        onClick = { onEvent(TransactionsListEvent.RowClicked(tx.id)) },
-                                    )
-                                }
+        } else {
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                state.sortedGroups.forEach { group ->
+                    val expanded = group.categoryId in state.expandedCategoryIds
+                    item(key = "cat_${group.categoryId}") {
+                        CategoryHeader(
+                            group = group,
+                            expanded = expanded,
+                            onClick = { onEvent(TransactionsListEvent.CategoryClicked(group.categoryId)) },
+                        )
+                    }
+                    if (expanded) {
+                        items(
+                            items = group.transactions,
+                            key = { tx -> "tx_${tx.id}" },
+                        ) { tx ->
+                            SwipeToDelete(
+                                onDelete = { onEvent(TransactionsListEvent.SwipeDeleted(tx.id)) },
+                            ) {
+                                TransactionLeaf(
+                                    transaction = tx,
+                                    colorHex = group.colorHex,
+                                    kind = group.kind,
+                                    currency = state.currency,
+                                    onClick = { onEvent(TransactionsListEvent.RowClicked(tx.id)) },
+                                )
                             }
                         }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun TransfersTab(
+    state: TransactionsListUiState,
+    onEvent: (TransactionsListEvent) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (state.isTransfersEmpty) {
+        Box(modifier = modifier.fillMaxSize()) {
+            Text(
+                text = stringResource(R.string.transactions_list_transfers_empty),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .padding(Spacing.l)
+                    .testTag(RecordsTestTags.TRANSFERS_EMPTY),
+            )
+        }
+    } else {
+        LazyColumn(modifier = modifier.fillMaxSize()) {
+            items(
+                items = state.transfers,
+                key = { transfer -> "transfer_${transfer.id}" },
+            ) { transfer ->
+                TransferRow(
+                    transfer = transfer,
+                    onClick = { onEvent(TransactionsListEvent.RowClicked(transfer.id)) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TransferRow(
+    transfer: TransferRecord,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.background)
+            .clickable(onClick = onClick)
+            .testTag(RecordsTestTags.transfer(transfer.id))
+            .padding(horizontal = Spacing.l, vertical = Spacing.m),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.m),
+    ) {
+        Icon(
+            imageVector = Icons.Filled.SwapHoriz,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.transferArrowTint,
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = stringResource(
+                    R.string.transactions_list_transfer_route,
+                    transfer.fromAccountName,
+                    transfer.toAccountName,
+                ),
+                style = MaterialTheme.typography.transferRowRoute,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = transfer.occurredAt.atZone(ZoneId.systemDefault()).toLocalDate().format(LEAF_DATE_FORMAT),
+                style = MaterialTheme.typography.transferRowMeta,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Text(
+            text = formatMoney(transfer.amount),
+            style = MaterialTheme.typography.transferRowRoute,
+            color = MaterialTheme.colorScheme.transferRowAmount,
+        )
     }
 }
 

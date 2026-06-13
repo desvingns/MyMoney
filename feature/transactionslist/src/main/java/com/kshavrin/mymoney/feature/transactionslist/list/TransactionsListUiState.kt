@@ -4,6 +4,7 @@ import com.kshavrin.mymoney.core.domain.model.CategoryRecordGroup
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.domain.model.Period
+import com.kshavrin.mymoney.core.domain.model.TransferRecord
 import java.time.YearMonth
 
 data class TransactionsListUiState(
@@ -13,6 +14,8 @@ data class TransactionsListUiState(
     val categoryName: String? = null,
     val period: Period = Period.Month(YearMonth.now()),
     val groups: List<CategoryRecordGroup> = emptyList(),
+    val transfers: List<TransferRecord> = emptyList(),
+    val activeTab: RecordsTab = RecordsTab.Operations,
     val expandedCategoryIds: Set<Long> = emptySet(),
     val sort: RecordSort = RecordSort.TotalDesc,
     val net: Money? = null,
@@ -28,4 +31,6 @@ data class TransactionsListUiState(
         }
 
     val isEmpty: Boolean get() = !isLoading && groups.isEmpty()
+
+    val isTransfersEmpty: Boolean get() = !isLoading && transfers.isEmpty()
 }

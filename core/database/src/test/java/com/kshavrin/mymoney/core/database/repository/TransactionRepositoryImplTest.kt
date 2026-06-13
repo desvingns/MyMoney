@@ -55,6 +55,12 @@ class TransactionRepositoryImplTest {
 
         override suspend fun listByPeriod(accountId: Long, from: Long, to: Long): List<TransactionEntity> = emptyList()
 
+        override suspend fun getTransfers(
+            accountId: Long?,
+            from: Long,
+            to: Long,
+        ) = emptyList<com.kshavrin.mymoney.core.database.projection.TransferRow>()
+
         override suspend fun searchByNote(q: String, limit: Int): List<TransactionEntity> = emptyList()
 
         override suspend fun findById(id: Long): TransactionEntity? = normalizationRows.firstOrNull { it.id == id }

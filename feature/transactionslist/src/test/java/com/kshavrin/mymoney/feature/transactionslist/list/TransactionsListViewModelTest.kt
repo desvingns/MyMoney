@@ -11,6 +11,7 @@ import com.kshavrin.mymoney.core.domain.model.TransactionKind
 import com.kshavrin.mymoney.core.domain.repository.CategoryGroup
 import com.kshavrin.mymoney.core.domain.usecase.BalanceCalculator
 import com.kshavrin.mymoney.core.domain.usecase.GetCategoryRecordsUseCase
+import com.kshavrin.mymoney.core.domain.usecase.GetTransferRecordsUseCase
 import com.kshavrin.mymoney.feature.transactionslist.fake.FakeAccountRepository
 import com.kshavrin.mymoney.feature.transactionslist.fake.FakeCurrencyRepository
 import com.kshavrin.mymoney.feature.transactionslist.fake.FakeTransactionRepository
@@ -172,8 +173,14 @@ class TransactionsListViewModelTest {
             transactionRepository = transactionRepo,
             defaultDispatcher = mainDispatcherRule.testDispatcher,
         )
+        val transfers = GetTransferRecordsUseCase(
+            currencyRepository = currencyRepo,
+            transactionRepository = transactionRepo,
+            defaultDispatcher = mainDispatcherRule.testDispatcher,
+        )
         return TransactionsListViewModel(
             getCategoryRecords = records,
+            getTransferRecords = transfers,
             balanceCalculator = balance,
             accountRepository = accountRepo,
             currencyRepository = currencyRepo,

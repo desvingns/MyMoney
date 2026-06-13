@@ -16,6 +16,7 @@ interface TransactionRepository {
     suspend fun findByPeriod(accountId: Long, period: Period): List<Transaction>
     suspend fun getCategorySummary(accountId: Long, period: Period, kind: TransactionKind): List<CategorySummary>
     suspend fun getCategoryGroups(accountId: Long, period: Period): List<CategoryGroup>
+    suspend fun getTransfers(accountId: Long?, period: Period): List<TransferRow> = emptyList()
     suspend fun searchByNote(query: String, limit: Int = 200): List<Transaction>
     suspend fun upsert(transaction: Transaction): Long
     suspend fun softDelete(id: Long, now: Instant)
@@ -48,4 +49,14 @@ data class CategoryGroup(
     val kind: CategoryKind,
     val total: java.math.BigDecimal,
     val count: Int,
+)
+
+data class TransferRow(
+    val id: Long,
+    val fromAccountName: String,
+    val toAccountName: String,
+    val amount: java.math.BigDecimal,
+    val toAmount: java.math.BigDecimal?,
+    val currencyId: Long,
+    val occurredAt: java.time.Instant,
 )

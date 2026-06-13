@@ -1,22 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <application>
-        <!-- OQ-2 keeps Dropbox auth disabled until dropbox-android-sdk and a real app key are supplied. -->
-        <activity
-            android:name="com.dropbox.core.android.AuthActivity"
-            android:configChanges="orientation|keyboard"
-            android:launchMode="singleTask"
-            android:exported="true"
-            tools:ignore="MissingClass">
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-
-                <category android:name="android.intent.category.BROWSABLE" />
-                <category android:name="android.intent.category.DEFAULT" />
-
-                <data android:scheme="db-${dropboxAppKey}" />
-            </intent-filter>
-        </activity>
-    </application>
+    <!-- OQ-2: real Dropbox AuthActivity (com.dropbox.core.android.AuthActivity, scheme db-<appKey>)
+         returns here once dropbox-android-sdk and a real app key are supplied. Removed until then to
+         avoid the MissingClass crash when a browser opens a db- deep link. -->
+    <application />
 </manifest>

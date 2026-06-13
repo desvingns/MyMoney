@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.vector.VectorPainter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.res.stringResource
@@ -71,6 +72,32 @@ private const val CALLOUT_LABEL_MIN_SP = 10f
 
 enum class DonutStyle { Flat, Extrude }
 
+/**
+ * Stable, value-equal animation key derived from the visual identity of the slice set.
+ *
+ * The donut entry animation must restart only when the rendered set of slices actually
+ * changes — i.e. a different category id or a different fraction. A balance recompute that
+ * yields the same `(categoryId, fraction)` set (a new `List` instance with identical content)
+ * must NOT restart the animation, otherwise the donut visibly re-grows on every unrelated
+ * table write. Deriving the key here (rather than keying `LaunchedEffect` on the raw list)
+ * makes that invariant explicit and unit-testable.
+ */
+internal data class DonutAnimationKey(private val ids: List<Long>, private val fractions: List<Float>)
+
+internal fun donutAnimationKey(slices: List<CategorySlice>): DonutAnimationKey =
+    DonutAnimationKey(
+        ids = slices.map { it.categoryId },
+        fractions = slices.map { it.fraction },
+    )
+
+/** Reusable, allocation-free draw objects for the extruded ring's cast shadow. */
+private class ExtrudedRingPaints(blurRadiusPx: Float) {
+    val shadowPaint: Paint = Paint().apply {
+        style = PaintingStyle.Stroke
+        asFrameworkPaint().maskFilter = BlurMaskFilter(blurRadiusPx, BlurMaskFilter.Blur.NORMAL)
+    }
+}
+
 @Composable
 fun MonefyDonutChart(
     income: BigDecimal,
@@ -104,9 +131,13 @@ fun MonefyDonutChart(
     showCategoryLabels: Boolean = false,
 ) {
     val arcs = remember(slices) { DonutGeometry.computeSliceArcs(slices) }
-    val animationKey = slices.map { it.categoryId to it.fraction }
+    val animationKey = remember(slices) { donutAnimationKey(slices) }
     val progress = remember { Animatable(0f) }
     val textMeasurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val extrudedRingPaints = remember(density) {
+        ExtrudedRingPaints(blurRadiusPx = with(density) { 7.dp.toPx() })
+    }
     val iconPainters = (slices + emptyStateIcons)
         .distinctBy { it.iconKey }
         .associate { it.iconKey to rememberVectorPainter(categoryIcon(it.iconKey)) }
@@ -275,6 +306,7 @@ fun MonefyDonutChart(
                         arcs = arcs,
                         emptyStateIcons = emptyStateIcons,
                         iconPainters = iconPainters,
+                        extrudedRingPaints = extrudedRingPaints,
                         progress = progress.value,
                         textMeasurer = textMeasurer,
                         outlineColor = outlineColor,
@@ -313,6 +345,7 @@ private fun DrawScope.drawDonutChart(
     arcs: List<SliceArc>,
     emptyStateIcons: List<CategorySlice>,
     iconPainters: Map<String, VectorPainter>,
+    extrudedRingPaints: ExtrudedRingPaints,
     progress: Float,
     textMeasurer: TextMeasurer,
     outlineColor: Color,
@@ -352,7 +385,7 @@ private fun DrawScope.drawDonutChart(
             GappedArc(color = outlineColor, startAngle = -90f, sweepAngle = 360f),
         )
         if (style == DonutStyle.Extrude) {
-            drawExtrudedRing(center = center, radius = r, th = th, arcs = ringArcs)
+            drawExtrudedRing(center = center, radius = r, th = th, arcs = ringArcs, paints = extrudedRingPaints)
         } else {
             drawFlatRing(center = center, radius = r, th = th, arcs = ringArcs)
         }
@@ -431,7 +464,7 @@ private fun DrawScope.drawDonutChart(
     }
 
     if (style == DonutStyle.Extrude) {
-        drawExtrudedRing(center = center, radius = r, th = th, arcs = gappedArcs)
+        drawExtrudedRing(center = center, radius = r, th = th, arcs = gappedArcs, paints = extrudedRingPaints)
     } else {
         drawFlatRing(center = center, radius = r, th = th, arcs = gappedArcs)
     }
@@ -781,22 +814,25 @@ private fun DrawScope.drawFlatRing(
     arcs.forEach { drawArcBand(center, radius, th, it.color, it) }
 }
 
+private val EXTRUDED_RING_CAST_COLOR =
+    Color(red = 35f / 255f, green = 60f / 255f, blue = 48f / 255f, alpha = 0.28f)
+
 private fun DrawScope.drawExtrudedRing(
     center: Offset,
     radius: Float,
     th: Float,
     arcs: List<GappedArc>,
+    paints: ExtrudedRingPaints,
 ) {
-    val castColor = Color(red = 35f / 255f, green = 60f / 255f, blue = 48f / 255f, alpha = 0.28f)
+    // Visual parity: reuse a remembered Paint/BlurMaskFilter (blur radius is density-derived
+    // and thus constant for the composition) and mutate only color/strokeWidth — cheap setters
+    // that produce byte-identical output to the per-frame `Paint()`/`BlurMaskFilter()` it replaces.
+    val shadowPaint = paints.shadowPaint.apply {
+        color = EXTRUDED_RING_CAST_COLOR
+        strokeWidth = th * 0.92f
+    }
     drawIntoCanvas { canvas ->
-        val paint = Paint().apply {
-            this.color = castColor
-            style = PaintingStyle.Stroke
-            strokeWidth = th * 0.92f
-            asFrameworkPaint().maskFilter =
-                BlurMaskFilter(7.dp.toPx(), BlurMaskFilter.Blur.NORMAL)
-        }
-        canvas.drawCircle(Offset(center.x, center.y + th * 0.95f), radius, paint)
+        canvas.drawCircle(Offset(center.x, center.y + th * 0.95f), radius, shadowPaint)
     }
 
     val depth = (th * 0.62f).roundToInt().coerceIn(7, 22)

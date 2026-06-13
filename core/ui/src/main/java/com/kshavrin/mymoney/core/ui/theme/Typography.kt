@@ -162,3 +162,20 @@ val Typography.goalBreakdownRowLabel: TextStyle
         letterSpacing = 0.sp,
         lineHeight = 20.sp,
     )
+
+// Transfer list row tokens (S12 «Переводы» tab)
+// «Счёт A → Счёт B» — the primary route label in each transfer row.
+val Typography.transferRowRoute: TextStyle
+    get() = bodyLarge.copy(
+        fontWeight = FontWeight.Medium,
+        letterSpacing = 0.sp,
+        lineHeight = 24.sp,
+    )
+
+// Amount + date metadata line below the route label.
+val Typography.transferRowMeta: TextStyle
+    get() = bodyMedium.copy(
+        fontWeight = FontWeight.Normal,
+        letterSpacing = 0.sp,
+        lineHeight = 20.sp,
+    )

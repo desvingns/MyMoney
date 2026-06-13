@@ -220,3 +220,14 @@ val ColorScheme.transactionFormDeleteContainer: Color
 
 val ColorScheme.transactionFormDeleteContent: Color
     get() = onErrorContainer
+
+// Transfer list row tokens (S12 «Переводы» tab)
+// Neutral direction arrow between accounts — uses outline so it sits quietly
+// between the two account names without implying income or expense polarity.
+val ColorScheme.transferArrowTint: Color
+    get() = outline
+
+// Transfer amount — uses onSurface (neither income-green nor expense-red);
+// matches the neutral semantic of a balance-neutral movement between accounts.
+val ColorScheme.transferRowAmount: Color
+    get() = onSurface

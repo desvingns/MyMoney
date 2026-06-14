@@ -20,7 +20,7 @@ class RecurringScheduler
                 when (template.recurrenceKind.lowercase()) {
                     "daily" -> current.plusDays(template.interval.toLong())
                     "weekly" -> nextWeekly(current, template)
-                    "monthly" -> current.plusMonths(template.interval.toLong())
+                    "monthly" -> nextMonthly(current, template, zone)
                     "yearly" -> current.plusYears(template.interval.toLong())
                     else -> throw IllegalArgumentException("Unknown recurrenceKind: ${template.recurrenceKind}")
                 }
@@ -40,12 +40,23 @@ class RecurringScheduler
 
             if (byDayMask.isEmpty()) return current.plusWeeks(template.interval.toLong())
 
-            var candidate = current.plusDays(1)
-            repeat(7 * template.interval) {
+            val base = current.plusWeeks((template.interval - 1).toLong())
+            var candidate = base.plusDays(1)
+            repeat(7) {
                 if (candidate.dayOfWeek in byDayMask) return candidate
                 candidate = candidate.plusDays(1)
             }
             return current.plusWeeks(template.interval.toLong())
+        }
+
+        private fun nextMonthly(
+            current: ZonedDateTime,
+            template: RecurringTemplate,
+            zone: ZoneId,
+        ): ZonedDateTime {
+            val anchorDay = template.startsAt.atZone(zone).dayOfMonth
+            val candidate = current.plusMonths(template.interval.toLong())
+            return candidate.withDayOfMonth(minOf(anchorDay, candidate.toLocalDate().lengthOfMonth()))
         }
 
         private companion object {

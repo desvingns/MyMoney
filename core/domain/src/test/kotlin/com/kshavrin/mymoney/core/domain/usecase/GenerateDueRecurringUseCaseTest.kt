@@ -4,6 +4,7 @@ import com.kshavrin.mymoney.core.domain.fake.FakeRecurringTemplateRepository
 import com.kshavrin.mymoney.core.domain.fake.FakeTransactionRepository
 import com.kshavrin.mymoney.core.domain.model.RecurringTemplate
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
+import com.kshavrin.mymoney.core.domain.transaction.TransactionRunner
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -20,11 +21,18 @@ class GenerateDueRecurringUseCaseTest {
     private val templateRepo = FakeRecurringTemplateRepository()
     private val transactionRepo = FakeTransactionRepository()
     private val scheduler = RecurringScheduler()
+
+    private val passThroughRunner =
+        object : TransactionRunner {
+            override suspend fun <T> runInTransaction(block: suspend () -> T): T = block()
+        }
+
     private val useCase =
         GenerateDueRecurringUseCase(
             recurringTemplateRepository = templateRepo,
             transactionRepository = transactionRepo,
             recurringScheduler = scheduler,
+            transactionRunner = passThroughRunner,
             defaultDispatcher = UnconfinedTestDispatcher(),
         )
 

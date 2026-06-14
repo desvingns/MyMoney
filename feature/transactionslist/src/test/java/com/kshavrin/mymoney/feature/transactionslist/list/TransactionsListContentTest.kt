@@ -231,6 +231,12 @@ class TransactionsListContentTest {
     }
 
     @Test
+    fun `transferNote testTag is scoped to the transfer id`() {
+        assertEquals("records_transfer_note_70", RecordsTestTags.transferNote(70L))
+        assertEquals("records_transfer_note_1", RecordsTestTags.transferNote(1L))
+    }
+
+    @Test
     fun `isTransfersEmpty is true when transfers list is empty and not loading`() {
         assertTrue(TransactionsListUiState(isLoading = false, transfers = emptyList()).isTransfersEmpty)
     }

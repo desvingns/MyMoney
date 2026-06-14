@@ -750,6 +750,108 @@ class TransactionsListContentUiTest {
             .assertDoesNotExist()
     }
 
+    // ----- TransferRow note display tests -----
+
+    @Test
+    fun `transfer with note shows note text between route and date`() {
+        val transferRecord =
+            transferRecord(id = 70L, from = "Cash", to = "Card", amount = "300.00")
+                .copy(note = "Rent payment")
+
+        setContent(
+            state =
+                TransactionsListUiState(
+                    currency = currency(),
+                    activeTab = RecordsTab.Transfers,
+                    transfers = listOf(transferRecord),
+                    isLoading = false,
+                ),
+        )
+
+        composeTestRule
+            .onNodeWithTag(RecordsTestTags.transferNote(70L), useUnmergedTree = true)
+            .assertExists()
+        composeTestRule
+            .onNodeWithText("Rent payment", useUnmergedTree = true)
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithTag(RecordsTestTags.transfer(70L))
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun `transfer without note does not render a note node`() {
+        val transferRecord =
+            transferRecord(id = 71L, from = "Cash", to = "Card", amount = "150.00")
+                .copy(note = null)
+
+        setContent(
+            state =
+                TransactionsListUiState(
+                    currency = currency(),
+                    activeTab = RecordsTab.Transfers,
+                    transfers = listOf(transferRecord),
+                    isLoading = false,
+                ),
+        )
+
+        composeTestRule
+            .onNodeWithTag(RecordsTestTags.transferNote(71L), useUnmergedTree = true)
+            .assertDoesNotExist()
+        composeTestRule
+            .onNodeWithTag(RecordsTestTags.transfer(71L))
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun `transfer with blank note does not render a note node`() {
+        val transferRecord =
+            transferRecord(id = 72L, from = "Savings", to = "Checking", amount = "50.00")
+                .copy(note = "   ")
+
+        setContent(
+            state =
+                TransactionsListUiState(
+                    currency = currency(),
+                    activeTab = RecordsTab.Transfers,
+                    transfers = listOf(transferRecord),
+                    isLoading = false,
+                ),
+        )
+
+        composeTestRule
+            .onNodeWithTag(RecordsTestTags.transferNote(72L), useUnmergedTree = true)
+            .assertDoesNotExist()
+        composeTestRule
+            .onNodeWithTag(RecordsTestTags.transfer(72L))
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun `transfer with long note shows note node and row remains displayed`() {
+        val longNote = "Very long transfer comment that exceeds the visible width of the row and should be truncated with ellipsis on a single line"
+        val transferRecord =
+            transferRecord(id = 73L, from = "Account A", to = "Account B", amount = "999.00")
+                .copy(note = longNote)
+
+        setContent(
+            state =
+                TransactionsListUiState(
+                    currency = currency(),
+                    activeTab = RecordsTab.Transfers,
+                    transfers = listOf(transferRecord),
+                    isLoading = false,
+                ),
+        )
+
+        composeTestRule
+            .onNodeWithTag(RecordsTestTags.transferNote(73L), useUnmergedTree = true)
+            .assertExists()
+        composeTestRule
+            .onNodeWithTag(RecordsTestTags.transfer(73L))
+            .assertIsDisplayed()
+    }
+
     private fun transferRecord(
         id: Long,
         from: String,

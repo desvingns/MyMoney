@@ -268,3 +268,18 @@ val ColorScheme.wizardOrphanWarningContainer: Color
 
 val ColorScheme.wizardOrphanWarningContent: Color
     get() = if (isLightDashboardPalette) WizardOrphanWarningLightContent else WizardOrphanWarningDarkContent
+
+// Import-migration wizard — step progress indicator ("k / N" chip).
+// Reuses surfaceVariant/onSurfaceVariant so the counter is quiet — informational,
+// not a primary action affordance. Named aliases preserve semantic intent at call sites.
+val ColorScheme.wizardStepProgressContainer: Color
+    get() = surfaceVariant
+
+val ColorScheme.wizardStepProgressContent: Color
+    get() = onSurfaceVariant
+
+// Import-migration wizard — color picker selected swatch border.
+// Primary ring makes the selected color clearly distinct from unselected swatches;
+// matches M3 selection ring convention (FilterChip, RadioButton tint).
+val ColorScheme.wizardColorPickerSelectedBorder: Color
+    get() = primary

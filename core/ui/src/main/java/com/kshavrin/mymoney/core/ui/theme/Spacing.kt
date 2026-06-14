@@ -34,4 +34,13 @@ object Spacing {
     // Edit-form delete button — taller than a standard OutlinedButton so the
     // destructive action stays clearly separate from the save FAB.
     val transactionFormDeleteButtonHeight = 52.dp
+
+    // Import-migration wizard — per-category config step (SPEC 06).
+    // Color swatch diameter in the color picker grid; 32dp gives 5 swatches/row
+    // in a 160dp+ container while remaining large enough for tap targets.
+    val wizardColorSwatchSize = 32.dp
+
+    // Icon picker item (background touch target) in the category icon picker;
+    // 48dp matches the M3 minimum touch target recommendation.
+    val wizardIconPickerItemSize = 48.dp
 }

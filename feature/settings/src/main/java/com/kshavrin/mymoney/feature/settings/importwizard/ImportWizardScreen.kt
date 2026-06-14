@@ -11,6 +11,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -61,10 +62,8 @@ fun ImportWizardRoute(
     CollectActions(flow = viewModel.actions, key = viewModel) { action ->
         when (action) {
             ImportWizardAction.Cancel -> navController.popBackStack()
-            ImportWizardAction.CommitSucceeded -> {
-                snackbarHostState.showSnackbar(importedMessage)
-                navController.popBackStack()
-            }
+            ImportWizardAction.CommitSucceeded -> snackbarHostState.showSnackbar(importedMessage)
+            ImportWizardAction.Finished -> navController.popBackStack()
         }
     }
 
@@ -84,14 +83,25 @@ fun ImportWizardContent(
 ) {
     Scaffold(
         topBar = {
+            val postCommitStep =
+                state.step == ImportWizardStep.ConfigGate || state.step == ImportWizardStep.CategoryConfig
             TopAppBar(
                 title = { Text(stringResource(R.string.import_wizard_title)) },
                 navigationIcon = {
-                    IconButton(onClick = { onEvent(ImportWizardEvent.BackClicked) }) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.import_wizard_back),
-                        )
+                    if (postCommitStep) {
+                        IconButton(onClick = { onEvent(ImportWizardEvent.CloseClicked) }) {
+                            Icon(
+                                Icons.Filled.Close,
+                                contentDescription = stringResource(R.string.import_wizard_close),
+                            )
+                        }
+                    } else {
+                        IconButton(onClick = { onEvent(ImportWizardEvent.BackClicked) }) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.import_wizard_back),
+                            )
+                        }
                     }
                 },
             )
@@ -119,6 +129,8 @@ fun ImportWizardContent(
                     ImportWizardStep.OrphanDecisions -> OrphanDecisionsStep(state, onEvent)
                     ImportWizardStep.ManualMerge -> ManualMergeStep(state, onEvent)
                     ImportWizardStep.Confirm -> ConfirmStep(state)
+                    ImportWizardStep.ConfigGate -> ConfigGateStep(onEvent)
+                    ImportWizardStep.CategoryConfig -> CategoryConfigStep(state, onEvent)
                 }
 
                 state.errorBannerRes?.let { res ->
@@ -129,7 +141,10 @@ fun ImportWizardContent(
                     )
                 }
 
-                if (state.step != ImportWizardStep.OrphanDecisions) {
+                if (state.step != ImportWizardStep.OrphanDecisions &&
+                    state.step != ImportWizardStep.ConfigGate &&
+                    state.step != ImportWizardStep.CategoryConfig
+                ) {
                     WizardNavButton(state = state, onEvent = onEvent)
                 }
             }

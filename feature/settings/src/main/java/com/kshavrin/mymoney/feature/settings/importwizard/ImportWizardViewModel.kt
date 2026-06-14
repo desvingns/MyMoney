@@ -15,8 +15,10 @@ import com.kshavrin.mymoney.core.domain.csv.MergeAction
 import com.kshavrin.mymoney.core.domain.csv.MonefyCsvImportParser
 import com.kshavrin.mymoney.core.domain.csv.OrphanDecision
 import com.kshavrin.mymoney.core.domain.csv.StagedImport
+import com.kshavrin.mymoney.core.domain.model.Category
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.core.domain.repository.BackupRepository
+import com.kshavrin.mymoney.core.domain.repository.CategoryRepository
 import com.kshavrin.mymoney.feature.settings.R
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.BufferOverflow
@@ -26,6 +28,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -35,6 +38,7 @@ class ImportWizardViewModel
     constructor(
         private val backupRepository: BackupRepository,
         private val appSettingsRepository: AppSettingsRepository,
+        private val categoryRepository: CategoryRepository = NoOpCategoryRepository,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         private val uri: String = savedStateHandle.get<String>(KEY_URI).orEmpty()
@@ -80,6 +84,14 @@ class ImportWizardViewModel
                     onMergeResultNameChanged(event.importCategoryName, event.resultName)
                 ImportWizardEvent.DismissError ->
                     _state.value = _state.value.copy(errorBannerRes = null)
+                ImportWizardEvent.ConfigureLaterClicked -> finishWizard()
+                ImportWizardEvent.ConfigureNowClicked -> startCategoryConfig()
+                is ImportWizardEvent.ConfigNameChanged -> onConfigNameChanged(event.value)
+                is ImportWizardEvent.ConfigIconChanged -> onConfigIconChanged(event.value)
+                is ImportWizardEvent.ConfigColorChanged -> onConfigColorChanged(event.value)
+                ImportWizardEvent.ConfigNextClicked -> onConfigNext()
+                ImportWizardEvent.ConfigBackClicked -> onConfigBack()
+                ImportWizardEvent.CloseClicked -> finishWizard()
             }
         }
 
@@ -117,6 +129,8 @@ class ImportWizardViewModel
                 ImportWizardStep.ManualMerge ->
                     _state.value = _state.value.copy(step = ImportWizardStep.Confirm)
                 ImportWizardStep.Confirm -> Unit
+                ImportWizardStep.ConfigGate -> Unit
+                ImportWizardStep.CategoryConfig -> Unit
             }
         }
 
@@ -229,6 +243,8 @@ class ImportWizardViewModel
                 ImportWizardStep.ManualMerge ->
                     _state.value = _state.value.copy(step = ImportWizardStep.CategoryStrategy)
                 ImportWizardStep.Confirm -> onBackFromConfirm()
+                ImportWizardStep.ConfigGate -> finishWizard()
+                ImportWizardStep.CategoryConfig -> onConfigBack()
             }
         }
 
@@ -260,10 +276,106 @@ class ImportWizardViewModel
                                 )
                             }
                         }
-                        _state.value = _state.value.copy(inProgress = false)
+                        val categories = loadResultingCategories()
+                        _state.value =
+                            _state.value.copy(
+                                inProgress = false,
+                                step = ImportWizardStep.ConfigGate,
+                                configCategories = categories,
+                            )
                         _actions.emit(ImportWizardAction.CommitSucceeded)
                     }.onFailure { failure(it) }
             }
+        }
+
+        private suspend fun loadResultingCategories(): List<Category> =
+            runCatching { categoryRepository.observeAll().first() }.getOrDefault(emptyList())
+
+        private fun startCategoryConfig() {
+            if (_state.value.configCategories.isEmpty()) {
+                finishWizard()
+                return
+            }
+            loadConfigDraftFrom(index = 0)
+            _state.value = _state.value.copy(step = ImportWizardStep.CategoryConfig, configIndex = 0)
+        }
+
+        private fun loadConfigDraftFrom(index: Int) {
+            val category = _state.value.configCategories.getOrNull(index) ?: return
+            _state.value =
+                _state.value.copy(
+                    configName = category.name,
+                    configIconKey = category.iconKey,
+                    configColorHex = category.colorHex,
+                )
+        }
+
+        private fun onConfigNameChanged(value: String) {
+            _state.value = _state.value.copy(configName = value)
+        }
+
+        private fun onConfigIconChanged(value: String) {
+            _state.value = _state.value.copy(configIconKey = value)
+        }
+
+        private fun onConfigColorChanged(value: String) {
+            _state.value = _state.value.copy(configColorHex = value)
+        }
+
+        private fun onConfigNext() {
+            val s = _state.value
+            val current =
+                s.configCategories.getOrNull(s.configIndex) ?: run {
+                    finishWizard()
+                    return
+                }
+            val name = s.configName.ifBlank { current.name }
+            viewModelScope.launch {
+                runCatching {
+                    categoryRepository.upsert(
+                        current.copy(
+                            name = name,
+                            iconKey = s.configIconKey,
+                            colorHex = s.configColorHex,
+                        ),
+                    )
+                }.onFailure {
+                    failure(it)
+                    return@launch
+                }
+
+                val updated =
+                    s.configCategories.toMutableList().apply {
+                        set(s.configIndex, current.copy(name = name, iconKey = s.configIconKey, colorHex = s.configColorHex))
+                    }
+                if (s.configIndex >= s.configCategories.lastIndex) {
+                    _state.value = _state.value.copy(configCategories = updated)
+                    finishWizard()
+                } else {
+                    val nextIndex = s.configIndex + 1
+                    _state.value =
+                        _state.value.copy(
+                            configCategories = updated,
+                            configIndex = nextIndex,
+                        )
+                    loadConfigDraftFrom(nextIndex)
+                }
+            }
+        }
+
+        private fun onConfigBack() {
+            val s = _state.value
+            if (s.configIndex == 0) {
+                _state.value = _state.value.copy(step = ImportWizardStep.ConfigGate)
+            } else {
+                val prevIndex = s.configIndex - 1
+                _state.value = _state.value.copy(configIndex = prevIndex)
+                loadConfigDraftFrom(prevIndex)
+            }
+        }
+
+        private fun finishWizard() {
+            viewModelScope.launch { _actions.emit(ImportWizardAction.Finished) }
         }
 
         private fun nonEmptyExistingCategoryNames(): List<OrphanCategory> =
@@ -292,6 +404,8 @@ enum class ImportWizardStep {
     OrphanDecisions,
     ManualMerge,
     Confirm,
+    ConfigGate,
+    CategoryConfig,
 }
 
 data class OrphanCategory(
@@ -325,7 +439,24 @@ data class ImportWizardState(
     val mergeRows: List<MergeRow> = emptyList(),
     val destructiveConfirmationVisible: Boolean = false,
     val errorBannerRes: Int? = null,
+    val configCategories: List<Category> = emptyList(),
+    val configIndex: Int = 0,
+    val configName: String = "",
+    val configIconKey: String = "",
+    val configColorHex: String = "",
 ) {
+    val configTotal: Int
+        get() = configCategories.size
+
+    val configPosition: Int
+        get() = configIndex + 1
+
+    val isLastConfigStep: Boolean
+        get() = configCategories.isNotEmpty() && configIndex >= configCategories.lastIndex
+
+    val configCurrentKind: CategoryKind?
+        get() = configCategories.getOrNull(configIndex)?.kind
+
     val isDestructive: Boolean
         get() =
             dataStrategy == ImportDataStrategy.ReplaceAll ||
@@ -400,10 +531,48 @@ sealed interface ImportWizardEvent {
     ) : ImportWizardEvent
 
     data object DismissError : ImportWizardEvent
+
+    data object ConfigureLaterClicked : ImportWizardEvent
+
+    data object ConfigureNowClicked : ImportWizardEvent
+
+    data class ConfigNameChanged(
+        val value: String,
+    ) : ImportWizardEvent
+
+    data class ConfigIconChanged(
+        val value: String,
+    ) : ImportWizardEvent
+
+    data class ConfigColorChanged(
+        val value: String,
+    ) : ImportWizardEvent
+
+    data object ConfigNextClicked : ImportWizardEvent
+
+    data object ConfigBackClicked : ImportWizardEvent
+
+    data object CloseClicked : ImportWizardEvent
 }
 
 sealed interface ImportWizardAction {
     data object Cancel : ImportWizardAction
 
     data object CommitSucceeded : ImportWizardAction
+
+    data object Finished : ImportWizardAction
+}
+
+private object NoOpCategoryRepository : CategoryRepository {
+    override fun observeByKind(kind: CategoryKind) = kotlinx.coroutines.flow.flowOf(emptyList<Category>())
+
+    override fun observeAll() = kotlinx.coroutines.flow.flowOf(emptyList<Category>())
+
+    override suspend fun findById(id: Long): Category? = null
+
+    override suspend fun upsert(category: Category): Long = 0L
+
+    override suspend fun upsertAll(categories: List<Category>) = Unit
+
+    override suspend fun archive(id: Long) = Unit
 }

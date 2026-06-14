@@ -95,4 +95,17 @@
     <string name="import_wizard_destructive_message">Этот импорт безвозвратно удалит часть ваших текущих данных. Продолжить?</string>
     <string name="import_wizard_destructive_confirm">Удалить и импортировать</string>
     <string name="import_wizard_destructive_cancel">Отмена</string>
+    <string name="import_wizard_config_gate_heading">Настроить категории?</string>
+    <string name="import_wizard_config_gate_message">Импорт завершён. Хотите настроить каждую категорию (имя, значок, цвет) сейчас или позже?</string>
+    <string name="import_wizard_config_gate_now">Настроить сейчас</string>
+    <string name="import_wizard_config_gate_later">Позже</string>
+    <string name="import_wizard_config_heading">Настройка категории</string>
+    <string name="import_wizard_config_progress">%1$d / %2$d</string>
+    <string name="import_wizard_config_field_name">Название</string>
+    <string name="import_wizard_config_field_icon">Значок</string>
+    <string name="import_wizard_config_field_color">Цвет</string>
+    <string name="import_wizard_config_back">Назад</string>
+    <string name="import_wizard_config_next">Далее</string>
+    <string name="import_wizard_config_done">Готово</string>
+    <string name="import_wizard_close">Закрыть</string>
 </resources>

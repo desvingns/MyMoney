@@ -95,4 +95,17 @@
     <string name="import_wizard_destructive_message">This import will permanently delete some of your current data. Do you want to continue?</string>
     <string name="import_wizard_destructive_confirm">Delete and import</string>
     <string name="import_wizard_destructive_cancel">Cancel</string>
+    <string name="import_wizard_config_gate_heading">Set up categories?</string>
+    <string name="import_wizard_config_gate_message">Import is complete. Would you like to customize each category (name, icon, color) now, or later?</string>
+    <string name="import_wizard_config_gate_now">Set up now</string>
+    <string name="import_wizard_config_gate_later">Later</string>
+    <string name="import_wizard_config_heading">Customize category</string>
+    <string name="import_wizard_config_progress">%1$d / %2$d</string>
+    <string name="import_wizard_config_field_name">Name</string>
+    <string name="import_wizard_config_field_icon">Icon</string>
+    <string name="import_wizard_config_field_color">Color</string>
+    <string name="import_wizard_config_back">Back</string>
+    <string name="import_wizard_config_next">Next</string>
+    <string name="import_wizard_config_done">Done</string>
+    <string name="import_wizard_close">Close</string>
 </resources>

@@ -339,7 +339,7 @@ class CloudSyncViewModelTest {
                         SyncTarget.Dropbox,
                         Result.success(SyncOutcome.ConflictDetected(remoteModifiedMs = 200L, localLastSyncMs = 100L)),
                     )
-                    setKeepRemoteResult(SyncTarget.Dropbox, Result.success(SyncOutcome.Pulled))
+                    setKeepRemoteResult(SyncTarget.Dropbox, Result.success(SyncOutcome.PulledRequiresRestart))
                 }
             scheduler = FakeSyncScheduler()
             appSettings = FakeAppSettingsRepository(AppSettings())

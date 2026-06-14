@@ -297,6 +297,47 @@ class SnapshotSyncRepositoryTest {
             assertEquals("failure", row.status)
         }
 
+    @Test
+    fun `keepRemote on success does not roll back from the safety snapshot`() =
+        runTest {
+            dropbox.seedSnapshots(listOf(snapshot("remote", modifiedAtEpochMs = 555_000L)))
+
+            val result = repository().keepRemote(SyncTarget.Dropbox)
+
+            assertEquals(SyncOutcome.PulledRequiresRestart, result.getOrNull())
+            val safetyPath = backup.exportedPaths.single()
+            assertEquals(1, backup.importedPaths.size)
+            assertFalse(backup.importedPaths.contains(safetyPath))
+        }
+
+    @Test
+    fun `keepRemote exports the safety snapshot before attempting the remote import`() =
+        runTest {
+            dropbox.seedSnapshots(listOf(snapshot("remote", modifiedAtEpochMs = 555_000L)))
+            backup.simulateImportFailure(SyncException(SyncError.Unknown))
+
+            repository().keepRemote(SyncTarget.Dropbox)
+
+            val safetyPath = backup.exportedPaths.single()
+            assertEquals(2, backup.importedPaths.size)
+            assertEquals(safetyPath, backup.importedPaths[1])
+        }
+
+    @Test
+    fun `keepRemote rolls back from the safety snapshot when the download fails`() =
+        runTest {
+            settings.seed(AppSettings(lastSyncAt = 4_000L))
+            dropbox.seedSnapshots(listOf(snapshot("remote", modifiedAtEpochMs = 555_000L)))
+            dropbox.simulateDownloadFailure(SyncError.Network)
+
+            val result = repository().keepRemote(SyncTarget.Dropbox)
+
+            assertTrue(result.isFailure)
+            val safetyPath = backup.exportedPaths.single()
+            assertTrue(backup.importedPaths.contains(safetyPath))
+            assertEquals(4_000L, settings.current().lastSyncAt)
+        }
+
     // --- 7. isConnected / connectedTargets -----------------------------------
 
     @Test

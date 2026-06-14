@@ -5,6 +5,7 @@ import com.kshavrin.mymoney.core.domain.model.RecurringTemplate
 import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.domain.repository.RecurringTemplateRepository
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
+import com.kshavrin.mymoney.core.domain.transaction.TransactionRunner
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import java.time.Instant
@@ -16,6 +17,7 @@ class GenerateDueRecurringUseCase
         private val recurringTemplateRepository: RecurringTemplateRepository,
         private val transactionRepository: TransactionRepository,
         private val recurringScheduler: RecurringScheduler,
+        private val transactionRunner: TransactionRunner,
         @DefaultDispatcher private val defaultDispatcher: CoroutineDispatcher,
     ) {
         suspend operator fun invoke(now: Instant): Unit =
@@ -30,16 +32,18 @@ class GenerateDueRecurringUseCase
             template: RecurringTemplate,
             now: Instant,
         ) {
-            var currentRun = template.nextRunAt
-            while (!currentRun.isAfter(now) && withinEnd(template, currentRun)) {
-                transactionRepository.upsert(occurrence(template, currentRun, now))
-                currentRun = recurringScheduler.computeNextRun(template.copy(nextRunAt = currentRun), now)
-                if (passedEnd(template, currentRun)) {
-                    recurringTemplateRepository.deactivate(template.id)
-                    return
+            transactionRunner.runInTransaction {
+                var currentRun = template.nextRunAt
+                while (!currentRun.isAfter(now) && withinEnd(template, currentRun)) {
+                    transactionRepository.upsert(occurrence(template, currentRun, now))
+                    currentRun = recurringScheduler.computeNextRun(template.copy(nextRunAt = currentRun), now)
+                    if (passedEnd(template, currentRun)) {
+                        recurringTemplateRepository.deactivate(template.id)
+                        return@runInTransaction
+                    }
                 }
+                recurringTemplateRepository.updateNextRun(template.id, currentRun)
             }
-            recurringTemplateRepository.updateNextRun(template.id, currentRun)
         }
 
         private fun withinEnd(

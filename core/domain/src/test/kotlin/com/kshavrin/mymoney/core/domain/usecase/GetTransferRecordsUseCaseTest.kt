@@ -160,6 +160,7 @@ class GetTransferRecordsUseCaseTest {
                     toAmount = null,
                     currencyId = usd.id,
                     occurredAt = occurredAt,
+                    note = null,
                 ),
             )
 
@@ -189,6 +190,7 @@ class GetTransferRecordsUseCaseTest {
                     toAmount = BigDecimal("92.50"),
                     currencyId = usd.id,
                     occurredAt = Instant.parse("2026-06-05T09:00:00Z"),
+                    note = null,
                 ),
             )
 
@@ -213,6 +215,7 @@ class GetTransferRecordsUseCaseTest {
                     toAmount = null,
                     currencyId = usd.id,
                     occurredAt = Instant.parse("2026-06-10T10:00:00Z"),
+                    note = null,
                 ),
                 TransferRow(
                     id = 2L,
@@ -222,6 +225,7 @@ class GetTransferRecordsUseCaseTest {
                     toAmount = null,
                     currencyId = usd.id,
                     occurredAt = Instant.parse("2026-06-09T10:00:00Z"),
+                    note = null,
                 ),
             )
 
@@ -244,6 +248,7 @@ class GetTransferRecordsUseCaseTest {
                     toAmount = null,
                     currencyId = usd.id,
                     occurredAt = Instant.parse("2026-06-08T08:00:00Z"),
+                    note = null,
                 ),
             )
 
@@ -268,6 +273,7 @@ class GetTransferRecordsUseCaseTest {
                     toAmount = null,
                     currencyId = 999L,
                     occurredAt = Instant.parse("2026-06-01T00:00:00Z"),
+                    note = null,
                 ),
             )
 

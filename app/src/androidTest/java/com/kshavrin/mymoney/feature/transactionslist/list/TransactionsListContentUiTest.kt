@@ -763,6 +763,7 @@ class TransactionsListContentUiTest {
             amount = money(amount),
             toAmount = null,
             occurredAt = java.time.Instant.parse("2026-06-10T12:00:00Z"),
+            note = null,
         )
 
     // ----- Undo snackbar non-blocking test -----

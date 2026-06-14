@@ -369,4 +369,5 @@ internal fun TransferRow.toDomain(): DomainTransferRow =
         toAmount = toAmount?.let { BigDecimal.valueOf(it) },
         currencyId = currencyId,
         occurredAt = Instant.ofEpochMilli(occurredAt),
+        note = note,
     )

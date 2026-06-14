@@ -10,4 +10,5 @@ data class TransferRow(
     @ColumnInfo(name = "toAmount") val toAmount: Double?,
     @ColumnInfo(name = "currencyId") val currencyId: Long,
     @ColumnInfo(name = "occurredAt") val occurredAt: Long,
+    @ColumnInfo(name = "note") val note: String?,
 )

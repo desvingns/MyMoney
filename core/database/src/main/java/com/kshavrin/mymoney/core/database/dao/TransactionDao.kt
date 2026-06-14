@@ -128,7 +128,8 @@ interface TransactionDao {
                t.amount AS amount,
                t.to_amount AS toAmount,
                t.currency_id AS currencyId,
-               t.occurred_at AS occurredAt
+               t.occurred_at AS occurredAt,
+               t.note AS note
         FROM `transaction` t
         INNER JOIN account af ON af.id = t.account_id
         INNER JOIN account at ON at.id = t.to_account_id

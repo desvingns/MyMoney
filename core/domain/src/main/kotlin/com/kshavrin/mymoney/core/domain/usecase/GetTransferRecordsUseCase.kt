@@ -34,6 +34,7 @@ class GetTransferRecordsUseCase
                         amount = Money(row.amount, currency),
                         toAmount = row.toAmount?.let { Money(it, currency) },
                         occurredAt = row.occurredAt,
+                        note = row.note,
                     )
                 }
             }

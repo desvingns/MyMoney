@@ -549,6 +549,7 @@ class TransactionsListViewModelTest {
                     toAmount = null,
                     currencyId = usd.id,
                     occurredAt = now,
+                    note = null,
                 )
             transactionRepo.seedTransfers(transferRow)
 
@@ -588,6 +589,7 @@ class TransactionsListViewModelTest {
                     toAmount = null,
                     currencyId = usd.id,
                     occurredAt = now,
+                    note = null,
                 )
             transactionRepo.seedTransfers(transferRow)
 
@@ -676,6 +678,7 @@ class TransactionsListViewModelTest {
                     toAmount = null,
                     currencyId = usd.id,
                     occurredAt = now,
+                    note = null,
                 )
             transactionRepo.seedTransfers(transferRow)
 
@@ -701,6 +704,7 @@ class TransactionsListViewModelTest {
                     toAmount = null,
                     currencyId = usd.id,
                     occurredAt = now,
+                    note = null,
                 )
             transactionRepo.seedTransfers(transferRow)
 
@@ -834,6 +838,7 @@ class TransactionsListViewModelTest {
                         toAmount = null,
                         currencyId = usd.id,
                         occurredAt = now,
+                        note = null,
                     )
                 transactionRepo.updateTransfers(newTransfer)
                 transactionRepo.triggerRecentChange()

@@ -195,6 +195,7 @@ class TransactionRepositoryImplTest {
                         toAmount = 450.0,
                         currencyId = 8L,
                         occurredAt = occurredAt.toEpochMilli(),
+                        note = null,
                     ),
                 )
 

@@ -245,6 +245,7 @@ class TransactionsListContentTest {
                 amount = money("100.00"),
                 toAmount = null,
                 occurredAt = Instant.parse("2026-06-10T00:00:00Z"),
+                note = null,
             )
         assertFalse(TransactionsListUiState(isLoading = false, transfers = listOf(record)).isTransfersEmpty)
     }

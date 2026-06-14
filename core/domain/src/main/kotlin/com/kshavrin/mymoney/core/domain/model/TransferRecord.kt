@@ -9,4 +9,5 @@ data class TransferRecord(
     val amount: Money,
     val toAmount: Money?,
     val occurredAt: Instant,
+    val note: String?,
 )

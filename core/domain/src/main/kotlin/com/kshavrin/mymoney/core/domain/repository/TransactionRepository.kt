@@ -105,4 +105,5 @@ data class TransferRow(
     val toAmount: java.math.BigDecimal?,
     val currencyId: Long,
     val occurredAt: java.time.Instant,
+    val note: String?,
 )

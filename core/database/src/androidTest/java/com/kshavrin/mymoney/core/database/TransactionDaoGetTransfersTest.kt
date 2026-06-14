@@ -97,6 +97,7 @@ class TransactionDaoGetTransfersTest {
         amount: Double = 500.0,
         occurredAt: Long = 5 * day,
         isDeleted: Boolean = false,
+        note: String? = null,
     ): Long =
         db.transactionDao().upsert(
             TransactionEntity(
@@ -105,7 +106,7 @@ class TransactionDaoGetTransfersTest {
                 currencyId = currencyId,
                 accountId = fromAccountId,
                 categoryId = null,
-                note = null,
+                note = note,
                 occurredAt = occurredAt,
                 createdAt = occurredAt,
                 updatedAt = occurredAt,
@@ -245,5 +246,35 @@ class TransactionDaoGetTransfersTest {
             val rows = db.transactionDao().getTransfers(accountId = null, from = 0L, to = 10 * day)
 
             assertEquals(listOf(id2, id3, id1), rows.map { it.id })
+        }
+
+    @Test
+    fun getTransfers_returns_non_null_note_when_transfer_has_note() =
+        runTest {
+            insertTransfer(
+                fromAccountId = accountCash,
+                toAccountId = accountCard,
+                note = "зарплата",
+            )
+
+            val rows = db.transactionDao().getTransfers(accountId = null, from = 0L, to = 10 * day)
+
+            assertEquals(1, rows.size)
+            assertEquals("зарплата", rows.single().note)
+        }
+
+    @Test
+    fun getTransfers_returns_null_note_when_transfer_note_is_null() =
+        runTest {
+            insertTransfer(
+                fromAccountId = accountCash,
+                toAccountId = accountCard,
+                note = null,
+            )
+
+            val rows = db.transactionDao().getTransfers(accountId = null, from = 0L, to = 10 * day)
+
+            assertEquals(1, rows.size)
+            assertEquals(null, rows.single().note)
         }
 }

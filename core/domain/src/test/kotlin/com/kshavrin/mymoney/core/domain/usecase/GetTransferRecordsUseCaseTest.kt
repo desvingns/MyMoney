@@ -285,4 +285,48 @@ class GetTransferRecordsUseCaseTest {
             }
             assertTrue("expected IllegalStateException for missing currency", caught != null)
         }
+
+    @Test
+    fun `maps note from TransferRow to TransferRecord when note is present`() =
+        runTest {
+            fakeCurrencyRepo.seed(usd)
+            fakeTransactionRepo.seedTransfers(
+                TransferRow(
+                    id = 20L,
+                    fromAccountName = "Наличные",
+                    toAccountName = "Карта",
+                    amount = BigDecimal("150.00"),
+                    toAmount = null,
+                    currencyId = usd.id,
+                    occurredAt = Instant.parse("2026-06-10T12:00:00Z"),
+                    note = "аренда квартиры",
+                ),
+            )
+
+            val result = useCase(accountId = null, period = period)
+
+            assertEquals("аренда квартиры", result.single().note)
+        }
+
+    @Test
+    fun `maps null note from TransferRow to null in TransferRecord`() =
+        runTest {
+            fakeCurrencyRepo.seed(usd)
+            fakeTransactionRepo.seedTransfers(
+                TransferRow(
+                    id = 21L,
+                    fromAccountName = "Cash",
+                    toAccountName = "Card",
+                    amount = BigDecimal("50.00"),
+                    toAmount = null,
+                    currencyId = usd.id,
+                    occurredAt = Instant.parse("2026-06-11T08:00:00Z"),
+                    note = null,
+                ),
+            )
+
+            val result = useCase(accountId = null, period = period)
+
+            assertEquals(null, result.single().note)
+        }
 }

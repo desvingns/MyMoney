@@ -852,4 +852,50 @@ class TransactionsListViewModelTest {
                 cancelAndIgnoreRemainingEvents()
             }
         }
+
+    @Test
+    fun `transfer note is forwarded to TransferRecord in state`() =
+        runTest {
+            val transferRow =
+                TransferRow(
+                    id = 70L,
+                    fromAccountName = "Наличные",
+                    toAccountName = "Карта",
+                    amount = BigDecimal("300.00"),
+                    toAmount = null,
+                    currencyId = usd.id,
+                    occurredAt = now,
+                    note = "ежемесячный платёж",
+                )
+            transactionRepo.seedTransfers(transferRow)
+
+            buildViewModel().state.test {
+                val record = expectMostRecentItem().transfers.single()
+                assertEquals("ежемесячный платёж", record.note)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `transfer with null note exposes null note in TransferRecord`() =
+        runTest {
+            val transferRow =
+                TransferRow(
+                    id = 71L,
+                    fromAccountName = "A",
+                    toAccountName = "B",
+                    amount = BigDecimal("100.00"),
+                    toAmount = null,
+                    currencyId = usd.id,
+                    occurredAt = now,
+                    note = null,
+                )
+            transactionRepo.seedTransfers(transferRow)
+
+            buildViewModel().state.test {
+                val record = expectMostRecentItem().transfers.single()
+                assertEquals(null, record.note)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
 }

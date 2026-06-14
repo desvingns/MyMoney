@@ -238,6 +238,60 @@ class TransactionRepositoryImplTest {
             assertEquals(null, calledAccountId)
         }
 
+    @Test
+    fun `getTransfers maps note field from TransferRow to DomainTransferRow`() =
+        runTest(dispatcher) {
+            val occurredAt = Instant.parse("2026-06-10T12:00:00Z")
+            fakeDao.transferRows =
+                listOf(
+                    com.kshavrin.mymoney.core.database.projection.TransferRow(
+                        id = 10L,
+                        fromAccountName = "Наличные",
+                        toAccountName = "Карта",
+                        amount = 200.0,
+                        toAmount = null,
+                        currencyId = 8L,
+                        occurredAt = occurredAt.toEpochMilli(),
+                        note = "ежемесячный перевод",
+                    ),
+                )
+            val period =
+                com.kshavrin.mymoney.core.domain.model.Period.Month(
+                    java.time.YearMonth.of(2026, 6),
+                )
+
+            val rows = repository.getTransfers(accountId = null, period = period)
+
+            assertEquals("ежемесячный перевод", rows.single().note)
+        }
+
+    @Test
+    fun `getTransfers maps null note from TransferRow to null in DomainTransferRow`() =
+        runTest(dispatcher) {
+            val occurredAt = Instant.parse("2026-06-10T12:00:00Z")
+            fakeDao.transferRows =
+                listOf(
+                    com.kshavrin.mymoney.core.database.projection.TransferRow(
+                        id = 11L,
+                        fromAccountName = "A",
+                        toAccountName = "B",
+                        amount = 100.0,
+                        toAmount = null,
+                        currencyId = 8L,
+                        occurredAt = occurredAt.toEpochMilli(),
+                        note = null,
+                    ),
+                )
+            val period =
+                com.kshavrin.mymoney.core.domain.model.Period.Month(
+                    java.time.YearMonth.of(2026, 6),
+                )
+
+            val rows = repository.getTransfers(accountId = null, period = period)
+
+            assertEquals(null, rows.single().note)
+        }
+
     private fun transactionEntity(
         id: Long,
         occurredAt: Long,

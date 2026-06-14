@@ -374,6 +374,17 @@ private fun TransferRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+            val note = transfer.note
+            if (!note.isNullOrBlank()) {
+                Text(
+                    text = note,
+                    style = MaterialTheme.typography.transferRowMeta,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.testTag(RecordsTestTags.transferNote(transfer.id)),
+                )
+            }
             Text(
                 text =
                     transfer.occurredAt

@@ -27,4 +27,6 @@ object RecordsTestTags {
     const val TRANSFERS_EMPTY = "records_transfers_empty"
 
     fun transfer(id: Long): String = "records_transfer_$id"
+
+    fun transferNote(id: Long): String = "records_transfer_note_$id"
 }

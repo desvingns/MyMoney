@@ -10,10 +10,14 @@ import com.kshavrin.mymoney.core.database.MoneyDatabase
 import com.kshavrin.mymoney.core.database.mapper.toDomain
 import com.kshavrin.mymoney.core.database.mapper.toEntity
 import com.kshavrin.mymoney.core.domain.csv.CsvImportFormat
+import com.kshavrin.mymoney.core.domain.csv.ExistingCategorySummary
+import com.kshavrin.mymoney.core.domain.csv.ImportCategoryStrategy
 import com.kshavrin.mymoney.core.domain.csv.ImportDataStrategy
 import com.kshavrin.mymoney.core.domain.csv.ImportPlan
 import com.kshavrin.mymoney.core.domain.csv.ImportPreview
+import com.kshavrin.mymoney.core.domain.csv.MergeAction
 import com.kshavrin.mymoney.core.domain.csv.MonefyCsvImportParser
+import com.kshavrin.mymoney.core.domain.csv.OrphanDecision
 import com.kshavrin.mymoney.core.domain.csv.PreviewAccount
 import com.kshavrin.mymoney.core.domain.csv.PreviewCategory
 import com.kshavrin.mymoney.core.domain.csv.PreviewDateRange
@@ -183,7 +187,7 @@ class BackupRepositoryImpl
                     staged,
                     ImportPlan(
                         dataStrategy = ImportDataStrategy.Append,
-                        categoryStrategy = com.kshavrin.mymoney.core.domain.csv.ImportCategoryStrategy.Append,
+                        categoryStrategy = ImportCategoryStrategy.Append,
                     ),
                 ).getOrThrow()
             }
@@ -223,9 +227,15 @@ class BackupRepositoryImpl
                             database.transactionDao().deleteAll()
                             database.accountDao().deleteAll()
                             database.categoryDao().deleteAll()
+                        } else if (plan.categoryStrategy is ImportCategoryStrategy.ReplaceCurrent) {
+                            // D5: drop the current categories, honouring per-category OrphanDecision for
+                            // those that still carry transactions. Runs inside the same withTransaction as
+                            // the re-import so the whole plan commits or rolls back atomically (D8).
+                            replaceCurrentCategories(plan.orphanDecisions)
                         }
                         when (staged.format) {
-                            CsvImportFormat.Monefy -> importMonefyCsv(staged.records, plan.dataStrategy)
+                            CsvImportFormat.Monefy ->
+                                importMonefyCsv(staged.records, plan.dataStrategy, plan.categoryStrategy)
                             CsvImportFormat.MyMoney -> importMyMoneyCsv(staged.records, plan.dataStrategy)
                             CsvImportFormat.Unknown ->
                                 throw IOException("CSV header does not match the transaction schema")
@@ -233,6 +243,53 @@ class BackupRepositoryImpl
                     }
                 }
             }
+
+        override suspend fun existingCategorySummaries(): List<ExistingCategorySummary> =
+            withContext(ioDispatcher) {
+                database
+                    .categoryDao()
+                    .observeAll()
+                    .first()
+                    .map { it.toDomain() }
+                    .filterNot { it.isArchived }
+                    .map { category ->
+                        ExistingCategorySummary(
+                            id = category.id,
+                            name = category.name,
+                            kind = category.kind,
+                            transactionCount = database.transactionDao().countByCategory(category.id),
+                        )
+                    }
+            }
+
+        private suspend fun replaceCurrentCategories(orphanDecisions: Map<String, OrphanDecision>) {
+            val existingCategories =
+                database
+                    .categoryDao()
+                    .observeAll()
+                    .first()
+                    .map { it.toDomain() }
+                    .filterNot { it.isArchived }
+            val idsToDelete = mutableListOf<Long>()
+            existingCategories.forEach { category ->
+                val txCount = database.transactionDao().countByCategory(category.id)
+                if (txCount == 0) {
+                    // Empty categories are removed silently (D5).
+                    idsToDelete += category.id
+                    return@forEach
+                }
+                when (orphanDecisions[category.name] ?: OrphanDecision.KeepCategory) {
+                    OrphanDecision.KeepCategory -> Unit
+                    OrphanDecision.DeleteTransactions -> {
+                        database.transactionDao().deleteByCategory(category.id)
+                        idsToDelete += category.id
+                    }
+                }
+            }
+            if (idsToDelete.isNotEmpty()) {
+                database.categoryDao().deleteByIds(idsToDelete)
+            }
+        }
 
         private suspend fun buildPreview(
             format: CsvImportFormat,
@@ -459,6 +516,7 @@ class BackupRepositoryImpl
         private suspend fun importMonefyCsv(
             records: List<List<String>>,
             dataStrategy: ImportDataStrategy,
+            categoryStrategy: ImportCategoryStrategy,
         ): CsvImportFocus? {
             val parsedRows = MonefyCsvImportParser.parse(records)
             val rows =
@@ -526,6 +584,34 @@ class BackupRepositoryImpl
                 }
                 var categorySortOrder = (existingCategories.maxOfOrNull { it.sortOrder } ?: -1) + 1
                 var paletteIndex = 0
+
+                if (categoryStrategy is ImportCategoryStrategy.AppendManualMerge) {
+                    // D6: route each import category onto its chosen target id (reuse, no duplicate) and
+                    // rename the target to resultName. Rows merge under the shared categoryId; CreateNew
+                    // mappings fall through to the normal exact-name resolve below.
+                    categoryStrategy.mappings.forEach { mapping ->
+                        val action = mapping.action
+                        if (action is MergeAction.MergeInto) {
+                            val target =
+                                action.targetId?.let { id -> existingCategories.firstOrNull { it.id == id } }
+                                    ?: existingCategories.firstOrNull {
+                                        MonefyCsvImportParser.normalizeName(it.name) ==
+                                            MonefyCsvImportParser.normalizeName(action.targetCategoryName)
+                                    }
+                            if (target != null) {
+                                if (action.resultName != target.name) {
+                                    database.categoryDao().rename(target.id, action.resultName)
+                                    categoriesByNameKind[
+                                        MonefyCsvImportParser.normalizeName(action.resultName) to target.kind,
+                                    ] = target.id
+                                }
+                                categoriesByNameKind[
+                                    MonefyCsvImportParser.normalizeName(mapping.importCategoryName) to target.kind,
+                                ] = target.id
+                            }
+                        }
+                    }
+                }
 
                 suspend fun resolveAccountId(
                     name: String,

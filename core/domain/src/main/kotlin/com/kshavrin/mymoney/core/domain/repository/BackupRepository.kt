@@ -1,5 +1,6 @@
 package com.kshavrin.mymoney.core.domain.repository
 
+import com.kshavrin.mymoney.core.domain.csv.ExistingCategorySummary
 import com.kshavrin.mymoney.core.domain.csv.ImportPlan
 import com.kshavrin.mymoney.core.domain.csv.StagedImport
 import com.kshavrin.mymoney.core.domain.model.BackupFile
@@ -32,6 +33,9 @@ interface BackupRepository {
     /** Read and parse a CSV (both formats) into memory for the wizard, without touching the DB. */
     suspend fun parseImport(documentUriString: String): Result<StagedImport> =
         Result.failure(UnsupportedOperationException("CSV import is not supported"))
+
+    /** Existing local categories plus live transaction counts, for the ReplaceCurrent orphan dialog. */
+    suspend fun existingCategorySummaries(): List<ExistingCategorySummary> = emptyList()
 
     /** Apply the chosen [ImportPlan] over an already-parsed import in one withTransaction. */
     suspend fun commitImport(

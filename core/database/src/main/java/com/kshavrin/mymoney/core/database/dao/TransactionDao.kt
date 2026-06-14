@@ -220,4 +220,17 @@ interface TransactionDao {
 
     @Query("DELETE FROM `transaction`")
     suspend fun deleteAll()
+
+    // AppendManualMerge (D6): redirect every row of an import category onto the target category id so
+    // records merge under one categoryId without spawning a duplicate category.
+    @Query("UPDATE `transaction` SET category_id = :newId WHERE category_id = :oldId")
+    suspend fun reassignCategory(
+        oldId: Long,
+        newId: Long,
+    )
+
+    // ReplaceCurrent + OrphanDecision.DeleteTransactions (D5): hard-delete a category's rows before
+    // the category itself is removed.
+    @Query("DELETE FROM `transaction` WHERE category_id = :categoryId")
+    suspend fun deleteByCategory(categoryId: Long)
 }

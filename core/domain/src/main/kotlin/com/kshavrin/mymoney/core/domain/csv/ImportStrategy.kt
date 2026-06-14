@@ -1,5 +1,18 @@
 package com.kshavrin.mymoney.core.domain.csv
 
+import com.kshavrin.mymoney.core.domain.model.CategoryKind
+
+/**
+ * An existing local category plus how many live transactions reference it (D5). The wizard uses the
+ * count to decide which categories need an [OrphanDecision] before a ReplaceCurrent import.
+ */
+data class ExistingCategorySummary(
+    val id: Long,
+    val name: String,
+    val kind: CategoryKind,
+    val transactionCount: Int,
+)
+
 sealed interface ImportDataStrategy {
     data object ReplaceAll : ImportDataStrategy
 

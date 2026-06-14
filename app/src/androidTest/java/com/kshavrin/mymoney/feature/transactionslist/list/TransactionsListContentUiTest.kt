@@ -372,6 +372,136 @@ class TransactionsListContentUiTest {
             .assertIsDisplayed()
     }
 
+    // ----- TransactionLeaf note display tests -----
+
+    @Test
+    fun `transaction with note shows note text and date is still displayed`() {
+        val tx = transaction(id = 10L, categoryId = 5L).copy(note = "Morning coffee")
+
+        setContent(
+            state =
+                TransactionsListUiState(
+                    currency = currency(),
+                    isLoading = false,
+                    expandedCategoryIds = setOf(5L),
+                    groups =
+                        listOf(
+                            group(
+                                id = 5L,
+                                kind = CategoryKind.Expense,
+                                total = "12.34",
+                                count = 1,
+                                transactions = listOf(tx),
+                            ),
+                        ),
+                ),
+        )
+
+        composeTestRule
+            .onNodeWithTag(RecordsTestTags.transactionNote(10L), useUnmergedTree = true)
+            .assertExists()
+        composeTestRule
+            .onNodeWithText("Morning coffee", useUnmergedTree = true)
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithTag(RecordsTestTags.transaction(10L))
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun `transaction without note does not render a note node`() {
+        val tx = transaction(id = 11L, categoryId = 5L).copy(note = null)
+
+        setContent(
+            state =
+                TransactionsListUiState(
+                    currency = currency(),
+                    isLoading = false,
+                    expandedCategoryIds = setOf(5L),
+                    groups =
+                        listOf(
+                            group(
+                                id = 5L,
+                                kind = CategoryKind.Expense,
+                                total = "12.34",
+                                count = 1,
+                                transactions = listOf(tx),
+                            ),
+                        ),
+                ),
+        )
+
+        composeTestRule
+            .onNodeWithTag(RecordsTestTags.transactionNote(11L), useUnmergedTree = true)
+            .assertDoesNotExist()
+        composeTestRule
+            .onNodeWithTag(RecordsTestTags.transaction(11L))
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun `transaction with blank note does not render a note node`() {
+        val tx = transaction(id = 12L, categoryId = 5L).copy(note = "   ")
+
+        setContent(
+            state =
+                TransactionsListUiState(
+                    currency = currency(),
+                    isLoading = false,
+                    expandedCategoryIds = setOf(5L),
+                    groups =
+                        listOf(
+                            group(
+                                id = 5L,
+                                kind = CategoryKind.Expense,
+                                total = "12.34",
+                                count = 1,
+                                transactions = listOf(tx),
+                            ),
+                        ),
+                ),
+        )
+
+        composeTestRule
+            .onNodeWithTag(RecordsTestTags.transactionNote(12L), useUnmergedTree = true)
+            .assertDoesNotExist()
+        composeTestRule
+            .onNodeWithTag(RecordsTestTags.transaction(12L))
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun `transaction with long note shows note node and date node coexist`() {
+        val longNote = "Very long transaction comment that exceeds the visible width of the row and should be truncated with ellipsis"
+        val tx = transaction(id = 13L, categoryId = 5L).copy(note = longNote)
+
+        setContent(
+            state =
+                TransactionsListUiState(
+                    currency = currency(),
+                    isLoading = false,
+                    expandedCategoryIds = setOf(5L),
+                    groups =
+                        listOf(
+                            group(
+                                id = 5L,
+                                kind = CategoryKind.Expense,
+                                total = "12.34",
+                                count = 1,
+                                transactions = listOf(tx),
+                            ),
+                        ),
+                ),
+        )
+
+        composeTestRule
+            .onNodeWithTag(RecordsTestTags.transactionNote(13L), useUnmergedTree = true)
+            .assertExists()
+        composeTestRule
+            .onNodeWithTag(RecordsTestTags.transaction(13L))
+            .assertIsDisplayed()
+    }
+
     private fun setContent(
         state: TransactionsListUiState = TransactionsListUiState(currency = currency(), isLoading = false),
         onEvent: (TransactionsListEvent) -> Unit = {},

@@ -5,13 +5,17 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kshavrin.mymoney.core.common.exception.reportToSentry
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
+import com.kshavrin.mymoney.core.domain.csv.CategoryMergeMapping
 import com.kshavrin.mymoney.core.domain.csv.ExistingCategorySummary
 import com.kshavrin.mymoney.core.domain.csv.ImportCategoryStrategy
 import com.kshavrin.mymoney.core.domain.csv.ImportDataStrategy
 import com.kshavrin.mymoney.core.domain.csv.ImportPlan
 import com.kshavrin.mymoney.core.domain.csv.ImportPreview
+import com.kshavrin.mymoney.core.domain.csv.MergeAction
+import com.kshavrin.mymoney.core.domain.csv.MonefyCsvImportParser
 import com.kshavrin.mymoney.core.domain.csv.OrphanDecision
 import com.kshavrin.mymoney.core.domain.csv.StagedImport
+import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.core.domain.repository.BackupRepository
 import com.kshavrin.mymoney.feature.settings.R
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -70,6 +74,10 @@ class ImportWizardViewModel
                 ImportWizardEvent.DestructiveDismissed ->
                     _state.value = _state.value.copy(destructiveConfirmationVisible = false)
                 is ImportWizardEvent.OrphanDecided -> onOrphanDecided(event.categoryName, event.decision)
+                is ImportWizardEvent.MergeActionSelected ->
+                    onMergeActionSelected(event.importCategoryName, event.target)
+                is ImportWizardEvent.MergeResultNameChanged ->
+                    onMergeResultNameChanged(event.importCategoryName, event.resultName)
                 ImportWizardEvent.DismissError ->
                     _state.value = _state.value.copy(errorBannerRes = null)
             }
@@ -106,6 +114,8 @@ class ImportWizardViewModel
                 }
                 ImportWizardStep.CategoryStrategy -> onCategoryStrategyNext()
                 ImportWizardStep.OrphanDecisions -> Unit
+                ImportWizardStep.ManualMerge ->
+                    _state.value = _state.value.copy(step = ImportWizardStep.Confirm)
                 ImportWizardStep.Confirm -> Unit
             }
         }
@@ -122,7 +132,75 @@ class ImportWizardViewModel
                     return
                 }
             }
+            if (_state.value.categoryStrategy is ImportCategoryStrategy.AppendManualMerge) {
+                val rows = unmatchedMergeRows()
+                if (rows.isNotEmpty()) {
+                    _state.value =
+                        _state.value.copy(
+                            step = ImportWizardStep.ManualMerge,
+                            mergeRows = rows,
+                        )
+                    return
+                }
+            }
             _state.value = _state.value.copy(step = ImportWizardStep.Confirm)
+        }
+
+        private fun unmatchedMergeRows(): List<MergeRow> {
+            val existingKeysByKind: Map<CategoryKind, Set<String>> =
+                existingCategories
+                    .groupBy { it.kind }
+                    .mapValues { (_, summaries) ->
+                        summaries.mapTo(mutableSetOf()) { MonefyCsvImportParser.normalizeName(it.name) }
+                    }
+            return _state.value.preview
+                ?.categories
+                .orEmpty()
+                .filter { category ->
+                    val key = MonefyCsvImportParser.normalizeName(category.name)
+                    key !in existingKeysByKind[category.kind].orEmpty()
+                }.map { category ->
+                    MergeRow(
+                        importCategoryName = category.name,
+                        kind = category.kind,
+                        candidates =
+                            existingCategories.filter { it.kind == category.kind },
+                    )
+                }
+        }
+
+        private fun onMergeActionSelected(
+            importCategoryName: String,
+            target: ExistingCategorySummary?,
+        ) {
+            val updated =
+                _state.value.mergeRows.map { row ->
+                    if (row.importCategoryName == importCategoryName) {
+                        if (target == null) {
+                            row.copy(targetId = null, resultName = "")
+                        } else {
+                            row.copy(targetId = target.id, resultName = target.name)
+                        }
+                    } else {
+                        row
+                    }
+                }
+            _state.value = _state.value.copy(mergeRows = updated)
+        }
+
+        private fun onMergeResultNameChanged(
+            importCategoryName: String,
+            resultName: String,
+        ) {
+            val updated =
+                _state.value.mergeRows.map { row ->
+                    if (row.importCategoryName == importCategoryName) {
+                        row.copy(resultName = resultName)
+                    } else {
+                        row
+                    }
+                }
+            _state.value = _state.value.copy(mergeRows = updated)
         }
 
         private fun onOrphanDecided(
@@ -148,6 +226,8 @@ class ImportWizardViewModel
                     _state.value = _state.value.copy(step = ImportWizardStep.DataStrategy)
                 ImportWizardStep.OrphanDecisions ->
                     _state.value = _state.value.copy(step = ImportWizardStep.CategoryStrategy)
+                ImportWizardStep.ManualMerge ->
+                    _state.value = _state.value.copy(step = ImportWizardStep.CategoryStrategy)
                 ImportWizardStep.Confirm -> onBackFromConfirm()
             }
         }
@@ -158,6 +238,8 @@ class ImportWizardViewModel
                     _state.value.dataStrategy == ImportDataStrategy.ReplaceAll -> ImportWizardStep.DataStrategy
                     _state.value.categoryStrategy == ImportCategoryStrategy.ReplaceCurrent &&
                         _state.value.orphanCategories.isNotEmpty() -> ImportWizardStep.OrphanDecisions
+                    _state.value.categoryStrategy is ImportCategoryStrategy.AppendManualMerge &&
+                        _state.value.mergeRows.isNotEmpty() -> ImportWizardStep.ManualMerge
                     else -> ImportWizardStep.CategoryStrategy
                 }
             _state.value = _state.value.copy(step = previous)
@@ -208,6 +290,7 @@ enum class ImportWizardStep {
     DataStrategy,
     CategoryStrategy,
     OrphanDecisions,
+    ManualMerge,
     Confirm,
 }
 
@@ -215,6 +298,21 @@ data class OrphanCategory(
     val name: String,
     val transactionCount: Int,
 )
+
+/**
+ * A single non-matching import category awaiting a manual decision (D6). [targetId] `null` means the
+ * default "create new" action; a non-null id merges into the chosen existing category with [resultName].
+ */
+data class MergeRow(
+    val importCategoryName: String,
+    val kind: CategoryKind,
+    val candidates: List<ExistingCategorySummary>,
+    val targetId: Long? = null,
+    val resultName: String = "",
+) {
+    val isMergeInto: Boolean
+        get() = targetId != null
+}
 
 data class ImportWizardState(
     val step: ImportWizardStep = ImportWizardStep.Preview,
@@ -224,6 +322,7 @@ data class ImportWizardState(
     val categoryStrategy: ImportCategoryStrategy = ImportCategoryStrategy.Append,
     val orphanCategories: List<OrphanCategory> = emptyList(),
     val orphanDecisions: Map<String, OrphanDecision> = emptyMap(),
+    val mergeRows: List<MergeRow> = emptyList(),
     val destructiveConfirmationVisible: Boolean = false,
     val errorBannerRes: Int? = null,
 ) {
@@ -236,13 +335,32 @@ data class ImportWizardState(
         ImportPlan(
             dataStrategy = dataStrategy,
             categoryStrategy =
-                if (dataStrategy == ImportDataStrategy.ReplaceAll) {
-                    ImportCategoryStrategy.ReplaceCurrent
-                } else {
-                    categoryStrategy
+                when {
+                    dataStrategy == ImportDataStrategy.ReplaceAll -> ImportCategoryStrategy.ReplaceCurrent
+                    categoryStrategy is ImportCategoryStrategy.AppendManualMerge ->
+                        ImportCategoryStrategy.AppendManualMerge(mergeMappings())
+                    else -> categoryStrategy
                 },
             orphanDecisions = orphanDecisions,
         )
+
+    private fun mergeMappings(): List<CategoryMergeMapping> =
+        mergeRows.map { row ->
+            CategoryMergeMapping(
+                importCategoryName = row.importCategoryName,
+                action =
+                    if (row.targetId == null) {
+                        MergeAction.CreateNew(name = row.importCategoryName)
+                    } else {
+                        val target = row.candidates.first { it.id == row.targetId }
+                        MergeAction.MergeInto(
+                            targetCategoryName = target.name,
+                            targetId = target.id,
+                            resultName = row.resultName.ifBlank { target.name },
+                        )
+                    },
+            )
+        }
 }
 
 sealed interface ImportWizardEvent {
@@ -269,6 +387,16 @@ sealed interface ImportWizardEvent {
     data class OrphanDecided(
         val categoryName: String,
         val decision: OrphanDecision,
+    ) : ImportWizardEvent
+
+    data class MergeActionSelected(
+        val importCategoryName: String,
+        val target: ExistingCategorySummary?,
+    ) : ImportWizardEvent
+
+    data class MergeResultNameChanged(
+        val importCategoryName: String,
+        val resultName: String,
     ) : ImportWizardEvent
 
     data object DismissError : ImportWizardEvent

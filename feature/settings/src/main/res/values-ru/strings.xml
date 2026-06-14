@@ -82,6 +82,11 @@
     <string name="import_wizard_orphan_message">В категории «%1$s» — %2$d записей. Оставить категорию или удалить её записи?</string>
     <string name="import_wizard_orphan_keep">Оставить категорию</string>
     <string name="import_wizard_orphan_delete">Удалить записи</string>
+    <string name="import_wizard_merge_heading">Сопоставьте категории</string>
+    <string name="import_wizard_merge_subheading">Для каждой импортируемой категории создайте новую или объедините с существующей.</string>
+    <string name="import_wizard_merge_create_new">Создать новую</string>
+    <string name="import_wizard_merge_into">Объединить с «%1$s»</string>
+    <string name="import_wizard_merge_result_name">Итоговое название</string>
     <string name="import_wizard_confirm_heading">Подтвердите импорт</string>
     <string name="import_wizard_confirm_data">Записи: %1$s</string>
     <string name="import_wizard_confirm_category">Категории: %1$s</string>

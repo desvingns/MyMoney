@@ -117,6 +117,7 @@ fun ImportWizardContent(
                     ImportWizardStep.DataStrategy -> DataStrategyStep(state, onEvent)
                     ImportWizardStep.CategoryStrategy -> CategoryStrategyStep(state, onEvent)
                     ImportWizardStep.OrphanDecisions -> OrphanDecisionsStep(state, onEvent)
+                    ImportWizardStep.ManualMerge -> ManualMergeStep(state, onEvent)
                     ImportWizardStep.Confirm -> ConfirmStep(state)
                 }
 

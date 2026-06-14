@@ -82,6 +82,11 @@
     <string name="import_wizard_orphan_message">Category \"%1$s\" has %2$d records. Keep the category or delete its records?</string>
     <string name="import_wizard_orphan_keep">Keep category</string>
     <string name="import_wizard_orphan_delete">Delete records</string>
+    <string name="import_wizard_merge_heading">Match categories</string>
+    <string name="import_wizard_merge_subheading">For each imported category, create it as new or merge it into an existing one.</string>
+    <string name="import_wizard_merge_create_new">Create new</string>
+    <string name="import_wizard_merge_into">Merge into \"%1$s\"</string>
+    <string name="import_wizard_merge_result_name">Result name</string>
     <string name="import_wizard_confirm_heading">Confirm import</string>
     <string name="import_wizard_confirm_data">Records: %1$s</string>
     <string name="import_wizard_confirm_category">Categories: %1$s</string>

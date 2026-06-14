@@ -225,6 +225,13 @@ val ColorScheme.transactionFormDeleteContainer: Color
 val ColorScheme.transactionFormDeleteContent: Color
     get() = onErrorContainer
 
+// Transaction leaf row tokens (S11 «Операции» list — TransactionLeaf)
+// Note text colour — subordinate muted text sitting between amount and date.
+// Alias of onSurfaceVariant; named alias lets the developer reference the semantic intent
+// without repeating MaterialTheme.colorScheme.onSurfaceVariant at each call site.
+val ColorScheme.transactionLeafNoteColor: Color
+    get() = onSurfaceVariant
+
 // Transfer list row tokens (S12 «Переводы» tab)
 // Neutral direction arrow between accounts — uses outline so it sits quietly
 // between the two account names without implying income or expense polarity.

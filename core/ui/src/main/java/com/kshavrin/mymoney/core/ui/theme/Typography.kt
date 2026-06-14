@@ -183,6 +183,18 @@ val Typography.goalBreakdownRowLabel: TextStyle
             lineHeight = 20.sp,
         )
 
+// Transaction leaf row tokens (S11 «Операции» list — TransactionLeaf)
+// Note text displayed between the amount and the date when transaction.note is non-empty.
+// Single line, overflow ellipsis; uses labelMedium weight so it stays visually subordinate
+// to the amount (bodyMedium) and date (labelSmall).
+val Typography.transactionLeafNote: TextStyle
+    get() =
+        labelMedium.copy(
+            fontWeight = FontWeight.Normal,
+            letterSpacing = 0.sp,
+            lineHeight = 16.sp,
+        )
+
 // Transfer list row tokens (S12 «Переводы» tab)
 // «Счёт A → Счёт B» — the primary route label in each transfer row.
 val Typography.transferRowRoute: TextStyle

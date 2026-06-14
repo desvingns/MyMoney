@@ -53,7 +53,10 @@ class BackupRestoreViewModel
                 is BackupRestoreEvent.ExportFolderPicked -> export(event.treeUriString)
                 is BackupRestoreEvent.ImportFilePicked -> import(event.documentUriString)
                 is BackupRestoreEvent.ExportCsvFilePicked -> exportCsv(event.documentUriString)
-                is BackupRestoreEvent.ImportCsvFilePicked -> importCsv(event.documentUriString)
+                is BackupRestoreEvent.ImportCsvFilePicked ->
+                    viewModelScope.launch {
+                        _actions.emit(BackupRestoreAction.NavigateToImportWizard(event.documentUriString))
+                    }
                 BackupRestoreEvent.ResetRequested -> {
                     _state.value = _state.value.copy(resetConfirmationVisible = true, errorBannerRes = null)
                 }
@@ -89,26 +92,6 @@ class BackupRestoreViewModel
                         _state.value = _state.value.copy(inProgress = false)
                         _actions.emit(BackupRestoreAction.CsvExportSucceeded)
                     }.onFailure { failure(it, R.string.backup_export_csv_error) }
-            }
-        }
-
-        private fun importCsv(documentUriString: String) {
-            viewModelScope.launch {
-                _state.value = _state.value.copy(inProgress = true, errorBannerRes = null)
-                backupRepository
-                    .importTransactionsCsv(documentUriString)
-                    .onSuccess { focus ->
-                        if (focus != null) {
-                            appSettingsRepository.update {
-                                it.copy(
-                                    importFocusEpochMs = focus.occurredAtEpochMs,
-                                    importFocusCurrencyId = focus.currencyId,
-                                )
-                            }
-                        }
-                        _state.value = _state.value.copy(inProgress = false)
-                        _actions.emit(BackupRestoreAction.CsvImportSucceeded)
-                    }.onFailure { failure(it, R.string.backup_import_csv_error) }
             }
         }
 
@@ -228,7 +211,9 @@ sealed interface BackupRestoreAction {
 
     data object CsvExportSucceeded : BackupRestoreAction
 
-    data object CsvImportSucceeded : BackupRestoreAction
+    data class NavigateToImportWizard(
+        val documentUriString: String,
+    ) : BackupRestoreAction
 
     data object RestartAfterRestore : BackupRestoreAction
 

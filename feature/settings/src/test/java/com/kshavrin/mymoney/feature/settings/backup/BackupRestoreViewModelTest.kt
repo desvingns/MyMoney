@@ -7,7 +7,6 @@ import com.kshavrin.mymoney.core.datastore.SecureStorage
 import com.kshavrin.mymoney.core.datastore.model.AppSettings
 import com.kshavrin.mymoney.core.datastore.model.SecureSettings
 import com.kshavrin.mymoney.core.domain.repository.BackupSchemaTooNewException
-import com.kshavrin.mymoney.core.domain.repository.CsvImportFocus
 import com.kshavrin.mymoney.feature.settings.R
 import com.kshavrin.mymoney.feature.settings.fake.FakeAppSettingsRepository
 import com.kshavrin.mymoney.feature.settings.fake.FakeBackupRepository
@@ -275,26 +274,28 @@ class BackupRestoreViewModelTest {
         }
 
     @Test
-    fun `csv import forwards the picked document uri to the repository`() =
+    fun `csv import picked navigates to the wizard with the picked uri instead of importing`() =
+        runTest {
+            val viewModel = buildViewModel()
+
+            viewModel.actions.test {
+                viewModel.onEvent(BackupRestoreEvent.ImportCsvFilePicked("content://doc/import.csv"))
+                assertEquals(
+                    BackupRestoreAction.NavigateToImportWizard("content://doc/import.csv"),
+                    awaitItem(),
+                )
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            assertTrue(repository.importedCsvUris.isEmpty())
+        }
+
+    @Test
+    fun `csv import picked leaves state and import focus untouched`() =
         runTest {
             val viewModel = buildViewModel()
 
             viewModel.onEvent(BackupRestoreEvent.ImportCsvFilePicked("content://doc/import.csv"))
-
-            assertEquals(listOf("content://doc/import.csv"), repository.importedCsvUris)
-        }
-
-    @Test
-    fun `successful csv import emits CsvImportSucceeded action and clears progress`() =
-        runTest {
-            val viewModel = buildViewModel()
-            repository.seedCsvImportFocus(CsvImportFocus(occurredAtEpochMs = 1_706_918_400_000L, currencyId = 7L))
-
-            viewModel.actions.test {
-                viewModel.onEvent(BackupRestoreEvent.ImportCsvFilePicked("content://doc/import.csv"))
-                assertEquals(BackupRestoreAction.CsvImportSucceeded, awaitItem())
-                cancelAndIgnoreRemainingEvents()
-            }
 
             viewModel.state.test {
                 val state = awaitItem()
@@ -303,29 +304,8 @@ class BackupRestoreViewModelTest {
                 cancelAndIgnoreRemainingEvents()
             }
 
-            assertEquals(1_706_918_400_000L, appSettingsRepository.settings.value.importFocusEpochMs)
-            assertEquals(7L, appSettingsRepository.settings.value.importFocusCurrencyId)
-        }
-
-    @Test
-    fun `csv import rejected for non round trippable rows shows its error and emits no success action`() =
-        runTest {
-            val viewModel = buildViewModel()
-            repository.simulateCsvImportFailure(
-                IllegalArgumentException("CSV import cannot represent transfer transactions"),
-            )
-
-            viewModel.actions.test {
-                viewModel.onEvent(BackupRestoreEvent.ImportCsvFilePicked("content://doc/import.csv"))
-                expectNoEvents()
-            }
-
-            viewModel.state.test {
-                val state = awaitItem()
-                assertEquals(R.string.backup_import_csv_error, state.errorBannerRes)
-                assertFalse(state.inProgress)
-                cancelAndIgnoreRemainingEvents()
-            }
+            assertEquals(0L, appSettingsRepository.settings.value.importFocusEpochMs)
+            assertEquals(-1L, appSettingsRepository.settings.value.importFocusCurrencyId)
         }
 
     @Test

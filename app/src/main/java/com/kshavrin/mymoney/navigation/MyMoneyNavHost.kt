@@ -353,6 +353,24 @@ fun MyMoneyNavHost(
         composable(Destinations.SETTINGS_BACKUP) {
             com.kshavrin.mymoney.feature.settings.backup.BackupRestoreRoute(
                 onBack = { navController.popBackStack() },
+                onNavigateToImportWizard = { uri ->
+                    val encoded = android.net.Uri.encode(uri)
+                    navController.navigate("${Destinations.IMPORT_WIZARD}?uri=$encoded")
+                },
+            )
+        }
+        composable(
+            route = "${Destinations.IMPORT_WIZARD}?uri={uri}",
+            arguments =
+                listOf(
+                    navArgument("uri") {
+                        type = NavType.StringType
+                        defaultValue = ""
+                    },
+                ),
+        ) {
+            com.kshavrin.mymoney.feature.settings.importwizard.ImportWizardRoute(
+                navController = navController,
             )
         }
     }

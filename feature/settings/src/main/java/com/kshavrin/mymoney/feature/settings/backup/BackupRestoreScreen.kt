@@ -46,6 +46,7 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun BackupRestoreRoute(
     onBack: () -> Unit,
+    onNavigateToImportWizard: (String) -> Unit,
     viewModel: BackupRestoreViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -53,7 +54,6 @@ fun BackupRestoreRoute(
     val snackbarHostState = remember { SnackbarHostState() }
     val exportMessage = stringResource(R.string.backup_export_success)
     val csvExportMessage = stringResource(R.string.backup_export_csv_success)
-    val csvImportMessage = stringResource(R.string.backup_import_csv_success)
     val restoreMessage = stringResource(R.string.backup_import_success)
     val resetMessage = stringResource(R.string.backup_reset_success)
 
@@ -101,7 +101,7 @@ fun BackupRestoreRoute(
         when (action) {
             BackupRestoreAction.ExportSucceeded -> snackbarHostState.showSnackbar(exportMessage)
             BackupRestoreAction.CsvExportSucceeded -> snackbarHostState.showSnackbar(csvExportMessage)
-            BackupRestoreAction.CsvImportSucceeded -> snackbarHostState.showSnackbar(csvImportMessage)
+            is BackupRestoreAction.NavigateToImportWizard -> onNavigateToImportWizard(action.documentUriString)
             BackupRestoreAction.RestartAfterRestore -> {
                 Toast.makeText(context, restoreMessage, Toast.LENGTH_LONG).show()
                 relaunchApplication(context)

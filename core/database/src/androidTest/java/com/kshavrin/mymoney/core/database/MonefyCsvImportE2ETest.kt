@@ -9,9 +9,12 @@ import com.kshavrin.mymoney.core.database.entity.CategoryEntity
 import com.kshavrin.mymoney.core.database.entity.CurrencyEntity
 import com.kshavrin.mymoney.core.database.entity.TransactionEntity
 import com.kshavrin.mymoney.core.database.repository.BackupRepositoryImpl
+import com.kshavrin.mymoney.core.domain.csv.CategoryMergeMapping
 import com.kshavrin.mymoney.core.domain.csv.ImportCategoryStrategy
 import com.kshavrin.mymoney.core.domain.csv.ImportDataStrategy
 import com.kshavrin.mymoney.core.domain.csv.ImportPlan
+import com.kshavrin.mymoney.core.domain.csv.MergeAction
+import com.kshavrin.mymoney.core.domain.csv.OrphanDecision
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -1576,6 +1579,611 @@ class MonefyCsvImportE2ETest {
                     .first()
                     .isEmpty(),
             )
+        }
+
+    // -----------------------------------------------------------------------
+    // ImportCategoryStrategy.ReplaceCurrent + OrphanDecision (SPEC-03 D5)
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `ReplaceCurrent with KeepCategory preserves orphaned category and its transactions`() =
+        runTest {
+            val context = ApplicationProvider.getApplicationContext<Context>()
+            val now = System.currentTimeMillis()
+
+            val rubId =
+                db.currencyDao().upsert(
+                    CurrencyEntity(
+                        code = "RUB",
+                        symbol = "₽",
+                        name = "Russian Ruble",
+                        decimalDigits = 2,
+                        isActive = true,
+                        sortOrder = 0,
+                    ),
+                )
+            val cashId =
+                db.accountDao().upsert(
+                    AccountEntity(
+                        name = "Наличные",
+                        currencyId = rubId,
+                        initialBalance = 0.0,
+                        type = "cash",
+                        colorHex = "#EF5350",
+                        iconKey = "ic_account_cash",
+                        isDefault = true,
+                        sortOrder = 0,
+                        createdAt = now,
+                        updatedAt = now,
+                        isArchived = false,
+                    ),
+                )
+            // "Зарплата" is absent from the import CSV → orphan with KeepCategory decision.
+            val salaryId =
+                db.categoryDao().upsert(
+                    CategoryEntity(
+                        name = "Зарплата",
+                        kind = "income",
+                        iconKey = "ic_cat_other",
+                        colorHex = "#9CCC65",
+                        sortOrder = 0,
+                        isDefault = true,
+                        isArchived = false,
+                        createdAt = now,
+                    ),
+                )
+            // Seed 2 transactions referencing "Зарплата".
+            repeat(2) { i ->
+                db.transactionDao().upsert(
+                    TransactionEntity(
+                        id = 0L,
+                        kind = "income",
+                        amount = (i + 1) * 1000.0,
+                        currencyId = rubId,
+                        accountId = cashId,
+                        categoryId = salaryId,
+                        note = "salary $i",
+                        occurredAt = now - (i + 1) * 86_400_000L,
+                        createdAt = now,
+                        updatedAt = now,
+                        isDeleted = false,
+                        toAccountId = null,
+                        toAmount = null,
+                        exchangeRate = null,
+                    ),
+                )
+            }
+
+            // The import CSV only knows "Продукты" → "Зарплата" becomes an orphan.
+            val header =
+                "date,account,category,amount,currency,converted amount,currency,description"
+            val csv =
+                buildString {
+                    append(header).append("\r\n")
+                    append("01/01/2020,Наличные,Продукты,-300,RUB,-300,RUB,bread\r\n")
+                }
+            val csvFile = File(context.cacheDir, "replace_keep_cat_test.csv")
+            csvFile.writeText(csv, Charsets.UTF_8)
+
+            val repo = BackupRepositoryImpl(context, db, Dispatchers.IO)
+            val staged = repo.parseImport("file://${csvFile.absolutePath}").getOrThrow()
+
+            val result =
+                repo.commitImport(
+                    staged,
+                    ImportPlan(
+                        dataStrategy = ImportDataStrategy.Append,
+                        categoryStrategy = ImportCategoryStrategy.ReplaceCurrent,
+                        orphanDecisions = mapOf("Зарплата" to OrphanDecision.KeepCategory),
+                    ),
+                )
+
+            assertTrue(
+                "commitImport returned failure: ${result.exceptionOrNull()?.message}",
+                result.isSuccess,
+            )
+
+            val categories = db.categoryDao().observeAll().first()
+            assertTrue(
+                "KeepCategory: 'Зарплата' must survive ReplaceCurrent",
+                categories.any { it.id == salaryId },
+            )
+
+            val salaryTxCount = db.transactionDao().countByCategory(salaryId)
+            assertEquals(
+                "KeepCategory: the 2 pre-existing salary transactions must be preserved",
+                2,
+                salaryTxCount,
+            )
+
+            // 'Продукты' created by the import must also be present.
+            val allTx = db.transactionDao().observeAll().first()
+            assertEquals("2 kept + 1 imported = 3 total transactions", 3, allTx.size)
+
+            csvFile.delete()
+        }
+
+    @Test
+    fun `ReplaceCurrent with DeleteTransactions removes orphaned category and its transactions`() =
+        runTest {
+            val context = ApplicationProvider.getApplicationContext<Context>()
+            val now = System.currentTimeMillis()
+
+            val rubId =
+                db.currencyDao().upsert(
+                    CurrencyEntity(
+                        code = "RUB",
+                        symbol = "₽",
+                        name = "Russian Ruble",
+                        decimalDigits = 2,
+                        isActive = true,
+                        sortOrder = 0,
+                    ),
+                )
+            val cashId =
+                db.accountDao().upsert(
+                    AccountEntity(
+                        name = "Наличные",
+                        currencyId = rubId,
+                        initialBalance = 0.0,
+                        type = "cash",
+                        colorHex = "#EF5350",
+                        iconKey = "ic_account_cash",
+                        isDefault = true,
+                        sortOrder = 0,
+                        createdAt = now,
+                        updatedAt = now,
+                        isArchived = false,
+                    ),
+                )
+            // "Прочее" is absent from the import CSV → orphan with DeleteTransactions decision.
+            val otherCatId =
+                db.categoryDao().upsert(
+                    CategoryEntity(
+                        name = "Прочее",
+                        kind = "expense",
+                        iconKey = "ic_cat_other",
+                        colorHex = "#EF5350",
+                        sortOrder = 0,
+                        isDefault = true,
+                        isArchived = false,
+                        createdAt = now,
+                    ),
+                )
+            // Seed 3 transactions referencing "Прочее".
+            repeat(3) { i ->
+                db.transactionDao().upsert(
+                    TransactionEntity(
+                        id = 0L,
+                        kind = "expense",
+                        amount = (i + 1) * 50.0,
+                        currencyId = rubId,
+                        accountId = cashId,
+                        categoryId = otherCatId,
+                        note = "misc $i",
+                        occurredAt = now - (i + 1) * 86_400_000L,
+                        createdAt = now,
+                        updatedAt = now,
+                        isDeleted = false,
+                        toAccountId = null,
+                        toAmount = null,
+                        exchangeRate = null,
+                    ),
+                )
+            }
+
+            val header =
+                "date,account,category,amount,currency,converted amount,currency,description"
+            val csv =
+                buildString {
+                    append(header).append("\r\n")
+                    append("05/01/2020,Наличные,Продукты,-100,RUB,-100,RUB,import\r\n")
+                }
+            val csvFile = File(context.cacheDir, "replace_delete_tx_test.csv")
+            csvFile.writeText(csv, Charsets.UTF_8)
+
+            val repo = BackupRepositoryImpl(context, db, Dispatchers.IO)
+            val staged = repo.parseImport("file://${csvFile.absolutePath}").getOrThrow()
+
+            val result =
+                repo.commitImport(
+                    staged,
+                    ImportPlan(
+                        dataStrategy = ImportDataStrategy.Append,
+                        categoryStrategy = ImportCategoryStrategy.ReplaceCurrent,
+                        orphanDecisions = mapOf("Прочее" to OrphanDecision.DeleteTransactions),
+                    ),
+                )
+
+            assertTrue(
+                "commitImport returned failure: ${result.exceptionOrNull()?.message}",
+                result.isSuccess,
+            )
+
+            // "Прочее" and its transactions must be gone.
+            val categories = db.categoryDao().observeAll().first()
+            assertTrue(
+                "DeleteTransactions: 'Прочее' category must be deleted",
+                categories.none { it.id == otherCatId },
+            )
+
+            val otherTxCount = db.transactionDao().countByCategory(otherCatId)
+            assertEquals(
+                "DeleteTransactions: all 3 transactions referencing 'Прочее' must be deleted",
+                0,
+                otherTxCount,
+            )
+
+            // Only the 1 imported transaction should remain.
+            val allTx = db.transactionDao().observeAll().first()
+            assertEquals("Only the 1 imported transaction must remain", 1, allTx.size)
+
+            csvFile.delete()
+        }
+
+    @Test
+    fun `ReplaceCurrent deletes empty orphaned category silently without orphanDecision entry`() =
+        runTest {
+            val context = ApplicationProvider.getApplicationContext<Context>()
+            val now = System.currentTimeMillis()
+
+            val rubId =
+                db.currencyDao().upsert(
+                    CurrencyEntity(
+                        code = "RUB",
+                        symbol = "₽",
+                        name = "Russian Ruble",
+                        decimalDigits = 2,
+                        isActive = true,
+                        sortOrder = 0,
+                    ),
+                )
+            db.accountDao().upsert(
+                AccountEntity(
+                    name = "Наличные",
+                    currencyId = rubId,
+                    initialBalance = 0.0,
+                    type = "cash",
+                    colorHex = "#EF5350",
+                    iconKey = "ic_account_cash",
+                    isDefault = true,
+                    sortOrder = 0,
+                    createdAt = now,
+                    updatedAt = now,
+                    isArchived = false,
+                ),
+            )
+            // "Пустая" has zero transactions — must be deleted silently, no orphanDecision needed.
+            val emptyCatId =
+                db.categoryDao().upsert(
+                    CategoryEntity(
+                        name = "Пустая",
+                        kind = "expense",
+                        iconKey = "ic_cat_other",
+                        colorHex = "#EF5350",
+                        sortOrder = 0,
+                        isDefault = false,
+                        isArchived = false,
+                        createdAt = now,
+                    ),
+                )
+
+            val header =
+                "date,account,category,amount,currency,converted amount,currency,description"
+            val csv =
+                buildString {
+                    append(header).append("\r\n")
+                    append("10/01/2020,Наличные,Продукты,-200,RUB,-200,RUB,\r\n")
+                }
+            val csvFile = File(context.cacheDir, "replace_empty_cat_test.csv")
+            csvFile.writeText(csv, Charsets.UTF_8)
+
+            val repo = BackupRepositoryImpl(context, db, Dispatchers.IO)
+            val staged = repo.parseImport("file://${csvFile.absolutePath}").getOrThrow()
+
+            val result =
+                repo.commitImport(
+                    staged,
+                    ImportPlan(
+                        dataStrategy = ImportDataStrategy.Append,
+                        // Empty orphanDecisions map — no explicit decision for "Пустая".
+                        categoryStrategy = ImportCategoryStrategy.ReplaceCurrent,
+                        orphanDecisions = emptyMap(),
+                    ),
+                )
+
+            assertTrue(
+                "commitImport returned failure: ${result.exceptionOrNull()?.message}",
+                result.isSuccess,
+            )
+
+            val categories = db.categoryDao().observeAll().first()
+            assertTrue(
+                "Empty orphaned category 'Пустая' must be deleted silently",
+                categories.none { it.id == emptyCatId },
+            )
+
+            // The imported 'Продукты' category was just created; 1 transaction must exist.
+            val allTx = db.transactionDao().observeAll().first()
+            assertEquals("Exactly 1 imported transaction must exist", 1, allTx.size)
+
+            csvFile.delete()
+        }
+
+    // -----------------------------------------------------------------------
+    // ImportCategoryStrategy.AppendManualMerge (SPEC-03 D6)
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `AppendManualMerge with MergeInto reassigns all import rows to the target category`() =
+        runTest {
+            val context = ApplicationProvider.getApplicationContext<Context>()
+            val now = System.currentTimeMillis()
+
+            val rubId =
+                db.currencyDao().upsert(
+                    CurrencyEntity(
+                        code = "RUB",
+                        symbol = "₽",
+                        name = "Russian Ruble",
+                        decimalDigits = 2,
+                        isActive = true,
+                        sortOrder = 0,
+                    ),
+                )
+            val cashId =
+                db.accountDao().upsert(
+                    AccountEntity(
+                        name = "Наличные",
+                        currencyId = rubId,
+                        initialBalance = 0.0,
+                        type = "cash",
+                        colorHex = "#EF5350",
+                        iconKey = "ic_account_cash",
+                        isDefault = true,
+                        sortOrder = 0,
+                        createdAt = now,
+                        updatedAt = now,
+                        isArchived = false,
+                    ),
+                )
+            // "Продукты" exists with 4 pre-existing transactions.
+            val produktyId =
+                db.categoryDao().upsert(
+                    CategoryEntity(
+                        name = "Продукты",
+                        kind = "expense",
+                        iconKey = "ic_cat_other",
+                        colorHex = "#EF5350",
+                        sortOrder = 0,
+                        isDefault = true,
+                        isArchived = false,
+                        createdAt = now,
+                    ),
+                )
+            repeat(4) { i ->
+                db.transactionDao().upsert(
+                    TransactionEntity(
+                        id = 0L,
+                        kind = "expense",
+                        amount = (i + 1) * 100.0,
+                        currencyId = rubId,
+                        accountId = cashId,
+                        categoryId = produktyId,
+                        note = "pre-existing $i",
+                        occurredAt = now - (i + 1) * 86_400_000L,
+                        createdAt = now,
+                        updatedAt = now,
+                        isDeleted = false,
+                        toAccountId = null,
+                        toAmount = null,
+                        exchangeRate = null,
+                    ),
+                )
+            }
+
+            // Import CSV uses category name "Еда" (3 rows); mapping routes it to "Продукты".
+            val header =
+                "date,account,category,amount,currency,converted amount,currency,description"
+            val csv =
+                buildString {
+                    append(header).append("\r\n")
+                    append("20/01/2020,Наличные,Еда,-50,RUB,-50,RUB,import1\r\n")
+                    append("21/01/2020,Наличные,Еда,-60,RUB,-60,RUB,import2\r\n")
+                    append("22/01/2020,Наличные,Еда,-70,RUB,-70,RUB,import3\r\n")
+                }
+            val csvFile = File(context.cacheDir, "manual_merge_into_test.csv")
+            csvFile.writeText(csv, Charsets.UTF_8)
+
+            val repo = BackupRepositoryImpl(context, db, Dispatchers.IO)
+            val staged = repo.parseImport("file://${csvFile.absolutePath}").getOrThrow()
+
+            val result =
+                repo.commitImport(
+                    staged,
+                    ImportPlan(
+                        dataStrategy = ImportDataStrategy.Append,
+                        categoryStrategy =
+                            ImportCategoryStrategy.AppendManualMerge(
+                                mappings =
+                                    listOf(
+                                        CategoryMergeMapping(
+                                            importCategoryName = "Еда",
+                                            action =
+                                                MergeAction.MergeInto(
+                                                    targetCategoryName = "Продукты",
+                                                    targetId = produktyId,
+                                                    resultName = "Продукты",
+                                                ),
+                                        ),
+                                    ),
+                            ),
+                    ),
+                )
+
+            assertTrue(
+                "commitImport returned failure: ${result.exceptionOrNull()?.message}",
+                result.isSuccess,
+            )
+
+            // No "Еда" category must have been created.
+            val categories = db.categoryDao().observeAll().first()
+            assertTrue(
+                "AppendManualMerge: no 'Еда' category must be created",
+                categories.none { it.name == "Еда" },
+            )
+
+            // All 7 transactions (4 pre-existing + 3 imported) must reference "Продукты".
+            val allTx = db.transactionDao().observeAll().first()
+            assertEquals("4 pre-existing + 3 imported = 7 total transactions", 7, allTx.size)
+            assertTrue(
+                "All 7 transactions must reference the 'Продукты' category",
+                allTx.all { it.categoryId == produktyId },
+            )
+
+            // "Продукты" must still exist and be the only expense category.
+            assertTrue(
+                "Target category 'Продукты' must still exist",
+                categories.any { it.id == produktyId },
+            )
+
+            csvFile.delete()
+        }
+
+    @Test
+    fun `AppendManualMerge with CreateNew for unmapped category creates a fresh category`() =
+        runTest {
+            val context = ApplicationProvider.getApplicationContext<Context>()
+            val now = System.currentTimeMillis()
+
+            val rubId =
+                db.currencyDao().upsert(
+                    CurrencyEntity(
+                        code = "RUB",
+                        symbol = "₽",
+                        name = "Russian Ruble",
+                        decimalDigits = 2,
+                        isActive = true,
+                        sortOrder = 0,
+                    ),
+                )
+            db.accountDao().upsert(
+                AccountEntity(
+                    name = "Наличные",
+                    currencyId = rubId,
+                    initialBalance = 0.0,
+                    type = "cash",
+                    colorHex = "#EF5350",
+                    iconKey = "ic_account_cash",
+                    isDefault = true,
+                    sortOrder = 0,
+                    createdAt = now,
+                    updatedAt = now,
+                    isArchived = false,
+                ),
+            )
+            val produktyId =
+                db.categoryDao().upsert(
+                    CategoryEntity(
+                        name = "Продукты",
+                        kind = "expense",
+                        iconKey = "ic_cat_other",
+                        colorHex = "#EF5350",
+                        sortOrder = 0,
+                        isDefault = true,
+                        isArchived = false,
+                        createdAt = now,
+                    ),
+                )
+
+            val categoriesBefore =
+                db
+                    .categoryDao()
+                    .observeAll()
+                    .first()
+                    .size
+
+            // CSV has "Развлечения" (not in mappings as MergeInto) and "Еда" (mapped to Продукты).
+            val header =
+                "date,account,category,amount,currency,converted amount,currency,description"
+            val csv =
+                buildString {
+                    append(header).append("\r\n")
+                    append("01/02/2020,Наличные,Еда,-100,RUB,-100,RUB,merged\r\n")
+                    append("02/02/2020,Наличные,Развлечения,-200,RUB,-200,RUB,new\r\n")
+                }
+            val csvFile = File(context.cacheDir, "manual_merge_create_new_test.csv")
+            csvFile.writeText(csv, Charsets.UTF_8)
+
+            val repo = BackupRepositoryImpl(context, db, Dispatchers.IO)
+            val staged = repo.parseImport("file://${csvFile.absolutePath}").getOrThrow()
+
+            val result =
+                repo.commitImport(
+                    staged,
+                    ImportPlan(
+                        dataStrategy = ImportDataStrategy.Append,
+                        categoryStrategy =
+                            ImportCategoryStrategy.AppendManualMerge(
+                                mappings =
+                                    listOf(
+                                        CategoryMergeMapping(
+                                            importCategoryName = "Еда",
+                                            action =
+                                                MergeAction.MergeInto(
+                                                    targetCategoryName = "Продукты",
+                                                    targetId = produktyId,
+                                                    resultName = "Продукты",
+                                                ),
+                                        ),
+                                        CategoryMergeMapping(
+                                            importCategoryName = "Развлечения",
+                                            action = MergeAction.CreateNew(name = "Развлечения"),
+                                        ),
+                                    ),
+                            ),
+                    ),
+                )
+
+            assertTrue(
+                "commitImport returned failure: ${result.exceptionOrNull()?.message}",
+                result.isSuccess,
+            )
+
+            val categoriesAfter = db.categoryDao().observeAll().first()
+            assertEquals(
+                "CreateNew: exactly one new category 'Развлечения' must be added",
+                categoriesBefore + 1,
+                categoriesAfter.size,
+            )
+            assertTrue(
+                "CreateNew: 'Развлечения' category must exist",
+                categoriesAfter.any { it.name == "Развлечения" },
+            )
+            assertTrue(
+                "MergeInto: no 'Еда' category must be created",
+                categoriesAfter.none { it.name == "Еда" },
+            )
+
+            val allTx = db.transactionDao().observeAll().first()
+            assertEquals("2 imported transactions must exist", 2, allTx.size)
+
+            val mergedTx = allTx.single { it.note == "merged" }
+            assertEquals(
+                "The 'Еда' row must be assigned to the 'Продукты' target category",
+                produktyId,
+                mergedTx.categoryId,
+            )
+
+            val newCatId = categoriesAfter.single { it.name == "Развлечения" }.id
+            val newTx = allTx.single { it.note == "new" }
+            assertEquals(
+                "The 'Развлечения' row must reference the newly-created category",
+                newCatId,
+                newTx.categoryId,
+            )
+
+            csvFile.delete()
         }
 
     @Test

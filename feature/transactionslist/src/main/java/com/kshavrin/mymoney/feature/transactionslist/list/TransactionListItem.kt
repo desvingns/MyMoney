@@ -20,6 +20,8 @@ object RecordsTestTags {
 
     fun transaction(id: Long): String = "records_tx_$id"
 
+    fun transactionNote(id: Long): String = "records_tx_note_$id"
+
     const val TAB_OPERATIONS = "records_tab_operations"
     const val TAB_TRANSFERS = "records_tab_transfers"
     const val TRANSFERS_EMPTY = "records_transfers_empty"

@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -75,6 +76,8 @@ import com.kshavrin.mymoney.core.ui.theme.recordsHeaderControl
 import com.kshavrin.mymoney.core.ui.theme.recordsHeaderSortContainer
 import com.kshavrin.mymoney.core.ui.theme.recordsHeaderSortTint
 import com.kshavrin.mymoney.core.ui.theme.recordsHeaderStripContainer
+import com.kshavrin.mymoney.core.ui.theme.transactionLeafNote
+import com.kshavrin.mymoney.core.ui.theme.transactionLeafNoteColor
 import com.kshavrin.mymoney.core.ui.theme.transferArrowTint
 import com.kshavrin.mymoney.core.ui.theme.transferRowAmount
 import com.kshavrin.mymoney.core.ui.theme.transferRowMeta
@@ -659,8 +662,23 @@ private fun TransactionLeaf(
             text = formatLeafAmount(transaction.kind, transaction.amount, currency),
             style = MaterialTheme.typography.bodyLarge,
             color = amountColor,
-            modifier = Modifier.weight(1f),
         )
+        val note = transaction.note
+        if (note.isNullOrBlank()) {
+            Spacer(modifier = Modifier.weight(1f))
+        } else {
+            Text(
+                text = note,
+                style = MaterialTheme.typography.transactionLeafNote,
+                color = MaterialTheme.colorScheme.transactionLeafNoteColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .testTag(RecordsTestTags.transactionNote(transaction.id)),
+            )
+        }
         Text(
             text =
                 transaction.occurredAt

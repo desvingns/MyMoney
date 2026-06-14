@@ -13,13 +13,17 @@ import com.kshavrin.mymoney.core.domain.csv.OrphanDecision
 import com.kshavrin.mymoney.core.domain.csv.PreviewCategory
 import com.kshavrin.mymoney.core.domain.csv.StagedImport
 import com.kshavrin.mymoney.core.domain.model.BackupFile
+import com.kshavrin.mymoney.core.domain.model.Category
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.core.domain.repository.BackupRepository
+import com.kshavrin.mymoney.core.domain.repository.CategoryRepository
 import com.kshavrin.mymoney.core.domain.repository.CsvImportFocus
 import com.kshavrin.mymoney.feature.settings.R
 import com.kshavrin.mymoney.feature.settings.fake.FakeAppSettingsRepository
 import com.kshavrin.mymoney.feature.settings.util.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -28,6 +32,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import java.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ImportWizardViewModelTest {
@@ -35,6 +40,41 @@ class ImportWizardViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     // ------------------------------------------------------------------ fakes
+
+    private inner class FakeCategoryRepository : CategoryRepository {
+        val upsertedCategories: MutableList<Category> = mutableListOf()
+        private val _categories = MutableStateFlow<List<Category>>(emptyList())
+
+        fun seed(categories: List<Category>) {
+            _categories.value = categories
+        }
+
+        fun simulateUpsertFailure(throwable: Throwable = RuntimeException("upsert failed")) {
+            upsertFailure = throwable
+        }
+
+        private var upsertFailure: Throwable? = null
+
+        override fun observeByKind(kind: CategoryKind): Flow<List<Category>> =
+            MutableStateFlow(_categories.value.filter { it.kind == kind })
+
+        override fun observeAll(): Flow<List<Category>> = _categories
+
+        override suspend fun findById(id: Long): Category? =
+            _categories.value.firstOrNull { it.id == id }
+
+        override suspend fun upsert(category: Category): Long {
+            upsertFailure?.let { throw it }
+            upsertedCategories += category
+            return category.id
+        }
+
+        override suspend fun upsertAll(categories: List<Category>) {
+            categories.forEach { upsert(it) }
+        }
+
+        override suspend fun archive(id: Long) = Unit
+    }
 
     /**
      * Extends the module-level FakeBackupRepository to add the three wizard-specific operations
@@ -124,12 +164,31 @@ class ImportWizardViewModelTest {
     private fun buildViewModel(
         repo: FakeWizardBackupRepository,
         settings: FakeAppSettingsRepository = FakeAppSettingsRepository(),
+        categoryRepo: FakeCategoryRepository = FakeCategoryRepository(),
         uri: String = "content://doc/import.csv",
     ): ImportWizardViewModel =
         ImportWizardViewModel(
             backupRepository = repo,
             appSettingsRepository = settings,
+            categoryRepository = categoryRepo,
             savedStateHandle = SavedStateHandle(mapOf("uri" to uri)),
+        )
+
+    private fun testCategory(
+        id: Long,
+        name: String,
+        kind: CategoryKind = CategoryKind.Expense,
+    ): Category =
+        Category(
+            id = id,
+            name = name,
+            kind = kind,
+            iconKey = "food",
+            colorHex = "#FF0000",
+            sortOrder = id.toInt(),
+            isDefault = false,
+            isArchived = false,
+            createdAt = Instant.EPOCH,
         )
 
     // ------------------------------------------------------------------ parse / preview
@@ -1167,6 +1226,422 @@ class ImportWizardViewModelTest {
             }
         }
 
+    // ------------------------------------------------------------------ ConfigGate: commit now routes to ConfigGate
+
+    @Test
+    fun `successful commit routes to ConfigGate step`() =
+        runTest {
+            val repo = FakeWizardBackupRepository()
+            val categoryRepo = FakeCategoryRepository()
+            categoryRepo.seed(listOf(testCategory(id = 1L, name = "Food")))
+            val vm = buildViewModel(repo, categoryRepo = categoryRepo)
+            // ReplaceAll → Confirm in fewest steps
+            vm.onEvent(ImportWizardEvent.NextClicked) // Preview → DataStrategy
+            vm.onEvent(ImportWizardEvent.DataStrategySelected(ImportDataStrategy.ReplaceAll))
+            vm.onEvent(ImportWizardEvent.NextClicked) // DataStrategy → Confirm
+
+            vm.onEvent(ImportWizardEvent.DestructiveConfirmed)
+
+            vm.state.test {
+                assertEquals(ImportWizardStep.ConfigGate, awaitItem().step)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `configCategories is populated from CategoryRepository after commit`() =
+        runTest {
+            val repo = FakeWizardBackupRepository()
+            val categoryRepo = FakeCategoryRepository()
+            categoryRepo.seed(listOf(testCategory(id = 1L, name = "Food"), testCategory(id = 2L, name = "Transport")))
+            val vm = buildViewModel(repo, categoryRepo = categoryRepo)
+            vm.onEvent(ImportWizardEvent.NextClicked) // Preview → DataStrategy
+            vm.onEvent(ImportWizardEvent.DataStrategySelected(ImportDataStrategy.ReplaceAll))
+            vm.onEvent(ImportWizardEvent.NextClicked) // DataStrategy → Confirm
+
+            vm.onEvent(ImportWizardEvent.DestructiveConfirmed)
+
+            vm.state.test {
+                val state = awaitItem()
+                assertEquals(2, state.configCategories.size)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `ConfigureLaterClicked from ConfigGate emits Finished action`() =
+        runTest {
+            val repo = FakeWizardBackupRepository()
+            val categoryRepo = FakeCategoryRepository()
+            categoryRepo.seed(listOf(testCategory(id = 1L, name = "Food")))
+            val vm = buildViewModel(repo, categoryRepo = categoryRepo)
+            navigateToConfigGate(vm, categoryRepo)
+
+            vm.actions.test {
+                vm.onEvent(ImportWizardEvent.ConfigureLaterClicked)
+                assertEquals(ImportWizardAction.Finished, awaitItem())
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `ConfigureNowClicked with empty categories emits Finished action without entering CategoryConfig`() =
+        runTest {
+            val repo = FakeWizardBackupRepository()
+            val categoryRepo = FakeCategoryRepository()
+            // seed empty list — no categories to configure
+            categoryRepo.seed(emptyList())
+            val vm = buildViewModel(repo, categoryRepo = categoryRepo)
+            navigateToConfigGate(vm, categoryRepo)
+
+            vm.actions.test {
+                vm.onEvent(ImportWizardEvent.ConfigureNowClicked)
+                assertEquals(ImportWizardAction.Finished, awaitItem())
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    // ------------------------------------------------------------------ CategoryConfig: navigation
+
+    @Test
+    fun `ConfigureNowClicked with categories advances to CategoryConfig step`() =
+        runTest {
+            val repo = FakeWizardBackupRepository()
+            val categoryRepo = FakeCategoryRepository()
+            categoryRepo.seed(listOf(testCategory(id = 1L, name = "Food")))
+            val vm = buildViewModel(repo, categoryRepo = categoryRepo)
+            navigateToConfigGate(vm, categoryRepo)
+
+            vm.onEvent(ImportWizardEvent.ConfigureNowClicked)
+
+            vm.state.test {
+                assertEquals(ImportWizardStep.CategoryConfig, awaitItem().step)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `entering CategoryConfig loads first category name into configName`() =
+        runTest {
+            val repo = FakeWizardBackupRepository()
+            val categoryRepo = FakeCategoryRepository()
+            categoryRepo.seed(listOf(testCategory(id = 1L, name = "Groceries")))
+            val vm = buildViewModel(repo, categoryRepo = categoryRepo)
+            navigateToFirstCategoryConfig(vm, categoryRepo)
+
+            vm.state.test {
+                assertEquals("Groceries", awaitItem().configName)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `configIndex is zero on first CategoryConfig step`() =
+        runTest {
+            val repo = FakeWizardBackupRepository()
+            val categoryRepo = FakeCategoryRepository()
+            categoryRepo.seed(listOf(testCategory(1L, "A"), testCategory(2L, "B")))
+            val vm = buildViewModel(repo, categoryRepo = categoryRepo)
+            navigateToFirstCategoryConfig(vm, categoryRepo)
+
+            vm.state.test {
+                assertEquals(0, awaitItem().configIndex)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `configPosition is 1 of N on first CategoryConfig step`() =
+        runTest {
+            val repo = FakeWizardBackupRepository()
+            val categoryRepo = FakeCategoryRepository()
+            val cats = listOf(testCategory(1L, "A"), testCategory(2L, "B"), testCategory(3L, "C"))
+            categoryRepo.seed(cats)
+            val vm = buildViewModel(repo, categoryRepo = categoryRepo)
+            navigateToFirstCategoryConfig(vm, categoryRepo)
+
+            vm.state.test {
+                val state = awaitItem()
+                assertEquals(1, state.configPosition)
+                assertEquals(3, state.configTotal)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `isLastConfigStep is false when not on last category`() =
+        runTest {
+            val repo = FakeWizardBackupRepository()
+            val categoryRepo = FakeCategoryRepository()
+            categoryRepo.seed(listOf(testCategory(1L, "A"), testCategory(2L, "B")))
+            val vm = buildViewModel(repo, categoryRepo = categoryRepo)
+            navigateToFirstCategoryConfig(vm, categoryRepo)
+
+            vm.state.test {
+                assertFalse(awaitItem().isLastConfigStep)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `isLastConfigStep is true when on last category`() =
+        runTest {
+            val repo = FakeWizardBackupRepository()
+            val categoryRepo = FakeCategoryRepository()
+            categoryRepo.seed(listOf(testCategory(1L, "OnlyOne")))
+            val vm = buildViewModel(repo, categoryRepo = categoryRepo)
+            navigateToFirstCategoryConfig(vm, categoryRepo)
+
+            vm.state.test {
+                assertTrue(awaitItem().isLastConfigStep)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    // ------------------------------------------------------------------ CategoryConfig: field edits
+
+    @Test
+    fun `ConfigNameChanged updates configName in state`() =
+        runTest {
+            val repo = FakeWizardBackupRepository()
+            val categoryRepo = FakeCategoryRepository()
+            categoryRepo.seed(listOf(testCategory(1L, "Food")))
+            val vm = buildViewModel(repo, categoryRepo = categoryRepo)
+            navigateToFirstCategoryConfig(vm, categoryRepo)
+
+            vm.onEvent(ImportWizardEvent.ConfigNameChanged("Groceries"))
+
+            vm.state.test {
+                assertEquals("Groceries", awaitItem().configName)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `ConfigIconChanged updates configIconKey in state`() =
+        runTest {
+            val repo = FakeWizardBackupRepository()
+            val categoryRepo = FakeCategoryRepository()
+            categoryRepo.seed(listOf(testCategory(1L, "Food")))
+            val vm = buildViewModel(repo, categoryRepo = categoryRepo)
+            navigateToFirstCategoryConfig(vm, categoryRepo)
+
+            vm.onEvent(ImportWizardEvent.ConfigIconChanged("shopping_cart"))
+
+            vm.state.test {
+                assertEquals("shopping_cart", awaitItem().configIconKey)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `ConfigColorChanged updates configColorHex in state`() =
+        runTest {
+            val repo = FakeWizardBackupRepository()
+            val categoryRepo = FakeCategoryRepository()
+            categoryRepo.seed(listOf(testCategory(1L, "Food")))
+            val vm = buildViewModel(repo, categoryRepo = categoryRepo)
+            navigateToFirstCategoryConfig(vm, categoryRepo)
+
+            vm.onEvent(ImportWizardEvent.ConfigColorChanged("#00FF00"))
+
+            vm.state.test {
+                assertEquals("#00FF00", awaitItem().configColorHex)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    // ------------------------------------------------------------------ CategoryConfig: ConfigNextClicked persistence
+
+    @Test
+    fun `ConfigNextClicked calls CategoryRepository upsert with edited values`() =
+        runTest {
+            val repo = FakeWizardBackupRepository()
+            val categoryRepo = FakeCategoryRepository()
+            categoryRepo.seed(listOf(testCategory(1L, "Food")))
+            val vm = buildViewModel(repo, categoryRepo = categoryRepo)
+            navigateToFirstCategoryConfig(vm, categoryRepo)
+
+            vm.onEvent(ImportWizardEvent.ConfigNameChanged("Groceries"))
+            vm.onEvent(ImportWizardEvent.ConfigIconChanged("cart"))
+            vm.onEvent(ImportWizardEvent.ConfigColorChanged("#123456"))
+            vm.onEvent(ImportWizardEvent.ConfigNextClicked)
+
+            assertEquals(1, categoryRepo.upsertedCategories.size)
+            val saved = categoryRepo.upsertedCategories.first()
+            assertEquals("Groceries", saved.name)
+            assertEquals("cart", saved.iconKey)
+            assertEquals("#123456", saved.colorHex)
+        }
+
+    @Test
+    fun `ConfigNextClicked with blank name falls back to original category name`() =
+        runTest {
+            val repo = FakeWizardBackupRepository()
+            val categoryRepo = FakeCategoryRepository()
+            categoryRepo.seed(listOf(testCategory(1L, "Food")))
+            val vm = buildViewModel(repo, categoryRepo = categoryRepo)
+            navigateToFirstCategoryConfig(vm, categoryRepo)
+
+            vm.onEvent(ImportWizardEvent.ConfigNameChanged("   "))
+            vm.onEvent(ImportWizardEvent.ConfigNextClicked)
+
+            assertEquals("Food", categoryRepo.upsertedCategories.first().name)
+        }
+
+    @Test
+    fun `ConfigNextClicked on last category emits Finished action`() =
+        runTest {
+            val repo = FakeWizardBackupRepository()
+            val categoryRepo = FakeCategoryRepository()
+            categoryRepo.seed(listOf(testCategory(1L, "Food")))
+            val vm = buildViewModel(repo, categoryRepo = categoryRepo)
+            navigateToFirstCategoryConfig(vm, categoryRepo)
+
+            vm.actions.test {
+                vm.onEvent(ImportWizardEvent.ConfigNextClicked)
+                assertEquals(ImportWizardAction.Finished, awaitItem())
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `ConfigNextClicked on non-last category advances to next index`() =
+        runTest {
+            val repo = FakeWizardBackupRepository()
+            val categoryRepo = FakeCategoryRepository()
+            categoryRepo.seed(listOf(testCategory(1L, "Food"), testCategory(2L, "Transport")))
+            val vm = buildViewModel(repo, categoryRepo = categoryRepo)
+            navigateToFirstCategoryConfig(vm, categoryRepo)
+
+            vm.onEvent(ImportWizardEvent.ConfigNextClicked)
+
+            vm.state.test {
+                val state = awaitItem()
+                assertEquals(1, state.configIndex)
+                assertEquals("Transport", state.configName)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `ConfigNextClicked persists all categories in sequence`() =
+        runTest {
+            val repo = FakeWizardBackupRepository()
+            val categoryRepo = FakeCategoryRepository()
+            categoryRepo.seed(
+                listOf(
+                    testCategory(1L, "Food"),
+                    testCategory(2L, "Transport"),
+                    testCategory(3L, "Health"),
+                ),
+            )
+            val vm = buildViewModel(repo, categoryRepo = categoryRepo)
+            navigateToFirstCategoryConfig(vm, categoryRepo)
+
+            vm.onEvent(ImportWizardEvent.ConfigNextClicked) // save Food, move to Transport
+            vm.onEvent(ImportWizardEvent.ConfigNextClicked) // save Transport, move to Health
+            vm.onEvent(ImportWizardEvent.ConfigNextClicked) // save Health, finish
+
+            assertEquals(3, categoryRepo.upsertedCategories.size)
+        }
+
+    @Test
+    fun `ConfigNextClicked upsert failure sets error banner and does not advance`() =
+        runTest {
+            val repo = FakeWizardBackupRepository()
+            val categoryRepo = FakeCategoryRepository()
+            categoryRepo.seed(listOf(testCategory(1L, "Food"), testCategory(2L, "Transport")))
+            categoryRepo.simulateUpsertFailure()
+            val vm = buildViewModel(repo, categoryRepo = categoryRepo)
+            navigateToFirstCategoryConfig(vm, categoryRepo)
+
+            vm.onEvent(ImportWizardEvent.ConfigNextClicked)
+
+            vm.state.test {
+                val state = awaitItem()
+                assertEquals(R.string.import_wizard_error, state.errorBannerRes)
+                assertEquals(0, state.configIndex)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    // ------------------------------------------------------------------ CategoryConfig: ConfigBackClicked
+
+    @Test
+    fun `ConfigBackClicked from first CategoryConfig step returns to ConfigGate`() =
+        runTest {
+            val repo = FakeWizardBackupRepository()
+            val categoryRepo = FakeCategoryRepository()
+            categoryRepo.seed(listOf(testCategory(1L, "Food")))
+            val vm = buildViewModel(repo, categoryRepo = categoryRepo)
+            navigateToFirstCategoryConfig(vm, categoryRepo)
+
+            vm.onEvent(ImportWizardEvent.ConfigBackClicked)
+
+            vm.state.test {
+                assertEquals(ImportWizardStep.ConfigGate, awaitItem().step)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `ConfigBackClicked from second CategoryConfig step returns to previous index`() =
+        runTest {
+            val repo = FakeWizardBackupRepository()
+            val categoryRepo = FakeCategoryRepository()
+            categoryRepo.seed(listOf(testCategory(1L, "Food"), testCategory(2L, "Transport")))
+            val vm = buildViewModel(repo, categoryRepo = categoryRepo)
+            navigateToFirstCategoryConfig(vm, categoryRepo)
+
+            vm.onEvent(ImportWizardEvent.ConfigNextClicked) // Food → Transport
+            vm.onEvent(ImportWizardEvent.ConfigBackClicked) // back to Food
+
+            vm.state.test {
+                val state = awaitItem()
+                assertEquals(0, state.configIndex)
+                assertEquals("Food", state.configName)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    // ------------------------------------------------------------------ CloseClicked early exit
+
+    @Test
+    fun `CloseClicked from CategoryConfig emits Finished action preserving already-saved edits`() =
+        runTest {
+            val repo = FakeWizardBackupRepository()
+            val categoryRepo = FakeCategoryRepository()
+            categoryRepo.seed(listOf(testCategory(1L, "Food"), testCategory(2L, "Transport")))
+            val vm = buildViewModel(repo, categoryRepo = categoryRepo)
+            navigateToFirstCategoryConfig(vm, categoryRepo)
+
+            vm.onEvent(ImportWizardEvent.ConfigNextClicked) // saves Food, moves to Transport
+            assertEquals(1, categoryRepo.upsertedCategories.size)
+
+            vm.actions.test {
+                vm.onEvent(ImportWizardEvent.CloseClicked)
+                assertEquals(ImportWizardAction.Finished, awaitItem())
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `BackClicked from ConfigGate step emits Finished action`() =
+        runTest {
+            val repo = FakeWizardBackupRepository()
+            val categoryRepo = FakeCategoryRepository()
+            categoryRepo.seed(listOf(testCategory(1L, "Food")))
+            val vm = buildViewModel(repo, categoryRepo = categoryRepo)
+            navigateToConfigGate(vm, categoryRepo)
+
+            vm.actions.test {
+                vm.onEvent(ImportWizardEvent.BackClicked)
+                assertEquals(ImportWizardAction.Finished, awaitItem())
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
     // ------------------------------------------------------------------ navigation helpers
 
     private fun navigateToCategoryStrategy(
@@ -1192,5 +1667,29 @@ class ImportWizardViewModelTest {
         vm.onEvent(ImportWizardEvent.NextClicked) // DataStrategy → CategoryStrategy
         vm.onEvent(ImportWizardEvent.CategoryStrategySelected(ImportCategoryStrategy.AppendManualMerge(emptyList())))
         vm.onEvent(ImportWizardEvent.NextClicked) // CategoryStrategy → ManualMerge
+    }
+
+    /**
+     * Navigate all the way to ConfigGate (commit done).
+     * Uses ReplaceAll to skip CategoryStrategy and reach Confirm in the fewest steps.
+     * Categories must be seeded in [categoryRepo] before calling.
+     */
+    private fun navigateToConfigGate(
+        vm: ImportWizardViewModel,
+        @Suppress("UNUSED_PARAMETER") categoryRepo: FakeCategoryRepository,
+    ) {
+        vm.onEvent(ImportWizardEvent.NextClicked) // Preview → DataStrategy
+        vm.onEvent(ImportWizardEvent.DataStrategySelected(ImportDataStrategy.ReplaceAll))
+        vm.onEvent(ImportWizardEvent.NextClicked) // DataStrategy (ReplaceAll) → Confirm
+        vm.onEvent(ImportWizardEvent.DestructiveConfirmed) // commit → ConfigGate
+    }
+
+    /** Navigate to first CategoryConfig step. Categories must be seeded before calling. */
+    private fun navigateToFirstCategoryConfig(
+        vm: ImportWizardViewModel,
+        categoryRepo: FakeCategoryRepository,
+    ) {
+        navigateToConfigGate(vm, categoryRepo)
+        vm.onEvent(ImportWizardEvent.ConfigureNowClicked) // ConfigGate → CategoryConfig
     }
 }

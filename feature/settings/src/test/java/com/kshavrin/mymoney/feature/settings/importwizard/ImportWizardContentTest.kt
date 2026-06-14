@@ -12,6 +12,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.time.Instant
 
 /**
  * Contract-level pinning for [ImportWizardContent] (import-wizard step machine).
@@ -96,6 +97,22 @@ import org.junit.Test
 class ImportWizardContentTest {
     // ------------------------------------------------------------------ state helpers
 
+    private fun testCategory(
+        id: Long,
+        name: String,
+        kind: CategoryKind = CategoryKind.Expense,
+    ) = com.kshavrin.mymoney.core.domain.model.Category(
+        id = id,
+        name = name,
+        kind = kind,
+        iconKey = "food",
+        colorHex = "#FF0000",
+        sortOrder = id.toInt(),
+        isDefault = false,
+        isArchived = false,
+        createdAt = Instant.EPOCH,
+    )
+
     private fun defaultPreview() =
         ImportPreview(
             rowCount = 5,
@@ -112,9 +129,35 @@ class ImportWizardContentTest {
     private fun finishButtonVisible(state: ImportWizardState): Boolean =
         state.step == ImportWizardStep.Confirm
 
-    /** Mirror of `state.step != ImportWizardStep.OrphanDecisions` nav-button guard. */
+    /**
+     * Mirror of nav-button guard in ImportWizardContent:
+     * hidden on OrphanDecisions, ConfigGate, and CategoryConfig.
+     */
     private fun navButtonVisible(state: ImportWizardState): Boolean =
-        state.step != ImportWizardStep.OrphanDecisions
+        state.step != ImportWizardStep.OrphanDecisions &&
+            state.step != ImportWizardStep.ConfigGate &&
+            state.step != ImportWizardStep.CategoryConfig
+
+    /**
+     * Mirror of top-bar icon selection: Close icon shown on post-commit steps,
+     * back-arrow on all others.
+     */
+    private fun postCommitStep(state: ImportWizardState): Boolean =
+        state.step == ImportWizardStep.ConfigGate || state.step == ImportWizardStep.CategoryConfig
+
+    /** Mirror of CategoryConfigStep: Done label shown when isLastConfigStep. */
+    private fun configButtonLabel(state: ImportWizardState): Int =
+        if (state.isLastConfigStep) {
+            R.string.import_wizard_config_done
+        } else {
+            R.string.import_wizard_config_next
+        }
+
+    /** Mirror of CategoryConfigStep Back button enabled guard. */
+    private fun configBackEnabled(state: ImportWizardState): Boolean = !state.inProgress
+
+    /** Mirror of CategoryConfigStep Next/Done button enabled guard. */
+    private fun configNextEnabled(state: ImportWizardState): Boolean = !state.inProgress
 
     /** Mirror of merge row result-name field: visible only when [MergeRow.isMergeInto]. */
     private fun mergeResultNameVisible(row: MergeRow): Boolean = row.isMergeInto
@@ -179,7 +222,19 @@ class ImportWizardContentTest {
     }
 
     @Test
-    fun `nav buttons are visible on all other steps`() {
+    fun `nav buttons are hidden on ConfigGate step`() {
+        val state = ImportWizardState(step = ImportWizardStep.ConfigGate)
+        assertFalse(navButtonVisible(state))
+    }
+
+    @Test
+    fun `nav buttons are hidden on CategoryConfig step`() {
+        val state = ImportWizardState(step = ImportWizardStep.CategoryConfig)
+        assertFalse(navButtonVisible(state))
+    }
+
+    @Test
+    fun `nav buttons are visible on pre-commit steps`() {
         for (step in listOf(
             ImportWizardStep.Preview,
             ImportWizardStep.DataStrategy,
@@ -436,6 +491,133 @@ class ImportWizardContentTest {
                 resultName = "Existing",
             )
         assertTrue(row.isMergeInto)
+    }
+
+    // ------------------------------------------------------------------ top-bar icon: post-commit steps
+
+    @Test
+    fun `Close icon is shown on ConfigGate step`() {
+        assertTrue(postCommitStep(ImportWizardState(step = ImportWizardStep.ConfigGate)))
+    }
+
+    @Test
+    fun `Close icon is shown on CategoryConfig step`() {
+        assertTrue(postCommitStep(ImportWizardState(step = ImportWizardStep.CategoryConfig)))
+    }
+
+    @Test
+    fun `Back arrow is shown on pre-commit steps`() {
+        for (step in listOf(
+            ImportWizardStep.Preview,
+            ImportWizardStep.DataStrategy,
+            ImportWizardStep.CategoryStrategy,
+            ImportWizardStep.OrphanDecisions,
+            ImportWizardStep.ManualMerge,
+            ImportWizardStep.Confirm,
+        )) {
+            assertFalse("Expected postCommitStep=false for $step", postCommitStep(ImportWizardState(step = step)))
+        }
+    }
+
+    // ------------------------------------------------------------------ CategoryConfigStep: state mirrors
+
+    @Test
+    fun `Finish button is not visible on ConfigGate step`() {
+        assertFalse(finishButtonVisible(ImportWizardState(step = ImportWizardStep.ConfigGate)))
+    }
+
+    @Test
+    fun `Finish button is not visible on CategoryConfig step`() {
+        assertFalse(finishButtonVisible(ImportWizardState(step = ImportWizardStep.CategoryConfig)))
+    }
+
+    @Test
+    fun `configButtonLabel returns Done on last config step`() {
+        val state =
+            ImportWizardState(
+                step = ImportWizardStep.CategoryConfig,
+                configIndex = 2,
+                configCategories = listOf(testCategory(1L, "A"), testCategory(2L, "B"), testCategory(3L, "C")),
+            )
+        assertEquals(R.string.import_wizard_config_done, configButtonLabel(state))
+    }
+
+    @Test
+    fun `configButtonLabel returns Next when not on last config step`() {
+        val state =
+            ImportWizardState(
+                step = ImportWizardStep.CategoryConfig,
+                configIndex = 0,
+                configCategories = listOf(testCategory(1L, "A"), testCategory(2L, "B")),
+            )
+        assertEquals(R.string.import_wizard_config_next, configButtonLabel(state))
+    }
+
+    @Test
+    fun `configBackEnabled is false while inProgress`() {
+        assertFalse(configBackEnabled(ImportWizardState(inProgress = true)))
+    }
+
+    @Test
+    fun `configNextEnabled is false while inProgress`() {
+        assertFalse(configNextEnabled(ImportWizardState(inProgress = true)))
+    }
+
+    @Test
+    fun `configBackEnabled is true when idle`() {
+        assertTrue(configBackEnabled(ImportWizardState(inProgress = false)))
+    }
+
+    @Test
+    fun `configNextEnabled is true when idle`() {
+        assertTrue(configNextEnabled(ImportWizardState(inProgress = false)))
+    }
+
+    @Test
+    fun `configPosition equals configIndex plus one`() {
+        val state = ImportWizardState(configIndex = 2)
+        assertEquals(3, state.configPosition)
+    }
+
+    @Test
+    fun `configTotal equals configCategories size`() {
+        val state =
+            ImportWizardState(
+                configCategories =
+                    listOf(
+                        testCategory(1L, "A"),
+                        testCategory(2L, "B"),
+                        testCategory(3L, "C"),
+                        testCategory(4L, "D"),
+                    ),
+            )
+        assertEquals(4, state.configTotal)
+    }
+
+    @Test
+    fun `isLastConfigStep is false when configCategories is empty`() {
+        val state = ImportWizardState(configCategories = emptyList(), configIndex = 0)
+        assertFalse(state.isLastConfigStep)
+    }
+
+    @Test
+    fun `configCurrentKind returns kind of current category`() {
+        val state =
+            ImportWizardState(
+                configIndex = 1,
+                configCategories =
+                    listOf(
+                        testCategory(1L, "A", CategoryKind.Expense),
+                        testCategory(2L, "B", CategoryKind.Income),
+                    ),
+            )
+        assertEquals(CategoryKind.Income, state.configCurrentKind)
+    }
+
+    @Test
+    fun `configCurrentKind is null when configCategories is empty`() {
+        val state = ImportWizardState(configCategories = emptyList(), configIndex = 0)
+        assertNull(state.configCurrentKind)
     }
 
     @Test

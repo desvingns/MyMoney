@@ -278,12 +278,29 @@ class BackupRestoreViewModelTest {
         runTest {
             val viewModel = buildViewModel()
 
-            viewModel.actions.test {
-                viewModel.onEvent(BackupRestoreEvent.ImportCsvFilePicked("content://doc/import.csv"))
-                assertEquals(
-                    BackupRestoreAction.NavigateToImportWizard("content://doc/import.csv"),
-                    awaitItem(),
-                )
+            viewModel.onEvent(BackupRestoreEvent.ImportCsvFilePicked("content://doc/import.csv"))
+
+            viewModel.state.test {
+                assertEquals("content://doc/import.csv", awaitItem().pendingImportWizardUri)
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            assertTrue(repository.importedCsvUris.isEmpty())
+        }
+
+    @Test
+    fun `pending import wizard nav survives a late state subscriber and is cleared once consumed`() =
+        runTest {
+            val viewModel = buildViewModel()
+
+            viewModel.onEvent(BackupRestoreEvent.ImportCsvFilePicked("content://doc/import.csv"))
+
+            viewModel.state.test {
+                assertEquals("content://doc/import.csv", awaitItem().pendingImportWizardUri)
+
+                viewModel.onEvent(BackupRestoreEvent.ImportWizardNavigationConsumed)
+
+                assertNull(awaitItem().pendingImportWizardUri)
                 cancelAndIgnoreRemainingEvents()
             }
 

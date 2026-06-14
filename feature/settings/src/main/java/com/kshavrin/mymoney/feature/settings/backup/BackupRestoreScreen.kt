@@ -29,6 +29,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -97,11 +98,17 @@ fun BackupRestoreRoute(
             }
         }
 
+    state.pendingImportWizardUri?.let { uri ->
+        LaunchedEffect(uri) {
+            onNavigateToImportWizard(uri)
+            viewModel.onEvent(BackupRestoreEvent.ImportWizardNavigationConsumed)
+        }
+    }
+
     CollectActions(flow = viewModel.actions, key = viewModel) { action ->
         when (action) {
             BackupRestoreAction.ExportSucceeded -> snackbarHostState.showSnackbar(exportMessage)
             BackupRestoreAction.CsvExportSucceeded -> snackbarHostState.showSnackbar(csvExportMessage)
-            is BackupRestoreAction.NavigateToImportWizard -> onNavigateToImportWizard(action.documentUriString)
             BackupRestoreAction.RestartAfterRestore -> {
                 Toast.makeText(context, restoreMessage, Toast.LENGTH_LONG).show()
                 relaunchApplication(context)

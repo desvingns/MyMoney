@@ -54,9 +54,9 @@ class BackupRestoreViewModel
                 is BackupRestoreEvent.ImportFilePicked -> import(event.documentUriString)
                 is BackupRestoreEvent.ExportCsvFilePicked -> exportCsv(event.documentUriString)
                 is BackupRestoreEvent.ImportCsvFilePicked ->
-                    viewModelScope.launch {
-                        _actions.emit(BackupRestoreAction.NavigateToImportWizard(event.documentUriString))
-                    }
+                    _state.value = _state.value.copy(pendingImportWizardUri = event.documentUriString)
+                BackupRestoreEvent.ImportWizardNavigationConsumed ->
+                    _state.value = _state.value.copy(pendingImportWizardUri = null)
                 BackupRestoreEvent.ResetRequested -> {
                     _state.value = _state.value.copy(resetConfirmationVisible = true, errorBannerRes = null)
                 }
@@ -178,6 +178,7 @@ data class BackupRestoreState(
     val inProgress: Boolean = false,
     val errorBannerRes: Int? = null,
     val resetConfirmationVisible: Boolean = false,
+    val pendingImportWizardUri: String? = null,
 )
 
 sealed interface BackupRestoreEvent {
@@ -197,6 +198,8 @@ sealed interface BackupRestoreEvent {
         val documentUriString: String,
     ) : BackupRestoreEvent
 
+    data object ImportWizardNavigationConsumed : BackupRestoreEvent
+
     data object ResetRequested : BackupRestoreEvent
 
     data object ResetCancelled : BackupRestoreEvent
@@ -210,10 +213,6 @@ sealed interface BackupRestoreAction {
     data object ExportSucceeded : BackupRestoreAction
 
     data object CsvExportSucceeded : BackupRestoreAction
-
-    data class NavigateToImportWizard(
-        val documentUriString: String,
-    ) : BackupRestoreAction
 
     data object RestartAfterRestore : BackupRestoreAction
 

@@ -242,3 +242,29 @@ val ColorScheme.transferArrowTint: Color
 // matches the neutral semantic of a balance-neutral movement between accounts.
 val ColorScheme.transferRowAmount: Color
     get() = onSurface
+
+// Import-migration wizard — strategy option card (selected state).
+// M3 selection pattern: primaryContainer fill so the chosen option is clearly distinct
+// from the default surface unselected card without implying error or destructive intent.
+val ColorScheme.wizardStrategyCardSelectedContainer: Color
+    get() = primaryContainer
+
+val ColorScheme.wizardStrategyCardSelectedContent: Color
+    get() = onPrimaryContainer
+
+val ColorScheme.wizardStrategyCardSelectedBorder: Color
+    get() = primary
+
+// Import-migration wizard — orphan-category warning dialog container.
+// A warm amber tone distinct from the error-red used by the destructive-action dialog;
+// signals "attention needed" rather than "data will be deleted".
+private val WizardOrphanWarningLightContainer = Color(0xFFFFF3E0)
+private val WizardOrphanWarningLightContent = Color(0xFF7C4B00)
+private val WizardOrphanWarningDarkContainer = Color(0xFF4E3800)
+private val WizardOrphanWarningDarkContent = Color(0xFFFFD54F)
+
+val ColorScheme.wizardOrphanWarningContainer: Color
+    get() = if (isLightDashboardPalette) WizardOrphanWarningLightContainer else WizardOrphanWarningDarkContainer
+
+val ColorScheme.wizardOrphanWarningContent: Color
+    get() = if (isLightDashboardPalette) WizardOrphanWarningLightContent else WizardOrphanWarningDarkContent

@@ -28,3 +28,9 @@ val Shapes.dashboardBalancePanel: Shape
 
 val Shapes.dashboardPeriodIndicator: Shape
     get() = RoundedCornerShape(999.dp)
+
+// Import-migration wizard — selectable strategy option card shape.
+// medium (12dp) keeps cards visually consistent with M3 ElevatedCard defaults
+// while matching other rounded containers in the app.
+val Shapes.wizardStrategyCard: Shape
+    get() = medium

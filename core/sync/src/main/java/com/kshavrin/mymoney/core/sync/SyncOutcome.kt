@@ -5,6 +5,8 @@ sealed interface SyncOutcome {
 
     data object Pulled : SyncOutcome
 
+    data object PulledRequiresRestart : SyncOutcome
+
     data object UpToDate : SyncOutcome
 
     data class ConflictDetected(

@@ -50,4 +50,5 @@
     <string name="backup_reset_success">Данные удалены, перезапустите приложение</string>
     <string name="backup_reset_error">Не удалось удалить данные</string>
     <string name="backup_error">Не удалось создать резервную копию</string>
+    <string name="backup_import_version_too_new">Эта резервная копия создана более новой версией приложения. Обновите приложение и попробуйте снова.</string>
 </resources>

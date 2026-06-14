@@ -265,18 +265,36 @@ class SnapshotSyncRepositoryTest {
         }
 
     @Test
-    fun `keepRemote with a remote snapshot imports and pulls`() =
+    fun `keepRemote with a remote snapshot imports and requires restart`() =
         runTest {
             dropbox.seedSnapshots(listOf(snapshot("remote", modifiedAtEpochMs = 555_000L)))
 
             val result = repository().keepRemote(SyncTarget.Dropbox)
 
-            assertEquals(SyncOutcome.Pulled, result.getOrNull())
+            assertEquals(SyncOutcome.PulledRequiresRestart, result.getOrNull())
             assertEquals(1, backup.importedPaths.size)
             assertEquals(555_000L, settings.current().lastSyncAt)
             val row = syncLog.inserted.single()
             assertEquals("pull", row.event)
             assertEquals("success", row.status)
+        }
+
+    @Test
+    fun `keepRemote rolls back from the safety snapshot when the import fails`() =
+        runTest {
+            settings.seed(AppSettings(lastSyncAt = 4_000L))
+            dropbox.seedSnapshots(listOf(snapshot("remote", modifiedAtEpochMs = 555_000L)))
+            backup.simulateImportFailure(SyncException(SyncError.Unknown))
+
+            val result = repository().keepRemote(SyncTarget.Dropbox)
+
+            assertTrue(result.isFailure)
+            val safetyPath = backup.exportedPaths.single()
+            assertTrue(backup.importedPaths.contains(safetyPath))
+            assertEquals(4_000L, settings.current().lastSyncAt)
+            val row = syncLog.inserted.single()
+            assertEquals("pull", row.event)
+            assertEquals("failure", row.status)
         }
 
     // --- 7. isConnected / connectedTargets -----------------------------------

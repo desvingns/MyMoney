@@ -1,5 +1,9 @@
 package com.kshavrin.mymoney.feature.cloudsync
 
+import android.content.Context
+import android.content.Intent
+import android.os.Process
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -30,6 +34,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -49,6 +54,8 @@ fun CloudSyncRoute(
     viewModel: CloudSyncViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
+    val context = LocalContext.current
+    val restoreMessage = stringResource(R.string.sync_restore_restart)
 
     LaunchedEffect(viewModel) {
         viewModel.actions.collect { action ->
@@ -57,6 +64,10 @@ fun CloudSyncRoute(
                 // Gated: RC flags ship false in this build, so these auth actions never fire; real OAuth lands with OQ-2/OQ-3.
                 CloudSyncAction.LaunchDropboxAuth -> Unit
                 CloudSyncAction.LaunchGoogleSignIn -> Unit
+                CloudSyncAction.RestartAfterRestore -> {
+                    Toast.makeText(context, restoreMessage, Toast.LENGTH_LONG).show()
+                    relaunchApplication(context)
+                }
             }
         }
     }
@@ -264,3 +275,12 @@ private fun SyncTarget.controlTag(control: String): String =
         SyncTarget.Dropbox -> "cloud_sync_dropbox_$control"
         SyncTarget.GoogleDrive -> "cloud_sync_google_drive_$control"
     }
+
+private fun relaunchApplication(context: Context) {
+    val component =
+        checkNotNull(
+            context.packageManager.getLaunchIntentForPackage(context.packageName)?.component,
+        )
+    context.startActivity(Intent.makeRestartActivityTask(component))
+    Process.killProcess(Process.myPid())
+}

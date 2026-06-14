@@ -28,6 +28,7 @@ import com.kshavrin.mymoney.core.domain.repository.CategoryGroup
 import com.kshavrin.mymoney.core.domain.repository.CategorySummary
 import com.kshavrin.mymoney.core.domain.repository.RecurringTemplateRepository
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
+import com.kshavrin.mymoney.core.domain.transaction.TransactionRunner
 import com.kshavrin.mymoney.core.domain.usecase.GenerateDueRecurringUseCase
 import com.kshavrin.mymoney.core.domain.usecase.RecurringScheduler
 import com.kshavrin.mymoney.core.sync.SnapshotSync
@@ -273,6 +274,10 @@ class WorkerCancellationBehaviorTest {
             recurringTemplateRepository = ThrowingRecurringTemplateRepository(throwable),
             transactionRepository = NoOpTransactionRepository(),
             recurringScheduler = RecurringScheduler(),
+            transactionRunner =
+                object : TransactionRunner {
+                    override suspend fun <T> runInTransaction(block: suspend () -> T): T = block()
+                },
             defaultDispatcher = UnconfinedTestDispatcher(),
         )
 

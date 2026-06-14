@@ -25,4 +25,5 @@
     <string name="sync_err_quota">Облачное хранилище заполнено.</string>
     <string name="sync_err_server">Не удалось синхронизироваться. Повторите позже.</string>
     <string name="sync_err_unknown">Не удалось синхронизироваться. Повторите позже.</string>
+    <string name="sync_restore_restart">Восстановление копии из облака. Перезапуск…</string>
 </resources>

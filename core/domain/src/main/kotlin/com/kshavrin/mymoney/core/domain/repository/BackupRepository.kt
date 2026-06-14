@@ -7,6 +7,11 @@ data class CsvImportFocus(
     val currencyId: Long,
 )
 
+class BackupSchemaTooNewException(
+    val backupVersion: Int,
+    val supportedVersion: Int,
+) : Exception("Backup schema $backupVersion is newer than supported $supportedVersion")
+
 interface BackupRepository {
     suspend fun exportDb(treeUriString: String): Result<Unit>
 

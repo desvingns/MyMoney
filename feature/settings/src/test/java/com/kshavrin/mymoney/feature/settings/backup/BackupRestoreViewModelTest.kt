@@ -6,6 +6,7 @@ import app.cash.turbine.test
 import com.kshavrin.mymoney.core.datastore.SecureStorage
 import com.kshavrin.mymoney.core.datastore.model.AppSettings
 import com.kshavrin.mymoney.core.datastore.model.SecureSettings
+import com.kshavrin.mymoney.core.domain.repository.BackupSchemaTooNewException
 import com.kshavrin.mymoney.core.domain.repository.CsvImportFocus
 import com.kshavrin.mymoney.feature.settings.R
 import com.kshavrin.mymoney.feature.settings.fake.FakeAppSettingsRepository
@@ -190,6 +191,22 @@ class BackupRestoreViewModelTest {
             viewModel.state.test {
                 val state = awaitItem()
                 assertEquals(R.string.backup_error, state.errorBannerRes)
+                assertFalse(state.inProgress)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `import of a newer-schema backup sets the version-too-new banner`() =
+        runTest {
+            val viewModel = buildViewModel()
+            repository.simulateImportFailure(BackupSchemaTooNewException(backupVersion = 99, supportedVersion = 4))
+
+            viewModel.onEvent(BackupRestoreEvent.ImportFilePicked("content://doc/backup.db"))
+
+            viewModel.state.test {
+                val state = awaitItem()
+                assertEquals(R.string.backup_import_version_too_new, state.errorBannerRes)
                 assertFalse(state.inProgress)
                 cancelAndIgnoreRemainingEvents()
             }

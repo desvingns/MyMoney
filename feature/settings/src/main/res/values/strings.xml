@@ -50,4 +50,5 @@
     <string name="backup_reset_success">Data deleted, restart app</string>
     <string name="backup_reset_error">Could not delete data</string>
     <string name="backup_error">Backup failed</string>
+    <string name="backup_import_version_too_new">This backup was created by a newer version of the app. Please update the app and try again.</string>
 </resources>

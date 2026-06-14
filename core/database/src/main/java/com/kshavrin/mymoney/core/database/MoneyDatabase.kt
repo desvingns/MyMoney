@@ -38,7 +38,7 @@ import com.kshavrin.mymoney.core.database.entity.TransactionEntity
         SearchHistoryEntity::class,
         GoalEntity::class,
     ],
-    version = 4,
+    version = MoneyDatabase.SCHEMA_VERSION,
     exportSchema = true,
 )
 @TypeConverters(MoneyTypeConverters::class)
@@ -62,4 +62,8 @@ abstract class MoneyDatabase : RoomDatabase() {
     abstract fun searchHistoryDao(): SearchHistoryDao
 
     abstract fun goalDao(): GoalDao
+
+    companion object {
+        const val SCHEMA_VERSION = 4
+    }
 }

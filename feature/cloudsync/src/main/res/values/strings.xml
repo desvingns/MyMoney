@@ -25,4 +25,5 @@
     <string name="sync_err_quota">Cloud storage is full.</string>
     <string name="sync_err_server">Sync failed. Please try again later.</string>
     <string name="sync_err_unknown">Sync failed. Please try again.</string>
+    <string name="sync_restore_restart">Restoring remote backup. Restarting…</string>
 </resources>

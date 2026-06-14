@@ -123,9 +123,9 @@ class CloudSyncViewModel
                         snapshotSync.keepLocal(prompt.target)
                     }
                 result
-                    .onSuccess {
+                    .onSuccess { outcome ->
                         _state.value = _state.value.copy(conflict = null)
-                        refresh(prompt.target)
+                        applyOutcome(prompt.target, outcome)
                     }.onFailure { _state.value = _state.value.copy(errorBannerRes = mapError(it.toSyncError())) }
             }
         }
@@ -152,6 +152,10 @@ class CloudSyncViewModel
                                     localMs = outcome.localLastSyncMs,
                                 ),
                         )
+                SyncOutcome.PulledRequiresRestart ->
+                    viewModelScope.launch {
+                        _actions.emit(CloudSyncAction.RestartAfterRestore)
+                    }
                 SyncOutcome.Pushed,
                 SyncOutcome.Pulled,
                 SyncOutcome.UpToDate,

@@ -82,20 +82,28 @@ class SnapshotSyncRepository
                 runCatching {
                     val backend = backend(target)
                     val safety = cacheFile("monefy_safety_${Instant.now().toEpochMilli()}.db")
-                    backup.exportToFile(safety.absolutePath)
+                    backup.exportToFile(safety.absolutePath).orThrow()
 
                     val temp = cacheFile("monefy_pull_${Instant.now().toEpochMilli()}.db")
+                    var swapped = false
                     try {
                         val remote =
                             backend.downloadNewest(temp).orThrow()
                                 ?: return@runCatching SyncOutcome.UpToDate
                         backup.importFromFile(temp.absolutePath).orThrow()
+                        swapped = true
                         settings.update { it.copy(lastSyncAt = remote.modifiedAtEpochMs) }
                         writeLog(target, EVENT_PULL, STATUS_SUCCESS)
-                        SyncOutcome.Pulled
+                        safety.delete()
+                        SyncOutcome.PulledRequiresRestart
+                    } catch (t: Throwable) {
+                        if (t !is CancellationException && !swapped) {
+                            backup.importFromFile(safety.absolutePath)
+                        }
+                        safety.delete()
+                        throw t
                     } finally {
                         temp.delete()
-                        safety.delete()
                     }
                 }.recoverFailure(target, EVENT_PULL)
             }

@@ -8,6 +8,7 @@ import com.kshavrin.mymoney.core.common.exception.reportToSentry
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
 import com.kshavrin.mymoney.core.datastore.SecureStorage
 import com.kshavrin.mymoney.core.domain.repository.BackupRepository
+import com.kshavrin.mymoney.core.domain.repository.BackupSchemaTooNewException
 import com.kshavrin.mymoney.feature.settings.R
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -119,7 +120,15 @@ class BackupRestoreViewModel
                     .onSuccess {
                         _state.value = _state.value.copy(inProgress = false)
                         _actions.emit(BackupRestoreAction.RestartAfterRestore)
-                    }.onFailure { failure(it) }
+                    }.onFailure { throwable ->
+                        val banner =
+                            if (throwable is BackupSchemaTooNewException) {
+                                R.string.backup_import_version_too_new
+                            } else {
+                                R.string.backup_error
+                            }
+                        failure(throwable, banner)
+                    }
             }
         }
 

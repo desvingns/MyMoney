@@ -19,6 +19,7 @@ import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
 import com.kshavrin.mymoney.core.domain.repository.BackupRepository
+import com.kshavrin.mymoney.core.domain.repository.BackupSchemaTooNewException
 import com.kshavrin.mymoney.core.domain.repository.CsvImportFocus
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
@@ -83,6 +84,7 @@ class BackupRepositoryImpl
                         } ?: throw IOException("Cannot read backup file")
 
                         validateSqlite(staged)
+                        requireCompatibleSchema(staged)
 
                         database.close()
                         Files.move(
@@ -488,6 +490,7 @@ class BackupRepositoryImpl
                 runCatching {
                     val src = File(srcAbsolutePath)
                     validateSqlite(src)
+                    requireCompatibleSchema(src)
 
                     database.close()
                     val dbFile = context.getDatabasePath(DATABASE_NAME)
@@ -526,6 +529,19 @@ class BackupRepositoryImpl
 
         private fun validateSqlite(file: File) {
             SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READONLY).use { /* throws if invalid */ }
+        }
+
+        private fun requireCompatibleSchema(file: File) {
+            val backupVersion =
+                SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
+                    db.version
+                }
+            if (backupVersion > MoneyDatabase.SCHEMA_VERSION) {
+                throw BackupSchemaTooNewException(
+                    backupVersion = backupVersion,
+                    supportedVersion = MoneyDatabase.SCHEMA_VERSION,
+                )
+            }
         }
 
         private fun deleteSidecars(dbFile: File) {

@@ -359,6 +359,33 @@ class CloudSyncViewModelTest {
         }
 
     @Test
+    fun `keep remote requiring restart emits the restart action`() =
+        runTest {
+            snapshotSync =
+                FakeSnapshotSync().apply {
+                    setConnected(SyncTarget.Dropbox, true)
+                    setSyncNowResult(
+                        SyncTarget.Dropbox,
+                        Result.success(SyncOutcome.ConflictDetected(remoteModifiedMs = 200L, localLastSyncMs = 100L)),
+                    )
+                    setKeepRemoteResult(SyncTarget.Dropbox, Result.success(SyncOutcome.PulledRequiresRestart))
+                }
+            scheduler = FakeSyncScheduler()
+            appSettings = FakeAppSettingsRepository(AppSettings())
+            syncLog = FakeSyncLogRepository()
+            remoteConfig = FakeRemoteConfigRepository()
+            val viewModel = CloudSyncViewModel(snapshotSync, scheduler, appSettings, syncLog, remoteConfig)
+            viewModel.onEvent(CloudSyncEvent.SyncNowClicked(SyncTarget.Dropbox))
+
+            viewModel.actions.test {
+                viewModel.onEvent(CloudSyncEvent.ConflictKeepRemote)
+                assertEquals(CloudSyncAction.RestartAfterRestore, awaitItem())
+                cancelAndIgnoreRemainingEvents()
+            }
+            assertEquals(listOf(SyncTarget.Dropbox), snapshotSync.keepRemoteCalls)
+        }
+
+    @Test
     fun `keep local invokes the keep local seam and clears the conflict`() =
         runTest {
             snapshotSync =

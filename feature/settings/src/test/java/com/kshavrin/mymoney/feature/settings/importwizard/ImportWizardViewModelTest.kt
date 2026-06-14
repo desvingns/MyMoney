@@ -8,7 +8,9 @@ import com.kshavrin.mymoney.core.domain.csv.ImportCategoryStrategy
 import com.kshavrin.mymoney.core.domain.csv.ImportDataStrategy
 import com.kshavrin.mymoney.core.domain.csv.ImportPlan
 import com.kshavrin.mymoney.core.domain.csv.ImportPreview
+import com.kshavrin.mymoney.core.domain.csv.MergeAction
 import com.kshavrin.mymoney.core.domain.csv.OrphanDecision
+import com.kshavrin.mymoney.core.domain.csv.PreviewCategory
 import com.kshavrin.mymoney.core.domain.csv.StagedImport
 import com.kshavrin.mymoney.core.domain.model.BackupFile
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
@@ -799,6 +801,372 @@ class ImportWizardViewModelTest {
             }
         }
 
+    // ------------------------------------------------------------------ ManualMerge routing
+
+    @Test
+    fun `AppendManualMerge with one unmatched import category routes to ManualMerge step`() =
+        runTest {
+            val repo = FakeWizardBackupRepository()
+            repo.seedCategories(
+                listOf(
+                    ExistingCategorySummary(id = 1L, name = "Groceries", kind = CategoryKind.Expense, transactionCount = 0),
+                ),
+            )
+            val staged =
+                defaultStaged().copy(
+                    preview =
+                        ImportPreview(
+                            rowCount = 3,
+                            categories = setOf(PreviewCategory("Transport", CategoryKind.Expense)),
+                            accounts = emptySet(),
+                            dateRange = null,
+                        ),
+                )
+            repo.seedParseResult(staged)
+            val vm = buildViewModel(repo)
+
+            navigateToCategoryStrategy(vm, ImportDataStrategy.Append)
+            vm.onEvent(ImportWizardEvent.CategoryStrategySelected(ImportCategoryStrategy.AppendManualMerge(emptyList())))
+            vm.onEvent(ImportWizardEvent.NextClicked)
+
+            vm.state.test {
+                assertEquals(ImportWizardStep.ManualMerge, awaitItem().step)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `exact name+kind match is excluded from ManualMerge resolver rows`() =
+        runTest {
+            val repo = FakeWizardBackupRepository()
+            repo.seedCategories(
+                listOf(
+                    ExistingCategorySummary(id = 1L, name = "Groceries", kind = CategoryKind.Expense, transactionCount = 0),
+                    ExistingCategorySummary(id = 2L, name = "Transport", kind = CategoryKind.Expense, transactionCount = 0),
+                ),
+            )
+            val staged =
+                defaultStaged().copy(
+                    preview =
+                        ImportPreview(
+                            rowCount = 3,
+                            categories =
+                                setOf(
+                                    PreviewCategory("Groceries", CategoryKind.Expense), // exact match — excluded
+                                    PreviewCategory("Transport", CategoryKind.Expense), // exact match — excluded
+                                    PreviewCategory("Dining", CategoryKind.Expense), // unmatched — included
+                                ),
+                            accounts = emptySet(),
+                            dateRange = null,
+                        ),
+                )
+            repo.seedParseResult(staged)
+            val vm = buildViewModel(repo)
+
+            navigateToCategoryStrategy(vm, ImportDataStrategy.Append)
+            vm.onEvent(ImportWizardEvent.CategoryStrategySelected(ImportCategoryStrategy.AppendManualMerge(emptyList())))
+            vm.onEvent(ImportWizardEvent.NextClicked)
+
+            vm.state.test {
+                val state = awaitItem()
+                assertEquals(ImportWizardStep.ManualMerge, state.step)
+                assertEquals(1, state.mergeRows.size)
+                assertEquals("Dining", state.mergeRows.first().importCategoryName)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `default merge row action is CreateNew and toPlan carries AppendManualMerge with CreateNew mapping`() =
+        runTest {
+            val repo = FakeWizardBackupRepository()
+            repo.seedCategories(emptyList())
+            val staged =
+                defaultStaged().copy(
+                    preview =
+                        ImportPreview(
+                            rowCount = 1,
+                            categories = setOf(PreviewCategory("Leisure", CategoryKind.Expense)),
+                            accounts = emptySet(),
+                            dateRange = null,
+                        ),
+                )
+            repo.seedParseResult(staged)
+            val vm = buildViewModel(repo)
+
+            navigateToCategoryStrategy(vm, ImportDataStrategy.Append)
+            vm.onEvent(ImportWizardEvent.CategoryStrategySelected(ImportCategoryStrategy.AppendManualMerge(emptyList())))
+            vm.onEvent(ImportWizardEvent.NextClicked)
+
+            vm.state.test {
+                val state = awaitItem()
+                assertEquals(ImportWizardStep.ManualMerge, state.step)
+                assertFalse(state.mergeRows.first().isMergeInto)
+                val plan = state.toPlan()
+                val strategy = plan.categoryStrategy as ImportCategoryStrategy.AppendManualMerge
+                assertEquals(1, strategy.mappings.size)
+                val mapping = strategy.mappings.first()
+                assertEquals("Leisure", mapping.importCategoryName)
+                assertTrue(mapping.action is MergeAction.CreateNew)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `MergeActionSelected with existing category sets targetId and resultName on the row`() =
+        runTest {
+            val existing = ExistingCategorySummary(id = 7L, name = "Food", kind = CategoryKind.Expense, transactionCount = 0)
+            val repo = FakeWizardBackupRepository()
+            repo.seedCategories(listOf(existing))
+            val staged =
+                defaultStaged().copy(
+                    preview =
+                        ImportPreview(
+                            rowCount = 1,
+                            categories = setOf(PreviewCategory("Dining", CategoryKind.Expense)),
+                            accounts = emptySet(),
+                            dateRange = null,
+                        ),
+                )
+            repo.seedParseResult(staged)
+            val vm = buildViewModel(repo)
+
+            navigateToManualMerge(vm)
+            vm.onEvent(ImportWizardEvent.MergeActionSelected(importCategoryName = "Dining", target = existing))
+
+            vm.state.test {
+                val state = awaitItem()
+                val row = state.mergeRows.first()
+                assertTrue(row.isMergeInto)
+                assertEquals(7L, row.targetId)
+                assertEquals("Food", row.resultName)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `toPlan with MergeInto action carries targetId targetCategoryName and resultName`() =
+        runTest {
+            val existing = ExistingCategorySummary(id = 7L, name = "Food", kind = CategoryKind.Expense, transactionCount = 0)
+            val repo = FakeWizardBackupRepository()
+            repo.seedCategories(listOf(existing))
+            val staged =
+                defaultStaged().copy(
+                    preview =
+                        ImportPreview(
+                            rowCount = 1,
+                            categories = setOf(PreviewCategory("Dining", CategoryKind.Expense)),
+                            accounts = emptySet(),
+                            dateRange = null,
+                        ),
+                )
+            repo.seedParseResult(staged)
+            val vm = buildViewModel(repo)
+
+            navigateToManualMerge(vm)
+            vm.onEvent(ImportWizardEvent.MergeActionSelected(importCategoryName = "Dining", target = existing))
+            vm.onEvent(ImportWizardEvent.MergeResultNameChanged(importCategoryName = "Dining", resultName = "Nutrition"))
+
+            vm.state.test {
+                val state = awaitItem()
+                val plan = state.toPlan()
+                val strategy = plan.categoryStrategy as ImportCategoryStrategy.AppendManualMerge
+                val mapping = strategy.mappings.first()
+                val action = mapping.action as MergeAction.MergeInto
+                assertEquals(7L, action.targetId)
+                assertEquals("Food", action.targetCategoryName)
+                assertEquals("Nutrition", action.resultName)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `MergeResultNameChanged updates only the named row leaving others unchanged`() =
+        runTest {
+            val expExisting = ExistingCategorySummary(id = 1L, name = "Food", kind = CategoryKind.Expense, transactionCount = 0)
+            val repo = FakeWizardBackupRepository()
+            repo.seedCategories(listOf(expExisting))
+            val staged =
+                defaultStaged().copy(
+                    preview =
+                        ImportPreview(
+                            rowCount = 2,
+                            categories =
+                                setOf(
+                                    PreviewCategory("Dining", CategoryKind.Expense),
+                                    PreviewCategory("Fuel", CategoryKind.Expense),
+                                ),
+                            accounts = emptySet(),
+                            dateRange = null,
+                        ),
+                )
+            repo.seedParseResult(staged)
+            val vm = buildViewModel(repo)
+
+            navigateToManualMerge(vm)
+            vm.onEvent(ImportWizardEvent.MergeActionSelected(importCategoryName = "Dining", target = expExisting))
+            vm.onEvent(ImportWizardEvent.MergeResultNameChanged(importCategoryName = "Dining", resultName = "Eating Out"))
+
+            vm.state.test {
+                val state = awaitItem()
+                val diningRow = state.mergeRows.first { it.importCategoryName == "Dining" }
+                val fuelRow = state.mergeRows.first { it.importCategoryName == "Fuel" }
+                assertEquals("Eating Out", diningRow.resultName)
+                assertFalse(fuelRow.isMergeInto)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `merge row candidates contain only categories of the same kind as the import category`() =
+        runTest {
+            val expenseExisting = ExistingCategorySummary(id = 1L, name = "Bills", kind = CategoryKind.Expense, transactionCount = 0)
+            val incomeExisting = ExistingCategorySummary(id = 2L, name = "Salary", kind = CategoryKind.Income, transactionCount = 0)
+            val repo = FakeWizardBackupRepository()
+            repo.seedCategories(listOf(expenseExisting, incomeExisting))
+            val staged =
+                defaultStaged().copy(
+                    preview =
+                        ImportPreview(
+                            rowCount = 1,
+                            categories = setOf(PreviewCategory("Utilities", CategoryKind.Expense)),
+                            accounts = emptySet(),
+                            dateRange = null,
+                        ),
+                )
+            repo.seedParseResult(staged)
+            val vm = buildViewModel(repo)
+
+            navigateToManualMerge(vm)
+
+            vm.state.test {
+                val state = awaitItem()
+                val row = state.mergeRows.first()
+                assertEquals(CategoryKind.Expense, row.kind)
+                assertEquals(1, row.candidates.size)
+                assertEquals("Bills", row.candidates.first().name)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `AppendManualMerge with zero unmatched categories skips ManualMerge and goes to Confirm`() =
+        runTest {
+            val repo = FakeWizardBackupRepository()
+            repo.seedCategories(
+                listOf(
+                    ExistingCategorySummary(id = 1L, name = "Groceries", kind = CategoryKind.Expense, transactionCount = 0),
+                ),
+            )
+            val staged =
+                defaultStaged().copy(
+                    preview =
+                        ImportPreview(
+                            rowCount = 1,
+                            categories = setOf(PreviewCategory("Groceries", CategoryKind.Expense)), // exact match
+                            accounts = emptySet(),
+                            dateRange = null,
+                        ),
+                )
+            repo.seedParseResult(staged)
+            val vm = buildViewModel(repo)
+
+            navigateToCategoryStrategy(vm, ImportDataStrategy.Append)
+            vm.onEvent(ImportWizardEvent.CategoryStrategySelected(ImportCategoryStrategy.AppendManualMerge(emptyList())))
+            vm.onEvent(ImportWizardEvent.NextClicked)
+
+            vm.state.test {
+                assertEquals(ImportWizardStep.Confirm, awaitItem().step)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `BackClicked from ManualMerge returns to CategoryStrategy step`() =
+        runTest {
+            val repo = FakeWizardBackupRepository()
+            repo.seedCategories(emptyList())
+            val staged =
+                defaultStaged().copy(
+                    preview =
+                        ImportPreview(
+                            rowCount = 1,
+                            categories = setOf(PreviewCategory("Leisure", CategoryKind.Expense)),
+                            accounts = emptySet(),
+                            dateRange = null,
+                        ),
+                )
+            repo.seedParseResult(staged)
+            val vm = buildViewModel(repo)
+
+            navigateToManualMerge(vm)
+            vm.onEvent(ImportWizardEvent.BackClicked)
+
+            vm.state.test {
+                assertEquals(ImportWizardStep.CategoryStrategy, awaitItem().step)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `BackClicked from Confirm with AppendManualMerge and non-empty merge rows returns to ManualMerge step`() =
+        runTest {
+            val repo = FakeWizardBackupRepository()
+            repo.seedCategories(emptyList())
+            val staged =
+                defaultStaged().copy(
+                    preview =
+                        ImportPreview(
+                            rowCount = 1,
+                            categories = setOf(PreviewCategory("Leisure", CategoryKind.Expense)),
+                            accounts = emptySet(),
+                            dateRange = null,
+                        ),
+                )
+            repo.seedParseResult(staged)
+            val vm = buildViewModel(repo)
+
+            navigateToManualMerge(vm)
+            vm.onEvent(ImportWizardEvent.NextClicked) // ManualMerge → Confirm
+            vm.onEvent(ImportWizardEvent.BackClicked)
+
+            vm.state.test {
+                assertEquals(ImportWizardStep.ManualMerge, awaitItem().step)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `MergeActionSelected with null target resets row to CreateNew`() =
+        runTest {
+            val existing = ExistingCategorySummary(id = 3L, name = "Bills", kind = CategoryKind.Expense, transactionCount = 0)
+            val repo = FakeWizardBackupRepository()
+            repo.seedCategories(listOf(existing))
+            val staged =
+                defaultStaged().copy(
+                    preview =
+                        ImportPreview(
+                            rowCount = 1,
+                            categories = setOf(PreviewCategory("Utilities", CategoryKind.Expense)),
+                            accounts = emptySet(),
+                            dateRange = null,
+                        ),
+                )
+            repo.seedParseResult(staged)
+            val vm = buildViewModel(repo)
+
+            navigateToManualMerge(vm)
+            vm.onEvent(ImportWizardEvent.MergeActionSelected(importCategoryName = "Utilities", target = existing))
+            vm.onEvent(ImportWizardEvent.MergeActionSelected(importCategoryName = "Utilities", target = null))
+
+            vm.state.test {
+                val row = awaitItem().mergeRows.first()
+                assertFalse(row.isMergeInto)
+                assertNull(row.targetId)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
     // ------------------------------------------------------------------ navigation helpers
 
     private fun navigateToCategoryStrategy(
@@ -816,5 +1184,13 @@ class ImportWizardViewModelTest {
         vm.onEvent(ImportWizardEvent.NextClicked) // DataStrategy → CategoryStrategy
         vm.onEvent(ImportWizardEvent.CategoryStrategySelected(ImportCategoryStrategy.ReplaceCurrent))
         vm.onEvent(ImportWizardEvent.NextClicked) // CategoryStrategy → OrphanDecisions
+    }
+
+    private fun navigateToManualMerge(vm: ImportWizardViewModel) {
+        vm.onEvent(ImportWizardEvent.NextClicked) // Preview → DataStrategy
+        vm.onEvent(ImportWizardEvent.DataStrategySelected(ImportDataStrategy.Append))
+        vm.onEvent(ImportWizardEvent.NextClicked) // DataStrategy → CategoryStrategy
+        vm.onEvent(ImportWizardEvent.CategoryStrategySelected(ImportCategoryStrategy.AppendManualMerge(emptyList())))
+        vm.onEvent(ImportWizardEvent.NextClicked) // CategoryStrategy → ManualMerge
     }
 }

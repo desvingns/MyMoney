@@ -1,9 +1,11 @@
 package com.kshavrin.mymoney.feature.settings.importwizard
 
+import com.kshavrin.mymoney.core.domain.csv.ExistingCategorySummary
 import com.kshavrin.mymoney.core.domain.csv.ImportCategoryStrategy
 import com.kshavrin.mymoney.core.domain.csv.ImportDataStrategy
 import com.kshavrin.mymoney.core.domain.csv.ImportPreview
 import com.kshavrin.mymoney.core.domain.csv.OrphanDecision
+import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.feature.settings.R
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -114,6 +116,9 @@ class ImportWizardContentTest {
     private fun navButtonVisible(state: ImportWizardState): Boolean =
         state.step != ImportWizardStep.OrphanDecisions
 
+    /** Mirror of merge row result-name field: visible only when [MergeRow.isMergeInto]. */
+    private fun mergeResultNameVisible(row: MergeRow): Boolean = row.isMergeInto
+
     /** Mirror of error Text `state.errorBannerRes?.let { ... }`. */
     private fun errorBannerVisible(state: ImportWizardState): Boolean =
         state.errorBannerRes != null
@@ -161,6 +166,7 @@ class ImportWizardContentTest {
             ImportWizardStep.DataStrategy,
             ImportWizardStep.CategoryStrategy,
             ImportWizardStep.OrphanDecisions,
+            ImportWizardStep.ManualMerge,
         )) {
             assertFalse("Expected finishButtonVisible=false for step $step", finishButtonVisible(ImportWizardState(step = step)))
         }
@@ -178,6 +184,7 @@ class ImportWizardContentTest {
             ImportWizardStep.Preview,
             ImportWizardStep.DataStrategy,
             ImportWizardStep.CategoryStrategy,
+            ImportWizardStep.ManualMerge,
             ImportWizardStep.Confirm,
         )) {
             assertTrue("Expected navButtonVisible=true for step $step", navButtonVisible(ImportWizardState(step = step)))
@@ -363,5 +370,95 @@ class ImportWizardContentTest {
     @Test
     fun `default category strategy is Append`() {
         assertEquals(ImportCategoryStrategy.Append, ImportWizardState().categoryStrategy)
+    }
+
+    // ------------------------------------------------------------------ ManualMerge step visibility
+
+    @Test
+    fun `ManualMerge step is shown when step equals ManualMerge`() {
+        val state = ImportWizardState(step = ImportWizardStep.ManualMerge)
+        assertEquals(ImportWizardStep.ManualMerge, state.step)
+    }
+
+    @Test
+    fun `merge result name field is hidden when row is CreateNew`() {
+        val row =
+            MergeRow(
+                importCategoryName = "Dining",
+                kind = CategoryKind.Expense,
+                candidates = emptyList(),
+                targetId = null,
+                resultName = "",
+            )
+        assertFalse(mergeResultNameVisible(row))
+    }
+
+    @Test
+    fun `merge result name field is visible when row is MergeInto`() {
+        val candidate = ExistingCategorySummary(id = 1L, name = "Food", kind = CategoryKind.Expense, transactionCount = 0)
+        val row =
+            MergeRow(
+                importCategoryName = "Dining",
+                kind = CategoryKind.Expense,
+                candidates = listOf(candidate),
+                targetId = 1L,
+                resultName = "Food",
+            )
+        assertTrue(mergeResultNameVisible(row))
+    }
+
+    @Test
+    fun `ManualMerge step does not show Finish button`() {
+        val state = ImportWizardState(step = ImportWizardStep.ManualMerge)
+        assertFalse(finishButtonVisible(state))
+    }
+
+    @Test
+    fun `ManualMerge step shows the Next nav button`() {
+        val state = ImportWizardState(step = ImportWizardStep.ManualMerge)
+        assertTrue(navButtonVisible(state))
+    }
+
+    @Test
+    fun `MergeRow isMergeInto is false when targetId is null`() {
+        val row = MergeRow(importCategoryName = "A", kind = CategoryKind.Expense, candidates = emptyList())
+        assertFalse(row.isMergeInto)
+    }
+
+    @Test
+    fun `MergeRow isMergeInto is true when targetId is set`() {
+        val row =
+            MergeRow(
+                importCategoryName = "A",
+                kind = CategoryKind.Expense,
+                candidates = emptyList(),
+                targetId = 42L,
+                resultName = "Existing",
+            )
+        assertTrue(row.isMergeInto)
+    }
+
+    @Test
+    fun `toPlan with AppendManualMerge and empty merge rows produces empty mappings`() {
+        val state =
+            ImportWizardState(
+                dataStrategy = ImportDataStrategy.Append,
+                categoryStrategy = ImportCategoryStrategy.AppendManualMerge(emptyList()),
+                mergeRows = emptyList(),
+            )
+        val plan = state.toPlan()
+        val strategy = plan.categoryStrategy as ImportCategoryStrategy.AppendManualMerge
+        assertTrue(strategy.mappings.isEmpty())
+    }
+
+    @Test
+    fun `category confirm row shows manual merge label when AppendManualMerge strategy is used`() {
+        val state =
+            ImportWizardState(
+                step = ImportWizardStep.Confirm,
+                dataStrategy = ImportDataStrategy.Append,
+                categoryStrategy = ImportCategoryStrategy.AppendManualMerge(emptyList()),
+            )
+        assertTrue(categoryConfirmRowVisible(state))
     }
 }

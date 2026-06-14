@@ -11,11 +11,13 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -25,6 +27,7 @@ import com.kshavrin.mymoney.core.designsystem.R
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -1346,6 +1349,200 @@ class MonefyDonutChartUiTest {
                     slices = listOf("Food" to 80, "Ghost" to 0),
                 ),
             ).assertExists()
+    }
+
+    // ---- per-slice semantics nodes (a11y-audit8-04) ----
+
+    @Test
+    fun `each populated slice has its own semantics node with category name and percentage`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                MonefyDonutChart(
+                    income = BigDecimal("450.00"),
+                    expense = BigDecimal("124.00"),
+                    slices =
+                        listOf(
+                            slice(label = "Food", fraction = 0.45f),
+                            slice(label = "Transport", fraction = 0.55f),
+                        ),
+                    modifier = Modifier.size(240.dp),
+                    animationSpec = snap(),
+                )
+            }
+        }
+
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val foodCd = context.getString(R.string.donut_chart_slice, "Food", 45)
+        val transportCd = context.getString(R.string.donut_chart_slice, "Transport", 55)
+
+        composeTestRule.onNodeWithContentDescription(foodCd).assertExists()
+        composeTestRule.onNodeWithContentDescription(transportCd).assertExists()
+    }
+
+    @Test
+    fun `per-slice semantics node content description matches slice label and rounded percent`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                MonefyDonutChart(
+                    income = BigDecimal("100.00"),
+                    expense = BigDecimal("200.00"),
+                    slices = listOf(slice(label = "Home", fraction = 1.0f)),
+                    modifier = Modifier.size(240.dp),
+                    animationSpec = snap(),
+                )
+            }
+        }
+
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val expectedCd = context.getString(R.string.donut_chart_slice, "Home", 100)
+
+        composeTestRule.onNodeWithContentDescription(expectedCd).assertExists()
+    }
+
+    @Test
+    fun `per-slice semantics node for slice with fraction zero is absent`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                MonefyDonutChart(
+                    income = BigDecimal("100.00"),
+                    expense = BigDecimal("50.00"),
+                    slices =
+                        listOf(
+                            slice(label = "Food", fraction = 1.0f),
+                            slice(label = "Ghost", fraction = 0.0f),
+                        ),
+                    modifier = Modifier.size(240.dp),
+                    animationSpec = snap(),
+                )
+            }
+        }
+
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        // Zero-fraction slice must not produce a per-slice node (production guard: if (slice.fraction <= 0f) return@forEach)
+        val ghostCd = context.getString(R.string.donut_chart_slice, "Ghost", 0)
+        composeTestRule.onNodeWithContentDescription(ghostCd).assertDoesNotExist()
+    }
+
+    @Test
+    fun `per-slice semantics node exposes open category click action label`() {
+        val clickedSlices = mutableListOf<CategorySlice>()
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                MonefyDonutChart(
+                    income = BigDecimal("450.00"),
+                    expense = BigDecimal("124.00"),
+                    slices = listOf(slice(label = "Food", fraction = 1.0f)),
+                    modifier = Modifier.size(240.dp),
+                    onSliceClick = { clickedSlices += it },
+                    animationSpec = snap(),
+                )
+            }
+        }
+
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val sliceCd = context.getString(R.string.donut_chart_slice, "Food", 100)
+        val expectedActionLabel = context.getString(R.string.donut_chart_open_category_action)
+
+        val node =
+            composeTestRule
+                .onNodeWithContentDescription(sliceCd)
+                .fetchSemanticsNode()
+        val onClickConfig = node.config.getOrElseNullable(SemanticsActions.OnClick) { null }
+        assertNotNull("per-slice node must have an OnClick action", onClickConfig)
+        assertEquals(
+            "OnClick action label must match donut_chart_open_category_action string resource",
+            expectedActionLabel,
+            onClickConfig!!.label,
+        )
+    }
+
+    @Test
+    fun `performing semantics click on per-slice node invokes onSliceClick callback`() {
+        val clickedSlices = mutableListOf<CategorySlice>()
+        val foodSlice = slice(label = "Food", fraction = 1.0f)
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                MonefyDonutChart(
+                    income = BigDecimal("450.00"),
+                    expense = BigDecimal("124.00"),
+                    slices = listOf(foodSlice),
+                    modifier = Modifier.size(240.dp),
+                    onSliceClick = { clickedSlices += it },
+                    animationSpec = snap(),
+                )
+            }
+        }
+
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val sliceCd = context.getString(R.string.donut_chart_slice, "Food", 100)
+
+        composeTestRule
+            .onNodeWithContentDescription(sliceCd)
+            .performSemanticsAction(SemanticsActions.OnClick)
+
+        composeTestRule.runOnIdle {
+            assertEquals(1, clickedSlices.size)
+            assertEquals(foodSlice, clickedSlices.single())
+        }
+    }
+
+    @Test
+    fun `per-slice semantics nodes are absent when onSliceClick is null`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                MonefyDonutChart(
+                    income = BigDecimal("200.00"),
+                    expense = BigDecimal("100.00"),
+                    slices = listOf(slice(label = "Food", fraction = 1.0f)),
+                    modifier = Modifier.size(240.dp),
+                    onSliceClick = null,
+                    animationSpec = snap(),
+                )
+            }
+        }
+
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val sliceCd = context.getString(R.string.donut_chart_slice, "Food", 100)
+
+        // When no click handler is wired, the per-slice Box must still expose the CD
+        // (for TalkBack navigation) but must NOT have an onClick action.
+        val node =
+            composeTestRule
+                .onNodeWithContentDescription(sliceCd)
+                .fetchSemanticsNode()
+        val onClickConfig = node.config.getOrElseNullable(SemanticsActions.OnClick) { null }
+        assertTrue(
+            "per-slice node must not have an OnClick action when onSliceClick is null",
+            onClickConfig == null,
+        )
+    }
+
+    @Test
+    fun `multiple slice nodes are individually reachable by their own content descriptions`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                MonefyDonutChart(
+                    income = BigDecimal("300.00"),
+                    expense = BigDecimal("300.00"),
+                    slices =
+                        listOf(
+                            slice(label = "Coffee", fraction = 0.33f),
+                            slice(label = "Dining", fraction = 0.34f),
+                            slice(label = "Taxi", fraction = 0.33f),
+                        ),
+                    modifier = Modifier.size(300.dp),
+                    animationSpec = snap(),
+                )
+            }
+        }
+
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        listOf("Coffee" to 33, "Dining" to 34, "Taxi" to 33).forEach { (label, pct) ->
+            val cd = context.getString(R.string.donut_chart_slice, label, pct)
+            composeTestRule.onNodeWithContentDescription(cd).assertExists()
+        }
     }
 
     private fun setChart(

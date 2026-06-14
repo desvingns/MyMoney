@@ -4,6 +4,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.hasText
@@ -16,6 +18,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.designsystem.R
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -125,6 +128,89 @@ class MonefyBalanceBarUiTest {
         assertTrue(
             "balance bar pill must use the theme primary colour even for a negative amount",
             amountImageContainsColor(primaryTint),
+        )
+    }
+
+    @Test
+    fun `bar row exposes open records click action label for TalkBack`() {
+        val expectedLabel = targetString(R.string.balance_bar_open_records_action)
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                MonefyBalanceBar(
+                    amount = "100,00 RUB",
+                    isPositive = true,
+                    onClick = {},
+                    modifier = Modifier.testTag(BALANCE_BAR_TAG),
+                )
+            }
+        }
+
+        val node =
+            composeTestRule
+                .onNodeWithTag(BALANCE_BAR_TAG)
+                .fetchSemanticsNode()
+        val onClickAction = node.config.getOrElseNullable(SemanticsActions.OnClick) { null }
+        assertNotNull("balance bar row must have a click action", onClickAction)
+        assertEquals(
+            "click action label must match balance_bar_open_records_action string resource",
+            expectedLabel,
+            onClickAction!!.label,
+        )
+    }
+
+    @Test
+    fun `bar row exposes a merged content description combining label and amount`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                MonefyBalanceBar(
+                    amount = "99,00 RUB",
+                    isPositive = true,
+                    modifier = Modifier.testTag(BALANCE_BAR_TAG),
+                )
+            }
+        }
+
+        val node =
+            composeTestRule
+                .onNodeWithTag(BALANCE_BAR_TAG)
+                .fetchSemanticsNode()
+        val cd = node.config.getOrElseNullable(SemanticsProperties.ContentDescription) { null }
+        assertNotNull("balance bar row must expose a content description", cd)
+        val desc = cd!!.firstOrNull()
+        assertNotNull("content description list must not be empty", desc)
+        assertTrue(
+            "content description must contain the amount",
+            desc!!.contains("99,00 RUB"),
+        )
+    }
+
+    @Test
+    fun `flank icons are marked decorative and do not appear as separate a11y nodes`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                MonefyBalanceBar(
+                    amount = "100,00 RUB",
+                    isPositive = true,
+                    modifier = Modifier.testTag(BALANCE_BAR_TAG),
+                )
+            }
+        }
+
+        // Icons have contentDescription = null; within the merged semantics tree they must
+        // not produce child nodes with their own content descriptions.
+        val node =
+            composeTestRule
+                .onNodeWithTag(BALANCE_BAR_TAG, useUnmergedTree = true)
+                .fetchSemanticsNode()
+        val childDescriptions =
+            node.children
+                .flatMap { child ->
+                    child.config.getOrElseNullable(SemanticsProperties.ContentDescription) { null }.orEmpty()
+                }
+        assertTrue(
+            "decorative flank icons must not contribute their own content descriptions",
+            childDescriptions.none { it.isNotEmpty() && it != "${targetString(R.string.balance_bar_label)} 100,00 RUB" },
         )
     }
 

@@ -10,7 +10,16 @@ import com.kshavrin.mymoney.core.database.MoneyDatabase
 import com.kshavrin.mymoney.core.database.mapper.toDomain
 import com.kshavrin.mymoney.core.database.mapper.toEntity
 import com.kshavrin.mymoney.core.domain.csv.CsvImportFormat
+import com.kshavrin.mymoney.core.domain.csv.ImportDataStrategy
+import com.kshavrin.mymoney.core.domain.csv.ImportPlan
+import com.kshavrin.mymoney.core.domain.csv.ImportPreview
 import com.kshavrin.mymoney.core.domain.csv.MonefyCsvImportParser
+import com.kshavrin.mymoney.core.domain.csv.PreviewAccount
+import com.kshavrin.mymoney.core.domain.csv.PreviewCategory
+import com.kshavrin.mymoney.core.domain.csv.PreviewDateRange
+import com.kshavrin.mymoney.core.domain.csv.StagedImport
+import com.kshavrin.mymoney.core.domain.csv.TransactionDedupKey
+import com.kshavrin.mymoney.core.domain.csv.dedupTransactions
 import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.AccountType
 import com.kshavrin.mymoney.core.domain.model.BackupFile
@@ -169,6 +178,17 @@ class BackupRepositoryImpl
             }
 
         override suspend fun importTransactionsCsv(documentUriString: String): Result<CsvImportFocus?> =
+            parseImport(documentUriString).mapCatching { staged ->
+                commitImport(
+                    staged,
+                    ImportPlan(
+                        dataStrategy = ImportDataStrategy.Append,
+                        categoryStrategy = com.kshavrin.mymoney.core.domain.csv.ImportCategoryStrategy.Append,
+                    ),
+                ).getOrThrow()
+            }
+
+        override suspend fun parseImport(documentUriString: String): Result<StagedImport> =
             withContext(ioDispatcher) {
                 runCatching {
                     val records =
@@ -177,16 +197,104 @@ class BackupRepositoryImpl
                             ?.bufferedReader(Charsets.UTF_8)
                             ?.use(::parseCsv)
                             ?: throw IOException("Cannot read CSV import")
-                    when (MonefyCsvImportParser.detectFormat(records.firstOrNull())) {
-                        CsvImportFormat.Monefy -> importMonefyCsv(records)
-                        CsvImportFormat.MyMoney -> importMyMoneyCsv(records)
-                        CsvImportFormat.Unknown ->
-                            throw IOException("CSV header does not match the transaction schema")
+                    val format = MonefyCsvImportParser.detectFormat(records.firstOrNull())
+                    if (format == CsvImportFormat.Unknown) {
+                        throw IOException("CSV header does not match the transaction schema")
+                    }
+                    StagedImport(
+                        format = format,
+                        records = records,
+                        preview = buildPreview(format, records),
+                    )
+                }
+            }
+
+        override suspend fun commitImport(
+            staged: StagedImport,
+            plan: ImportPlan,
+        ): Result<CsvImportFocus?> =
+            withContext(ioDispatcher) {
+                runCatching {
+                    database.withTransaction {
+                        if (plan.dataStrategy is ImportDataStrategy.ReplaceAll) {
+                            // O2: wipe transactions, accounts and app categories; currencies and
+                            // AppSettings live in other stores and survive. Same transaction as the
+                            // re-import, so a failure rolls the whole clean-slate back (D8).
+                            database.transactionDao().deleteAll()
+                            database.accountDao().deleteAll()
+                            database.categoryDao().deleteAll()
+                        }
+                        when (staged.format) {
+                            CsvImportFormat.Monefy -> importMonefyCsv(staged.records, plan.dataStrategy)
+                            CsvImportFormat.MyMoney -> importMyMoneyCsv(staged.records, plan.dataStrategy)
+                            CsvImportFormat.Unknown ->
+                                throw IOException("CSV header does not match the transaction schema")
+                        }
                     }
                 }
             }
 
-        private suspend fun importMyMoneyCsv(records: List<List<String>>): CsvImportFocus? {
+        private suspend fun buildPreview(
+            format: CsvImportFormat,
+            records: List<List<String>>,
+        ): ImportPreview =
+            when (format) {
+                CsvImportFormat.Monefy -> {
+                    val rows = MonefyCsvImportParser.parse(records)
+                    ImportPreview(
+                        rowCount = rows.size,
+                        categories =
+                            rows
+                                .map {
+                                    PreviewCategory(
+                                        name = it.categoryName,
+                                        kind =
+                                            when (it.kind) {
+                                                TransactionKind.Income -> CategoryKind.Income
+                                                else -> CategoryKind.Expense
+                                            },
+                                    )
+                                }.toSet(),
+                        accounts =
+                            rows
+                                .map { PreviewAccount(name = it.accountName, currencyCode = it.currencyCode) }
+                                .toSet(),
+                        dateRange =
+                            rows.map { it.date }.let { dates ->
+                                val min = dates.minOrNull()
+                                val max = dates.maxOrNull()
+                                if (min != null && max != null) PreviewDateRange(min, max) else null
+                            },
+                    )
+                }
+                CsvImportFormat.MyMoney, CsvImportFormat.Unknown ->
+                    ImportPreview(
+                        rowCount = (records.size - 1).coerceAtLeast(0),
+                        categories = emptySet(),
+                        accounts = emptySet(),
+                        dateRange = null,
+                    )
+            }
+
+        private suspend fun existingDedupKeys(): Set<TransactionDedupKey> =
+            database
+                .transactionDao()
+                .listDedupRows()
+                .map { row ->
+                    TransactionDedupKey.of(
+                        accountName = row.accountName,
+                        occurredAt = Instant.ofEpochMilli(row.occurredAt),
+                        amount = BigDecimal.valueOf(row.amount),
+                        categoryName = row.categoryName.orEmpty(),
+                        kind = TransactionKind.fromString(row.kind),
+                        note = row.note,
+                    )
+                }.toSet()
+
+        private suspend fun importMyMoneyCsv(
+            records: List<List<String>>,
+            dataStrategy: ImportDataStrategy,
+        ): CsvImportFocus? {
             val currencies =
                 database
                     .currencyDao()
@@ -311,12 +419,23 @@ class BackupRepositoryImpl
                 }
             }
 
-            database.withTransaction {
-                transactions.forEach { transaction ->
-                    database.transactionDao().upsert(transaction.toEntity())
+            val accountNamesById = accounts.values.flatten().associate { it.id to it.name }
+            val categoryNamesById = categories.values.flatten().associate { it.id to it.name }
+            val toInsert =
+                if (dataStrategy is ImportDataStrategy.AppendDedup) {
+                    dedupTransactions(
+                        items = transactions,
+                        existingKeys = existingDedupKeys(),
+                        keyOf = { it.dedupKey(accountNamesById, categoryNamesById) },
+                    ).unique
+                } else {
+                    transactions
                 }
+
+            toInsert.forEach { transaction ->
+                database.transactionDao().upsert(transaction.toEntity())
             }
-            return transactions.maxByOrNull { it.occurredAt }?.let { latest ->
+            return toInsert.maxByOrNull { it.occurredAt }?.let { latest ->
                 CsvImportFocus(
                     occurredAtEpochMs = latest.occurredAt.toEpochMilli(),
                     currencyId = latest.currencyId,
@@ -324,8 +443,43 @@ class BackupRepositoryImpl
             }
         }
 
-        private suspend fun importMonefyCsv(records: List<List<String>>): CsvImportFocus? {
-            val rows = MonefyCsvImportParser.parse(records)
+        private fun Transaction.dedupKey(
+            accountNamesById: Map<Long, String>,
+            categoryNamesById: Map<Long, String>,
+        ): TransactionDedupKey =
+            TransactionDedupKey.of(
+                accountName = accountNamesById[accountId].orEmpty(),
+                occurredAt = occurredAt,
+                amount = amount,
+                categoryName = categoryId?.let { categoryNamesById[it] }.orEmpty(),
+                kind = kind,
+                note = note,
+            )
+
+        private suspend fun importMonefyCsv(
+            records: List<List<String>>,
+            dataStrategy: ImportDataStrategy,
+        ): CsvImportFocus? {
+            val parsedRows = MonefyCsvImportParser.parse(records)
+            val rows =
+                if (dataStrategy is ImportDataStrategy.AppendDedup) {
+                    dedupTransactions(
+                        items = parsedRows,
+                        existingKeys = existingDedupKeys(),
+                        keyOf = { row ->
+                            TransactionDedupKey.of(
+                                accountName = row.accountName,
+                                occurredAt = row.date.atStartOfDay(ZoneId.systemDefault()).toInstant(),
+                                amount = row.amount,
+                                categoryName = row.categoryName,
+                                kind = row.kind,
+                                note = row.note,
+                            )
+                        },
+                    ).unique
+                } else {
+                    parsedRows
+                }
 
             val now = Instant.now()
             val currenciesByCode = mutableMapOf<String, Long>()
@@ -342,7 +496,7 @@ class BackupRepositoryImpl
                 return currency.id.also { currenciesByCode[key] = it }
             }
 
-            database.withTransaction {
+            run {
                 val existingAccounts =
                     database
                         .accountDao()

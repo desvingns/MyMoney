@@ -25,4 +25,10 @@ interface CategoryDao {
 
     @Query("UPDATE category SET is_archived = 1 WHERE id = :id")
     suspend fun archive(id: Long)
+
+    // App categories carry no currency link; ReplaceAll (O2) clears them wholesale, currencies and
+    // AppSettings live in separate stores and are preserved. SPEC 03 reuses this for its category
+    // strategies.
+    @Query("DELETE FROM category")
+    suspend fun deleteAll()
 }

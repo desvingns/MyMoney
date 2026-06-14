@@ -7,6 +7,7 @@ import androidx.room.Upsert
 import com.kshavrin.mymoney.core.database.entity.TransactionEntity
 import com.kshavrin.mymoney.core.database.projection.CategoryGroupRow
 import com.kshavrin.mymoney.core.database.projection.CategorySummaryRow
+import com.kshavrin.mymoney.core.database.projection.TransactionDedupRow
 import com.kshavrin.mymoney.core.database.projection.TransferRow
 import kotlinx.coroutines.flow.Flow
 
@@ -200,4 +201,23 @@ interface TransactionDao {
 
     @Query("SELECT COUNT(*) FROM `transaction` WHERE currency_id = :id AND is_deleted = 0")
     suspend fun countByCurrency(id: Long): Int
+
+    @Query(
+        """
+        SELECT a.name AS accountName,
+               c.name AS categoryName,
+               t.kind AS kind,
+               t.amount AS amount,
+               t.occurred_at AS occurredAt,
+               t.note AS note
+        FROM `transaction` t
+        INNER JOIN account a ON a.id = t.account_id
+        LEFT JOIN category c ON c.id = t.category_id
+        WHERE t.is_deleted = 0
+    """,
+    )
+    suspend fun listDedupRows(): List<TransactionDedupRow>
+
+    @Query("DELETE FROM `transaction`")
+    suspend fun deleteAll()
 }

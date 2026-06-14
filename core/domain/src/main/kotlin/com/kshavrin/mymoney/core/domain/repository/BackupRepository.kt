@@ -1,5 +1,7 @@
 package com.kshavrin.mymoney.core.domain.repository
 
+import com.kshavrin.mymoney.core.domain.csv.ImportPlan
+import com.kshavrin.mymoney.core.domain.csv.StagedImport
 import com.kshavrin.mymoney.core.domain.model.BackupFile
 
 data class CsvImportFocus(
@@ -25,6 +27,17 @@ interface BackupRepository {
         Result.failure(UnsupportedOperationException("CSV export is not supported"))
 
     suspend fun importTransactionsCsv(documentUriString: String): Result<CsvImportFocus?> =
+        Result.failure(UnsupportedOperationException("CSV import is not supported"))
+
+    /** Read and parse a CSV (both formats) into memory for the wizard, without touching the DB. */
+    suspend fun parseImport(documentUriString: String): Result<StagedImport> =
+        Result.failure(UnsupportedOperationException("CSV import is not supported"))
+
+    /** Apply the chosen [ImportPlan] over an already-parsed import in one withTransaction. */
+    suspend fun commitImport(
+        staged: StagedImport,
+        plan: ImportPlan,
+    ): Result<CsvImportFocus?> =
         Result.failure(UnsupportedOperationException("CSV import is not supported"))
 
     suspend fun clearDatabase(): Result<Unit> =

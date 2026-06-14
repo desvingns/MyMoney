@@ -50,4 +50,7 @@ abstract class AccountDao {
 
     @Query("SELECT COUNT(*) FROM account WHERE currency_id = :id AND is_archived = 0")
     abstract suspend fun countByCurrency(id: Long): Int
+
+    @Query("DELETE FROM account")
+    abstract suspend fun deleteAll()
 }

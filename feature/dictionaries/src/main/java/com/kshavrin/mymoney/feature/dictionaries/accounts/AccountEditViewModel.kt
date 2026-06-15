@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.AccountType
 import com.kshavrin.mymoney.core.domain.model.Currency
+import com.kshavrin.mymoney.core.domain.model.toMoneyScale
 import com.kshavrin.mymoney.core.domain.repository.AccountRepository
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
@@ -102,11 +103,18 @@ class AccountEditViewModel
                 _state.value = s.copy(errorMessage = "currency_required")
                 return
             }
+            val currency =
+                s.availableCurrencies.firstOrNull { it.id == s.currencyId }
+                    ?: run {
+                        _state.value = s.copy(errorMessage = "currency_required")
+                        return
+                    }
             val parsedBalance =
                 s.initialBalanceText
                     .trim()
                     .replace(',', '.')
                     .toBigDecimalOrNull()
+                    ?.toMoneyScale(currency)
             if (parsedBalance == null) {
                 _state.value = s.copy(errorMessage = "balance_format")
                 return

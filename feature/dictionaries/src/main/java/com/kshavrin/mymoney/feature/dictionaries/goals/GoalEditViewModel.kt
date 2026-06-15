@@ -3,15 +3,18 @@ package com.kshavrin.mymoney.feature.dictionaries.goals
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.kshavrin.mymoney.core.common.money.MoneyFormatter
 import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.ContributionBreakdown
 import com.kshavrin.mymoney.core.domain.model.ContributionItem
+import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Goal
 import com.kshavrin.mymoney.core.domain.model.GoalVariant
 import com.kshavrin.mymoney.core.domain.model.LoanGoalInput
 import com.kshavrin.mymoney.core.domain.model.LoanProjection
 import com.kshavrin.mymoney.core.domain.model.SavingsGoalInput
 import com.kshavrin.mymoney.core.domain.model.SavingsProjection
+import com.kshavrin.mymoney.core.domain.model.toMoneyScale
 import com.kshavrin.mymoney.core.domain.repository.AccountRepository
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
 import com.kshavrin.mymoney.core.domain.repository.GoalRepository
@@ -31,6 +34,7 @@ import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
+import java.util.Locale
 import javax.inject.Inject
 
 @HiltViewModel
@@ -227,13 +231,14 @@ class GoalEditViewModel
                 _state.value.accounts.firstOrNull { it.id == accountId }
                     ?: accountRepository.findById(accountId)
             val balance = accountRepository.computeBalance(accountId)
-            val symbol = account?.let { currencyRepository.findById(it.currencyId)?.symbol }.orEmpty()
+            val currency = account?.let { currencyRepository.findById(it.currencyId) }
             _state.value =
                 _state.value.copy(
                     accountId = accountId,
                     currentBalance = balance,
-                    currencySymbol = symbol,
-                    currentBalanceFormatted = formatMoney(balance, symbol),
+                    currency = currency,
+                    currencySymbol = currency?.symbol.orEmpty(),
+                    currentBalanceFormatted = currency?.let { formatMoney(balance, it) }.orEmpty(),
                 )
             recompute()
         }
@@ -294,19 +299,19 @@ class GoalEditViewModel
                 s.copy(
                     savingsProjection = projection,
                     capitalDelta = delta,
-                    capitalDeltaAmountFormatted = delta?.let { formatMoney(it.abs(), s.currencySymbol) },
+                    capitalDeltaAmountFormatted = s.currency?.let { currency -> delta?.let { formatMoney(it.abs(), currency) } },
                     loanProjection = loanProjection,
                     loanProjectionTotalInterestFormatted =
-                        loanProjection?.let {
-                            formatMoney(it.totalInterest, s.currencySymbol)
+                        loanProjection?.let { projection ->
+                            s.currency?.let { currency -> formatMoney(projection.totalInterest, currency) }
                         },
                     loanProjectionTotalPaidFormatted =
-                        loanProjection?.let {
-                            formatMoney(it.totalPaid, s.currencySymbol)
+                        loanProjection?.let { projection ->
+                            s.currency?.let { currency -> formatMoney(projection.totalPaid, currency) }
                         },
                     loanProjectionMonthlyPaymentFormatted =
-                        loanProjection?.let {
-                            formatMoney(it.baseMonthlyPayment, s.currencySymbol)
+                        loanProjection?.let { projection ->
+                            s.currency?.let { currency -> formatMoney(projection.baseMonthlyPayment, currency) }
                         },
                     loanProjectionAccumulationMonths = loanProjection?.accumulationMonths,
                     loanProjectionTotalMonths = loanProjection?.totalMonthsToPayoff,
@@ -320,11 +325,11 @@ class GoalEditViewModel
             if (!s.canSave) return
             val isCredit = s.variant == GoalVariant.CREDIT
 
-            val targetAmount = s.targetAmount.parseMoneyField()
-            val startingCapital = s.startingCapital.parseMoneyField()
-            val monthlyContribution = s.monthlyContribution.parseMoneyField()
+            val targetAmount = s.targetAmount.parseMoneyField(s.currency)
+            val startingCapital = s.startingCapital.parseMoneyField(s.currency)
+            val monthlyContribution = s.monthlyContribution.parseMoneyField(s.currency)
             val annualRatePercent = if (isCredit) s.annualRatePercent.parseMoneyField() else MoneyField.Valid(BigDecimal.ZERO)
-            val downPayment = if (isCredit) s.downPayment.parseMoneyField() else MoneyField.Valid(BigDecimal.ZERO)
+            val downPayment = if (isCredit) s.downPayment.parseMoneyField(s.currency) else MoneyField.Valid(BigDecimal.ZERO)
             if (targetAmount is MoneyField.Invalid ||
                 startingCapital is MoneyField.Invalid ||
                 monthlyContribution is MoneyField.Invalid ||
@@ -369,7 +374,7 @@ class GoalEditViewModel
                             createdAt = s.createdAt ?: now,
                             updatedAt = now,
                             isArchived = false,
-                            contributionBreakdown = s.toBreakdown(),
+                            contributionBreakdown = s.toBreakdown(s.currency),
                         ),
                     )
                     _actions.emit(GoalEditAction.NavigateBack)
@@ -394,24 +399,27 @@ private sealed interface MoneyField {
     data object Invalid : MoneyField
 }
 
-private fun String.parseMoneyField(): MoneyField {
+private fun String.parseMoneyField(currency: Currency? = null): MoneyField {
     val normalized = trim()
-    if (normalized.isBlank()) return MoneyField.Valid(BigDecimal.ZERO)
+    if (normalized.isBlank()) return MoneyField.Valid(currency?.let { BigDecimal.ZERO.toMoneyScale(it) } ?: BigDecimal.ZERO)
     val parsed = normalized.replace(',', '.').toBigDecimalOrNull()
-    return if (parsed != null) MoneyField.Valid(parsed) else MoneyField.Invalid
+    return if (parsed != null) MoneyField.Valid(currency?.let { parsed.toMoneyScale(it) } ?: parsed) else MoneyField.Invalid
 }
 
 private fun ContributionItem.toRowUi(): ContributionRowUi =
     ContributionRowUi(name = name, amount = amount.toPlainString())
 
-private fun List<ContributionRowUi>.toItems(): List<ContributionItem> =
-    map { ContributionItem(it.name, it.amount.parseMoney()) }
+private fun List<ContributionRowUi>.toItems(currency: Currency?): List<ContributionItem> =
+    map {
+        val amount = it.amount.parseMoney()
+        ContributionItem(it.name, currency?.let { selectedCurrency -> amount.toMoneyScale(selectedCurrency) } ?: amount)
+    }
 
-private fun GoalEditState.toBreakdown(): ContributionBreakdown =
+private fun GoalEditState.toBreakdown(currency: Currency? = null): ContributionBreakdown =
     ContributionBreakdown(
         enabled = advancedContribution,
-        incomes = incomeRows.toItems(),
-        expenses = expenseRows.toItems(),
+        incomes = incomeRows.toItems(currency),
+        expenses = expenseRows.toItems(currency),
     )
 
 private fun <T> List<T>.updateAt(
@@ -425,11 +433,15 @@ private fun <T> List<T>.removeAt(index: Int): List<T> =
 
 private fun formatMoney(
     amount: BigDecimal,
-    symbol: String,
-): String {
-    val plain = amount.stripTrailingZeros().toPlainString()
-    return if (symbol.isBlank()) plain else "$plain $symbol"
-}
+    currency: Currency,
+): String =
+    MoneyFormatter.format(
+        amount = amount,
+        currencySymbol = currency.symbol,
+        decimalDigits = minOf(currency.decimalDigits, 2),
+        locale = Locale.getDefault(),
+        symbolPosition = MoneyFormatter.SymbolPosition.AFTER,
+    )
 
 data class GoalEditState(
     val id: Long = -1L,
@@ -441,6 +453,7 @@ data class GoalEditState(
     val accounts: List<Account> = emptyList(),
     val currentBalance: BigDecimal? = null,
     val currentBalanceFormatted: String = "",
+    val currency: Currency? = null,
     val currencySymbol: String = "",
     val colorHex: String = "#9C5BB8",
     val startingCapital: String = "",

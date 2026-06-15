@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.math.RoundingMode
 import java.time.Instant
 import javax.inject.Inject
 
@@ -75,7 +76,13 @@ class CurrencyRateViewModel
         }
 
         private fun onRateInputChanged(text: String) {
-            val parsed = text.trim().replace(',', '.').toDoubleOrNull()
+            val parsed =
+                text
+                    .trim()
+                    .replace(',', '.')
+                    .toBigDecimalOrNull()
+                    ?.setScale(2, RoundingMode.HALF_UP)
+                    ?.toDouble()
             val valid = parsed != null && parsed > 0.0
             _state.value =
                 _state.value.copy(

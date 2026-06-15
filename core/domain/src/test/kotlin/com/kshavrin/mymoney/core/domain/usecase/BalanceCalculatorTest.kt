@@ -11,7 +11,7 @@ import com.kshavrin.mymoney.core.domain.repository.CategorySummary
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertThrows
+import org.junit.Assert.fail
 import org.junit.Test
 import java.math.BigDecimal
 import java.time.Instant
@@ -43,9 +43,30 @@ class BalanceCalculatorTest {
             val calculator = BalanceCalculator(accountRepo, currencyRepo, transactionRepo, UnconfinedTestDispatcher())
             val snapshot = calculator(10L, may2026)
 
-            assertEquals(BigDecimal("100.00"), snapshot.expense.amount)
-            assertEquals(BigDecimal("500.00"), snapshot.income.amount)
-            assertEquals(BigDecimal("400.00"), snapshot.net.amount)
+            assertScaledAmount(snapshot.expense.amount, "100.00")
+            assertScaledAmount(snapshot.income.amount, "500.00")
+            assertScaledAmount(snapshot.net.amount, "400.00")
+            assertScaledAmount(
+                snapshot.byCategory
+                    .single { it.categoryId == 100L }
+                    .total
+                    .amount,
+                "30.00",
+            )
+            assertScaledAmount(
+                snapshot.byCategory
+                    .single { it.categoryId == 101L }
+                    .total
+                    .amount,
+                "70.00",
+            )
+            assertScaledAmount(
+                snapshot.byCategory
+                    .single { it.categoryId == 200L }
+                    .total
+                    .amount,
+                "500.00",
+            )
             assertEquals(3, snapshot.byCategory.size)
         }
 
@@ -70,9 +91,24 @@ class BalanceCalculatorTest {
             val calculator = BalanceCalculator(accountRepo, currencyRepo, transactionRepo, UnconfinedTestDispatcher())
             val snapshot = calculator(10L, may2026)
 
-            assertEquals("food", snapshot.byCategory.single { it.categoryId == 100L }.iconKey)
-            assertEquals("bills", snapshot.byCategory.single { it.categoryId == 101L }.iconKey)
-            assertEquals("salary", snapshot.byCategory.single { it.categoryId == 200L }.iconKey)
+            assertEquals(
+                "food",
+                snapshot.byCategory
+                    .single { it.categoryId == 100L }
+                    .iconKey,
+            )
+            assertEquals(
+                "bills",
+                snapshot.byCategory
+                    .single { it.categoryId == 101L }
+                    .iconKey,
+            )
+            assertEquals(
+                "salary",
+                snapshot.byCategory
+                    .single { it.categoryId == 200L }
+                    .iconKey,
+            )
         }
 
     @Test
@@ -98,18 +134,36 @@ class BalanceCalculatorTest {
                 BalanceCalculator(accountRepo, currencyRepo, transactionRepo, UnconfinedTestDispatcher())
                     .forAccounts(listOf(cash, card, archived), usd, may2026)
 
-            assertEquals(0, BigDecimal("40.00").compareTo(snapshot.expense.amount))
-            assertEquals(0, BigDecimal("140.00").compareTo(snapshot.income.amount))
-            assertEquals(0, BigDecimal("100.00").compareTo(snapshot.net.amount))
-            assertEquals(
-                0,
-                BigDecimal("40.00").compareTo(
-                    snapshot.byCategory
-                        .single { it.categoryId == 100L }
-                        .total.amount,
-                ),
+            assertScaledAmount(snapshot.expense.amount, "40.00")
+            assertScaledAmount(snapshot.income.amount, "140.00")
+            assertScaledAmount(snapshot.net.amount, "100.00")
+            assertScaledAmount(
+                snapshot.byCategory
+                    .single { it.categoryId == 100L }
+                    .total
+                    .amount,
+                "40.00",
             )
-            assertEquals(setOf(100L, 200L, 300L), snapshot.byCategory.map { it.categoryId }.toSet())
+            assertScaledAmount(
+                snapshot.byCategory
+                    .single { it.categoryId == 200L }
+                    .total
+                    .amount,
+                "120.00",
+            )
+            assertScaledAmount(
+                snapshot.byCategory
+                    .single { it.categoryId == 300L }
+                    .total
+                    .amount,
+                "20.00",
+            )
+            assertEquals(
+                setOf(100L, 200L, 300L),
+                snapshot.byCategory
+                    .map { it.categoryId }
+                    .toSet(),
+            )
         }
 
     @Test
@@ -125,11 +179,143 @@ class BalanceCalculatorTest {
                     defaultDispatcher = UnconfinedTestDispatcher(),
                 )
 
-            assertThrows(IllegalArgumentException::class.java) {
-                kotlinx.coroutines.runBlocking {
-                    calculator.forAccounts(listOf(cash, euro), usd, may2026)
-                }
+            try {
+                calculator.forAccounts(listOf(cash, euro), usd, may2026)
+                fail("Expected IllegalArgumentException")
+            } catch (_: IllegalArgumentException) {
             }
+        }
+
+    @Test
+    fun `normalizes classic 0 point 1 plus 0 point 2 artifacts before emitting snapshot amounts`() =
+        runTest {
+            val account = account(id = 10L, name = "Cash", currencyId = usd.id)
+            val snapshot =
+                BalanceCalculator(
+                    accountRepository = FakeAccountRepository().apply { seed(account) },
+                    currencyRepository = FakeCurrencyRepository().apply { seed(usd) },
+                    transactionRepository =
+                        FakeTransactionRepository().apply {
+                            seedIncomeSummary(
+                                CategorySummary(
+                                    categoryId = 200L,
+                                    categoryName = "Salary",
+                                    colorHex = "#7AC29A",
+                                    total = BigDecimal("0.30000000000000004"),
+                                    iconKey = "salary",
+                                ),
+                            )
+                        },
+                    defaultDispatcher = UnconfinedTestDispatcher(),
+                )(account.id, may2026)
+
+            assertScaledAmount(snapshot.income.amount, "0.30")
+            assertScaledAmount(snapshot.expense.amount, "0.00")
+            assertScaledAmount(snapshot.net.amount, "0.30")
+            assertScaledAmount(
+                snapshot.byCategory
+                    .single { it.categoryId == 200L }
+                    .total
+                    .amount,
+                "0.30",
+            )
+        }
+
+    @Test
+    fun `uses the account currency decimal digits instead of hardcoded scale two`() =
+        runTest {
+            val jpy =
+                currency(
+                    id = 3L,
+                    code = "JPY",
+                    symbol = "JPY",
+                    name = "Japanese Yen",
+                    decimalDigits = 0,
+                )
+            val account = account(id = 10L, name = "Cash", currencyId = jpy.id)
+            val snapshot =
+                BalanceCalculator(
+                    accountRepository = FakeAccountRepository().apply { seed(account) },
+                    currencyRepository = FakeCurrencyRepository().apply { seed(jpy) },
+                    transactionRepository =
+                        FakeTransactionRepository().apply {
+                            seedIncomeSummary(
+                                CategorySummary(
+                                    categoryId = 200L,
+                                    categoryName = "Salary",
+                                    colorHex = "#7AC29A",
+                                    total = BigDecimal("10.5"),
+                                    iconKey = "salary",
+                                ),
+                            )
+                        },
+                    defaultDispatcher = UnconfinedTestDispatcher(),
+                )(account.id, may2026)
+
+            assertScaledAmount(snapshot.income.amount, "11", expectedScale = 0)
+            assertScaledAmount(snapshot.expense.amount, "0", expectedScale = 0)
+            assertScaledAmount(snapshot.net.amount, "11", expectedScale = 0)
+            assertScaledAmount(
+                snapshot.byCategory
+                    .single { it.categoryId == 200L }
+                    .total
+                    .amount,
+                "11",
+                expectedScale = 0,
+            )
+        }
+
+    @Test
+    fun `rounds floating point tails in computed balances to two decimals`() =
+        runTest {
+            val account = account(id = 10L, name = "Cash", currencyId = usd.id)
+            val snapshot =
+                BalanceCalculator(
+                    accountRepository = FakeAccountRepository().apply { seed(account) },
+                    currencyRepository = FakeCurrencyRepository().apply { seed(usd) },
+                    transactionRepository =
+                        FakeTransactionRepository().apply {
+                            seedExpenseSummary(
+                                CategorySummary(
+                                    categoryId = 100L,
+                                    categoryName = "Goal",
+                                    colorHex = "#E07AAE",
+                                    total = BigDecimal("1182337.0799999996"),
+                                    iconKey = "goal",
+                                ),
+                            )
+                        },
+                    defaultDispatcher = UnconfinedTestDispatcher(),
+                )(account.id, may2026)
+
+            assertScaledAmount(snapshot.income.amount, "0.00")
+            assertScaledAmount(snapshot.expense.amount, "1182337.08")
+            assertScaledAmount(snapshot.net.amount, "-1182337.08")
+            assertScaledAmount(
+                snapshot.byCategory
+                    .single { it.categoryId == 100L }
+                    .total
+                    .amount,
+                "1182337.08",
+            )
+        }
+
+    @Test
+    fun `returns scaled zero amounts when category summaries are empty`() =
+        runTest {
+            val account = account(id = 10L, name = "Cash", currencyId = usd.id)
+            val snapshot =
+                BalanceCalculator(
+                    accountRepository = FakeAccountRepository().apply { seed(account) },
+                    currencyRepository = FakeCurrencyRepository().apply { seed(usd) },
+                    transactionRepository = FakeTransactionRepository(),
+                    defaultDispatcher = UnconfinedTestDispatcher(),
+                )(account.id, may2026)
+
+            assertScaledAmount(snapshot.income.amount, "0.00")
+            assertScaledAmount(snapshot.expense.amount, "0.00")
+            assertScaledAmount(snapshot.net.amount, "0.00")
+            assertEquals(emptyList<Long>(), snapshot.byCategory.map { it.categoryId })
         }
 
     private fun currency(
@@ -137,12 +323,13 @@ class BalanceCalculatorTest {
         code: String,
         symbol: String,
         name: String,
+        decimalDigits: Int = 2,
     ) = Currency(
         id = id,
         code = code,
         symbol = symbol,
         name = name,
-        decimalDigits = 2,
+        decimalDigits = decimalDigits,
         isActive = true,
         sortOrder = 0,
     )
@@ -166,4 +353,13 @@ class BalanceCalculatorTest {
         updatedAt = Instant.EPOCH,
         isArchived = isArchived,
     )
+
+    private fun assertScaledAmount(
+        actual: BigDecimal,
+        expectedValue: String,
+        expectedScale: Int = 2,
+    ) {
+        assertEquals(0, BigDecimal(expectedValue).compareTo(actual))
+        assertEquals(expectedScale, actual.scale())
+    }
 }

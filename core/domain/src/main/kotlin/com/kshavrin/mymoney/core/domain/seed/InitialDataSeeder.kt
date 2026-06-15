@@ -138,6 +138,7 @@ class InitialDataSeeder
                     Currency(0L, "ZAR", "R", "South African Rand", 2, true, 17),
                     Currency(0L, "PLN", "zł", "Polish Zloty", 2, true, 18),
                     Currency(0L, "UAH", "₴", "Ukrainian Hryvnia", 2, true, 19),
+                    Currency(0L, "RSD", "RSD", "Serbian Dinar", 2, true, 20),
                 )
 
             val EXPENSE_CATEGORY_SEEDS =

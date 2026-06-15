@@ -39,7 +39,7 @@ class InitialDataSeederTest {
             val seeded = seeder.seedIfNeeded(now, Locale.US)
 
             assertTrue(seeded)
-            assertEquals(20, currencyRepo.observeAll().first().size)
+            assertEquals(21, currencyRepo.observeAll().first().size)
             assertEquals(1, accountRepo.observeActive().first().size)
             assertEquals(17, categoryRepo.observeAll().first().size)
         }
@@ -56,8 +56,29 @@ class InitialDataSeederTest {
             val secondRun = seeder.seedIfNeeded(now, Locale.US)
 
             assertFalse(secondRun)
-            assertEquals(20, currencyRepo.observeAll().first().size)
+            assertEquals(21, currencyRepo.observeAll().first().size)
             assertEquals(1, accountRepo.observeActive().first().size)
+        }
+
+    @Test
+    fun `seeds serbian dinar with correct fields at sortOrder 20`() =
+        runTest {
+            val currencyRepo = FakeCurrencyRepository()
+            val seeder =
+                createSeeder(
+                    currencyRepo,
+                    FakeAccountRepository(),
+                    FakeCategoryRepository(),
+                )
+
+            seeder.seedIfNeeded(now, Locale.US)
+
+            val rsd = currencyRepo.observeAll().first().single { it.code == "RSD" }
+            assertEquals("RSD", rsd.symbol)
+            assertEquals("Serbian Dinar", rsd.name)
+            assertEquals(2, rsd.decimalDigits)
+            assertTrue(rsd.isActive)
+            assertEquals(20, rsd.sortOrder)
         }
 
     @Test
@@ -347,7 +368,7 @@ class InitialDataSeederTest {
             val seeded = seeder.seedIfNeeded(now, Locale.US)
 
             assertTrue(seeded)
-            assertEquals(20, currencyRepo.observeAll().first().size)
+            assertEquals(21, currencyRepo.observeAll().first().size)
             assertEquals(1, accountRepo.observeActive().first().size)
             assertEquals(17, categoryRepo.observeAll().first().size)
         }

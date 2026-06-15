@@ -8,6 +8,7 @@ import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.domain.model.Period
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
+import com.kshavrin.mymoney.core.domain.model.toMoneyScale
 import com.kshavrin.mymoney.core.domain.repository.AccountRepository
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
@@ -68,7 +69,10 @@ class BalanceCalculator
                             colorHex = first.first.colorHex,
                             iconKey = first.first.iconKey,
                             isExpense = first.second,
-                            amount = entries.fold(BigDecimal.ZERO) { acc, (summary, _) -> acc + summary.total },
+                            amount =
+                                entries
+                                    .fold(BigDecimal.ZERO) { acc, (summary, _) -> acc + summary.total }
+                                    .toMoneyScale(currency),
                         )
                     }
 
@@ -76,16 +80,19 @@ class BalanceCalculator
                 categoryTotals
                     .filter { it.isExpense }
                     .fold(BigDecimal.ZERO) { acc, item -> acc + item.amount }
+                    .toMoneyScale(currency)
             val totalIncome =
                 categoryTotals
                     .filter { !it.isExpense }
                     .fold(BigDecimal.ZERO) { acc, item -> acc + item.amount }
-            val combined = totalIncome.add(totalExpense)
+                    .toMoneyScale(currency)
+            val net = totalIncome.subtract(totalExpense).toMoneyScale(currency)
+            val combined = totalIncome.add(totalExpense).toMoneyScale(currency)
 
             return BalanceSnapshot(
                 income = Money(totalIncome, currency),
                 expense = Money(totalExpense, currency),
-                net = Money(totalIncome.subtract(totalExpense), currency),
+                net = Money(net, currency),
                 byCategory =
                     categoryTotals.map { total ->
                         CategoryBalance(

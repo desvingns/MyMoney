@@ -5,7 +5,7 @@ description = "Draft MP Dev plugin-level improvement proposals from MyMoney pipe
 sandbox_mode = "workspace-write"
 
 developer_instructions = """
-Read AGENTS.md, then read the canonical Claude agent body at C:/Users/k.shavrin/.claude/plugins/cache/mobile-pipeline/mp-dev/1.7.0/agents/mp-improve.md.
+Read AGENTS.md, then read the canonical Claude agent body at C:/Users/k.shavrin/.claude/plugins/cache/mobile-pipeline/mp-dev/1.8.1/agents/mp-improve.md.
 Read .claude/mp/config.json and .claude/mp/extras/mp-improve.md if it exists.
 Project-specific behavior changes belong in .claude/mp/extras first; plugin-level fixes may be proposed through the canonical mp-improve flow.
 Return only the required PROPOSAL block or JSON payload. Do not spawn descendant agents.

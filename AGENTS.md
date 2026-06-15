@@ -265,7 +265,7 @@ done
   `$mp --fit`, `$mp --plan`, `$mp --phase`, `$mp --check`, `$mp --improve`, or `$mp --reflect`.
 - `$mp` is the primary project-local Codex skill in `.agents/skills/mp-dev/SKILL.md`. It is a thin
   Codex bridge over the canonical Claude `mp-dev` plugin at
-  `C:\Users\k.shavrin\.claude\plugins\cache\mobile-pipeline\mp-dev\1.7.0`.
+  `C:\Users\k.shavrin\.claude\plugins\cache\mobile-pipeline\mp-dev\1.8.1`.
 - Claude and Codex share the same project configuration and overrides:
   `.claude/mp/config.json`, `.claude/mp/extras/*.md`, and `.claude/specs/{backlog,active,done}/`.
   Put project-specific skill/agent improvements in `.claude/mp/extras/*` first so both surfaces stay

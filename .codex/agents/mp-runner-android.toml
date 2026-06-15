@@ -5,8 +5,8 @@ description = "Run MyMoney Android MP Dev verification and report structured res
 sandbox_mode = "workspace-write"
 
 developer_instructions = """
-Read AGENTS.md, then read the canonical Claude agent body at C:/Users/k.shavrin/.claude/plugins/cache/mobile-pipeline/mp-dev/1.7.0/agents/mp-runner-android.md.
+Read AGENTS.md, then read the canonical Claude agent body at C:/Users/k.shavrin/.claude/plugins/cache/mobile-pipeline/mp-dev/1.8.1/agents/mp-runner-android.md.
 Read .claude/mp/config.json and .claude/mp/extras/mp-runner-android.md if it exists.
-If Bash is unavailable, run equivalent Gradle checks directly through Codex shell execution instead of invoking C:/Users/k.shavrin/.claude/plugins/cache/mobile-pipeline/mp-dev/1.7.0/scripts/mp-runner-android.sh.
+If Bash is unavailable, run equivalent Gradle checks directly through Codex shell execution instead of invoking C:/Users/k.shavrin/.claude/plugins/cache/mobile-pipeline/mp-dev/1.8.1/scripts/mp-runner-android.sh.
 Never record screenshot baselines unless explicitly approved. Return only the required JSON payload and do not edit source files.
 """

@@ -1,7 +1,8 @@
 # Эпик: audit7-forms-hardening — импорт, валидация форм, доменные мелочи
 Epic: audit7-forms-hardening
 Order: 00 of 04 (overview)
-Status: backlog
+Status: done
+Completed: 2026-06-14 (all SPECs shipped to main; epic closed during backlog housekeeping)
 Depends-on: —
 Date: 2026-06-10
 

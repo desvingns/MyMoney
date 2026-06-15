@@ -438,7 +438,7 @@ class AccountEditViewModelTest {
             }
 
             val saved = accountRepo.observeActive().first().single()
-            assertEquals(BigDecimal("1500.75"), saved.initialBalance)
+            assertEquals(0, BigDecimal("1500.75").compareTo(saved.initialBalance))
         }
 
     @Test
@@ -453,6 +453,46 @@ class AccountEditViewModelTest {
             advanceUntilIdle()
 
             assertNull(viewModel.state.value.errorMessage)
+        }
+
+    @Test
+    fun `initial balance rounds half up to the account currency scale on save`() =
+        runTest {
+            val viewModel = buildViewModel()
+            advanceUntilIdle()
+
+            viewModel.onEvent(AccountEditEvent.NameChanged("Wallet"))
+            viewModel.onEvent(AccountEditEvent.InitialBalanceChanged("10.005"))
+
+            viewModel.actions.test {
+                viewModel.onEvent(AccountEditEvent.SaveClicked)
+                advanceUntilIdle()
+                assertEquals(AccountEditAction.NavigateBack, awaitItem())
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            val saved = accountRepo.observeActive().first().single()
+            assertEquals(0, BigDecimal("10.01").compareTo(saved.initialBalance))
+        }
+
+    @Test
+    fun `initial balance trims extra fractional digits to the account currency scale on save`() =
+        runTest {
+            val viewModel = buildViewModel()
+            advanceUntilIdle()
+
+            viewModel.onEvent(AccountEditEvent.NameChanged("Wallet"))
+            viewModel.onEvent(AccountEditEvent.InitialBalanceChanged("12.3456"))
+
+            viewModel.actions.test {
+                viewModel.onEvent(AccountEditEvent.SaveClicked)
+                advanceUntilIdle()
+                assertEquals(AccountEditAction.NavigateBack, awaitItem())
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            val saved = accountRepo.observeActive().first().single()
+            assertEquals(0, BigDecimal("12.35").compareTo(saved.initialBalance))
         }
 
     // --- createdAt stability on edit ---

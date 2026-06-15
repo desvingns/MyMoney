@@ -2,6 +2,7 @@ package com.kshavrin.mymoney.feature.dictionaries.goals
 
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
+import com.kshavrin.mymoney.core.common.money.MoneyFormatter
 import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.AccountType
 import com.kshavrin.mymoney.core.domain.model.Currency
@@ -15,6 +16,7 @@ import com.kshavrin.mymoney.feature.dictionaries.goals.fake.FakeAccountRepositor
 import com.kshavrin.mymoney.feature.dictionaries.goals.fake.FakeCurrencyRepository
 import com.kshavrin.mymoney.feature.dictionaries.goals.fake.FakeGoalRepository
 import com.kshavrin.mymoney.feature.dictionaries.util.MainDispatcherRule
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -26,6 +28,7 @@ import org.junit.Rule
 import org.junit.Test
 import java.math.BigDecimal
 import java.time.Instant
+import java.util.Locale
 
 class GoalEditSavingsViewModelTest {
     @get:Rule
@@ -125,25 +128,39 @@ class GoalEditSavingsViewModelTest {
         )
 
     @Test
-    fun `selecting an account loads its balance and currency symbol into state`() =
+    fun `selecting an account formats current balance with money formatter`() =
         runTest {
-            currencyRepo.seed(rubCurrency(id = 1L))
+            val currency = rubCurrency(id = 1L)
+            val rawBalance = BigDecimal("-1182337.0799999996")
+            currencyRepo.seed(currency)
             accountRepo.seed(
                 account(id = 1L, name = "Cash", currencyId = 1L),
                 account(id = 2L, name = "Card", currencyId = 1L),
             )
-            accountRepo.setBalance(2L, BigDecimal("25000"))
+            accountRepo.setBalance(2L, rawBalance)
 
             val viewModel = buildViewModel()
 
             viewModel.onEvent(GoalEditEvent.AccountSelected(2L))
+            advanceUntilIdle()
 
             viewModel.state.test {
                 val state = expectMostRecentItem()
                 assertEquals(2L, state.accountId)
-                assertEquals(BigDecimal("25000"), state.currentBalance)
-                assertEquals("₽", state.currencySymbol)
-                assertTrue("formatted balance must mention 25000", state.currentBalanceFormatted.contains("25000"))
+                assertNotNull(state.currentBalance)
+                assertEquals(0, rawBalance.compareTo(state.currentBalance!!))
+                assertEquals(currency.symbol, state.currencySymbol)
+                assertEquals(
+                    MoneyFormatter.format(
+                        amount = rawBalance,
+                        currencySymbol = currency.symbol,
+                        decimalDigits = 2,
+                        locale = Locale.getDefault(),
+                        symbolPosition = MoneyFormatter.SymbolPosition.AFTER,
+                    ),
+                    state.currentBalanceFormatted,
+                )
+                assertFalse(state.currentBalanceFormatted.contains("0799999996"))
                 cancelAndIgnoreRemainingEvents()
             }
         }
@@ -206,6 +223,40 @@ class GoalEditSavingsViewModelTest {
                 assertNotNull(delta)
                 assertTrue("delta must be negative (short on account)", delta!!.signum() < 0)
                 assertEquals(0, delta.compareTo(BigDecimal("-5000")))
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `capital delta amount is formatted with money formatter when capital exceeds balance`() =
+        runTest {
+            val currency = rubCurrency()
+            val rawBalance = BigDecimal("-1182337.0799999996")
+            currencyRepo.seed(currency)
+            accountRepo.seed(account(id = 1L, currencyId = 1L))
+            accountRepo.setBalance(1L, rawBalance)
+
+            val viewModel = buildViewModel()
+
+            viewModel.onEvent(GoalEditEvent.AccountSelected(1L))
+            advanceUntilIdle()
+            viewModel.onEvent(GoalEditEvent.StartingCapitalChanged("0"))
+
+            viewModel.state.test {
+                val state = expectMostRecentItem()
+                assertNotNull(state.capitalDelta)
+                assertEquals(0, rawBalance.compareTo(state.capitalDelta!!))
+                assertEquals(
+                    MoneyFormatter.format(
+                        amount = rawBalance.abs(),
+                        currencySymbol = currency.symbol,
+                        decimalDigits = 2,
+                        locale = Locale.getDefault(),
+                        symbolPosition = MoneyFormatter.SymbolPosition.AFTER,
+                    ),
+                    state.capitalDeltaAmountFormatted,
+                )
+                assertFalse(state.capitalDeltaAmountFormatted!!.contains("0799999996"))
                 cancelAndIgnoreRemainingEvents()
             }
         }
@@ -764,6 +815,40 @@ class GoalEditSavingsViewModelTest {
                     upserted.monthlyContribution.compareTo(BigDecimal("35000")),
                 )
 
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `advanced contribution rows round derived monthly contribution and persisted breakdown amounts to currency scale`() =
+        runTest {
+            currencyRepo.seed(rubCurrency())
+            accountRepo.seed(account(id = 1L, currencyId = 1L, name = "Main"))
+
+            val viewModel = buildViewModel()
+
+            viewModel.onEvent(GoalEditEvent.AccountSelected(1L))
+            advanceUntilIdle()
+            viewModel.onEvent(GoalEditEvent.NameChanged("Vacation"))
+            viewModel.onEvent(GoalEditEvent.TargetChanged("200000"))
+            viewModel.onEvent(GoalEditEvent.StartingCapitalChanged("0"))
+            viewModel.onEvent(GoalEditEvent.AdvancedToggled(true))
+            viewModel.onEvent(GoalEditEvent.IncomeNameChanged(0, "Salary"))
+            viewModel.onEvent(GoalEditEvent.IncomeAmountChanged(0, "12.3456"))
+            viewModel.onEvent(GoalEditEvent.ExpenseNameChanged(0, "Fees"))
+            viewModel.onEvent(GoalEditEvent.ExpenseAmountChanged(0, "0"))
+
+            assertEquals("12.35", viewModel.state.value.monthlyContribution)
+
+            viewModel.actions.test {
+                viewModel.onEvent(GoalEditEvent.SaveClicked)
+                awaitItem()
+
+                val upserted = goalRepo.lastUpserted
+                assertNotNull(upserted)
+                assertEquals(0, BigDecimal("12.35").compareTo(upserted!!.monthlyContribution))
+                assertEquals(0, BigDecimal("12.35").compareTo(upserted.contributionBreakdown.incomes.single().amount))
+                assertEquals(0, BigDecimal.ZERO.compareTo(upserted.contributionBreakdown.expenses.single().amount))
                 cancelAndIgnoreRemainingEvents()
             }
         }

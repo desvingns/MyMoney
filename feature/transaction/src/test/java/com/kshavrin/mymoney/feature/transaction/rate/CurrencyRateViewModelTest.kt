@@ -143,20 +143,21 @@ class CurrencyRateViewModelTest {
             val viewModel = buildViewModel()
             advanceUntilIdle()
 
-            viewModel.onEvent(CurrencyRateEvent.RateInputChanged("0,9"))
+            viewModel.onEvent(CurrencyRateEvent.RateInputChanged("0,855"))
 
             assertTrue(viewModel.state.value.isValid)
+            assertEquals(0.86, viewModel.state.value.rate!!, 0.0001)
         }
 
     @Test
-    fun `rate input with comma separator stores the correct double value`() =
+    fun `rate input with comma separator rounds half up to two decimals`() =
         runTest {
             val viewModel = buildViewModel()
             advanceUntilIdle()
 
-            viewModel.onEvent(CurrencyRateEvent.RateInputChanged("1,25"))
+            viewModel.onEvent(CurrencyRateEvent.RateInputChanged("10,005"))
 
-            assertEquals(1.25, viewModel.state.value.rate!!, 0.0001)
+            assertEquals(10.01, viewModel.state.value.rate!!, 0.0001)
         }
 
     @Test
@@ -165,7 +166,7 @@ class CurrencyRateViewModelTest {
             val viewModel = buildViewModel()
             advanceUntilIdle()
 
-            viewModel.onEvent(CurrencyRateEvent.RateInputChanged("0,85"))
+            viewModel.onEvent(CurrencyRateEvent.RateInputChanged("0,855"))
 
             viewModel.actions.test {
                 viewModel.onEvent(CurrencyRateEvent.SaveClicked)
@@ -173,11 +174,12 @@ class CurrencyRateViewModelTest {
 
                 val action = awaitItem()
                 assertTrue(action is CurrencyRateAction.NavigateBackWithRate)
-                assertEquals(0.85, (action as CurrencyRateAction.NavigateBackWithRate).rate, 0.0001)
+                assertEquals(0.86, (action as CurrencyRateAction.NavigateBackWithRate).rate, 0.0001)
                 cancelAndIgnoreRemainingEvents()
             }
 
             assertEquals(1, currencyRateRepository.upserts.size)
+            assertEquals(0.86, currencyRateRepository.requireStoredRate(usd.id, eur.id).rate, 0.0001)
         }
 
     @Test
@@ -191,6 +193,27 @@ class CurrencyRateViewModelTest {
             advanceUntilIdle()
 
             assertNull(viewModel.state.value.errorBannerRes)
+        }
+
+    @Test
+    fun `rate input with more than two decimals rounds half up before save`() =
+        runTest {
+            val viewModel = buildViewModel()
+            advanceUntilIdle()
+
+            viewModel.onEvent(CurrencyRateEvent.RateInputChanged("12.3456"))
+
+            assertEquals(12.35, viewModel.state.value.rate!!, 0.0001)
+
+            viewModel.actions.test {
+                viewModel.onEvent(CurrencyRateEvent.SaveClicked)
+                advanceUntilIdle()
+
+                assertEquals(CurrencyRateAction.NavigateBackWithRate(12.35), awaitItem())
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            assertEquals(12.35, currencyRateRepository.requireStoredRate(usd.id, eur.id).rate, 0.0001)
         }
 
     private class FakeCurrencyRateRepository : CurrencyRateRepository {

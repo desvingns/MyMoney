@@ -132,7 +132,7 @@ class GoalEditViewModelTest {
 
             val saved = goalRepo.lastUpserted
             assertNotNull(saved)
-            assertEquals(BigDecimal("10000.50"), saved!!.targetAmount)
+            assertEquals(0, BigDecimal("10000.50").compareTo(saved!!.targetAmount))
         }
 
     @Test
@@ -153,7 +153,7 @@ class GoalEditViewModelTest {
                 cancelAndIgnoreRemainingEvents()
             }
 
-            assertEquals(BigDecimal("1000.75"), goalRepo.lastUpserted!!.startingCapital)
+            assertEquals(0, BigDecimal("1000.75").compareTo(goalRepo.lastUpserted!!.startingCapital))
         }
 
     @Test
@@ -174,7 +174,31 @@ class GoalEditViewModelTest {
                 cancelAndIgnoreRemainingEvents()
             }
 
-            assertEquals(BigDecimal("250.50"), goalRepo.lastUpserted!!.monthlyContribution)
+            assertEquals(0, BigDecimal("250.50").compareTo(goalRepo.lastUpserted!!.monthlyContribution))
+        }
+
+    @Test
+    fun `save rounds goal money fields to the selected account currency scale`() =
+        runTest {
+            val viewModel = buildViewModel()
+            advanceUntilIdle()
+
+            viewModel.onEvent(GoalEditEvent.NameChanged("Trip"))
+            viewModel.onEvent(GoalEditEvent.TargetChanged("1000"))
+            viewModel.onEvent(GoalEditEvent.StartingCapitalChanged("10.005"))
+            viewModel.onEvent(GoalEditEvent.MonthlyChanged("12.3456"))
+
+            viewModel.actions.test {
+                viewModel.onEvent(GoalEditEvent.SaveClicked)
+                advanceUntilIdle()
+                assertEquals(GoalEditAction.NavigateBack, awaitItem())
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            val saved = goalRepo.lastUpserted
+            assertNotNull(saved)
+            assertEquals(0, BigDecimal("10.01").compareTo(saved!!.startingCapital))
+            assertEquals(0, BigDecimal("12.35").compareTo(saved.monthlyContribution))
         }
 
     // --- non-numeric input → validation error, not zero ---

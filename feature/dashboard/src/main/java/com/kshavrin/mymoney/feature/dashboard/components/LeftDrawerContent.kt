@@ -14,7 +14,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.AttachMoney
@@ -87,6 +89,7 @@ fun LeftDrawerContent(
         modifier =
             Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
                 .padding(Spacing.l),
     ) {
         state.currentCurrency?.let { currency ->
@@ -126,16 +129,16 @@ fun LeftDrawerContent(
                     onClick = { changePeriod(Period.All) },
                 )
                 PeriodButton(
-                    label = stringResource(R.string.period_date_range),
-                    selected = state.period is Period.CustomRange,
-                    leadingIcon = Icons.Outlined.CalendarToday,
-                    onClick = { showRangePicker = true },
-                )
-                PeriodButton(
                     label = stringResource(R.string.period_pick_a_date),
                     selected = state.period is Period.Day && (state.period as Period.Day).date != LocalDate.now(),
                     leadingIcon = Icons.Outlined.Event,
                     onClick = { showSingleDatePicker = true },
+                )
+                PeriodButton(
+                    label = stringResource(R.string.period_date_range),
+                    selected = state.period is Period.CustomRange,
+                    leadingIcon = Icons.Outlined.CalendarToday,
+                    onClick = { showRangePicker = true },
                 )
             }
             if (accountsExpanded) {
@@ -285,14 +288,14 @@ private fun CurrencyHeaderRow(
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = Spacing.m, vertical = Spacing.m),
+            modifier = Modifier.padding(horizontal = Spacing.m, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
                 imageVector = Icons.Outlined.AttachMoney,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.secondary,
-                modifier = Modifier.size(32.dp),
+                modifier = Modifier.size(28.dp),
             )
             Spacer(modifier = Modifier.width(Spacing.m))
             Column {
@@ -471,7 +474,7 @@ private fun PeriodButton(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .height(84.dp)
+                .height(72.dp)
                 .padding(vertical = Spacing.xs)
                 .clip(drawerRowShape)
                 .background(backgroundColor)
@@ -492,7 +495,7 @@ private fun PeriodButton(
         }
         Text(
             text = label,
-            style = MaterialTheme.typography.titleLarge,
+            style = MaterialTheme.typography.titleMedium,
             color = contentColor,
         )
     }

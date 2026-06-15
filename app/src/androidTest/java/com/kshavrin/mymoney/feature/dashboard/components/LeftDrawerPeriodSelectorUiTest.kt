@@ -1,15 +1,24 @@
 package com.kshavrin.mymoney.feature.dashboard.components
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Period
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import com.kshavrin.mymoney.feature.dashboard.DashboardEvent
+import com.kshavrin.mymoney.feature.dashboard.DashboardSelection
 import com.kshavrin.mymoney.feature.dashboard.DashboardState
 import com.kshavrin.mymoney.feature.dashboard.R
 import org.junit.After
@@ -147,8 +156,84 @@ class LeftDrawerPeriodSelectorUiTest {
         }
     }
 
+    @Test
+    fun `single date row appears before date range row`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                LeftDrawerContent(
+                    state = DashboardState(period = Period.All, isLoading = false),
+                    onEvent = {},
+                )
+            }
+        }
+
+        val pickDateTop =
+            composeTestRule
+                .onNodeWithText(targetString(R.string.period_pick_a_date))
+                .fetchSemanticsNode()
+                .boundsInRoot.top
+        val dateRangeTop =
+            composeTestRule
+                .onNodeWithText(targetString(R.string.period_date_range))
+                .fetchSemanticsNode()
+                .boundsInRoot.top
+
+        assertTrue(pickDateTop < dateRangeTop)
+    }
+
+    @Test
+    fun `compact drawer can scroll to date range row with long currency name`() {
+        val serbianDinar =
+            currency(
+                code = "RSD",
+                symbol = "RSD",
+                name = "Serbian dinar",
+            )
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                Box(
+                    modifier =
+                        Modifier
+                            .width(360.dp)
+                            .height(360.dp),
+                ) {
+                    LeftDrawerContent(
+                        state =
+                            DashboardState(
+                                period = Period.All,
+                                currencies = listOf(serbianDinar),
+                                dashboardSelection = DashboardSelection.AllAccounts(serbianDinar),
+                                isLoading = false,
+                            ),
+                        onEvent = {},
+                    )
+                }
+            }
+        }
+
+        composeTestRule
+            .onNodeWithText(targetString(R.string.period_date_range))
+            .performScrollTo()
+            .assertIsDisplayed()
+    }
+
     private fun targetString(resourceId: Int): String =
         InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)
+
+    private fun currency(
+        code: String,
+        symbol: String,
+        name: String,
+    ) = Currency(
+        id = 1L,
+        code = code,
+        symbol = symbol,
+        name = name,
+        decimalDigits = 2,
+        isActive = true,
+        sortOrder = 0,
+    )
 
     private fun dateLabel(date: LocalDate): String {
         val locale =

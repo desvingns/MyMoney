@@ -419,6 +419,87 @@ class AccountEditViewModelTest {
             }
         }
 
+    // --- comma as decimal separator in initial balance ---
+
+    @Test
+    fun `initial balance with comma separator is accepted and saved correctly`() =
+        runTest {
+            val viewModel = buildViewModel()
+            advanceUntilIdle()
+
+            viewModel.onEvent(AccountEditEvent.NameChanged("Wallet"))
+            viewModel.onEvent(AccountEditEvent.InitialBalanceChanged("1500,75"))
+
+            viewModel.actions.test {
+                viewModel.onEvent(AccountEditEvent.SaveClicked)
+                advanceUntilIdle()
+                assertEquals(AccountEditAction.NavigateBack, awaitItem())
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            val saved = accountRepo.observeActive().first().single()
+            assertEquals(BigDecimal("1500.75"), saved.initialBalance)
+        }
+
+    @Test
+    fun `initial balance with comma does not trigger balance_format error`() =
+        runTest {
+            val viewModel = buildViewModel()
+            advanceUntilIdle()
+
+            viewModel.onEvent(AccountEditEvent.NameChanged("Wallet"))
+            viewModel.onEvent(AccountEditEvent.InitialBalanceChanged("200,00"))
+            viewModel.onEvent(AccountEditEvent.SaveClicked)
+            advanceUntilIdle()
+
+            assertNull(viewModel.state.value.errorMessage)
+        }
+
+    // --- createdAt stability on edit ---
+
+    @Test
+    fun `editing account preserves original createdAt on upsert`() =
+        runTest {
+            val originalCreatedAt = Instant.parse("2026-06-01T08:00:00Z")
+            val originalAccount =
+                savedAccount(id = 20L, name = "Old").copy(createdAt = originalCreatedAt)
+            accountRepo.seed(originalAccount)
+            val viewModel = buildViewModel(accountId = 20L)
+            advanceUntilIdle()
+
+            viewModel.onEvent(AccountEditEvent.NameChanged("Updated"))
+
+            viewModel.actions.test {
+                viewModel.onEvent(AccountEditEvent.SaveClicked)
+                advanceUntilIdle()
+                assertEquals(AccountEditAction.NavigateBack, awaitItem())
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            val saved = accountRepo.observeActive().first().single { it.id == 20L }
+            assertEquals(originalCreatedAt, saved.createdAt)
+        }
+
+    @Test
+    fun `creating new account sets a non-null createdAt`() =
+        runTest {
+            val viewModel = buildViewModel()
+            advanceUntilIdle()
+
+            viewModel.onEvent(AccountEditEvent.NameChanged("Fresh"))
+            viewModel.onEvent(AccountEditEvent.InitialBalanceChanged("0"))
+
+            viewModel.actions.test {
+                viewModel.onEvent(AccountEditEvent.SaveClicked)
+                advanceUntilIdle()
+                awaitItem()
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            val saved = accountRepo.observeActive().first().single()
+            assertNotNull(saved.createdAt)
+        }
+
     // --- double-save guard (pre-existing test preserved) ---
 
     @Test

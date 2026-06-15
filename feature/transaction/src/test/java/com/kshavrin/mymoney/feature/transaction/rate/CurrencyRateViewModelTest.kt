@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -132,6 +133,64 @@ class CurrencyRateViewModelTest {
 
             assertEquals(R.string.currency_rate_invalid, viewModel.state.value.errorBannerRes)
             assertTrue(currencyRateRepository.upserts.isEmpty())
+        }
+
+    // --- comma as decimal separator ---
+
+    @Test
+    fun `rate input with comma separator is parsed as valid and isValid becomes true`() =
+        runTest {
+            val viewModel = buildViewModel()
+            advanceUntilIdle()
+
+            viewModel.onEvent(CurrencyRateEvent.RateInputChanged("0,9"))
+
+            assertTrue(viewModel.state.value.isValid)
+        }
+
+    @Test
+    fun `rate input with comma separator stores the correct double value`() =
+        runTest {
+            val viewModel = buildViewModel()
+            advanceUntilIdle()
+
+            viewModel.onEvent(CurrencyRateEvent.RateInputChanged("1,25"))
+
+            assertEquals(1.25, viewModel.state.value.rate!!, 0.0001)
+        }
+
+    @Test
+    fun `SaveClicked with comma-separated rate upserts and emits NavigateBackWithRate`() =
+        runTest {
+            val viewModel = buildViewModel()
+            advanceUntilIdle()
+
+            viewModel.onEvent(CurrencyRateEvent.RateInputChanged("0,85"))
+
+            viewModel.actions.test {
+                viewModel.onEvent(CurrencyRateEvent.SaveClicked)
+                advanceUntilIdle()
+
+                val action = awaitItem()
+                assertTrue(action is CurrencyRateAction.NavigateBackWithRate)
+                assertEquals(0.85, (action as CurrencyRateAction.NavigateBackWithRate).rate, 0.0001)
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            assertEquals(1, currencyRateRepository.upserts.size)
+        }
+
+    @Test
+    fun `rate input with comma does not trigger the invalid-rate error`() =
+        runTest {
+            val viewModel = buildViewModel()
+            advanceUntilIdle()
+
+            viewModel.onEvent(CurrencyRateEvent.RateInputChanged("1,5"))
+            viewModel.onEvent(CurrencyRateEvent.SaveClicked)
+            advanceUntilIdle()
+
+            assertNull(viewModel.state.value.errorBannerRes)
         }
 
     private class FakeCurrencyRateRepository : CurrencyRateRepository {

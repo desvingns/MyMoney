@@ -42,6 +42,17 @@ class MoneyTest {
             sortOrder = 2,
         )
 
+    private val bhd =
+        Currency(
+            id = 4L,
+            code = "BHD",
+            symbol = "BD",
+            name = "Bahraini Dinar",
+            decimalDigits = 3,
+            isActive = true,
+            sortOrder = 3,
+        )
+
     private fun usd(value: String) = Money(BigDecimal(value), usd)
 
     @Test
@@ -54,8 +65,14 @@ class MoneyTest {
     @Test
     fun `plus enforces currency scale via HALF_UP rounding`() {
         val result = usd("10.005") + usd("0.001")
-        // 10.006 rounded HALF_UP to 2 decimals -> 10.01
         assertEquals(0, BigDecimal("10.01").compareTo(result.amount))
+        assertEquals(2, result.amount.scale())
+    }
+
+    @Test
+    fun `plus caps a three-decimal currency at two fractional digits`() {
+        val result = Money(BigDecimal("12.344"), bhd) + Money(BigDecimal("0.001"), bhd)
+        assertEquals(0, BigDecimal("12.35").compareTo(result.amount))
         assertEquals(2, result.amount.scale())
     }
 
@@ -100,7 +117,6 @@ class MoneyTest {
     @Test
     fun `times rounds HALF_UP to currency scale`() {
         val result = usd("0.333") * BigDecimal("3")
-        // 0.999 rounded to 2 decimals -> 1.00
         assertEquals(0, BigDecimal("1.00").compareTo(result.amount))
         assertEquals(2, result.amount.scale())
     }
@@ -108,7 +124,6 @@ class MoneyTest {
     @Test
     fun `times honours a zero-decimal currency scale`() {
         val result = Money(BigDecimal("100"), jpy) * BigDecimal("1.5")
-        // 150.0 rounded to 0 decimals -> 150
         assertEquals(0, BigDecimal("150").compareTo(result.amount))
         assertEquals(0, result.amount.scale())
     }
@@ -140,5 +155,13 @@ class MoneyTest {
         val zero = Money.zero(jpy)
         assertTrue(zero.isZero())
         assertEquals(0, zero.amount.scale())
+    }
+
+    @Test
+    fun `zero factory caps a three-decimal currency at two fractional digits`() {
+        val zero = Money.zero(bhd)
+        assertTrue(zero.isZero())
+        assertEquals(0, BigDecimal("0.00").compareTo(zero.amount))
+        assertEquals(2, zero.amount.scale())
     }
 }

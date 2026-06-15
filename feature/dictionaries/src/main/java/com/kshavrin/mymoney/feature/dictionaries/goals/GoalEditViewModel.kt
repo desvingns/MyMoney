@@ -246,7 +246,14 @@ class GoalEditViewModel
         private fun recompute() {
             var s = _state.value
             if (s.advancedContribution) {
-                val derived = contributionCalculator(s.toBreakdown()).toPlainString()
+                val derived =
+                    s.currency
+                        ?.let { currency ->
+                            contributionCalculator(s.toBreakdown(currency))
+                                .toMoneyScale(currency)
+                                .toPlainString()
+                        }
+                        ?: contributionCalculator(s.toBreakdown()).toPlainString()
                 s = s.copy(monthlyContribution = derived)
                 _state.value = s
             }

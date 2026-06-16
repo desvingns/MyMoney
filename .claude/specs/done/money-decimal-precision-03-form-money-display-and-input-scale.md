@@ -1,7 +1,7 @@
 # Формы: вывод денег через MoneyFormatter + округление ввода до ≤2
 Epic: money-decimal-precision
 Order: 03 of 05
-Status: backlog
+Status: done
 Depends-on: money-decimal-precision-01
 Date: 2026-06-15
 
@@ -48,5 +48,5 @@ Feature: Деньги на формах не показывают и не сох
 Экран целей печатает сырой `BigDecimal` (отсюда `-1182337.0799999996 ₽` на скрине) и формы не ограничивают дробную часть ввода. Форматирование через `MoneyFormatter` + `toMoneyScale` на вводе закрывают presentation-арм проблемы.
 
 ## Implementation links
-- commit: <hash>
-- files:  <changed files>
+- commit: 34538f06, ec2fddb3, a80e87af, a0bc75da
+- files:  feature/dictionaries/src/main/java/com/kshavrin/mymoney/feature/dictionaries/accounts/AccountEditViewModel.kt; feature/dictionaries/src/main/java/com/kshavrin/mymoney/feature/dictionaries/goals/GoalEditViewModel.kt; feature/dictionaries/src/test/kotlin/com/kshavrin/mymoney/feature/dictionaries/accounts/AccountEditViewModelTest.kt; feature/dictionaries/src/test/kotlin/com/kshavrin/mymoney/feature/dictionaries/accounts/AccountsListViewModelTest.kt; feature/dictionaries/src/test/kotlin/com/kshavrin/mymoney/feature/dictionaries/goals/GoalEditSavingsViewModelTest.kt; feature/dictionaries/src/test/kotlin/com/kshavrin/mymoney/feature/dictionaries/goals/GoalEditViewModelTest.kt; feature/transaction/src/main/java/com/kshavrin/mymoney/feature/transaction/rate/CurrencyRateViewModel.kt; feature/transaction/src/test/java/com/kshavrin/mymoney/feature/transaction/rate/CurrencyRateViewModelTest.kt; feature/transaction/src/test/java/com/kshavrin/mymoney/feature/transaction/transfer/TransferViewModelTest.kt

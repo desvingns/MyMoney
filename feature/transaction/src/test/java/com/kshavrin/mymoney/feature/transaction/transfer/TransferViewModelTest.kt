@@ -314,7 +314,11 @@ class TransferViewModelTest {
                 viewModel.onEvent(TransferEvent.TargetAccountChanged(euroAccount.id))
                 advanceUntilIdle()
 
-                assertEquals(0.92, viewModel.state.value.currentRate?.rate)
+                assertEquals(
+                    0.92,
+                    viewModel.state.value.currentRate
+                        ?.rate,
+                )
                 assertEquals("1 USD = 0.92 EUR", viewModel.state.value.ratePreviewText)
                 expectNoEvents()
 

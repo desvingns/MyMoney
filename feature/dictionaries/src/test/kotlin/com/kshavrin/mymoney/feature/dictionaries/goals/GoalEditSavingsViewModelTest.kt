@@ -847,8 +847,22 @@ class GoalEditSavingsViewModelTest {
                 val upserted = goalRepo.lastUpserted
                 assertNotNull(upserted)
                 assertEquals(0, BigDecimal("12.35").compareTo(upserted!!.monthlyContribution))
-                assertEquals(0, BigDecimal("12.35").compareTo(upserted.contributionBreakdown.incomes.single().amount))
-                assertEquals(0, BigDecimal.ZERO.compareTo(upserted.contributionBreakdown.expenses.single().amount))
+                assertEquals(
+                    0,
+                    BigDecimal("12.35").compareTo(
+                        upserted.contributionBreakdown.incomes
+                            .single()
+                            .amount,
+                    ),
+                )
+                assertEquals(
+                    0,
+                    BigDecimal.ZERO.compareTo(
+                        upserted.contributionBreakdown.expenses
+                            .single()
+                            .amount,
+                    ),
+                )
                 cancelAndIgnoreRemainingEvents()
             }
         }

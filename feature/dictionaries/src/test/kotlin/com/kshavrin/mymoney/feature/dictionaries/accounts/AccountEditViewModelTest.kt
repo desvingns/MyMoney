@@ -133,7 +133,12 @@ class AccountEditViewModelTest {
             advanceUntilIdle()
 
             assertEquals(1, viewModel.state.value.availableCurrencies.size)
-            assertEquals("USD", viewModel.state.value.availableCurrencies.first().code)
+            assertEquals(
+                "USD",
+                viewModel.state.value.availableCurrencies
+                    .first()
+                    .code,
+            )
         }
 
     // --- edit mode: loads existing account ---

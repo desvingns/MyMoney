@@ -52,11 +52,12 @@ class AccountsListViewModelTest {
         transactionRepo = FakeTransactionRepository()
         currencyRepo.seed(usd)
         balanceCalculator = BalanceCalculator(accountRepo, currencyRepo, transactionRepo, UnconfinedTestDispatcher())
-        viewModel = AccountsListViewModel(
-            accountRepository = accountRepo,
-            currencyRepository = currencyRepo,
-            balanceCalculator = balanceCalculator,
-        )
+        viewModel =
+            AccountsListViewModel(
+                accountRepository = accountRepo,
+                currencyRepository = currencyRepo,
+                balanceCalculator = balanceCalculator,
+            )
     }
 
     private fun account(
@@ -152,8 +153,20 @@ class AccountsListViewModelTest {
             viewModel.state.test {
                 val state = expectMostRecentItem()
                 assertEquals(1, state.rows.size)
-                assertEquals(1L, state.rows.first().currency?.id)
-                assertEquals("USD", state.rows.first().currency?.code)
+                assertEquals(
+                    1L,
+                    state.rows
+                        .first()
+                        .currency
+                        ?.id,
+                )
+                assertEquals(
+                    "USD",
+                    state.rows
+                        .first()
+                        .currency
+                        ?.code,
+                )
                 cancelAndIgnoreRemainingEvents()
             }
         }
@@ -184,7 +197,12 @@ class AccountsListViewModelTest {
                 accountRepo.seed(account(id = 1L, name = "Wallet"))
                 val after = awaitItem()
                 assertEquals(1, after.rows.size)
-                assertEquals("Wallet", after.rows.first().account.name)
+                assertEquals(
+                    "Wallet",
+                    after.rows
+                        .first()
+                        .account.name,
+                )
 
                 cancelAndIgnoreRemainingEvents()
             }

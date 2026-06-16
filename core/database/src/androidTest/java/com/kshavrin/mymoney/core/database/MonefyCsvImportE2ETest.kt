@@ -114,6 +114,103 @@ class MonefyCsvImportE2ETest {
         }
 
     @Test
+    fun monefy_csv_import_rounds_long_fractional_amount_before_storing() =
+        runTest {
+            val context = ApplicationProvider.getApplicationContext<Context>()
+
+            db.currencyDao().upsert(
+                CurrencyEntity(
+                    code = "RUB",
+                    symbol = "â‚½",
+                    name = "Russian Ruble",
+                    decimalDigits = 2,
+                    isActive = true,
+                    sortOrder = 0,
+                ),
+            )
+
+            val csvFile = File(context.cacheDir, "monefy_rounding_test.csv")
+            csvFile.writeText(
+                buildString {
+                    append("date,account,category,amount,currency,converted amount,currency,description\r\n")
+                    append("01/06/2026,Cash,Food,-1182337.0799999996,RUB,-1182337.0799999996,RUB,\r\n")
+                },
+                Charsets.UTF_8,
+            )
+
+            val repo = BackupRepositoryImpl(context, db, Dispatchers.IO)
+
+            val result = repo.importTransactionsCsv("file://${csvFile.absolutePath}")
+
+            assertTrue(
+                "Import returned failure: ${result.exceptionOrNull()?.message}",
+                result.isSuccess,
+            )
+
+            val stored =
+                db
+                    .transactionDao()
+                    .observeAll()
+                    .first()
+                    .single()
+            assertEquals("expense", stored.kind.lowercase())
+            assertEquals(
+                0,
+                java.math.BigDecimal("1182337.08").compareTo(java.math.BigDecimal.valueOf(stored.amount)),
+            )
+
+            csvFile.delete()
+        }
+
+    @Test
+    fun monefy_csv_append_dedup_uses_rounded_amount_key() =
+        runTest {
+            val context = ApplicationProvider.getApplicationContext<Context>()
+
+            db.currencyDao().upsert(
+                CurrencyEntity(
+                    code = "RUB",
+                    symbol = "₽",
+                    name = "Russian Ruble",
+                    decimalDigits = 2,
+                    isActive = true,
+                    sortOrder = 0,
+                ),
+            )
+
+            val csvFile = File(context.cacheDir, "monefy_rounding_dedup_test.csv")
+            try {
+                csvFile.writeText(
+                    buildString {
+                        append("date,account,category,amount,currency,converted amount,currency,description\r\n")
+                        append("01/06/2026,Cash,Food,-1182337.0799999996,RUB,-1182337.0799999996,RUB,\r\n")
+                    },
+                    Charsets.UTF_8,
+                )
+
+                val repo = BackupRepositoryImpl(context, db, Dispatchers.IO)
+                val staged = repo.parseImport("file://${csvFile.absolutePath}").getOrThrow()
+                val plan =
+                    ImportPlan(
+                        dataStrategy = ImportDataStrategy.AppendDedup,
+                        categoryStrategy = ImportCategoryStrategy.Append,
+                    )
+
+                assertTrue(repo.commitImport(staged, plan).isSuccess)
+                assertTrue(repo.commitImport(staged, plan).isSuccess)
+
+                val stored = db.transactionDao().observeAll().first()
+                assertEquals(1, stored.size)
+                assertEquals(
+                    0,
+                    java.math.BigDecimal("1182337.08").compareTo(java.math.BigDecimal.valueOf(stored.single().amount)),
+                )
+            } finally {
+                csvFile.delete()
+            }
+        }
+
+    @Test
     fun monefy_csv_import_merges_into_seeded_RU_entities_without_duplicating() =
         runTest {
             val context = ApplicationProvider.getApplicationContext<Context>()

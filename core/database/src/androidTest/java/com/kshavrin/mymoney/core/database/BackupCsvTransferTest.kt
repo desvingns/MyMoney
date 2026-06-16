@@ -8,6 +8,9 @@ import com.kshavrin.mymoney.core.database.entity.AccountEntity
 import com.kshavrin.mymoney.core.database.entity.CategoryEntity
 import com.kshavrin.mymoney.core.database.entity.CurrencyEntity
 import com.kshavrin.mymoney.core.database.repository.BackupRepositoryImpl
+import com.kshavrin.mymoney.core.domain.csv.ImportCategoryStrategy
+import com.kshavrin.mymoney.core.domain.csv.ImportDataStrategy
+import com.kshavrin.mymoney.core.domain.csv.ImportPlan
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -64,6 +67,24 @@ class BackupCsvTransferTest {
                 decimalDigits = 2,
                 isActive = true,
                 sortOrder = 0,
+            ),
+        )
+
+    private suspend fun seedCurrency(
+        code: String,
+        symbol: String,
+        name: String,
+        decimalDigits: Int,
+        sortOrder: Int,
+    ): Long =
+        db.currencyDao().upsert(
+            CurrencyEntity(
+                code = code,
+                symbol = symbol,
+                name = name,
+                decimalDigits = decimalDigits,
+                isActive = true,
+                sortOrder = sortOrder,
             ),
         )
 
@@ -304,6 +325,146 @@ class BackupCsvTransferTest {
                     BigDecimal("500").compareTo(BigDecimal.valueOf(restored.toAmount!!)),
                 )
                 assertNull("transfer must have no category", restored.categoryId)
+            } finally {
+                csvFile.delete()
+            }
+        }
+
+    @Test
+    fun mymoney_csv_import_rounds_amount_to_money_scale_before_storing() =
+        runTest {
+            val currencyId = seedCurrency()
+            seedAccount("Cash", currencyId, sortOrder = 0)
+            val categoryId = seedCategory("Food", "expense", sortOrder = 0)
+
+            val csvFile = File(context.cacheDir, "mymoney_amount_rounding_test.csv")
+            try {
+                csvFile.writeText(
+                    buildString {
+                        append("id,kind,amount,currency,account,category,note,occurredAt,createdAt,to_account,to_amount\r\n")
+                        append("1,expense,12.3456,RUB,Cash,Food,,2026-06-01T12:00:00Z,2026-06-01T12:00:00Z,,\r\n")
+                    },
+                    Charsets.UTF_8,
+                )
+
+                val result = repo.importTransactionsCsv("file://${csvFile.absolutePath}")
+
+                assertTrue(
+                    "Import must succeed; error: ${result.exceptionOrNull()?.message}",
+                    result.isSuccess,
+                )
+
+                val stored =
+                    db
+                        .transactionDao()
+                        .observeAll()
+                        .first()
+                        .single()
+                assertEquals(categoryId, stored.categoryId)
+                assertEquals(
+                    0,
+                    BigDecimal("12.35").compareTo(BigDecimal.valueOf(stored.amount)),
+                )
+            } finally {
+                csvFile.delete()
+            }
+        }
+
+    @Test
+    fun mymoney_csv_append_dedup_uses_rounded_amount_key() =
+        runTest {
+            val currencyId = seedCurrency()
+            seedAccount("Cash", currencyId, sortOrder = 0)
+            seedCategory("Food", "expense", sortOrder = 0)
+
+            val csvFile = File(context.cacheDir, "mymoney_amount_rounding_dedup_test.csv")
+            try {
+                csvFile.writeText(
+                    buildString {
+                        append("id,kind,amount,currency,account,category,note,occurredAt,createdAt,to_account,to_amount\r\n")
+                        append("1,expense,12.3456,RUB,Cash,Food,,2026-06-01T12:00:00Z,2026-06-01T12:00:00Z,,\r\n")
+                    },
+                    Charsets.UTF_8,
+                )
+
+                val firstStaged = repo.parseImport("file://${csvFile.absolutePath}").getOrThrow()
+                csvFile.writeText(
+                    buildString {
+                        append("id,kind,amount,currency,account,category,note,occurredAt,createdAt,to_account,to_amount\r\n")
+                        append("2,expense,12.3456,RUB,Cash,Food,,2026-06-01T12:00:00Z,2026-06-01T12:00:00Z,,\r\n")
+                    },
+                    Charsets.UTF_8,
+                )
+                val secondStaged = repo.parseImport("file://${csvFile.absolutePath}").getOrThrow()
+                val plan =
+                    ImportPlan(
+                        dataStrategy = ImportDataStrategy.AppendDedup,
+                        categoryStrategy = ImportCategoryStrategy.Append,
+                    )
+
+                assertTrue(repo.commitImport(firstStaged, plan).isSuccess)
+                assertTrue(repo.commitImport(secondStaged, plan).isSuccess)
+
+                val stored = db.transactionDao().observeAll().first()
+                assertEquals(1, stored.size)
+                assertEquals(
+                    0,
+                    BigDecimal("12.35").compareTo(BigDecimal.valueOf(stored.single().amount)),
+                )
+            } finally {
+                csvFile.delete()
+            }
+        }
+
+    @Test
+    fun mymoney_csv_transfer_import_rounds_to_amount_using_target_account_currency() =
+        runTest {
+            val rubId = seedCurrency()
+            val jpyId =
+                seedCurrency(
+                    code = "JPY",
+                    symbol = "JPY",
+                    name = "Japanese Yen",
+                    decimalDigits = 0,
+                    sortOrder = 1,
+                )
+            val cashId = seedAccount("Cash", rubId, sortOrder = 0)
+            val walletId = seedAccount("Wallet", jpyId, sortOrder = 1)
+
+            val csvFile = File(context.cacheDir, "mymoney_transfer_rounding_test.csv")
+            try {
+                csvFile.writeText(
+                    buildString {
+                        append("id,kind,amount,currency,account,category,note,occurredAt,createdAt,to_account,to_amount\r\n")
+                        append("1,transfer,12.3456,RUB,Cash,,trip,2026-06-01T12:00:00Z,2026-06-01T12:00:00Z,Wallet,98.7654\r\n")
+                    },
+                    Charsets.UTF_8,
+                )
+
+                val result = repo.importTransactionsCsv("file://${csvFile.absolutePath}")
+
+                assertTrue(
+                    "Import must succeed; error: ${result.exceptionOrNull()?.message}",
+                    result.isSuccess,
+                )
+
+                val stored =
+                    db
+                        .transactionDao()
+                        .observeAll()
+                        .first()
+                        .single()
+                assertEquals(cashId, stored.accountId)
+                assertEquals(walletId, stored.toAccountId)
+                assertNotNull(stored.toAmount)
+                assertEquals(
+                    0,
+                    BigDecimal("12.35").compareTo(BigDecimal.valueOf(stored.amount)),
+                )
+                assertEquals(
+                    0,
+                    BigDecimal("99").compareTo(BigDecimal.valueOf(stored.toAmount!!)),
+                )
             } finally {
                 csvFile.delete()
             }

@@ -29,8 +29,10 @@ import com.kshavrin.mymoney.core.domain.model.AccountType
 import com.kshavrin.mymoney.core.domain.model.BackupFile
 import com.kshavrin.mymoney.core.domain.model.Category
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
+import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
+import com.kshavrin.mymoney.core.domain.model.toMoneyScale
 import com.kshavrin.mymoney.core.domain.repository.BackupRepository
 import com.kshavrin.mymoney.core.domain.repository.BackupSchemaTooNewException
 import com.kshavrin.mymoney.core.domain.repository.CsvImportFocus
@@ -359,6 +361,7 @@ class BackupRepositoryImpl
                     .first()
                     .map { it.toDomain() }
                     .groupBy { it.code.lowercase(Locale.ROOT) }
+            val currenciesById = currencies.values.flatten().associateBy { it.id }
             val accounts =
                 database
                     .accountDao()
@@ -366,6 +369,7 @@ class BackupRepositoryImpl
                     .first()
                     .map { it.toDomain() }
                     .groupBy { it.name }
+            val accountsById = accounts.values.flatten().associateBy { it.id }
             val categories =
                 database
                     .categoryDao()
@@ -483,14 +487,19 @@ class BackupRepositoryImpl
                     dedupTransactions(
                         items = transactions,
                         existingKeys = existingDedupKeys(),
-                        keyOf = { it.dedupKey(accountNamesById, categoryNamesById) },
+                        keyOf = { it.dedupKey(accountNamesById, categoryNamesById, currenciesById) },
                     ).unique
                 } else {
                     transactions
                 }
 
             toInsert.forEach { transaction ->
-                database.transactionDao().upsert(transaction.toEntity())
+                val currency = checkNotNull(currenciesById[transaction.currencyId])
+                val toCurrency =
+                    transaction.toAccountId
+                        ?.let { toAccountId -> checkNotNull(accountsById[toAccountId]) }
+                        ?.let { toAccount -> checkNotNull(currenciesById[toAccount.currencyId]) }
+                database.transactionDao().upsert(transaction.toImportEntity(currency, toCurrency))
             }
             return toInsert.maxByOrNull { it.occurredAt }?.let { latest ->
                 CsvImportFocus(
@@ -503,15 +512,27 @@ class BackupRepositoryImpl
         private fun Transaction.dedupKey(
             accountNamesById: Map<Long, String>,
             categoryNamesById: Map<Long, String>,
+            currenciesById: Map<Long, Currency>,
         ): TransactionDedupKey =
             TransactionDedupKey.of(
                 accountName = accountNamesById[accountId].orEmpty(),
                 occurredAt = occurredAt,
-                amount = amount,
+                amount = amount.toMoneyScale(checkNotNull(currenciesById[currencyId])),
                 categoryName = categoryId?.let { categoryNamesById[it] }.orEmpty(),
                 kind = kind,
                 note = note,
             )
+
+        private fun Transaction.toImportEntity(
+            currency: Currency,
+            toCurrency: Currency? = null,
+        ) = copy(
+            amount = amount.toMoneyScale(currency),
+            toAmount =
+                toAmount?.let { amount ->
+                    amount.toMoneyScale(checkNotNull(toCurrency))
+                },
+        ).toEntity()
 
         private suspend fun importMonefyCsv(
             records: List<List<String>>,
@@ -519,40 +540,41 @@ class BackupRepositoryImpl
             categoryStrategy: ImportCategoryStrategy,
         ): CsvImportFocus? {
             val parsedRows = MonefyCsvImportParser.parse(records)
-            val rows =
-                if (dataStrategy is ImportDataStrategy.AppendDedup) {
-                    dedupTransactions(
-                        items = parsedRows,
-                        existingKeys = existingDedupKeys(),
-                        keyOf = { row ->
-                            TransactionDedupKey.of(
-                                accountName = row.accountName,
-                                occurredAt = row.date.atStartOfDay(ZoneId.systemDefault()).toInstant(),
-                                amount = row.amount,
-                                categoryName = row.categoryName,
-                                kind = row.kind,
-                                note = row.note,
-                            )
-                        },
-                    ).unique
-                } else {
-                    parsedRows
-                }
-
             val now = Instant.now()
-            val currenciesByCode = mutableMapOf<String, Long>()
+            val currenciesByCode = mutableMapOf<String, Currency>()
             val accountsByNameCurrency = mutableMapOf<Pair<String, Long>, Long>()
             val categoriesByNameKind = mutableMapOf<Pair<String, CategoryKind>, Long>()
             var latestImportFocus: CsvImportFocus? = null
 
-            suspend fun resolveCurrencyId(code: String): Long {
+            suspend fun resolveCurrency(code: String): Currency {
                 val key = code.lowercase(Locale.ROOT)
                 currenciesByCode[key]?.let { return it }
                 val currency =
                     database.currencyDao().findByCode(code)
                         ?: throw IOException("Currency '$code' is not a seeded currency")
-                return currency.id.also { currenciesByCode[key] = it }
+                return currency.toDomain().also { currenciesByCode[key] = it }
             }
+
+            val rows =
+                if (dataStrategy is ImportDataStrategy.AppendDedup) {
+                    val rowsWithCurrency = parsedRows.map { row -> row to resolveCurrency(row.currencyCode) }
+                    dedupTransactions(
+                        items = rowsWithCurrency,
+                        existingKeys = existingDedupKeys(),
+                        keyOf = { (row, currency) ->
+                            TransactionDedupKey.of(
+                                accountName = row.accountName,
+                                occurredAt = row.date.atStartOfDay(ZoneId.systemDefault()).toInstant(),
+                                amount = row.amount.toMoneyScale(currency),
+                                categoryName = row.categoryName,
+                                kind = row.kind,
+                                note = row.note,
+                            )
+                        },
+                    ).unique.map { (row, _) -> row }
+                } else {
+                    parsedRows
+                }
 
             run {
                 val existingAccounts =
@@ -666,7 +688,8 @@ class BackupRepositoryImpl
                 }
 
                 rows.forEach { row ->
-                    val currencyId = resolveCurrencyId(row.currencyCode)
+                    val currency = resolveCurrency(row.currencyCode)
+                    val currencyId = currency.id
                     val accountId = resolveAccountId(row.accountName, currencyId, row.currencyCode)
                     val categoryKind =
                         when (row.kind) {
@@ -702,7 +725,7 @@ class BackupRepositoryImpl
                             toAmount = null,
                             exchangeRate = null,
                         )
-                    database.transactionDao().upsert(transaction.toEntity())
+                    database.transactionDao().upsert(transaction.toImportEntity(currency))
                 }
             }
             return latestImportFocus

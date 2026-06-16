@@ -1,7 +1,7 @@
 # Округление сумм при импорте (Monefy CSV + MyMoney CSV)
 Epic: money-decimal-precision
 Order: 04 of 05
-Status: backlog
+Status: done
 Depends-on: money-decimal-precision-01
 Date: 2026-06-15
 
@@ -48,5 +48,5 @@ Feature: Импорт не заносит суммы с более чем 2 зн
 Импорт из чужих файлов (особенно Monefy с конвертацией) мог заносить суммы с длинным дробным хвостом; округление на записи держит БД чистой с момента импорта.
 
 ## Implementation links
-- commit: <hash>
-- files:  <changed files>
+- commit: 578abe5f
+- files:  core/database/src/main/java/com/kshavrin/mymoney/core/database/repository/BackupRepositoryImpl.kt; core/database/src/androidTest/java/com/kshavrin/mymoney/core/database/BackupCsvTransferTest.kt; core/database/src/androidTest/java/com/kshavrin/mymoney/core/database/MonefyCsvImportE2ETest.kt

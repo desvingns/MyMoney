@@ -5,19 +5,19 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.assertWidthIsAtLeast
+import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasClickAction
-import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
@@ -26,6 +26,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
@@ -34,17 +35,14 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.common.money.MoneyFormatter
 import com.kshavrin.mymoney.core.designsystem.donut.CategorySlice
+import com.kshavrin.mymoney.core.designsystem.donut.NEON_RING_CHART_TAG
 import com.kshavrin.mymoney.core.domain.model.BalanceSnapshot
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.domain.model.Period
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import com.kshavrin.mymoney.core.ui.theme.Spacing
-import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanelContainer
-import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanelContainerNegative
-import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanelContent
-import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanelContentNegative
-import com.kshavrin.mymoney.core.ui.theme.dashboardDonutOtherSlice
+import com.kshavrin.mymoney.feature.dashboard.components.CategoryTileItem
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_ABOUT_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_ACCOUNTS_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_CATEGORIES_TAG
@@ -60,7 +58,6 @@ import org.junit.runner.RunWith
 import java.math.BigDecimal
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
-import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
 
 @RunWith(AndroidJUnit4::class)
 class DashboardContentUiTest {
@@ -248,101 +245,15 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `negative balance uses dedicated negative balance panel tokens`() {
-        val usd = usdCurrency()
-        var expectedContainer = 0
-        var expectedContent = 0
-
-        composeTestRule.setContent {
-            MyMoneyTheme(darkTheme = false) {
-                expectedContainer = MaterialTheme.colorScheme.dashboardBalancePanelContainerNegative.toArgb()
-                expectedContent = MaterialTheme.colorScheme.dashboardBalancePanelContentNegative.toArgb()
-                DashboardContent(
-                    state =
-                        dashboardState(
-                            currency = usd,
-                            balanceSnapshot = balanceSnapshot(netAmount = "-123.45", currency = usd),
-                            isLoading = false,
-                        ),
-                    onEvent = {},
-                )
-            }
-        }
-
-        assertBalanceBarColors(
-            expectedContainer = expectedContainer,
-            expectedContent = expectedContent,
-        )
-    }
-
-    @Test
-    fun `positive balance keeps the existing balance panel tokens`() {
-        val usd = usdCurrency()
-        var expectedContainer = 0
-        var expectedContent = 0
-
-        composeTestRule.setContent {
-            MyMoneyTheme(darkTheme = false) {
-                expectedContainer = MaterialTheme.colorScheme.dashboardBalancePanelContainer.toArgb()
-                expectedContent = MaterialTheme.colorScheme.dashboardBalancePanelContent.toArgb()
-                DashboardContent(
-                    state =
-                        dashboardState(
-                            currency = usd,
-                            balanceSnapshot = balanceSnapshot(netAmount = "123.45", currency = usd),
-                            isLoading = false,
-                        ),
-                    onEvent = {},
-                )
-            }
-        }
-
-        assertBalanceBarColors(
-            expectedContainer = expectedContainer,
-            expectedContent = expectedContent,
-        )
-    }
-
-    @Test
-    fun `zero balance keeps the existing balance panel tokens`() {
-        val usd = usdCurrency()
-        var expectedContainer = 0
-        var expectedContent = 0
-
-        composeTestRule.setContent {
-            MyMoneyTheme(darkTheme = false) {
-                expectedContainer = MaterialTheme.colorScheme.dashboardBalancePanelContainer.toArgb()
-                expectedContent = MaterialTheme.colorScheme.dashboardBalancePanelContent.toArgb()
-                DashboardContent(
-                    state =
-                        dashboardState(
-                            currency = usd,
-                            balanceSnapshot = balanceSnapshot(netAmount = "0.00", currency = usd),
-                            isLoading = false,
-                        ),
-                    onEvent = {},
-                )
-            }
-        }
-
-        assertBalanceBarColors(
-            expectedContainer = expectedContainer,
-            expectedContent = expectedContent,
-        )
-    }
-
-    @Test
-    fun `balance panel renders localized label and grouped net amount as separate text nodes and emits balance card event`() {
+    fun `neon ring renders center values and replaces the separate balance panel`() {
         val capturedEvents = mutableListOf<DashboardEvent>()
-        val usd =
-            Currency(
-                id = 1L,
-                code = "USD",
-                symbol = "$",
-                name = "US Dollar",
-                decimalDigits = 2,
-                isActive = true,
-                sortOrder = 0,
+        val usd = usdCurrency()
+        val snapshot =
+            BalanceSnapshot(
+                income = Money(BigDecimal("20000.00"), usd),
+                expense = Money(BigDecimal("7654.33"), usd),
+                net = Money(BigDecimal("12345.67"), usd),
+                byCategory = emptyList(),
             )
 
         composeTestRule.setContent {
@@ -351,13 +262,9 @@ class DashboardContentUiTest {
                     state =
                         dashboardState(
                             currency = usd,
-                            balanceSnapshot =
-                                BalanceSnapshot(
-                                    income = Money(BigDecimal("20000.00"), usd),
-                                    expense = Money(BigDecimal("7654.33"), usd),
-                                    net = Money(BigDecimal("12345.67"), usd),
-                                    byCategory = emptyList(),
-                                ),
+                            balanceSnapshot = snapshot,
+                            periodNet = snapshot.net,
+                            ringFraction = 0.62f,
                             isLoading = false,
                         ),
                     onEvent = { event -> capturedEvents += event },
@@ -365,27 +272,27 @@ class DashboardContentUiTest {
             }
         }
 
-        val expectedBalanceAmount =
-            MoneyFormatter.format(
-                amount = BigDecimal("12345.67"),
-                currencySymbol = usd.symbol,
-                decimalDigits = usd.decimalDigits,
-                locale = targetLocale(),
-                symbolPosition = MoneyFormatter.SymbolPosition.AFTER,
-            )
-
         composeTestRule
-            .onNodeWithTag(BALANCE_BAR_TAG)
+            .onNodeWithTag(NEON_RING_CHART_TAG)
             .assertIsDisplayed()
             .assertHasClickAction()
         composeTestRule
-            .onNodeWithText(targetString(R.string.dashboard_balance), useUnmergedTree = true)
+            .onNodeWithText(targetString(R.string.dashboard_ring_balance), useUnmergedTree = true)
             .assertIsDisplayed()
         composeTestRule
-            .onNodeWithText(expectedBalanceAmount, useUnmergedTree = true)
-            .assertIsDisplayed()
+            .onNodeWithText(
+                MoneyFormatter.format(
+                    amount = snapshot.net.amount,
+                    currencySymbol = usd.symbol,
+                    decimalDigits = 0,
+                    locale = targetLocale(),
+                    symbolPosition = MoneyFormatter.SymbolPosition.AFTER,
+                ),
+                useUnmergedTree = true,
+            ).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(BALANCE_BAR_TAG).assertDoesNotExist()
 
-        composeTestRule.onNodeWithTag(BALANCE_BAR_TAG).performClick()
+        composeTestRule.onNodeWithTag(NEON_RING_CHART_TAG).performClick()
 
         composeTestRule.runOnIdle {
             assertEquals(listOf(DashboardEvent.BalanceCardClicked), capturedEvents)
@@ -393,17 +300,10 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `balance panel sits below the period row and above the donut`() {
-        val usd =
-            Currency(
-                id = 1L,
-                code = "USD",
-                symbol = "$",
-                name = "US Dollar",
-                decimalDigits = 2,
-                isActive = true,
-                sortOrder = 0,
-            )
+    fun `category tile under the ring emits filtered transactions event`() {
+        val usd = usdCurrency()
+        val capturedEvents = mutableListOf<DashboardEvent>()
+        val tile = categoryTile(categoryId = 42L, label = "Groceries", currency = usd)
 
         composeTestRule.setContent {
             MyMoneyTheme {
@@ -411,62 +311,26 @@ class DashboardContentUiTest {
                     state =
                         dashboardState(
                             currency = usd,
-                            balanceSnapshot =
-                                BalanceSnapshot(
-                                    income = Money(BigDecimal("20000.00"), usd),
-                                    expense = Money(BigDecimal("7654.33"), usd),
-                                    net = Money(BigDecimal("12345.67"), usd),
-                                    byCategory = emptyList(),
-                                ),
-                            period = Period.Month(YearMonth.of(2026, 4)),
+                            balanceSnapshot = balanceSnapshot(netAmount = "100", currency = usd),
+                            expenseTiles = listOf(tile),
                             isLoading = false,
                         ),
-                    onEvent = {},
+                    onEvent = { capturedEvents += it },
                 )
             }
         }
 
-        val periodLabel =
-            YearMonth
-                .of(2026, 4)
-                .atDay(1)
-                .format(DateTimeFormatter.ofPattern("LLLL yyyy", targetLocale()))
-        val balanceBounds =
-            composeTestRule
-                .onNodeWithTag(BALANCE_BAR_TAG)
-                .fetchSemanticsNode()
-                .boundsInRoot
-        val periodBottom =
-            composeTestRule
-                .onNodeWithText(periodLabel)
-                .fetchSemanticsNode()
-                .boundsInRoot
-                .bottom
-        // The donut announces its income/expense totals; match on the localized prefix
-        // ahead of the format placeholders so the chart node is uniquely located.
-        val donutCdPrefix = targetString(DesignSystemR.string.donut_chart_cd).substringBefore('%').trim()
-        val donutTop =
-            composeTestRule
-                .onNode(hasContentDescription(donutCdPrefix, substring = true))
-                .fetchSemanticsNode()
-                .boundsInRoot.top
+        composeTestRule.onNodeWithTag("category_tile_42").performScrollTo().performClick()
 
-        assertTrue("balance panel must sit below the period row", balanceBounds.top > periodBottom)
-        assertTrue("balance panel must not overlap the donut", balanceBounds.bottom <= donutTop)
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(DashboardEvent.SliceClicked(42L)), capturedEvents)
+        }
     }
 
     @Test
-    fun `year dashboard gives the donut stage and fabs reference scale`() {
-        val usd =
-            Currency(
-                id = 1L,
-                code = "USD",
-                symbol = "$",
-                name = "US Dollar",
-                decimalDigits = 2,
-                isActive = true,
-                sortOrder = 0,
-            )
+    fun `dashboard vertical content scrolls to overflow category tiles`() {
+        val usd = usdCurrency()
+        val tiles = (1L..8L).map { categoryTile(it, "Category $it", usd) }
 
         composeTestRule.setContent {
             MyMoneyTheme {
@@ -474,138 +338,19 @@ class DashboardContentUiTest {
                     state =
                         dashboardState(
                             currency = usd,
-                            balanceSnapshot =
-                                BalanceSnapshot(
-                                    income = Money(BigDecimal("2442740.80"), usd),
-                                    expense = Money(BigDecimal("1699483.00"), usd),
-                                    net = Money(BigDecimal("743257.80"), usd),
-                                    byCategory = emptyList(),
-                                ),
-                            period = Period.Year(2026),
-                            slices =
-                                listOf(
-                                    CategorySlice(1L, Color(0xFFECC400), 0.27f, "Car", "car"),
-                                    CategorySlice(2L, Color(0xFF77C99B), 0.21f, "Pets", "pets"),
-                                    CategorySlice(3L, Color(0xFFE879B0), 0.17f, "Groceries", "groceries"),
-                                    CategorySlice(4L, Color(0xFF9CC7DB), 0.05f, "Home", "home"),
-                                ),
+                            balanceSnapshot = balanceSnapshot(netAmount = "100", currency = usd),
+                            expenseTiles = tiles,
                             isLoading = false,
                         ),
                     onEvent = {},
                 )
             }
         }
-
-        val donutBounds =
-            composeTestRule
-                .onNodeWithTag(DASHBOARD_DONUT_TAG)
-                .assertIsDisplayed()
-                .assertWidthIsAtLeast(360.dp)
-                .assertHeightIsAtLeast(360.dp)
-                .fetchSemanticsNode()
-                .boundsInRoot
-        val balanceBounds =
-            composeTestRule
-                .onNodeWithTag(BALANCE_BAR_TAG)
-                .assertIsDisplayed()
-                .fetchSemanticsNode()
-                .boundsInRoot
-        val expenseFab =
-            composeTestRule
-                .onNodeWithContentDescription(targetString(R.string.fab_expense))
-                .assertIsDisplayed()
-                .assertHasClickAction()
-                .assertWidthIsAtLeast(Spacing.dashboardFabSize)
-                .assertHeightIsAtLeast(Spacing.dashboardFabSize)
-                .fetchSemanticsNode()
-                .boundsInRoot
-        val incomeFab =
-            composeTestRule
-                .onNodeWithContentDescription(targetString(R.string.fab_income))
-                .assertIsDisplayed()
-                .assertHasClickAction()
-                .assertWidthIsAtLeast(Spacing.dashboardFabSize)
-                .assertHeightIsAtLeast(Spacing.dashboardFabSize)
-                .fetchSemanticsNode()
-                .boundsInRoot
-        val rootWidth =
-            InstrumentationRegistry
-                .getInstrumentation()
-                .targetContext.resources.displayMetrics.widthPixels
-                .toFloat()
-        val donutWidthRatio = donutBounds.width / rootWidth
-
-        assertTrue(
-            "donut stage width ratio $donutWidthRatio must stay near full width",
-            donutWidthRatio >= 0.92f,
-        )
-        assertTrue(
-            "balance panel must not overlap the donut graphic",
-            balanceBounds.bottom <= donutBounds.top,
-        )
-        assertTrue("expense FAB must sit below the balance bar", expenseFab.top > balanceBounds.bottom)
-        assertTrue("income FAB must sit below the balance bar", incomeFab.top > balanceBounds.bottom)
-    }
-
-    @Test
-    fun `dashboard content relabels and recolors the sentinel other slice at the compose boundary`() {
-        val usd =
-            Currency(
-                id = 1L,
-                code = "USD",
-                symbol = "$",
-                name = "US Dollar",
-                decimalDigits = 2,
-                isActive = true,
-                sortOrder = 0,
-            )
-        var expectedOtherColor = 0
-        val expectedDescription =
-            expectedDonutDescription(
-                income = "0",
-                expense = "10.00",
-                slices = listOf(targetString(R.string.category_other) to 100),
-            )
-
-        composeTestRule.setContent {
-            MyMoneyTheme {
-                expectedOtherColor = MaterialTheme.colorScheme.dashboardDonutOtherSlice.toArgb()
-                DashboardContent(
-                    state =
-                        dashboardState(
-                            currency = usd,
-                            balanceSnapshot =
-                                BalanceSnapshot(
-                                    income = Money(BigDecimal.ZERO, usd),
-                                    expense = Money(BigDecimal("10.00"), usd),
-                                    net = Money(BigDecimal("-10.00"), usd),
-                                    byCategory = emptyList(),
-                                ),
-                            slices =
-                                listOf(
-                                    CategorySlice(
-                                        categoryId = OTHER_CATEGORY_ID,
-                                        color = Color.Unspecified,
-                                        fraction = 1.0f,
-                                        label = "",
-                                        iconKey = OTHER_CATEGORY_ICON_KEY,
-                                    ),
-                                ),
-                            isLoading = false,
-                        ),
-                    onEvent = {},
-                )
-            }
-        }
-        composeTestRule.waitForIdle()
 
         composeTestRule
-            .onNodeWithContentDescription(expectedDescription)
+            .onNodeWithTag("category_tile_8")
+            .performScrollTo()
             .assertIsDisplayed()
-        assertTrue(
-            "dashboard donut must paint the sentinel Other slice with dashboardDonutOtherSlice",
-            nodeImageContainsColor(DASHBOARD_DONUT_TAG, expectedOtherColor),
-        )
     }
 
     @Test
@@ -895,7 +640,7 @@ class DashboardContentUiTest {
         }
 
         composeTestRule
-            .onNodeWithTag(BALANCE_BAR_TAG)
+            .onNodeWithTag(NEON_RING_CHART_TAG)
             .performTouchInput { swipeLeft() }
 
         composeTestRule.runOnIdle {
@@ -924,7 +669,7 @@ class DashboardContentUiTest {
         }
 
         composeTestRule
-            .onNodeWithTag(BALANCE_BAR_TAG)
+            .onNodeWithTag(NEON_RING_CHART_TAG)
             .performTouchInput { swipeRight() }
 
         composeTestRule.runOnIdle {
@@ -952,10 +697,8 @@ class DashboardContentUiTest {
             }
         }
 
-        // A rightward swipe from the left edge is the drawer-open gesture in Monefy; with the
-        // left drawer gesturesEnabled=false it must navigate the period instead of toggling the drawer.
         composeTestRule
-            .onNodeWithTag(BALANCE_BAR_TAG)
+            .onNodeWithTag(NEON_RING_CHART_TAG)
             .performTouchInput { swipeRight() }
 
         composeTestRule.runOnIdle {
@@ -1079,12 +822,13 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `expense and income fabs are each at least 90dp wide and tall`() {
+    fun `expense and income fabs are exactly 104dp and preserve their events`() {
+        val capturedEvents = mutableListOf<DashboardEvent>()
         composeTestRule.setContent {
             MyMoneyTheme {
                 DashboardContent(
                     state = DashboardState(isLoading = false),
-                    onEvent = {},
+                    onEvent = { capturedEvents += it },
                 )
             }
         }
@@ -1092,17 +836,26 @@ class DashboardContentUiTest {
         composeTestRule
             .onNodeWithContentDescription(targetString(R.string.fab_expense))
             .assertIsDisplayed()
-            .assertWidthIsAtLeast(Spacing.dashboardFabSize)
-            .assertHeightIsAtLeast(Spacing.dashboardFabSize)
+            .assertWidthIsEqualTo(104.dp)
+            .assertHeightIsEqualTo(104.dp)
+            .performClick()
         composeTestRule
             .onNodeWithContentDescription(targetString(R.string.fab_income))
             .assertIsDisplayed()
-            .assertWidthIsAtLeast(Spacing.dashboardFabSize)
-            .assertHeightIsAtLeast(Spacing.dashboardFabSize)
+            .assertWidthIsEqualTo(104.dp)
+            .assertHeightIsEqualTo(104.dp)
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(
+                listOf(DashboardEvent.MinusFabClicked, DashboardEvent.PlusFabClicked),
+                capturedEvents,
+            )
+        }
     }
 
     @Test
-    fun `balance panel width does not exceed dashboardBalancePanelMaxWidth token`() {
+    fun `legacy balance panel is absent when dashboard has no snapshot`() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 DashboardContent(
@@ -1112,55 +865,8 @@ class DashboardContentUiTest {
             }
         }
 
-        val panelWidthPx =
-            composeTestRule
-                .onNodeWithTag(BALANCE_BAR_TAG)
-                .assertIsDisplayed()
-                .fetchSemanticsNode()
-                .boundsInRoot
-                .width
-        val panelWidthDp = with(composeTestRule.density) { panelWidthPx.toDp() }
-        val maxWidthDp = Spacing.dashboardBalancePanelMaxWidth
-        assertTrue(
-            "balance panel width $panelWidthDp must not exceed $maxWidthDp",
-            panelWidthDp.value <= maxWidthDp.value + 1f,
-        )
-    }
-
-    @Test
-    fun `balance bar testTag dashboard_balance_bar is present and has a click action`() {
-        composeTestRule.setContent {
-            MyMoneyTheme {
-                DashboardContent(
-                    state = DashboardState(isLoading = false),
-                    onEvent = {},
-                )
-            }
-        }
-
-        composeTestRule
-            .onNodeWithTag(BALANCE_BAR_TAG)
-            .assertExists()
-            .assertHasClickAction()
-    }
-
-    @Test
-    fun `balance bar shows the localized balance label as its own text node`() {
-        composeTestRule.setContent {
-            MyMoneyTheme {
-                DashboardContent(
-                    state = DashboardState(isLoading = false),
-                    onEvent = {},
-                )
-            }
-        }
-
-        composeTestRule
-            .onNodeWithTag(BALANCE_BAR_TAG)
-            .assertIsDisplayed()
-        composeTestRule
-            .onNodeWithText(targetString(R.string.dashboard_balance), useUnmergedTree = true)
-            .assertIsDisplayed()
+        composeTestRule.onNodeWithTag(BALANCE_BAR_TAG).assertDoesNotExist()
+        composeTestRule.onNodeWithTag(NEON_RING_CHART_TAG).assertIsDisplayed()
     }
 
     private fun targetString(resourceId: Int): String =
@@ -1217,36 +923,6 @@ class DashboardContentUiTest {
             .getInstrumentation()
             .targetContext.resources.configuration.locales[0]
 
-    private fun expectedDonutDescription(
-        income: String,
-        expense: String,
-        slices: List<Pair<String, Int>> = emptyList(),
-    ): String {
-        val context = InstrumentationRegistry.getInstrumentation().targetContext
-        val header = context.getString(DesignSystemR.string.donut_chart_cd, income, expense)
-        val sliceText =
-            slices.joinToString(separator = " ") { (label, percent) ->
-                context.getString(DesignSystemR.string.donut_chart_slice, label, percent)
-            }
-        return if (sliceText.isEmpty()) header else "$header $sliceText"
-    }
-
-    private fun assertBalanceBarColors(
-        expectedContainer: Int,
-        expectedContent: Int,
-    ) {
-        composeTestRule.waitForIdle()
-
-        assertTrue(
-            "balance panel must use the expected container token",
-            nodeImageContainsColor(BALANCE_BAR_TAG, expectedContainer),
-        )
-        assertTrue(
-            "balance panel must use the expected content token",
-            nodeImageContainsColor(BALANCE_BAR_TAG, expectedContent),
-        )
-    }
-
     private fun nodeImageContainsColor(
         tag: String,
         argb: Int,
@@ -1280,14 +956,33 @@ class DashboardContentUiTest {
         balanceSnapshot: BalanceSnapshot? = null,
         period: Period = Period.Month(YearMonth.now()),
         slices: List<CategorySlice> = emptyList(),
+        periodNet: Money = Money.zero(currency),
+        ringFraction: Float = 0f,
+        expenseTiles: List<CategoryTileItem> = emptyList(),
         isLoading: Boolean = false,
     ) = DashboardState(
         period = period,
         currencies = listOf(currency),
         dashboardSelection = DashboardSelection.AllAccounts(currency),
         balanceSnapshot = balanceSnapshot,
+        periodNet = periodNet,
+        ringFraction = ringFraction,
         slices = slices,
+        expenseTiles = expenseTiles,
         isLoading = isLoading,
+    )
+
+    private fun categoryTile(
+        categoryId: Long,
+        label: String,
+        currency: Currency,
+    ) = CategoryTileItem(
+        categoryId = categoryId,
+        label = label,
+        amount = Money(BigDecimal("25.00"), currency),
+        fraction = 0.25f,
+        colorHex = "#4CAF50",
+        iconKey = "groceries",
     )
 
     private fun usdCurrency() =

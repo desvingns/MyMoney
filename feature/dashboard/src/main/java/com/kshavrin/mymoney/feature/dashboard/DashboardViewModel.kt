@@ -21,6 +21,7 @@ import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
 import com.kshavrin.mymoney.core.domain.time.PeriodArithmetic
 import com.kshavrin.mymoney.core.domain.usecase.BalanceCalculator
 import com.kshavrin.mymoney.core.domain.usecase.ObserveBudgetAlertsUseCase
+import com.kshavrin.mymoney.feature.dashboard.components.CategoryTileItem
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -309,7 +310,7 @@ class DashboardViewModel
         internal fun snapshotToExpenseTiles(
             snapshot: BalanceSnapshot,
             alertCategoryIds: Set<Long>,
-        ): List<CategorySlice> {
+        ): List<CategoryTileItem> {
             val totalExpense = snapshot.expense.amount
             return snapshot.byCategory
                 .filter { it.isExpense && it.categoryId != OTHER_CATEGORY_ID }
@@ -321,11 +322,12 @@ class DashboardViewModel
                         } else {
                             (catBal.total.amount.toFloat() / totalExpense.toFloat()).coerceIn(0f, 1f)
                         }
-                    CategorySlice(
+                    CategoryTileItem(
                         categoryId = catBal.categoryId,
-                        color = parseHexColor(catBal.colorHex),
-                        fraction = fraction,
                         label = catBal.categoryName,
+                        amount = catBal.total,
+                        fraction = fraction,
+                        colorHex = catBal.colorHex,
                         iconKey = catBal.iconKey,
                         hasBudgetAlert = catBal.categoryId in alertCategoryIds,
                     )
@@ -373,15 +375,6 @@ class DashboardViewModel
                     hasBudgetAlert = false,
                 )
         }
-
-        private fun parseHexColor(hex: String): Color =
-            try {
-                val cleaned = hex.removePrefix("#")
-                val argb = if (cleaned.length == 6) "FF$cleaned" else cleaned
-                Color(argb.toLong(16))
-            } catch (_: Exception) {
-                Color.Gray
-            }
 
         private fun BalanceSnapshot.toRingFraction(): Float {
             if (income.amount.signum() == 0) return 0f

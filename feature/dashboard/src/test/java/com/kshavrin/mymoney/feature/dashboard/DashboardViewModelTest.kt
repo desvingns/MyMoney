@@ -1052,7 +1052,7 @@ class DashboardViewModelTest {
         }
 
     @Test
-    fun `snapshotToExpenseTiles keeps all real expense categories sorted and excludes other and transfer balances`() =
+    fun `snapshotToExpenseTiles keeps all real expense categories sorted with source amount icon color and alert flags`() =
         runTest {
             val (viewModel, store) = buildViewModel()
             try {
@@ -1084,6 +1084,12 @@ class DashboardViewModelTest {
                     )
 
                 assertEquals(listOf(10L, 20L, 30L), tiles.map { it.categoryId })
+                assertEquals(listOf("#FF8888", "#FF8888", "#FF8888"), tiles.map { it.colorHex })
+                assertEquals(listOf("food", "transport", "snack"), tiles.map { it.iconKey })
+                assertEquals(usd, tiles[0].amount.currency)
+                assertEquals(0, BigDecimal("500.00").compareTo(tiles[0].amount.amount))
+                assertEquals(0, BigDecimal("250.00").compareTo(tiles[1].amount.amount))
+                assertEquals(0, BigDecimal("10.00").compareTo(tiles[2].amount.amount))
                 assertEquals(0.6570f, tiles[0].fraction, 0.0001f)
                 assertEquals(0.0131f, tiles[2].fraction, 0.0001f)
                 assertFalse(tiles.any { it.categoryId == OTHER_CATEGORY_ID })

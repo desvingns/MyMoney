@@ -6,6 +6,7 @@ import com.kshavrin.mymoney.core.domain.model.BalanceSnapshot
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.domain.model.Period
+import com.kshavrin.mymoney.feature.dashboard.components.CategoryTileItem
 import java.time.YearMonth
 
 data class DashboardState(
@@ -17,7 +18,7 @@ data class DashboardState(
     val periodNet: Money = Money.zero(DASHBOARD_STATE_FALLBACK_CURRENCY),
     val ringFraction: Float = 0f,
     val slices: List<CategorySlice> = emptyList(),
-    val expenseTiles: List<CategorySlice> = emptyList(),
+    val expenseTiles: List<CategoryTileItem> = emptyList(),
     val expenseCategoryPlaceholders: List<CategorySlice> = emptyList(),
     val budgetAlertCategoryIds: Set<Long> = emptySet(),
     val overBudgetAmount: Money? = null,

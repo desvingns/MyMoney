@@ -55,7 +55,7 @@ fun MyMoneyTheme(
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit,
 ) {
-    val colorScheme = if (darkTheme) DarkColors else LightColors
+    val colorScheme = DarkColors
 
     val view = LocalView.current
     if (!view.isInEditMode) {

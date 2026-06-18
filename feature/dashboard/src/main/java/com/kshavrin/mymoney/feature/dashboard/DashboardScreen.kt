@@ -199,10 +199,7 @@ fun DashboardContent(
                             val snapshot = state.balanceSnapshot
                             NeonRingChart(
                                 fraction = state.ringFraction,
-                                modifier =
-                                    Modifier
-                                        .testTag(DASHBOARD_DONUT_TAG)
-                                        .clickable { onEvent(DashboardEvent.BalanceCardClicked) },
+                                modifier = Modifier.testTag(DASHBOARD_DONUT_TAG),
                             ) {
                                 if (snapshot != null) {
                                     RingCenterContent(

@@ -1,7 +1,7 @@
 # Компонент NeonRingChart: градиентная дуга + неклиппируемое свечение
 Epic: dashboard-neon-ring-redesign
 Order: 03 of 06
-Status: backlog
+Status: done
 Depends-on: dashboard-neon-ring-redesign-01
 Date: 2026-06-15
 
@@ -51,5 +51,5 @@ Feature: Неоновое кольцо
 и слотом под центр.
 
 ## Implementation links
-- commit: <hash>
-- files:  <changed files>
+- commit: ffe9b6c3, dc2cd5d7, 877e5666
+- files: core/designsystem/src/main/java/com/kshavrin/mymoney/core/designsystem/donut/NeonRingChart.kt, core/designsystem/src/test/java/com/kshavrin/mymoney/core/designsystem/donut/NeonRingChartTest.kt, core/designsystem/src/androidTest/java/com/kshavrin/mymoney/core/designsystem/donut/NeonRingChartUiTest.kt

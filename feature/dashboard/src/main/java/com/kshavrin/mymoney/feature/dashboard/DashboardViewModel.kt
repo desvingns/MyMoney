@@ -12,6 +12,7 @@ import com.kshavrin.mymoney.core.domain.model.Category
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.DomainEvent
+import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.domain.model.Period
 import com.kshavrin.mymoney.core.domain.repository.AccountRepository
 import com.kshavrin.mymoney.core.domain.repository.CategoryRepository
@@ -232,6 +233,7 @@ class DashboardViewModel
                     budgetAlertCategoryIds = emptySet(),
                     overBudgetAmount = null,
                     slices = _state.value.slices.map { it.copy(hasBudgetAlert = false) },
+                    expenseTiles = _state.value.expenseTiles.map { it.copy(hasBudgetAlert = false) },
                 )
             budgetAlertSelection.value = selection
         }
@@ -245,6 +247,10 @@ class DashboardViewModel
                     slices =
                         _state.value.slices.map { slice ->
                             slice.copy(hasBudgetAlert = slice.categoryId != OTHER_CATEGORY_ID && slice.categoryId in categoryIds)
+                        },
+                    expenseTiles =
+                        _state.value.expenseTiles.map { tile ->
+                            tile.copy(hasBudgetAlert = tile.categoryId in categoryIds)
                         },
                 )
         }
@@ -279,18 +285,50 @@ class DashboardViewModel
                                 )
                         }
                     val slices = snapshotToSlices(snapshot, _state.value.budgetAlertCategoryIds)
+                    val expenseTiles = snapshotToExpenseTiles(snapshot, _state.value.budgetAlertCategoryIds)
+                    val ringFraction = snapshot.toRingFraction()
+                    val periodNet = snapshot.toPeriodNet()
                     val settings = appSettingsRepository.settings.first()
                     val firstPositive = !settings.firstPositiveSeen && snapshot.net.amount.signum() > 0
                     _state.value =
                         _state.value.copy(
                             balanceSnapshot = snapshot,
+                            periodNet = periodNet,
+                            ringFraction = ringFraction,
                             slices = slices,
+                            expenseTiles = expenseTiles,
                             isLoading = false,
                             showConfetti = firstPositive,
                         )
                     if (firstPositive) {
                         appSettingsRepository.update { it.copy(firstPositiveSeen = true) }
                     }
+                }
+        }
+
+        internal fun snapshotToExpenseTiles(
+            snapshot: BalanceSnapshot,
+            alertCategoryIds: Set<Long>,
+        ): List<CategorySlice> {
+            val totalExpense = snapshot.expense.amount
+            return snapshot.byCategory
+                .filter { it.isExpense }
+                .sortedByDescending { it.total.amount }
+                .map { catBal ->
+                    val fraction =
+                        if (totalExpense.signum() == 0) {
+                            0f
+                        } else {
+                            (catBal.total.amount.toFloat() / totalExpense.toFloat()).coerceIn(0f, 1f)
+                        }
+                    CategorySlice(
+                        categoryId = catBal.categoryId,
+                        color = parseHexColor(catBal.colorHex),
+                        fraction = fraction,
+                        label = catBal.categoryName,
+                        iconKey = catBal.iconKey,
+                        hasBudgetAlert = catBal.categoryId in alertCategoryIds,
+                    )
                 }
         }
 
@@ -344,6 +382,17 @@ class DashboardViewModel
             } catch (_: Exception) {
                 Color.Gray
             }
+
+        private fun BalanceSnapshot.toRingFraction(): Float {
+            if (income.amount.signum() == 0) return 0f
+            return (expense.amount.toFloat() / income.amount.toFloat()).coerceIn(0f, 1f)
+        }
+
+        private fun BalanceSnapshot.toPeriodNet(): Money =
+            Money(
+                amount = income.amount.subtract(expense.amount),
+                currency = income.currency,
+            )
 
         fun onEvent(event: DashboardEvent) {
             when (event) {

@@ -14,7 +14,10 @@ data class DashboardState(
     val currencies: List<Currency> = emptyList(),
     val dashboardSelection: DashboardSelection? = null,
     val balanceSnapshot: BalanceSnapshot? = null,
+    val periodNet: Money = Money.zero(DASHBOARD_STATE_FALLBACK_CURRENCY),
+    val ringFraction: Float = 0f,
     val slices: List<CategorySlice> = emptyList(),
+    val expenseTiles: List<CategorySlice> = emptyList(),
     val expenseCategoryPlaceholders: List<CategorySlice> = emptyList(),
     val budgetAlertCategoryIds: Set<Long> = emptySet(),
     val overBudgetAmount: Money? = null,
@@ -34,6 +37,17 @@ data class DashboardState(
                 null -> null
             }
 }
+
+private val DASHBOARD_STATE_FALLBACK_CURRENCY =
+    Currency(
+        id = 0L,
+        code = "",
+        symbol = "",
+        name = "",
+        decimalDigits = 2,
+        isActive = false,
+        sortOrder = 0,
+    )
 
 sealed interface DashboardSelection {
     data class SpecificAccount(

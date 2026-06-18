@@ -312,7 +312,7 @@ class DashboardViewModel
         ): List<CategorySlice> {
             val totalExpense = snapshot.expense.amount
             return snapshot.byCategory
-                .filter { it.isExpense }
+                .filter { it.isExpense && it.categoryId != OTHER_CATEGORY_ID }
                 .sortedByDescending { it.total.amount }
                 .map { catBal ->
                     val fraction =

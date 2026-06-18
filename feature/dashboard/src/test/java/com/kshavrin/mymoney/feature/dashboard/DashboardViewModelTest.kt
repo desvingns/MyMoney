@@ -137,6 +137,9 @@ class DashboardViewModelTest {
                 assertTrue(state.slices.single { it.categoryId == 10L }.hasBudgetAlert)
                 assertTrue(state.slices.single { it.categoryId == 20L }.hasBudgetAlert)
                 assertTrue(state.slices.single { it.categoryId == 30L }.hasBudgetAlert)
+                assertTrue(state.expenseTiles.single { it.categoryId == 10L }.hasBudgetAlert)
+                assertTrue(state.expenseTiles.single { it.categoryId == 20L }.hasBudgetAlert)
+                assertTrue(state.expenseTiles.single { it.categoryId == 30L }.hasBudgetAlert)
                 assertNotNull(state.overBudgetAmount)
                 assertEquals(usd, state.overBudgetAmount!!.currency)
                 assertEquals(0, BigDecimal("35.00").compareTo(state.overBudgetAmount!!.amount))
@@ -823,6 +826,62 @@ class DashboardViewModelTest {
         }
 
     @Test
+    fun `state derives ring fraction and period net from income and expense totals`() =
+        runTest {
+            transactionRepository.seedExpenseSummary(
+                cash.id,
+                initialPeriod,
+                summary(categoryId = 10L, amount = "45000.00"),
+                summary(categoryId = 20L, amount = "1500.00"),
+                summary(categoryId = 30L, amount = "850.00"),
+            )
+            transactionRepository.seedIncomeSummary(
+                cash.id,
+                initialPeriod,
+                summary(categoryId = 200L, amount = "85000.00"),
+            )
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                val state = viewModel.state.value
+                assertEquals(0.557f, state.ringFraction, 0.001f)
+                assertEquals(0, BigDecimal("37650.00").compareTo(state.periodNet.amount))
+                assertEquals(listOf(10L, 20L, 30L), state.expenseTiles.map { it.categoryId })
+                assertEquals(0.9504f, state.expenseTiles[0].fraction, 0.0001f)
+                assertEquals(0.0179f, state.expenseTiles[2].fraction, 0.0001f)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `state keeps ring fraction at zero and period net negative when income is zero`() =
+        runTest {
+            transactionRepository.seedExpenseSummary(
+                cash.id,
+                initialPeriod,
+                summary(categoryId = 10L, amount = "1200.00"),
+            )
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                val state = viewModel.state.value
+                assertEquals(0f, state.ringFraction, 0f)
+                assertEquals(0, BigDecimal("-1200.00").compareTo(state.periodNet.amount))
+                assertEquals(listOf(10L), state.expenseTiles.map { it.categoryId })
+                assertEquals(1.0f, state.expenseTiles.single().fraction, 0.0001f)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
     fun `snapshotToSlices keeps real slices when every expense category is at least two percent`() =
         runTest {
             val (viewModel, store) = buildViewModel()
@@ -986,6 +1045,52 @@ class DashboardViewModelTest {
                 assertFalse(slices.any { it.categoryId == OTHER_CATEGORY_ID })
                 assertEquals(0f, slices.single().fraction, 0f)
                 assertTrue(slices.single().hasBudgetAlert)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `snapshotToExpenseTiles keeps all real expense categories sorted and excludes other and transfer balances`() =
+        runTest {
+            val (viewModel, store) = buildViewModel()
+            try {
+                val tiles =
+                    viewModel.snapshotToExpenseTiles(
+                        snapshot =
+                            BalanceSnapshot(
+                                income = Money(BigDecimal("850.00"), usd),
+                                expense = Money(BigDecimal("761.00"), usd),
+                                net = Money(BigDecimal("89.00"), usd),
+                                byCategory =
+                                    listOf(
+                                        expenseCategoryBalance(categoryId = 10L, amount = "500.00", iconKey = "food"),
+                                        expenseCategoryBalance(categoryId = 20L, amount = "250.00", iconKey = "transport"),
+                                        expenseCategoryBalance(categoryId = 30L, amount = "10.00", iconKey = "snack"),
+                                        expenseCategoryBalance(categoryId = OTHER_CATEGORY_ID, amount = "1.00", iconKey = "other"),
+                                        CategoryBalance(
+                                            categoryId = 200L,
+                                            categoryName = "salary",
+                                            colorHex = "#22AA22",
+                                            total = Money(BigDecimal("850.00"), usd),
+                                            fraction = 0f,
+                                            iconKey = "salary",
+                                            isExpense = false,
+                                        ),
+                                    ),
+                            ),
+                        alertCategoryIds = setOf(20L),
+                    )
+
+                assertEquals(listOf(10L, 20L, 30L), tiles.map { it.categoryId })
+                assertEquals(0.6570f, tiles[0].fraction, 0.0001f)
+                assertEquals(0.0131f, tiles[2].fraction, 0.0001f)
+                assertFalse(tiles.any { it.categoryId == OTHER_CATEGORY_ID })
+                assertFalse(tiles.any { it.categoryId == 200L })
+                assertTrue(tiles.single { it.categoryId == 20L }.hasBudgetAlert)
+                assertFalse(tiles.single { it.categoryId == 10L }.hasBudgetAlert)
+                assertFalse(tiles.single { it.categoryId == 30L }.hasBudgetAlert)
             } finally {
                 store.clear()
                 runCurrent()

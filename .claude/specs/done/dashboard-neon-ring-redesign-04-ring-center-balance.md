@@ -1,7 +1,7 @@
 # Центр кольца: авто-ужатие «Остаток» + пилюля доход/расход
 Epic: dashboard-neon-ring-redesign
 Order: 04 of 06
-Status: backlog
+Status: done
 Depends-on: dashboard-neon-ring-redesign-01, dashboard-neon-ring-redesign-03
 Date: 2026-06-15
 
@@ -46,5 +46,5 @@ Feature: Центр неонового кольца
 крупный net + пилюля доход/расход, всё внутри кольца и с гарантией, что текст не упирается во внутренний край.
 
 ## Implementation links
-- commit: <hash>
-- files:  <changed files>
+- commit: dc5c9902, c6a137e5, 981dc994, eb73f9a0, 9aba503c, 5e7a1d04
+- files: feature/dashboard/src/main/java/com/kshavrin/mymoney/feature/dashboard/components/RingCenterContent.kt, feature/dashboard/src/main/res/values/strings.xml, feature/dashboard/src/main/res/values-ru/strings.xml, feature/dashboard/src/test/java/com/kshavrin/mymoney/feature/dashboard/components/RingCenterLayoutTest.kt, app/src/androidTest/java/com/kshavrin/mymoney/feature/dashboard/components/RingCenterContentUiTest.kt

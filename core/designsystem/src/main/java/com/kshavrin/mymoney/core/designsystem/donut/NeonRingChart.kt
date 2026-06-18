@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.Dp
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.core.ui.theme.neonRingGradientEnd
 import com.kshavrin.mymoney.core.ui.theme.neonRingGradientStart
@@ -33,20 +34,43 @@ const val NEON_RING_CHART_TAG = "neon_ring_chart"
 private const val FULL_SWEEP_DEGREES = 360f
 private const val TOP_START_ROTATION_DEGREES = -90f
 
+internal data class NeonRingChartLayout(
+    val sweepAngleDegrees: Float,
+    val showsGradientArc: Boolean,
+    val containerSize: Dp,
+    val innerDiameter: Dp,
+)
+
+internal fun calculateNeonRingChartLayout(
+    fraction: Float,
+    diameter: Dp = Spacing.neonRingDiameter,
+    strokeWidth: Dp = Spacing.neonRingStrokeWidth,
+    glowRadius: Dp = Spacing.neonRingGlowRadius,
+    glowSpread: Dp = Spacing.neonRingGlowSpread,
+): NeonRingChartLayout {
+    val glowStrokeWidth = strokeWidth + glowSpread * 2
+    val glowMargin = glowRadius + glowSpread + glowStrokeWidth / 2
+    val sweepAngleDegrees = fraction * FULL_SWEEP_DEGREES
+    return NeonRingChartLayout(
+        sweepAngleDegrees = sweepAngleDegrees,
+        showsGradientArc = sweepAngleDegrees > 0f,
+        containerSize = diameter + glowMargin * 2,
+        innerDiameter = diameter - (strokeWidth + glowSpread) * 2,
+    )
+}
+
 @Composable
 fun NeonRingChart(
     fraction: Float,
     modifier: Modifier = Modifier,
     centerContent: @Composable BoxScope.() -> Unit,
 ) {
+    val layout = calculateNeonRingChartLayout(fraction = fraction)
     val diameter = Spacing.neonRingDiameter
     val strokeWidth = Spacing.neonRingStrokeWidth
     val glowRadius = Spacing.neonRingGlowRadius
     val glowSpread = Spacing.neonRingGlowSpread
     val glowStrokeWidth = strokeWidth + glowSpread * 2
-    val glowMargin = glowRadius + glowSpread + glowStrokeWidth / 2
-    val containerSize = diameter + glowMargin * 2
-    val innerDiameter = diameter - (strokeWidth + glowSpread) * 2
     val gradientStart = MaterialTheme.colorScheme.neonRingGradientStart
     val gradientEnd = MaterialTheme.colorScheme.neonRingGradientEnd
     val trackColor = MaterialTheme.colorScheme.neonRingTrack
@@ -65,12 +89,10 @@ fun NeonRingChart(
                     )
             }
         }
-    val sweepAngle = fraction * FULL_SWEEP_DEGREES
-
     Box(
         modifier =
             modifier
-                .size(containerSize)
+                .size(layout.containerSize)
                 .testTag(NEON_RING_CHART_TAG),
         contentAlignment = Alignment.Center,
     ) {
@@ -92,7 +114,7 @@ fun NeonRingChart(
                 style = Stroke(width = strokeWidthPx, cap = StrokeCap.Round),
             )
 
-            if (sweepAngle > 0f) {
+            if (layout.showsGradientArc) {
                 rotate(degrees = TOP_START_ROTATION_DEGREES, pivot = center) {
                     drawIntoCanvas { canvas ->
                         canvas.nativeCanvas.drawArc(
@@ -101,7 +123,7 @@ fun NeonRingChart(
                             arcTopLeft.x + arcSize.width,
                             arcTopLeft.y + arcSize.height,
                             0f,
-                            sweepAngle,
+                            layout.sweepAngleDegrees,
                             false,
                             glowPaint.asFrameworkPaint(),
                         )
@@ -118,7 +140,7 @@ fun NeonRingChart(
                                 center = center,
                             ),
                         startAngle = 0f,
-                        sweepAngle = sweepAngle,
+                        sweepAngle = layout.sweepAngleDegrees,
                         useCenter = false,
                         topLeft = arcTopLeft,
                         size = arcSize,
@@ -129,7 +151,7 @@ fun NeonRingChart(
         }
 
         Box(
-            modifier = Modifier.size(innerDiameter),
+            modifier = Modifier.size(layout.innerDiameter),
             content = centerContent,
         )
     }

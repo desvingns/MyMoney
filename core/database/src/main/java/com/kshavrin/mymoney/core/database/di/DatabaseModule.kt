@@ -16,6 +16,7 @@ import com.kshavrin.mymoney.core.database.dao.TransactionDao
 import com.kshavrin.mymoney.core.database.migration.MIGRATION_1_2
 import com.kshavrin.mymoney.core.database.migration.MIGRATION_2_3
 import com.kshavrin.mymoney.core.database.migration.MIGRATION_3_4
+import com.kshavrin.mymoney.core.database.migration.MIGRATION_4_5
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -33,7 +34,7 @@ object DatabaseModule {
     ): MoneyDatabase =
         Room
             .databaseBuilder(context, MoneyDatabase::class.java, "monefy.db")
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
             .fallbackToDestructiveMigrationFrom(99)
             .build()
 

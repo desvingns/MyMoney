@@ -40,3 +40,17 @@ val MIGRATION_3_4 =
             db.execSQL("ALTER TABLE `goal` ADD COLUMN `term_months` INTEGER")
         }
     }
+
+val MIGRATION_4_5 =
+    object : Migration(4, 5) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("UPDATE `transaction` SET `amount` = ROUND(`amount`, 2) WHERE `amount` IS NOT NULL")
+            db.execSQL("UPDATE `transaction` SET `to_amount` = ROUND(`to_amount`, 2) WHERE `to_amount` IS NOT NULL")
+            db.execSQL("UPDATE `account` SET `initial_balance` = ROUND(`initial_balance`, 2) WHERE `initial_balance` IS NOT NULL")
+            db.execSQL("UPDATE `goal` SET `target_amount` = ROUND(`target_amount`, 2) WHERE `target_amount` IS NOT NULL")
+            db.execSQL("UPDATE `goal` SET `starting_capital` = ROUND(`starting_capital`, 2) WHERE `starting_capital` IS NOT NULL")
+            db.execSQL("UPDATE `goal` SET `monthly_contribution` = ROUND(`monthly_contribution`, 2) WHERE `monthly_contribution` IS NOT NULL")
+            db.execSQL("UPDATE `goal` SET `down_payment` = ROUND(`down_payment`, 2) WHERE `down_payment` IS NOT NULL")
+            db.execSQL("UPDATE `budget` SET `amount` = ROUND(`amount`, 2) WHERE `amount` IS NOT NULL")
+        }
+    }

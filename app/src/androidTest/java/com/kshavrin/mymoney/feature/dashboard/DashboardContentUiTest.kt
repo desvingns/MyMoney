@@ -30,12 +30,12 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
+import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.common.money.MoneyFormatter
 import com.kshavrin.mymoney.core.designsystem.donut.CategorySlice
-import com.kshavrin.mymoney.core.designsystem.donut.NEON_RING_CHART_TAG
 import com.kshavrin.mymoney.core.domain.model.BalanceSnapshot
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Money
@@ -273,7 +273,7 @@ class DashboardContentUiTest {
         }
 
         composeTestRule
-            .onNodeWithTag(NEON_RING_CHART_TAG)
+            .onNodeWithTag(DASHBOARD_DONUT_TAG)
             .assertIsDisplayed()
             .assertHasClickAction()
         composeTestRule
@@ -292,7 +292,7 @@ class DashboardContentUiTest {
             ).assertIsDisplayed()
         composeTestRule.onNodeWithTag(BALANCE_BAR_TAG).assertDoesNotExist()
 
-        composeTestRule.onNodeWithTag(NEON_RING_CHART_TAG).performClick()
+        composeTestRule.onNodeWithTag(DASHBOARD_DONUT_TAG).performClick()
 
         composeTestRule.runOnIdle {
             assertEquals(listOf(DashboardEvent.BalanceCardClicked), capturedEvents)
@@ -347,10 +347,12 @@ class DashboardContentUiTest {
             }
         }
 
-        composeTestRule
-            .onNodeWithTag("category_tile_8")
-            .performScrollTo()
-            .assertIsDisplayed()
+        repeat(3) {
+            composeTestRule
+                .onNodeWithTag(DASHBOARD_SCROLL_CONTENT_TAG)
+                .performTouchInput { swipeUp() }
+        }
+        composeTestRule.onNodeWithTag("category_tile_8").assertIsDisplayed()
     }
 
     @Test
@@ -640,7 +642,7 @@ class DashboardContentUiTest {
         }
 
         composeTestRule
-            .onNodeWithTag(NEON_RING_CHART_TAG)
+            .onRoot()
             .performTouchInput { swipeLeft() }
 
         composeTestRule.runOnIdle {
@@ -669,7 +671,7 @@ class DashboardContentUiTest {
         }
 
         composeTestRule
-            .onNodeWithTag(NEON_RING_CHART_TAG)
+            .onRoot()
             .performTouchInput { swipeRight() }
 
         composeTestRule.runOnIdle {
@@ -698,7 +700,7 @@ class DashboardContentUiTest {
         }
 
         composeTestRule
-            .onNodeWithTag(NEON_RING_CHART_TAG)
+            .onRoot()
             .performTouchInput { swipeRight() }
 
         composeTestRule.runOnIdle {
@@ -866,7 +868,7 @@ class DashboardContentUiTest {
         }
 
         composeTestRule.onNodeWithTag(BALANCE_BAR_TAG).assertDoesNotExist()
-        composeTestRule.onNodeWithTag(NEON_RING_CHART_TAG).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(DASHBOARD_DONUT_TAG).assertIsDisplayed()
     }
 
     private fun targetString(resourceId: Int): String =

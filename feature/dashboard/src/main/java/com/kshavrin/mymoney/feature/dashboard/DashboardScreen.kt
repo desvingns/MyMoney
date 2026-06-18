@@ -192,6 +192,7 @@ fun DashboardContent(
                                 Modifier
                                     .fillMaxWidth()
                                     .weight(1f)
+                                    .testTag(DASHBOARD_SCROLL_CONTENT_TAG)
                                     .verticalScroll(rememberScrollState()),
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
@@ -429,3 +430,4 @@ private fun formatMoney(
 const val DASHBOARD_TOP_BAR_TITLE_TAG = "dashboard_top_bar_title"
 const val DASHBOARD_TOP_BAR_SUBTITLE_TAG = "dashboard_top_bar_subtitle"
 const val DASHBOARD_DONUT_TAG = "dashboard_donut"
+const val DASHBOARD_SCROLL_CONTENT_TAG = "dashboard_scroll_content"

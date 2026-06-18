@@ -74,6 +74,7 @@ class MoneyDatabaseMigration4To5Test {
             45_678.77,
         )
         assertRealValues(db, "SELECT `amount` FROM `budget`", 765.43)
+        assertRealValues(db, "SELECT `exchange_rate` FROM `transaction`", 1.234567)
 
         db.close()
     }
@@ -141,7 +142,7 @@ class MoneyDatabaseMigration4To5Test {
 
         db.query("SELECT `annual_rate_percent`, `term_months` FROM `goal`").use { cursor ->
             assertTrue(cursor.moveToFirst())
-            assertEquals(12.345, cursor.getDouble(0), 0.0)
+            assertEquals(12.345, cursor.getDouble(0), REAL_TOLERANCE)
             assertEquals(241, cursor.getInt(1))
         }
 
@@ -164,8 +165,12 @@ class MoneyDatabaseMigration4To5Test {
         db.query(query).use { cursor ->
             assertTrue(cursor.moveToFirst())
             expected.forEachIndexed { index, value ->
-                assertEquals(value, cursor.getDouble(index), 0.0)
+                assertEquals(value, cursor.getDouble(index), REAL_TOLERANCE)
             }
         }
+    }
+
+    private companion object {
+        const val REAL_TOLERANCE = 1e-9
     }
 }

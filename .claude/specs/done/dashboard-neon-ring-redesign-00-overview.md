@@ -1,9 +1,10 @@
 # Дашборд «Neon Ring» — редизайн S01 — epic overview
 Epic: dashboard-neon-ring-redesign
 Order: 00 of 06
-Status: backlog
+Status: done
 Depends-on: —
 Date: 2026-06-15
+Completed: 2026-06-18
 
 ## Goal
 Переделать главный экран S01 под новый неон-макет (референс: `docs/design/dashboard-redesign/neon-ring/`).
@@ -67,5 +68,5 @@ Date: 2026-06-15
 - R2: уход от Monefy-доната убирает тап по сектору/иконки на кольце; часть существующих UI-тестов дашборда переписывается в 06.
 
 ## Implementation links
-- commit: <hash>
-- files:  <changed files>
+- commit: 7b6f789c, 12eb605f, ffe9b6c3, dc5c9902, 401b7710, b930f36c, c171caa8, f5f1ade9
+- files:  see completed SPECs 01-06

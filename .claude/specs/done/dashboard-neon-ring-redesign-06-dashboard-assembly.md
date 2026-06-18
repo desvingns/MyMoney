@@ -1,7 +1,7 @@
 # Сборка дашборда: кольцо + центр + плитки + скролл, рестайл топ-бара, FAB +15%
 Epic: dashboard-neon-ring-redesign
 Order: 06 of 06
-Status: backlog
+Status: done
 Depends-on: dashboard-neon-ring-redesign-01, dashboard-neon-ring-redesign-02, dashboard-neon-ring-redesign-03, dashboard-neon-ring-redesign-04, dashboard-neon-ring-redesign-05
 Date: 2026-06-15
 
@@ -54,5 +54,5 @@ Feature: Сборка неон-дашборда
 обновляет сломанные UI-тесты.
 
 ## Implementation links
-- commit: <hash>
-- files:  <changed files>
+- commit: b930f36c, 9cdea858, 74b23fe4, c171caa8, f5f1ade9
+- files:  feature/dashboard/src/main/java/com/kshavrin/mymoney/feature/dashboard/DashboardScreen.kt; app/src/androidTest/java/com/kshavrin/mymoney/feature/dashboard/DashboardContentUiTest.kt

@@ -1,7 +1,7 @@
 # Плитки категорий: компонент плитки + скроллируемый список
 Epic: dashboard-neon-ring-redesign
 Order: 05 of 06
-Status: backlog
+Status: done
 Depends-on: dashboard-neon-ring-redesign-01
 Date: 2026-06-15
 
@@ -50,5 +50,5 @@ Feature: Список плиток категорий
 разбивку в скроллируемый список плиток (иконка + имя + сумма + полоска-прогресс) — этот SPEC даёт компоненты.
 
 ## Implementation links
-- commit: <hash>
-- files:  <changed files>
+- commit: 401b7710
+- files:  feature/dashboard/src/main/java/com/kshavrin/mymoney/feature/dashboard/DashboardColors.kt; feature/dashboard/src/main/java/com/kshavrin/mymoney/feature/dashboard/DashboardState.kt; feature/dashboard/src/main/java/com/kshavrin/mymoney/feature/dashboard/DashboardViewModel.kt; feature/dashboard/src/main/java/com/kshavrin/mymoney/feature/dashboard/components/CategoryTile.kt; feature/dashboard/src/main/java/com/kshavrin/mymoney/feature/dashboard/components/CategoryTilesList.kt; feature/dashboard/src/main/res/values/strings.xml; feature/dashboard/src/main/res/values-ru/strings.xml; feature/dashboard/src/test/java/com/kshavrin/mymoney/feature/dashboard/DashboardViewModelTest.kt; app/src/androidTest/java/com/kshavrin/mymoney/feature/dashboard/components/CategoryTilesListUiTest.kt

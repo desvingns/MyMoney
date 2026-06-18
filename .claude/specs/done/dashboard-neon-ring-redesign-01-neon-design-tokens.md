@@ -1,7 +1,7 @@
 # Неон-токены: палитра всего приложения + токены кольца/плиток/FAB
 Epic: dashboard-neon-ring-redesign
 Order: 01 of 06
-Status: backlog
+Status: done
 Depends-on: —
 Date: 2026-06-15
 
@@ -48,5 +48,5 @@ Feature: Неон-палитра применяется ко всему прил
 Этот SPEC — фундамент: вводит неон-палитру всего приложения и дашборд-токены, на которые опираются 03/04/05/06.
 
 ## Implementation links
-- commit: <hash>
-- files:  <changed files>
+- commit: 7b6f789c, 15c518a3, 674622e5
+- files: core/ui/src/main/java/com/kshavrin/mymoney/core/ui/theme/Color.kt, core/ui/src/main/java/com/kshavrin/mymoney/core/ui/theme/Spacing.kt, core/ui/src/main/java/com/kshavrin/mymoney/core/ui/theme/Theme.kt, core/ui/src/main/java/com/kshavrin/mymoney/core/ui/theme/Typography.kt, core/ui/src/test/java/com/kshavrin/mymoney/core/ui/theme/DashboardBalancePanelColorsTest.kt

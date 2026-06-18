@@ -43,7 +43,8 @@ fun NeonRingChart(
     val strokeWidth = Spacing.neonRingStrokeWidth
     val glowRadius = Spacing.neonRingGlowRadius
     val glowSpread = Spacing.neonRingGlowSpread
-    val glowMargin = glowRadius + glowSpread
+    val glowStrokeWidth = strokeWidth + glowSpread * 2
+    val glowMargin = glowRadius + glowSpread + glowStrokeWidth / 2
     val containerSize = diameter + glowMargin * 2
     val innerDiameter = diameter - (strokeWidth + glowSpread) * 2
     val gradientStart = MaterialTheme.colorScheme.neonRingGradientStart
@@ -51,12 +52,12 @@ fun NeonRingChart(
     val trackColor = MaterialTheme.colorScheme.neonRingTrack
     val density = LocalDensity.current
     val glowPaint =
-        remember(density, gradientStart, glowRadius, glowSpread, strokeWidth) {
+        remember(density, gradientStart, glowRadius, glowStrokeWidth) {
             Paint().apply {
                 color = gradientStart
                 style = PaintingStyle.Stroke
                 strokeCap = StrokeCap.Round
-                this.strokeWidth = with(density) { (strokeWidth + glowSpread * 2).toPx() }
+                this.strokeWidth = with(density) { glowStrokeWidth.toPx() }
                 asFrameworkPaint().maskFilter =
                     BlurMaskFilter(
                         with(density) { glowRadius.toPx() },

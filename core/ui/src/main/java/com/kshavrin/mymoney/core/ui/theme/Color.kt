@@ -2,54 +2,55 @@ package com.kshavrin.mymoney.core.ui.theme
 
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.luminance
 
-val LightColors =
-    lightColorScheme(
-        primary = Color(0xFF7AC794), // APK green_2 — top app bar / FAB / income half
-        onPrimary = Color(0xFFFFFFFF), // APK
-        primaryContainer = Color(0xFFA9E0BB), // APK green_1 — active selection
-        onPrimaryContainer = Color(0xFF2E4A3A), // decision — text on primaryContainer
-        secondary = Color(0xFF50AB6F), // APK green_3 — outlines
-        onSecondary = Color(0xFFFFFFFF), // decision
-        tertiary = Color(0xFFF66561), // APK red — expense half, error
-        onTertiary = Color(0xFFFFFFFF), // decision
-        background = Color(0xFFF2FFF7), // APK main_background
-        onBackground = Color(0xFF1C1B1F), // M3-default
-        surface = Color(0xFFF2FFF7), // APK
-        onSurface = Color(0xAE000000), // APK ARGB — 68% black opacity (deliberate)
-        surfaceVariant = Color(0xFFD7F3E1), // APK green_0
-        onSurfaceVariant = Color(0xFF7A9685), // screenshots ±
-        outline = Color(0xFFA9E0BB), // APK green_1
-        outlineVariant = Color(0xFFCFE3D2), // screenshots ±
-        error = Color(0xFFF66561), // APK — same red as tertiary
-        onError = Color(0xFFFFFFFF), // decision
+private val NeonBackground = Color(0xFF0A0E1C)
+private val NeonSurface = Color(0xFF111A2E)
+private val NeonSurfaceAlt = Color(0xFF1B2236)
+private val NeonTextPrimary = Color(0xFFE8EAF0)
+private val NeonTextSecondary = Color(0xFF7C8290)
+private val NeonMint = Color(0xFF5BE3B0)
+private val NeonCyan = Color(0xFF46B6E6)
+private val NeonCoral = Color(0xFFFF8A80)
+private val NeonTrack = Color(0xFF1A2236)
+
+private val NeonColors =
+    darkColorScheme(
+        primary = NeonMint,
+        onPrimary = NeonBackground,
+        primaryContainer = NeonSurfaceAlt,
+        onPrimaryContainer = NeonTextPrimary,
+        secondary = NeonCyan,
+        onSecondary = NeonBackground,
+        secondaryContainer = NeonTrack,
+        onSecondaryContainer = NeonTextPrimary,
+        tertiary = NeonCoral,
+        onTertiary = NeonBackground,
+        tertiaryContainer = Color(0xFF3B2028),
+        onTertiaryContainer = Color(0xFFFFDAD6),
+        background = NeonBackground,
+        onBackground = NeonTextPrimary,
+        surface = NeonSurface,
+        onSurface = NeonTextPrimary,
+        surfaceVariant = NeonSurfaceAlt,
+        onSurfaceVariant = NeonTextSecondary,
+        outline = Color(0xFF536078),
+        outlineVariant = Color(0xFF2B354D),
+        error = NeonCoral,
+        onError = NeonBackground,
+        errorContainer = Color(0xFF5C2B2E),
+        onErrorContainer = Color(0xFFFFDAD6),
+        inverseSurface = NeonTextPrimary,
+        inverseOnSurface = NeonBackground,
+        inversePrimary = Color(0xFF006C52),
+        surfaceTint = NeonMint,
+        scrim = Color.Black,
     )
 
-val DarkColors =
-    darkColorScheme(
-        primary = Color(0xFF7AC794), // APK — same mint
-        onPrimary = Color(0xFFFFFFFF), // decision
-        primaryContainer = Color(0xFF2F5D3D), // decision derived
-        onPrimaryContainer = Color(0xFFFFFFFF), // decision
-        secondary = Color(0xFF9CBBA8), // decision — lighter contrast
-        onSecondary = Color(0xFF000000), // decision
-        tertiary = Color(0xFFF66561), // APK — same red
-        onTertiary = Color(0xFFFFFFFF), // decision
-        background = Color(0xFF424242), // APK main_background dark
-        onBackground = Color(0xFFE6E1E5), // M3-default
-        surface = Color(0xFF424242), // APK — flat
-        onSurface = Color(0xFFFFFFFF), // APK primaryTextColor dark
-        surfaceVariant = Color(0xFF616161), // APK action_bar_background dark
-        onSurfaceVariant = Color(0xFFCAC4D0), // M3-default
-        outline = Color(0xFF616161), // APK
-        outlineVariant = Color(0xFF4B4B4B), // decision
-        error = Color(0xFFF66561), // APK
-        onError = Color(0xFFFFFFFF), // decision
-    )
+val LightColors = NeonColors
+val DarkColors = NeonColors
 
 val CategoryColors: Map<String, Color> =
     mapOf(
@@ -70,17 +71,10 @@ val CategoryColors: Map<String, Color> =
         "car" to Color(0xFF4A5870),
     )
 
-private val DashboardLightHeroGradientEnd = Color(0xFF8FD6A8)
-private val DashboardLightPrimaryText = Color(0xFF066A35)
-private val DashboardLightBalancePanelContainer = Color(0xFFE9F7EF)
-private val DashboardLightBalancePanelOutline = Color(0xFF9ED8B2)
 private val DashboardLightBalancePanelContainerNegative = Color(0xFFFCEAEA)
 private val DashboardLightBalancePanelContentNegative = Color(0xFFD64545)
 private val DashboardDarkBalancePanelContentNegative = Color(0xFFEF9A9A)
-private val DashboardLightCenterDivider = Color(0xFFD8E7DD)
 private val DashboardDonutOtherSlice = Color(0xFF9E9E9E)
-private val DashboardIncomeAccent = Color(0xFF15995B)
-private val DashboardExpenseAccent = Color(0xFFF94F4B)
 
 private val ColorScheme.isLightDashboardPalette: Boolean
     get() = background.luminance() > 0.5f
@@ -124,32 +118,62 @@ val ColorScheme.dashboardDrawerPanelContainer: Color
 val ColorScheme.dashboardDrawerPanelContent: Color
     get() = onSurface
 
+val ColorScheme.neonRingGradientStart: Color
+    get() = NeonMint
+
+val ColorScheme.neonRingGradientEnd: Color
+    get() = NeonCyan
+
+val ColorScheme.neonRingTrack: Color
+    get() = NeonTrack
+
+val ColorScheme.dashboardNeonBackground: Color
+    get() = NeonBackground
+
+val ColorScheme.tileSurface: Color
+    get() = NeonSurface
+
+val ColorScheme.tileSurfaceAlt: Color
+    get() = NeonSurfaceAlt
+
+val ColorScheme.textPrimary: Color
+    get() = NeonTextPrimary
+
+val ColorScheme.textSecondary: Color
+    get() = NeonTextSecondary
+
+val ColorScheme.incomeAccent: Color
+    get() = NeonMint
+
+val ColorScheme.expenseAccent: Color
+    get() = NeonCoral
+
 val ColorScheme.dashboardHeroGradientStart: Color
-    get() = if (isLightDashboardPalette) primary else primaryContainer
+    get() = NeonMint
 
 val ColorScheme.dashboardHeroGradientEnd: Color
-    get() = if (isLightDashboardPalette) DashboardLightHeroGradientEnd else primary
+    get() = NeonCyan
 
 val ColorScheme.dashboardPeriodSelectedText: Color
-    get() = if (isLightDashboardPalette) DashboardLightPrimaryText else onSurface
+    get() = NeonTextPrimary
 
 val ColorScheme.dashboardPeriodUnselectedText: Color
-    get() = if (isLightDashboardPalette) onSurfaceVariant.copy(alpha = 0.84f) else onSurfaceVariant
+    get() = NeonTextSecondary
 
 val ColorScheme.dashboardPeriodIndicator: Color
     get() = dashboardPeriodSelectedText
 
 val ColorScheme.dashboardBalancePanelContainer: Color
-    get() = if (isLightDashboardPalette) DashboardLightBalancePanelContainer else surfaceVariant.copy(alpha = 0.92f)
+    get() = NeonSurfaceAlt
 
 val ColorScheme.dashboardBalancePanelContent: Color
-    get() = if (isLightDashboardPalette) DashboardLightPrimaryText else onSurface
+    get() = NeonTextPrimary
 
 val ColorScheme.dashboardBalancePanelOutline: Color
-    get() = if (isLightDashboardPalette) DashboardLightBalancePanelOutline else primary.copy(alpha = 0.8f)
+    get() = NeonMint.copy(alpha = 0.8f)
 
 val ColorScheme.dashboardBalancePanelShadow: Color
-    get() = if (isLightDashboardPalette) DashboardLightPrimaryText.copy(alpha = 0.16f) else Color.Black.copy(alpha = 0.32f)
+    get() = NeonMint.copy(alpha = 0.18f)
 
 val ColorScheme.dashboardBalancePanelContainerNegative: Color
     get() =
@@ -163,22 +187,22 @@ val ColorScheme.dashboardBalancePanelContentNegative: Color
     get() = if (isLightDashboardPalette) DashboardLightBalancePanelContentNegative else DashboardDarkBalancePanelContentNegative
 
 val ColorScheme.dashboardDonutCenterDivider: Color
-    get() = if (isLightDashboardPalette) DashboardLightCenterDivider else outlineVariant.copy(alpha = 0.9f)
+    get() = NeonTrack
 
 val ColorScheme.dashboardDonutLeaderLine: Color
-    get() = if (isLightDashboardPalette) outlineVariant.copy(alpha = 0.78f) else onSurfaceVariant.copy(alpha = 0.7f)
+    get() = NeonTextSecondary.copy(alpha = 0.7f)
 
 val ColorScheme.dashboardDonutOtherSlice: Color
     get() = DashboardDonutOtherSlice
 
 val ColorScheme.dashboardCalloutLabel: Color
-    get() = onSurface.copy(alpha = if (isLightDashboardPalette) 0.92f else 0.88f)
+    get() = NeonTextPrimary.copy(alpha = 0.88f)
 
 val ColorScheme.dashboardActionIncome: Color
-    get() = if (isLightDashboardPalette) DashboardIncomeAccent else primary
+    get() = NeonMint
 
 val ColorScheme.dashboardActionExpense: Color
-    get() = if (isLightDashboardPalette) DashboardExpenseAccent else tertiary
+    get() = NeonCoral
 
 val ColorScheme.goalSavingsChipContainer: Color
     get() = primaryContainer

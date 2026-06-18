@@ -135,6 +135,49 @@ val Typography.dashboardFabLabel: TextStyle
             letterSpacing = 0.sp,
         )
 
+val Typography.dashboardRingBalanceValue: TextStyle
+    get() =
+        displayLarge.copy(
+            fontSize = 48.sp,
+            fontWeight = FontWeight.Bold,
+            lineHeight = 52.sp,
+            letterSpacing = (-0.5).sp,
+        )
+
+val Typography.dashboardRingBalanceLabel: TextStyle
+    get() =
+        labelLarge.copy(
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
+            lineHeight = 20.sp,
+            letterSpacing = 0.sp,
+        )
+
+val Typography.dashboardIncomeExpenseBadge: TextStyle
+    get() =
+        labelMedium.copy(
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            lineHeight = 16.sp,
+            letterSpacing = 0.sp,
+        )
+
+val Typography.dashboardCategoryTileTitle: TextStyle
+    get() =
+        bodyLarge.copy(
+            fontWeight = FontWeight.Medium,
+            lineHeight = 22.sp,
+            letterSpacing = 0.sp,
+        )
+
+val Typography.dashboardCategoryTileAmount: TextStyle
+    get() =
+        titleMedium.copy(
+            fontWeight = FontWeight.SemiBold,
+            lineHeight = 22.sp,
+            letterSpacing = 0.sp,
+        )
+
 val Typography.goalListRowAmount: TextStyle
     get() =
         bodyMedium.copy(

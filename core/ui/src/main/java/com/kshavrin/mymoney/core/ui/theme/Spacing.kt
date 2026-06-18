@@ -19,7 +19,7 @@ object Spacing {
     val dashboardBalancePanelHeight = 84.dp
     val dashboardBalancePanelMaxWidth = 245.dp
     val dashboardBalancePanelBorderWidth = 1.dp
-    val dashboardFabSize = 90.dp
+    val dashboardFabSize = 104.dp
     val dashboardFabHorizontalPadding = 44.dp
     val dashboardFabOutlineWidth = 4.dp
     val dashboardFabLabelTopPadding = 16.dp
@@ -28,6 +28,14 @@ object Spacing {
     val dashboardDonutCenterDividerThickness = 1.dp
     val dashboardDonutCalloutIconSize = 40.dp
     val dashboardDonutLeaderLineThickness = 1.dp
+    val neonRingDiameter = 248.dp
+    val neonRingStrokeWidth = 20.dp
+    val neonRingGlowRadius = 16.dp
+    val neonRingGlowSpread = 4.dp
+    val dashboardTileHeight = 76.dp
+    val dashboardTileCornerRadius = 16.dp
+    val dashboardTileIconChipSize = 44.dp
+    val dashboardTileProgressBarHeight = 4.dp
     val goalListIconCircleSize = 40.dp
     val goalListIconSize = 22.dp
 

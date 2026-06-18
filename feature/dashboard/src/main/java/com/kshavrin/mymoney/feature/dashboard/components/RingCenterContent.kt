@@ -162,17 +162,17 @@ private fun formatRingAmount(
         symbolPosition = MoneyFormatter.SymbolPosition.AFTER,
     )
 
-private data class RingCenterLayout(
+internal data class RingCenterLayout(
     val balanceScale: Float,
     val badgeScale: Float,
 )
 
-private data class MeasuredText(
+internal data class MeasuredText(
     val width: Float,
     val height: Float,
 )
 
-private fun calculateRingCenterLayout(
+internal fun calculateRingCenterLayout(
     availableWidth: Float,
     availableHeight: Float,
     label: String,

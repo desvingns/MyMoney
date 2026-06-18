@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Menu
@@ -44,8 +46,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.kshavrin.mymoney.core.common.money.MoneyFormatter
 import com.kshavrin.mymoney.core.designsystem.appbar.MoneyHeroAppBar
 import com.kshavrin.mymoney.core.designsystem.confetti.MonefyConfetti
-import com.kshavrin.mymoney.core.designsystem.donut.DonutStyle
-import com.kshavrin.mymoney.core.designsystem.donut.MonefyDonutChart
+import com.kshavrin.mymoney.core.designsystem.donut.NeonRingChart
 import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.ui.feedback.LocalHapticPlayer
 import com.kshavrin.mymoney.core.ui.feedback.LocalSoundPlayer
@@ -62,19 +63,15 @@ import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanelContentNegative
 import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanelOutline
 import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanelShadow
 import com.kshavrin.mymoney.core.ui.theme.dashboardBalanceValue
-import com.kshavrin.mymoney.core.ui.theme.dashboardCalloutLabel
-import com.kshavrin.mymoney.core.ui.theme.dashboardCalloutPercentage
-import com.kshavrin.mymoney.core.ui.theme.dashboardDonutCenterDivider
-import com.kshavrin.mymoney.core.ui.theme.dashboardDonutCenterTotal
-import com.kshavrin.mymoney.core.ui.theme.dashboardDonutLeaderLine
-import com.kshavrin.mymoney.core.ui.theme.dashboardDonutOtherSlice
+import com.kshavrin.mymoney.core.ui.theme.dashboardNeonBackground
+import com.kshavrin.mymoney.feature.dashboard.components.CategoryTilesList
 import com.kshavrin.mymoney.feature.dashboard.components.DashboardDrawerOverlay
 import com.kshavrin.mymoney.feature.dashboard.components.DrawerSide
 import com.kshavrin.mymoney.feature.dashboard.components.LeftDrawerContent
 import com.kshavrin.mymoney.feature.dashboard.components.PeriodLabel
 import com.kshavrin.mymoney.feature.dashboard.components.RightDrawerContent
+import com.kshavrin.mymoney.feature.dashboard.components.RingCenterContent
 import com.kshavrin.mymoney.feature.dashboard.components.TwoFabLayout
-import java.math.BigDecimal
 import java.util.Locale
 
 @Composable
@@ -112,6 +109,7 @@ fun DashboardContent(
     }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.dashboardNeonBackground,
         topBar = {
             DashboardTopBar(
                 subtitle = state.currentCurrency?.name,
@@ -171,19 +169,6 @@ fun DashboardContent(
                         modifier = Modifier.fillMaxSize(),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        val balanceAmount =
-                            formatBalanceAmount(
-                                state = state,
-                                unavailableText = stringResource(R.string.dashboard_balance_unavailable_amount),
-                                locale = resourceLocale,
-                            )
-                        val isNegative =
-                            (
-                                state.balanceSnapshot
-                                    ?.net
-                                    ?.amount
-                                    ?.signum() ?: 0
-                            ) < 0
                         val overBudgetText =
                             state.overBudgetAmount?.let { overage ->
                                 stringResource(R.string.dashboard_over_budget, formatMoney(overage, resourceLocale))
@@ -202,75 +187,65 @@ fun DashboardContent(
                             modifier = Modifier.height(Spacing.dashboardPeriodRowHeight),
                         )
 
-                        DashboardBalancePanel(
-                            label = stringResource(R.string.dashboard_balance),
-                            amount = balanceAmount,
-                            isNegative = isNegative,
-                            onClick = { onEvent(DashboardEvent.BalanceCardClicked) },
-                            modifier = Modifier.testTag("dashboard_balance_bar"),
-                        )
-
-                        Box(
+                        Column(
                             modifier =
                                 Modifier
                                     .fillMaxWidth()
                                     .weight(1f)
-                                    .testTag(DASHBOARD_DONUT_TAG),
+                                    .verticalScroll(rememberScrollState()),
+                            horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
-                            val otherCategoryLabel = stringResource(R.string.category_other)
-                            val otherCategoryColor = MaterialTheme.colorScheme.dashboardDonutOtherSlice
-                            val dashboardSlices =
-                                state.slices.map { slice ->
-                                    if (slice.categoryId == OTHER_CATEGORY_ID) {
-                                        slice.copy(label = otherCategoryLabel, color = otherCategoryColor)
-                                    } else {
-                                        slice
-                                    }
-                                }
-                            MonefyDonutChart(
-                                income = state.balanceSnapshot?.income?.amount ?: BigDecimal.ZERO,
-                                expense = state.balanceSnapshot?.expense?.amount ?: BigDecimal.ZERO,
-                                slices = dashboardSlices,
-                                modifier = Modifier.fillMaxSize(),
-                                currencySymbol = state.currentCurrency?.symbol ?: "",
-                                decimalDigits = state.currentCurrency?.decimalDigits ?: 2,
-                                emptyStateIcons = state.expenseCategoryPlaceholders,
-                                outerRadiusFraction = 0.62f,
-                                ringThicknessFraction = 0.36f,
-                                sliceGapDegrees = 7f,
-                                explodedOffset = Spacing.dashboardDonutExplodedOffset,
-                                centerDecimalDigits = state.currentCurrency?.decimalDigits ?: 2,
-                                centerTextStyle = MaterialTheme.typography.dashboardDonutCenterTotal,
-                                centerDividerColor = MaterialTheme.colorScheme.dashboardDonutCenterDivider,
-                                centerDividerWidth = Spacing.dashboardDonutCenterDividerWidth,
-                                centerDividerThickness = Spacing.dashboardDonutCenterDividerThickness,
-                                calloutIconSize = Spacing.dashboardDonutCalloutIconSize,
-                                calloutLabelStyle = MaterialTheme.typography.dashboardCalloutLabel,
-                                calloutPercentageStyle = MaterialTheme.typography.dashboardCalloutPercentage,
-                                calloutLabelColor = MaterialTheme.colorScheme.dashboardCalloutLabel,
-                                leaderLineColor = MaterialTheme.colorScheme.dashboardDonutLeaderLine,
-                                leaderLineThickness = Spacing.dashboardDonutLeaderLineThickness,
-                                showCategoryLabels = true,
-                                style = DonutStyle.Extrude,
-                                onSliceClick = { slice ->
-                                    onEvent(DashboardEvent.SliceClicked(slice.categoryId))
-                                },
-                            )
-                        }
-
-                        if (overBudgetText != null) {
-                            Spacer(modifier = Modifier.height(Spacing.s))
-                            Surface(
-                                shape = MaterialTheme.shapes.extraLarge,
-                                color = MaterialTheme.colorScheme.errorContainer,
-                                contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                            val snapshot = state.balanceSnapshot
+                            NeonRingChart(
+                                fraction = state.ringFraction,
+                                modifier =
+                                    Modifier
+                                        .testTag(DASHBOARD_DONUT_TAG)
+                                        .clickable { onEvent(DashboardEvent.BalanceCardClicked) },
                             ) {
-                                Text(
-                                    text = overBudgetText,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                                )
+                                if (snapshot != null) {
+                                    RingCenterContent(
+                                        periodNet = state.periodNet,
+                                        income = snapshot.income,
+                                        expense = snapshot.expense,
+                                    )
+                                }
                             }
+
+                            if (overBudgetText != null) {
+                                Spacer(modifier = Modifier.height(Spacing.s))
+                                Surface(
+                                    shape = MaterialTheme.shapes.extraLarge,
+                                    color = MaterialTheme.colorScheme.errorContainer,
+                                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                                ) {
+                                    Text(
+                                        text = overBudgetText,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        modifier = Modifier.padding(horizontal = Spacing.m, vertical = Spacing.s),
+                                    )
+                                }
+                            }
+
+                            CategoryTilesList(
+                                expenseTiles = state.expenseTiles,
+                                onTileClick = { categoryId ->
+                                    onEvent(DashboardEvent.SliceClicked(categoryId))
+                                },
+                                modifier =
+                                    Modifier
+                                        .padding(horizontal = Spacing.l)
+                                        .then(
+                                            if (state.expenseTiles.isEmpty()) {
+                                                Modifier
+                                            } else {
+                                                Modifier.height(
+                                                    Spacing.dashboardTileHeight * state.expenseTiles.size +
+                                                        Spacing.s * (state.expenseTiles.size + 1),
+                                                )
+                                            },
+                                        ),
+                            )
                         }
 
                         TwoFabLayout(

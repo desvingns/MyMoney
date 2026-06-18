@@ -8,6 +8,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
+import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
@@ -245,8 +246,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `neon ring renders center values and replaces the separate balance panel`() {
-        val capturedEvents = mutableListOf<DashboardEvent>()
+    fun `neon ring renders non-clickable center values and replaces the separate balance panel`() {
         val usd = usdCurrency()
         val snapshot =
             BalanceSnapshot(
@@ -267,7 +267,7 @@ class DashboardContentUiTest {
                             ringFraction = 0.62f,
                             isLoading = false,
                         ),
-                    onEvent = { event -> capturedEvents += event },
+                    onEvent = {},
                 )
             }
         }
@@ -275,7 +275,7 @@ class DashboardContentUiTest {
         composeTestRule
             .onNodeWithTag(DASHBOARD_DONUT_TAG)
             .assertIsDisplayed()
-            .assertHasClickAction()
+            .assertHasNoClickAction()
         composeTestRule
             .onNodeWithText(targetString(R.string.dashboard_ring_balance), useUnmergedTree = true)
             .assertIsDisplayed()
@@ -291,12 +291,6 @@ class DashboardContentUiTest {
                 useUnmergedTree = true,
             ).assertIsDisplayed()
         composeTestRule.onNodeWithTag(BALANCE_BAR_TAG).assertDoesNotExist()
-
-        composeTestRule.onNodeWithTag(DASHBOARD_DONUT_TAG).performClick()
-
-        composeTestRule.runOnIdle {
-            assertEquals(listOf(DashboardEvent.BalanceCardClicked), capturedEvents)
-        }
     }
 
     @Test

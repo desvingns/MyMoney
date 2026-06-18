@@ -141,7 +141,7 @@ val Typography.dashboardRingBalanceValue: TextStyle
             fontSize = 48.sp,
             fontWeight = FontWeight.Bold,
             lineHeight = 52.sp,
-            letterSpacing = (-0.5).sp,
+            letterSpacing = 0.sp,
         )
 
 val Typography.dashboardRingBalanceLabel: TextStyle

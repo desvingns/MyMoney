@@ -10,6 +10,9 @@
     <string name="dashboard_balance_unavailable">Balance &#8212;</string>
     <string name="dashboard_balance_unavailable_amount">&#8212;</string>
     <string name="dashboard_over_budget">Over by %1$s</string>
+    <string name="dashboard_ring_balance">Balance</string>
+    <string name="dashboard_ring_income">↑ %1$s</string>
+    <string name="dashboard_ring_expense">↓ %1$s</string>
     <string name="category_other">Other</string>
 
     <string name="period_today">Today</string>

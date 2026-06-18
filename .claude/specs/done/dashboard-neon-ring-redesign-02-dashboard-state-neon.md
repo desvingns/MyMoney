@@ -1,7 +1,7 @@
 # Состояние дашборда: net периода, доля кольца, развёрнутый список расходов
 Epic: dashboard-neon-ring-redesign
 Order: 02 of 06
-Status: backlog
+Status: done
 Depends-on: —
 Date: 2026-06-15
 
@@ -60,5 +60,5 @@ Feature: Состояние неон-дашборда
 и полный список расходных категорий (плитки) — этот SPEC даёт их в состоянии.
 
 ## Implementation links
-- commit: <hash>
-- files:  <changed files>
+- commit: 12eb605f, 7eac8fbd
+- files:  feature/dashboard/src/main/java/com/kshavrin/mymoney/feature/dashboard/DashboardState.kt; feature/dashboard/src/main/java/com/kshavrin/mymoney/feature/dashboard/DashboardViewModel.kt; feature/dashboard/src/test/java/com/kshavrin/mymoney/feature/dashboard/DashboardViewModelTest.kt

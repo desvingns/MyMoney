@@ -1,7 +1,7 @@
 # Точность денег: максимум 2 знака после запятой — epic overview
 Epic: money-decimal-precision
 Order: 00 of 05
-Status: backlog
+Status: done
 Depends-on: —
 Date: 2026-06-15
 
@@ -37,5 +37,5 @@ Date: 2026-06-15
 - G14/G15/G16: `:core:domain` тест-таск = `test`; миграции тестируются инструментально (`:core:database:connectedDebugAndroidTest`, MigrationTestHelper, реальный Room); ktlintFormat перед коммитом; runner-скрипт `:core:*`/`:feature:*` пропускает — проверять вручную.
 
 ## Implementation links
-- commit: <hash>
-- files:  <changed files>
+- commit: e98744a4, be8df9b8, 34538f06, ec2fddb3, 578abe5f, af59efc1, 70f4da8b, c673669f
+- files:  completed SPECs money-decimal-precision-01 through money-decimal-precision-05

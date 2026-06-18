@@ -1,7 +1,7 @@
 # MIGRATION_4_5: округление уже хранимых денежных значений до 2 знаков
 Epic: money-decimal-precision
 Order: 05 of 05
-Status: backlog
+Status: done
 Depends-on: —
 Date: 2026-06-15
 
@@ -61,5 +61,5 @@ Feature: Существующие хранимые суммы округляют
 Прод-фиксы (02/03/04) чистят новые значения, но в БД пользователя уже лежат «грязные» суммы. Эта миграция нормализует существующие данные одноразово и закрывает путь восстановления старых бинарных бэкапов.
 
 ## Implementation links
-- commit: <hash>
-- files:  <changed files>
+- commit: af59efc1, 70f4da8b, c673669f
+- files:  core/database/schemas/com.kshavrin.mymoney.core.database.MoneyDatabase/5.json; core/database/src/main/java/com/kshavrin/mymoney/core/database/MoneyDatabase.kt; core/database/src/main/java/com/kshavrin/mymoney/core/database/di/DatabaseModule.kt; core/database/src/main/java/com/kshavrin/mymoney/core/database/migration/Migrations.kt; core/database/src/androidTest/java/com/kshavrin/mymoney/core/database/MoneyDatabaseMigration4To5Test.kt

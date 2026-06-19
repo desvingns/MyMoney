@@ -184,11 +184,12 @@ class DashboardContentUiTest {
     @Test
     fun `top bar removes legacy wordmark and subtitle and keeps the period switcher visible`() {
         val period = Period.Month(YearMonth.of(2026, 4))
+        // 2026 == currentYear → new formatter emits month name only (no year suffix)
         val expectedLabel =
             YearMonth
                 .of(2026, 4)
                 .atDay(1)
-                .format(DateTimeFormatter.ofPattern("LLLL yyyy", targetLocale()))
+                .format(DateTimeFormatter.ofPattern("LLLL", targetLocale()))
 
         composeTestRule.setContent {
             MyMoneyTheme {
@@ -469,11 +470,12 @@ class DashboardContentUiTest {
     @Test
     fun `dashboard shows the current period once inside the toolbar period switcher`() {
         val period = Period.Month(YearMonth.of(2026, 4))
+        // 2026 == currentYear → new formatter emits month name only (no year suffix)
         val expectedLabel =
             YearMonth
                 .of(2026, 4)
                 .atDay(1)
-                .format(DateTimeFormatter.ofPattern("LLLL yyyy", targetLocale()))
+                .format(DateTimeFormatter.ofPattern("LLLL", targetLocale()))
 
         composeTestRule.setContent {
             MyMoneyTheme {
@@ -793,10 +795,11 @@ class DashboardContentUiTest {
     @Test
     fun `period switcher shows only the current period label in the toolbar`() {
         val current = Period.Month(YearMonth.of(2026, 4))
-        val pattern = DateTimeFormatter.ofPattern("LLLL yyyy", targetLocale())
-        val currentLabel = YearMonth.of(2026, 4).atDay(1).format(pattern)
-        val previousLabel = YearMonth.of(2026, 3).atDay(1).format(pattern)
-        val nextLabel = YearMonth.of(2026, 5).atDay(1).format(pattern)
+        // 2026 == currentYear → new formatter emits month name only (no year suffix)
+        val monthNamePattern = DateTimeFormatter.ofPattern("LLLL", targetLocale())
+        val currentLabel = YearMonth.of(2026, 4).atDay(1).format(monthNamePattern)
+        val previousLabel = YearMonth.of(2026, 3).atDay(1).format(monthNamePattern)
+        val nextLabel = YearMonth.of(2026, 5).atDay(1).format(monthNamePattern)
 
         composeTestRule.setContent {
             MyMoneyTheme {
@@ -816,9 +819,10 @@ class DashboardContentUiTest {
     @Test
     fun `period switcher in the toolbar exposes previous and next controls without placeholder labels`() {
         val current = Period.Month(YearMonth.of(2026, 4))
-        val pattern = DateTimeFormatter.ofPattern("LLLL yyyy", targetLocale())
-        val previousLabel = YearMonth.of(2026, 3).atDay(1).format(pattern)
-        val nextLabel = YearMonth.of(2026, 5).atDay(1).format(pattern)
+        // 2026 == currentYear → new formatter emits month name only (no year suffix)
+        val monthNamePattern = DateTimeFormatter.ofPattern("LLLL", targetLocale())
+        val previousLabel = YearMonth.of(2026, 3).atDay(1).format(monthNamePattern)
+        val nextLabel = YearMonth.of(2026, 5).atDay(1).format(monthNamePattern)
 
         composeTestRule.setContent {
             MyMoneyTheme {

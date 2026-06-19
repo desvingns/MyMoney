@@ -828,6 +828,7 @@ class DashboardViewModelTest {
     @Test
     fun `state derives ring fraction and period net from income and expense totals`() =
         runTest {
+            // income=85000, expense=47350 → surplus → green, fraction = net/income = 37650/85000 ≈ 0.4429
             transactionRepository.seedExpenseSummary(
                 cash.id,
                 initialPeriod,
@@ -846,7 +847,8 @@ class DashboardViewModelTest {
                 runCurrent()
 
                 val state = viewModel.state.value
-                assertEquals(0.557f, state.ringFraction, 0.001f)
+                assertEquals(0.4429f, state.ringFraction, 0.001f)
+                assertFalse(state.ringIsExpense)
                 assertEquals(0, BigDecimal("37650.00").compareTo(state.periodNet.amount))
                 assertEquals(listOf(10L, 20L, 30L), state.expenseTiles.map { it.categoryId })
                 assertEquals(0.9504f, state.expenseTiles[0].fraction, 0.0001f)
@@ -858,8 +860,9 @@ class DashboardViewModelTest {
         }
 
     @Test
-    fun `state keeps ring fraction at zero and period net negative when income is zero`() =
+    fun `state sets ring to full red when income is zero and expense is present with no previous period data`() =
         runTest {
+            // income=0, expense=1200, no previousExpense seeded → fraction=1.0, isExpense=true
             transactionRepository.seedExpenseSummary(
                 cash.id,
                 initialPeriod,
@@ -871,10 +874,145 @@ class DashboardViewModelTest {
                 runCurrent()
 
                 val state = viewModel.state.value
-                assertEquals(0f, state.ringFraction, 0f)
+                assertEquals(1.0f, state.ringFraction, 0.001f)
+                assertTrue(state.ringIsExpense)
                 assertEquals(0, BigDecimal("-1200.00").compareTo(state.periodNet.amount))
                 assertEquals(listOf(10L), state.expenseTiles.map { it.categoryId })
                 assertEquals(1.0f, state.expenseTiles.single().fraction, 0.0001f)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `ring shows green surplus fraction when income exceeds expense`() =
+        runTest {
+            // income=200, expense=50 → surplus → green, fraction = 150/200 = 0.75
+            transactionRepository.seedExpenseSummary(
+                cash.id,
+                initialPeriod,
+                summary(categoryId = 10L, amount = "50.00"),
+            )
+            transactionRepository.seedIncomeSummary(
+                cash.id,
+                initialPeriod,
+                summary(categoryId = 200L, amount = "200.00"),
+            )
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                val state = viewModel.state.value
+                assertFalse(state.ringIsExpense)
+                assertEquals(0.75f, state.ringFraction, 0.001f)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `ring shows red overspend fraction when expense exceeds income`() =
+        runTest {
+            // income=100, expense=160 → overspend = 60/100 = 0.6, red
+            transactionRepository.seedExpenseSummary(
+                cash.id,
+                initialPeriod,
+                summary(categoryId = 10L, amount = "160.00"),
+            )
+            transactionRepository.seedIncomeSummary(
+                cash.id,
+                initialPeriod,
+                summary(categoryId = 200L, amount = "100.00"),
+            )
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                val state = viewModel.state.value
+                assertTrue(state.ringIsExpense)
+                assertEquals(0.6f, state.ringFraction, 0.001f)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `ring fraction is zero and not expense when no records at all`() =
+        runTest {
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                val state = viewModel.state.value
+                assertFalse(state.ringIsExpense)
+                assertEquals(0.0f, state.ringFraction, 0.001f)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `ring does not query previous period when income is present`() =
+        runTest {
+            // Surplus period — previousExpense must never be fetched.
+            // We seed nothing for the previous month so any query there would return 0,
+            // which would corrupt the fraction if it were used. The assertion is that
+            // the fraction uses the income-based formula, not the previous-period formula.
+            transactionRepository.seedExpenseSummary(
+                cash.id,
+                initialPeriod,
+                summary(categoryId = 10L, amount = "30.00"),
+            )
+            transactionRepository.seedIncomeSummary(
+                cash.id,
+                initialPeriod,
+                summary(categoryId = 200L, amount = "100.00"),
+            )
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                val state = viewModel.state.value
+                // Surplus: net=70, fraction=70/100=0.7, green — proves previous-period path was NOT taken.
+                assertFalse(state.ringIsExpense)
+                assertEquals(0.7f, state.ringFraction, 0.001f)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `ring uses previous period expense when income is zero and expense is present`() =
+        runTest {
+            // current period: income=0, expense=40
+            // previous period: expense=80 → fraction = 40/80 = 0.5, red
+            val prevMonth = Period.Month(initialPeriod.yearMonth.minusMonths(1))
+            transactionRepository.seedExpenseSummary(
+                cash.id,
+                initialPeriod,
+                summary(categoryId = 10L, amount = "40.00"),
+            )
+            transactionRepository.seedExpenseSummary(
+                cash.id,
+                prevMonth,
+                summary(categoryId = 10L, amount = "80.00"),
+            )
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                val state = viewModel.state.value
+                assertTrue(state.ringIsExpense)
+                assertEquals(0.5f, state.ringFraction, 0.001f)
             } finally {
                 store.clear()
                 runCurrent()

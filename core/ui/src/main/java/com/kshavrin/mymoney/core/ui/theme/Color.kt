@@ -15,6 +15,8 @@ private val NeonOnSurfaceVariant = Color(0xFF8E96A8)
 private val NeonMint = Color(0xFF5BE3B0)
 private val NeonCyan = Color(0xFF46B6E6)
 private val NeonCoral = Color(0xFFFF8A80)
+private val NeonCoralBright = Color(0xFFFF9EA4)
+private val NeonRed = Color(0xFFE63950)
 private val NeonTrack = Color(0xFF1A2236)
 
 private val NeonColors =
@@ -127,6 +129,12 @@ val ColorScheme.neonRingGradientEnd: Color
 
 val ColorScheme.neonRingTrack: Color
     get() = NeonTrack
+
+val ColorScheme.neonRingGradientStartExpense: Color
+    get() = NeonCoralBright
+
+val ColorScheme.neonRingGradientEndExpense: Color
+    get() = NeonRed
 
 val ColorScheme.dashboardNeonBackground: Color
     get() = NeonBackground

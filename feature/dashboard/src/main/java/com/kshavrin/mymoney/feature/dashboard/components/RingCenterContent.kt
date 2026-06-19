@@ -1,11 +1,13 @@
 package com.kshavrin.mymoney.feature.dashboard.components
 
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -13,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -27,6 +30,7 @@ import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.core.ui.theme.dashboardIncomeExpenseBadge
 import com.kshavrin.mymoney.core.ui.theme.dashboardRingBalanceLabel
 import com.kshavrin.mymoney.core.ui.theme.dashboardRingBalanceValue
+import com.kshavrin.mymoney.core.ui.theme.dashboardRingCenterBadgeDivider
 import com.kshavrin.mymoney.core.ui.theme.expenseAccent
 import com.kshavrin.mymoney.core.ui.theme.incomeAccent
 import com.kshavrin.mymoney.core.ui.theme.textPrimary
@@ -81,9 +85,15 @@ fun RingCenterContent(
                         minimumBalanceFontSize = minimumBalanceFontSize,
                         minimumBadgeFontSize = minimumBadgeFontSize,
                         topGap = Spacing.s.toPx(),
-                        badgeHorizontalPadding = Spacing.m.toPx(),
-                        badgeVerticalPadding = Spacing.xs.toPx(),
-                        badgeLineGap = Spacing.xxs.toPx(),
+                        badgeHorizontalPadding = Spacing.dashboardRingCenterBadgeHorizontalPadding.toPx(),
+                        badgeVerticalPadding = Spacing.dashboardRingCenterBadgeVerticalPadding.toPx(),
+                        badgeLineGap = Spacing.none.toPx(),
+                        badgeMinHeight = Spacing.dashboardRingCenterBadgeMinHeight.toPx(),
+                        badgeMaxHeight = Spacing.dashboardRingCenterBadgeMaxHeight.toPx(),
+                        badgeHorizontalInset = Spacing.dashboardRingCenterBadgeHorizontalInset.toPx(),
+                        badgeDividerThickness = Spacing.dashboardRingCenterBadgeDividerThickness.toPx(),
+                        badgeRowMinHeight = Spacing.dashboardRingCenterBadgeRowMinHeight.toPx(),
+                        badgeBottomInset = Spacing.dashboardRingCenterBadgeBottomInset.toPx(),
                         measure = { text, style ->
                             val result = textMeasurer.measure(text = text, style = style, maxLines = 1, softWrap = false)
                             MeasuredText(width = result.size.width.toFloat(), height = result.size.height.toFloat())
@@ -94,9 +104,9 @@ fun RingCenterContent(
 
         Column(
             modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            Box(modifier = Modifier.weight(1f))
             Text(
                 text = balanceLabel,
                 style = labelStyle,
@@ -117,36 +127,67 @@ fun RingCenterContent(
                 modifier =
                     Modifier
                         .padding(top = Spacing.s)
-                        .widthIn(max = contentMaxWidth),
+                        .padding(horizontal = Spacing.dashboardRingCenterBadgeHorizontalInset)
+                        .fillMaxWidth()
+                        .height(with(density) { layout.badgeHeight.toDp() }),
                 shape = MaterialTheme.shapes.extraLarge,
                 color = MaterialTheme.colorScheme.surfaceVariant,
             ) {
                 Column(
                     modifier =
-                        Modifier.padding(
-                            horizontal = Spacing.m * layout.badgeScale,
-                            vertical = Spacing.xs * layout.badgeScale,
-                        ),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.xxs * layout.badgeScale),
+                        Modifier
+                            .fillMaxSize()
+                            .padding(
+                                horizontal = Spacing.dashboardRingCenterBadgeHorizontalPadding * layout.badgeScale,
+                                vertical = Spacing.dashboardRingCenterBadgeVerticalPadding * layout.badgeScale,
+                            ),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Text(
+                    BadgeRow(
                         text = incomeText,
                         style = badgeStyle.scaled(layout.badgeScale),
                         color = MaterialTheme.colorScheme.incomeAccent,
-                        maxLines = 1,
-                        softWrap = false,
+                        modifier = Modifier.weight(1f),
                     )
-                    Text(
+                    Box(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .height(Spacing.dashboardRingCenterBadgeDividerThickness)
+                                .background(MaterialTheme.colorScheme.dashboardRingCenterBadgeDivider),
+                    )
+                    BadgeRow(
                         text = expenseText,
                         style = badgeStyle.scaled(layout.badgeScale),
                         color = MaterialTheme.colorScheme.expenseAccent,
-                        maxLines = 1,
-                        softWrap = false,
+                        modifier = Modifier.weight(1f),
                     )
                 }
             }
+            Box(modifier = Modifier.height(Spacing.dashboardRingCenterBadgeBottomInset))
         }
+    }
+}
+
+@Composable
+private fun BadgeRow(
+    text: String,
+    style: TextStyle,
+    color: Color,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier.fillMaxWidth(),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = text,
+            style = style,
+            color = color,
+            maxLines = 1,
+            overflow = TextOverflow.Clip,
+            softWrap = false,
+        )
     }
 }
 
@@ -165,6 +206,7 @@ private fun formatRingAmount(
 internal data class RingCenterLayout(
     val balanceScale: Float,
     val badgeScale: Float,
+    val badgeHeight: Float,
 )
 
 internal data class MeasuredText(
@@ -188,6 +230,12 @@ internal fun calculateRingCenterLayout(
     badgeHorizontalPadding: Float,
     badgeVerticalPadding: Float,
     badgeLineGap: Float,
+    badgeMinHeight: Float = 0f,
+    badgeMaxHeight: Float = Float.POSITIVE_INFINITY,
+    badgeHorizontalInset: Float = 0f,
+    badgeDividerThickness: Float = 0f,
+    badgeRowMinHeight: Float = 0f,
+    badgeBottomInset: Float = 0f,
     measure: (String, TextStyle) -> MeasuredText,
 ): RingCenterLayout {
     val minimumBalanceScale = minimumBalanceFontSize.value / balanceStyle.fontSize.value
@@ -200,15 +248,30 @@ internal fun calculateRingCenterLayout(
         val balanceSize = measure(periodNet, balanceStyle.scaled(balanceScale))
         val incomeSize = measure(income, badgeStyle.scaled(badgeScale))
         val expenseSize = measure(expense, badgeStyle.scaled(badgeScale))
-        val badgeWidth = maxOf(incomeSize.width, expenseSize.width) + badgeHorizontalPadding * badgeScale * 2
+        val maxBadgeTextWidth = availableWidth - badgeHorizontalInset * 2 - badgeHorizontalPadding * badgeScale * 2
+        val badgeWidth = maxOf(incomeSize.width, expenseSize.width) + badgeHorizontalPadding * badgeScale * 2 + badgeHorizontalInset * 2
         val badgeHeight =
-            incomeSize.height +
-                expenseSize.height +
-                badgeLineGap * badgeScale +
-                badgeVerticalPadding * badgeScale * 2
+            calculateBadgeHeight(
+                availableHeight = availableHeight,
+                labelHeight = labelSize.height,
+                balanceHeight = balanceSize.height,
+                incomeHeight = incomeSize.height,
+                expenseHeight = expenseSize.height,
+                topGap = topGap,
+                badgeVerticalPadding = badgeVerticalPadding,
+                badgeLineGap = badgeLineGap,
+                badgeMinHeight = badgeMinHeight,
+                badgeMaxHeight = badgeMaxHeight,
+                badgeDividerThickness = badgeDividerThickness,
+                badgeRowMinHeight = badgeRowMinHeight,
+                badgeBottomInset = badgeBottomInset,
+                badgeScale = badgeScale,
+            )
         val contentWidth = maxOf(labelSize.width, balanceSize.width, badgeWidth)
-        val contentHeight = labelSize.height + balanceSize.height + topGap + badgeHeight
-        return contentWidth <= availableWidth && contentHeight <= availableHeight
+        val contentHeight = labelSize.height + balanceSize.height + topGap + badgeHeight + badgeBottomInset
+        return contentWidth <= availableWidth &&
+            maxOf(incomeSize.width, expenseSize.width) <= maxBadgeTextWidth &&
+            contentHeight <= availableHeight
     }
 
     var lower = 0f
@@ -217,10 +280,56 @@ internal fun calculateRingCenterLayout(
         val candidate = (lower + upper) / 2
         if (fits(candidate)) lower = candidate else upper = candidate
     }
+    val balanceScale = maxOf(minimumBalanceScale, lower)
+    val badgeScale = maxOf(minimumBadgeScale, lower)
+    val balanceSize = measure(periodNet, balanceStyle.scaled(balanceScale))
+    val incomeSize = measure(income, badgeStyle.scaled(badgeScale))
+    val expenseSize = measure(expense, badgeStyle.scaled(badgeScale))
     return RingCenterLayout(
-        balanceScale = maxOf(minimumBalanceScale, lower),
-        badgeScale = maxOf(minimumBadgeScale, lower),
+        balanceScale = balanceScale,
+        badgeScale = badgeScale,
+        badgeHeight =
+            calculateBadgeHeight(
+                availableHeight = availableHeight,
+                labelHeight = labelSize.height,
+                balanceHeight = balanceSize.height,
+                incomeHeight = incomeSize.height,
+                expenseHeight = expenseSize.height,
+                topGap = topGap,
+                badgeVerticalPadding = badgeVerticalPadding,
+                badgeLineGap = badgeLineGap,
+                badgeMinHeight = badgeMinHeight,
+                badgeMaxHeight = badgeMaxHeight,
+                badgeDividerThickness = badgeDividerThickness,
+                badgeRowMinHeight = badgeRowMinHeight,
+                badgeBottomInset = badgeBottomInset,
+                badgeScale = badgeScale,
+            ),
     )
+}
+
+private fun calculateBadgeHeight(
+    availableHeight: Float,
+    labelHeight: Float,
+    balanceHeight: Float,
+    incomeHeight: Float,
+    expenseHeight: Float,
+    topGap: Float,
+    badgeVerticalPadding: Float,
+    badgeLineGap: Float,
+    badgeMinHeight: Float,
+    badgeMaxHeight: Float,
+    badgeDividerThickness: Float,
+    badgeRowMinHeight: Float,
+    badgeBottomInset: Float,
+    badgeScale: Float,
+): Float {
+    val rowHeight = maxOf(incomeHeight, expenseHeight, badgeRowMinHeight * badgeScale)
+    val naturalHeight = rowHeight * 2 + badgeDividerThickness + badgeLineGap * badgeScale + badgeVerticalPadding * badgeScale * 2
+    val availableBadgeHeight = availableHeight - labelHeight - balanceHeight - topGap - badgeBottomInset
+    return maxOf(naturalHeight, badgeMinHeight, availableBadgeHeight.coerceAtMost(badgeMaxHeight))
+        .coerceAtMost(badgeMaxHeight)
+        .coerceAtLeast(0f)
 }
 
 private fun TextStyle.scaled(scale: Float): TextStyle =

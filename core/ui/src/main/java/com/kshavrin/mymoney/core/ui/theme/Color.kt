@@ -149,6 +149,9 @@ val ColorScheme.incomeAccent: Color
 val ColorScheme.expenseAccent: Color
     get() = NeonCoral
 
+val ColorScheme.dashboardRingCenterBadgeDivider: Color
+    get() = Color.White.copy(alpha = 0.08f)
+
 val ColorScheme.dashboardHeroGradientStart: Color
     get() = NeonMint
 

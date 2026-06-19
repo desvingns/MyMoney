@@ -31,6 +31,14 @@ object Spacing {
     val neonRingStrokeWidth = 16.dp
     val neonRingGlowRadius = 16.dp
     val neonRingGlowSpread = 4.dp
+    val dashboardRingCenterBadgeMinHeight = 52.dp
+    val dashboardRingCenterBadgeMaxHeight = 56.dp
+    val dashboardRingCenterBadgeHorizontalInset = 32.dp
+    val dashboardRingCenterBadgeHorizontalPadding = 12.dp
+    val dashboardRingCenterBadgeVerticalPadding = 8.dp
+    val dashboardRingCenterBadgeRowMinHeight = 19.dp
+    val dashboardRingCenterBadgeDividerThickness = 1.dp
+    val dashboardRingCenterBadgeBottomInset = 16.dp
     val dashboardTileHeight = 76.dp
     val dashboardTileCornerRadius = 16.dp
     val dashboardTileIconChipSize = 44.dp

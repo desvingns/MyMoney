@@ -156,9 +156,9 @@ val Typography.dashboardRingBalanceLabel: TextStyle
 val Typography.dashboardIncomeExpenseBadge: TextStyle
     get() =
         labelMedium.copy(
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold,
-            lineHeight = 16.sp,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.ExtraBold,
+            lineHeight = 18.sp,
             letterSpacing = 0.sp,
         )
 

@@ -48,7 +48,8 @@ internal fun calculateNeonRingChartLayout(
     glowRadius: Dp = Spacing.neonRingGlowRadius,
     glowSpread: Dp = Spacing.neonRingGlowSpread,
 ): NeonRingChartLayout {
-    val glowMargin = glowRadius + glowSpread
+    val glowStrokeWidth = strokeWidth + glowSpread * 2
+    val glowMargin = glowRadius + glowSpread + glowStrokeWidth / 2
     val sweepAngleDegrees = fraction * FULL_SWEEP_DEGREES
     return NeonRingChartLayout(
         sweepAngleDegrees = sweepAngleDegrees,

@@ -1,7 +1,7 @@
 # Плашка доход/расход: динамическое заполнение + разделитель
 Epic: dashboard-neon-fidelity
 Order: 03 of 04
-Status: backlog
+Status: done
 Depends-on: dashboard-neon-fidelity-02
 Date: 2026-06-19
 
@@ -49,5 +49,5 @@ Feature: Плашка доход/расход в центре кольца
 подстраивалась под свободную нижнюю часть внутри кольца.
 
 ## Implementation links
-- commit: —
-- files:  —
+- commit: 412b9591, a8e18255, d611d342
+- files:  core/ui/src/main/java/com/kshavrin/mymoney/core/ui/theme/Color.kt; core/ui/src/main/java/com/kshavrin/mymoney/core/ui/theme/Spacing.kt; core/ui/src/main/java/com/kshavrin/mymoney/core/ui/theme/Typography.kt; feature/dashboard/src/main/java/com/kshavrin/mymoney/feature/dashboard/components/RingCenterContent.kt; feature/dashboard/src/test/java/com/kshavrin/mymoney/feature/dashboard/components/RingCenterLayoutTest.kt; app/src/androidTest/java/com/kshavrin/mymoney/feature/dashboard/components/RingCenterContentUiTest.kt

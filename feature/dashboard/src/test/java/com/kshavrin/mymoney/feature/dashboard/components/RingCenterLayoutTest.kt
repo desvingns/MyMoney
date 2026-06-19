@@ -8,11 +8,12 @@ import org.junit.Test
 
 class RingCenterLayoutTest {
     @Test
-    fun `wide layout keeps balance and badge at full scale`() {
+    fun `wide layout keeps balance and badge at full scale and grows badge to max height`() {
         val layout = calculateLayout(availableWidth = 1_000f, availableHeight = 1_000f)
 
         assertEquals(1f, layout.balanceScale, SEARCH_TOLERANCE)
         assertEquals(1f, layout.badgeScale, SEARCH_TOLERANCE)
+        assertEquals(BADGE_MAX_HEIGHT, layout.badgeHeight, SEARCH_TOLERANCE)
     }
 
     @Test
@@ -30,25 +31,37 @@ class RingCenterLayoutTest {
     @Test
     fun `layout fits width and height including both badge lines`() {
         val availableWidth = 150f
-        val availableHeight = 100f
+        val availableHeight = 116f
         val layout = calculateLayout(availableWidth = availableWidth, availableHeight = availableHeight)
 
         val balanceWidth = measureWidth(PERIOD_NET, BALANCE_FONT_SIZE * layout.balanceScale)
         val incomeWidth = measureWidth(INCOME, BADGE_FONT_SIZE * layout.badgeScale)
         val expenseWidth = measureWidth(EXPENSE, BADGE_FONT_SIZE * layout.badgeScale)
-        val badgeWidth = maxOf(incomeWidth, expenseWidth) + BADGE_HORIZONTAL_PADDING * layout.badgeScale * 2
-        val badgeHeight =
-            BADGE_LINE_HEIGHT * layout.badgeScale * 2 +
-                BADGE_LINE_GAP * layout.badgeScale +
-                BADGE_VERTICAL_PADDING * layout.badgeScale * 2
+        val maxBadgeTextWidth = availableWidth - BADGE_HORIZONTAL_INSET * 2 - BADGE_HORIZONTAL_PADDING * layout.badgeScale * 2
+        val badgeWidth =
+            maxOf(incomeWidth, expenseWidth) +
+                BADGE_HORIZONTAL_PADDING * layout.badgeScale * 2 +
+                BADGE_HORIZONTAL_INSET * 2
         val contentHeight =
             LABEL_LINE_HEIGHT +
                 BALANCE_LINE_HEIGHT * layout.balanceScale +
                 TOP_GAP +
-                badgeHeight
+                layout.badgeHeight +
+                BADGE_BOTTOM_INSET
 
         assertTrue("balance and complete badge must fit width", maxOf(balanceWidth, badgeWidth) <= availableWidth)
+        assertTrue("badge text must fit the inset-bounded badge width", maxOf(incomeWidth, expenseWidth) <= maxBadgeTextWidth)
         assertTrue("label, balance, and complete two-line badge must fit height", contentHeight <= availableHeight)
+    }
+
+    @Test
+    fun `height-constrained layout shrinks badge once divider consumes the free zone`() {
+        val availableHeight = LABEL_LINE_HEIGHT + BALANCE_LINE_HEIGHT + TOP_GAP + 54f + BADGE_BOTTOM_INSET
+        val layout = calculateLayout(availableWidth = 1_000f, availableHeight = availableHeight)
+
+        assertTrue("divider-aware free-zone fit must shrink the badge scale", layout.badgeScale < 1f)
+        assertTrue("badge height must stay within the available lower zone", layout.badgeHeight <= 54f)
+        assertTrue("badge still respects the configured minimum height", layout.badgeHeight >= BADGE_MIN_HEIGHT)
     }
 
     @Test
@@ -89,6 +102,12 @@ class RingCenterLayoutTest {
             badgeHorizontalPadding = BADGE_HORIZONTAL_PADDING,
             badgeVerticalPadding = BADGE_VERTICAL_PADDING,
             badgeLineGap = BADGE_LINE_GAP,
+            badgeMinHeight = BADGE_MIN_HEIGHT,
+            badgeMaxHeight = BADGE_MAX_HEIGHT,
+            badgeHorizontalInset = BADGE_HORIZONTAL_INSET,
+            badgeDividerThickness = BADGE_DIVIDER_THICKNESS,
+            badgeRowMinHeight = BADGE_ROW_MIN_HEIGHT,
+            badgeBottomInset = BADGE_BOTTOM_INSET,
             measure = { text, style ->
                 MeasuredText(
                     width = measureWidth(text, style.fontSize.value),
@@ -112,14 +131,20 @@ class RingCenterLayoutTest {
         const val LABEL_LINE_HEIGHT = 20f
         const val BALANCE_FONT_SIZE = 48f
         const val BALANCE_LINE_HEIGHT = 52f
-        const val BADGE_FONT_SIZE = 12f
-        const val BADGE_LINE_HEIGHT = 16f
+        const val BADGE_FONT_SIZE = 13f
+        const val BADGE_LINE_HEIGHT = 18f
         const val MINIMUM_BALANCE_FONT_SIZE = 14f
         const val MINIMUM_BADGE_FONT_SIZE = 11f
         const val TOP_GAP = 8f
-        const val BADGE_HORIZONTAL_PADDING = 16f
-        const val BADGE_VERTICAL_PADDING = 4f
-        const val BADGE_LINE_GAP = 2f
+        const val BADGE_HORIZONTAL_PADDING = 12f
+        const val BADGE_VERTICAL_PADDING = 8f
+        const val BADGE_LINE_GAP = 0f
+        const val BADGE_MIN_HEIGHT = 52f
+        const val BADGE_MAX_HEIGHT = 56f
+        const val BADGE_HORIZONTAL_INSET = 32f
+        const val BADGE_DIVIDER_THICKNESS = 1f
+        const val BADGE_ROW_MIN_HEIGHT = 19f
+        const val BADGE_BOTTOM_INSET = 16f
         const val GLYPH_WIDTH_FACTOR = 0.5f
         const val SEARCH_TOLERANCE = 0.001f
     }

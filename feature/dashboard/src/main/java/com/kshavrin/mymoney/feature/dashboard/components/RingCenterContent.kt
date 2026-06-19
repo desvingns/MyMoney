@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -128,6 +129,7 @@ fun RingCenterContent(
                     Modifier
                         .padding(top = Spacing.s)
                         .padding(horizontal = Spacing.dashboardRingCenterBadgeHorizontalInset)
+                        .testTag(RING_CENTER_BADGE_TAG)
                         .fillMaxWidth()
                         .height(with(density) { layout.badgeHeight.toDp() }),
                 shape = MaterialTheme.shapes.extraLarge,
@@ -153,6 +155,7 @@ fun RingCenterContent(
                         modifier =
                             Modifier
                                 .fillMaxWidth()
+                                .testTag(RING_CENTER_BADGE_DIVIDER_TAG)
                                 .height(Spacing.dashboardRingCenterBadgeDividerThickness)
                                 .background(MaterialTheme.colorScheme.dashboardRingCenterBadgeDivider),
                     )
@@ -339,3 +342,5 @@ private fun TextStyle.scaled(scale: Float): TextStyle =
     )
 
 private const val FIT_SEARCH_ITERATIONS = 12
+private const val RING_CENTER_BADGE_TAG = "ring_center_badge"
+private const val RING_CENTER_BADGE_DIVIDER_TAG = "ring_center_badge_divider"

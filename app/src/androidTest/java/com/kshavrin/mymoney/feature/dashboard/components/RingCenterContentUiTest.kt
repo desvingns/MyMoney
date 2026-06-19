@@ -10,6 +10,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertHasNoClickAction
+import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
@@ -17,6 +19,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -173,6 +176,42 @@ class RingCenterContentUiTest {
         assertNodeInsideBox(expense, NARROW_BOX_TAG)
     }
 
+    @Test
+    fun `badge fills the lower zone with divider and stays read only`() {
+        val locale = Locale.US
+        val context = localizedContext(locale)
+        val periodNetText = formattedAmount("37650.49", locale)
+
+        setLocalizedContent(locale) {
+            Box(
+                Modifier
+                    .size(width = 220.dp, height = 180.dp)
+                    .testTag(WIDE_BOX_TAG),
+            ) {
+                RingCenterContent(
+                    periodNet = money("37650.49"),
+                    income = money("85000"),
+                    expense = money("47350"),
+                )
+            }
+        }
+
+        val boxBounds = composeTestRule.onNodeWithTag(WIDE_BOX_TAG).fetchSemanticsNode().boundsInRoot
+        val badgeBounds = composeTestRule.onNodeWithTag(BADGE_TAG, useUnmergedTree = true).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        val dividerBounds = composeTestRule.onNodeWithTag(BADGE_DIVIDER_TAG, useUnmergedTree = true).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+
+        composeTestRule.onNodeWithTag(BADGE_TAG, useUnmergedTree = true).assertHeightIsEqualTo(56.dp).assertHasNoClickAction()
+        composeTestRule.onNodeWithTag(BADGE_DIVIDER_TAG, useUnmergedTree = true).assertHeightIsEqualTo(1.dp)
+        composeTestRule.onNodeWithText(periodNetText, useUnmergedTree = true).assertHasNoClickAction()
+
+        assertDpEquals("badge must keep the configured left inset", badgeBounds.left - boxBounds.left, 32.dp)
+        assertDpEquals("badge must keep the configured right inset", boxBounds.right - badgeBounds.right, 32.dp)
+        assertDpEquals("badge must anchor to the lower zone with the bottom inset only", boxBounds.bottom - badgeBounds.bottom, 16.dp)
+        assertTrue("divider must sit between income and expense rows", dividerBounds.top >= badgeBounds.top && dividerBounds.bottom <= badgeBounds.bottom)
+        assertNodeInsideBox(context.getString(R.string.dashboard_ring_balance), WIDE_BOX_TAG)
+        assertNodeInsideBox(periodNetText, WIDE_BOX_TAG)
+    }
+
     private fun nodeInBox(
         text: String,
         boxTag: String,
@@ -191,6 +230,15 @@ class RingCenterContentUiTest {
         assertTrue("$text must stay within the top edge", nodeBounds.top >= boxBounds.top)
         assertTrue("$text must stay within the right edge", nodeBounds.right <= boxBounds.right)
         assertTrue("$text must stay within the bottom edge", nodeBounds.bottom <= boxBounds.bottom)
+    }
+
+    private fun assertDpEquals(
+        message: String,
+        actualPx: Float,
+        expectedDp: Dp,
+    ) {
+        val expectedPx = with(composeTestRule.density) { expectedDp.toPx() }
+        assertEquals(message, expectedPx, actualPx, 1f)
     }
 
     private fun setLocalizedContent(
@@ -233,6 +281,8 @@ class RingCenterContentUiTest {
     private companion object {
         const val WIDE_BOX_TAG = "ring_center_wide_box"
         const val NARROW_BOX_TAG = "ring_center_narrow_box"
+        const val BADGE_TAG = "ring_center_badge"
+        const val BADGE_DIVIDER_TAG = "ring_center_badge_divider"
 
         val ruble =
             Currency(

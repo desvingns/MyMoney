@@ -281,6 +281,8 @@ class DashboardContentUiTest {
             .onNodeWithTag(DASHBOARD_DONUT_TAG)
             .assertIsDisplayed()
             .assertHasNoClickAction()
+            .assertWidthIsEqualTo(264.dp)
+            .assertHeightIsEqualTo(264.dp)
         composeTestRule
             .onNodeWithText(targetString(R.string.dashboard_ring_balance), useUnmergedTree = true)
             .assertIsDisplayed()

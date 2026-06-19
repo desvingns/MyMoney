@@ -25,12 +25,14 @@ class NeonRingChartTest {
     }
 
     @Test
-    fun `layout reserves glow allowance outside the ring and keeps a smaller inner slot`() {
+    fun `layout uses the 200dp ring contract and keeps the stroke-aware glow margin`() {
         val layout = calculateNeonRingChartLayout(fraction = 0.25f)
 
-        assertEquals(316.dp, layout.containerSize)
-        assertEquals(200.dp, layout.innerDiameter)
-        assertTrue(layout.containerSize > Spacing.neonRingDiameter)
+        assertEquals(200.dp, Spacing.neonRingDiameter)
+        assertEquals(16.dp, Spacing.neonRingStrokeWidth)
+        assertEquals(264.dp, layout.containerSize)
+        assertEquals(160.dp, layout.innerDiameter)
+        assertTrue(layout.containerSize > Spacing.neonRingDiameter + Spacing.neonRingGlowRadius * 2)
         assertTrue(layout.innerDiameter < Spacing.neonRingDiameter)
     }
 }

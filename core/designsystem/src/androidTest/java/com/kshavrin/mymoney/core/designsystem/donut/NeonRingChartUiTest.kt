@@ -6,6 +6,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import com.kshavrin.mymoney.core.ui.theme.Spacing
@@ -34,21 +35,18 @@ class NeonRingChartUiTest {
                 .assertExists()
                 .fetchSemanticsNode()
                 .boundsInRoot
-        val minimumGlowExtentPx =
+        val expectedOuterSizePx = with(composeTestRule.density) { 264.dp.toPx() }
+        val simpleGlowExtentPx =
             with(composeTestRule.density) {
-                (Spacing.neonRingDiameter + Spacing.neonRingGlowRadius * 2).toPx()
+                (200.dp + Spacing.neonRingGlowRadius * 2).toPx()
             }
-        val nominalDiameterPx = with(composeTestRule.density) { Spacing.neonRingDiameter.toPx() }
 
         assertTrue(
-            "outer chart container must be wider than the nominal ring diameter",
-            outerBounds.width > nominalDiameterPx,
+            "outer chart container must stay wider than diameter + 2*glowRadius",
+            outerBounds.width > simpleGlowExtentPx,
         )
-        assertTrue(
-            "outer chart container must reserve at least diameter + 2*glowRadius for unclipped glow",
-            outerBounds.width >= minimumGlowExtentPx,
-        )
-        assertEquals(outerBounds.width, outerBounds.height, 1f)
+        assertEquals(expectedOuterSizePx, outerBounds.width, 1f)
+        assertEquals(expectedOuterSizePx, outerBounds.height, 1f)
     }
 
     @Test
@@ -77,10 +75,7 @@ class NeonRingChartUiTest {
                 .assertExists()
                 .fetchSemanticsNode()
                 .boundsInRoot
-        val expectedInnerDiameterPx =
-            with(composeTestRule.density) {
-                (Spacing.neonRingDiameter - (Spacing.neonRingStrokeWidth + Spacing.neonRingGlowSpread) * 2).toPx()
-            }
+        val expectedInnerDiameterPx = with(composeTestRule.density) { 160.dp.toPx() }
 
         assertEquals(expectedInnerDiameterPx, centerBounds.width, 1f)
         assertEquals(expectedInnerDiameterPx, centerBounds.height, 1f)

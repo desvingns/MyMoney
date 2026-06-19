@@ -235,13 +235,21 @@ class BackupRepositoryImpl
                             // the re-import so the whole plan commits or rolls back atomically (D8).
                             replaceCurrentCategories(plan.orphanDecisions)
                         }
-                        when (staged.format) {
-                            CsvImportFormat.Monefy ->
-                                importMonefyCsv(staged.records, plan.dataStrategy, plan.categoryStrategy)
-                            CsvImportFormat.MyMoney -> importMyMoneyCsv(staged.records, plan.dataStrategy)
-                            CsvImportFormat.Unknown ->
-                                throw IOException("CSV header does not match the transaction schema")
-                        }
+                        val focus =
+                            when (staged.format) {
+                                CsvImportFormat.Monefy ->
+                                    importMonefyCsv(staged.records, plan.dataStrategy, plan.categoryStrategy)
+                                CsvImportFormat.MyMoney -> importMyMoneyCsv(staged.records, plan.dataStrategy)
+                                CsvImportFormat.Unknown ->
+                                    throw IOException("CSV header does not match the transaction schema")
+                            }
+                        // Imports resolve currencies via findByCode, which ignores is_active. A currency
+                        // switched off in the currency list would import live transactions yet stay
+                        // invisible, so the persisted import-focus selection (and the imported accounts)
+                        // never resolve on a cold-started dashboard. Re-activate any currency that now
+                        // owns rows so the focus currency is guaranteed queryable after a restart.
+                        database.currencyDao().activateCurrenciesWithLiveTransactions()
+                        focus
                     }
                 }
             }

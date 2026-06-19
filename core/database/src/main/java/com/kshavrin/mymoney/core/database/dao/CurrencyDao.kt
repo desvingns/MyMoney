@@ -31,4 +31,16 @@ interface CurrencyDao {
         id: Long,
         active: Boolean,
     )
+
+    // A currency that owns live transactions must stay visible: imports auto-resolve currencies via
+    // findByCode, which ignores is_active, so importing into a switched-off currency would otherwise
+    // leave its accounts and the import-focus selection invisible on the dashboard.
+    @Query(
+        """
+        UPDATE currency SET is_active = 1
+        WHERE is_active = 0
+          AND id IN (SELECT DISTINCT currency_id FROM `transaction` WHERE is_deleted = 0)
+    """,
+    )
+    suspend fun activateCurrenciesWithLiveTransactions(): Int
 }

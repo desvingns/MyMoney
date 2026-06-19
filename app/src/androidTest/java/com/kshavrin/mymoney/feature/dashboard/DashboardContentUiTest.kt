@@ -5,7 +5,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.assertCountEquals
-import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
@@ -19,6 +18,7 @@ import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -193,8 +193,8 @@ class DashboardContentUiTest {
             }
         }
 
-        composeTestRule.onNodeWithTag(DASHBOARD_TOP_BAR_TITLE_TAG).assertDoesNotExist()
-        composeTestRule.onNodeWithTag(DASHBOARD_TOP_BAR_SUBTITLE_TAG).assertDoesNotExist()
+        composeTestRule.onAllNodesWithTag(DASHBOARD_TOP_BAR_TITLE_TAG).assertCountEquals(0)
+        composeTestRule.onAllNodesWithTag(DASHBOARD_TOP_BAR_SUBTITLE_TAG).assertCountEquals(0)
         composeTestRule
             .onNodeWithTag(DASHBOARD_TOP_BAR_PERIOD_TAG)
             .assertIsDisplayed()
@@ -480,7 +480,7 @@ class DashboardContentUiTest {
             .onNodeWithTag(DASHBOARD_TOP_BAR_PERIOD_TAG)
             .assertIsDisplayed()
         composeTestRule.onNodeWithText(expectedLabel).assertIsDisplayed()
-        composeTestRule.onAllNodesWithText(expectedLabel).assertCountEquals(1)
+        composeTestRule.onAllNodes(hasText(expectedLabel)).assertCountEquals(1)
     }
 
     @Test
@@ -556,8 +556,8 @@ class DashboardContentUiTest {
         composeTestRule
             .onNodeWithTag(DASHBOARD_TOP_BAR_PERIOD_TAG)
             .assertIsDisplayed()
-        composeTestRule.onNodeWithTag(DASHBOARD_TOP_BAR_TITLE_TAG).assertDoesNotExist()
-        composeTestRule.onNodeWithTag(DASHBOARD_TOP_BAR_SUBTITLE_TAG).assertDoesNotExist()
+        composeTestRule.onAllNodesWithTag(DASHBOARD_TOP_BAR_TITLE_TAG).assertCountEquals(0)
+        composeTestRule.onAllNodesWithTag(DASHBOARD_TOP_BAR_SUBTITLE_TAG).assertCountEquals(0)
         composeTestRule
             .onNodeWithContentDescription(targetString(R.string.dashboard_search))
             .assertIsEnabled()
@@ -580,8 +580,8 @@ class DashboardContentUiTest {
         composeTestRule
             .onNodeWithTag(DASHBOARD_TOP_BAR_PERIOD_TAG)
             .assertIsDisplayed()
-        composeTestRule.onNodeWithTag(DASHBOARD_TOP_BAR_TITLE_TAG).assertDoesNotExist()
-        composeTestRule.onNodeWithTag(DASHBOARD_TOP_BAR_SUBTITLE_TAG).assertDoesNotExist()
+        composeTestRule.onAllNodesWithTag(DASHBOARD_TOP_BAR_TITLE_TAG).assertCountEquals(0)
+        composeTestRule.onAllNodesWithTag(DASHBOARD_TOP_BAR_SUBTITLE_TAG).assertCountEquals(0)
         composeTestRule
             .onNodeWithContentDescription(targetString(R.string.dashboard_transfer))
             .assertIsEnabled()
@@ -801,8 +801,8 @@ class DashboardContentUiTest {
 
         composeTestRule.onNodeWithTag(DASHBOARD_TOP_BAR_PERIOD_TAG).assertIsDisplayed()
         composeTestRule.onNodeWithText(currentLabel).assertIsDisplayed()
-        composeTestRule.onNodeWithText(previousLabel).assertDoesNotExist()
-        composeTestRule.onNodeWithText(nextLabel).assertDoesNotExist()
+        composeTestRule.onAllNodes(hasText(previousLabel)).assertCountEquals(0)
+        composeTestRule.onAllNodes(hasText(nextLabel)).assertCountEquals(0)
     }
 
     @Test
@@ -830,8 +830,8 @@ class DashboardContentUiTest {
         composeTestRule
             .onNodeWithContentDescription(targetString(R.string.period_next))
             .assertIsDisplayed()
-        composeTestRule.onNodeWithText(previousLabel).assertDoesNotExist()
-        composeTestRule.onNodeWithText(nextLabel).assertDoesNotExist()
+        composeTestRule.onAllNodes(hasText(previousLabel)).assertCountEquals(0)
+        composeTestRule.onAllNodes(hasText(nextLabel)).assertCountEquals(0)
     }
 
     @Test

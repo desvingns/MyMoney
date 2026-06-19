@@ -277,8 +277,6 @@ class DashboardViewModel
             recomputeJob =
                 viewModelScope.launch {
                     val snapshot = computeSnapshot(selection, state.accounts, period)
-                    val slices = snapshotToSlices(snapshot, _state.value.budgetAlertCategoryIds)
-                    val expenseTiles = snapshotToExpenseTiles(snapshot, _state.value.budgetAlertCategoryIds)
                     val previousExpense =
                         if (snapshot.income.amount.signum() == 0 && snapshot.expense.amount.signum() > 0) {
                             computeSnapshot(selection, state.accounts, period.previous()).expense
@@ -294,6 +292,8 @@ class DashboardViewModel
                     val periodNet = snapshot.toPeriodNet()
                     val settings = appSettingsRepository.settings.first()
                     val firstPositive = !settings.firstPositiveSeen && snapshot.net.amount.signum() > 0
+                    val slices = snapshotToSlices(snapshot, _state.value.budgetAlertCategoryIds)
+                    val expenseTiles = snapshotToExpenseTiles(snapshot, _state.value.budgetAlertCategoryIds)
                     _state.value =
                         _state.value.copy(
                             balanceSnapshot = snapshot,

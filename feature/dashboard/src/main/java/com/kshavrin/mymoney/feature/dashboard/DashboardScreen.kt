@@ -7,12 +7,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -44,10 +46,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kshavrin.mymoney.core.common.money.MoneyFormatter
-import com.kshavrin.mymoney.core.designsystem.appbar.MoneyHeroAppBar
 import com.kshavrin.mymoney.core.designsystem.confetti.MonefyConfetti
 import com.kshavrin.mymoney.core.designsystem.donut.NeonRingChart
 import com.kshavrin.mymoney.core.domain.model.Money
+import com.kshavrin.mymoney.core.domain.model.Period
 import com.kshavrin.mymoney.core.ui.feedback.LocalHapticPlayer
 import com.kshavrin.mymoney.core.ui.feedback.LocalSoundPlayer
 import com.kshavrin.mymoney.core.ui.flow.CollectActions
@@ -68,7 +70,7 @@ import com.kshavrin.mymoney.feature.dashboard.components.CategoryTilesList
 import com.kshavrin.mymoney.feature.dashboard.components.DashboardDrawerOverlay
 import com.kshavrin.mymoney.feature.dashboard.components.DrawerSide
 import com.kshavrin.mymoney.feature.dashboard.components.LeftDrawerContent
-import com.kshavrin.mymoney.feature.dashboard.components.PeriodLabel
+import com.kshavrin.mymoney.feature.dashboard.components.PeriodSwitcher
 import com.kshavrin.mymoney.feature.dashboard.components.RightDrawerContent
 import com.kshavrin.mymoney.feature.dashboard.components.RingCenterContent
 import com.kshavrin.mymoney.feature.dashboard.components.TwoFabLayout
@@ -112,7 +114,7 @@ fun DashboardContent(
         containerColor = MaterialTheme.colorScheme.dashboardNeonBackground,
         topBar = {
             DashboardTopBar(
-                subtitle = state.currentCurrency?.name,
+                period = state.period,
                 drawerOpen = drawerOpen,
                 onNavigationClick = {
                     hapticPlayer.fire(HapticKind.MEDIUM)
@@ -126,6 +128,14 @@ fun DashboardContent(
                 },
                 onSearchClick = { onEvent(DashboardEvent.SearchClicked) },
                 onTransferClick = { onEvent(DashboardEvent.TransferClicked) },
+                onPreviousPeriodClick = {
+                    hapticPlayer.fire(HapticKind.SOFT)
+                    onEvent(DashboardEvent.PreviousPeriod)
+                },
+                onNextPeriodClick = {
+                    hapticPlayer.fire(HapticKind.SOFT)
+                    onEvent(DashboardEvent.NextPeriod)
+                },
                 onMoreClick = {
                     hapticPlayer.fire(HapticKind.MEDIUM)
                     onEvent(DashboardEvent.RightDrawerToggled)
@@ -173,19 +183,6 @@ fun DashboardContent(
                             state.overBudgetAmount?.let { overage ->
                                 stringResource(R.string.dashboard_over_budget, formatMoney(overage, resourceLocale))
                             }
-
-                        PeriodLabel(
-                            period = state.period,
-                            onPreviousClick = {
-                                hapticPlayer.fire(HapticKind.SOFT)
-                                onEvent(DashboardEvent.PreviousPeriod)
-                            },
-                            onNextClick = {
-                                hapticPlayer.fire(HapticKind.SOFT)
-                                onEvent(DashboardEvent.NextPeriod)
-                            },
-                            modifier = Modifier.height(Spacing.dashboardPeriodRowHeight),
-                        )
 
                         Column(
                             modifier =
@@ -286,18 +283,26 @@ fun DashboardContent(
 
 @Composable
 private fun DashboardTopBar(
-    subtitle: String?,
+    period: Period,
     drawerOpen: Boolean,
     onNavigationClick: () -> Unit,
     onSearchClick: () -> Unit,
     onTransferClick: () -> Unit,
+    onPreviousPeriodClick: () -> Unit,
+    onNextPeriodClick: () -> Unit,
     onMoreClick: () -> Unit,
 ) {
-    MoneyHeroAppBar(
-        subtitle = subtitle,
-        titleTestTag = DASHBOARD_TOP_BAR_TITLE_TAG,
-        subtitleTestTag = DASHBOARD_TOP_BAR_SUBTITLE_TAG,
-        leading = {
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.dashboardNeonBackground)
+                .statusBarsPadding()
+                .height(Spacing.xxl + Spacing.m)
+                .padding(horizontal = Spacing.xs),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onNavigationClick) {
                 Icon(
                     imageVector = if (drawerOpen) Icons.AutoMirrored.Filled.ArrowBack else Icons.Filled.Menu,
@@ -305,17 +310,7 @@ private fun DashboardTopBar(
                         stringResource(
                             if (drawerOpen) R.string.dashboard_back else R.string.dashboard_menu,
                         ),
-                    tint = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.size(Spacing.xxl),
-                )
-            }
-        },
-        actions = {
-            IconButton(onClick = onSearchClick) {
-                Icon(
-                    Icons.Filled.Search,
-                    contentDescription = stringResource(R.string.dashboard_search),
-                    tint = MaterialTheme.colorScheme.onPrimary,
+                    tint = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.size(Spacing.xxl),
                 )
             }
@@ -323,7 +318,26 @@ private fun DashboardTopBar(
                 Icon(
                     Icons.Filled.SwapHoriz,
                     contentDescription = stringResource(R.string.dashboard_transfer),
-                    tint = MaterialTheme.colorScheme.onPrimary,
+                    tint = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.size(Spacing.xxl),
+                )
+            }
+        }
+        PeriodSwitcher(
+            period = period,
+            onPreviousClick = onPreviousPeriodClick,
+            onNextClick = onNextPeriodClick,
+            modifier =
+                Modifier
+                    .weight(1f)
+                    .testTag(DASHBOARD_TOP_BAR_PERIOD_TAG),
+        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onSearchClick) {
+                Icon(
+                    Icons.Filled.Search,
+                    contentDescription = stringResource(R.string.dashboard_search),
+                    tint = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.size(Spacing.xxl),
                 )
             }
@@ -331,12 +345,12 @@ private fun DashboardTopBar(
                 Icon(
                     Icons.Filled.MoreVert,
                     contentDescription = stringResource(R.string.dashboard_overflow_menu),
-                    tint = MaterialTheme.colorScheme.onPrimary,
+                    tint = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.size(Spacing.xxl),
                 )
             }
-        },
-    )
+        }
+    }
 }
 
 @Composable
@@ -426,5 +440,6 @@ private fun formatMoney(
 
 const val DASHBOARD_TOP_BAR_TITLE_TAG = "dashboard_top_bar_title"
 const val DASHBOARD_TOP_BAR_SUBTITLE_TAG = "dashboard_top_bar_subtitle"
+const val DASHBOARD_TOP_BAR_PERIOD_TAG = "dashboard_top_bar_period"
 const val DASHBOARD_DONUT_TAG = "dashboard_donut"
 const val DASHBOARD_SCROLL_CONTENT_TAG = "dashboard_scroll_content"

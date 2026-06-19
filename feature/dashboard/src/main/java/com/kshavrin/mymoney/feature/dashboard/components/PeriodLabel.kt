@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
@@ -102,6 +103,48 @@ fun PeriodLabel(
                 Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = stringResource(R.string.period_next),
                 tint = MaterialTheme.colorScheme.onBackground,
+            )
+        }
+    }
+}
+
+@Composable
+fun PeriodSwitcher(
+    period: Period,
+    onPreviousClick: () -> Unit,
+    onNextClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val locale = LocalConfiguration.current.locales[0]
+    val allLabel = stringResource(R.string.period_all)
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconButton(onClick = onPreviousClick) {
+            Icon(
+                Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                contentDescription = stringResource(R.string.period_previous),
+                tint = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.size(Spacing.xxl),
+            )
+        }
+        Text(
+            text = period.localizedLabel(locale, allLabel),
+            style = MaterialTheme.typography.dashboardPeriodSelected,
+            color = MaterialTheme.colorScheme.dashboardPeriodSelectedText,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        IconButton(onClick = onNextClick) {
+            Icon(
+                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = stringResource(R.string.period_next),
+                tint = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.size(Spacing.xxl),
             )
         }
     }

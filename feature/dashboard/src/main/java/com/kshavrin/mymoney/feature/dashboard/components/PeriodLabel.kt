@@ -33,6 +33,7 @@ import com.kshavrin.mymoney.core.ui.theme.dashboardPeriodSelectedText
 import com.kshavrin.mymoney.core.ui.theme.dashboardPeriodUnselected
 import com.kshavrin.mymoney.core.ui.theme.dashboardPeriodUnselectedText
 import com.kshavrin.mymoney.feature.dashboard.R
+import java.time.Year
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -45,6 +46,7 @@ fun PeriodLabel(
 ) {
     val locale = LocalConfiguration.current.locales[0]
     val allLabel = stringResource(R.string.period_all)
+    val currentYear = Year.now().value
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -57,11 +59,11 @@ fun PeriodLabel(
             )
         }
         Text(
-            text = period.previous().localizedLabel(locale, allLabel),
+            text = period.previous().localizedLabel(locale, allLabel, currentYear),
             style = MaterialTheme.typography.dashboardPeriodUnselected,
             color = MaterialTheme.colorScheme.dashboardPeriodUnselectedText,
             textAlign = TextAlign.Center,
-            maxLines = 1,
+            maxLines = 2,
             overflow = TextOverflow.Clip,
             modifier = Modifier.weight(1f, fill = false),
         )
@@ -70,11 +72,11 @@ fun PeriodLabel(
             modifier = Modifier.weight(1f),
         ) {
             Text(
-                text = period.localizedLabel(locale, allLabel),
+                text = period.localizedLabel(locale, allLabel, currentYear),
                 style = MaterialTheme.typography.dashboardPeriodSelected,
                 color = MaterialTheme.colorScheme.dashboardPeriodSelectedText,
                 fontWeight = FontWeight.Bold,
-                maxLines = 1,
+                maxLines = 2,
                 textAlign = TextAlign.Center,
             )
             Box(
@@ -87,11 +89,11 @@ fun PeriodLabel(
             )
         }
         Text(
-            text = period.next().localizedLabel(locale, allLabel),
+            text = period.next().localizedLabel(locale, allLabel, currentYear),
             style = MaterialTheme.typography.dashboardPeriodUnselected,
             color = MaterialTheme.colorScheme.dashboardPeriodUnselectedText,
             textAlign = TextAlign.Center,
-            maxLines = 1,
+            maxLines = 2,
             overflow = TextOverflow.Clip,
             modifier =
                 Modifier
@@ -117,6 +119,7 @@ fun PeriodSwitcher(
 ) {
     val locale = LocalConfiguration.current.locales[0]
     val allLabel = stringResource(R.string.period_all)
+    val currentYear = Year.now().value
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
@@ -130,12 +133,12 @@ fun PeriodSwitcher(
             )
         }
         Text(
-            text = period.localizedLabel(locale, allLabel),
+            text = period.localizedLabel(locale, allLabel, currentYear),
             style = MaterialTheme.typography.dashboardPeriodSelected,
             color = MaterialTheme.colorScheme.dashboardPeriodSelectedText,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
-            maxLines = 1,
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
@@ -150,21 +153,27 @@ fun PeriodSwitcher(
     }
 }
 
-private fun Period.localizedLabel(
+internal fun Period.localizedLabel(
     locale: Locale,
     allLabel: String,
-): String =
-    when (this) {
-        is Period.Day -> date.format(DateTimeFormatter.ofPattern("EEEE, d MMMM", locale))
-        is Period.Week -> {
-            val formatter = DateTimeFormatter.ofPattern("d MMM", locale)
-            "${weekStart.format(formatter)} – ${weekStart.plusDays(6).format(formatter)}"
+    currentYear: Int,
+): String {
+    val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yy", locale)
+    return when (this) {
+        is Period.Day -> date.format(dateFormatter)
+        is Period.Week ->
+            "${weekStart.format(dateFormatter)}\n${weekStart.plusDays(6).format(dateFormatter)}"
+        is Period.Month -> {
+            val monthName = yearMonth.atDay(1).format(DateTimeFormatter.ofPattern("LLLL", locale))
+            if (yearMonth.year == currentYear) {
+                monthName
+            } else {
+                "$monthName\n${yearMonth.year}"
+            }
         }
-        is Period.Month -> yearMonth.atDay(1).format(DateTimeFormatter.ofPattern("LLLL yyyy", locale))
         is Period.Year -> year.toString()
         Period.All -> allLabel
-        is Period.CustomRange -> {
-            val formatter = DateTimeFormatter.ofPattern("d MMM", locale)
-            "${start.format(formatter)} – ${end.format(formatter)}"
-        }
+        is Period.CustomRange ->
+            "${start.format(dateFormatter)}\n${end.format(dateFormatter)}"
     }
+}

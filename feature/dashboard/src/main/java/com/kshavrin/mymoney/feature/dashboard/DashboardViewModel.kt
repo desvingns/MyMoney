@@ -21,6 +21,7 @@ import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
 import com.kshavrin.mymoney.core.domain.time.PeriodArithmetic
 import com.kshavrin.mymoney.core.domain.usecase.BalanceCalculator
 import com.kshavrin.mymoney.core.domain.usecase.ObserveBudgetAlertsUseCase
+import com.kshavrin.mymoney.core.domain.usecase.RingGaugeCalculator
 import com.kshavrin.mymoney.feature.dashboard.components.CategoryTileItem
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -275,19 +276,21 @@ class DashboardViewModel
             recomputeJob?.cancel()
             recomputeJob =
                 viewModelScope.launch {
-                    val snapshot =
-                        when (selection) {
-                            is DashboardSelection.SpecificAccount -> balanceCalculator(selection.account.id, period)
-                            is DashboardSelection.AllAccounts ->
-                                balanceCalculator.forAccounts(
-                                    accounts = state.accounts.filter { it.currencyId == selection.currency.id },
-                                    currency = selection.currency,
-                                    period = period,
-                                )
-                        }
+                    val snapshot = computeSnapshot(selection, state.accounts, period)
                     val slices = snapshotToSlices(snapshot, _state.value.budgetAlertCategoryIds)
                     val expenseTiles = snapshotToExpenseTiles(snapshot, _state.value.budgetAlertCategoryIds)
-                    val ringFraction = snapshot.toRingFraction()
+                    val previousExpense =
+                        if (snapshot.income.amount.signum() == 0 && snapshot.expense.amount.signum() > 0) {
+                            computeSnapshot(selection, state.accounts, period.previous()).expense
+                        } else {
+                            null
+                        }
+                    val gauge =
+                        RingGaugeCalculator(
+                            income = snapshot.income,
+                            expense = snapshot.expense,
+                            previousExpense = previousExpense,
+                        )
                     val periodNet = snapshot.toPeriodNet()
                     val settings = appSettingsRepository.settings.first()
                     val firstPositive = !settings.firstPositiveSeen && snapshot.net.amount.signum() > 0
@@ -295,7 +298,8 @@ class DashboardViewModel
                         _state.value.copy(
                             balanceSnapshot = snapshot,
                             periodNet = periodNet,
-                            ringFraction = ringFraction,
+                            ringFraction = gauge.fraction,
+                            ringIsExpense = gauge.isExpense,
                             slices = slices,
                             expenseTiles = expenseTiles,
                             isLoading = false,
@@ -376,10 +380,20 @@ class DashboardViewModel
                 )
         }
 
-        private fun BalanceSnapshot.toRingFraction(): Float {
-            if (income.amount.signum() == 0) return 0f
-            return (expense.amount.toFloat() / income.amount.toFloat()).coerceIn(0f, 1f)
-        }
+        private suspend fun computeSnapshot(
+            selection: DashboardSelection,
+            accounts: List<Account>,
+            period: Period,
+        ): BalanceSnapshot =
+            when (selection) {
+                is DashboardSelection.SpecificAccount -> balanceCalculator(selection.account.id, period)
+                is DashboardSelection.AllAccounts ->
+                    balanceCalculator.forAccounts(
+                        accounts = accounts.filter { it.currencyId == selection.currency.id },
+                        currency = selection.currency,
+                        period = period,
+                    )
+            }
 
         private fun BalanceSnapshot.toPeriodNet(): Money =
             Money(

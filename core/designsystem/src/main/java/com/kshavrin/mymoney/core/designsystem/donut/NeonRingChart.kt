@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.PaintingStyle
 import androidx.compose.ui.graphics.StrokeCap
@@ -63,6 +64,8 @@ internal fun calculateNeonRingChartLayout(
 fun NeonRingChart(
     fraction: Float,
     modifier: Modifier = Modifier,
+    gradientStart: Color = MaterialTheme.colorScheme.neonRingGradientStart,
+    gradientEnd: Color = MaterialTheme.colorScheme.neonRingGradientEnd,
     centerContent: @Composable BoxScope.() -> Unit,
 ) {
     val layout = calculateNeonRingChartLayout(fraction = fraction)
@@ -71,8 +74,6 @@ fun NeonRingChart(
     val glowRadius = Spacing.neonRingGlowRadius
     val glowSpread = Spacing.neonRingGlowSpread
     val glowStrokeWidth = strokeWidth + glowSpread * 2
-    val gradientStart = MaterialTheme.colorScheme.neonRingGradientStart
-    val gradientEnd = MaterialTheme.colorScheme.neonRingGradientEnd
     val trackColor = MaterialTheme.colorScheme.neonRingTrack
     val density = LocalDensity.current
     val glowPaint =

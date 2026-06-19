@@ -66,6 +66,10 @@ import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanelOutline
 import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanelShadow
 import com.kshavrin.mymoney.core.ui.theme.dashboardBalanceValue
 import com.kshavrin.mymoney.core.ui.theme.dashboardNeonBackground
+import com.kshavrin.mymoney.core.ui.theme.neonRingGradientEnd
+import com.kshavrin.mymoney.core.ui.theme.neonRingGradientEndExpense
+import com.kshavrin.mymoney.core.ui.theme.neonRingGradientStart
+import com.kshavrin.mymoney.core.ui.theme.neonRingGradientStartExpense
 import com.kshavrin.mymoney.feature.dashboard.components.CategoryTilesList
 import com.kshavrin.mymoney.feature.dashboard.components.DashboardDrawerOverlay
 import com.kshavrin.mymoney.feature.dashboard.components.DrawerSide
@@ -197,6 +201,18 @@ fun DashboardContent(
                             NeonRingChart(
                                 fraction = state.ringFraction,
                                 modifier = Modifier.testTag(DASHBOARD_DONUT_TAG),
+                                gradientStart =
+                                    if (state.ringIsExpense) {
+                                        MaterialTheme.colorScheme.neonRingGradientStartExpense
+                                    } else {
+                                        MaterialTheme.colorScheme.neonRingGradientStart
+                                    },
+                                gradientEnd =
+                                    if (state.ringIsExpense) {
+                                        MaterialTheme.colorScheme.neonRingGradientEndExpense
+                                    } else {
+                                        MaterialTheme.colorScheme.neonRingGradientEnd
+                                    },
                             ) {
                                 if (snapshot != null) {
                                     RingCenterContent(

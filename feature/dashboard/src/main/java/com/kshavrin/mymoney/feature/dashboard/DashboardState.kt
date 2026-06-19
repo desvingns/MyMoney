@@ -17,6 +17,7 @@ data class DashboardState(
     val balanceSnapshot: BalanceSnapshot? = null,
     val periodNet: Money = Money.zero(DASHBOARD_STATE_FALLBACK_CURRENCY),
     val ringFraction: Float = 0f,
+    val ringIsExpense: Boolean = false,
     val slices: List<CategorySlice> = emptyList(),
     val expenseTiles: List<CategoryTileItem> = emptyList(),
     val expenseCategoryPlaceholders: List<CategorySlice> = emptyList(),

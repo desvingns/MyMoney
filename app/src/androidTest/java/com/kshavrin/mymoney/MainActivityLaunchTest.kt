@@ -5,7 +5,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.kshavrin.mymoney.feature.dashboard.DASHBOARD_TOP_BAR_TITLE_TAG
+import com.kshavrin.mymoney.feature.dashboard.DASHBOARD_TOP_BAR_PERIOD_TAG
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Rule
@@ -25,11 +25,11 @@ class MainActivityLaunchTest {
     fun launchesToDashboardWhenOnboardingDisabled() {
         composeRule.waitUntil(timeoutMillis = 15_000) {
             composeRule
-                .onAllNodesWithTag(DASHBOARD_TOP_BAR_TITLE_TAG)
+                .onAllNodesWithTag(DASHBOARD_TOP_BAR_PERIOD_TAG)
                 .fetchSemanticsNodes()
                 .isNotEmpty()
         }
 
-        composeRule.onNodeWithTag(DASHBOARD_TOP_BAR_TITLE_TAG).assertIsDisplayed()
+        composeRule.onNodeWithTag(DASHBOARD_TOP_BAR_PERIOD_TAG).assertIsDisplayed()
     }
 }

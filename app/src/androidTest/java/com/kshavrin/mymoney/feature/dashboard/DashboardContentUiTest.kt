@@ -1,22 +1,19 @@
 package com.kshavrin.mymoney.feature.dashboard
 
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
-import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.assertWidthIsEqualTo
-import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
@@ -179,70 +176,78 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `top bar renders wordmark title and currency subtitle`() {
-        val usd =
-            Currency(
-                id = 1L,
-                code = "USD",
-                symbol = "$",
-                name = "US Dollar",
-                decimalDigits = 2,
-                isActive = true,
-                sortOrder = 0,
-            )
+    fun `top bar removes legacy wordmark and subtitle and keeps the period switcher visible`() {
+        val period = Period.Month(YearMonth.of(2026, 4))
+        val expectedLabel =
+            YearMonth
+                .of(2026, 4)
+                .atDay(1)
+                .format(DateTimeFormatter.ofPattern("LLLL yyyy", targetLocale()))
 
         composeTestRule.setContent {
             MyMoneyTheme {
                 DashboardContent(
-                    state = dashboardState(currency = usd, isLoading = false),
+                    state = DashboardState(period = period, isLoading = false),
                     onEvent = {},
                 )
             }
         }
 
+        composeTestRule.onNodeWithTag(DASHBOARD_TOP_BAR_TITLE_TAG).assertDoesNotExist()
+        composeTestRule.onNodeWithTag(DASHBOARD_TOP_BAR_SUBTITLE_TAG).assertDoesNotExist()
         composeTestRule
-            .onNodeWithTag(DASHBOARD_TOP_BAR_TITLE_TAG)
+            .onNodeWithTag(DASHBOARD_TOP_BAR_PERIOD_TAG)
             .assertIsDisplayed()
-            .assertTextEquals(targetString(R.string.dashboard_title))
         composeTestRule
-            .onNodeWithTag(DASHBOARD_TOP_BAR_SUBTITLE_TAG)
+            .onNodeWithText(expectedLabel)
             .assertIsDisplayed()
-            .assertTextEquals(usd.name)
     }
 
     @Test
-    fun `top bar title and currency subtitle use onPrimary in light theme`() {
-        val usd =
-            Currency(
-                id = 1L,
-                code = "USD",
-                symbol = "$",
-                name = "US Dollar",
-                decimalDigits = 2,
-                isActive = true,
-                sortOrder = 0,
-            )
-        var expectedTint = 0
+    fun `top bar action icons stay visible and emit their existing events`() {
+        val capturedEvents = mutableListOf<DashboardEvent>()
 
         composeTestRule.setContent {
-            MyMoneyTheme(darkTheme = false) {
-                expectedTint = MaterialTheme.colorScheme.onPrimary.toArgb()
+            MyMoneyTheme {
                 DashboardContent(
-                    state = dashboardState(currency = usd, isLoading = false),
-                    onEvent = {},
+                    state = DashboardState(isLoading = false),
+                    onEvent = { event -> capturedEvents += event },
                 )
             }
         }
-        composeTestRule.waitForIdle()
 
-        assertTrue(
-            "dashboard title must use light-theme onPrimary",
-            nodeImageContainsColor(DASHBOARD_TOP_BAR_TITLE_TAG, expectedTint),
-        )
-        assertTrue(
-            "dashboard currency subtitle must use light-theme onPrimary",
-            nodeImageContainsColor(DASHBOARD_TOP_BAR_SUBTITLE_TAG, expectedTint),
-        )
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.dashboard_menu))
+            .assertIsDisplayed()
+            .assertIsEnabled()
+            .performClick()
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.dashboard_transfer))
+            .assertIsDisplayed()
+            .assertIsEnabled()
+            .performClick()
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.dashboard_search))
+            .assertIsDisplayed()
+            .assertIsEnabled()
+            .performClick()
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.dashboard_overflow_menu))
+            .assertIsDisplayed()
+            .assertIsEnabled()
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(
+                listOf(
+                    DashboardEvent.LeftDrawerToggled,
+                    DashboardEvent.TransferClicked,
+                    DashboardEvent.SearchClicked,
+                    DashboardEvent.RightDrawerToggled,
+                ),
+                capturedEvents,
+            )
+        }
     }
 
     @Test
@@ -454,7 +459,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `dashboard shows the current period as a static localized label`() {
+    fun `dashboard shows the current period once inside the toolbar period switcher`() {
         val period = Period.Month(YearMonth.of(2026, 4))
         val expectedLabel =
             YearMonth
@@ -471,10 +476,11 @@ class DashboardContentUiTest {
             }
         }
 
-        composeTestRule.onNodeWithText(expectedLabel).assertIsDisplayed()
         composeTestRule
-            .onAllNodes(hasText(expectedLabel) and hasClickAction())
-            .assertCountEquals(0)
+            .onNodeWithTag(DASHBOARD_TOP_BAR_PERIOD_TAG)
+            .assertIsDisplayed()
+        composeTestRule.onNodeWithText(expectedLabel).assertIsDisplayed()
+        composeTestRule.onAllNodesWithText(expectedLabel).assertCountEquals(1)
     }
 
     @Test
@@ -548,8 +554,10 @@ class DashboardContentUiTest {
         )
 
         composeTestRule
-            .onNodeWithTag(DASHBOARD_TOP_BAR_TITLE_TAG)
+            .onNodeWithTag(DASHBOARD_TOP_BAR_PERIOD_TAG)
             .assertIsDisplayed()
+        composeTestRule.onNodeWithTag(DASHBOARD_TOP_BAR_TITLE_TAG).assertDoesNotExist()
+        composeTestRule.onNodeWithTag(DASHBOARD_TOP_BAR_SUBTITLE_TAG).assertDoesNotExist()
         composeTestRule
             .onNodeWithContentDescription(targetString(R.string.dashboard_search))
             .assertIsEnabled()
@@ -570,8 +578,10 @@ class DashboardContentUiTest {
         )
 
         composeTestRule
-            .onNodeWithTag(DASHBOARD_TOP_BAR_TITLE_TAG)
+            .onNodeWithTag(DASHBOARD_TOP_BAR_PERIOD_TAG)
             .assertIsDisplayed()
+        composeTestRule.onNodeWithTag(DASHBOARD_TOP_BAR_TITLE_TAG).assertDoesNotExist()
+        composeTestRule.onNodeWithTag(DASHBOARD_TOP_BAR_SUBTITLE_TAG).assertDoesNotExist()
         composeTestRule
             .onNodeWithContentDescription(targetString(R.string.dashboard_transfer))
             .assertIsEnabled()
@@ -773,7 +783,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `period label peeks the adjacent periods around the current one`() {
+    fun `period switcher shows only the current period label in the toolbar`() {
         val current = Period.Month(YearMonth.of(2026, 4))
         val pattern = DateTimeFormatter.ofPattern("LLLL yyyy", targetLocale())
         val currentLabel = YearMonth.of(2026, 4).atDay(1).format(pattern)
@@ -789,18 +799,17 @@ class DashboardContentUiTest {
             }
         }
 
+        composeTestRule.onNodeWithTag(DASHBOARD_TOP_BAR_PERIOD_TAG).assertIsDisplayed()
         composeTestRule.onNodeWithText(currentLabel).assertIsDisplayed()
-        composeTestRule.onNodeWithText(previousLabel).assertIsDisplayed()
-        // Next period is rendered at alpha=0 (invisible placeholder to preserve layout symmetry).
-        // It must exist in the composition tree but must not be visible.
-        composeTestRule.onNodeWithText(nextLabel).assertExists()
-        composeTestRule.onNodeWithText(nextLabel, useUnmergedTree = true).assertExists()
+        composeTestRule.onNodeWithText(previousLabel).assertDoesNotExist()
+        composeTestRule.onNodeWithText(nextLabel).assertDoesNotExist()
     }
 
     @Test
-    fun `next period label node exists in composition tree but is kept invisible`() {
+    fun `period switcher in the toolbar exposes previous and next controls without placeholder labels`() {
         val current = Period.Month(YearMonth.of(2026, 4))
         val pattern = DateTimeFormatter.ofPattern("LLLL yyyy", targetLocale())
+        val previousLabel = YearMonth.of(2026, 3).atDay(1).format(pattern)
         val nextLabel = YearMonth.of(2026, 5).atDay(1).format(pattern)
 
         composeTestRule.setContent {
@@ -812,9 +821,17 @@ class DashboardContentUiTest {
             }
         }
 
-        // The node must be present (layout symmetry placeholder) but not asserted as displayed,
-        // because PeriodLabel applies Modifier.alpha(0f) to the next-period slot.
-        composeTestRule.onNodeWithText(nextLabel).assertExists()
+        composeTestRule
+            .onNodeWithTag(DASHBOARD_TOP_BAR_PERIOD_TAG)
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.period_previous))
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.period_next))
+            .assertIsDisplayed()
+        composeTestRule.onNodeWithText(previousLabel).assertDoesNotExist()
+        composeTestRule.onNodeWithText(nextLabel).assertDoesNotExist()
     }
 
     @Test
@@ -918,34 +935,6 @@ class DashboardContentUiTest {
         InstrumentationRegistry
             .getInstrumentation()
             .targetContext.resources.configuration.locales[0]
-
-    private fun nodeImageContainsColor(
-        tag: String,
-        argb: Int,
-    ): Boolean {
-        val image =
-            composeTestRule
-                .onNodeWithTag(tag)
-                .assertIsDisplayed()
-                .captureToImage()
-        val pixels = IntArray(image.width * image.height)
-        image.readPixels(pixels)
-        return pixels.any { colorsMatch(it, argb) }
-    }
-
-    private fun colorsMatch(
-        a: Int,
-        b: Int,
-    ): Boolean {
-        fun channel(
-            value: Int,
-            shift: Int,
-        ) = (value shr shift) and 0xFF
-        val tolerance = 12
-        return kotlin.math.abs(channel(a, 16) - channel(b, 16)) <= tolerance &&
-            kotlin.math.abs(channel(a, 8) - channel(b, 8)) <= tolerance &&
-            kotlin.math.abs(channel(a, 0) - channel(b, 0)) <= tolerance
-    }
 
     private fun dashboardState(
         currency: Currency,

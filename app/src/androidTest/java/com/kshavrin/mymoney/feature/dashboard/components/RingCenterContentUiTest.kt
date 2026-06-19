@@ -196,13 +196,34 @@ class RingCenterContentUiTest {
             }
         }
 
-        val boxBounds = composeTestRule.onNodeWithTag(WIDE_BOX_TAG).fetchSemanticsNode().boundsInRoot
-        val badgeBounds = composeTestRule.onNodeWithTag(BADGE_TAG, useUnmergedTree = true).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
-        val dividerBounds = composeTestRule.onNodeWithTag(BADGE_DIVIDER_TAG, useUnmergedTree = true).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        val boxBounds =
+            composeTestRule
+                .onNodeWithTag(WIDE_BOX_TAG)
+                .fetchSemanticsNode()
+                .boundsInRoot
+        val badgeBounds =
+            composeTestRule
+                .onNodeWithTag(BADGE_TAG, useUnmergedTree = true)
+                .assertIsDisplayed()
+                .fetchSemanticsNode()
+                .boundsInRoot
+        val dividerBounds =
+            composeTestRule
+                .onNodeWithTag(BADGE_DIVIDER_TAG, useUnmergedTree = true)
+                .assertIsDisplayed()
+                .fetchSemanticsNode()
+                .boundsInRoot
 
-        composeTestRule.onNodeWithTag(BADGE_TAG, useUnmergedTree = true).assertHeightIsEqualTo(56.dp).assertHasNoClickAction()
-        composeTestRule.onNodeWithTag(BADGE_DIVIDER_TAG, useUnmergedTree = true).assertHeightIsEqualTo(1.dp)
-        composeTestRule.onNodeWithText(periodNetText, useUnmergedTree = true).assertHasNoClickAction()
+        composeTestRule
+            .onNodeWithTag(BADGE_TAG, useUnmergedTree = true)
+            .assertHeightIsEqualTo(56.dp)
+            .assertHasNoClickAction()
+        composeTestRule
+            .onNodeWithTag(BADGE_DIVIDER_TAG, useUnmergedTree = true)
+            .assertHeightIsEqualTo(1.dp)
+        composeTestRule
+            .onNodeWithText(periodNetText, useUnmergedTree = true)
+            .assertHasNoClickAction()
 
         assertDpEquals("badge must keep the configured left inset", badgeBounds.left - boxBounds.left, 32.dp)
         assertDpEquals("badge must keep the configured right inset", boxBounds.right - badgeBounds.right, 32.dp)

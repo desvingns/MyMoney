@@ -35,6 +35,17 @@ const val NEON_RING_CHART_TAG = "neon_ring_chart"
 private const val FULL_SWEEP_DEGREES = 360f
 private const val TOP_START_ROTATION_DEGREES = -90f
 
+internal fun neonRingGradientStops(
+    fraction: Float,
+    gradientStart: Color,
+    gradientEnd: Color,
+): Array<Pair<Float, Color>> =
+    if (fraction >= 1f) {
+        arrayOf(0f to gradientStart, 0.5f to gradientEnd, 1f to gradientStart)
+    } else {
+        arrayOf(0f to gradientStart, fraction to gradientEnd, 1f to gradientEnd)
+    }
+
 internal data class NeonRingChartLayout(
     val sweepAngleDegrees: Float,
     val showsGradientArc: Boolean,
@@ -132,12 +143,11 @@ fun NeonRingChart(
                     drawArc(
                         brush =
                             Brush.sweepGradient(
-                                colorStops =
-                                    arrayOf(
-                                        0f to gradientStart,
-                                        fraction to gradientEnd,
-                                        1f to gradientEnd,
-                                    ),
+                                *neonRingGradientStops(
+                                    fraction = fraction,
+                                    gradientStart = gradientStart,
+                                    gradientEnd = gradientEnd,
+                                ),
                                 center = center,
                             ),
                         startAngle = 0f,

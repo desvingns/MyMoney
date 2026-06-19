@@ -1,7 +1,7 @@
 # Кольцо меньше (−20%) и выше
 Epic: dashboard-neon-fidelity
 Order: 02 of 04
-Status: backlog
+Status: done
 Depends-on: dashboard-neon-fidelity-01
 Date: 2026-06-19
 
@@ -48,5 +48,5 @@ Feature: Размер и положение неонового кольца
 поднятое выше, чтобы под него поместилось больше плиток категорий.
 
 ## Implementation links
-- commit: —
-- files:  —
+- commit: 69db2038, b8f5a159, 04af3f94
+- files:  core/ui/src/main/java/com/kshavrin/mymoney/core/ui/theme/Spacing.kt; core/designsystem/src/main/java/com/kshavrin/mymoney/core/designsystem/donut/NeonRingChart.kt; core/designsystem/src/test/java/com/kshavrin/mymoney/core/designsystem/donut/NeonRingChartTest.kt; core/designsystem/src/androidTest/java/com/kshavrin/mymoney/core/designsystem/donut/NeonRingChartUiTest.kt; app/src/androidTest/java/com/kshavrin/mymoney/feature/dashboard/DashboardContentUiTest.kt

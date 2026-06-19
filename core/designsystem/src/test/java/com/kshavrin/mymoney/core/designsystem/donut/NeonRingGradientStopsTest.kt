@@ -12,7 +12,6 @@ import org.junit.Test
  * from this package.
  */
 class NeonRingGradientStopsTest {
-
     // ── green-like pair ──────────────────────────────────────────────────────
 
     private val greenStart = Color(0xFF00FF88)

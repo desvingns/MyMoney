@@ -220,6 +220,25 @@ class NeonRingChartUiTest {
         assertEquals(outerBounds.center.y, centerBounds.center.y, 1f)
     }
 
+    @Test
+    fun `full ring fraction 1f renders without crash and chart node has correct outer bounds`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                NeonRingChart(fraction = 1f) {}
+            }
+        }
+
+        val bounds =
+            composeTestRule
+                .onNodeWithTag(NEON_RING_CHART_TAG)
+                .assertExists()
+                .fetchSemanticsNode()
+                .boundsInRoot
+        val expectedSizePx = with(composeTestRule.density) { 264.dp.toPx() }
+        assertEquals(expectedSizePx, bounds.width, 1f)
+        assertEquals(expectedSizePx, bounds.height, 1f)
+    }
+
     private companion object {
         const val CENTER_CONTENT_TAG = "neon_ring_center_content"
     }

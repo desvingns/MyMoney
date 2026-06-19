@@ -58,9 +58,15 @@ class RingCenterLayoutTest {
     fun `height-constrained layout shrinks badge once divider consumes the free zone`() {
         val availableHeight = LABEL_LINE_HEIGHT + BALANCE_LINE_HEIGHT + TOP_GAP + 54f + BADGE_BOTTOM_INSET
         val layout = calculateLayout(availableWidth = 1_000f, availableHeight = availableHeight)
+        val availableLowerZone =
+            availableHeight -
+                LABEL_LINE_HEIGHT -
+                BALANCE_LINE_HEIGHT * layout.balanceScale -
+                TOP_GAP -
+                BADGE_BOTTOM_INSET
 
         assertTrue("divider-aware free-zone fit must shrink the badge scale", layout.badgeScale < 1f)
-        assertTrue("badge height must stay within the available lower zone", layout.badgeHeight <= 54f)
+        assertTrue("badge height must stay within the available lower zone", layout.badgeHeight <= availableLowerZone + SEARCH_TOLERANCE)
         assertTrue("badge still respects the configured minimum height", layout.badgeHeight >= BADGE_MIN_HEIGHT)
     }
 

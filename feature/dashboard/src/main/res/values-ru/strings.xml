@@ -31,6 +31,8 @@
 
     <string name="fab_expense">Добавить расход</string>
     <string name="fab_income">Добавить доход</string>
+    <string name="fab_expense_content_description">Расход</string>
+    <string name="fab_income_content_description">Доход</string>
     <string name="fab_expense_label">РАСХОД</string>
     <string name="fab_income_label">ДОХОД</string>
     <string name="fab_transfer">Перевод</string>

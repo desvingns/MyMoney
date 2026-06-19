@@ -252,8 +252,6 @@ fun DashboardContent(
                                 hapticPlayer.fire(HapticKind.MEDIUM)
                                 onEvent(DashboardEvent.PlusFabClicked)
                             },
-                            expenseLabel = stringResource(R.string.fab_expense_label),
-                            incomeLabel = stringResource(R.string.fab_income_label),
                         )
                     }
 

@@ -27,8 +27,8 @@ object Spacing {
     val dashboardDonutCenterDividerThickness = 1.dp
     val dashboardDonutCalloutIconSize = 40.dp
     val dashboardDonutLeaderLineThickness = 1.dp
-    val neonRingDiameter = 248.dp
-    val neonRingStrokeWidth = 20.dp
+    val neonRingDiameter = 200.dp
+    val neonRingStrokeWidth = 16.dp
     val neonRingGlowRadius = 16.dp
     val neonRingGlowSpread = 4.dp
     val dashboardTileHeight = 76.dp

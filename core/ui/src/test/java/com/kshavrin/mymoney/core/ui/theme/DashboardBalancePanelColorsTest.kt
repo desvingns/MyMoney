@@ -30,8 +30,10 @@ class DashboardBalancePanelColorsTest {
     }
 
     @Test
-    fun `dashboard fab token is fifteen percent larger than legacy size`() {
-        assertEquals(104f, Spacing.dashboardFabSize.value, 0f)
+    fun `dashboard fab tokens reflect the reduced size contract`() {
+        assertEquals(94f, Spacing.dashboardFabSize.value, 0f)
+        assertEquals(29f, Spacing.dashboardFabIconSize.value, 0f)
+        assertEquals(3.6f, Spacing.dashboardFabOutlineWidth.value, 0f)
     }
 
     @Test

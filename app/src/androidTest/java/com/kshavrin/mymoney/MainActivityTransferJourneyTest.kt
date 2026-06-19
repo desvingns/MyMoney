@@ -100,7 +100,7 @@ class MainActivityTransferJourneyTest {
         composeRule.onNodeWithText(skip).performClick()
 
         // Dashboard -> Transfer form
-        val expenseFab = targetString(DashboardR.string.fab_expense)
+        val expenseFab = targetString(DashboardR.string.fab_expense_content_description)
         waitForContentDescription(expenseFab)
         composeRule
             .onAllNodesWithContentDescription(targetString(DashboardR.string.dashboard_transfer))[0]

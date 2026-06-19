@@ -54,7 +54,7 @@ class MainActivityAddExpenseJourneyTest {
         composeRule.onNodeWithText(skip).performClick()
 
         // Dashboard -> Add expense form
-        val expenseFab = targetString(DashboardR.string.fab_expense)
+        val expenseFab = targetString(DashboardR.string.fab_expense_content_description)
         composeRule.waitUntil(TIMEOUT) {
             composeRule.onAllNodes(hasContentDescription(expenseFab)).fetchSemanticsNodes().isNotEmpty()
         }

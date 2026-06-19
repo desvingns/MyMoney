@@ -68,7 +68,7 @@ class MainActivityCreateCategoryJourneyTest {
             composeRule.onNodeWithText(skip).performClick()
 
             // Dashboard -> Add expense form
-            val expenseFab = targetString(DashboardR.string.fab_expense)
+            val expenseFab = targetString(DashboardR.string.fab_expense_content_description)
             waitForContentDescription(expenseFab)
             composeRule.onNodeWithContentDescription(expenseFab).performClick()
 

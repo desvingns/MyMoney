@@ -72,7 +72,7 @@ class DashboardContentUiTest {
         )
 
         composeTestRule
-            .onNodeWithContentDescription(targetString(R.string.fab_expense))
+            .onNodeWithContentDescription(targetString(R.string.fab_expense_content_description))
             .assertIsEnabled()
             .assertWidthIsAtLeast(Spacing.dashboardFabSize)
             .assertHeightIsAtLeast(Spacing.dashboardFabSize)
@@ -97,7 +97,7 @@ class DashboardContentUiTest {
         )
 
         composeTestRule
-            .onNodeWithContentDescription(targetString(R.string.fab_income))
+            .onNodeWithContentDescription(targetString(R.string.fab_income_content_description))
             .assertIsEnabled()
             .assertWidthIsAtLeast(Spacing.dashboardFabSize)
             .assertHeightIsAtLeast(Spacing.dashboardFabSize)
@@ -109,7 +109,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `dashboard fabs render localized labels below the buttons`() {
+    fun `dashboard fabs remove visible labels and stay reachable by screen reader descriptions`() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 DashboardContent(
@@ -121,9 +121,15 @@ class DashboardContentUiTest {
 
         composeTestRule
             .onNodeWithText(targetString(R.string.fab_expense_label))
-            .assertIsDisplayed()
+            .assertDoesNotExist()
         composeTestRule
             .onNodeWithText(targetString(R.string.fab_income_label))
+            .assertDoesNotExist()
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.fab_expense_content_description))
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.fab_income_content_description))
             .assertIsDisplayed()
     }
 
@@ -837,7 +843,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `expense and income fabs are exactly 104dp and preserve their events`() {
+    fun `expense and income fabs are exactly 94dp keep content descriptions and preserve their events`() {
         val capturedEvents = mutableListOf<DashboardEvent>()
         composeTestRule.setContent {
             MyMoneyTheme {
@@ -849,16 +855,16 @@ class DashboardContentUiTest {
         }
 
         composeTestRule
-            .onNodeWithContentDescription(targetString(R.string.fab_expense))
+            .onNodeWithContentDescription(targetString(R.string.fab_expense_content_description))
             .assertIsDisplayed()
-            .assertWidthIsEqualTo(104.dp)
-            .assertHeightIsEqualTo(104.dp)
+            .assertWidthIsEqualTo(94.dp)
+            .assertHeightIsEqualTo(94.dp)
             .performClick()
         composeTestRule
-            .onNodeWithContentDescription(targetString(R.string.fab_income))
+            .onNodeWithContentDescription(targetString(R.string.fab_income_content_description))
             .assertIsDisplayed()
-            .assertWidthIsEqualTo(104.dp)
-            .assertHeightIsEqualTo(104.dp)
+            .assertWidthIsEqualTo(94.dp)
+            .assertHeightIsEqualTo(94.dp)
             .performClick()
 
         composeTestRule.runOnIdle {

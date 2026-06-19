@@ -1,7 +1,7 @@
 # Дашборд «Neon Ring» — фиделити к мокапу — epic overview
 Epic: dashboard-neon-fidelity
 Order: 00 of 04
-Status: backlog
+Status: done
 Depends-on: dashboard-neon-ring-redesign (отгружен)
 Date: 2026-06-19
 
@@ -72,5 +72,5 @@ drawer-контент, цели навигации (search/transfer/overflow), �
 - Ключевые пропорции мокапа (frame 390×844): тулбар одной строкой `padding 2px 7px`; кольцо `R=96 SW=18`, `cy=107` (высоко); плашка `padding 7×14, gap 4`, разделитель `height:1 rgba(255,255,255,0.08)`; FAB 64×64 без подписей.
 
 ## Implementation links
-- commit: —
-- files:  see SPECs 01-04
+- commit: 25748bd5, 653678bb, 95aab200, 69db2038, b8f5a159, 04af3f94, 412b9591, a8e18255, d611d342, 24b3aaa0, debac840, 4d0315af, 8c70b447
+- files:  see completed SPECs 01-04

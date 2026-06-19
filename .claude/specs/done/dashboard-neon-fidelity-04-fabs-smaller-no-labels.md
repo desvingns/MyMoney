@@ -1,7 +1,7 @@
 # FAB −10% и без текстовых подписей
 Epic: dashboard-neon-fidelity
 Order: 04 of 04
-Status: backlog
+Status: done
 Depends-on: —
 Date: 2026-06-19
 
@@ -51,5 +51,5 @@ Feature: Кнопки −/+ дашборда
 меньших круга только с иконками −/+, без подписей. Заказчик просит −10% и убрать подписи.
 
 ## Implementation links
-- commit: —
-- files:  —
+- commit: 24b3aaa0, debac840, 4d0315af, 8c70b447
+- files:  core/ui/src/main/java/com/kshavrin/mymoney/core/ui/theme/Spacing.kt; core/ui/src/test/java/com/kshavrin/mymoney/core/ui/theme/DashboardBalancePanelColorsTest.kt; feature/dashboard/src/main/java/com/kshavrin/mymoney/feature/dashboard/DashboardScreen.kt; feature/dashboard/src/main/java/com/kshavrin/mymoney/feature/dashboard/components/TwoFabLayout.kt; feature/dashboard/src/main/res/values/strings.xml; feature/dashboard/src/main/res/values-ru/strings.xml; app/src/androidTest/java/com/kshavrin/mymoney/feature/dashboard/DashboardContentUiTest.kt; app/src/androidTest/java/com/kshavrin/mymoney/MainActivityAddExpenseJourneyTest.kt; app/src/androidTest/java/com/kshavrin/mymoney/MainActivityCreateCategoryJourneyTest.kt; app/src/androidTest/java/com/kshavrin/mymoney/MainActivityTransferJourneyTest.kt; app/src/androidTest/java/com/kshavrin/mymoney/feature/dashboard/components/RingCenterContentUiTest.kt

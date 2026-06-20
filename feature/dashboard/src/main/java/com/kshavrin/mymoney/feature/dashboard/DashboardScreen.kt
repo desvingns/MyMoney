@@ -115,183 +115,185 @@ fun DashboardContent(
         }
     }
 
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.dashboardNeonBackground,
-        topBar = {
-            DashboardTopBar(
-                period = state.period,
-                drawerOpen = drawerOpen,
-                onNavigationClick = {
-                    hapticPlayer.fire(HapticKind.MEDIUM)
-                    onEvent(
-                        if (drawerOpen) {
-                            DashboardEvent.DrawerDismissed
-                        } else {
-                            DashboardEvent.LeftDrawerToggled
-                        },
-                    )
-                },
-                onSearchClick = { onEvent(DashboardEvent.SearchClicked) },
-                onTransferClick = { onEvent(DashboardEvent.TransferClicked) },
-                onPreviousPeriodClick = {
-                    hapticPlayer.fire(HapticKind.SOFT)
-                    onEvent(DashboardEvent.PreviousPeriod)
-                },
-                onNextPeriodClick = {
-                    hapticPlayer.fire(HapticKind.SOFT)
-                    onEvent(DashboardEvent.NextPeriod)
-                },
-                onMoreClick = {
-                    hapticPlayer.fire(HapticKind.MEDIUM)
-                    onEvent(DashboardEvent.RightDrawerToggled)
-                },
-            )
-        },
-    ) { innerPadding ->
-        val swipeThresholdPx = with(LocalDensity.current) { 56.dp.toPx() }
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-        ) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            containerColor = MaterialTheme.colorScheme.dashboardNeonBackground,
+            topBar = {
+                DashboardTopBar(
+                    period = state.period,
+                    drawerOpen = drawerOpen,
+                    onNavigationClick = {
+                        hapticPlayer.fire(HapticKind.MEDIUM)
+                        onEvent(
+                            if (drawerOpen) {
+                                DashboardEvent.DrawerDismissed
+                            } else {
+                                DashboardEvent.LeftDrawerToggled
+                            },
+                        )
+                    },
+                    onSearchClick = { onEvent(DashboardEvent.SearchClicked) },
+                    onTransferClick = { onEvent(DashboardEvent.TransferClicked) },
+                    onPreviousPeriodClick = {
+                        hapticPlayer.fire(HapticKind.SOFT)
+                        onEvent(DashboardEvent.PreviousPeriod)
+                    },
+                    onNextPeriodClick = {
+                        hapticPlayer.fire(HapticKind.SOFT)
+                        onEvent(DashboardEvent.NextPeriod)
+                    },
+                    onMoreClick = {
+                        hapticPlayer.fire(HapticKind.MEDIUM)
+                        onEvent(DashboardEvent.RightDrawerToggled)
+                    },
+                )
+            },
+        ) { innerPadding ->
+            val swipeThresholdPx = with(LocalDensity.current) { 56.dp.toPx() }
             Box(
                 modifier =
                     Modifier
                         .fillMaxSize()
-                        .pointerInput(Unit) {
-                            var totalDrag = 0f
-                            detectHorizontalDragGestures(
-                                onDragStart = { totalDrag = 0f },
-                                onDragEnd = {
-                                    if (totalDrag <= -swipeThresholdPx) {
-                                        soundPlayer.play(SoundKey.SWIPE)
-                                        hapticPlayer.fire(HapticKind.SOFT)
-                                        onEvent(DashboardEvent.NextPeriod)
-                                    } else if (totalDrag >= swipeThresholdPx) {
-                                        soundPlayer.play(SoundKey.SWIPE)
-                                        hapticPlayer.fire(HapticKind.SOFT)
-                                        onEvent(DashboardEvent.PreviousPeriod)
-                                    }
-                                },
-                            ) { _, dragAmount -> totalDrag += dragAmount }
-                        },
+                        .padding(innerPadding),
             ) {
                 Box(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .pointerInput(Unit) {
+                                var totalDrag = 0f
+                                detectHorizontalDragGestures(
+                                    onDragStart = { totalDrag = 0f },
+                                    onDragEnd = {
+                                        if (totalDrag <= -swipeThresholdPx) {
+                                            soundPlayer.play(SoundKey.SWIPE)
+                                            hapticPlayer.fire(HapticKind.SOFT)
+                                            onEvent(DashboardEvent.NextPeriod)
+                                        } else if (totalDrag >= swipeThresholdPx) {
+                                            soundPlayer.play(SoundKey.SWIPE)
+                                            hapticPlayer.fire(HapticKind.SOFT)
+                                            onEvent(DashboardEvent.PreviousPeriod)
+                                        }
+                                    },
+                                ) { _, dragAmount -> totalDrag += dragAmount }
+                            },
                 ) {
-                    Column(
+                    Box(
                         modifier = Modifier.fillMaxSize(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        val overBudgetText =
-                            state.overBudgetAmount?.let { overage ->
-                                stringResource(R.string.dashboard_over_budget, formatMoney(overage, resourceLocale))
-                            }
-
                         Column(
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .weight(1f)
-                                    .testTag(DASHBOARD_SCROLL_CONTENT_TAG)
-                                    .verticalScroll(rememberScrollState()),
+                            modifier = Modifier.fillMaxSize(),
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
-                            val snapshot = state.balanceSnapshot
-                            NeonRingChart(
-                                fraction = state.ringFraction,
-                                modifier = Modifier.testTag(DASHBOARD_DONUT_TAG),
-                                gradientStart =
-                                    if (state.ringIsExpense) {
-                                        MaterialTheme.colorScheme.neonRingGradientStartExpense
-                                    } else {
-                                        MaterialTheme.colorScheme.neonRingGradientStart
-                                    },
-                                gradientEnd =
-                                    if (state.ringIsExpense) {
-                                        MaterialTheme.colorScheme.neonRingGradientEndExpense
-                                    } else {
-                                        MaterialTheme.colorScheme.neonRingGradientEnd
-                                    },
-                            ) {
-                                if (snapshot != null) {
-                                    RingCenterContent(
-                                        periodNet = state.periodNet,
-                                        income = snapshot.income,
-                                        expense = snapshot.expense,
-                                    )
+                            val overBudgetText =
+                                state.overBudgetAmount?.let { overage ->
+                                    stringResource(R.string.dashboard_over_budget, formatMoney(overage, resourceLocale))
                                 }
-                            }
 
-                            if (overBudgetText != null) {
-                                Spacer(modifier = Modifier.height(Spacing.s))
-                                Surface(
-                                    shape = MaterialTheme.shapes.extraLarge,
-                                    color = MaterialTheme.colorScheme.errorContainer,
-                                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                                ) {
-                                    Text(
-                                        text = overBudgetText,
-                                        style = MaterialTheme.typography.labelMedium,
-                                        modifier = Modifier.padding(horizontal = Spacing.m, vertical = Spacing.s),
-                                    )
-                                }
-                            }
-
-                            CategoryTilesList(
-                                expenseTiles = state.expenseTiles,
-                                onTileClick = { categoryId ->
-                                    onEvent(DashboardEvent.SliceClicked(categoryId))
-                                },
+                            Column(
                                 modifier =
                                     Modifier
-                                        .padding(horizontal = Spacing.l)
-                                        .then(
-                                            if (state.expenseTiles.isEmpty()) {
-                                                Modifier
-                                            } else {
-                                                Modifier.height(
-                                                    Spacing.dashboardTileHeight * state.expenseTiles.size +
-                                                        Spacing.s * (state.expenseTiles.size + 1),
-                                                )
-                                            },
-                                        ),
+                                        .fillMaxWidth()
+                                        .weight(1f)
+                                        .testTag(DASHBOARD_SCROLL_CONTENT_TAG)
+                                        .verticalScroll(rememberScrollState()),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                            ) {
+                                val snapshot = state.balanceSnapshot
+                                NeonRingChart(
+                                    fraction = state.ringFraction,
+                                    modifier = Modifier.testTag(DASHBOARD_DONUT_TAG),
+                                    gradientStart =
+                                        if (state.ringIsExpense) {
+                                            MaterialTheme.colorScheme.neonRingGradientStartExpense
+                                        } else {
+                                            MaterialTheme.colorScheme.neonRingGradientStart
+                                        },
+                                    gradientEnd =
+                                        if (state.ringIsExpense) {
+                                            MaterialTheme.colorScheme.neonRingGradientEndExpense
+                                        } else {
+                                            MaterialTheme.colorScheme.neonRingGradientEnd
+                                        },
+                                ) {
+                                    if (snapshot != null) {
+                                        RingCenterContent(
+                                            periodNet = state.periodNet,
+                                            income = snapshot.income,
+                                            expense = snapshot.expense,
+                                        )
+                                    }
+                                }
+
+                                if (overBudgetText != null) {
+                                    Spacer(modifier = Modifier.height(Spacing.s))
+                                    Surface(
+                                        shape = MaterialTheme.shapes.extraLarge,
+                                        color = MaterialTheme.colorScheme.errorContainer,
+                                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                                    ) {
+                                        Text(
+                                            text = overBudgetText,
+                                            style = MaterialTheme.typography.labelMedium,
+                                            modifier = Modifier.padding(horizontal = Spacing.m, vertical = Spacing.s),
+                                        )
+                                    }
+                                }
+
+                                CategoryTilesList(
+                                    expenseTiles = state.expenseTiles,
+                                    onTileClick = { categoryId ->
+                                        onEvent(DashboardEvent.SliceClicked(categoryId))
+                                    },
+                                    modifier =
+                                        Modifier
+                                            .padding(horizontal = Spacing.l)
+                                            .then(
+                                                if (state.expenseTiles.isEmpty()) {
+                                                    Modifier
+                                                } else {
+                                                    Modifier.height(
+                                                        Spacing.dashboardTileHeight * state.expenseTiles.size +
+                                                            Spacing.s * (state.expenseTiles.size + 1),
+                                                    )
+                                                },
+                                            ),
+                                )
+                            }
+
+                            TwoFabLayout(
+                                onMinusClick = {
+                                    hapticPlayer.fire(HapticKind.MEDIUM)
+                                    onEvent(DashboardEvent.MinusFabClicked)
+                                },
+                                onPlusClick = {
+                                    hapticPlayer.fire(HapticKind.MEDIUM)
+                                    onEvent(DashboardEvent.PlusFabClicked)
+                                },
                             )
                         }
 
-                        TwoFabLayout(
-                            onMinusClick = {
-                                hapticPlayer.fire(HapticKind.MEDIUM)
-                                onEvent(DashboardEvent.MinusFabClicked)
-                            },
-                            onPlusClick = {
-                                hapticPlayer.fire(HapticKind.MEDIUM)
-                                onEvent(DashboardEvent.PlusFabClicked)
-                            },
+                        MonefyConfetti(
+                            show = state.showConfetti,
+                            onFinished = { onEvent(DashboardEvent.ConfettiAcknowledged) },
                         )
                     }
-
-                    MonefyConfetti(
-                        show = state.showConfetti,
-                        onFinished = { onEvent(DashboardEvent.ConfettiAcknowledged) },
-                    )
                 }
             }
-            DashboardDrawerOverlay(
-                open = state.leftDrawerOpen,
-                side = DrawerSide.Left,
-                onDismiss = { onEvent(DashboardEvent.DrawerDismissed) },
-            ) {
-                LeftDrawerContent(state = state, onEvent = onEvent)
-            }
-            DashboardDrawerOverlay(
-                open = state.rightDrawerOpen,
-                side = DrawerSide.Right,
-                onDismiss = { onEvent(DashboardEvent.DrawerDismissed) },
-            ) {
-                RightDrawerContent(onEvent = onEvent)
-            }
+        }
+        DashboardDrawerOverlay(
+            open = state.leftDrawerOpen,
+            side = DrawerSide.Left,
+            onDismiss = { onEvent(DashboardEvent.DrawerDismissed) },
+        ) {
+            LeftDrawerContent(state = state, onEvent = onEvent)
+        }
+        DashboardDrawerOverlay(
+            open = state.rightDrawerOpen,
+            side = DrawerSide.Right,
+            onDismiss = { onEvent(DashboardEvent.DrawerDismissed) },
+        ) {
+            RightDrawerContent(onEvent = onEvent)
         }
     }
 }

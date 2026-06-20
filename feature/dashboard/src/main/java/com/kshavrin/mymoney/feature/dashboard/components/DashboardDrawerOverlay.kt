@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -87,7 +88,8 @@ fun DashboardDrawerOverlay(
                 modifier =
                     Modifier
                         .fillMaxWidth(widthFraction)
-                        .fillMaxHeight(),
+                        .fillMaxHeight()
+                        .statusBarsPadding(),
                 color = MaterialTheme.colorScheme.dashboardDrawerPanelContainer,
                 contentColor = MaterialTheme.colorScheme.dashboardDrawerPanelContent,
             ) {

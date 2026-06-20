@@ -215,7 +215,7 @@ internal fun Period.localizedLabel(
             if (yearMonth.year == currentYear) {
                 monthName
             } else {
-                "$monthName\n${yearMonth.year}"
+                "$monthName ${yearMonth.year}"
             }
         }
         is Period.Year -> year.toString()

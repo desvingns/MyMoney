@@ -5,6 +5,10 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.mutablePreferencesOf
 import com.kshavrin.mymoney.core.datastore.model.AppSettings
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -61,6 +65,7 @@ class AppSettingsRepositoryTest {
             assertEquals(false, settings.firstPositiveSeen)
             assertEquals(0L, settings.importFocusEpochMs)
             assertEquals(-1L, settings.importFocusCurrencyId)
+            assertEquals(0L, settings.dashboardPeriodEpochMs)
             assertEquals(null, settings.tzNormalizedAt)
         }
 
@@ -87,11 +92,53 @@ class AppSettingsRepositoryTest {
                     firstPositiveSeen = true,
                     importFocusEpochMs = 1700000002000L,
                     importFocusCurrencyId = 9L,
+                    dashboardPeriodEpochMs = 1772323200000L,
                     tzNormalizedAt = 1700000003000L,
                 )
             repository.update { target }
             val read = repository.settings.first()
             assertEquals(target, read)
+        }
+
+    // Regression for the cold-start-only empty-dashboard bug: a Monefy import into a past month
+    // showed in-session but the dashboard was empty after a real process restart, because the
+    // selected period lived only in transient state and snapped back to the current month. The
+    // fix persists the period anchor. This drives a genuine disk round-trip across two separate
+    // DataStore instances over the SAME file (the second instance models the cold-started
+    // process) — not a single reused in-memory store, which would prove nothing about restart.
+    @Test
+    fun dashboard_period_anchor_survives_a_real_disk_round_trip_across_datastore_instances() =
+        runTest(UnconfinedTestDispatcher()) {
+            val marchAnchorMs = 1772323200000L
+
+            // First "process": write the anchor, then cancel-and-join the scope to release the
+            // file lock. DataStore forbids two live instances over one file, so fully tearing the
+            // first one down models the real process death that the previous regression test never
+            // exercised (it reused a single store, proving nothing about a disk round-trip).
+            val writeJob = Job()
+            val writeScope = CoroutineScope(writeJob + Dispatchers.IO)
+            val writeStore = PreferenceDataStoreFactory.create(scope = writeScope, produceFile = { tempFile })
+            AppSettingsRepositoryImpl(writeStore).update {
+                it.copy(
+                    dashboardPeriodEpochMs = marchAnchorMs,
+                    importFocusEpochMs = 0L,
+                    importFocusCurrencyId = -1L,
+                )
+            }
+            writeJob.cancelAndJoin()
+
+            // Second "process": a fresh DataStore over the SAME file reads back from disk.
+            val coldStartJob = Job()
+            val coldStartScope = CoroutineScope(coldStartJob + Dispatchers.IO)
+            try {
+                val coldStartStore = PreferenceDataStoreFactory.create(scope = coldStartScope, produceFile = { tempFile })
+                val coldStartSettings = AppSettingsRepositoryImpl(coldStartStore).settings.first()
+
+                assertEquals(marchAnchorMs, coldStartSettings.dashboardPeriodEpochMs)
+                assertEquals(0L, coldStartSettings.importFocusEpochMs)
+            } finally {
+                coldStartJob.cancelAndJoin()
+            }
         }
 
     @Test

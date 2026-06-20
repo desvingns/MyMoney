@@ -70,6 +70,12 @@ class DashboardViewModel
 
         private var recomputeJob: Job? = null
 
+        // The selected period lives only in transient state, so before this guard the cold-started
+        // ViewModel snaps to the current month and hides data imported into a past month once the
+        // one-shot import focus is cleared. On the first settings emission we restore the persisted
+        // period anchor; afterwards in-session navigation owns the period.
+        private var restoredPersistedPeriod = false
+
         init {
             observeAccountsAndCurrencies()
             observeTransactionChanges()
@@ -128,11 +134,12 @@ class DashboardViewModel
                                 inputs.settings,
                             )
                         }
+                    val period = resolvePeriod(focusPeriod, current.period, inputs.settings)
                     _state.value =
                         current.copy(
                             accounts = inputs.accounts,
                             currencies = inputs.currencies,
-                            period = focusPeriod ?: current.period,
+                            period = period,
                             dashboardSelection = selection,
                             isLoading = selection == null,
                         )
@@ -149,6 +156,55 @@ class DashboardViewModel
                 }
             }
         }
+
+        // Cold start: an import focus wins, then the persisted period anchor, then the current
+        // (defaulted-to-now) state. Once the persisted anchor has been restored, in-session
+        // navigation owns the period and settings re-emissions must not pull it back.
+        private fun resolvePeriod(
+            focusPeriod: Period.Month?,
+            current: Period,
+            settings: AppSettings,
+        ): Period {
+            if (focusPeriod != null) {
+                restoredPersistedPeriod = true
+                // Durably record the imported month so it still resolves after the transient
+                // import focus is cleared on the first period/account navigation.
+                if (settings.dashboardPeriodEpochMs != focusPeriod.anchorEpochMsOrNull()) {
+                    persistDashboardPeriod(focusPeriod)
+                }
+                return focusPeriod
+            }
+            if (!restoredPersistedPeriod) {
+                restoredPersistedPeriod = true
+                settings.dashboardPeriod()?.let { return it }
+            }
+            return current
+        }
+
+        private fun AppSettings.dashboardPeriod(): Period.Month? =
+            dashboardPeriodEpochMs
+                .takeIf { it > 0L }
+                ?.let { epochMs ->
+                    Period.Month(YearMonth.from(Instant.ofEpochMilli(epochMs).atZone(ZoneId.systemDefault())))
+                }
+
+        private fun persistDashboardPeriod(period: Period) {
+            val epochMs = period.anchorEpochMsOrNull() ?: return
+            viewModelScope.launch {
+                appSettingsRepository.update { it.copy(dashboardPeriodEpochMs = epochMs) }
+            }
+        }
+
+        private fun Period.anchorEpochMsOrNull(): Long? =
+            when (this) {
+                is Period.Month ->
+                    yearMonth
+                        .atDay(1)
+                        .atStartOfDay(ZoneId.systemDefault())
+                        .toInstant()
+                        .toEpochMilli()
+                else -> null
+            }
 
         private fun resolveDashboardSelection(
             current: DashboardSelection?,
@@ -405,17 +461,25 @@ class DashboardViewModel
             when (event) {
                 is DashboardEvent.PeriodChanged -> {
                     _state.value = _state.value.copy(period = event.period)
+                    restoredPersistedPeriod = true
                     clearImportFocus()
+                    persistDashboardPeriod(event.period)
                     recomputeBalance()
                 }
                 DashboardEvent.PreviousPeriod -> {
-                    _state.value = _state.value.copy(period = _state.value.period.previous())
+                    val period = _state.value.period.previous()
+                    _state.value = _state.value.copy(period = period)
+                    restoredPersistedPeriod = true
                     clearImportFocus()
+                    persistDashboardPeriod(period)
                     recomputeBalance()
                 }
                 DashboardEvent.NextPeriod -> {
-                    _state.value = _state.value.copy(period = _state.value.period.next())
+                    val period = _state.value.period.next()
+                    _state.value = _state.value.copy(period = period)
+                    restoredPersistedPeriod = true
                     clearImportFocus()
+                    persistDashboardPeriod(period)
                     recomputeBalance()
                 }
                 is DashboardEvent.AccountSelected -> {

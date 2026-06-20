@@ -57,6 +57,7 @@ internal fun Preferences.toAppSettings(): AppSettings =
         firstPositiveSeen = this[AppSettingsKeys.FIRST_POSITIVE_SEEN] ?: false,
         importFocusEpochMs = this[AppSettingsKeys.IMPORT_FOCUS_EPOCH_MS] ?: 0L,
         importFocusCurrencyId = this[AppSettingsKeys.IMPORT_FOCUS_CURRENCY_ID] ?: -1L,
+        dashboardPeriodEpochMs = this[AppSettingsKeys.DASHBOARD_PERIOD_EPOCH_MS] ?: 0L,
         tzNormalizedAt = this[AppSettingsKeys.TZ_NORMALIZED_AT],
     )
 
@@ -87,6 +88,7 @@ internal fun AppSettings.writeTo(prefs: androidx.datastore.preferences.core.Muta
     prefs[AppSettingsKeys.FIRST_POSITIVE_SEEN] = firstPositiveSeen
     prefs[AppSettingsKeys.IMPORT_FOCUS_EPOCH_MS] = importFocusEpochMs
     prefs[AppSettingsKeys.IMPORT_FOCUS_CURRENCY_ID] = importFocusCurrencyId
+    prefs[AppSettingsKeys.DASHBOARD_PERIOD_EPOCH_MS] = dashboardPeriodEpochMs
     if (tzNormalizedAt != null) {
         prefs[AppSettingsKeys.TZ_NORMALIZED_AT] = tzNormalizedAt
     } else {

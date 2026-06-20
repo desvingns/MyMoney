@@ -498,7 +498,7 @@ class DashboardViewModelTest {
         }
 
     @Test
-    fun `explicit navigation clears import focus so a rebuilt view model no longer jumps to the imported month`() =
+    fun `explicit navigation clears import focus but the rebuilt view model restores the last viewed month`() =
         runTest {
             val focusEpochMs = Instant.parse("2020-03-14T12:00:00Z").toEpochMilli()
             settingsRepository =
@@ -511,7 +511,9 @@ class DashboardViewModelTest {
                     ),
                 )
             val focusPeriod = Period.Month(YearMonth.of(2020, 3))
+            val navigatedPeriod = focusPeriod.next()
             transactionRepository.seedExpenseSummary(cash.id, focusPeriod, summary(categoryId = 10L, amount = "42.00"))
+            transactionRepository.seedExpenseSummary(cash.id, navigatedPeriod, summary(categoryId = 20L, amount = "17.00"))
 
             val (firstViewModel, firstStore) = buildViewModel()
             try {
@@ -521,6 +523,8 @@ class DashboardViewModelTest {
                 firstViewModel.onEvent(DashboardEvent.NextPeriod)
                 runCurrent()
 
+                assertEquals(navigatedPeriod, firstViewModel.state.value.period)
+                // The transient import focus is gone, but the navigated month is now persisted.
                 assertEquals(0L, settingsRepository.currentSettings().importFocusEpochMs)
                 assertEquals(-1L, settingsRepository.currentSettings().importFocusCurrencyId)
             } finally {
@@ -531,7 +535,70 @@ class DashboardViewModelTest {
             val (secondViewModel, secondStore) = buildViewModel()
             try {
                 runCurrent()
-                assertEquals(initialPeriod, secondViewModel.state.value.period)
+                // Cold start restores the last viewed month, not the current month.
+                assertEquals(navigatedPeriod, secondViewModel.state.value.period)
+            } finally {
+                secondStore.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `cold start surfaces past-month imported data after the import focus was cleared by navigation`() =
+        runTest {
+            // Reproduces the cold-start-only empty-dashboard bug: a Monefy import into a past
+            // month (March 2020) renders in-session, but after the import focus is cleared by
+            // navigation and the process is restarted, the dashboard must not snap to the current
+            // (empty) month — it must restore the past month so the imported data stays visible.
+            val focusEpochMs = Instant.parse("2020-03-14T12:00:00Z").toEpochMilli()
+            settingsRepository =
+                FakeDashboardAppSettingsRepository(
+                    AppSettings(
+                        defaultAccountId = cash.id,
+                        firstPositiveSeen = true,
+                        importFocusEpochMs = focusEpochMs,
+                        importFocusCurrencyId = usd.id,
+                    ),
+                )
+            val importedMonth = Period.Month(YearMonth.of(2020, 3))
+            transactionRepository.seedExpenseSummary(cash.id, importedMonth, summary(categoryId = 10L, amount = "42.00"))
+            transactionRepository.seedIncomeSummary(cash.id, importedMonth, summary(categoryId = 200L, amount = "100.00"))
+            // The current month deliberately has no data — only the restored past month can fill it.
+
+            val (firstViewModel, firstStore) = buildViewModel()
+            try {
+                runCurrent()
+                assertEquals(importedMonth, firstViewModel.state.value.period)
+                // Simulate the user navigating away and back, which clears the one-shot import focus.
+                firstViewModel.onEvent(DashboardEvent.NextPeriod)
+                runCurrent()
+                firstViewModel.onEvent(DashboardEvent.PreviousPeriod)
+                runCurrent()
+                assertEquals(importedMonth, firstViewModel.state.value.period)
+                assertEquals(0L, settingsRepository.currentSettings().importFocusEpochMs)
+            } finally {
+                firstStore.clear()
+                runCurrent()
+            }
+
+            val (secondViewModel, secondStore) = buildViewModel()
+            try {
+                runCurrent()
+                assertEquals(importedMonth, secondViewModel.state.value.period)
+                assertEquals(
+                    0,
+                    BigDecimal("42.00").compareTo(
+                        secondViewModel.state.value.balanceSnapshot!!
+                            .expense.amount,
+                    ),
+                )
+                assertEquals(
+                    0,
+                    BigDecimal("100.00").compareTo(
+                        secondViewModel.state.value.balanceSnapshot!!
+                            .income.amount,
+                    ),
+                )
             } finally {
                 secondStore.clear()
                 runCurrent()

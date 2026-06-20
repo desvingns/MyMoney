@@ -238,6 +238,13 @@ val Typography.transactionLeafNote: TextStyle
             lineHeight = 16.sp,
         )
 
+// Dashboard top-bar — period-title auto-shrink floor.
+// The PeriodSwitcher shrinks the font from dashboardPeriodSelected.fontSize (22sp) down
+// to this floor to ensure the label always fits within the available width on a single
+// line (single-token periods) or two lines (range/multi-line periods).  Never go below
+// this value for readability (SPEC constraint: floor >= 14sp).
+val dashboardPeriodTitleMinSp = 14.sp
+
 // Transfer list row tokens (S12 «Переводы» tab)
 // «Счёт A → Счёт B» — the primary route label in each transfer row.
 val Typography.transferRowRoute: TextStyle

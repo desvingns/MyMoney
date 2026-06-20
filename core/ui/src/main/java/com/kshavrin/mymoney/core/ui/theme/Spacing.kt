@@ -47,6 +47,16 @@ object Spacing {
     val goalListIconCircleSize = 40.dp
     val goalListIconSize = 22.dp
 
+    // Dashboard top-bar — period-title auto-shrink layout.
+    // The bar has no fixed height when the period spans two lines; instead it
+    // wraps its content.  dashboardTopBarMinHeight is the 1-line baseline so the
+    // bar never collapses below the icon touch targets.  dashboardTopBarIconGlyphSize
+    // is the rendered icon size (smaller than Spacing.xxl = 32dp) so the left/right
+    // icon clusters reclaim horizontal space for the period title without shrinking
+    // the 48dp IconButton touch target.
+    val dashboardTopBarMinHeight = 44.dp
+    val dashboardTopBarIconGlyphSize = 24.dp
+
     // Edit-form delete button — taller than a standard OutlinedButton so the
     // destructive action stays clearly separate from the save FAB.
     val transactionFormDeleteButtonHeight = 52.dp

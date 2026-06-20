@@ -57,7 +57,7 @@ val MIGRATION_4_5 =
 
 val MIGRATION_5_6 =
     object : Migration(5, 6) {
-        private const val RATE_SNAPSHOT_MILLIS = 1781913600000L
+        private val RATE_SNAPSHOT_MILLIS = 1781913600000L
 
         override fun migrate(db: SupportSQLiteDatabase) {
             db.execSQL(

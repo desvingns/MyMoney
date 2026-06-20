@@ -39,7 +39,15 @@
 
     <string name="left_drawer_accounts">Accounts</string>
     <string name="left_drawer_all_accounts">All accounts</string>
+    <string name="left_drawer_all_currencies">All currencies</string>
     <string name="left_drawer_manage_accounts">Manage accounts</string>
+
+    <string name="all_accounts_mode_title">All accounts</string>
+    <string name="all_accounts_mode_message">How would you like to combine balances across currencies?</string>
+    <string name="all_accounts_mode_convert">Convert to one currency</string>
+    <string name="all_accounts_mode_separate">Show separately</string>
+    <string name="all_accounts_target_title">Convert to</string>
+    <string name="all_accounts_cancel">Cancel</string>
 
     <string name="right_drawer_settings">Settings</string>
     <string name="right_drawer_categories">Categories</string>

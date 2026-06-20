@@ -39,7 +39,15 @@
 
     <string name="left_drawer_accounts">Счета</string>
     <string name="left_drawer_all_accounts">Все счета</string>
+    <string name="left_drawer_all_currencies">Все валюты</string>
     <string name="left_drawer_manage_accounts">Управление счетами</string>
+
+    <string name="all_accounts_mode_title">Все счета</string>
+    <string name="all_accounts_mode_message">Как объединить балансы по разным валютам?</string>
+    <string name="all_accounts_mode_convert">Свести к одной валюте</string>
+    <string name="all_accounts_mode_separate">Показать раздельно</string>
+    <string name="all_accounts_target_title">Свести к</string>
+    <string name="all_accounts_cancel">Отмена</string>
 
     <string name="right_drawer_settings">Настройки</string>
     <string name="right_drawer_categories">Категории</string>

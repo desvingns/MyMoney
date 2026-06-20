@@ -5,22 +5,29 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
 import com.kshavrin.mymoney.core.datastore.model.AppSettings
+import com.kshavrin.mymoney.core.designsystem.dialog.RateRow
 import com.kshavrin.mymoney.core.designsystem.donut.CategorySlice
 import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.BalanceSnapshot
 import com.kshavrin.mymoney.core.domain.model.Category
+import com.kshavrin.mymoney.core.domain.model.CategoryBalance
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.DomainEvent
 import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.domain.model.Period
+import com.kshavrin.mymoney.core.domain.model.toMoneyScale
 import com.kshavrin.mymoney.core.domain.repository.AccountRepository
 import com.kshavrin.mymoney.core.domain.repository.CategoryRepository
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
 import com.kshavrin.mymoney.core.domain.time.PeriodArithmetic
 import com.kshavrin.mymoney.core.domain.usecase.BalanceCalculator
+import com.kshavrin.mymoney.core.domain.usecase.ConversionResult
+import com.kshavrin.mymoney.core.domain.usecase.ConvertMoneyUseCase
 import com.kshavrin.mymoney.core.domain.usecase.ObserveBudgetAlertsUseCase
+import com.kshavrin.mymoney.core.domain.usecase.RatesLookup
+import com.kshavrin.mymoney.core.domain.usecase.ResolveRateUseCase
 import com.kshavrin.mymoney.core.domain.usecase.RingGaugeCalculator
 import com.kshavrin.mymoney.feature.dashboard.components.CategoryTileItem
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -38,6 +45,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
+import java.math.BigDecimal
 import java.time.Instant
 import java.time.YearMonth
 import java.time.ZoneId
@@ -55,6 +63,8 @@ class DashboardViewModel
         private val transactionRepository: TransactionRepository,
         private val observeBudgetAlertsUseCase: ObserveBudgetAlertsUseCase,
         private val categoryRepository: CategoryRepository,
+        private val resolveRateUseCase: ResolveRateUseCase,
+        private val convertMoneyUseCase: ConvertMoneyUseCase,
     ) : ViewModel() {
         private val _state = MutableStateFlow(DashboardState())
         val state: StateFlow<DashboardState> = _state.asStateFlow()
@@ -69,6 +79,16 @@ class DashboardViewModel
         private val budgetAlertSelection = MutableStateFlow<BudgetAlertSelection?>(null)
 
         private var recomputeJob: Job? = null
+
+        // One-shot cross-rates the user confirmed for the current "All accounts → convert to one"
+        // fold, keyed by source currency id → cross-rate into the target currency. These are NOT
+        // persisted (D5); they live only as long as this convert selection is active and are
+        // discarded the moment the selection changes.
+        private var allAccountsRateOverrides: Map<Long, BigDecimal> = emptyMap()
+
+        // The fold target the user picked in the picker, kept only between the picker and the rate
+        // confirmation step. Re-asked every time the convert flow runs (D7).
+        private var pendingConvertTarget: Currency? = null
 
         // The selected period lives only in transient state, so before this guard the cold-started
         // ViewModel snaps to the current month and hides data imported into a past month once the
@@ -220,12 +240,10 @@ class DashboardViewModel
                     null
                 }
             val activeAccount = defaultAccount ?: accounts.firstOrNull()
-            val activeCurrency =
-                activeAccount?.let { account ->
-                    currencies.firstOrNull { it.id == account.currencyId }
-                }
-            return if (settings.dashboardSelectionMode == DASHBOARD_SELECTION_ALL) {
-                activeCurrency?.let(DashboardSelection::AllAccounts)
+            // A restored "all accounts" selection cannot remember a fold target — the target is
+            // asked every time (D7) — so it comes back in Separate mode (SPEC 08).
+            return if (settings.dashboardSelectionMode == DASHBOARD_SELECTION_ALL && accounts.isNotEmpty()) {
+                DashboardSelection.AllAccounts(AllAccountsFoldMode.Separate)
             } else {
                 activeAccount?.let(DashboardSelection::SpecificAccount)
             }
@@ -240,10 +258,19 @@ class DashboardViewModel
                 is DashboardSelection.SpecificAccount ->
                     accounts.firstOrNull { it.id == current.account.id }?.let(DashboardSelection::SpecificAccount)
                 is DashboardSelection.AllAccounts ->
-                    currencies
-                        .firstOrNull { it.id == current.currency.id }
-                        ?.takeIf { currency -> accounts.any { it.currencyId == currency.id } }
-                        ?.let(DashboardSelection::AllAccounts)
+                    if (accounts.isEmpty()) {
+                        null
+                    } else {
+                        // A ConvertTo target that has been removed degrades to Separate.
+                        when (val mode = current.foldMode) {
+                            is AllAccountsFoldMode.ConvertTo ->
+                                currencies
+                                    .firstOrNull { it.id == mode.target.id }
+                                    ?.let { DashboardSelection.AllAccounts(AllAccountsFoldMode.ConvertTo(it)) }
+                                    ?: DashboardSelection.AllAccounts(AllAccountsFoldMode.Separate)
+                            AllAccountsFoldMode.Separate -> current
+                        }
+                    }
                 null -> null
             }
 
@@ -261,7 +288,9 @@ class DashboardViewModel
             if (importFocusEpochMs <= 0L || importFocusCurrencyId <= 0L) return null
             val currency = currencies.firstOrNull { it.id == importFocusCurrencyId } ?: return null
             if (accounts.none { it.currencyId == currency.id }) return null
-            return DashboardSelection.AllAccounts(currency)
+            // Import focus surfaces the freshly imported data across every account; the per-currency
+            // breakdown (SPEC 08) is the safe default since no fold target was chosen (D7).
+            return DashboardSelection.AllAccounts(AllAccountsFoldMode.Separate)
         }
 
         private fun observeBudgetAlerts() {
@@ -444,12 +473,124 @@ class DashboardViewModel
             when (selection) {
                 is DashboardSelection.SpecificAccount -> balanceCalculator(selection.account.id, period)
                 is DashboardSelection.AllAccounts ->
-                    balanceCalculator.forAccounts(
-                        accounts = accounts.filter { it.currencyId == selection.currency.id },
-                        currency = selection.currency,
-                        period = period,
-                    )
+                    when (val mode = selection.foldMode) {
+                        is AllAccountsFoldMode.ConvertTo ->
+                            convertedAllAccountsSnapshot(accounts, mode.target, period)
+                        AllAccountsFoldMode.Separate ->
+                            // Per-currency rendering is delivered by SPEC 08; until then fold into the
+                            // first account's currency group so the dashboard has a non-crashing snapshot.
+                            separateFallbackSnapshot(accounts, period)
+                    }
             }
+
+        // Aggregate every account in [target]: balance each same-currency group with
+        // BalanceCalculator.forAccounts (G11 requires one currency per call), convert each group's
+        // figures into the target via ConvertMoneyUseCase (SPEC 02) using the confirmed one-shot
+        // rates, then sum. Conversion happens AFTER each group's balance is computed — never sum
+        // across currencies before converting.
+        private suspend fun convertedAllAccountsSnapshot(
+            accounts: List<Account>,
+            target: Currency,
+            period: Period,
+        ): BalanceSnapshot {
+            val groups =
+                accounts
+                    .filterNot { it.isArchived }
+                    .groupBy { it.currencyId }
+            val rates = RatesLookup { currency -> allAccountsRateOverrides[currency.id] }
+
+            var totalIncome = BigDecimal.ZERO
+            var totalExpense = BigDecimal.ZERO
+            val categoryTotals = mutableListOf<CategoryBalance>()
+
+            for ((currencyId, groupAccounts) in groups) {
+                val groupCurrency = _state.value.currencies.firstOrNull { it.id == currencyId } ?: continue
+                val groupSnapshot = balanceCalculator.forAccounts(groupAccounts, groupCurrency, period)
+
+                totalIncome = totalIncome.add(convertAmount(groupSnapshot.income.amount, groupCurrency, target, rates))
+                totalExpense = totalExpense.add(convertAmount(groupSnapshot.expense.amount, groupCurrency, target, rates))
+
+                groupSnapshot.byCategory.forEach { catBal ->
+                    categoryTotals +=
+                        catBal.copy(total = Money(convertAmount(catBal.total.amount, groupCurrency, target, rates), target))
+                }
+            }
+
+            val income = totalIncome.toMoneyScale(target)
+            val expense = totalExpense.toMoneyScale(target)
+            val net = income.subtract(expense).toMoneyScale(target)
+            val combined = income.add(expense)
+            return BalanceSnapshot(
+                income = Money(income, target),
+                expense = Money(expense, target),
+                net = Money(net, target),
+                byCategory =
+                    mergeCategoryBalances(categoryTotals, target).map { catBal ->
+                        catBal.copy(
+                            fraction =
+                                if (combined.signum() == 0) {
+                                    0f
+                                } else {
+                                    catBal.total.amount.toFloat() / combined.toFloat()
+                                },
+                        )
+                    },
+            )
+        }
+
+        // The same category can appear in more than one currency group; merge them by id/kind in
+        // the target currency so the donut and tiles see a single row per category.
+        private fun mergeCategoryBalances(
+            balances: List<CategoryBalance>,
+            target: Currency,
+        ): List<CategoryBalance> =
+            balances
+                .groupBy { it.categoryId to it.isExpense }
+                .map { (_, entries) ->
+                    val first = entries.first()
+                    first.copy(
+                        total =
+                            Money(
+                                entries
+                                    .fold(BigDecimal.ZERO) { acc, b -> acc.add(b.total.amount) }
+                                    .toMoneyScale(target),
+                                target,
+                            ),
+                    )
+                }
+
+        private fun convertAmount(
+            amount: BigDecimal,
+            from: Currency,
+            to: Currency,
+            rates: RatesLookup,
+        ): BigDecimal =
+            when (val result = convertMoneyUseCase(amount, from, to, rates)) {
+                is ConversionResult.Converted -> result.money.amount
+                is ConversionResult.RateMissing -> BigDecimal.ZERO
+            }
+
+        private suspend fun separateFallbackSnapshot(
+            accounts: List<Account>,
+            period: Period,
+        ): BalanceSnapshot {
+            val active = accounts.filterNot { it.isArchived }
+            val firstCurrency =
+                active
+                    .firstOrNull()
+                    ?.let { account -> _state.value.currencies.firstOrNull { it.id == account.currencyId } }
+                    ?: return emptySnapshot(DASHBOARD_FALLBACK_CURRENCY)
+            val group = active.filter { it.currencyId == firstCurrency.id }
+            return balanceCalculator.forAccounts(group, firstCurrency, period)
+        }
+
+        private fun emptySnapshot(currency: Currency): BalanceSnapshot =
+            BalanceSnapshot(
+                income = Money(BigDecimal.ZERO.toMoneyScale(currency), currency),
+                expense = Money(BigDecimal.ZERO.toMoneyScale(currency), currency),
+                net = Money(BigDecimal.ZERO.toMoneyScale(currency), currency),
+                byCategory = emptyList(),
+            )
 
         private fun BalanceSnapshot.toPeriodNet(): Money =
             Money(
@@ -502,19 +643,17 @@ class DashboardViewModel
                     }
                 }
                 DashboardEvent.AllAccountsSelected -> {
-                    val currency = _state.value.currentCurrency ?: return
-                    _state.value =
-                        _state.value.copy(
-                            dashboardSelection = DashboardSelection.AllAccounts(currency),
-                            leftDrawerOpen = false,
-                        )
-                    clearImportFocus()
-                    selectBudgetAlerts()
-                    recomputeBalance()
-                    viewModelScope.launch {
-                        appSettingsRepository.update { it.copy(dashboardSelectionMode = DASHBOARD_SELECTION_ALL) }
-                    }
+                    _state.value = _state.value.copy(leftDrawerOpen = false)
+                    emit(DashboardAction.ShowAllAccountsModeDialog)
                 }
+                DashboardEvent.AllAccountsConvertChosen -> {
+                    // Target currency is asked every time (D7) — nothing is pre-selected here.
+                    emit(DashboardAction.ShowTargetCurrencyPicker(_state.value.currencies))
+                }
+                DashboardEvent.AllAccountsSeparateChosen -> applyAllAccountsSeparate()
+                is DashboardEvent.AllAccountsTargetCurrencyChosen -> openRateConfirm(event.currencyId)
+                is DashboardEvent.AllAccountsRatesConfirmed -> applyAllAccountsConvert(event.rateOverrides)
+                DashboardEvent.AllAccountsConversionDismissed -> Unit
                 DashboardEvent.LeftDrawerToggled ->
                     _state.value =
                         _state.value.copy(
@@ -565,9 +704,11 @@ class DashboardViewModel
                                 DashboardAction.NavigateTransactionsByAccount(selection.account.id, range.first, range.last),
                             )
                         is DashboardSelection.AllAccounts ->
-                            emit(
-                                DashboardAction.NavigateTransactionsByCurrency(selection.currency.id, range.first, range.last),
-                            )
+                            (selection.foldMode as? AllAccountsFoldMode.ConvertTo)?.let { mode ->
+                                emit(
+                                    DashboardAction.NavigateTransactionsByCurrency(mode.target.id, range.first, range.last),
+                                )
+                            }
                         null -> Unit
                     }
                 }
@@ -588,21 +729,102 @@ class DashboardViewModel
                             )
                         }
                         is DashboardSelection.AllAccounts -> {
-                            emit(
-                                DashboardAction.NavigateTransactionsByCategory(
-                                    null,
-                                    selection.currency.id,
-                                    event.categoryId,
-                                    range.first,
-                                    range.last,
-                                ),
-                            )
+                            (selection.foldMode as? AllAccountsFoldMode.ConvertTo)?.let { mode ->
+                                emit(
+                                    DashboardAction.NavigateTransactionsByCategory(
+                                        null,
+                                        mode.target.id,
+                                        event.categoryId,
+                                        range.first,
+                                        range.last,
+                                    ),
+                                )
+                            }
                         }
                         null -> Unit
                     }
                 }
                 DashboardEvent.ConfettiAcknowledged ->
                     _state.value = _state.value.copy(showConfetti = false)
+            }
+        }
+
+        // "Show each currency separately" (SPEC 08). No rate work is needed, but the aggregate
+        // selection mode is still persisted so a cold start restores an all-accounts view.
+        private fun applyAllAccountsSeparate() {
+            pendingConvertTarget = null
+            allAccountsRateOverrides = emptyMap()
+            _state.value =
+                _state.value.copy(
+                    dashboardSelection = DashboardSelection.AllAccounts(AllAccountsFoldMode.Separate),
+                    leftDrawerOpen = false,
+                )
+            clearImportFocus()
+            selectBudgetAlerts()
+            recomputeBalance()
+            viewModelScope.launch {
+                appSettingsRepository.update { it.copy(dashboardSelectionMode = DASHBOARD_SELECTION_ALL) }
+            }
+        }
+
+        // Resolve the cross-rate of every currency that has an account into the chosen target and
+        // show the confirmation list (SPEC 05 / D9). One row per source currency that differs from
+        // the target; EUR-based cross-rates via ResolveRateUseCase (SPEC 04 — lazy refresh, offline
+        // fallback, never throws).
+        private fun openRateConfirm(targetCurrencyId: Long) {
+            val target = _state.value.currencies.firstOrNull { it.id == targetCurrencyId } ?: return
+            pendingConvertTarget = target
+            viewModelScope.launch {
+                val sourceCurrencies =
+                    _state.value.accounts
+                        .filterNot { it.isArchived }
+                        .map { it.currencyId }
+                        .distinct()
+                        .mapNotNull { id -> _state.value.currencies.firstOrNull { it.id == id } }
+                        .filter { it.id != target.id }
+
+                if (sourceCurrencies.isEmpty()) {
+                    // Every account is already in the target currency — nothing to confirm.
+                    applyAllAccountsConvert(emptyMap())
+                    return@launch
+                }
+
+                val rows = mutableListOf<RateRow>()
+                val sourceIds = mutableListOf<Long>()
+                sourceCurrencies.forEach { source ->
+                    val info = resolveRateUseCase(source, target)
+                    rows +=
+                        RateRow(
+                            fromCode = source.code,
+                            toCode = target.code,
+                            lastUpdated = info.lastUpdated,
+                            displayRate = info.crossRate,
+                            stale = info.stale,
+                            missing = info.missing,
+                        )
+                    sourceIds += source.id
+                }
+                emit(DashboardAction.ShowAllAccountsRateConfirm(rows, sourceIds))
+            }
+        }
+
+        // The user confirmed (and possibly edited) the cross-rates. [rateOverrides] maps a source
+        // currency id to its one-shot cross-rate into the target; these are kept in memory only and
+        // never written to the rate table (D5).
+        private fun applyAllAccountsConvert(rateOverrides: Map<Long, BigDecimal>) {
+            val target = pendingConvertTarget ?: return
+            pendingConvertTarget = null
+            allAccountsRateOverrides = rateOverrides
+            _state.value =
+                _state.value.copy(
+                    dashboardSelection = DashboardSelection.AllAccounts(AllAccountsFoldMode.ConvertTo(target)),
+                    leftDrawerOpen = false,
+                )
+            clearImportFocus()
+            selectBudgetAlerts()
+            recomputeBalance()
+            viewModelScope.launch {
+                appSettingsRepository.update { it.copy(dashboardSelectionMode = DASHBOARD_SELECTION_ALL) }
             }
         }
 
@@ -627,6 +849,17 @@ private data class DashboardInputs(
 
 private const val DASHBOARD_SELECTION_SPECIFIC = "specific_account"
 private const val DASHBOARD_SELECTION_ALL = "all_accounts"
+
+private val DASHBOARD_FALLBACK_CURRENCY =
+    Currency(
+        id = 0L,
+        code = "",
+        symbol = "",
+        name = "",
+        decimalDigits = 2,
+        isActive = false,
+        sortOrder = 0,
+    )
 internal const val OTHER_GROUP_MAX_FRACTION = 0.02f
 const val OTHER_CATEGORY_ID = -1L
 const val OTHER_CATEGORY_ICON_KEY = "ic_cat_other"

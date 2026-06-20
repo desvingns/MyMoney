@@ -34,7 +34,11 @@ data class DashboardState(
     val currentCurrency: Currency?
         get() =
             when (val selection = dashboardSelection) {
-                is DashboardSelection.AllAccounts -> selection.currency
+                is DashboardSelection.AllAccounts ->
+                    when (val mode = selection.foldMode) {
+                        is AllAccountsFoldMode.ConvertTo -> mode.target
+                        AllAccountsFoldMode.Separate -> null
+                    }
                 is DashboardSelection.SpecificAccount -> currencies.firstOrNull { it.id == selection.account.currencyId }
                 null -> null
             }
@@ -56,9 +60,23 @@ sealed interface DashboardSelection {
         val account: Account,
     ) : DashboardSelection
 
+    // "All accounts" no longer pins one currency (D8): it spans every account regardless of
+    // currency. How the figures are presented is decided by [foldMode] — either folded into one
+    // target currency (the convert-to-one path resolved here in SPEC 07) or shown separately per
+    // currency (the stacked-cards path delivered by SPEC 08).
     data class AllAccounts(
-        val currency: Currency,
+        val foldMode: AllAccountsFoldMode,
     ) : DashboardSelection
+}
+
+sealed interface AllAccountsFoldMode {
+    // Convert every account's balance into [target] and sum them into a single snapshot.
+    data class ConvertTo(
+        val target: Currency,
+    ) : AllAccountsFoldMode
+
+    // Show each currency group on its own; rendering belongs to SPEC 08.
+    data object Separate : AllAccountsFoldMode
 }
 
 sealed interface DashboardEvent {
@@ -74,7 +92,30 @@ sealed interface DashboardEvent {
         val accountId: Long,
     ) : DashboardEvent
 
+    // User tapped the single "All accounts" row → open the convert/separate fork dialog.
     data object AllAccountsSelected : DashboardEvent
+
+    // Fork dialog: user chose "fold everything into one currency" → ask for the target currency.
+    data object AllAccountsConvertChosen : DashboardEvent
+
+    // Fork dialog: user chose "show each currency separately" (rendered by SPEC 08).
+    data object AllAccountsSeparateChosen : DashboardEvent
+
+    // Target-currency picker: user picked the currency every conversion folds into (D7 — asked
+    // every time, never remembered). The ViewModel then resolves the rates and opens the
+    // rate-confirmation list.
+    data class AllAccountsTargetCurrencyChosen(
+        val currencyId: Long,
+    ) : DashboardEvent
+
+    // Rate-confirmation list confirmed. [rateOverrides] maps a source currency id to the one-shot
+    // cross-rate the user accepted/edited; edits are NOT persisted (D5).
+    data class AllAccountsRatesConfirmed(
+        val rateOverrides: Map<Long, java.math.BigDecimal>,
+    ) : DashboardEvent
+
+    // Any all-accounts conversion dialog was dismissed without finishing.
+    data object AllAccountsConversionDismissed : DashboardEvent
 
     data object LeftDrawerToggled : DashboardEvent
 

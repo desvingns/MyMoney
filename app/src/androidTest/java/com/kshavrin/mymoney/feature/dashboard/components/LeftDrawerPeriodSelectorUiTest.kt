@@ -17,6 +17,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Period
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
+import com.kshavrin.mymoney.feature.dashboard.AllAccountsFoldMode
 import com.kshavrin.mymoney.feature.dashboard.DashboardEvent
 import com.kshavrin.mymoney.feature.dashboard.DashboardSelection
 import com.kshavrin.mymoney.feature.dashboard.DashboardState
@@ -203,7 +204,7 @@ class LeftDrawerPeriodSelectorUiTest {
                             DashboardState(
                                 period = Period.All,
                                 currencies = listOf(serbianDinar),
-                                dashboardSelection = DashboardSelection.AllAccounts(serbianDinar),
+                                dashboardSelection = DashboardSelection.AllAccounts(AllAccountsFoldMode.ConvertTo(serbianDinar)),
                                 isLoading = false,
                             ),
                         onEvent = {},

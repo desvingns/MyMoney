@@ -968,7 +968,7 @@ class DashboardContentUiTest {
     ) = DashboardState(
         period = period,
         currencies = listOf(currency),
-        dashboardSelection = DashboardSelection.AllAccounts(currency),
+        dashboardSelection = DashboardSelection.AllAccounts(AllAccountsFoldMode.ConvertTo(currency)),
         balanceSnapshot = balanceSnapshot,
         periodNet = periodNet,
         ringFraction = ringFraction,

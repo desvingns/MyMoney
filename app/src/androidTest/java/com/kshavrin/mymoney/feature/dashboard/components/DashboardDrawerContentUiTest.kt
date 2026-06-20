@@ -17,6 +17,7 @@ import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.AccountType
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
+import com.kshavrin.mymoney.feature.dashboard.AllAccountsFoldMode
 import com.kshavrin.mymoney.feature.dashboard.DashboardEvent
 import com.kshavrin.mymoney.feature.dashboard.DashboardSelection
 import com.kshavrin.mymoney.feature.dashboard.DashboardState
@@ -132,7 +133,7 @@ class DashboardDrawerContentUiTest {
                         DashboardState(
                             accounts = listOf(cash, card),
                             currencies = listOf(currency),
-                            dashboardSelection = DashboardSelection.AllAccounts(currency),
+                            dashboardSelection = DashboardSelection.AllAccounts(AllAccountsFoldMode.ConvertTo(currency)),
                             isLoading = false,
                         ),
                     onEvent = { event -> capturedEvents += event },

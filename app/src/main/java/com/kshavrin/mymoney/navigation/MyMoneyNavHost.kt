@@ -104,6 +104,9 @@ fun MyMoneyNavHost(
                                 )
                             com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateAbout ->
                                 navController.navigate(Destinations.SETTINGS)
+                            // The "All accounts" conversion dialogs are handled inside DashboardRoute
+                            // and never reach navigation.
+                            else -> Unit
                         }
                     },
                 )

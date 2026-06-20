@@ -198,6 +198,18 @@ class ImportFocusColdStartRegressionTest {
                         transactionRepository = transactionRepository,
                         observeBudgetAlertsUseCase = observeBudgetAlerts,
                         categoryRepository = categoryRepository,
+                        resolveRateUseCase =
+                            com.kshavrin.mymoney.core.domain.usecase.ResolveRateUseCase(
+                                currencyRateRepository = NoRatesCurrencyRateRepository(),
+                                currencyRepository = currencyRepository,
+                                convertMoney =
+                                    com.kshavrin.mymoney.core.domain.usecase
+                                        .ConvertMoneyUseCase(),
+                                clock = java.time.Clock.systemUTC(),
+                            ),
+                        convertMoneyUseCase =
+                            com.kshavrin.mymoney.core.domain.usecase
+                                .ConvertMoneyUseCase(),
                     )
 
                 val populated =
@@ -233,4 +245,21 @@ class ImportFocusColdStartRegressionTest {
                 Dispatchers.resetMain()
             }
         }
+}
+
+// Import focus restores in Separate mode, which never converts, so the rate repository is unused.
+private class NoRatesCurrencyRateRepository : com.kshavrin.mymoney.core.domain.repository.CurrencyRateRepository {
+    override suspend fun findRate(
+        fromCurrencyId: Long,
+        toCurrencyId: Long,
+    ): com.kshavrin.mymoney.core.domain.model.CurrencyRate? = null
+
+    override fun observeAll(): kotlinx.coroutines.flow.Flow<List<com.kshavrin.mymoney.core.domain.model.CurrencyRate>> =
+        kotlinx.coroutines.flow.flowOf(emptyList())
+
+    override suspend fun upsert(rate: com.kshavrin.mymoney.core.domain.model.CurrencyRate): Long = rate.id
+
+    override suspend fun deleteById(id: Long) = Unit
+
+    override suspend fun refreshRatesFromNetwork(): Result<Int> = Result.success(0)
 }

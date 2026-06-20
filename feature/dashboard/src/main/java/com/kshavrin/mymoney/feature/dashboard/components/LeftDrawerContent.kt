@@ -235,9 +235,7 @@ private fun AccountDropdown(
         Column {
             AccountDropdownRow(
                 label = stringResource(R.string.left_drawer_all_accounts),
-                subtitle =
-                    (selection as? DashboardSelection.AllAccounts)?.currency?.code
-                        ?: currencies.firstOrNull()?.code,
+                subtitle = stringResource(R.string.left_drawer_all_currencies),
                 selected = selection is DashboardSelection.AllAccounts,
                 leadingIcon = {
                     Icon(

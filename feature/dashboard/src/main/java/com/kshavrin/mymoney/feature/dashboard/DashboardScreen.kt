@@ -35,6 +35,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -71,6 +74,8 @@ import com.kshavrin.mymoney.core.ui.theme.neonRingGradientEnd
 import com.kshavrin.mymoney.core.ui.theme.neonRingGradientEndExpense
 import com.kshavrin.mymoney.core.ui.theme.neonRingGradientStart
 import com.kshavrin.mymoney.core.ui.theme.neonRingGradientStartExpense
+import com.kshavrin.mymoney.feature.dashboard.components.AllAccountsConversionDialog
+import com.kshavrin.mymoney.feature.dashboard.components.AllAccountsConversionDialogHost
 import com.kshavrin.mymoney.feature.dashboard.components.CategoryTilesList
 import com.kshavrin.mymoney.feature.dashboard.components.DashboardDrawerOverlay
 import com.kshavrin.mymoney.feature.dashboard.components.DrawerSide
@@ -87,10 +92,44 @@ fun DashboardRoute(
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
+    var conversionDialog by remember { mutableStateOf<AllAccountsConversionDialog?>(null) }
 
-    CollectActions(flow = viewModel.actions, key = viewModel) { action -> onAction(action) }
+    CollectActions(flow = viewModel.actions, key = viewModel) { action ->
+        when (action) {
+            is DashboardAction.ShowAllAccountsModeDialog -> conversionDialog = AllAccountsConversionDialog.Mode
+            is DashboardAction.ShowTargetCurrencyPicker ->
+                conversionDialog = AllAccountsConversionDialog.TargetPicker(action.currencies)
+            is DashboardAction.ShowAllAccountsRateConfirm ->
+                conversionDialog = AllAccountsConversionDialog.RateConfirm(action.rows, action.sourceCurrencyIds)
+            else -> onAction(action)
+        }
+    }
 
     DashboardContent(state = state, onEvent = viewModel::onEvent)
+
+    AllAccountsConversionDialogHost(
+        dialog = conversionDialog,
+        onDismiss = {
+            conversionDialog = null
+            viewModel.onEvent(DashboardEvent.AllAccountsConversionDismissed)
+        },
+        onConvertChosen = {
+            conversionDialog = null
+            viewModel.onEvent(DashboardEvent.AllAccountsConvertChosen)
+        },
+        onSeparateChosen = {
+            conversionDialog = null
+            viewModel.onEvent(DashboardEvent.AllAccountsSeparateChosen)
+        },
+        onTargetChosen = { currencyId ->
+            conversionDialog = null
+            viewModel.onEvent(DashboardEvent.AllAccountsTargetCurrencyChosen(currencyId))
+        },
+        onRatesConfirmed = { overrides ->
+            conversionDialog = null
+            viewModel.onEvent(DashboardEvent.AllAccountsRatesConfirmed(overrides))
+        },
+    )
 }
 
 @Composable

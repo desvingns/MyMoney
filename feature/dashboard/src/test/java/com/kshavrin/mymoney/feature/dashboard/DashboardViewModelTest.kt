@@ -15,6 +15,7 @@ import com.kshavrin.mymoney.core.domain.model.Category
 import com.kshavrin.mymoney.core.domain.model.CategoryBalance
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.core.domain.model.Currency
+import com.kshavrin.mymoney.core.domain.model.CurrencyRate
 import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.domain.model.Period
 import com.kshavrin.mymoney.core.domain.model.Transaction
@@ -24,12 +25,15 @@ import com.kshavrin.mymoney.core.domain.repository.BudgetRepository
 import com.kshavrin.mymoney.core.domain.repository.CategoryGroup
 import com.kshavrin.mymoney.core.domain.repository.CategoryRepository
 import com.kshavrin.mymoney.core.domain.repository.CategorySummary
+import com.kshavrin.mymoney.core.domain.repository.CurrencyRateRepository
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
 import com.kshavrin.mymoney.core.domain.time.PeriodArithmetic
 import com.kshavrin.mymoney.core.domain.usecase.BalanceCalculator
 import com.kshavrin.mymoney.core.domain.usecase.BudgetEvaluator
+import com.kshavrin.mymoney.core.domain.usecase.ConvertMoneyUseCase
 import com.kshavrin.mymoney.core.domain.usecase.ObserveBudgetAlertsUseCase
+import com.kshavrin.mymoney.core.domain.usecase.ResolveRateUseCase
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -58,9 +62,11 @@ import org.junit.Test
 import org.junit.rules.TestWatcher
 import org.junit.runner.Description
 import java.math.BigDecimal
+import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.ZoneOffset
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class DashboardViewModelTest {
@@ -1890,6 +1896,8 @@ class DashboardViewModelTest {
                             transactionRepository = gatedTransactionRepository,
                             observeBudgetAlertsUseCase = alerts,
                             categoryRepository = categoryRepository,
+                            resolveRateUseCase = buildResolveRate(),
+                            convertMoneyUseCase = ConvertMoneyUseCase(),
                         ) as T
                 }
             val viewModel = ViewModelProvider(store, factory)[DashboardViewModel::class.java]
@@ -1972,10 +1980,21 @@ class DashboardViewModelTest {
                         transactionRepository = transactionRepository,
                         observeBudgetAlertsUseCase = alerts,
                         categoryRepository = categoryRepository,
+                        resolveRateUseCase = buildResolveRate(),
+                        convertMoneyUseCase = ConvertMoneyUseCase(),
                     ) as T
             }
         return ViewModelProvider(store, factory)[DashboardViewModel::class.java] to store
     }
+
+    private fun buildResolveRate(): ResolveRateUseCase =
+        ResolveRateUseCase(
+            currencyRateRepository = FakeDashboardCurrencyRateRepository(),
+            currencyRepository = currencyRepository,
+            convertMoney = ConvertMoneyUseCase(),
+            clock = Clock.fixed(Instant.parse("2026-04-15T00:00:00Z"), ZoneOffset.UTC),
+            zoneId = ZoneOffset.UTC,
+        )
 
     private fun summary(
         categoryId: Long,
@@ -2135,6 +2154,23 @@ private class FakeDashboardCurrencyRepository : CurrencyRepository {
         id: Long,
         active: Boolean,
     ) = Unit
+}
+
+private class FakeDashboardCurrencyRateRepository : CurrencyRateRepository {
+    private val state = MutableStateFlow<List<CurrencyRate>>(emptyList())
+
+    override suspend fun findRate(
+        fromCurrencyId: Long,
+        toCurrencyId: Long,
+    ): CurrencyRate? = state.value.firstOrNull { it.fromCurrencyId == fromCurrencyId && it.toCurrencyId == toCurrencyId }
+
+    override fun observeAll(): Flow<List<CurrencyRate>> = state.asStateFlow()
+
+    override suspend fun upsert(rate: CurrencyRate): Long = rate.id
+
+    override suspend fun deleteById(id: Long) = Unit
+
+    override suspend fun refreshRatesFromNetwork(): Result<Int> = Result.success(0)
 }
 
 private class FakeDashboardBudgetRepository : BudgetRepository {

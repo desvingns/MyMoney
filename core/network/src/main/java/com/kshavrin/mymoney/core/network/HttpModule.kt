@@ -42,4 +42,14 @@ object HttpModule {
             .Builder()
             .client(client)
             .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+
+    @Provides
+    @Singleton
+    fun provideExchangeRateApi(builder: Retrofit.Builder): ExchangeRateApi =
+        builder
+            .baseUrl(EXCHANGE_RATE_BASE_URL)
+            .build()
+            .create(ExchangeRateApi::class.java)
+
+    private const val EXCHANGE_RATE_BASE_URL = "https://open.er-api.com/"
 }

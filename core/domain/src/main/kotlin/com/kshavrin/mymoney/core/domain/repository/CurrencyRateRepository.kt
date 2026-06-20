@@ -14,4 +14,6 @@ interface CurrencyRateRepository {
     suspend fun upsert(rate: CurrencyRate): Long
 
     suspend fun deleteById(id: Long)
+
+    suspend fun refreshRatesFromNetwork(): Result<Int>
 }

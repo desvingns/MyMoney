@@ -57,6 +57,7 @@ dependencies {
     ksp(libs.hilt.compiler)
     implementation(project(":core:common"))
     implementation(project(":core:domain"))
+    implementation(project(":core:network"))
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

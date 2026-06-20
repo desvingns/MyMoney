@@ -2,22 +2,23 @@ package com.kshavrin.mymoney.core.designsystem.dialog
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -59,11 +60,13 @@ const val RATE_ROW_FIELD_TAG_PREFIX = "rate_row_field_"
 private const val RATE_SCALE = 2
 
 /**
- * Stateless rate-confirmation dialog. Shown every time the app touches a conversion rate.
+ * Production rate-confirmation dialog. Shown every time the app touches a conversion rate.
  *
- * One row ⇒ single (AlertDialog) view; more than one ⇒ a scrollable list with a single
- * confirm covering every row. Manual edits are one-shot: they are returned to the caller
- * via [onConfirm] keyed by row index and are NOT persisted by this component.
+ * Thin wrapper that places [RateConfirmDialogContent] inside an OS-level dialog window so
+ * real callers get the scrim/window behaviour. The windowless body lives in
+ * [RateConfirmDialogContent] and is what UI tests render directly (mirrors the project's
+ * `<Name>Content` convention), avoiding dialog sub-windows leaking across `createComposeRule`
+ * test runs.
  *
  * @param rows source of truth for what is displayed; this composable never loads or saves it.
  * @param onRateEdited optional notification fired as the user types a valid value in a row.
@@ -80,8 +83,43 @@ fun RateConfirmDialog(
     onRateEdited: (Int, BigDecimal) -> Unit = { _, _ -> },
 ) {
     if (rows.isEmpty()) return
+    Dialog(onDismissRequest = onDismiss) {
+        RateConfirmDialogContent(
+            rows = rows,
+            onConfirm = onConfirm,
+            onDismiss = onDismiss,
+            modifier = modifier,
+            onRateEdited = onRateEdited,
+        )
+    }
+}
 
-    val inputs =
+/**
+ * Windowless body of the rate-confirmation dialog: a themed [Surface] card with no OS
+ * dialog window. Holds all of the dialog state and behaviour and is what tests render
+ * directly.
+ *
+ * One row ⇒ single view (title with the from/to codes); more than one ⇒ a list with a
+ * single confirm covering every row. Manual edits are one-shot: they are returned to the
+ * caller via [onConfirm] keyed by row index and are NOT persisted by this component.
+ *
+ * @param rows source of truth for what is displayed; this composable never loads or saves it.
+ * @param onRateEdited optional notification fired as the user types a valid value in a row.
+ * @param onConfirm receives the resolved value for every row (manual input if valid,
+ *   otherwise the pre-filled [RateRow.displayRate]), keyed by row index.
+ * @param onDismiss user dismissed the dialog without confirming.
+ */
+@Composable
+fun RateConfirmDialogContent(
+    rows: List<RateRow>,
+    onConfirm: (Map<Int, BigDecimal>) -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+    onRateEdited: (Int, BigDecimal) -> Unit = { _, _ -> },
+) {
+    if (rows.isEmpty()) return
+
+    val inputs: SnapshotStateList<String> =
         rememberSaveable(
             rows.size,
             saver = listSaver,
@@ -97,11 +135,11 @@ fun RateConfirmDialog(
     val onConfirmClick: () -> Unit = {
         if (confirmEnabled) {
             val result =
-                resolved
-                    .mapIndexedNotNull { index, value ->
-                        value?.let { index to it }
+                buildMap {
+                    resolved.forEachIndexed { index, value ->
+                        if (value != null) put(index, value)
                     }
-                    .toMap()
+                }
             onConfirm(result)
         }
     }
@@ -113,97 +151,29 @@ fun RateConfirmDialog(
         }
     }
 
-    if (rows.size == 1) {
-        SingleRateDialog(
-            row = rows.first(),
-            input = inputs.getOrNull(0).orEmpty(),
-            onInputChanged = { onRowInput(0, it) },
-            confirmEnabled = confirmEnabled,
-            onConfirm = onConfirmClick,
-            onDismiss = onDismiss,
-            modifier = modifier,
-        )
-    } else {
-        ListRateDialog(
-            rows = rows,
-            inputs = inputs,
-            onInputChanged = onRowInput,
-            confirmEnabled = confirmEnabled,
-            onConfirm = onConfirmClick,
-            onDismiss = onDismiss,
-            modifier = modifier,
-        )
-    }
-}
-
-@Composable
-private fun SingleRateDialog(
-    row: RateRow,
-    input: String,
-    onInputChanged: (String) -> Unit,
-    confirmEnabled: Boolean,
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit,
-    modifier: Modifier,
-) {
-    AlertDialog(
+    Surface(
         modifier = modifier.testTag(RATE_CONFIRM_DIALOG_TAG),
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = stringResource(R.string.rate_confirm_title, row.fromCode, row.toCode),
-                style = MaterialTheme.typography.titleMedium,
-            )
-        },
-        text = {
-            RateRowContent(
-                index = 0,
-                row = row,
-                input = input,
-                onInputChanged = onInputChanged,
-            )
-        },
-        confirmButton = {
-            TextButton(
-                onClick = onConfirm,
-                enabled = confirmEnabled,
-                modifier = Modifier.testTag(RATE_CONFIRM_BUTTON_TAG),
-            ) {
-                Text(stringResource(R.string.rate_confirm_action))
-            }
-        },
-        dismissButton = {
-            TextButton(
-                onClick = onDismiss,
-                modifier = Modifier.testTag(RATE_DISMISS_BUTTON_TAG),
-            ) {
-                Text(stringResource(R.string.rate_dismiss_action))
-            }
-        },
-    )
-}
-
-@Composable
-private fun ListRateDialog(
-    rows: List<RateRow>,
-    inputs: List<String>,
-    onInputChanged: (Int, String) -> Unit,
-    confirmEnabled: Boolean,
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit,
-    modifier: Modifier,
-) {
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            modifier = modifier.testTag(RATE_CONFIRM_DIALOG_TAG),
-            shape = RoundedCornerShape(Spacing.l),
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = Spacing.xs,
+        shape = RoundedCornerShape(Spacing.l),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = Spacing.xs,
+    ) {
+        Column(
+            modifier = Modifier.padding(Spacing.l),
+            verticalArrangement = Arrangement.spacedBy(Spacing.m),
         ) {
-            Column(
-                modifier = Modifier.padding(Spacing.l),
-                verticalArrangement = Arrangement.spacedBy(Spacing.m),
-            ) {
+            if (rows.size == 1) {
+                val row = rows.first()
+                Text(
+                    text = stringResource(R.string.rate_confirm_title, row.fromCode, row.toCode),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                RateRowContent(
+                    index = 0,
+                    row = row,
+                    input = inputs.getOrNull(0).orEmpty(),
+                    onInputChanged = { onRowInput(0, it) },
+                )
+            } else {
                 Text(
                     text = stringResource(R.string.rate_confirm_list_title),
                     style = MaterialTheme.typography.titleMedium,
@@ -217,31 +187,27 @@ private fun ListRateDialog(
                             index = index,
                             row = row,
                             input = inputs.getOrNull(index).orEmpty(),
-                            onInputChanged = { onInputChanged(index, it) },
+                            onInputChanged = { onRowInput(index, it) },
                         )
                     }
                 }
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = androidx.compose.ui.Alignment.End,
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.s, Alignment.End),
+            ) {
+                TextButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.testTag(RATE_DISMISS_BUTTON_TAG),
                 ) {
-                    androidx.compose.foundation.layout.Row(
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.s),
-                    ) {
-                        TextButton(
-                            onClick = onDismiss,
-                            modifier = Modifier.testTag(RATE_DISMISS_BUTTON_TAG),
-                        ) {
-                            Text(stringResource(R.string.rate_dismiss_action))
-                        }
-                        TextButton(
-                            onClick = onConfirm,
-                            enabled = confirmEnabled,
-                            modifier = Modifier.testTag(RATE_CONFIRM_BUTTON_TAG),
-                        ) {
-                            Text(stringResource(R.string.rate_confirm_action))
-                        }
-                    }
+                    Text(stringResource(R.string.rate_dismiss_action))
+                }
+                TextButton(
+                    onClick = onConfirmClick,
+                    enabled = confirmEnabled,
+                    modifier = Modifier.testTag(RATE_CONFIRM_BUTTON_TAG),
+                ) {
+                    Text(stringResource(R.string.rate_confirm_action))
                 }
             }
         }

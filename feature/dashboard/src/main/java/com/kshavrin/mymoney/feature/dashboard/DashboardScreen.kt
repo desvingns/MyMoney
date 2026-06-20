@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -312,8 +313,7 @@ private fun DashboardTopBar(
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.dashboardNeonBackground)
                 .statusBarsPadding()
-                .height(Spacing.xxl + Spacing.m)
-                .padding(horizontal = Spacing.xs),
+                .heightIn(min = Spacing.dashboardTopBarMinHeight),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -325,7 +325,7 @@ private fun DashboardTopBar(
                             if (drawerOpen) R.string.dashboard_back else R.string.dashboard_menu,
                         ),
                     tint = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.size(Spacing.xxl),
+                    modifier = Modifier.size(Spacing.dashboardTopBarIconGlyphSize),
                 )
             }
             IconButton(onClick = onTransferClick) {
@@ -333,7 +333,7 @@ private fun DashboardTopBar(
                     Icons.Filled.SwapHoriz,
                     contentDescription = stringResource(R.string.dashboard_transfer),
                     tint = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.size(Spacing.xxl),
+                    modifier = Modifier.size(Spacing.dashboardTopBarIconGlyphSize),
                 )
             }
         }
@@ -352,7 +352,7 @@ private fun DashboardTopBar(
                     Icons.Filled.Search,
                     contentDescription = stringResource(R.string.dashboard_search),
                     tint = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.size(Spacing.xxl),
+                    modifier = Modifier.size(Spacing.dashboardTopBarIconGlyphSize),
                 )
             }
             IconButton(onClick = onMoreClick) {
@@ -360,7 +360,7 @@ private fun DashboardTopBar(
                     Icons.Filled.MoreVert,
                     contentDescription = stringResource(R.string.dashboard_overflow_menu),
                     tint = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.size(Spacing.xxl),
+                    modifier = Modifier.size(Spacing.dashboardTopBarIconGlyphSize),
                 )
             }
         }

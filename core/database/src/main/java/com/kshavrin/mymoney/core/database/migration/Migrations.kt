@@ -61,14 +61,16 @@ val MIGRATION_5_6 =
 
         override fun migrate(db: SupportSQLiteDatabase) {
             db.execSQL(
-                "INSERT OR IGNORE INTO `currency` " +
+                "INSERT INTO `currency` " +
                     "(`code`, `symbol`, `name`, `decimal_digits`, `is_active`, `sort_order`) " +
-                    "VALUES ('KZT', '₸', 'Kazakhstani Tenge', 2, 1, 21)",
+                    "SELECT 'KZT', '₸', 'Kazakhstani Tenge', 2, 1, 21 " +
+                    "WHERE NOT EXISTS (SELECT 1 FROM `currency` WHERE `code` = 'KZT')",
             )
             db.execSQL(
-                "INSERT OR IGNORE INTO `currency` " +
+                "INSERT INTO `currency` " +
                     "(`code`, `symbol`, `name`, `decimal_digits`, `is_active`, `sort_order`) " +
-                    "VALUES ('AED', 'د.إ', 'UAE Dirham', 2, 1, 22)",
+                    "SELECT 'AED', 'د.إ', 'UAE Dirham', 2, 1, 22 " +
+                    "WHERE NOT EXISTS (SELECT 1 FROM `currency` WHERE `code` = 'AED')",
             )
 
             listOf(

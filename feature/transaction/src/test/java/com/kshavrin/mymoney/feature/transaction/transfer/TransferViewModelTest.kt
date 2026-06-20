@@ -359,6 +359,8 @@ class TransferViewModelTest {
         override suspend fun deleteById(id: Long) {
             rates.value = rates.value.filterNot { it.id == id }
         }
+
+        override suspend fun refreshRatesFromNetwork(): Result<Int> = Result.success(0)
     }
 
     private class BlockingTransactionRepository(

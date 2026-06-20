@@ -45,4 +45,6 @@ class FakeCurrencyRateRepository : CurrencyRateRepository {
         deletedIds.add(id)
         rates.value = rates.value.filterNot { it.id == id }
     }
+
+    override suspend fun refreshRatesFromNetwork(): Result<Int> = Result.success(0)
 }

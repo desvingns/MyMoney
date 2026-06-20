@@ -85,6 +85,8 @@ class FakeCurrencyRateRepository : CurrencyRateRepository {
     override suspend fun deleteById(id: Long) {
         state.value = state.value.filterNot { it.id == id }
     }
+
+    override suspend fun refreshRatesFromNetwork(): Result<Int> = Result.success(0)
 }
 
 class FakeAccountRepository : AccountRepository {

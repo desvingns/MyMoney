@@ -8,12 +8,12 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class ConnectivityChecker
+open class ConnectivityChecker
     @Inject
     constructor(
         @ApplicationContext private val context: Context,
     ) {
-        fun isOnline(): Boolean {
+        open fun isOnline(): Boolean {
             val manager =
                 context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
                     ?: return false

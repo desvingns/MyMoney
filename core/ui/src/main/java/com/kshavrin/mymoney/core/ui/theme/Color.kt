@@ -319,3 +319,14 @@ val ColorScheme.wizardStepProgressContent: Color
 // matches M3 selection ring convention (FilterChip, RadioButton tint).
 val ColorScheme.wizardColorPickerSelectedBorder: Color
     get() = primary
+
+// Rate confirm dialog — stale-rate badge (warning state: last update is old).
+// Amber tone signals "attention needed but not an error"; reuses the same warm-amber
+// constants as the wizard orphan-warning so the palette stays consistent.
+// The "missing/no-internet" state maps to the standard M3 error tokens
+// (colorScheme.error / onError) — no separate alias required.
+val ColorScheme.rateStaleContainer: Color
+    get() = if (isLightDashboardPalette) WizardOrphanWarningLightContainer else WizardOrphanWarningDarkContainer
+
+val ColorScheme.rateStaleContent: Color
+    get() = if (isLightDashboardPalette) WizardOrphanWarningLightContent else WizardOrphanWarningDarkContent

@@ -54,3 +54,37 @@ val MIGRATION_4_5 =
             db.execSQL("UPDATE `budget` SET `amount` = ROUND(`amount`, 2) WHERE `amount` IS NOT NULL")
         }
     }
+
+val MIGRATION_5_6 =
+    object : Migration(5, 6) {
+        private const val RATE_SNAPSHOT_MILLIS = 1781913600000L
+
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "INSERT OR IGNORE INTO `currency` " +
+                    "(`code`, `symbol`, `name`, `decimal_digits`, `is_active`, `sort_order`) " +
+                    "VALUES ('KZT', '₸', 'Kazakhstani Tenge', 2, 1, 21)",
+            )
+            db.execSQL(
+                "INSERT OR IGNORE INTO `currency` " +
+                    "(`code`, `symbol`, `name`, `decimal_digits`, `is_active`, `sort_order`) " +
+                    "VALUES ('AED', 'د.إ', 'UAE Dirham', 2, 1, 22)",
+            )
+
+            listOf(
+                "USD" to 1.146893,
+                "RUB" to 84.181245,
+                "RSD" to 117.390388,
+                "KZT" to 559.417885,
+                "AED" to 4.211961,
+            ).forEach { (toCode, rate) ->
+                db.execSQL(
+                    "INSERT OR IGNORE INTO `currency_rate` " +
+                        "(`from_currency_id`, `to_currency_id`, `rate`, `updated_at`) " +
+                        "SELECT base.`id`, target.`id`, $rate, $RATE_SNAPSHOT_MILLIS " +
+                        "FROM `currency` base, `currency` target " +
+                        "WHERE base.`code` = 'EUR' AND target.`code` = '$toCode'",
+                )
+            }
+        }
+    }

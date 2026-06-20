@@ -6,8 +6,10 @@ import com.kshavrin.mymoney.core.domain.model.AccountType
 import com.kshavrin.mymoney.core.domain.model.Category
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.core.domain.model.Currency
+import com.kshavrin.mymoney.core.domain.model.CurrencyRate
 import com.kshavrin.mymoney.core.domain.repository.AccountRepository
 import com.kshavrin.mymoney.core.domain.repository.CategoryRepository
+import com.kshavrin.mymoney.core.domain.repository.CurrencyRateRepository
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
 import com.kshavrin.mymoney.core.domain.transaction.TransactionRunner
 import kotlinx.coroutines.CoroutineDispatcher
@@ -24,6 +26,7 @@ class InitialDataSeeder
     @Inject
     constructor(
         private val currencyRepository: CurrencyRepository,
+        private val currencyRateRepository: CurrencyRateRepository,
         private val accountRepository: AccountRepository,
         private val categoryRepository: CategoryRepository,
         private val transactionRunner: TransactionRunner,
@@ -43,6 +46,24 @@ class InitialDataSeeder
 
                 transactionRunner.runInTransaction {
                     currencyRepository.upsertAll(DEFAULT_CURRENCIES)
+
+                    val baseCurrency =
+                        currencyRepository.findByCode(BASE_CURRENCY_CODE)
+                            ?: throw IllegalStateException("$BASE_CURRENCY_CODE seed missing")
+                    DEFAULT_RATES.forEach { seed ->
+                        val target = currencyRepository.findByCode(seed.toCode) ?: return@forEach
+                        if (currencyRateRepository.findRate(baseCurrency.id, target.id) == null) {
+                            currencyRateRepository.upsert(
+                                CurrencyRate(
+                                    id = 0L,
+                                    fromCurrencyId = baseCurrency.id,
+                                    toCurrencyId = target.id,
+                                    rate = seed.rate,
+                                    updatedAt = RATE_SNAPSHOT_INSTANT,
+                                ),
+                            )
+                        }
+                    }
 
                     val targetCode =
                         runCatching {
@@ -112,9 +133,27 @@ class InitialDataSeeder
             val colorHex: String,
         )
 
+        internal data class RateSeed(
+            val toCode: String,
+            val rate: Double,
+        )
+
         private companion object {
             const val ACCOUNT_NAME_EN = "Cash"
             const val ACCOUNT_NAME_RU = "Наличные"
+
+            const val BASE_CURRENCY_CODE = "EUR"
+
+            val RATE_SNAPSHOT_INSTANT: Instant = Instant.ofEpochMilli(1781913600000L)
+
+            val DEFAULT_RATES =
+                listOf(
+                    RateSeed("USD", 1.146893),
+                    RateSeed("RUB", 84.181245),
+                    RateSeed("RSD", 117.390388),
+                    RateSeed("KZT", 559.417885),
+                    RateSeed("AED", 4.211961),
+                )
 
             val DEFAULT_CURRENCIES =
                 listOf(
@@ -139,6 +178,8 @@ class InitialDataSeeder
                     Currency(0L, "PLN", "zł", "Polish Zloty", 2, true, 18),
                     Currency(0L, "UAH", "₴", "Ukrainian Hryvnia", 2, true, 19),
                     Currency(0L, "RSD", "RSD", "Serbian Dinar", 2, true, 20),
+                    Currency(0L, "KZT", "₸", "Kazakhstani Tenge", 2, true, 21),
+                    Currency(0L, "AED", "د.إ", "UAE Dirham", 2, true, 22),
                 )
 
             val EXPENSE_CATEGORY_SEEDS =

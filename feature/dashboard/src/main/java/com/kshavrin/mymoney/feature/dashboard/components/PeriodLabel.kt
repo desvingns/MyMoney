@@ -128,7 +128,7 @@ fun PeriodSwitcher(
     val allLabel = stringResource(R.string.period_all)
     val currentYear = Year.now().value
     Row(
-        modifier = modifier,
+        modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         IconButton(onClick = onPreviousClick) {
@@ -143,7 +143,7 @@ fun PeriodSwitcher(
         AutoShrinkPeriodTitle(
             text = label,
             allowedLines = if (label.contains('\n')) 2 else 1,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).fillMaxWidth(),
         )
         IconButton(onClick = onNextClick) {
             Icon(

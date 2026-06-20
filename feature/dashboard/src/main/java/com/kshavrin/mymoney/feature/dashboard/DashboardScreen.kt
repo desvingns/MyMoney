@@ -307,16 +307,20 @@ private fun DashboardTopBar(
     onNextPeriodClick: () -> Unit,
     onMoreClick: () -> Unit,
 ) {
-    Row(
+    Column(
         modifier =
             Modifier
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.dashboardNeonBackground)
-                .statusBarsPadding()
-                .heightIn(min = Spacing.dashboardTopBarMinHeight),
-        verticalAlignment = Alignment.CenterVertically,
+                .statusBarsPadding(),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = Spacing.dashboardTopBarMinHeight),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             IconButton(onClick = onNavigationClick) {
                 Icon(
                     imageVector = if (drawerOpen) Icons.AutoMirrored.Filled.ArrowBack else Icons.Filled.Menu,
@@ -336,17 +340,7 @@ private fun DashboardTopBar(
                     modifier = Modifier.size(Spacing.dashboardTopBarIconGlyphSize),
                 )
             }
-        }
-        PeriodSwitcher(
-            period = period,
-            onPreviousClick = onPreviousPeriodClick,
-            onNextClick = onNextPeriodClick,
-            modifier =
-                Modifier
-                    .weight(1f)
-                    .testTag(DASHBOARD_TOP_BAR_PERIOD_TAG),
-        )
-        Row(verticalAlignment = Alignment.CenterVertically) {
+            Spacer(modifier = Modifier.weight(1f))
             IconButton(onClick = onSearchClick) {
                 Icon(
                     Icons.Filled.Search,
@@ -364,6 +358,15 @@ private fun DashboardTopBar(
                 )
             }
         }
+        PeriodSwitcher(
+            period = period,
+            onPreviousClick = onPreviousPeriodClick,
+            onNextClick = onNextPeriodClick,
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .testTag(DASHBOARD_TOP_BAR_PERIOD_TAG),
+        )
     }
 }
 

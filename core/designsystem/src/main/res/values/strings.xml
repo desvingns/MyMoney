@@ -18,4 +18,16 @@
     <string name="transaction_form_choose_category_button">CHOOSE CATEGORY</string>
     <string name="transaction_form_add_category_cta">+ ADD</string>
     <string name="transaction_form_delete_button">Delete</string>
+    <string name="rate_confirm_title">Rate %1$s to %2$s</string>
+    <string name="rate_confirm_action">Confirm</string>
+    <string name="rate_dismiss_action">Cancel</string>
+    <string name="rate_confirm_list_title">Confirm rates</string>
+    <string name="rate_pair_label">Pair %1$s/%2$s</string>
+    <string name="rate_last_updated">Last updated: %1$s</string>
+    <string name="rate_last_updated_none">No saved rate</string>
+    <string name="rate_value_on_date">Current rate: %1$s</string>
+    <string name="rate_value_none">No current rate</string>
+    <string name="rate_manual_input_label">Manual rate</string>
+    <string name="rate_missing_hint">Missing rate</string>
+    <string name="rate_stale_hint">Stale rate</string>
 </resources>

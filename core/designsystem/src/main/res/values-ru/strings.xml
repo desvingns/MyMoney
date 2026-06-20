@@ -18,4 +18,16 @@
     <string name="transaction_form_choose_category_button">ВЫБОР КАТЕГОРИИ</string>
     <string name="transaction_form_add_category_cta">+ ДОБАВИТЬ</string>
     <string name="transaction_form_delete_button">Удалить</string>
+    <string name="rate_confirm_title">Курс %1$s к %2$s</string>
+    <string name="rate_confirm_action">Подтвердить</string>
+    <string name="rate_dismiss_action">Отмена</string>
+    <string name="rate_confirm_list_title">Подтвердите курсы</string>
+    <string name="rate_pair_label">Пара %1$s/%2$s</string>
+    <string name="rate_last_updated">Обновлено: %1$s</string>
+    <string name="rate_last_updated_none">Курс не сохранен</string>
+    <string name="rate_value_on_date">Текущий курс: %1$s</string>
+    <string name="rate_value_none">Текущего курса нет</string>
+    <string name="rate_manual_input_label">Курс вручную</string>
+    <string name="rate_missing_hint">Курс отсутствует</string>
+    <string name="rate_stale_hint">Курс устарел</string>
 </resources>

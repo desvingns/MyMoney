@@ -140,7 +140,7 @@ class PeriodLabelFormatterTest {
     // ── Month — past year ─────────────────────────────────────────────────────
 
     @Test
-    fun `month in past year formats as two lines month name and year`() {
+    fun `month in past year formats as single line month name space year`() {
         val period = Period.Month(YearMonth.of(2025, 4))
         val label = period.localizedLabel(locale, allLabel, currentYear = 2026)
         val expectedMonthName =
@@ -148,32 +148,30 @@ class PeriodLabelFormatterTest {
                 .of(2025, 4)
                 .atDay(1)
                 .format(DateTimeFormatter.ofPattern("LLLL", locale))
-        assertEquals("$expectedMonthName\n2025", label)
-        assertEquals(1, label.count { it == '\n' })
+        assertEquals("$expectedMonthName 2025", label)
+        assertFalse("off-year month label must not contain a newline", label.contains('\n'))
     }
 
     @Test
-    fun `month in past year contains the year number on the second line`() {
+    fun `month in past year contains the year number separated by a space`() {
         val period = Period.Month(YearMonth.of(2024, 11))
         val label = period.localizedLabel(locale, allLabel, currentYear = 2026)
-        val lines = label.split('\n')
-        assertEquals(2, lines.size)
-        assertEquals("2024", lines[1])
+        assertFalse("off-year month label must not contain a newline", label.contains('\n'))
+        assertTrue("off-year month label must end with the year", label.endsWith("2024"))
     }
 
     @Test
-    fun `month in far past year contains the correct year on the second line`() {
+    fun `month in far past year contains the correct year separated by a space`() {
         val period = Period.Month(YearMonth.of(2020, 3))
         val label = period.localizedLabel(locale, allLabel, currentYear = 2026)
-        val lines = label.split('\n')
-        assertEquals(2, lines.size)
-        assertEquals("2020", lines[1])
+        assertFalse("off-year month label must not contain a newline", label.contains('\n'))
+        assertTrue("off-year month label must end with the year", label.endsWith("2020"))
     }
 
     // ── Month — future year ───────────────────────────────────────────────────
 
     @Test
-    fun `month in future year formats as two lines month name and year`() {
+    fun `month in future year formats as single line month name space year`() {
         val period = Period.Month(YearMonth.of(2027, 2))
         val label = period.localizedLabel(locale, allLabel, currentYear = 2026)
         val expectedMonthName =
@@ -181,17 +179,16 @@ class PeriodLabelFormatterTest {
                 .of(2027, 2)
                 .atDay(1)
                 .format(DateTimeFormatter.ofPattern("LLLL", locale))
-        assertEquals("$expectedMonthName\n2027", label)
-        assertEquals(1, label.count { it == '\n' })
+        assertEquals("$expectedMonthName 2027", label)
+        assertFalse("off-year month label must not contain a newline", label.contains('\n'))
     }
 
     @Test
-    fun `month in future year contains the year number on the second line`() {
+    fun `month in future year contains the year number separated by a space`() {
         val period = Period.Month(YearMonth.of(2030, 8))
         val label = period.localizedLabel(locale, allLabel, currentYear = 2026)
-        val lines = label.split('\n')
-        assertEquals(2, lines.size)
-        assertEquals("2030", lines[1])
+        assertFalse("off-year month label must not contain a newline", label.contains('\n'))
+        assertTrue("off-year month label must end with the year", label.endsWith("2030"))
     }
 
     // ── Year ──────────────────────────────────────────────────────────────────

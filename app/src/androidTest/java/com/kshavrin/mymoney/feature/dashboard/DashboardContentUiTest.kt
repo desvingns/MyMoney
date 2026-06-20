@@ -555,50 +555,54 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `left drawer keeps the top bar visible and search clickable`() {
+    fun `left drawer overlay covers the top bar so search button is not reachable while drawer is open`() {
         val capturedEvents = mutableListOf<DashboardEvent>()
 
         setStatefulDashboardContent(
             initialState = DashboardState(isLoading = false, leftDrawerOpen = true),
             onCapturedEvent = { event -> capturedEvents += event },
         )
+        composeTestRule.waitForIdle()
 
         composeTestRule
-            .onNodeWithTag(DASHBOARD_TOP_BAR_PERIOD_TAG)
-            .assertIsDisplayed()
-        composeTestRule.onAllNodesWithTag(DASHBOARD_TOP_BAR_TITLE_TAG).assertCountEquals(0)
-        composeTestRule.onAllNodesWithTag(DASHBOARD_TOP_BAR_SUBTITLE_TAG).assertCountEquals(0)
-        composeTestRule
             .onNodeWithContentDescription(targetString(R.string.dashboard_search))
-            .assertIsEnabled()
             .performClick()
 
         composeTestRule.runOnIdle {
-            assertEquals(listOf(DashboardEvent.SearchClicked), capturedEvents)
+            assertFalse(
+                "SearchClicked must not be emitted while the drawer overlay covers the top bar",
+                capturedEvents.contains(DashboardEvent.SearchClicked),
+            )
+            assertTrue(
+                "DrawerDismissed must be emitted when the overlay scrim intercepts the tap",
+                capturedEvents.contains(DashboardEvent.DrawerDismissed),
+            )
         }
     }
 
     @Test
-    fun `right drawer keeps the top bar visible and transfer clickable`() {
+    fun `right drawer overlay covers the top bar so transfer button is not reachable while drawer is open`() {
         val capturedEvents = mutableListOf<DashboardEvent>()
 
         setStatefulDashboardContent(
             initialState = DashboardState(isLoading = false, rightDrawerOpen = true),
             onCapturedEvent = { event -> capturedEvents += event },
         )
+        composeTestRule.waitForIdle()
 
         composeTestRule
-            .onNodeWithTag(DASHBOARD_TOP_BAR_PERIOD_TAG)
-            .assertIsDisplayed()
-        composeTestRule.onAllNodesWithTag(DASHBOARD_TOP_BAR_TITLE_TAG).assertCountEquals(0)
-        composeTestRule.onAllNodesWithTag(DASHBOARD_TOP_BAR_SUBTITLE_TAG).assertCountEquals(0)
-        composeTestRule
             .onNodeWithContentDescription(targetString(R.string.dashboard_transfer))
-            .assertIsEnabled()
             .performClick()
 
         composeTestRule.runOnIdle {
-            assertEquals(listOf(DashboardEvent.TransferClicked), capturedEvents)
+            assertFalse(
+                "TransferClicked must not be emitted while the drawer overlay covers the top bar",
+                capturedEvents.contains(DashboardEvent.TransferClicked),
+            )
+            assertTrue(
+                "DrawerDismissed must be emitted when the overlay scrim intercepts the tap",
+                capturedEvents.contains(DashboardEvent.DrawerDismissed),
+            )
         }
     }
 
@@ -726,25 +730,29 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `back arrow closes the left drawer`() {
-        val capturedEvents = mutableListOf<DashboardEvent>()
-
-        val currentState =
-            setStatefulDashboardContent(
-                initialState = DashboardState(isLoading = false, leftDrawerOpen = true),
-                onCapturedEvent = { event -> capturedEvents += event },
-            )
+    fun `navigation icon changes to back arrow when left drawer is open and reverts to hamburger after dismissal`() {
+        setStatefulDashboardContent(
+            initialState = DashboardState(isLoading = false, leftDrawerOpen = true),
+        )
+        composeTestRule.waitForIdle()
 
         composeTestRule
             .onNodeWithContentDescription(targetString(R.string.dashboard_back))
-            .assertIsEnabled()
-            .performClick()
+            .assertIsDisplayed()
+        composeTestRule
+            .onAllNodesWithContentDescription(targetString(R.string.dashboard_menu))
+            .assertCountEquals(0)
 
-        composeTestRule.runOnIdle {
-            assertEquals(listOf(DashboardEvent.DrawerDismissed), capturedEvents)
-            assertFalse(currentState().leftDrawerOpen)
-            assertFalse(currentState().rightDrawerOpen)
-        }
+        tapDashboardScrim(xFraction = 0.9f)
+
+        composeTestRule.waitForIdle()
+
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.dashboard_menu))
+            .assertIsDisplayed()
+        composeTestRule
+            .onAllNodesWithContentDescription(targetString(R.string.dashboard_back))
+            .assertCountEquals(0)
     }
 
     @Test

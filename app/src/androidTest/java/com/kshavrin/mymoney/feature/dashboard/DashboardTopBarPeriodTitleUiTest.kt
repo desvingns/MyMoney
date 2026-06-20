@@ -228,14 +228,14 @@ class DashboardTopBarPeriodTitleUiTest {
     }
 
     @Test
-    fun `off-year month renders month name and year on two lines without overflow`() {
+    fun `off-year month renders month name and year on a single line without overflow`() {
         val period = Period.Month(YearMonth.of(2025, 4))
         val monthName =
             YearMonth
                 .of(2025, 4)
                 .atDay(1)
                 .format(DateTimeFormatter.ofPattern("LLLL", deviceLocale()))
-        val expectedLabel = "$monthName\n2025"
+        val expectedLabel = "$monthName 2025"
 
         setDashboard(period)
 
@@ -243,7 +243,7 @@ class DashboardTopBarPeriodTitleUiTest {
         composeTestRule.onNodeWithText(expectedLabel, useUnmergedTree = true).assertIsDisplayed()
 
         val layout = composeTestRule.onNodeWithText(expectedLabel, useUnmergedTree = true).textLayout()
-        assertEquals("off-year month must span exactly two lines", 2, layout.lineCount)
+        assertEquals("off-year month must render on exactly one line", 1, layout.lineCount)
         assertFalse("off-year month must not overflow its width", layout.didOverflowWidth)
         assertFalse("off-year month must not overflow its height", layout.didOverflowHeight)
     }

@@ -5,8 +5,10 @@ import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
@@ -129,6 +131,17 @@ class MainActivityTransferJourneyTest {
         composeRule.onNode(hasText("5") and hasClickAction()).performClick()
         composeRule
             .onNodeWithContentDescription(targetString(TransactionR.string.currency_rate_save))
+            .performClick()
+
+        // Cross-currency save (D5): the every-time rate dialog appears; confirm it to execute.
+        composeRule.waitUntil(TIMEOUT) {
+            composeRule
+                .onAllNodesWithTag(com.kshavrin.mymoney.core.designsystem.dialog.RATE_CONFIRM_BUTTON_TAG)
+                .fetchSemanticsNodes()
+                .isNotEmpty()
+        }
+        composeRule
+            .onNodeWithTag(com.kshavrin.mymoney.core.designsystem.dialog.RATE_CONFIRM_BUTTON_TAG)
             .performClick()
 
         // Back on the dashboard.

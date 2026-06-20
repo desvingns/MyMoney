@@ -27,6 +27,12 @@ class TransferExecutor
             note: String?,
             occurredAt: Instant,
             now: Instant,
+            // One-shot rate confirmed/edited in the transfer rate dialog (D5). When set for a
+            // cross-currency transfer it overrides the stored rate for THIS operation only and is
+            // never written to CurrencyRateRepository. [overrideToAmount] is the already-rounded
+            // target amount (G18); [overrideRate] is the cross-rate persisted on the Transaction.
+            overrideToAmount: BigDecimal? = null,
+            overrideRate: BigDecimal? = null,
         ): TransferResult =
             withContext(defaultDispatcher) {
                 require(sourceAccountId != targetAccountId) { "source and target accounts must differ" }
@@ -41,14 +47,17 @@ class TransferExecutor
 
                 val sameCurrency = source.currencyId == target.currencyId
                 val (toAmount, exchangeRate) =
-                    if (sameCurrency) {
-                        amount to null
-                    } else {
-                        val rate =
-                            currencyRateRepository.findRate(source.currencyId, target.currencyId)
-                                ?: return@withContext TransferResult.Failure.RateMissing(source.currencyId, target.currencyId)
-                        val converted = amount.multiply(BigDecimal.valueOf(rate.rate))
-                        converted to rate.rate
+                    when {
+                        sameCurrency -> amount to null
+                        overrideToAmount != null && overrideRate != null ->
+                            overrideToAmount to overrideRate.toDouble()
+                        else -> {
+                            val rate =
+                                currencyRateRepository.findRate(source.currencyId, target.currencyId)
+                                    ?: return@withContext TransferResult.Failure.RateMissing(source.currencyId, target.currencyId)
+                            val converted = amount.multiply(BigDecimal.valueOf(rate.rate))
+                            converted to rate.rate
+                        }
                     }
 
                 val transaction =

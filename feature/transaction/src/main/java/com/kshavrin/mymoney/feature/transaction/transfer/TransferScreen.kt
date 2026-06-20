@@ -62,6 +62,7 @@ import androidx.navigation.NavController
 import com.kshavrin.mymoney.core.designsystem.amountfield.AmountFieldEvent
 import com.kshavrin.mymoney.core.designsystem.amountfield.AmountFieldSection
 import com.kshavrin.mymoney.core.designsystem.amountfield.AmountFieldState
+import com.kshavrin.mymoney.core.designsystem.dialog.RateConfirmDialog
 import com.kshavrin.mymoney.core.designsystem.form.DateHeader
 import com.kshavrin.mymoney.core.designsystem.icon.accountIcon
 import com.kshavrin.mymoney.core.designsystem.keypad.KeypadEvent
@@ -70,6 +71,7 @@ import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.ui.feedback.LocalHapticPlayer
 import com.kshavrin.mymoney.core.ui.feedback.LocalSoundPlayer
+import com.kshavrin.mymoney.core.ui.flow.CollectActions
 import com.kshavrin.mymoney.core.ui.haptic.HapticKind
 import com.kshavrin.mymoney.core.ui.sound.SoundKey
 import com.kshavrin.mymoney.core.ui.theme.Spacing
@@ -100,18 +102,19 @@ fun TransferRoute(
         }
     }
 
-    LaunchedEffect(viewModel) {
-        viewModel.actions.collect { action ->
-            when (action) {
-                TransferAction.NavigateBack -> navController.popBackStack()
-                is TransferAction.NavigateToRateSetup ->
-                    navController.navigate(
-                        "transaction/currency_rate?fromId=${action.fromCurrencyId}&toId=${action.toCurrencyId}",
-                    )
-                is TransferAction.FireHaptic,
-                is TransferAction.PlaySound,
-                -> Unit
-            }
+    CollectActions(flow = viewModel.actions, key = viewModel) { action ->
+        when (action) {
+            TransferAction.NavigateBack -> navController.popBackStack()
+            is TransferAction.NavigateToRateSetup ->
+                navController.navigate(
+                    "transaction/currency_rate?fromId=${action.fromCurrencyId}&toId=${action.toCurrencyId}",
+                )
+            // Dialog visibility is driven from state.rateDialogRow; this one-shot action marks the
+            // moment the resolved rate is ready (G13).
+            TransferAction.ShowRateDialog,
+            is TransferAction.FireHaptic,
+            is TransferAction.PlaySound,
+            -> Unit
         }
     }
     TransferScreen(state = state, onEvent = viewModel::onEvent)
@@ -332,6 +335,17 @@ fun TransferScreen(
         ) {
             DatePicker(state = datePickerState)
         }
+    }
+
+    val rateRow = state.rateDialogRow
+    if (rateRow != null) {
+        RateConfirmDialog(
+            rows = listOf(rateRow),
+            onConfirm = { resolved ->
+                resolved[0]?.let { onEvent(TransferEvent.RateDialogConfirmed(it)) }
+            },
+            onDismiss = { onEvent(TransferEvent.RateDialogDismissed) },
+        )
     }
 }
 

@@ -38,6 +38,12 @@ sealed interface TransferEvent {
 
     data object PendingRateResolved : TransferEvent
 
+    data class RateDialogConfirmed(
+        val rate: java.math.BigDecimal,
+    ) : TransferEvent
+
+    data object RateDialogDismissed : TransferEvent
+
     data object SaveClicked : TransferEvent
 
     data object BackClicked : TransferEvent

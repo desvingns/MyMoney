@@ -11,6 +11,8 @@ import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRateRepository
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
+import com.kshavrin.mymoney.core.domain.usecase.ConvertMoneyUseCase
+import com.kshavrin.mymoney.core.domain.usecase.ResolveRateUseCase
 import com.kshavrin.mymoney.core.domain.usecase.TransferExecutor
 import com.kshavrin.mymoney.feature.transaction.fake.FakeAccountRepository
 import com.kshavrin.mymoney.feature.transaction.fake.FakeAppSettingsRepository
@@ -33,6 +35,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import java.math.BigDecimal
+import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -143,6 +146,7 @@ class TransferViewModelTest {
 
     private fun buildViewModel(
         transactionRepository: TransactionRepository = transactionRepo,
+        clock: Clock = Clock.fixed(createdAt, ZoneId.of("UTC")),
     ): TransferViewModel =
         TransferViewModel(
             transactionRepository = transactionRepository,
@@ -155,6 +159,14 @@ class TransferViewModelTest {
                     currencyRateRepository = rateRepo,
                     transactionRepository = transactionRepository,
                     defaultDispatcher = mainDispatcherRule.testDispatcher,
+                ),
+            resolveRate =
+                ResolveRateUseCase(
+                    currencyRateRepository = rateRepo,
+                    currencyRepository = currencyRepo,
+                    convertMoney = ConvertMoneyUseCase(),
+                    clock = clock,
+                    zoneId = ZoneId.systemDefault(),
                 ),
             appSettingsRepository = settingsRepo,
             savedStateHandle = SavedStateHandle(),
@@ -290,46 +302,106 @@ class TransferViewModelTest {
             }
         }
 
+    private suspend fun seedEurToUsdRate(rate: Double) {
+        rateRepo.upsert(
+            CurrencyRate(
+                id = 0L,
+                fromCurrencyId = eur.id,
+                toCurrencyId = usd.id,
+                rate = rate,
+                updatedAt = createdAt,
+            ),
+        )
+    }
+
     @Test
-    fun `cross currency save uses stored rate converts toAmount and emits NavigateBack`() =
+    fun `cross currency SaveClicked shows rate dialog instead of executing immediately`() =
         runTest {
             currencyRepo.seed(eur)
             accountRepo.seed(euroAccount)
-            rateRepo.upsert(
-                CurrencyRate(
-                    id = 0L,
-                    fromCurrencyId = usd.id,
-                    toCurrencyId = eur.id,
-                    rate = 0.92,
-                    updatedAt = createdAt,
-                ),
-            )
+            seedEurToUsdRate(1.10)
             val viewModel = buildViewModel()
 
             advanceUntilIdle()
             viewModel.actions.test {
+                viewModel.onEvent(TransferEvent.SourceAccountChanged(euroAccount.id))
+                viewModel.onEvent(TransferEvent.TargetAccountChanged(bankAccount.id))
                 viewModel.onEvent(TransferEvent.KeypadDigit(1))
                 viewModel.onEvent(TransferEvent.KeypadDigit(0))
                 viewModel.onEvent(TransferEvent.KeypadDigit(0))
-                viewModel.onEvent(TransferEvent.TargetAccountChanged(euroAccount.id))
                 advanceUntilIdle()
-
-                assertEquals(
-                    0.92,
-                    viewModel.state.value.currentRate
-                        ?.rate,
-                )
-                assertEquals("1 USD = 0.92 EUR", viewModel.state.value.ratePreviewText)
-                expectNoEvents()
 
                 viewModel.onEvent(TransferEvent.SaveClicked)
                 advanceUntilIdle()
 
+                assertEquals(TransferAction.ShowRateDialog, awaitItem())
+                val row = viewModel.state.value.rateDialogRow
+                assertEquals("EUR", row?.fromCode)
+                assertEquals("USD", row?.toCode)
+                assertEquals(0, BigDecimal("1.10").compareTo(row?.displayRate))
+                assertTrue(viewModel.state.value.isSaving)
+                assertTrue(transactionRepo.upserted.isEmpty())
+                expectNoEvents()
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `same currency SaveClicked executes without showing rate dialog`() =
+        runTest {
+            val viewModel = buildViewModel()
+
+            advanceUntilIdle()
+            viewModel.actions.test {
+                viewModel.onEvent(TransferEvent.KeypadDigit(5))
+                viewModel.onEvent(TransferEvent.TargetAccountChanged(bankAccount.id))
+                viewModel.onEvent(TransferEvent.SaveClicked)
+                advanceUntilIdle()
+
+                assertNull(viewModel.state.value.rateDialogRow)
+                val saved = transactionRepo.upserted.single()
+                assertEquals(0, BigDecimal("5").compareTo(saved.amount))
+                assertEquals(0, BigDecimal("5").compareTo(saved.toAmount))
+                assertNull(saved.exchangeRate)
+                assertEquals(TransferAction.NavigateBack, awaitItem())
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `rate dialog confirm without edit converts toAmount by resolved rate and emits NavigateBack`() =
+        runTest {
+            currencyRepo.seed(eur)
+            accountRepo.seed(euroAccount)
+            seedEurToUsdRate(1.10)
+            val viewModel = buildViewModel()
+
+            advanceUntilIdle()
+            viewModel.actions.test {
+                viewModel.onEvent(TransferEvent.SourceAccountChanged(euroAccount.id))
+                viewModel.onEvent(TransferEvent.TargetAccountChanged(bankAccount.id))
+                viewModel.onEvent(TransferEvent.KeypadDigit(1))
+                viewModel.onEvent(TransferEvent.KeypadDigit(0))
+                viewModel.onEvent(TransferEvent.KeypadDigit(0))
+                advanceUntilIdle()
+
+                viewModel.onEvent(TransferEvent.SaveClicked)
+                advanceUntilIdle()
+                assertEquals(TransferAction.ShowRateDialog, awaitItem())
+
+                val displayed =
+                    viewModel.state.value.rateDialogRow
+                        ?.displayRate!!
+                viewModel.onEvent(TransferEvent.RateDialogConfirmed(displayed))
+                advanceUntilIdle()
+
                 val saved = transactionRepo.upserted.single()
                 assertEquals(0, BigDecimal("100").compareTo(saved.amount))
-                assertEquals(0, BigDecimal("92").compareTo(saved.toAmount))
-                assertEquals(0.92, saved.exchangeRate)
-                assertEquals(euroAccount.id, saved.toAccountId)
+                assertEquals(0, BigDecimal("110").compareTo(saved.toAmount))
+                assertEquals(1.10, saved.exchangeRate)
+                assertEquals(bankAccount.id, saved.toAccountId)
+                assertEquals(euroAccount.id, saved.accountId)
+                assertNull(viewModel.state.value.rateDialogRow)
                 assertFalse(viewModel.state.value.isSaving)
                 assertEquals(TransferAction.NavigateBack, awaitItem())
                 expectNoEvents()
@@ -337,8 +409,62 @@ class TransferViewModelTest {
             }
         }
 
+    @Test
+    fun `rate dialog manual edit uses edited rate for toAmount and never writes to rate repo`() =
+        runTest {
+            currencyRepo.seed(eur)
+            accountRepo.seed(euroAccount)
+            seedEurToUsdRate(1.10)
+            val viewModel = buildViewModel()
+
+            advanceUntilIdle()
+            viewModel.onEvent(TransferEvent.SourceAccountChanged(euroAccount.id))
+            viewModel.onEvent(TransferEvent.TargetAccountChanged(bankAccount.id))
+            viewModel.onEvent(TransferEvent.KeypadDigit(1))
+            viewModel.onEvent(TransferEvent.KeypadDigit(0))
+            viewModel.onEvent(TransferEvent.KeypadDigit(0))
+            viewModel.onEvent(TransferEvent.SaveClicked)
+            advanceUntilIdle()
+
+            val ratesBefore = rateRepo.snapshot()
+            viewModel.onEvent(TransferEvent.RateDialogConfirmed(BigDecimal("1.20")))
+            advanceUntilIdle()
+
+            val saved = transactionRepo.upserted.single()
+            assertEquals(0, BigDecimal("120").compareTo(saved.toAmount))
+            assertEquals(1.20, saved.exchangeRate)
+            assertEquals(ratesBefore, rateRepo.snapshot())
+        }
+
+    @Test
+    fun `rate dialog dismiss cancels execution and clears saving guard`() =
+        runTest {
+            currencyRepo.seed(eur)
+            accountRepo.seed(euroAccount)
+            seedEurToUsdRate(1.10)
+            val viewModel = buildViewModel()
+
+            advanceUntilIdle()
+            viewModel.onEvent(TransferEvent.SourceAccountChanged(euroAccount.id))
+            viewModel.onEvent(TransferEvent.TargetAccountChanged(bankAccount.id))
+            viewModel.onEvent(TransferEvent.KeypadDigit(1))
+            viewModel.onEvent(TransferEvent.KeypadDigit(0))
+            viewModel.onEvent(TransferEvent.KeypadDigit(0))
+            viewModel.onEvent(TransferEvent.SaveClicked)
+            advanceUntilIdle()
+
+            viewModel.onEvent(TransferEvent.RateDialogDismissed)
+            advanceUntilIdle()
+
+            assertTrue(transactionRepo.upserted.isEmpty())
+            assertNull(viewModel.state.value.rateDialogRow)
+            assertFalse(viewModel.state.value.isSaving)
+        }
+
     private class FakeCurrencyRateRepository : CurrencyRateRepository {
         private val rates = MutableStateFlow<List<CurrencyRate>>(emptyList())
+
+        fun snapshot(): List<CurrencyRate> = rates.value
 
         override suspend fun findRate(
             fromCurrencyId: Long,

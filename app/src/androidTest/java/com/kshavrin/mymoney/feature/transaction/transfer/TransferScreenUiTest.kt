@@ -9,6 +9,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -478,6 +479,86 @@ class TransferScreenUiTest {
 
         composeTestRule.runOnIdle {
             assertEquals(emptyList<TransferEvent>(), capturedEvents)
+        }
+    }
+
+    @Test
+    fun `rate dialog row renders confirm dialog and confirm emits rate confirmed event`() {
+        val capturedEvents = mutableListOf<TransferEvent>()
+        val sourceCurrency = currency(id = 1L, code = "USD")
+        val targetCurrency = currency(id = 2L, code = "EUR")
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                TransferScreen(
+                    state =
+                        TransferState(
+                            sourceAccount = account(id = 10L, name = "Primary wallet", currencyId = 1L),
+                            targetAccount = account(id = 20L, name = "Savings account", currencyId = 2L),
+                            sourceCurrency = sourceCurrency,
+                            targetCurrency = targetCurrency,
+                            amount = BigDecimal("100"),
+                            amountInput = "100",
+                            isSaving = true,
+                            rateDialogRow =
+                                com.kshavrin.mymoney.core.designsystem.dialog.RateRow(
+                                    fromCode = "USD",
+                                    toCode = "EUR",
+                                    lastUpdated = LocalDate.of(2026, 5, 20),
+                                    displayRate = BigDecimal("0.92"),
+                                    stale = false,
+                                    missing = false,
+                                ),
+                            rateDialogFullRate = BigDecimal("0.92"),
+                        ),
+                    onEvent = { event -> capturedEvents += event },
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithTag(com.kshavrin.mymoney.core.designsystem.dialog.RATE_CONFIRM_DIALOG_TAG)
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithTag(com.kshavrin.mymoney.core.designsystem.dialog.RATE_CONFIRM_BUTTON_TAG)
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertTrue(capturedEvents.any { it is TransferEvent.RateDialogConfirmed })
+        }
+    }
+
+    @Test
+    fun `rate dialog dismiss emits rate dismissed event`() {
+        val capturedEvents = mutableListOf<TransferEvent>()
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                TransferScreen(
+                    state =
+                        TransferState(
+                            isSaving = true,
+                            rateDialogRow =
+                                com.kshavrin.mymoney.core.designsystem.dialog.RateRow(
+                                    fromCode = "USD",
+                                    toCode = "EUR",
+                                    lastUpdated = LocalDate.of(2026, 5, 20),
+                                    displayRate = BigDecimal("0.92"),
+                                    stale = false,
+                                    missing = false,
+                                ),
+                        ),
+                    onEvent = { event -> capturedEvents += event },
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithTag(com.kshavrin.mymoney.core.designsystem.dialog.RATE_DISMISS_BUTTON_TAG)
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(TransferEvent.RateDialogDismissed), capturedEvents)
         }
     }
 

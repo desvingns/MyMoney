@@ -1,5 +1,6 @@
 package com.kshavrin.mymoney.feature.transaction.transfer
 
+import com.kshavrin.mymoney.core.designsystem.dialog.RateRow
 import com.kshavrin.mymoney.core.designsystem.keypad.Operator
 import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.Currency
@@ -22,6 +23,11 @@ data class TransferState(
     val occurredAt: LocalDate = LocalDate.now(),
     val currentRate: CurrencyRate? = null,
     val ratePreviewText: String = "",
+    // Rate-confirm dialog (D5): non-null while the every-time dialog is shown for a cross-currency
+    // transfer. rateDialogRow drives the dialog; rateDialogFullRate is the unrounded cross-rate
+    // from ResolveRateUseCase used for the actual toAmount when the user confirms without editing.
+    val rateDialogRow: RateRow? = null,
+    val rateDialogFullRate: BigDecimal? = null,
     val sameAccountsError: Boolean = false,
     val isSaving: Boolean = false,
     val errorBannerRes: Int? = null,

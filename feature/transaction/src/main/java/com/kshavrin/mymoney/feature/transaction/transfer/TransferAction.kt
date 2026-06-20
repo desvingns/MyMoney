@@ -11,6 +11,8 @@ sealed interface TransferAction {
         val toCurrencyId: Long,
     ) : TransferAction
 
+    data object ShowRateDialog : TransferAction
+
     data class FireHaptic(
         val kind: HapticKind,
     ) : TransferAction

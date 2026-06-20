@@ -2,6 +2,7 @@ package com.kshavrin.mymoney.core.domain.seed
 
 import com.kshavrin.mymoney.core.domain.fake.FakeAccountRepository
 import com.kshavrin.mymoney.core.domain.fake.FakeCategoryRepository
+import com.kshavrin.mymoney.core.domain.fake.FakeCurrencyRateRepository
 import com.kshavrin.mymoney.core.domain.fake.FakeCurrencyRepository
 import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.Category
@@ -9,6 +10,7 @@ import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.repository.AccountRepository
 import com.kshavrin.mymoney.core.domain.repository.CategoryRepository
+import com.kshavrin.mymoney.core.domain.repository.CurrencyRateRepository
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
 import com.kshavrin.mymoney.core.domain.transaction.TransactionRunner
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,6 +21,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.math.BigDecimal
@@ -39,7 +42,7 @@ class InitialDataSeederTest {
             val seeded = seeder.seedIfNeeded(now, Locale.US)
 
             assertTrue(seeded)
-            assertEquals(21, currencyRepo.observeAll().first().size)
+            assertEquals(23, currencyRepo.observeAll().first().size)
             assertEquals(1, accountRepo.observeActive().first().size)
             assertEquals(17, categoryRepo.observeAll().first().size)
         }
@@ -56,7 +59,7 @@ class InitialDataSeederTest {
             val secondRun = seeder.seedIfNeeded(now, Locale.US)
 
             assertFalse(secondRun)
-            assertEquals(21, currencyRepo.observeAll().first().size)
+            assertEquals(23, currencyRepo.observeAll().first().size)
             assertEquals(1, accountRepo.observeActive().first().size)
         }
 
@@ -368,7 +371,7 @@ class InitialDataSeederTest {
             val seeded = seeder.seedIfNeeded(now, Locale.US)
 
             assertTrue(seeded)
-            assertEquals(21, currencyRepo.observeAll().first().size)
+            assertEquals(23, currencyRepo.observeAll().first().size)
             assertEquals(1, accountRepo.observeActive().first().size)
             assertEquals(17, categoryRepo.observeAll().first().size)
         }
@@ -438,13 +441,159 @@ class InitialDataSeederTest {
             assertEquals((0 until 2).toList(), incomeOrders)
         }
 
+    @Test
+    fun `seeds KZT with correct fields at sortOrder 21`() =
+        runTest {
+            val currencyRepo = FakeCurrencyRepository()
+            val seeder = createSeeder(currencyRepo, FakeAccountRepository(), FakeCategoryRepository())
+
+            seeder.seedIfNeeded(now, Locale.US)
+
+            val kzt = currencyRepo.observeAll().first().single { it.code == "KZT" }
+            assertEquals("₸", kzt.symbol)
+            assertEquals("Kazakhstani Tenge", kzt.name)
+            assertEquals(2, kzt.decimalDigits)
+            assertTrue(kzt.isActive)
+            assertEquals(21, kzt.sortOrder)
+        }
+
+    @Test
+    fun `seeds AED with correct fields at sortOrder 22`() =
+        runTest {
+            val currencyRepo = FakeCurrencyRepository()
+            val seeder = createSeeder(currencyRepo, FakeAccountRepository(), FakeCategoryRepository())
+
+            seeder.seedIfNeeded(now, Locale.US)
+
+            val aed = currencyRepo.observeAll().first().single { it.code == "AED" }
+            assertEquals("د.إ", aed.symbol)
+            assertEquals("UAE Dirham", aed.name)
+            assertEquals(2, aed.decimalDigits)
+            assertTrue(aed.isActive)
+            assertEquals(22, aed.sortOrder)
+        }
+
+    @Test
+    fun `seeds five EUR-based rates with snapshot updatedAt`() =
+        runTest {
+            val currencyRepo = FakeCurrencyRepository()
+            val rateRepo = FakeCurrencyRateRepository()
+            val seeder = createSeeder(currencyRepo, FakeAccountRepository(), FakeCategoryRepository(), rateRepo = rateRepo)
+
+            seeder.seedIfNeeded(now, Locale.US)
+
+            val rates = rateRepo.observeAll().first()
+            assertEquals(5, rates.size)
+
+            val eurId =
+                currencyRepo
+                    .observeAll()
+                    .first()
+                    .single { it.code == "EUR" }
+                    .id
+            val allFromEur = rates.all { it.fromCurrencyId == eurId }
+            assertTrue("all seed rates must have EUR as the source currency", allFromEur)
+
+            val toCodes =
+                rates
+                    .map { rate ->
+                        currencyRepo
+                            .observeAll()
+                            .first()
+                            .single { it.id == rate.toCurrencyId }
+                            .code
+                    }.toSet()
+            assertEquals(setOf("USD", "RUB", "RSD", "KZT", "AED"), toCodes)
+        }
+
+    @Test
+    fun `seed rate for EUR to KZT matches snapshot value`() =
+        runTest {
+            val currencyRepo = FakeCurrencyRepository()
+            val rateRepo = FakeCurrencyRateRepository()
+            val seeder = createSeeder(currencyRepo, FakeAccountRepository(), FakeCategoryRepository(), rateRepo = rateRepo)
+
+            seeder.seedIfNeeded(now, Locale.US)
+
+            val eurId =
+                currencyRepo
+                    .observeAll()
+                    .first()
+                    .single { it.code == "EUR" }
+                    .id
+            val kztId =
+                currencyRepo
+                    .observeAll()
+                    .first()
+                    .single { it.code == "KZT" }
+                    .id
+            val rate = rateRepo.findRate(eurId, kztId)
+            assertNotNull(rate)
+            assertEquals(559.417885, rate!!.rate, 1e-6)
+        }
+
+    @Test
+    fun `seed rate for EUR to AED matches snapshot value`() =
+        runTest {
+            val currencyRepo = FakeCurrencyRepository()
+            val rateRepo = FakeCurrencyRateRepository()
+            val seeder = createSeeder(currencyRepo, FakeAccountRepository(), FakeCategoryRepository(), rateRepo = rateRepo)
+
+            seeder.seedIfNeeded(now, Locale.US)
+
+            val eurId =
+                currencyRepo
+                    .observeAll()
+                    .first()
+                    .single { it.code == "EUR" }
+                    .id
+            val aedId =
+                currencyRepo
+                    .observeAll()
+                    .first()
+                    .single { it.code == "AED" }
+                    .id
+            val rate = rateRepo.findRate(eurId, aedId)
+            assertNotNull(rate)
+            assertEquals(4.211961, rate!!.rate, 1e-6)
+        }
+
+    @Test
+    fun `seed rates updatedAt equals snapshot instant 2026-06-20`() =
+        runTest {
+            val currencyRepo = FakeCurrencyRepository()
+            val rateRepo = FakeCurrencyRateRepository()
+            val seeder = createSeeder(currencyRepo, FakeAccountRepository(), FakeCategoryRepository(), rateRepo = rateRepo)
+
+            seeder.seedIfNeeded(now, Locale.US)
+
+            val snapshotInstant = Instant.ofEpochMilli(1781913600000L)
+            val rates = rateRepo.observeAll().first()
+            assertTrue("all seed rates must carry the fixed snapshot updatedAt", rates.all { it.updatedAt == snapshotInstant })
+        }
+
+    @Test
+    fun `seed rates are not duplicated on second call`() =
+        runTest {
+            val currencyRepo = FakeCurrencyRepository()
+            val rateRepo = FakeCurrencyRateRepository()
+            val seeder = createSeeder(currencyRepo, FakeAccountRepository(), FakeCategoryRepository(), rateRepo = rateRepo)
+
+            seeder.seedIfNeeded(now, Locale.US)
+            seeder.seedIfNeeded(now, Locale.US)
+
+            assertEquals(5, rateRepo.observeAll().first().size)
+        }
+
     private fun createSeeder(
         currencyRepository: CurrencyRepository,
         accountRepository: AccountRepository,
         categoryRepository: CategoryRepository,
         transactionRunner: TransactionRunner = NoOpTransactionRunner,
+        rateRepo: CurrencyRateRepository = FakeCurrencyRateRepository(),
     ) = InitialDataSeeder(
         currencyRepository = currencyRepository,
+        currencyRateRepository = rateRepo,
         accountRepository = accountRepository,
         categoryRepository = categoryRepository,
         transactionRunner = transactionRunner,

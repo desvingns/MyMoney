@@ -111,4 +111,86 @@ class TransferExecutorTest {
             assertEquals(1L, failure.fromCurrencyId)
             assertEquals(2L, failure.toCurrencyId)
         }
+
+    @Test
+    fun `override toAmount and rate bypass stored rate lookup for cross-currency transfer`() =
+        runTest {
+            // No rate stored in rateRepo — executor must NOT try to look it up when overrides are given.
+            val accountRepo = FakeAccountRepository().apply { seed(account(1L, 1L), account(2L, 2L)) }
+            val rateRepo = FakeCurrencyRateRepository() // empty — would return RateMissing without override
+            val txRepo = FakeTransactionRepository()
+            val executor = TransferExecutor(accountRepo, rateRepo, txRepo, UnconfinedTestDispatcher())
+
+            val result =
+                executor.execute(
+                    sourceAccountId = 1L,
+                    targetAccountId = 2L,
+                    amount = BigDecimal("100.00"),
+                    note = null,
+                    occurredAt = now,
+                    now = now,
+                    overrideToAmount = BigDecimal("110.56"),
+                    overrideRate = BigDecimal("1.10555"),
+                )
+
+            assertTrue(result is TransferResult.Success)
+            val success = result as TransferResult.Success
+            assertEquals(0, BigDecimal("100.00").compareTo(success.transaction.amount))
+            assertEquals(0, BigDecimal("110.56").compareTo(success.transaction.toAmount))
+            assertEquals(1.10555, success.transaction.exchangeRate!!, 1e-8)
+        }
+
+    @Test
+    fun `override parameters are ignored for same-currency transfer`() =
+        runTest {
+            // Same-currency transfer: overrideToAmount and overrideRate must be ignored;
+            // toAmount must equal amount and exchangeRate must be null (G9).
+            val accountRepo = FakeAccountRepository().apply { seed(account(1L, 1L), account(2L, 1L)) }
+            val rateRepo = FakeCurrencyRateRepository()
+            val txRepo = FakeTransactionRepository()
+            val executor = TransferExecutor(accountRepo, rateRepo, txRepo, UnconfinedTestDispatcher())
+
+            val result =
+                executor.execute(
+                    sourceAccountId = 1L,
+                    targetAccountId = 2L,
+                    amount = BigDecimal("50.00"),
+                    note = null,
+                    occurredAt = now,
+                    now = now,
+                    overrideToAmount = BigDecimal("999.00"),
+                    overrideRate = BigDecimal("2.00"),
+                )
+
+            assertTrue(result is TransferResult.Success)
+            val success = result as TransferResult.Success
+            assertEquals(0, BigDecimal("50.00").compareTo(success.transaction.toAmount))
+            assertEquals(null, success.transaction.exchangeRate)
+        }
+
+    @Test
+    fun `override toAmount is persisted on the transaction row (G9)`() =
+        runTest {
+            val accountRepo = FakeAccountRepository().apply { seed(account(1L, 1L), account(2L, 2L)) }
+            val rateRepo = FakeCurrencyRateRepository()
+            val txRepo = FakeTransactionRepository()
+            val executor = TransferExecutor(accountRepo, rateRepo, txRepo, UnconfinedTestDispatcher())
+
+            executor.execute(
+                sourceAccountId = 1L,
+                targetAccountId = 2L,
+                amount = BigDecimal("200.00"),
+                note = "salary",
+                occurredAt = now,
+                now = now,
+                overrideToAmount = BigDecimal("184.00"),
+                overrideRate = BigDecimal("0.92"),
+            )
+
+            val stored = txRepo.upserted().single()
+            assertEquals(0, BigDecimal("200.00").compareTo(stored.amount))
+            assertEquals(0, BigDecimal("184.00").compareTo(stored.toAmount))
+            assertEquals(0.92, stored.exchangeRate!!, 1e-8)
+            assertEquals("salary", stored.note)
+        }
 }

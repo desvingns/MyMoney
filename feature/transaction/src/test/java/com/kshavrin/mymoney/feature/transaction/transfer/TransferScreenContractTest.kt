@@ -5,6 +5,8 @@ import com.kshavrin.mymoney.core.designsystem.keypad.KeypadEvent
 import com.kshavrin.mymoney.core.designsystem.keypad.Operator
 import com.kshavrin.mymoney.core.domain.model.Currency
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -159,6 +161,67 @@ class TransferScreenContractTest {
         // TransferScreen routes AmountFieldEvent.AccountChipClicked to Unit — the
         // FROM/TO cards own account selection, not the amount-box chip.
         assertEquals(null, dispatch(AmountFieldEvent.AccountChipClicked))
+    }
+
+    // ---- rate dialog state contract ----
+
+    @Test
+    fun `rateDialogRow non-null means dialog should be shown`() {
+        val row =
+            com.kshavrin.mymoney.core.designsystem.dialog.RateRow(
+                fromCode = "USD",
+                toCode = "EUR",
+                lastUpdated = java.time.LocalDate.of(2026, 5, 20),
+                displayRate = java.math.BigDecimal("0.92"),
+                stale = false,
+                missing = false,
+            )
+        val state = TransferState(isSaving = true, rateDialogRow = row)
+        assertEquals(row, state.rateDialogRow)
+    }
+
+    @Test
+    fun `rateDialogRow null means dialog should not be shown`() {
+        val state = TransferState()
+        assertNull(state.rateDialogRow)
+    }
+
+    @Test
+    fun `rateDialogFullRate is only set when rateDialogRow is set`() {
+        val emptyState = TransferState()
+        assertNull(emptyState.rateDialogFullRate)
+
+        val row =
+            com.kshavrin.mymoney.core.designsystem.dialog.RateRow(
+                fromCode = "USD",
+                toCode = "EUR",
+                lastUpdated = null,
+                displayRate = java.math.BigDecimal("1.10"),
+                stale = false,
+                missing = false,
+            )
+        val withDialog =
+            TransferState(
+                isSaving = true,
+                rateDialogRow = row,
+                rateDialogFullRate = java.math.BigDecimal("1.10555"),
+            )
+        assertNotNull(withDialog.rateDialogFullRate)
+    }
+
+    @Test
+    fun `isSaving is true while rate dialog is pending`() {
+        val row =
+            com.kshavrin.mymoney.core.designsystem.dialog.RateRow(
+                fromCode = "EUR",
+                toCode = "USD",
+                lastUpdated = null,
+                displayRate = java.math.BigDecimal("1.10"),
+                stale = false,
+                missing = false,
+            )
+        val state = TransferState(isSaving = true, rateDialogRow = row)
+        assertTrue(state.isSaving)
     }
 
     @Test

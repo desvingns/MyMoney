@@ -207,9 +207,6 @@ class ImportFocusColdStartRegressionTest {
                                         .ConvertMoneyUseCase(),
                                 clock = java.time.Clock.systemUTC(),
                             ),
-                        convertMoneyUseCase =
-                            com.kshavrin.mymoney.core.domain.usecase
-                                .ConvertMoneyUseCase(),
                     )
 
                 val populated =

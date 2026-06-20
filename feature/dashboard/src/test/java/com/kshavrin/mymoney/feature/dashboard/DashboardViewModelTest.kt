@@ -269,67 +269,166 @@ class DashboardViewModelTest {
         }
 
     @Test
-    fun `all accounts selection aggregates active accounts in the current currency and persists aggregate mode`() =
+    fun `all accounts selected emits fork dialog action and does not immediately change selection`() =
         runTest {
-            val euroCard = account(id = 3L, name = "Euro card", isDefault = false, currencyId = eur.id)
-            accountRepository.seed(cash, card, euroCard)
+            accountRepository.seed(cash, card)
+            currencyRepository.seed(usd)
+
+            val (viewModel, store) = buildViewModel()
+            val actions = mutableListOf<DashboardAction>()
+            val collector =
+                backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+                    viewModel.actions.toList(actions)
+                }
+
+            try {
+                runCurrent()
+                val selectionBefore = viewModel.state.value.dashboardSelection
+
+                viewModel.onEvent(DashboardEvent.AllAccountsSelected)
+                runCurrent()
+
+                assertEquals(listOf(DashboardAction.ShowAllAccountsModeDialog), actions)
+                // Selection must NOT change until the user completes the fork-dialog flow.
+                assertEquals(selectionBefore, viewModel.state.value.dashboardSelection)
+                // Left drawer closes on AllAccountsSelected.
+                assertFalse(viewModel.state.value.leftDrawerOpen)
+            } finally {
+                collector.cancel()
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `all accounts convert chosen emits target currency picker with all active currencies`() =
+        runTest {
             currencyRepository.seed(usd, eur)
-            transactionRepository.seedExpenseSummary(cash.id, initialPeriod, summary(categoryId = 10L, amount = "85.00"))
-            transactionRepository.seedIncomeSummary(cash.id, initialPeriod, summary(categoryId = 200L, amount = "120.00"))
-            transactionRepository.seedExpenseSummary(card.id, initialPeriod, summary(categoryId = 10L, amount = "20.00"))
-            transactionRepository.seedIncomeSummary(card.id, initialPeriod, summary(categoryId = 300L, amount = "25.00"))
-            transactionRepository.seedExpenseSummary(euroCard.id, initialPeriod, summary(categoryId = 99L, amount = "999.00"))
-            budgetRepository.seed(budget(id = 10L, categoryId = 10L))
+
+            val (viewModel, store) = buildViewModel()
+            val actions = mutableListOf<DashboardAction>()
+            val collector =
+                backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+                    viewModel.actions.toList(actions)
+                }
+
+            try {
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.AllAccountsConvertChosen)
+                runCurrent()
+
+                assertEquals(1, actions.size)
+                val picker = actions.single() as DashboardAction.ShowTargetCurrencyPicker
+                assertEquals(listOf(usd, eur), picker.currencies)
+            } finally {
+                collector.cancel()
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `all accounts target currency chosen emits rate confirm with rows for every source currency`() =
+        runTest {
+            val eurCard = account(id = 3L, name = "Euro card", isDefault = false, currencyId = eur.id)
+            accountRepository.seed(cash, eurCard)
+            currencyRepository.seed(usd, eur)
+
+            val (viewModel, store) = buildViewModel()
+            val actions = mutableListOf<DashboardAction>()
+            val collector =
+                backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+                    viewModel.actions.toList(actions)
+                }
+
+            try {
+                runCurrent()
+
+                // Choose target = USD. The EUR account is the only source that differs.
+                viewModel.onEvent(DashboardEvent.AllAccountsTargetCurrencyChosen(usd.id))
+                runCurrent()
+
+                assertEquals(1, actions.size)
+                val rateConfirm = actions.single() as DashboardAction.ShowAllAccountsRateConfirm
+                assertEquals(1, rateConfirm.rows.size)
+                assertEquals("EUR", rateConfirm.rows.single().fromCode)
+                assertEquals("USD", rateConfirm.rows.single().toCode)
+                assertEquals(listOf(eur.id), rateConfirm.sourceCurrencyIds)
+            } finally {
+                collector.cancel()
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `all accounts target currency chosen skips rate confirm when every account is already in the target`() =
+        runTest {
+            accountRepository.seed(cash, card)
+            currencyRepository.seed(usd)
+
+            val (viewModel, store) = buildViewModel()
+            val actions = mutableListOf<DashboardAction>()
+            val collector =
+                backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+                    viewModel.actions.toList(actions)
+                }
+
+            try {
+                runCurrent()
+
+                // Choose target = USD. All accounts are already in USD → no rows to confirm.
+                viewModel.onEvent(DashboardEvent.AllAccountsTargetCurrencyChosen(usd.id))
+                runCurrent()
+
+                // ShowAllAccountsRateConfirm must NOT be emitted; selection jumps straight to ConvertTo.
+                assertTrue(actions.none { it is DashboardAction.ShowAllAccountsRateConfirm })
+                val selection = viewModel.state.value.dashboardSelection
+                assertTrue(selection is DashboardSelection.AllAccounts)
+                assertEquals(
+                    usd,
+                    (selection as DashboardSelection.AllAccounts)
+                        .foldMode
+                        .let { (it as AllAccountsFoldMode.ConvertTo).target },
+                )
+            } finally {
+                collector.cancel()
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `all accounts rates confirmed sets ConvertTo selection and aggregates balance per currency group`() =
+        runTest {
+            val eurCard = account(id = 3L, name = "Euro card", isDefault = false, currencyId = eur.id)
+            accountRepository.seed(cash, eurCard)
+            currencyRepository.seed(usd, eur)
+            // USD group: expense 100
+            transactionRepository.seedExpenseSummary(cash.id, initialPeriod, summary(categoryId = 10L, amount = "100.00"))
+            // EUR group: expense 50 EUR — at rate 1.2 USD/EUR → 60 USD
+            transactionRepository.seedExpenseSummary(eurCard.id, initialPeriod, summary(categoryId = 20L, amount = "50.00"))
 
             val (viewModel, store) = buildViewModel()
             try {
                 runCurrent()
-                assertEquals(setOf(10L), viewModel.state.value.budgetAlertCategoryIds)
 
-                viewModel.onEvent(DashboardEvent.AllAccountsSelected)
-
-                assertTrue(
-                    viewModel.state.value.budgetAlertCategoryIds
-                        .isEmpty(),
-                )
-                assertNull(viewModel.state.value.overBudgetAmount)
-
+                // Simulate the full flow: TargetCurrencyChosen → then RatesConfirmed with 1 EUR = 1.2 USD
+                viewModel.onEvent(DashboardEvent.AllAccountsTargetCurrencyChosen(usd.id))
                 runCurrent()
-                assertNull(viewModel.state.value.currentAccount)
-                assertEquals(usd, viewModel.state.value.currentCurrency)
-                assertEquals(
-                    0,
-                    BigDecimal("105.00").compareTo(
-                        viewModel.state.value.balanceSnapshot!!
-                            .expense.amount,
-                    ),
-                )
-                assertEquals(
-                    0,
-                    BigDecimal("145.00").compareTo(
-                        viewModel.state.value.balanceSnapshot!!
-                            .income.amount,
-                    ),
-                )
-                assertEquals(
-                    0,
-                    BigDecimal("40.00").compareTo(
-                        viewModel.state.value.balanceSnapshot!!
-                            .net.amount,
-                    ),
-                )
-                assertEquals(
-                    1.0f,
-                    viewModel.state.value.slices
-                        .single { it.categoryId == 10L }
-                        .fraction,
-                    0.0001f,
-                )
-                assertTrue(
-                    viewModel.state.value.slices
-                        .none { it.hasBudgetAlert },
-                )
-                assertEquals(cash.id, settingsRepository.currentSettings().defaultAccountId)
+                // Rate override: eur.id → 1.2
+                viewModel.onEvent(DashboardEvent.AllAccountsRatesConfirmed(mapOf(eur.id to BigDecimal("1.2"))))
+                runCurrent()
+
+                val state = viewModel.state.value
+                val selection = state.dashboardSelection
+                assertTrue(selection is DashboardSelection.AllAccounts)
+                assertEquals(AllAccountsFoldMode.ConvertTo(usd), (selection as DashboardSelection.AllAccounts).foldMode)
+                assertNotNull(state.balanceSnapshot)
+                // USD group expense=100 + EUR group expense=50*1.2=60 → total=160
+                assertEquals(0, BigDecimal("160.00").compareTo(state.balanceSnapshot!!.expense.amount))
+                assertEquals(usd, state.balanceSnapshot!!.expense.currency)
                 assertEquals("all_accounts", settingsRepository.currentSettings().dashboardSelectionMode)
             } finally {
                 store.clear()
@@ -338,8 +437,241 @@ class DashboardViewModelTest {
         }
 
     @Test
-    fun `all accounts selection restores on init using the default account currency`() =
+    fun `all accounts rates confirmed does not write overrides to CurrencyRateRepository`() =
         runTest {
+            val eurCard = account(id = 3L, name = "Euro card", isDefault = false, currencyId = eur.id)
+            accountRepository.seed(cash, eurCard)
+            currencyRepository.seed(usd, eur)
+
+            val trackingRateRepository = TrackingCurrencyRateRepository()
+            val (viewModel, store) = buildViewModelWith(rateRepository = trackingRateRepository)
+            try {
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.AllAccountsTargetCurrencyChosen(usd.id))
+                runCurrent()
+                viewModel.onEvent(DashboardEvent.AllAccountsRatesConfirmed(mapOf(eur.id to BigDecimal("1.5"))))
+                runCurrent()
+
+                // D5: one-shot rate edits must never be persisted (no upsert calls).
+                assertEquals(0, trackingRateRepository.upsertCallCount)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `all accounts target currency is not remembered — repeated AllAccountsSelected re-opens the fork dialog`() =
+        runTest {
+            accountRepository.seed(cash)
+            currencyRepository.seed(usd)
+
+            val (viewModel, store) = buildViewModel()
+            val actions = mutableListOf<DashboardAction>()
+            val collector =
+                backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+                    viewModel.actions.toList(actions)
+                }
+
+            try {
+                runCurrent()
+
+                // First full flow: select all accounts with USD target.
+                viewModel.onEvent(DashboardEvent.AllAccountsSelected)
+                runCurrent()
+                viewModel.onEvent(DashboardEvent.AllAccountsConvertChosen)
+                runCurrent()
+                viewModel.onEvent(DashboardEvent.AllAccountsTargetCurrencyChosen(usd.id))
+                runCurrent()
+                viewModel.onEvent(DashboardEvent.AllAccountsRatesConfirmed(emptyMap()))
+                runCurrent()
+
+                actions.clear()
+
+                // D7: second tap on "All accounts" must open the fork dialog again — target is NOT remembered.
+                viewModel.onEvent(DashboardEvent.AllAccountsSelected)
+                runCurrent()
+
+                assertEquals(listOf(DashboardAction.ShowAllAccountsModeDialog), actions)
+            } finally {
+                collector.cancel()
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `all accounts separate chosen sets Separate selection and persists aggregate mode`() =
+        runTest {
+            accountRepository.seed(cash)
+            currencyRepository.seed(usd)
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.AllAccountsSeparateChosen)
+                runCurrent()
+
+                val selection = viewModel.state.value.dashboardSelection
+                assertTrue(selection is DashboardSelection.AllAccounts)
+                assertEquals(
+                    AllAccountsFoldMode.Separate,
+                    (selection as DashboardSelection.AllAccounts).foldMode,
+                )
+                assertEquals("all_accounts", settingsRepository.currentSettings().dashboardSelectionMode)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `all accounts conversion dismissed does not change selection`() =
+        runTest {
+            accountRepository.seed(cash)
+            currencyRepository.seed(usd)
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+                val selectionBefore = viewModel.state.value.dashboardSelection
+
+                viewModel.onEvent(DashboardEvent.AllAccountsConversionDismissed)
+                runCurrent()
+
+                assertEquals(selectionBefore, viewModel.state.value.dashboardSelection)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `currentCurrency returns target when ConvertTo is active and null when Separate`() =
+        runTest {
+            accountRepository.seed(cash)
+            currencyRepository.seed(usd, eur)
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                // After ConvertTo(usd) flow:
+                viewModel.onEvent(DashboardEvent.AllAccountsTargetCurrencyChosen(usd.id))
+                runCurrent()
+                viewModel.onEvent(DashboardEvent.AllAccountsRatesConfirmed(emptyMap()))
+                runCurrent()
+                assertEquals(usd, viewModel.state.value.currentCurrency)
+
+                // After SeparateChosen:
+                viewModel.onEvent(DashboardEvent.AllAccountsSeparateChosen)
+                runCurrent()
+                assertNull(viewModel.state.value.currentCurrency)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `all accounts aggregation converts each currency group independently before summing`() =
+        runTest {
+            // G11: BalanceCalculator.forAccounts requires same-currency accounts.
+            // Groups: USD accounts (cash+card) and EUR account (eurCard).
+            // USD group: income=200, expense=80. EUR group: income=50, expense=30.
+            // Rate: 1 EUR = 2.00 USD.
+            // Expected totals in USD: income=200+50*2=300, expense=80+30*2=140.
+            val eurCard = account(id = 3L, name = "Euro card", isDefault = false, currencyId = eur.id)
+            accountRepository.seed(cash, card, eurCard)
+            currencyRepository.seed(usd, eur)
+            transactionRepository.seedExpenseSummary(cash.id, initialPeriod, summary(categoryId = 10L, amount = "50.00"))
+            transactionRepository.seedExpenseSummary(card.id, initialPeriod, summary(categoryId = 10L, amount = "30.00"))
+            transactionRepository.seedIncomeSummary(cash.id, initialPeriod, summary(categoryId = 200L, amount = "200.00"))
+            transactionRepository.seedExpenseSummary(eurCard.id, initialPeriod, summary(categoryId = 30L, amount = "30.00"))
+            transactionRepository.seedIncomeSummary(eurCard.id, initialPeriod, summary(categoryId = 200L, amount = "50.00"))
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.AllAccountsTargetCurrencyChosen(usd.id))
+                runCurrent()
+                viewModel.onEvent(DashboardEvent.AllAccountsRatesConfirmed(mapOf(eur.id to BigDecimal("2.0"))))
+                runCurrent()
+
+                assertNotNull(viewModel.state.value.balanceSnapshot)
+                val snapshot = viewModel.state.value.balanceSnapshot!!
+                assertEquals(0, BigDecimal("300.00").compareTo(snapshot.income.amount))
+                assertEquals(0, BigDecimal("140.00").compareTo(snapshot.expense.amount))
+                assertEquals(usd, snapshot.income.currency)
+                assertEquals(usd, snapshot.expense.currency)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `all accounts balance and slice taps emit aggregate transactions actions without a fake account id after convert flow`() =
+        runTest {
+            accountRepository.seed(cash)
+            currencyRepository.seed(usd)
+
+            val (viewModel, store) = buildViewModel()
+            val actions = mutableListOf<DashboardAction>()
+            val collector =
+                backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+                    viewModel.actions.toList(actions)
+                }
+
+            try {
+                runCurrent()
+
+                // Complete the full convert flow to reach ConvertTo(usd) selection.
+                viewModel.onEvent(DashboardEvent.AllAccountsTargetCurrencyChosen(usd.id))
+                runCurrent()
+                viewModel.onEvent(DashboardEvent.AllAccountsRatesConfirmed(emptyMap()))
+                runCurrent()
+                actions.clear()
+
+                viewModel.onEvent(DashboardEvent.BalanceCardClicked)
+                viewModel.onEvent(DashboardEvent.SliceClicked(categoryId = 77L))
+
+                runCurrent()
+
+                val expectedRange = PeriodArithmetic.toEpochMillisRange(initialPeriod)
+                assertEquals(
+                    listOf(
+                        DashboardAction.NavigateTransactionsByCurrency(
+                            currencyId = usd.id,
+                            fromMillis = expectedRange.first,
+                            toMillis = expectedRange.last,
+                        ),
+                        DashboardAction.NavigateTransactionsByCategory(
+                            accountId = null,
+                            currencyId = usd.id,
+                            categoryId = 77L,
+                            fromMillis = expectedRange.first,
+                            toMillis = expectedRange.last,
+                        ),
+                    ),
+                    actions,
+                )
+            } finally {
+                collector.cancel()
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `all accounts selection restores on init in Separate mode when no fold target was persisted`() =
+        runTest {
+            // D7: target currency is never remembered. A cold-started AllAccounts selection always
+            // restores as Separate (no target) — the user must run the fork-dialog flow again to
+            // choose ConvertTo.
             settingsRepository =
                 FakeDashboardAppSettingsRepository(
                     AppSettings(
@@ -356,8 +688,14 @@ class DashboardViewModelTest {
                 runCurrent()
 
                 assertNull(viewModel.state.value.currentAccount)
-                assertEquals(usd, viewModel.state.value.currentCurrency)
+                // Separate mode has no fold target, so currentCurrency is null (D7).
+                assertNull(viewModel.state.value.currentCurrency)
                 assertTrue(viewModel.state.value.dashboardSelection is DashboardSelection.AllAccounts)
+                assertEquals(
+                    AllAccountsFoldMode.Separate,
+                    (viewModel.state.value.dashboardSelection as DashboardSelection.AllAccounts).foldMode,
+                )
+                // Separate fallback snapshot uses the first USD group — still shows balance.
                 assertEquals(
                     0,
                     BigDecimal("25.00").compareTo(
@@ -440,8 +778,20 @@ class DashboardViewModelTest {
                 runCurrent()
 
                 assertEquals(focusPeriod, viewModel.state.value.period)
-                assertTrue(viewModel.state.value.dashboardSelection is DashboardSelection.AllAccounts)
-                assertEquals(usd, viewModel.state.value.currentCurrency)
+                // D8: import focus lands on the single multi-currency "All accounts" entry. No fold
+                // target was chosen (D7), so it defaults to Separate — currentCurrency is null and
+                // the imported account is surfaced across every account, not pinned to one currency.
+                val selection = viewModel.state.value.dashboardSelection
+                assertTrue(selection is DashboardSelection.AllAccounts)
+                assertEquals(
+                    AllAccountsFoldMode.Separate,
+                    (selection as DashboardSelection.AllAccounts).foldMode,
+                )
+                assertNull(viewModel.state.value.currentCurrency)
+                assertTrue(
+                    viewModel.state.value.accounts
+                        .any { it.id == cash.id },
+                )
                 assertEquals(
                     0,
                     BigDecimal("50.00").compareTo(
@@ -488,8 +838,20 @@ class DashboardViewModelTest {
             try {
                 runCurrent()
                 assertEquals(focusPeriod, secondViewModel.state.value.period)
-                assertTrue(secondViewModel.state.value.dashboardSelection is DashboardSelection.AllAccounts)
-                assertEquals(usd, secondViewModel.state.value.currentCurrency)
+                // D8: the rebuilt view model restores the multi-currency "All accounts" entry in
+                // Separate mode (no remembered fold target — D7), so currentCurrency is null while
+                // the imported month and account stay surfaced.
+                val selection = secondViewModel.state.value.dashboardSelection
+                assertTrue(selection is DashboardSelection.AllAccounts)
+                assertEquals(
+                    AllAccountsFoldMode.Separate,
+                    (selection as DashboardSelection.AllAccounts).foldMode,
+                )
+                assertNull(secondViewModel.state.value.currentCurrency)
+                assertTrue(
+                    secondViewModel.state.value.accounts
+                        .any { it.id == cash.id },
+                )
                 assertEquals(
                     0,
                     BigDecimal("50.00").compareTo(
@@ -1535,7 +1897,7 @@ class DashboardViewModelTest {
         }
 
     @Test
-    fun `all accounts balance and slice taps emit aggregate transactions actions without a fake account id`() =
+    fun `all accounts balance and slice taps in Separate mode do not emit navigation because no target currency exists`() =
         runTest {
             val (viewModel, store) = buildViewModel()
             val actions = mutableListOf<DashboardAction>()
@@ -1547,30 +1909,21 @@ class DashboardViewModelTest {
             try {
                 runCurrent()
 
-                viewModel.onEvent(DashboardEvent.AllAccountsSelected)
+                // Reach AllAccounts(Separate) — the fork-dialog path that does NOT confirm a target.
+                viewModel.onEvent(DashboardEvent.AllAccountsSeparateChosen)
                 runCurrent()
+                actions.clear()
+
+                // In Separate mode there is no fold target, so BalanceCardClicked and SliceClicked
+                // must not emit navigation (they silently no-op for AllAccounts when foldMode is Separate).
                 viewModel.onEvent(DashboardEvent.BalanceCardClicked)
                 viewModel.onEvent(DashboardEvent.SliceClicked(categoryId = 77L))
 
                 runCurrent()
 
-                val expectedRange = PeriodArithmetic.toEpochMillisRange(initialPeriod)
-                assertEquals(
-                    listOf(
-                        DashboardAction.NavigateTransactionsByCurrency(
-                            currencyId = usd.id,
-                            fromMillis = expectedRange.first,
-                            toMillis = expectedRange.last,
-                        ),
-                        DashboardAction.NavigateTransactionsByCategory(
-                            accountId = null,
-                            currencyId = usd.id,
-                            categoryId = 77L,
-                            fromMillis = expectedRange.first,
-                            toMillis = expectedRange.last,
-                        ),
-                    ),
-                    actions,
+                assertTrue(
+                    "BalanceCardClicked and SliceClicked on Separate AllAccounts must not emit navigation; got $actions",
+                    actions.isEmpty(),
                 )
             } finally {
                 collector.cancel()
@@ -1752,9 +2105,12 @@ class DashboardViewModelTest {
         }
 
     @Test
-    fun `all accounts balance card on Year period carries epoch-millis range and no account id`() =
+    fun `all accounts balance card on Year period carries epoch-millis range and no account id after convert flow`() =
         runTest {
             val yearPeriod = Period.Year(2026)
+            accountRepository.seed(cash)
+            currencyRepository.seed(usd)
+
             val (viewModel, store) = buildViewModel()
             val actions = mutableListOf<DashboardAction>()
             val collector =
@@ -1765,9 +2121,14 @@ class DashboardViewModelTest {
             try {
                 runCurrent()
 
-                viewModel.onEvent(DashboardEvent.AllAccountsSelected)
+                // Complete the convert flow to reach ConvertTo(usd), then change period.
+                viewModel.onEvent(DashboardEvent.AllAccountsTargetCurrencyChosen(usd.id))
+                runCurrent()
+                viewModel.onEvent(DashboardEvent.AllAccountsRatesConfirmed(emptyMap()))
+                runCurrent()
                 viewModel.onEvent(DashboardEvent.PeriodChanged(yearPeriod))
                 runCurrent()
+                actions.clear()
 
                 viewModel.onEvent(DashboardEvent.BalanceCardClicked)
                 runCurrent()
@@ -1897,7 +2258,6 @@ class DashboardViewModelTest {
                             observeBudgetAlertsUseCase = alerts,
                             categoryRepository = categoryRepository,
                             resolveRateUseCase = buildResolveRate(),
-                            convertMoneyUseCase = ConvertMoneyUseCase(),
                         ) as T
                 }
             val viewModel = ViewModelProvider(store, factory)[DashboardViewModel::class.java]
@@ -1981,20 +2341,57 @@ class DashboardViewModelTest {
                         observeBudgetAlertsUseCase = alerts,
                         categoryRepository = categoryRepository,
                         resolveRateUseCase = buildResolveRate(),
-                        convertMoneyUseCase = ConvertMoneyUseCase(),
                     ) as T
             }
         return ViewModelProvider(store, factory)[DashboardViewModel::class.java] to store
     }
 
-    private fun buildResolveRate(): ResolveRateUseCase =
+    private fun buildResolveRate(rateRepository: FakeDashboardCurrencyRateRepository = FakeDashboardCurrencyRateRepository()): ResolveRateUseCase =
         ResolveRateUseCase(
-            currencyRateRepository = FakeDashboardCurrencyRateRepository(),
+            currencyRateRepository = rateRepository,
             currencyRepository = currencyRepository,
             convertMoney = ConvertMoneyUseCase(),
             clock = Clock.fixed(Instant.parse("2026-04-15T00:00:00Z"), ZoneOffset.UTC),
             zoneId = ZoneOffset.UTC,
         )
+
+    private fun buildViewModelWith(
+        rateRepository: FakeDashboardCurrencyRateRepository = FakeDashboardCurrencyRateRepository(),
+    ): Pair<DashboardViewModel, ViewModelStore> {
+        val dispatcher = mainDispatcherRule.testDispatcher
+        val calculator =
+            BalanceCalculator(
+                accountRepository = accountRepository,
+                currencyRepository = currencyRepository,
+                transactionRepository = transactionRepository,
+                defaultDispatcher = dispatcher,
+            )
+        val alerts =
+            ObserveBudgetAlertsUseCase(
+                transactionRepository = transactionRepository,
+                budgetRepository = budgetRepository,
+                balanceCalculator = calculator,
+                budgetEvaluator = BudgetEvaluator(),
+                defaultDispatcher = dispatcher,
+            )
+        val store = ViewModelStore()
+        val factory =
+            object : ViewModelProvider.Factory {
+                @Suppress("UNCHECKED_CAST")
+                override fun <T : ViewModel> create(modelClass: Class<T>): T =
+                    DashboardViewModel(
+                        accountRepository = accountRepository,
+                        currencyRepository = currencyRepository,
+                        balanceCalculator = calculator,
+                        appSettingsRepository = settingsRepository,
+                        transactionRepository = transactionRepository,
+                        observeBudgetAlertsUseCase = alerts,
+                        categoryRepository = categoryRepository,
+                        resolveRateUseCase = buildResolveRate(rateRepository),
+                    ) as T
+            }
+        return ViewModelProvider(store, factory)[DashboardViewModel::class.java] to store
+    }
 
     private fun summary(
         categoryId: Long,
@@ -2156,7 +2553,7 @@ private class FakeDashboardCurrencyRepository : CurrencyRepository {
     ) = Unit
 }
 
-private class FakeDashboardCurrencyRateRepository : CurrencyRateRepository {
+private open class FakeDashboardCurrencyRateRepository : CurrencyRateRepository {
     private val state = MutableStateFlow<List<CurrencyRate>>(emptyList())
 
     override suspend fun findRate(
@@ -2171,6 +2568,16 @@ private class FakeDashboardCurrencyRateRepository : CurrencyRateRepository {
     override suspend fun deleteById(id: Long) = Unit
 
     override suspend fun refreshRatesFromNetwork(): Result<Int> = Result.success(0)
+}
+
+// D5: tracks upsert calls to assert one-shot rate overrides are never persisted.
+private class TrackingCurrencyRateRepository : FakeDashboardCurrencyRateRepository() {
+    var upsertCallCount = 0
+
+    override suspend fun upsert(rate: CurrencyRate): Long {
+        upsertCallCount++
+        return super.upsert(rate)
+    }
 }
 
 private class FakeDashboardBudgetRepository : BudgetRepository {

@@ -23,10 +23,7 @@ import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
 import com.kshavrin.mymoney.core.domain.time.PeriodArithmetic
 import com.kshavrin.mymoney.core.domain.usecase.BalanceCalculator
-import com.kshavrin.mymoney.core.domain.usecase.ConversionResult
-import com.kshavrin.mymoney.core.domain.usecase.ConvertMoneyUseCase
 import com.kshavrin.mymoney.core.domain.usecase.ObserveBudgetAlertsUseCase
-import com.kshavrin.mymoney.core.domain.usecase.RatesLookup
 import com.kshavrin.mymoney.core.domain.usecase.ResolveRateUseCase
 import com.kshavrin.mymoney.core.domain.usecase.RingGaugeCalculator
 import com.kshavrin.mymoney.feature.dashboard.components.CategoryTileItem
@@ -64,7 +61,6 @@ class DashboardViewModel
         private val observeBudgetAlertsUseCase: ObserveBudgetAlertsUseCase,
         private val categoryRepository: CategoryRepository,
         private val resolveRateUseCase: ResolveRateUseCase,
-        private val convertMoneyUseCase: ConvertMoneyUseCase,
     ) : ViewModel() {
         private val _state = MutableStateFlow(DashboardState())
         val state: StateFlow<DashboardState> = _state.asStateFlow()
@@ -485,9 +481,9 @@ class DashboardViewModel
 
         // Aggregate every account in [target]: balance each same-currency group with
         // BalanceCalculator.forAccounts (G11 requires one currency per call), convert each group's
-        // figures into the target via ConvertMoneyUseCase (SPEC 02) using the confirmed one-shot
-        // rates, then sum. Conversion happens AFTER each group's balance is computed — never sum
-        // across currencies before converting.
+        // figures into the target using the confirmed one-shot cross-rates, then sum. Conversion
+        // happens AFTER each group's balance is computed — never sum across currencies before
+        // converting.
         private suspend fun convertedAllAccountsSnapshot(
             accounts: List<Account>,
             target: Currency,
@@ -497,7 +493,6 @@ class DashboardViewModel
                 accounts
                     .filterNot { it.isArchived }
                     .groupBy { it.currencyId }
-            val rates = RatesLookup { currency -> allAccountsRateOverrides[currency.id] }
 
             var totalIncome = BigDecimal.ZERO
             var totalExpense = BigDecimal.ZERO
@@ -507,12 +502,12 @@ class DashboardViewModel
                 val groupCurrency = _state.value.currencies.firstOrNull { it.id == currencyId } ?: continue
                 val groupSnapshot = balanceCalculator.forAccounts(groupAccounts, groupCurrency, period)
 
-                totalIncome = totalIncome.add(convertAmount(groupSnapshot.income.amount, groupCurrency, target, rates))
-                totalExpense = totalExpense.add(convertAmount(groupSnapshot.expense.amount, groupCurrency, target, rates))
+                totalIncome = totalIncome.add(convertAmount(groupSnapshot.income.amount, groupCurrency, target))
+                totalExpense = totalExpense.add(convertAmount(groupSnapshot.expense.amount, groupCurrency, target))
 
                 groupSnapshot.byCategory.forEach { catBal ->
                     categoryTotals +=
-                        catBal.copy(total = Money(convertAmount(catBal.total.amount, groupCurrency, target, rates), target))
+                        catBal.copy(total = Money(convertAmount(catBal.total.amount, groupCurrency, target), target))
                 }
             }
 
@@ -559,16 +554,20 @@ class DashboardViewModel
                     )
                 }
 
+        // [allAccountsRateOverrides] maps a source currency id to the one-shot cross-rate the user
+        // confirmed (units of [to] per 1 unit of [from], e.g. 1 EUR = 1.2 USD). Multiply the source
+        // amount by that cross-rate to land in the target currency. Same-currency groups pass
+        // through unchanged; a missing override (cannot happen once the confirm list is honoured)
+        // degrades that group to zero rather than crashing.
         private fun convertAmount(
             amount: BigDecimal,
             from: Currency,
             to: Currency,
-            rates: RatesLookup,
-        ): BigDecimal =
-            when (val result = convertMoneyUseCase(amount, from, to, rates)) {
-                is ConversionResult.Converted -> result.money.amount
-                is ConversionResult.RateMissing -> BigDecimal.ZERO
-            }
+        ): BigDecimal {
+            if (from.id == to.id) return amount.toMoneyScale(to)
+            val crossRate = allAccountsRateOverrides[from.id] ?: return BigDecimal.ZERO
+            return amount.multiply(crossRate).toMoneyScale(to)
+        }
 
         private suspend fun separateFallbackSnapshot(
             accounts: List<Account>,

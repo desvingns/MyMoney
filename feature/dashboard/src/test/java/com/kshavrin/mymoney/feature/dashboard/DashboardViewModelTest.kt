@@ -2473,6 +2473,7 @@ class DashboardViewModelTest {
         name: String,
         isDefault: Boolean,
         currencyId: Long = usd.id,
+        isArchived: Boolean = false,
     ) =
         Account(
             id = id,
@@ -2486,8 +2487,266 @@ class DashboardViewModelTest {
             sortOrder = id.toInt(),
             createdAt = Instant.EPOCH,
             updatedAt = Instant.EPOCH,
-            isArchived = false,
+            isArchived = isArchived,
         )
+
+    // -------------------------------------------------------------------------
+    // Separate mode — currencyCards tests (SPEC 08 / D6)
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `separate mode produces one currency card per currency that has active accounts`() =
+        runTest {
+            val eurCard = account(id = 3L, name = "Euro card", isDefault = false, currencyId = eur.id)
+            accountRepository.seed(cash, card, eurCard)
+            currencyRepository.seed(usd, eur)
+            // USD group: income 200, expense 80
+            transactionRepository.seedIncomeSummary(cash.id, initialPeriod, summary(categoryId = 200L, amount = "200.00"))
+            transactionRepository.seedExpenseSummary(cash.id, initialPeriod, summary(categoryId = 10L, amount = "80.00"))
+            // EUR group: income 100, expense 30
+            transactionRepository.seedIncomeSummary(eurCard.id, initialPeriod, summary(categoryId = 200L, amount = "100.00"))
+            transactionRepository.seedExpenseSummary(eurCard.id, initialPeriod, summary(categoryId = 20L, amount = "30.00"))
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.AllAccountsSeparateChosen)
+                runCurrent()
+
+                val cards = viewModel.state.value.currencyCards
+                assertEquals(2, cards.size)
+                val currencyCodes = cards.map { it.currency.code }.toSet()
+                assertEquals(setOf("USD", "EUR"), currencyCodes)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `separate mode computes each currency group balance independently without conversion`() =
+        runTest {
+            val eurCard = account(id = 3L, name = "Euro card", isDefault = false, currencyId = eur.id)
+            accountRepository.seed(cash, eurCard)
+            currencyRepository.seed(usd, eur)
+            // USD group: income 100, expense 30 → net 70 USD
+            transactionRepository.seedIncomeSummary(cash.id, initialPeriod, summary(categoryId = 200L, amount = "100.00"))
+            transactionRepository.seedExpenseSummary(cash.id, initialPeriod, summary(categoryId = 10L, amount = "30.00"))
+            // EUR group: income 50, expense 20 → net 30 EUR
+            transactionRepository.seedIncomeSummary(eurCard.id, initialPeriod, summary(categoryId = 200L, amount = "50.00"))
+            transactionRepository.seedExpenseSummary(eurCard.id, initialPeriod, summary(categoryId = 20L, amount = "20.00"))
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.AllAccountsSeparateChosen)
+                runCurrent()
+
+                val cards = viewModel.state.value.currencyCards
+                val usdCard = cards.single { it.currency.code == "USD" }
+                val eurCard2 = cards.single { it.currency.code == "EUR" }
+
+                assertEquals(usd, usdCard.snapshot.income.currency)
+                assertEquals(0, BigDecimal("100.00").compareTo(usdCard.snapshot.income.amount))
+                assertEquals(0, BigDecimal("30.00").compareTo(usdCard.snapshot.expense.amount))
+                assertEquals(0, BigDecimal("70.00").compareTo(usdCard.snapshot.net.amount))
+
+                assertEquals(eur, eurCard2.snapshot.income.currency)
+                assertEquals(0, BigDecimal("50.00").compareTo(eurCard2.snapshot.income.amount))
+                assertEquals(0, BigDecimal("20.00").compareTo(eurCard2.snapshot.expense.amount))
+                assertEquals(0, BigDecimal("30.00").compareTo(eurCard2.snapshot.net.amount))
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `separate mode currency cards are empty when selection is ConvertTo`() =
+        runTest {
+            accountRepository.seed(cash)
+            currencyRepository.seed(usd)
+            transactionRepository.seedExpenseSummary(cash.id, initialPeriod, summary(categoryId = 10L, amount = "50.00"))
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                // Complete the convert flow — NOT Separate mode
+                viewModel.onEvent(DashboardEvent.AllAccountsTargetCurrencyChosen(usd.id))
+                runCurrent()
+                viewModel.onEvent(DashboardEvent.AllAccountsRatesConfirmed(emptyMap()))
+                runCurrent()
+
+                assertTrue(
+                    "currencyCards must be empty in ConvertTo mode",
+                    viewModel.state.value.currencyCards
+                        .isEmpty(),
+                )
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `separate mode currency cards are empty when a specific account is selected`() =
+        runTest {
+            accountRepository.seed(cash)
+            currencyRepository.seed(usd)
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                // Default selection is SpecificAccount(cash) — currencyCards must be empty
+                assertTrue(
+                    "currencyCards must be empty in specific account mode",
+                    viewModel.state.value.currencyCards
+                        .isEmpty(),
+                )
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `separate mode excludes archived accounts from currency card computation`() =
+        runTest {
+            val archivedEurCard = account(id = 3L, name = "Archived EUR", isDefault = false, currencyId = eur.id, isArchived = true)
+            accountRepository.seed(cash, archivedEurCard)
+            currencyRepository.seed(usd, eur)
+            transactionRepository.seedIncomeSummary(cash.id, initialPeriod, summary(categoryId = 200L, amount = "50.00"))
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.AllAccountsSeparateChosen)
+                runCurrent()
+
+                val cards = viewModel.state.value.currencyCards
+                // Only the active USD account produces a card; the archived EUR account must not
+                assertEquals(1, cards.size)
+                assertEquals("USD", cards.single().currency.code)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `separate mode currency cards sorted by descending absolute net then by currency code`() =
+        runTest {
+            // RUB net = 0 (no data), EUR net = 30, USD net = 70
+            // Sorted descending by |net|: USD first, EUR second, RUB third
+            val rub =
+                Currency(
+                    id = 3L,
+                    code = "RUB",
+                    symbol = "₽",
+                    name = "Russian Ruble",
+                    decimalDigits = 2,
+                    isActive = true,
+                    sortOrder = 2,
+                )
+            val rubAccount = account(id = 4L, name = "Cash RUB", isDefault = false, currencyId = rub.id)
+            val eurCard = account(id = 3L, name = "Euro card", isDefault = false, currencyId = eur.id)
+            accountRepository.seed(cash, eurCard, rubAccount)
+            currencyRepository.seed(usd, eur, rub)
+            // USD net = 70
+            transactionRepository.seedIncomeSummary(cash.id, initialPeriod, summary(categoryId = 200L, amount = "100.00"))
+            transactionRepository.seedExpenseSummary(cash.id, initialPeriod, summary(categoryId = 10L, amount = "30.00"))
+            // EUR net = 30
+            transactionRepository.seedIncomeSummary(eurCard.id, initialPeriod, summary(categoryId = 200L, amount = "50.00"))
+            transactionRepository.seedExpenseSummary(eurCard.id, initialPeriod, summary(categoryId = 20L, amount = "20.00"))
+            // RUB: no transactions → net = 0
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.AllAccountsSeparateChosen)
+                runCurrent()
+
+                val cards = viewModel.state.value.currencyCards
+                assertEquals(3, cards.size)
+                assertEquals("USD", cards[0].currency.code)
+                assertEquals("EUR", cards[1].currency.code)
+                assertEquals("RUB", cards[2].currency.code)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `separate mode isSeparateMode flag is true only while Separate fold mode is active`() =
+        runTest {
+            accountRepository.seed(cash)
+            currencyRepository.seed(usd)
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+                // Default: SpecificAccount — not Separate
+                assertFalse(viewModel.state.value.isSeparateMode)
+
+                viewModel.onEvent(DashboardEvent.AllAccountsSeparateChosen)
+                runCurrent()
+                assertTrue(viewModel.state.value.isSeparateMode)
+
+                // Switch to ConvertTo — Separate mode ends
+                viewModel.onEvent(DashboardEvent.AllAccountsTargetCurrencyChosen(usd.id))
+                runCurrent()
+                viewModel.onEvent(DashboardEvent.AllAccountsRatesConfirmed(emptyMap()))
+                runCurrent()
+                assertFalse(viewModel.state.value.isSeparateMode)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `separate mode period change recomputes currency cards for the new period`() =
+        runTest {
+            val eurCard = account(id = 3L, name = "Euro card", isDefault = false, currencyId = eur.id)
+            accountRepository.seed(cash, eurCard)
+            currencyRepository.seed(usd, eur)
+
+            // April: EUR has data; initialPeriod: EUR has no data
+            transactionRepository.seedIncomeSummary(eurCard.id, april, summary(categoryId = 200L, amount = "80.00"))
+            transactionRepository.seedExpenseSummary(eurCard.id, april, summary(categoryId = 20L, amount = "10.00"))
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.AllAccountsSeparateChosen)
+                runCurrent()
+
+                // In initialPeriod: EUR card has zero income and expense
+                val cardsNow = viewModel.state.value.currencyCards
+                val eurNow = cardsNow.firstOrNull { it.currency.code == "EUR" }
+                assertNotNull(eurNow)
+                assertEquals(0, BigDecimal.ZERO.compareTo(eurNow!!.snapshot.income.amount))
+
+                viewModel.onEvent(DashboardEvent.PeriodChanged(april))
+                runCurrent()
+
+                val cardsApril = viewModel.state.value.currencyCards
+                val eurApril = cardsApril.single { it.currency.code == "EUR" }
+                assertEquals(0, BigDecimal("80.00").compareTo(eurApril.snapshot.income.amount))
+                assertEquals(0, BigDecimal("10.00").compareTo(eurApril.snapshot.expense.amount))
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
 }
 
 private class FakeDashboardAppSettingsRepository(

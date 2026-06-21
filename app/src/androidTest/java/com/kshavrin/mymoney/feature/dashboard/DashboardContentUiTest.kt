@@ -41,6 +41,7 @@ import com.kshavrin.mymoney.core.domain.model.Period
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.feature.dashboard.components.CategoryTileItem
+import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_CURRENCY_CARDS_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_ABOUT_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_ACCOUNTS_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_CATEGORIES_TAG
@@ -900,6 +901,164 @@ class DashboardContentUiTest {
 
         composeTestRule.onNodeWithTag(BALANCE_BAR_TAG).assertDoesNotExist()
         composeTestRule.onNodeWithTag(DASHBOARD_DONUT_TAG).assertIsDisplayed()
+    }
+
+    @Test
+    fun `separate mode hides the donut ring and shows the currency cards container`() {
+        val usd = usdCurrency()
+        val eur =
+            Currency(
+                id = 2L,
+                code = "EUR",
+                symbol = "EUR",
+                name = "Euro",
+                decimalDigits = 2,
+                isActive = true,
+                sortOrder = 1,
+            )
+        val usdSnapshot =
+            BalanceSnapshot(
+                income = Money(BigDecimal("100.00"), usd),
+                expense = Money(BigDecimal("30.00"), usd),
+                net = Money(BigDecimal("70.00"), usd),
+                byCategory = emptyList(),
+            )
+        val eurSnapshot =
+            BalanceSnapshot(
+                income = Money(BigDecimal("50.00"), eur),
+                expense = Money(BigDecimal("20.00"), eur),
+                net = Money(BigDecimal("30.00"), eur),
+                byCategory = emptyList(),
+            )
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state =
+                        DashboardState(
+                            currencies = listOf(usd, eur),
+                            dashboardSelection =
+                                DashboardSelection.AllAccounts(AllAccountsFoldMode.Separate),
+                            currencyCards =
+                                listOf(
+                                    CurrencyBalanceCard(
+                                        currency = usd,
+                                        snapshot = usdSnapshot,
+                                    ),
+                                    CurrencyBalanceCard(
+                                        currency = eur,
+                                        snapshot = eurSnapshot,
+                                    ),
+                                ),
+                            isLoading = false,
+                        ),
+                    onEvent = {},
+                )
+            }
+        }
+
+        // Donut must not be present in Separate mode (D6)
+        composeTestRule
+            .onAllNodesWithTag(DASHBOARD_DONUT_TAG)
+            .assertCountEquals(0)
+
+        // Per-currency card list must be visible
+        composeTestRule
+            .onNodeWithTag(DASHBOARD_CURRENCY_CARDS_TAG)
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun `separate mode shows one card entry per currency`() {
+        val usd = usdCurrency()
+        val eur =
+            Currency(
+                id = 2L,
+                code = "EUR",
+                symbol = "EUR",
+                name = "Euro",
+                decimalDigits = 2,
+                isActive = true,
+                sortOrder = 1,
+            )
+        val usdSnapshot =
+            BalanceSnapshot(
+                income = Money(BigDecimal("100.00"), usd),
+                expense = Money(BigDecimal("30.00"), usd),
+                net = Money(BigDecimal("70.00"), usd),
+                byCategory = emptyList(),
+            )
+        val eurSnapshot =
+            BalanceSnapshot(
+                income = Money(BigDecimal("50.00"), eur),
+                expense = Money(BigDecimal("20.00"), eur),
+                net = Money(BigDecimal("30.00"), eur),
+                byCategory = emptyList(),
+            )
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state =
+                        DashboardState(
+                            currencies = listOf(usd, eur),
+                            dashboardSelection =
+                                DashboardSelection.AllAccounts(AllAccountsFoldMode.Separate),
+                            currencyCards =
+                                listOf(
+                                    CurrencyBalanceCard(
+                                        currency = usd,
+                                        snapshot = usdSnapshot,
+                                    ),
+                                    CurrencyBalanceCard(
+                                        currency = eur,
+                                        snapshot = eurSnapshot,
+                                    ),
+                                ),
+                            isLoading = false,
+                        ),
+                    onEvent = {},
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText("USD").assertIsDisplayed()
+        composeTestRule.onNodeWithText("EUR").assertIsDisplayed()
+    }
+
+    @Test
+    fun `normal mode still shows the donut and hides the currency cards container`() {
+        val usd = usdCurrency()
+        val snapshot =
+            BalanceSnapshot(
+                income = Money(BigDecimal("200.00"), usd),
+                expense = Money(BigDecimal("50.00"), usd),
+                net = Money(BigDecimal("150.00"), usd),
+                byCategory = emptyList(),
+            )
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state =
+                        dashboardState(
+                            currency = usd,
+                            balanceSnapshot = snapshot,
+                            periodNet = snapshot.net,
+                            ringFraction = 0.75f,
+                            isLoading = false,
+                        ),
+                    onEvent = {},
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithTag(DASHBOARD_DONUT_TAG)
+            .assertIsDisplayed()
+        composeTestRule
+            .onAllNodesWithTag(DASHBOARD_CURRENCY_CARDS_TAG)
+            .assertCountEquals(0)
     }
 
     private fun targetString(resourceId: Int): String =

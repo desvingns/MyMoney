@@ -21,7 +21,6 @@ enum class ChartStyle {
     CandySegments,
     Mountain,
     Ribbon,
-    Line,
     ;
 
     companion object {

@@ -263,9 +263,7 @@ private fun DrawScope.drawBalanceTrendChartStyle(
     val pointRadius = Spacing.trendChartPointRadius.toPx()
 
     when (style) {
-        ChartStyle.NeonLine,
-        ChartStyle.Line,
-        -> {
+        ChartStyle.NeonLine -> {
             drawSegmentLine(chartPoints, palette.line, lineStroke)
             drawDots(chartPoints, palette.line, pointRadius)
             drawMarker(geometry.marker, palette.glow, glowPaint)

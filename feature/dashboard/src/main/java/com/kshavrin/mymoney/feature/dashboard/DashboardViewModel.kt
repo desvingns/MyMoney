@@ -12,6 +12,7 @@ import com.kshavrin.mymoney.core.domain.model.BalanceSnapshot
 import com.kshavrin.mymoney.core.domain.model.Category
 import com.kshavrin.mymoney.core.domain.model.CategoryBalance
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
+import com.kshavrin.mymoney.core.domain.model.ChartMetric
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.DomainEvent
 import com.kshavrin.mymoney.core.domain.model.Money
@@ -23,6 +24,7 @@ import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
 import com.kshavrin.mymoney.core.domain.time.PeriodArithmetic
 import com.kshavrin.mymoney.core.domain.usecase.BalanceCalculator
+import com.kshavrin.mymoney.core.domain.usecase.BalanceTrendCalculator
 import com.kshavrin.mymoney.core.domain.usecase.ObserveBudgetAlertsUseCase
 import com.kshavrin.mymoney.core.domain.usecase.ResolveRateUseCase
 import com.kshavrin.mymoney.core.domain.usecase.RingGaugeCalculator
@@ -56,6 +58,7 @@ class DashboardViewModel
         private val accountRepository: AccountRepository,
         private val currencyRepository: CurrencyRepository,
         private val balanceCalculator: BalanceCalculator,
+        private val balanceTrendCalculator: BalanceTrendCalculator,
         private val appSettingsRepository: AppSettingsRepository,
         private val transactionRepository: TransactionRepository,
         private val observeBudgetAlertsUseCase: ObserveBudgetAlertsUseCase,
@@ -376,6 +379,17 @@ class DashboardViewModel
                     val slices = snapshotToSlices(snapshot, _state.value.budgetAlertCategoryIds)
                     val expenseTiles = snapshotToExpenseTiles(snapshot, _state.value.budgetAlertCategoryIds)
                     val currencyCards = computeCurrencyCards(selection, state.accounts, period)
+                    val trendPoints =
+                        if (selection.isSeparateMode()) {
+                            emptyList()
+                        } else {
+                            balanceTrendCalculator(
+                                window = balanceTrendCalculator.buildWindow(period),
+                                metric = ChartMetric.CUMULATIVE,
+                            ) { trendPeriod ->
+                                computeSnapshot(selection, state.accounts, trendPeriod)
+                            }
+                        }
                     _state.value =
                         _state.value.copy(
                             balanceSnapshot = snapshot,
@@ -383,6 +397,7 @@ class DashboardViewModel
                             periodNet = periodNet,
                             ringFraction = gauge.fraction,
                             ringIsExpense = gauge.isExpense,
+                            trendPoints = trendPoints,
                             slices = slices,
                             expenseTiles = expenseTiles,
                             isLoading = false,
@@ -628,6 +643,9 @@ class DashboardViewModel
                 amount = income.amount.subtract(expense.amount),
                 currency = income.currency,
             )
+
+        private fun DashboardSelection.isSeparateMode(): Boolean =
+            this is DashboardSelection.AllAccounts && foldMode == AllAccountsFoldMode.Separate
 
         fun onEvent(event: DashboardEvent) {
             when (event) {

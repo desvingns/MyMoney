@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -50,8 +51,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kshavrin.mymoney.core.common.money.MoneyFormatter
+import com.kshavrin.mymoney.core.designsystem.chart.BalanceTrendChart
+import com.kshavrin.mymoney.core.designsystem.chart.ChartColorRule
 import com.kshavrin.mymoney.core.designsystem.confetti.MonefyConfetti
-import com.kshavrin.mymoney.core.designsystem.donut.NeonRingChart
 import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.domain.model.Period
 import com.kshavrin.mymoney.core.ui.feedback.LocalHapticPlayer
@@ -70,10 +72,6 @@ import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanelOutline
 import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanelShadow
 import com.kshavrin.mymoney.core.ui.theme.dashboardBalanceValue
 import com.kshavrin.mymoney.core.ui.theme.dashboardNeonBackground
-import com.kshavrin.mymoney.core.ui.theme.neonRingGradientEnd
-import com.kshavrin.mymoney.core.ui.theme.neonRingGradientEndExpense
-import com.kshavrin.mymoney.core.ui.theme.neonRingGradientStart
-import com.kshavrin.mymoney.core.ui.theme.neonRingGradientStartExpense
 import com.kshavrin.mymoney.feature.dashboard.components.AllAccountsConversionDialog
 import com.kshavrin.mymoney.feature.dashboard.components.AllAccountsConversionDialogHost
 import com.kshavrin.mymoney.feature.dashboard.components.CategoryTilesList
@@ -83,8 +81,9 @@ import com.kshavrin.mymoney.feature.dashboard.components.DrawerSide
 import com.kshavrin.mymoney.feature.dashboard.components.LeftDrawerContent
 import com.kshavrin.mymoney.feature.dashboard.components.PeriodSwitcher
 import com.kshavrin.mymoney.feature.dashboard.components.RightDrawerContent
-import com.kshavrin.mymoney.feature.dashboard.components.RingCenterContent
 import com.kshavrin.mymoney.feature.dashboard.components.TwoFabLayout
+import com.kshavrin.mymoney.feature.dashboard.components.localizedLabel
+import java.time.Year
 import java.util.Locale
 
 @Composable
@@ -250,27 +249,46 @@ fun DashboardContent(
                                     )
                                 } else {
                                     val snapshot = state.balanceSnapshot
-                                    NeonRingChart(
-                                        fraction = state.ringFraction,
-                                        modifier = Modifier.testTag(DASHBOARD_DONUT_TAG),
-                                        gradientStart =
-                                            if (state.ringIsExpense) {
-                                                MaterialTheme.colorScheme.neonRingGradientStartExpense
-                                            } else {
-                                                MaterialTheme.colorScheme.neonRingGradientStart
-                                            },
-                                        gradientEnd =
-                                            if (state.ringIsExpense) {
-                                                MaterialTheme.colorScheme.neonRingGradientEndExpense
-                                            } else {
-                                                MaterialTheme.colorScheme.neonRingGradientEnd
-                                            },
-                                    ) {
-                                        if (snapshot != null) {
-                                            RingCenterContent(
-                                                periodNet = state.periodNet,
-                                                income = snapshot.income,
-                                                expense = snapshot.expense,
+                                    val periodLabel =
+                                        state.period.localizedLabel(
+                                            locale = resourceLocale,
+                                            allLabel = stringResource(R.string.period_all),
+                                            currentYear = Year.now().value,
+                                        )
+                                    DashboardTrendBalanceCard(
+                                        label = stringResource(R.string.dashboard_balance_for_period, periodLabel),
+                                        amount =
+                                            formatBalanceAmount(
+                                                state = state,
+                                                unavailableText = stringResource(R.string.dashboard_balance_unavailable_amount),
+                                                locale = resourceLocale,
+                                            ),
+                                        isNegative = state.periodNet.amount.signum() < 0,
+                                        points = state.trendPoints.map { it.value.amount.toFloat() },
+                                        onClick = { onEvent(DashboardEvent.BalanceCardClicked) },
+                                        modifier = Modifier.padding(horizontal = Spacing.l),
+                                    )
+
+                                    if (snapshot != null) {
+                                        Spacer(modifier = Modifier.height(Spacing.s))
+                                        Row(
+                                            modifier =
+                                                Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(horizontal = Spacing.l),
+                                            horizontalArrangement = Arrangement.spacedBy(Spacing.s),
+                                        ) {
+                                            DashboardBalancePanel(
+                                                label = stringResource(R.string.dashboard_currency_card_income),
+                                                amount = formatMoney(snapshot.income, resourceLocale),
+                                                isNegative = false,
+                                                modifier = Modifier.weight(1f),
+                                            )
+                                            DashboardBalancePanel(
+                                                label = stringResource(R.string.dashboard_currency_card_expense),
+                                                amount = formatMoney(snapshot.expense, resourceLocale),
+                                                isNegative = false,
+                                                modifier = Modifier.weight(1f),
                                             )
                                         }
                                     }
@@ -424,11 +442,76 @@ private fun DashboardTopBar(
 }
 
 @Composable
+private fun DashboardTrendBalanceCard(
+    label: String,
+    amount: String,
+    isNegative: Boolean,
+    points: List<Float>,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val shape = MaterialTheme.shapes.dashboardBalancePanel
+    val containerColor =
+        if (isNegative) {
+            MaterialTheme.colorScheme.dashboardBalancePanelContainerNegative
+        } else {
+            MaterialTheme.colorScheme.dashboardBalancePanelContainer
+        }
+    val contentColor =
+        if (isNegative) {
+            MaterialTheme.colorScheme.dashboardBalancePanelContentNegative
+        } else {
+            MaterialTheme.colorScheme.dashboardBalancePanelContent
+        }
+    Column(
+        modifier =
+            modifier
+                .widthIn(max = Spacing.dashboardBalancePanelMaxWidth)
+                .fillMaxWidth()
+                .shadow(
+                    elevation = Spacing.s,
+                    shape = shape,
+                    ambientColor = MaterialTheme.colorScheme.dashboardBalancePanelShadow,
+                    spotColor = MaterialTheme.colorScheme.dashboardBalancePanelShadow,
+                ).background(containerColor, shape)
+                .border(
+                    width = Spacing.dashboardBalancePanelBorderWidth,
+                    color = MaterialTheme.colorScheme.dashboardBalancePanelOutline,
+                    shape = shape,
+                ).clickable(onClick = onClick)
+                .padding(horizontal = Spacing.m, vertical = Spacing.m),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.dashboardBalanceLabel,
+            color = contentColor,
+            maxLines = 1,
+            textAlign = TextAlign.Center,
+        )
+        Text(
+            text = amount,
+            style = MaterialTheme.typography.dashboardBalanceValue,
+            color = contentColor,
+            maxLines = 1,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(modifier = Modifier.height(Spacing.s))
+        Box(modifier = Modifier.fillMaxWidth().testTag(DASHBOARD_TREND_CHART_TAG)) {
+            BalanceTrendChart(
+                points = points,
+                colorRule = ChartColorRule.BySign,
+            )
+        }
+    }
+}
+
+@Composable
 private fun DashboardBalancePanel(
     label: String,
     amount: String,
     isNegative: Boolean,
-    onClick: () -> Unit,
+    onClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val shape = MaterialTheme.shapes.dashboardBalancePanel
@@ -461,8 +544,13 @@ private fun DashboardBalancePanel(
                     width = Spacing.dashboardBalancePanelBorderWidth,
                     color = MaterialTheme.colorScheme.dashboardBalancePanelOutline,
                     shape = shape,
-                ).clickable(onClick = onClick)
-                .padding(horizontal = Spacing.m, vertical = Spacing.s),
+                ).then(
+                    if (onClick != null) {
+                        Modifier.clickable(onClick = onClick)
+                    } else {
+                        Modifier
+                    },
+                ).padding(horizontal = Spacing.m, vertical = Spacing.s),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
@@ -487,11 +575,11 @@ private fun formatBalanceAmount(
     unavailableText: String,
     locale: Locale,
 ): String {
-    val net = state.balanceSnapshot?.net ?: return unavailableText
+    if (state.balanceSnapshot == null) return unavailableText
     return MoneyFormatter.format(
-        amount = net.amount,
-        currencySymbol = net.currency.symbol,
-        decimalDigits = net.currency.decimalDigits,
+        amount = state.periodNet.amount,
+        currencySymbol = state.periodNet.currency.symbol,
+        decimalDigits = state.periodNet.currency.decimalDigits,
         locale = locale,
         symbolPosition = MoneyFormatter.SymbolPosition.AFTER,
     )
@@ -512,4 +600,5 @@ const val DASHBOARD_TOP_BAR_TITLE_TAG = "dashboard_top_bar_title"
 const val DASHBOARD_TOP_BAR_SUBTITLE_TAG = "dashboard_top_bar_subtitle"
 const val DASHBOARD_TOP_BAR_PERIOD_TAG = "dashboard_top_bar_period"
 const val DASHBOARD_DONUT_TAG = "dashboard_donut"
+const val DASHBOARD_TREND_CHART_TAG = "dashboard_trend_chart"
 const val DASHBOARD_SCROLL_CONTENT_TAG = "dashboard_scroll_content"

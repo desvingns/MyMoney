@@ -7,6 +7,7 @@
     <string name="dashboard_overflow_menu">Другие действия</string>
     <string name="dashboard_settings_menu">Настройки</string>
     <string name="dashboard_balance">Баланс</string>
+    <string name="dashboard_balance_for_period">ОСТАТОК ЗА %1$s</string>
     <string name="dashboard_balance_unavailable">Баланс &#8212;</string>
     <string name="dashboard_balance_unavailable_amount">&#8212;</string>
     <string name="dashboard_over_budget">Превышение на %1$s</string>

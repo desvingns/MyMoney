@@ -46,6 +46,9 @@ internal fun neonRingGradientStops(
         arrayOf(0f to gradientStart, fraction to gradientEnd, 1f to gradientEnd)
     }
 
+internal fun neonRingStrokeCap(fraction: Float): StrokeCap =
+    if (fraction >= 1f) StrokeCap.Butt else StrokeCap.Round
+
 internal data class NeonRingChartLayout(
     val sweepAngleDegrees: Float,
     val showsGradientArc: Boolean,
@@ -88,11 +91,11 @@ fun NeonRingChart(
     val trackColor = MaterialTheme.colorScheme.neonRingTrack
     val density = LocalDensity.current
     val glowPaint =
-        remember(density, gradientStart, glowRadius, glowStrokeWidth) {
+        remember(density, gradientStart, glowRadius, glowStrokeWidth, fraction) {
             Paint().apply {
                 color = gradientStart
                 style = PaintingStyle.Stroke
-                strokeCap = StrokeCap.Round
+                strokeCap = neonRingStrokeCap(fraction)
                 this.strokeWidth = with(density) { glowStrokeWidth.toPx() }
                 asFrameworkPaint().maskFilter =
                     BlurMaskFilter(
@@ -155,7 +158,7 @@ fun NeonRingChart(
                         useCenter = false,
                         topLeft = arcTopLeft,
                         size = arcSize,
-                        style = Stroke(width = strokeWidthPx, cap = StrokeCap.Round),
+                        style = Stroke(width = strokeWidthPx, cap = neonRingStrokeCap(fraction)),
                     )
                 }
             }

@@ -330,3 +330,10 @@ val ColorScheme.rateStaleContainer: Color
 
 val ColorScheme.rateStaleContent: Color
     get() = if (isLightDashboardPalette) WizardOrphanWarningLightContent else WizardOrphanWarningDarkContent
+
+// Dashboard «Все счета» Separate mode — per-currency balance card header label.
+// Shows the ISO currency code (e.g. «USD», «KZT») as a muted badge above the balance
+// figures. Aliased from textSecondary so the label stays subordinate to the balance value
+// while clearly marking which currency group the card belongs to.
+val ColorScheme.dashboardCurrencyCardCurrencyLabel: Color
+    get() = NeonTextSecondary

@@ -263,3 +263,14 @@ val Typography.transferRowMeta: TextStyle
             letterSpacing = 0.sp,
             lineHeight = 20.sp,
         )
+
+// Dashboard «Все счета» Separate mode — ISO currency code badge in the per-currency card
+// header (e.g. «USD», «KZT»). Sized between labelLarge and titleMedium so it reads as a
+// prominent-but-secondary label above the main balance value.
+val Typography.dashboardCurrencyCardCurrencyCode: TextStyle
+    get() =
+        titleMedium.copy(
+            fontWeight = FontWeight.SemiBold,
+            letterSpacing = 0.sp,
+            lineHeight = 22.sp,
+        )

@@ -69,4 +69,10 @@ object Spacing {
     // Icon picker item (background touch target) in the category icon picker;
     // 48dp matches the M3 minimum touch target recommendation.
     val wizardIconPickerItemSize = 48.dp
+
+    // Dashboard «Все счета» Separate mode — vertical gap between per-currency balance cards
+    // in the stacked scroll column. 12dp (Spacing.m) keeps the stack dense enough to show
+    // 2-3 cards without scrolling on a typical phone, while remaining visually distinct from
+    // the card's own internal padding.
+    val dashboardCurrencyCardStackSpacing = 12.dp
 }

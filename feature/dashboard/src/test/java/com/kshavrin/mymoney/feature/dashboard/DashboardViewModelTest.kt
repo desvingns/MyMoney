@@ -2837,6 +2837,350 @@ class DashboardViewModelTest {
                 runCurrent()
             }
         }
+
+    // -------------------------------------------------------------------------
+    // Chart config — ChartTapped / ChartSettingsClicked / sheet dismiss (SPEC 06)
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `ChartTapped sets chartSettingsSheetOpen to true`() =
+        runTest {
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+                assertFalse(viewModel.state.value.chartSettingsSheetOpen)
+
+                viewModel.onEvent(DashboardEvent.ChartTapped)
+
+                assertTrue(viewModel.state.value.chartSettingsSheetOpen)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `ChartSettingsClicked sets chartSettingsSheetOpen to true and closes drawers`() =
+        runTest {
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+                viewModel.onEvent(DashboardEvent.RightDrawerToggled)
+                assertTrue(viewModel.state.value.rightDrawerOpen)
+
+                viewModel.onEvent(DashboardEvent.ChartSettingsClicked)
+
+                assertTrue(viewModel.state.value.chartSettingsSheetOpen)
+                assertFalse(viewModel.state.value.rightDrawerOpen)
+                assertFalse(viewModel.state.value.leftDrawerOpen)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `ChartSettingsDismissed sets chartSettingsSheetOpen to false`() =
+        runTest {
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+                viewModel.onEvent(DashboardEvent.ChartTapped)
+                assertTrue(viewModel.state.value.chartSettingsSheetOpen)
+
+                viewModel.onEvent(DashboardEvent.ChartSettingsDismissed)
+
+                assertFalse(viewModel.state.value.chartSettingsSheetOpen)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    // -------------------------------------------------------------------------
+    // Chart config — field writes + DataStore persistence (SPEC 06)
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `ChartStyleChanged persists the new style id to AppSettings`() =
+        runTest {
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.ChartStyleChanged(com.kshavrin.mymoney.core.designsystem.chart.ChartStyle.Bars))
+                runCurrent()
+
+                assertEquals("bars", settingsRepository.currentSettings().chartStyle)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `ChartGridlinesToggled persists the new value to AppSettings`() =
+        runTest {
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.ChartGridlinesToggled(false))
+                runCurrent()
+
+                assertFalse(settingsRepository.currentSettings().chartShowGridlines)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `ChartLabelsToggled persists the new value to AppSettings`() =
+        runTest {
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.ChartLabelsToggled(false))
+                runCurrent()
+
+                assertFalse(settingsRepository.currentSettings().chartShowLabels)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `ChartColorRuleChanged persists the new color rule id to AppSettings`() =
+        runTest {
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.ChartColorRuleChanged(com.kshavrin.mymoney.core.designsystem.chart.ChartColorRule.Expense))
+                runCurrent()
+
+                assertEquals("expense", settingsRepository.currentSettings().chartColorRule)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `ChartVisibilityChanged false persists chartVisible false to AppSettings`() =
+        runTest {
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.ChartVisibilityChanged(false))
+                runCurrent()
+
+                assertFalse(settingsRepository.currentSettings().chartVisible)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `ChartVisibilityChanged true persists chartVisible true to AppSettings`() =
+        runTest {
+            settingsRepository =
+                FakeDashboardAppSettingsRepository(
+                    AppSettings(defaultAccountId = cash.id, firstPositiveSeen = true, chartVisible = false),
+                )
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.ChartVisibilityChanged(true))
+                runCurrent()
+
+                assertTrue(settingsRepository.currentSettings().chartVisible)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    // -------------------------------------------------------------------------
+    // Chart config — trend re-derivation on period-type / point-count / metric (SPEC 06)
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `ChartPointCountChanged persists new point count and triggers trend recompute`() =
+        runTest {
+            transactionRepository.seedIncomeSummary(
+                cash.id,
+                initialPeriod,
+                summary(categoryId = 200L, amount = "100.00"),
+            )
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+                val beforeCount = viewModel.state.value.trendPoints.size
+
+                viewModel.onEvent(DashboardEvent.ChartPointCountChanged(8))
+                runCurrent()
+
+                assertEquals(8, settingsRepository.currentSettings().chartPointCount)
+                val afterCount = viewModel.state.value.trendPoints.size
+                assertTrue(
+                    "point count change must re-derive trendPoints; before=$beforeCount after=$afterCount",
+                    afterCount > 0,
+                )
+                assertEquals(8, afterCount)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `ChartPointCountChanged below minimum is clamped to minimum in AppSettings`() =
+        runTest {
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.ChartPointCountChanged(0))
+                runCurrent()
+
+                assertEquals(CHART_POINT_COUNT_RANGE.first, settingsRepository.currentSettings().chartPointCount)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `ChartPointCountChanged above maximum is clamped to maximum in AppSettings`() =
+        runTest {
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.ChartPointCountChanged(99))
+                runCurrent()
+
+                assertEquals(CHART_POINT_COUNT_RANGE.last, settingsRepository.currentSettings().chartPointCount)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `ChartMetricChanged persists new metric id and triggers trend recompute`() =
+        runTest {
+            transactionRepository.seedIncomeSummary(
+                cash.id,
+                initialPeriod,
+                summary(categoryId = 200L, amount = "100.00"),
+            )
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.ChartMetricChanged(com.kshavrin.mymoney.core.domain.model.ChartMetric.PERIOD_NET))
+                runCurrent()
+
+                assertEquals("period_net", settingsRepository.currentSettings().chartMetric)
+                assertTrue(
+                    "metric change must re-derive trendPoints",
+                    viewModel.state.value.trendPoints
+                        .isNotEmpty(),
+                )
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `ChartPeriodTypeChanged persists new period type id and triggers trend recompute`() =
+        runTest {
+            transactionRepository.seedIncomeSummary(
+                cash.id,
+                initialPeriod,
+                summary(categoryId = 200L, amount = "100.00"),
+            )
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.ChartPeriodTypeChanged(ChartPeriodType.Month))
+                runCurrent()
+
+                assertEquals("month", settingsRepository.currentSettings().chartPeriodType)
+                assertTrue(
+                    "period type change must re-derive trendPoints",
+                    viewModel.state.value.trendPoints
+                        .isNotEmpty(),
+                )
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `ChartPeriodTypeChanged to Follow mirrors the current dashboard period for the trend window`() =
+        runTest {
+            transactionRepository.seedIncomeSummary(
+                cash.id,
+                april,
+                summary(categoryId = 200L, amount = "50.00"),
+            )
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.PeriodChanged(april))
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.ChartPeriodTypeChanged(ChartPeriodType.Follow))
+                runCurrent()
+
+                assertEquals("follow", settingsRepository.currentSettings().chartPeriodType)
+                assertTrue(
+                    "Follow period type must produce trendPoints anchored to the dashboard period",
+                    viewModel.state.value.trendPoints
+                        .isNotEmpty(),
+                )
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `settings flow re-emission from another session projects chartConfig into state`() =
+        runTest {
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                settingsRepository.update { it.copy(chartStyle = "smooth_area") }
+                runCurrent()
+
+                assertEquals(
+                    com.kshavrin.mymoney.core.designsystem.chart.ChartStyle.SmoothArea,
+                    viewModel.state.value.chartConfig.style,
+                )
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
 }
 
 private class FakeDashboardAppSettingsRepository(

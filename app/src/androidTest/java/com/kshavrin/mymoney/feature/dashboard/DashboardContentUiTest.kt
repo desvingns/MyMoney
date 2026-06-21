@@ -36,13 +36,15 @@ import com.kshavrin.mymoney.core.domain.model.BalanceSnapshot
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.domain.model.Period
-import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
+import MyMoneyTheme
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.feature.dashboard.components.CategoryTileItem
+import CHART_SETTINGS_SHEET_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_CURRENCY_CARDS_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_ABOUT_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_ACCOUNTS_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_CATEGORIES_TAG
+import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_CHART_SETTINGS_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_CURRENCIES_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_FINANCIAL_GOALS_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_SETTINGS_TAG
@@ -350,12 +352,14 @@ class DashboardContentUiTest {
     @Test
     fun `right drawer rows display and emit their destination events`() {
         val capturedEvents = mutableListOf<DashboardEvent>()
+        // The drawer now includes the chart-settings row between Currencies and Settings (SPEC 06).
         val drawerRows =
             listOf(
-                RIGHT_DRAWER_SETTINGS_TAG,
                 RIGHT_DRAWER_CATEGORIES_TAG,
                 RIGHT_DRAWER_ACCOUNTS_TAG,
                 RIGHT_DRAWER_CURRENCIES_TAG,
+                RIGHT_DRAWER_CHART_SETTINGS_TAG,
+                RIGHT_DRAWER_SETTINGS_TAG,
                 RIGHT_DRAWER_ABOUT_TAG,
             )
 
@@ -380,10 +384,11 @@ class DashboardContentUiTest {
         composeTestRule.runOnIdle {
             assertEquals(
                 listOf(
-                    DashboardEvent.SettingsClicked,
                     DashboardEvent.CategoriesClicked,
                     DashboardEvent.AccountsClicked,
                     DashboardEvent.CurrenciesClicked,
+                    DashboardEvent.ChartSettingsClicked,
+                    DashboardEvent.SettingsClicked,
                     DashboardEvent.AboutClicked,
                 ),
                 capturedEvents,
@@ -1204,6 +1209,219 @@ class DashboardContentUiTest {
         composeTestRule
             .onNodeWithTag(DASHBOARD_CURRENCY_CARDS_TAG)
             .assertIsDisplayed()
+    }
+
+    // -------------------------------------------------------------------------
+    // Chart settings sheet — open via chart tap and via right-drawer row (SPEC 06)
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `tapping trend chart area emits ChartTapped`() {
+        val capturedEvents = mutableListOf<DashboardEvent>()
+        val usd = usdCurrency()
+        val snapshot =
+            BalanceSnapshot(
+                income = Money(BigDecimal("200.00"), usd),
+                expense = Money(BigDecimal("50.00"), usd),
+                net = Money(BigDecimal("150.00"), usd),
+                byCategory = emptyList(),
+            )
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state =
+                        dashboardState(
+                            currency = usd,
+                            balanceSnapshot = snapshot,
+                            periodNet = snapshot.net,
+                            isLoading = false,
+                        ),
+                    onEvent = { capturedEvents += it },
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithTag(DASHBOARD_TREND_CHART_TAG)
+            .assertExists()
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertTrue(
+                "expected ChartTapped to be emitted; got $capturedEvents",
+                capturedEvents.contains(DashboardEvent.ChartTapped),
+            )
+        }
+    }
+
+    @Test
+    fun `right drawer chart settings row is displayed and emits ChartSettingsClicked`() {
+        val capturedEvents = mutableListOf<DashboardEvent>()
+
+        setStatefulDashboardContent(
+            initialState = DashboardState(isLoading = false, rightDrawerOpen = true),
+            onCapturedEvent = { event -> capturedEvents += event },
+        )
+        composeTestRule.waitForIdle()
+
+        composeTestRule
+            .onNodeWithTag(RIGHT_DRAWER_CHART_SETTINGS_TAG, useUnmergedTree = true)
+            .assertIsDisplayed()
+            .assertHasClickAction()
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertTrue(
+                "expected ChartSettingsClicked; got $capturedEvents",
+                capturedEvents.contains(DashboardEvent.ChartSettingsClicked),
+            )
+        }
+    }
+
+    @Test
+    fun `hidden chart hint strip is shown when chartConfig visible is false`() {
+        val usd = usdCurrency()
+        val snapshot =
+            BalanceSnapshot(
+                income = Money(BigDecimal("200.00"), usd),
+                expense = Money(BigDecimal("50.00"), usd),
+                net = Money(BigDecimal("150.00"), usd),
+                byCategory = emptyList(),
+            )
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state =
+                        dashboardState(
+                            currency = usd,
+                            balanceSnapshot = snapshot,
+                            periodNet = snapshot.net,
+                            isLoading = false,
+                        ).copy(chartConfig = ChartConfig(visible = false)),
+                    onEvent = {},
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithTag(DASHBOARD_CHART_HIDDEN_HINT_TAG)
+            .assertExists()
+        composeTestRule
+            .onAllNodesWithTag(DASHBOARD_TREND_CHART_TAG)
+            .assertCountEquals(0)
+    }
+
+    @Test
+    fun `trend chart tag is present when chartConfig visible is true`() {
+        val usd = usdCurrency()
+        val snapshot =
+            BalanceSnapshot(
+                income = Money(BigDecimal("200.00"), usd),
+                expense = Money(BigDecimal("50.00"), usd),
+                net = Money(BigDecimal("150.00"), usd),
+                byCategory = emptyList(),
+            )
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state =
+                        dashboardState(
+                            currency = usd,
+                            balanceSnapshot = snapshot,
+                            periodNet = snapshot.net,
+                            isLoading = false,
+                        ).copy(chartConfig = ChartConfig(visible = true)),
+                    onEvent = {},
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithTag(DASHBOARD_TREND_CHART_TAG)
+            .assertExists()
+        composeTestRule
+            .onAllNodesWithTag(DASHBOARD_CHART_HIDDEN_HINT_TAG)
+            .assertCountEquals(0)
+    }
+
+    @Test
+    fun `tapping hidden chart hint strip emits ChartTapped`() {
+        val capturedEvents = mutableListOf<DashboardEvent>()
+        val usd = usdCurrency()
+        val snapshot =
+            BalanceSnapshot(
+                income = Money(BigDecimal("200.00"), usd),
+                expense = Money(BigDecimal("50.00"), usd),
+                net = Money(BigDecimal("150.00"), usd),
+                byCategory = emptyList(),
+            )
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state =
+                        dashboardState(
+                            currency = usd,
+                            balanceSnapshot = snapshot,
+                            periodNet = snapshot.net,
+                            isLoading = false,
+                        ).copy(chartConfig = ChartConfig(visible = false)),
+                    onEvent = { capturedEvents += it },
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithTag(DASHBOARD_CHART_HIDDEN_HINT_TAG)
+            .assertExists()
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertTrue(
+                "expected ChartTapped when tapping hidden hint; got $capturedEvents",
+                capturedEvents.contains(DashboardEvent.ChartTapped),
+            )
+        }
+    }
+
+    @Test
+    fun `chart settings sheet is shown when chartSettingsSheetOpen is true`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state =
+                        DashboardState(
+                            isLoading = false,
+                            chartSettingsSheetOpen = true,
+                            chartConfig = ChartConfig(),
+                        ),
+                    onEvent = {},
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithTag(CHART_SETTINGS_SHEET_TAG)
+            .assertExists()
+    }
+
+    @Test
+    fun `chart settings sheet is absent when chartSettingsSheetOpen is false`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state = DashboardState(isLoading = false, chartSettingsSheetOpen = false),
+                    onEvent = {},
+                )
+            }
+        }
+
+        composeTestRule
+            .onAllNodesWithTag(CHART_SETTINGS_SHEET_TAG)
+            .assertCountEquals(0)
     }
 
     private fun targetString(resourceId: Int): String =

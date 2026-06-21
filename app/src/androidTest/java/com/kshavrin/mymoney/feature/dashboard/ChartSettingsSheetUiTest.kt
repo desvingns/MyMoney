@@ -8,6 +8,7 @@ import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.kshavrin.mymoney.core.designsystem.chart.ChartColorRule
 import com.kshavrin.mymoney.core.designsystem.chart.ChartStyle
@@ -82,6 +83,7 @@ class ChartSettingsSheetUiTest {
 
         composeTestRule
             .onNodeWithTag(chartStyleThumbTag(ChartStyle.Bars))
+            .performScrollTo()
             .performClick()
 
         composeTestRule.runOnIdle {

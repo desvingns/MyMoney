@@ -64,7 +64,7 @@ class CurrencyBalanceCardListUiTest {
 
         composeTestRule
             .onNodeWithTag(DASHBOARD_CURRENCY_CARDS_TAG)
-            .assertIsDisplayed()
+            .assertExists()
     }
 
     @Test

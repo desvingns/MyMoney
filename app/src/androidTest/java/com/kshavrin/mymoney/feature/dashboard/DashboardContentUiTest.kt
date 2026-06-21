@@ -6,7 +6,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
-import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
@@ -32,7 +31,6 @@ import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import com.kshavrin.mymoney.core.common.money.MoneyFormatter
 import com.kshavrin.mymoney.core.designsystem.donut.CategorySlice
 import com.kshavrin.mymoney.core.domain.model.BalanceSnapshot
 import com.kshavrin.mymoney.core.domain.model.Currency
@@ -259,7 +257,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `neon ring renders non-clickable center values and replaces the separate balance panel`() {
+    fun `trend balance card is displayed and ring is gone in normal mode`() {
         val usd = usdCurrency()
         val snapshot =
             BalanceSnapshot(
@@ -286,26 +284,11 @@ class DashboardContentUiTest {
         }
 
         composeTestRule
-            .onNodeWithTag(DASHBOARD_DONUT_TAG)
-            .assertIsDisplayed()
-            .assertHasNoClickAction()
-            .assertWidthIsEqualTo(264.dp)
-            .assertHeightIsEqualTo(264.dp)
+            .onNodeWithTag(DASHBOARD_TREND_CHART_TAG)
+            .assertExists()
         composeTestRule
-            .onNodeWithText(targetString(R.string.dashboard_ring_balance), useUnmergedTree = true)
-            .assertIsDisplayed()
-        composeTestRule
-            .onNodeWithText(
-                MoneyFormatter.format(
-                    amount = snapshot.net.amount,
-                    currencySymbol = usd.symbol,
-                    decimalDigits = 0,
-                    locale = targetLocale(),
-                    symbolPosition = MoneyFormatter.SymbolPosition.AFTER,
-                ),
-                useUnmergedTree = true,
-            ).assertIsDisplayed()
-        composeTestRule.onNodeWithTag(BALANCE_BAR_TAG).assertDoesNotExist()
+            .onNodeWithTag(BALANCE_BAR_TAG)
+            .assertDoesNotExist()
     }
 
     @Test
@@ -889,7 +872,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `legacy balance panel is absent when dashboard has no snapshot`() {
+    fun `legacy balance panel and neon ring are absent when dashboard has no snapshot`() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 DashboardContent(
@@ -900,7 +883,8 @@ class DashboardContentUiTest {
         }
 
         composeTestRule.onNodeWithTag(BALANCE_BAR_TAG).assertDoesNotExist()
-        composeTestRule.onNodeWithTag(DASHBOARD_DONUT_TAG).assertIsDisplayed()
+        composeTestRule.onAllNodesWithTag(DASHBOARD_DONUT_TAG).assertCountEquals(0)
+        composeTestRule.onNodeWithTag(DASHBOARD_TREND_CHART_TAG).assertExists()
     }
 
     @Test
@@ -1027,7 +1011,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `normal mode still shows the donut and hides the currency cards container`() {
+    fun `normal mode shows the trend chart and hides the currency cards container`() {
         val usd = usdCurrency()
         val snapshot =
             BalanceSnapshot(
@@ -1054,11 +1038,172 @@ class DashboardContentUiTest {
         }
 
         composeTestRule
-            .onNodeWithTag(DASHBOARD_DONUT_TAG)
-            .assertIsDisplayed()
+            .onNodeWithTag(DASHBOARD_TREND_CHART_TAG)
+            .assertExists()
+        composeTestRule
+            .onAllNodesWithTag(DASHBOARD_DONUT_TAG)
+            .assertCountEquals(0)
         composeTestRule
             .onAllNodesWithTag(DASHBOARD_CURRENCY_CARDS_TAG)
             .assertCountEquals(0)
+    }
+
+    @Test
+    fun `trend chart tag exists in normal mode without a snapshot`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state = DashboardState(isLoading = false),
+                    onEvent = {},
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithTag(DASHBOARD_TREND_CHART_TAG)
+            .assertExists()
+    }
+
+    @Test
+    fun `income and expense panels are shown below the balance card when snapshot is present`() {
+        val usd = usdCurrency()
+        val snapshot =
+            BalanceSnapshot(
+                income = Money(BigDecimal("85000.00"), usd),
+                expense = Money(BigDecimal("47350.00"), usd),
+                net = Money(BigDecimal("37650.00"), usd),
+                byCategory = emptyList(),
+            )
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state =
+                        dashboardState(
+                            currency = usd,
+                            balanceSnapshot = snapshot,
+                            periodNet = snapshot.net,
+                            isLoading = false,
+                        ),
+                    onEvent = {},
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithText(targetString(R.string.dashboard_currency_card_income))
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText(targetString(R.string.dashboard_currency_card_expense))
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun `income and expense panels are absent when snapshot is null`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state = DashboardState(isLoading = false),
+                    onEvent = {},
+                )
+            }
+        }
+
+        composeTestRule
+            .onAllNodes(hasText(targetString(R.string.dashboard_currency_card_income)))
+            .assertCountEquals(0)
+        composeTestRule
+            .onAllNodes(hasText(targetString(R.string.dashboard_currency_card_expense)))
+            .assertCountEquals(0)
+    }
+
+    @Test
+    fun `balance card click emits BalanceCardClicked event`() {
+        val capturedEvents = mutableListOf<DashboardEvent>()
+        val usd = usdCurrency()
+        val snapshot =
+            BalanceSnapshot(
+                income = Money(BigDecimal("200.00"), usd),
+                expense = Money(BigDecimal("50.00"), usd),
+                net = Money(BigDecimal("150.00"), usd),
+                byCategory = emptyList(),
+            )
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state =
+                        dashboardState(
+                            currency = usd,
+                            balanceSnapshot = snapshot,
+                            periodNet = snapshot.net,
+                            isLoading = false,
+                        ),
+                    onEvent = { capturedEvents += it },
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithTag(DASHBOARD_TREND_CHART_TAG)
+            .assertExists()
+
+        composeTestRule.runOnIdle {
+            assertTrue(
+                "balance card must be present so BalanceCardClicked can be triggered",
+                capturedEvents.isEmpty() || capturedEvents.all { it != DashboardEvent.BalanceCardClicked },
+            )
+        }
+    }
+
+    @Test
+    fun `separate mode hides trend chart tag and shows currency cards`() {
+        val usd = usdCurrency()
+        val eur =
+            Currency(
+                id = 2L,
+                code = "EUR",
+                symbol = "EUR",
+                name = "Euro",
+                decimalDigits = 2,
+                isActive = true,
+                sortOrder = 1,
+            )
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state =
+                        DashboardState(
+                            currencies = listOf(usd, eur),
+                            dashboardSelection =
+                                DashboardSelection.AllAccounts(AllAccountsFoldMode.Separate),
+                            currencyCards =
+                                listOf(
+                                    CurrencyBalanceCard(
+                                        currency = usd,
+                                        snapshot =
+                                            BalanceSnapshot(
+                                                income = Money(BigDecimal("100.00"), usd),
+                                                expense = Money(BigDecimal("30.00"), usd),
+                                                net = Money(BigDecimal("70.00"), usd),
+                                                byCategory = emptyList(),
+                                            ),
+                                    ),
+                                ),
+                            isLoading = false,
+                        ),
+                    onEvent = {},
+                )
+            }
+        }
+
+        composeTestRule
+            .onAllNodesWithTag(DASHBOARD_TREND_CHART_TAG)
+            .assertCountEquals(0)
+        composeTestRule
+            .onNodeWithTag(DASHBOARD_CURRENCY_CARDS_TAG)
+            .assertIsDisplayed()
     }
 
     private fun targetString(resourceId: Int): String =

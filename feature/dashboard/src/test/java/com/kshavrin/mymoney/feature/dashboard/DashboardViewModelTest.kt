@@ -30,6 +30,7 @@ import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
 import com.kshavrin.mymoney.core.domain.time.PeriodArithmetic
 import com.kshavrin.mymoney.core.domain.usecase.BalanceCalculator
+import com.kshavrin.mymoney.core.domain.usecase.BalanceTrendCalculator
 import com.kshavrin.mymoney.core.domain.usecase.BudgetEvaluator
 import com.kshavrin.mymoney.core.domain.usecase.ConvertMoneyUseCase
 import com.kshavrin.mymoney.core.domain.usecase.ObserveBudgetAlertsUseCase
@@ -2253,6 +2254,7 @@ class DashboardViewModelTest {
                             accountRepository = accountRepository,
                             currencyRepository = currencyRepository,
                             balanceCalculator = calculator,
+                            balanceTrendCalculator = BalanceTrendCalculator(),
                             appSettingsRepository = settingsRepository,
                             transactionRepository = gatedTransactionRepository,
                             observeBudgetAlertsUseCase = alerts,
@@ -2336,6 +2338,7 @@ class DashboardViewModelTest {
                         accountRepository = accountRepository,
                         currencyRepository = currencyRepository,
                         balanceCalculator = calculator,
+                        balanceTrendCalculator = BalanceTrendCalculator(),
                         appSettingsRepository = settingsRepository,
                         transactionRepository = transactionRepository,
                         observeBudgetAlertsUseCase = alerts,
@@ -2383,6 +2386,7 @@ class DashboardViewModelTest {
                         accountRepository = accountRepository,
                         currencyRepository = currencyRepository,
                         balanceCalculator = calculator,
+                        balanceTrendCalculator = BalanceTrendCalculator(),
                         appSettingsRepository = settingsRepository,
                         transactionRepository = transactionRepository,
                         observeBudgetAlertsUseCase = alerts,
@@ -2489,6 +2493,92 @@ class DashboardViewModelTest {
             updatedAt = Instant.EPOCH,
             isArchived = isArchived,
         )
+
+    // -------------------------------------------------------------------------
+    // trendPoints tests (SPEC 05)
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `trendPoints contains five entries for single account period after recompute`() =
+        runTest {
+            transactionRepository.seedIncomeSummary(
+                cash.id,
+                initialPeriod,
+                summary(categoryId = 200L, amount = "85000.00"),
+            )
+            transactionRepository.seedExpenseSummary(
+                cash.id,
+                initialPeriod,
+                summary(categoryId = 10L, amount = "47350.00"),
+            )
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                assertEquals(5, viewModel.state.value.trendPoints.size)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `trendPoints is empty in AllAccounts Separate mode`() =
+        runTest {
+            accountRepository.seed(cash)
+            currencyRepository.seed(usd)
+            transactionRepository.seedIncomeSummary(
+                cash.id,
+                initialPeriod,
+                summary(categoryId = 200L, amount = "100.00"),
+            )
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.AllAccountsSeparateChosen)
+                runCurrent()
+
+                assertTrue(
+                    "trendPoints must be empty in Separate mode",
+                    viewModel.state.value.trendPoints
+                        .isEmpty(),
+                )
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `periodNet equals income minus expense and is not cumulative`() =
+        runTest {
+            // income=85000, expense=47350 → periodNet=37650
+            transactionRepository.seedIncomeSummary(
+                cash.id,
+                initialPeriod,
+                summary(categoryId = 200L, amount = "85000.00"),
+            )
+            transactionRepository.seedExpenseSummary(
+                cash.id,
+                initialPeriod,
+                summary(categoryId = 10L, amount = "47350.00"),
+            )
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                val state = viewModel.state.value
+                assertEquals(0, BigDecimal("37650.00").compareTo(state.periodNet.amount))
+                assertEquals(usd, state.periodNet.currency)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
 
     // -------------------------------------------------------------------------
     // Separate mode — currencyCards tests (SPEC 08 / D6)

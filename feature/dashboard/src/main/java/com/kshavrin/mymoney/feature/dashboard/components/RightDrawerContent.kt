@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ShowChart
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.Flag
@@ -67,6 +68,12 @@ fun RightDrawerContent(onEvent: (DashboardEvent) -> Unit) {
             testTag = RIGHT_DRAWER_CURRENCIES_TAG,
         )
         RightDrawerItem(
+            label = stringResource(R.string.right_drawer_chart_settings),
+            icon = Icons.AutoMirrored.Outlined.ShowChart,
+            onClick = { onEvent(DashboardEvent.ChartSettingsClicked) },
+            testTag = RIGHT_DRAWER_CHART_SETTINGS_TAG,
+        )
+        RightDrawerItem(
             label = stringResource(R.string.right_drawer_settings),
             icon = Icons.Outlined.Settings,
             onClick = { onEvent(DashboardEvent.SettingsClicked) },
@@ -122,4 +129,5 @@ const val RIGHT_DRAWER_ACCOUNTS_TAG = "right_drawer_accounts"
 const val RIGHT_DRAWER_FINANCIAL_GOALS_TAG = "right_drawer_financial_goals"
 const val RIGHT_DRAWER_CURRENCIES_TAG = "right_drawer_currencies"
 const val RIGHT_DRAWER_SETTINGS_TAG = "right_drawer_settings"
+const val RIGHT_DRAWER_CHART_SETTINGS_TAG = "right_drawer_chart_settings"
 const val RIGHT_DRAWER_ABOUT_TAG = "right_drawer_about"

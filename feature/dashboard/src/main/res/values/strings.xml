@@ -60,4 +60,38 @@
     <string name="right_drawer_financial_goals">Financial goals</string>
     <string name="right_drawer_currencies">Currencies</string>
     <string name="right_drawer_about">About</string>
+    <string name="right_drawer_chart_settings">Chart settings</string>
+
+    <string name="chart_settings_title">Chart settings</string>
+    <string name="chart_settings_section_style">Style</string>
+    <string name="chart_settings_section_period">Period</string>
+    <string name="chart_settings_section_points">Points</string>
+    <string name="chart_settings_section_metric">Metric</string>
+    <string name="chart_settings_section_color">Line color</string>
+    <string name="chart_settings_section_display">Display</string>
+
+    <string name="chart_settings_period_follow">As dashboard</string>
+    <string name="chart_settings_period_day">Day</string>
+    <string name="chart_settings_period_week">Week</string>
+    <string name="chart_settings_period_month">Month</string>
+    <string name="chart_settings_period_year">Year</string>
+
+    <string name="chart_settings_metric_cumulative">Cumulative</string>
+    <string name="chart_settings_metric_period_net">Period balance</string>
+    <string name="chart_settings_metric_income_expense">Income + expense</string>
+
+    <string name="chart_settings_color_by_sign">By sign</string>
+    <string name="chart_settings_color_income">Always green</string>
+    <string name="chart_settings_color_expense">By trend</string>
+
+    <string name="chart_settings_gridlines">Vertical lines</string>
+    <string name="chart_settings_labels">Labels</string>
+    <string name="chart_settings_visible">Show chart</string>
+
+    <string name="chart_settings_points_decrease">Fewer points</string>
+    <string name="chart_settings_points_increase">More points</string>
+
+    <string name="chart_settings_style_option">Chart style</string>
+
+    <string name="chart_hidden_hint">Chart hidden</string>
 </resources>

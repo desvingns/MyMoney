@@ -1,8 +1,11 @@
 package com.kshavrin.mymoney.feature.dashboard
 
+import com.kshavrin.mymoney.core.designsystem.chart.ChartColorRule
+import com.kshavrin.mymoney.core.designsystem.chart.ChartStyle
 import com.kshavrin.mymoney.core.designsystem.donut.CategorySlice
 import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.BalanceSnapshot
+import com.kshavrin.mymoney.core.domain.model.ChartMetric
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.domain.model.Period
@@ -33,6 +36,8 @@ data class DashboardState(
     val leftDrawerOpen: Boolean = false,
     val rightDrawerOpen: Boolean = false,
     val showConfetti: Boolean = false,
+    val chartConfig: ChartConfig = ChartConfig(),
+    val chartSettingsSheetOpen: Boolean = false,
 ) {
     val currentAccount: Account?
         get() = (dashboardSelection as? DashboardSelection.SpecificAccount)?.account
@@ -63,6 +68,34 @@ data class CurrencyBalanceCard(
     val currency: Currency,
     val snapshot: BalanceSnapshot,
 )
+
+// Persisted chart configuration (AppSettings, SPEC 02) projected into the dashboard state. Drives
+// BOTH the rendered chart (style/color/toggles) and the trend recompute (period type / point
+// count / metric). [periodType] == Follow means the chart window mirrors the dashboard period;
+// otherwise the window is built from an independent anchor of that period type.
+data class ChartConfig(
+    val visible: Boolean = true,
+    val style: ChartStyle = ChartStyle.Default,
+    val periodType: ChartPeriodType = ChartPeriodType.Follow,
+    val pointCount: Int = DEFAULT_CHART_POINT_COUNT,
+    val metric: ChartMetric = ChartMetric.CUMULATIVE,
+    val showGridlines: Boolean = true,
+    val showLabels: Boolean = true,
+    val colorRule: ChartColorRule = ChartColorRule.Default,
+)
+
+// How the trend window is anchored relative to the dashboard. Follow tracks the dashboard period;
+// the calendar variants build an independent window of that granularity.
+enum class ChartPeriodType {
+    Follow,
+    Day,
+    Week,
+    Month,
+    Year,
+}
+
+const val DEFAULT_CHART_POINT_COUNT = 5
+val CHART_POINT_COUNT_RANGE = 3..12
 
 private val DASHBOARD_STATE_FALLBACK_CURRENCY =
     Currency(
@@ -170,4 +203,45 @@ sealed interface DashboardEvent {
     ) : DashboardEvent
 
     data object ConfettiAcknowledged : DashboardEvent
+
+    // Tap on the chart area opens the settings sheet (G1/G9).
+    data object ChartTapped : DashboardEvent
+
+    // «Настройки графика» entry in the ⋮ menu — the way to reach the sheet while the chart is
+    // hidden (D13).
+    data object ChartSettingsClicked : DashboardEvent
+
+    data object ChartSettingsDismissed : DashboardEvent
+
+    data class ChartStyleChanged(
+        val style: ChartStyle,
+    ) : DashboardEvent
+
+    data class ChartPeriodTypeChanged(
+        val periodType: ChartPeriodType,
+    ) : DashboardEvent
+
+    data class ChartPointCountChanged(
+        val pointCount: Int,
+    ) : DashboardEvent
+
+    data class ChartMetricChanged(
+        val metric: ChartMetric,
+    ) : DashboardEvent
+
+    data class ChartGridlinesToggled(
+        val enabled: Boolean,
+    ) : DashboardEvent
+
+    data class ChartLabelsToggled(
+        val enabled: Boolean,
+    ) : DashboardEvent
+
+    data class ChartColorRuleChanged(
+        val colorRule: ChartColorRule,
+    ) : DashboardEvent
+
+    data class ChartVisibilityChanged(
+        val visible: Boolean,
+    ) : DashboardEvent
 }

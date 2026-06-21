@@ -12,7 +12,6 @@ import com.kshavrin.mymoney.core.domain.model.BalanceSnapshot
 import com.kshavrin.mymoney.core.domain.model.Category
 import com.kshavrin.mymoney.core.domain.model.CategoryBalance
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
-import com.kshavrin.mymoney.core.domain.model.ChartMetric
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.DomainEvent
 import com.kshavrin.mymoney.core.domain.model.Money
@@ -154,6 +153,7 @@ class DashboardViewModel
                             )
                         }
                     val period = resolvePeriod(focusPeriod, current.period, inputs.settings)
+                    val chartConfig = inputs.settings.toChartConfig()
                     _state.value =
                         current.copy(
                             accounts = inputs.accounts,
@@ -161,6 +161,7 @@ class DashboardViewModel
                             period = period,
                             dashboardSelection = selection,
                             isLoading = selection == null,
+                            chartConfig = chartConfig,
                         )
                     selectBudgetAlerts()
                     recomputeBalance()
@@ -377,13 +378,18 @@ class DashboardViewModel
                     val settings = appSettingsRepository.settings.first()
                     val firstPositive = !settings.firstPositiveSeen && snapshot.net.amount.signum() > 0
                     val currencyCards = computeCurrencyCards(selection, state.accounts, period)
+                    val chartConfig = _state.value.chartConfig
                     val trendPoints =
                         if (selection.isSeparateMode()) {
                             emptyList()
                         } else {
                             balanceTrendCalculator(
-                                window = balanceTrendCalculator.buildWindow(period),
-                                metric = ChartMetric.CUMULATIVE,
+                                window =
+                                    balanceTrendCalculator.buildWindow(
+                                        anchor = trendAnchorPeriod(chartConfig.periodType, period),
+                                        count = chartConfig.pointCount,
+                                    ),
+                                metric = chartConfig.metric,
                             ) { trendPeriod ->
                                 computeSnapshot(selection, state.accounts, trendPeriod)
                             }
@@ -647,6 +653,23 @@ class DashboardViewModel
         private fun DashboardSelection.isSeparateMode(): Boolean =
             this is DashboardSelection.AllAccounts && foldMode == AllAccountsFoldMode.Separate
 
+        // Follow mirrors the dashboard period; the calendar variants anchor an independent window
+        // of that granularity at "now" so the chart stays meaningful regardless of which period
+        // the dashboard is currently showing.
+        private fun trendAnchorPeriod(
+            periodType: ChartPeriodType,
+            dashboardPeriod: Period,
+        ): Period {
+            val today = java.time.LocalDate.now(ZoneId.systemDefault())
+            return when (periodType) {
+                ChartPeriodType.Follow -> dashboardPeriod
+                ChartPeriodType.Day -> Period.Day(today)
+                ChartPeriodType.Week -> Period.Week(today.with(java.time.DayOfWeek.MONDAY))
+                ChartPeriodType.Month -> Period.Month(YearMonth.from(today))
+                ChartPeriodType.Year -> Period.Year(today.year)
+            }
+        }
+
         fun onEvent(event: DashboardEvent) {
             when (event) {
                 is DashboardEvent.PeriodChanged -> {
@@ -795,6 +818,51 @@ class DashboardViewModel
                 }
                 DashboardEvent.ConfettiAcknowledged ->
                     _state.value = _state.value.copy(showConfetti = false)
+                DashboardEvent.ChartTapped ->
+                    _state.value = _state.value.copy(chartSettingsSheetOpen = true)
+                DashboardEvent.ChartSettingsClicked -> {
+                    closeDrawers()
+                    _state.value = _state.value.copy(chartSettingsSheetOpen = true)
+                }
+                DashboardEvent.ChartSettingsDismissed ->
+                    _state.value = _state.value.copy(chartSettingsSheetOpen = false)
+                is DashboardEvent.ChartStyleChanged ->
+                    updateChartSettings { it.copy(chartStyle = event.style.toId()) }
+                is DashboardEvent.ChartPeriodTypeChanged ->
+                    updateChartSettings(recomputeTrend = true) {
+                        it.copy(chartPeriodType = event.periodType.toId())
+                    }
+                is DashboardEvent.ChartPointCountChanged ->
+                    updateChartSettings(recomputeTrend = true) {
+                        it.copy(chartPointCount = event.pointCount.coerceIn(CHART_POINT_COUNT_RANGE))
+                    }
+                is DashboardEvent.ChartMetricChanged ->
+                    updateChartSettings(recomputeTrend = true) { it.copy(chartMetric = event.metric.toId()) }
+                is DashboardEvent.ChartGridlinesToggled ->
+                    updateChartSettings { it.copy(chartShowGridlines = event.enabled) }
+                is DashboardEvent.ChartLabelsToggled ->
+                    updateChartSettings { it.copy(chartShowLabels = event.enabled) }
+                is DashboardEvent.ChartColorRuleChanged ->
+                    updateChartSettings { it.copy(chartColorRule = event.colorRule.toId()) }
+                is DashboardEvent.ChartVisibilityChanged ->
+                    updateChartSettings { it.copy(chartVisible = event.visible) }
+            }
+        }
+
+        // Persist a chart-config change (G15 — DataStore is the single source of truth, never the
+        // transient state). The settings flow re-emission projects the new config back into state;
+        // [recomputeTrend] re-derives the trend points immediately for period-type/point-count/metric
+        // changes so the chart updates without waiting for the next data emission.
+        private fun updateChartSettings(
+            recomputeTrend: Boolean = false,
+            transform: (AppSettings) -> AppSettings,
+        ) {
+            viewModelScope.launch {
+                appSettingsRepository.update(transform)
+                if (recomputeTrend) {
+                    _state.value = _state.value.copy(chartConfig = appSettingsRepository.settings.first().toChartConfig())
+                    recomputeBalance()
+                }
             }
         }
 

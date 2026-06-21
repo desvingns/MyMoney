@@ -60,4 +60,38 @@
     <string name="right_drawer_financial_goals">Финансовые цели</string>
     <string name="right_drawer_currencies">Валюты</string>
     <string name="right_drawer_about">О приложении</string>
+    <string name="right_drawer_chart_settings">Настройки графика</string>
+
+    <string name="chart_settings_title">Настройки графика</string>
+    <string name="chart_settings_section_style">Стиль</string>
+    <string name="chart_settings_section_period">Период</string>
+    <string name="chart_settings_section_points">Точки</string>
+    <string name="chart_settings_section_metric">Метрика</string>
+    <string name="chart_settings_section_color">Цвет линии</string>
+    <string name="chart_settings_section_display">Отображение</string>
+
+    <string name="chart_settings_period_follow">Как дашборд</string>
+    <string name="chart_settings_period_day">День</string>
+    <string name="chart_settings_period_week">Неделя</string>
+    <string name="chart_settings_period_month">Месяц</string>
+    <string name="chart_settings_period_year">Год</string>
+
+    <string name="chart_settings_metric_cumulative">Накопленный</string>
+    <string name="chart_settings_metric_period_net">Остаток за период</string>
+    <string name="chart_settings_metric_income_expense">Доход + расход</string>
+
+    <string name="chart_settings_color_by_sign">По знаку</string>
+    <string name="chart_settings_color_income">Всегда зелёный</string>
+    <string name="chart_settings_color_expense">По тренду</string>
+
+    <string name="chart_settings_gridlines">Вертикальные линии</string>
+    <string name="chart_settings_labels">Подписи</string>
+    <string name="chart_settings_visible">Показывать график</string>
+
+    <string name="chart_settings_points_decrease">Меньше точек</string>
+    <string name="chart_settings_points_increase">Больше точек</string>
+
+    <string name="chart_settings_style_option">Стиль графика</string>
+
+    <string name="chart_hidden_hint">График скрыт</string>
 </resources>

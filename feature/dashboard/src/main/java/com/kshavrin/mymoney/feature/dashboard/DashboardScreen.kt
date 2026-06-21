@@ -52,7 +52,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kshavrin.mymoney.core.common.money.MoneyFormatter
 import com.kshavrin.mymoney.core.designsystem.chart.BalanceTrendChart
-import com.kshavrin.mymoney.core.designsystem.chart.ChartColorRule
 import com.kshavrin.mymoney.core.designsystem.confetti.MonefyConfetti
 import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.domain.model.Period
@@ -62,6 +61,7 @@ import com.kshavrin.mymoney.core.ui.flow.CollectActions
 import com.kshavrin.mymoney.core.ui.haptic.HapticKind
 import com.kshavrin.mymoney.core.ui.sound.SoundKey
 import com.kshavrin.mymoney.core.ui.theme.Spacing
+import com.kshavrin.mymoney.core.ui.theme.chartHiddenHint
 import com.kshavrin.mymoney.core.ui.theme.dashboardBalanceLabel
 import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanel
 import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanelContainer
@@ -75,6 +75,7 @@ import com.kshavrin.mymoney.core.ui.theme.dashboardNeonBackground
 import com.kshavrin.mymoney.feature.dashboard.components.AllAccountsConversionDialog
 import com.kshavrin.mymoney.feature.dashboard.components.AllAccountsConversionDialogHost
 import com.kshavrin.mymoney.feature.dashboard.components.CategoryTilesList
+import com.kshavrin.mymoney.feature.dashboard.components.ChartSettingsSheet
 import com.kshavrin.mymoney.feature.dashboard.components.CurrencyBalanceCardList
 import com.kshavrin.mymoney.feature.dashboard.components.DashboardDrawerOverlay
 import com.kshavrin.mymoney.feature.dashboard.components.DrawerSide
@@ -265,7 +266,9 @@ fun DashboardContent(
                                             ),
                                         isNegative = state.periodNet.amount.signum() < 0,
                                         points = state.trendPoints.map { it.value.amount.toFloat() },
+                                        chartConfig = state.chartConfig,
                                         onClick = { onEvent(DashboardEvent.BalanceCardClicked) },
+                                        onChartClick = { onEvent(DashboardEvent.ChartTapped) },
                                         modifier = Modifier.padding(horizontal = Spacing.l),
                                     )
 
@@ -365,6 +368,14 @@ fun DashboardContent(
             RightDrawerContent(onEvent = onEvent)
         }
     }
+
+    if (state.chartSettingsSheetOpen) {
+        ChartSettingsSheet(
+            config = state.chartConfig,
+            onEvent = onEvent,
+            onDismiss = { onEvent(DashboardEvent.ChartSettingsDismissed) },
+        )
+    }
 }
 
 @Composable
@@ -447,7 +458,9 @@ private fun DashboardTrendBalanceCard(
     amount: String,
     isNegative: Boolean,
     points: List<Float>,
+    chartConfig: ChartConfig,
     onClick: () -> Unit,
+    onChartClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val shape = MaterialTheme.shapes.dashboardBalancePanel
@@ -497,11 +510,39 @@ private fun DashboardTrendBalanceCard(
             textAlign = TextAlign.Center,
         )
         Spacer(modifier = Modifier.height(Spacing.s))
-        Box(modifier = Modifier.fillMaxWidth().testTag(DASHBOARD_TREND_CHART_TAG)) {
-            BalanceTrendChart(
-                points = points,
-                colorRule = ChartColorRule.BySign,
-            )
+        if (chartConfig.visible) {
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onChartClick)
+                        .testTag(DASHBOARD_TREND_CHART_TAG),
+            ) {
+                BalanceTrendChart(
+                    points = points,
+                    showGridlines = chartConfig.showGridlines,
+                    showLabels = chartConfig.showLabels,
+                    colorRule = chartConfig.colorRule,
+                    style = chartConfig.style,
+                )
+            }
+        } else {
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .height(Spacing.chartHiddenHintHeight)
+                        .clickable(onClick = onChartClick)
+                        .testTag(DASHBOARD_CHART_HIDDEN_HINT_TAG),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = stringResource(R.string.chart_hidden_hint),
+                    style = MaterialTheme.typography.chartHiddenHint,
+                    color = contentColor,
+                    maxLines = 1,
+                )
+            }
         }
     }
 }
@@ -601,4 +642,5 @@ const val DASHBOARD_TOP_BAR_SUBTITLE_TAG = "dashboard_top_bar_subtitle"
 const val DASHBOARD_TOP_BAR_PERIOD_TAG = "dashboard_top_bar_period"
 const val DASHBOARD_DONUT_TAG = "dashboard_donut"
 const val DASHBOARD_TREND_CHART_TAG = "dashboard_trend_chart"
+const val DASHBOARD_CHART_HIDDEN_HINT_TAG = "dashboard_chart_hidden_hint"
 const val DASHBOARD_SCROLL_CONTENT_TAG = "dashboard_scroll_content"

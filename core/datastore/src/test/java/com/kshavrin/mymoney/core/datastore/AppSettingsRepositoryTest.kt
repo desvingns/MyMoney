@@ -67,6 +67,14 @@ class AppSettingsRepositoryTest {
             assertEquals(-1L, settings.importFocusCurrencyId)
             assertEquals(0L, settings.dashboardPeriodEpochMs)
             assertEquals(null, settings.tzNormalizedAt)
+            assertEquals(true, settings.chartVisible)
+            assertEquals("neon_line", settings.chartStyle)
+            assertEquals("follow", settings.chartPeriodType)
+            assertEquals(5, settings.chartPointCount)
+            assertEquals("cumulative", settings.chartMetric)
+            assertEquals(true, settings.chartShowGridlines)
+            assertEquals(true, settings.chartShowLabels)
+            assertEquals("by_sign", settings.chartColorRule)
         }
 
     @Test
@@ -94,11 +102,53 @@ class AppSettingsRepositoryTest {
                     importFocusCurrencyId = 9L,
                     dashboardPeriodEpochMs = 1772323200000L,
                     tzNormalizedAt = 1700000003000L,
+                    chartVisible = false,
+                    chartStyle = "bars",
+                    chartPeriodType = "fixed_month",
+                    chartPointCount = 12,
+                    chartMetric = "period_net",
+                    chartShowGridlines = false,
+                    chartShowLabels = false,
+                    chartColorRule = "fixed",
                 )
             repository.update { target }
             val read = repository.settings.first()
             assertEquals(target, read)
         }
+
+    @Test
+    fun `chart settings round-trip with non-default values`() =
+        runTest(UnconfinedTestDispatcher()) {
+            repository.update {
+                it.copy(
+                    chartStyle = "bars",
+                    chartMetric = "period_net",
+                    chartVisible = false,
+                )
+            }
+            val read = repository.settings.first()
+            assertEquals("bars", read.chartStyle)
+            assertEquals("period_net", read.chartMetric)
+            assertEquals(false, read.chartVisible)
+        }
+
+    @Test
+    fun `chart fields use defaults when prefs contain no chart keys`() {
+        val legacyPrefs =
+            mutablePreferencesOf().also { prefs ->
+                prefs[AppSettingsKeys.LANGUAGE] = "ru"
+                prefs[AppSettingsKeys.THEME_MODE] = "dark"
+            }
+        val settings = legacyPrefs.toAppSettings()
+        assertEquals(true, settings.chartVisible)
+        assertEquals("neon_line", settings.chartStyle)
+        assertEquals("follow", settings.chartPeriodType)
+        assertEquals(5, settings.chartPointCount)
+        assertEquals("cumulative", settings.chartMetric)
+        assertEquals(true, settings.chartShowGridlines)
+        assertEquals(true, settings.chartShowLabels)
+        assertEquals("by_sign", settings.chartColorRule)
+    }
 
     // Regression for the cold-start-only empty-dashboard bug: a Monefy import into a past month
     // showed in-session but the dashboard was empty after a real process restart, because the

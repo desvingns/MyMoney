@@ -25,4 +25,12 @@ data class AppSettings(
     // invisible once the transient import focus is cleared. 0L = unset → default to now().
     val dashboardPeriodEpochMs: Long = 0L,
     val tzNormalizedAt: Long? = null,
+    val chartVisible: Boolean = true,
+    val chartStyle: String = "neon_line",
+    val chartPeriodType: String = "follow",
+    val chartPointCount: Int = 5,
+    val chartMetric: String = "cumulative",
+    val chartShowGridlines: Boolean = true,
+    val chartShowLabels: Boolean = true,
+    val chartColorRule: String = "by_sign",
 )

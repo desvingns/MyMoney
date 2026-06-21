@@ -59,6 +59,14 @@ internal fun Preferences.toAppSettings(): AppSettings =
         importFocusCurrencyId = this[AppSettingsKeys.IMPORT_FOCUS_CURRENCY_ID] ?: -1L,
         dashboardPeriodEpochMs = this[AppSettingsKeys.DASHBOARD_PERIOD_EPOCH_MS] ?: 0L,
         tzNormalizedAt = this[AppSettingsKeys.TZ_NORMALIZED_AT],
+        chartVisible = this[AppSettingsKeys.CHART_VISIBLE] ?: true,
+        chartStyle = this[AppSettingsKeys.CHART_STYLE] ?: "neon_line",
+        chartPeriodType = this[AppSettingsKeys.CHART_PERIOD_TYPE] ?: "follow",
+        chartPointCount = this[AppSettingsKeys.CHART_POINT_COUNT] ?: 5,
+        chartMetric = this[AppSettingsKeys.CHART_METRIC] ?: "cumulative",
+        chartShowGridlines = this[AppSettingsKeys.CHART_SHOW_GRIDLINES] ?: true,
+        chartShowLabels = this[AppSettingsKeys.CHART_SHOW_LABELS] ?: true,
+        chartColorRule = this[AppSettingsKeys.CHART_COLOR_RULE] ?: "by_sign",
     )
 
 internal fun AppSettings.writeTo(prefs: androidx.datastore.preferences.core.MutablePreferences) {
@@ -94,4 +102,12 @@ internal fun AppSettings.writeTo(prefs: androidx.datastore.preferences.core.Muta
     } else {
         prefs.remove(AppSettingsKeys.TZ_NORMALIZED_AT)
     }
+    prefs[AppSettingsKeys.CHART_VISIBLE] = chartVisible
+    prefs[AppSettingsKeys.CHART_STYLE] = chartStyle
+    prefs[AppSettingsKeys.CHART_PERIOD_TYPE] = chartPeriodType
+    prefs[AppSettingsKeys.CHART_POINT_COUNT] = chartPointCount
+    prefs[AppSettingsKeys.CHART_METRIC] = chartMetric
+    prefs[AppSettingsKeys.CHART_SHOW_GRIDLINES] = chartShowGridlines
+    prefs[AppSettingsKeys.CHART_SHOW_LABELS] = chartShowLabels
+    prefs[AppSettingsKeys.CHART_COLOR_RULE] = chartColorRule
 }

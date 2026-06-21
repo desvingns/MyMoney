@@ -26,4 +26,12 @@ internal object AppSettingsKeys {
     val IMPORT_FOCUS_CURRENCY_ID = longPreferencesKey("import_focus_currency_id")
     val DASHBOARD_PERIOD_EPOCH_MS = longPreferencesKey("dashboard_period_epoch_ms")
     val TZ_NORMALIZED_AT = longPreferencesKey("tz_normalized_at")
+    val CHART_VISIBLE = booleanPreferencesKey("chart_visible")
+    val CHART_STYLE = stringPreferencesKey("chart_style")
+    val CHART_PERIOD_TYPE = stringPreferencesKey("chart_period_type")
+    val CHART_POINT_COUNT = intPreferencesKey("chart_point_count")
+    val CHART_METRIC = stringPreferencesKey("chart_metric")
+    val CHART_SHOW_GRIDLINES = booleanPreferencesKey("chart_show_gridlines")
+    val CHART_SHOW_LABELS = booleanPreferencesKey("chart_show_labels")
+    val CHART_COLOR_RULE = stringPreferencesKey("chart_color_rule")
 }

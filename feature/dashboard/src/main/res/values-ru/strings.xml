@@ -43,6 +43,7 @@
     <string name="left_drawer_accounts">Счета</string>
     <string name="left_drawer_all_accounts">Все счета</string>
     <string name="left_drawer_all_currencies">Все валюты</string>
+    <string name="left_drawer_separate_currencies">Раздельно по валютам</string>
     <string name="left_drawer_manage_accounts">Управление счетами</string>
 
     <string name="all_accounts_mode_title">Все счета</string>

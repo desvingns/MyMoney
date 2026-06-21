@@ -14,6 +14,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Period
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
@@ -218,6 +219,67 @@ class LeftDrawerPeriodSelectorUiTest {
             .performScrollTo()
             .assertIsDisplayed()
     }
+
+    @Test
+    fun `separate mode keeps the account toggle and reveals individual accounts`() {
+        val euro = currency(code = "EUR", symbol = "€", name = "Euro")
+        val cash =
+            account(
+                id = 42L,
+                name = "Cash wallet",
+                currencyId = euro.id,
+            )
+        var selectedEvent: DashboardEvent? = null
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                LeftDrawerContent(
+                    state =
+                        DashboardState(
+                            period = Period.All,
+                            accounts = listOf(cash),
+                            currencies = listOf(euro),
+                            dashboardSelection = DashboardSelection.AllAccounts(AllAccountsFoldMode.Separate),
+                            isLoading = false,
+                        ),
+                    onEvent = { selectedEvent = it },
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithText(targetString(R.string.left_drawer_separate_currencies))
+            .assertIsDisplayed()
+            .performClick()
+
+        composeTestRule
+            .onNodeWithText(cash.name)
+            .assertIsDisplayed()
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(DashboardEvent.AccountSelected(cash.id), selectedEvent)
+        }
+    }
+
+    private fun account(
+        id: Long,
+        name: String,
+        currencyId: Long,
+    ) = Account(
+        id = id,
+        name = name,
+        currencyId = currencyId,
+        initialBalance = java.math.BigDecimal.ZERO,
+        type = com.kshavrin.mymoney.core.domain.model.AccountType.Cash,
+        colorHex = "#FF0000",
+        iconKey = "wallet",
+        isDefault = false,
+        sortOrder = 0,
+        createdAt = java.time.Instant.EPOCH,
+        updatedAt = java.time.Instant.EPOCH,
+        isArchived = false,
+    )
 
     private fun targetString(resourceId: Int): String =
         InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)

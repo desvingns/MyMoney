@@ -43,6 +43,7 @@
     <string name="left_drawer_accounts">Accounts</string>
     <string name="left_drawer_all_accounts">All accounts</string>
     <string name="left_drawer_all_currencies">All currencies</string>
+    <string name="left_drawer_separate_currencies">Separate currencies</string>
     <string name="left_drawer_manage_accounts">Manage accounts</string>
 
     <string name="all_accounts_mode_title">All accounts</string>

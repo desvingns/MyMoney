@@ -92,15 +92,17 @@ fun LeftDrawerContent(
                 .verticalScroll(rememberScrollState())
                 .padding(Spacing.l),
     ) {
-        state.currentCurrency?.let { currency ->
-            CurrencyHeaderRow(
-                name = currency.name,
-                code = currency.code,
-                expanded = accountsExpanded,
-                onClick = { accountsExpanded = !accountsExpanded },
-            )
-            Spacer(modifier = Modifier.height(Spacing.m))
-        }
+        // The account toggle must always be present so the user can open the account list from any
+        // selection — including AllAccounts→Separate, where currentCurrency is null by design.
+        val currency = state.currentCurrency
+        AccountToggleHeaderRow(
+            name = currency?.name ?: stringResource(R.string.left_drawer_all_accounts),
+            code = currency?.code ?: stringResource(R.string.left_drawer_separate_currencies),
+            icon = if (currency != null) Icons.Outlined.AttachMoney else Icons.Outlined.AccountBalanceWallet,
+            expanded = accountsExpanded,
+            onClick = { accountsExpanded = !accountsExpanded },
+        )
+        Spacer(modifier = Modifier.height(Spacing.m))
         Box(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 PeriodButton(
@@ -268,9 +270,10 @@ private fun AccountDropdown(
 }
 
 @Composable
-private fun CurrencyHeaderRow(
+private fun AccountToggleHeaderRow(
     name: String,
     code: String,
+    icon: ImageVector,
     expanded: Boolean,
     onClick: () -> Unit,
 ) {
@@ -290,7 +293,7 @@ private fun CurrencyHeaderRow(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
-                imageVector = Icons.Outlined.AttachMoney,
+                imageVector = icon,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.size(28.dp),

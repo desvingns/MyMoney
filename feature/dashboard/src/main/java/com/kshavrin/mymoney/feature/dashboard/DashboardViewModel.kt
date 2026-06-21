@@ -375,9 +375,11 @@ class DashboardViewModel
                     val firstPositive = !settings.firstPositiveSeen && snapshot.net.amount.signum() > 0
                     val slices = snapshotToSlices(snapshot, _state.value.budgetAlertCategoryIds)
                     val expenseTiles = snapshotToExpenseTiles(snapshot, _state.value.budgetAlertCategoryIds)
+                    val currencyCards = computeCurrencyCards(selection, state.accounts, period)
                     _state.value =
                         _state.value.copy(
                             balanceSnapshot = snapshot,
+                            currencyCards = currencyCards,
                             periodNet = periodNet,
                             ringFraction = gauge.fraction,
                             ringIsExpense = gauge.isExpense,
@@ -567,6 +569,36 @@ class DashboardViewModel
             if (from.id == to.id) return amount.toMoneyScale(to)
             val crossRate = allAccountsRateOverrides[from.id] ?: return BigDecimal.ZERO
             return amount.multiply(crossRate).toMoneyScale(to)
+        }
+
+        // "All accounts → show separately" (D6/G12): one card per currency that has active accounts.
+        // Each currency group is balanced on its own with BalanceCalculator.forAccounts (G11 requires
+        // a single currency per call) — no conversion, no rates. Cards are sorted by largest absolute
+        // net first, then by currency code, so the busiest currency leads the stack. Returns empty for
+        // every selection/mode other than Separate so the stacked view only appears where it belongs.
+        private suspend fun computeCurrencyCards(
+            selection: DashboardSelection,
+            accounts: List<Account>,
+            period: Period,
+        ): List<CurrencyBalanceCard> {
+            val allAccounts = selection as? DashboardSelection.AllAccounts ?: return emptyList()
+            if (allAccounts.foldMode != AllAccountsFoldMode.Separate) return emptyList()
+
+            return accounts
+                .filterNot { it.isArchived }
+                .groupBy { it.currencyId }
+                .mapNotNull { (currencyId, groupAccounts) ->
+                    val currency = _state.value.currencies.firstOrNull { it.id == currencyId } ?: return@mapNotNull null
+                    CurrencyBalanceCard(
+                        currency = currency,
+                        snapshot = balanceCalculator.forAccounts(groupAccounts, currency, period),
+                    )
+                }.sortedWith(
+                    compareByDescending<CurrencyBalanceCard> {
+                        it.snapshot.net.amount
+                            .abs()
+                    }.thenBy { it.currency.code },
+                )
         }
 
         private suspend fun separateFallbackSnapshot(

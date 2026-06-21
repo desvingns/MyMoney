@@ -15,6 +15,10 @@ data class DashboardState(
     val currencies: List<Currency> = emptyList(),
     val dashboardSelection: DashboardSelection? = null,
     val balanceSnapshot: BalanceSnapshot? = null,
+    // "All accounts → show separately" (D6): one balance card per currency that has accounts. Each
+    // card's snapshot is self-contained in that currency — no conversion, no rates (G11). Empty in
+    // every other selection/mode.
+    val currencyCards: List<CurrencyBalanceCard> = emptyList(),
     val periodNet: Money = Money.zero(DASHBOARD_STATE_FALLBACK_CURRENCY),
     val ringFraction: Float = 0f,
     val ringIsExpense: Boolean = false,
@@ -42,7 +46,21 @@ data class DashboardState(
                 is DashboardSelection.SpecificAccount -> currencies.firstOrNull { it.id == selection.account.currencyId }
                 null -> null
             }
+
+    // True only in the "All accounts → show separately" multi-currency view. In this mode the
+    // dashboard renders the stacked per-currency cards and hides the donut (D6).
+    val isSeparateMode: Boolean
+        get() =
+            (dashboardSelection as? DashboardSelection.AllAccounts)?.foldMode == AllAccountsFoldMode.Separate
 }
+
+// One per-currency balance card for the "All accounts → show separately" view (G12). [snapshot] is
+// computed by BalanceCalculator.forAccounts over the accounts in this one currency, so every
+// figure is already in [currency] — no conversion is involved.
+data class CurrencyBalanceCard(
+    val currency: Currency,
+    val snapshot: BalanceSnapshot,
+)
 
 private val DASHBOARD_STATE_FALLBACK_CURRENCY =
     Currency(

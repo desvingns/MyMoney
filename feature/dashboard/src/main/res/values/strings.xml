@@ -14,6 +14,9 @@
     <string name="dashboard_ring_income">↑ %1$s</string>
     <string name="dashboard_ring_expense">↓ %1$s</string>
     <string name="dashboard_category_tiles_empty">No expenses this period</string>
+    <string name="dashboard_currency_card_income">Income</string>
+    <string name="dashboard_currency_card_expense">Expenses</string>
+    <string name="dashboard_currency_card_balance">Balance</string>
     <string name="category_other">Other</string>
 
     <string name="period_today">Today</string>

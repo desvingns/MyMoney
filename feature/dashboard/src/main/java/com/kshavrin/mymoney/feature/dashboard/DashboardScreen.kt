@@ -77,6 +77,7 @@ import com.kshavrin.mymoney.core.ui.theme.neonRingGradientStartExpense
 import com.kshavrin.mymoney.feature.dashboard.components.AllAccountsConversionDialog
 import com.kshavrin.mymoney.feature.dashboard.components.AllAccountsConversionDialogHost
 import com.kshavrin.mymoney.feature.dashboard.components.CategoryTilesList
+import com.kshavrin.mymoney.feature.dashboard.components.CurrencyBalanceCardList
 import com.kshavrin.mymoney.feature.dashboard.components.DashboardDrawerOverlay
 import com.kshavrin.mymoney.feature.dashboard.components.DrawerSide
 import com.kshavrin.mymoney.feature.dashboard.components.LeftDrawerContent
@@ -238,66 +239,77 @@ fun DashboardContent(
                                         .verticalScroll(rememberScrollState()),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                             ) {
-                                val snapshot = state.balanceSnapshot
-                                NeonRingChart(
-                                    fraction = state.ringFraction,
-                                    modifier = Modifier.testTag(DASHBOARD_DONUT_TAG),
-                                    gradientStart =
-                                        if (state.ringIsExpense) {
-                                            MaterialTheme.colorScheme.neonRingGradientStartExpense
-                                        } else {
-                                            MaterialTheme.colorScheme.neonRingGradientStart
-                                        },
-                                    gradientEnd =
-                                        if (state.ringIsExpense) {
-                                            MaterialTheme.colorScheme.neonRingGradientEndExpense
-                                        } else {
-                                            MaterialTheme.colorScheme.neonRingGradientEnd
-                                        },
-                                ) {
-                                    if (snapshot != null) {
-                                        RingCenterContent(
-                                            periodNet = state.periodNet,
-                                            income = snapshot.income,
-                                            expense = snapshot.expense,
-                                        )
-                                    }
-                                }
-
-                                if (overBudgetText != null) {
-                                    Spacer(modifier = Modifier.height(Spacing.s))
-                                    Surface(
-                                        shape = MaterialTheme.shapes.extraLarge,
-                                        color = MaterialTheme.colorScheme.errorContainer,
-                                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                                if (state.isSeparateMode) {
+                                    // "All accounts → show separately" (D6): the donut is dropped — several
+                                    // currencies would overload it — and replaced by a stack of per-currency
+                                    // balance cards. No category tiles here (no single-currency expense total).
+                                    Spacer(modifier = Modifier.height(Spacing.l))
+                                    CurrencyBalanceCardList(
+                                        cards = state.currencyCards,
+                                        modifier = Modifier.padding(horizontal = Spacing.l),
+                                    )
+                                } else {
+                                    val snapshot = state.balanceSnapshot
+                                    NeonRingChart(
+                                        fraction = state.ringFraction,
+                                        modifier = Modifier.testTag(DASHBOARD_DONUT_TAG),
+                                        gradientStart =
+                                            if (state.ringIsExpense) {
+                                                MaterialTheme.colorScheme.neonRingGradientStartExpense
+                                            } else {
+                                                MaterialTheme.colorScheme.neonRingGradientStart
+                                            },
+                                        gradientEnd =
+                                            if (state.ringIsExpense) {
+                                                MaterialTheme.colorScheme.neonRingGradientEndExpense
+                                            } else {
+                                                MaterialTheme.colorScheme.neonRingGradientEnd
+                                            },
                                     ) {
-                                        Text(
-                                            text = overBudgetText,
-                                            style = MaterialTheme.typography.labelMedium,
-                                            modifier = Modifier.padding(horizontal = Spacing.m, vertical = Spacing.s),
-                                        )
+                                        if (snapshot != null) {
+                                            RingCenterContent(
+                                                periodNet = state.periodNet,
+                                                income = snapshot.income,
+                                                expense = snapshot.expense,
+                                            )
+                                        }
                                     }
-                                }
 
-                                CategoryTilesList(
-                                    expenseTiles = state.expenseTiles,
-                                    onTileClick = { categoryId ->
-                                        onEvent(DashboardEvent.SliceClicked(categoryId))
-                                    },
-                                    modifier =
-                                        Modifier
-                                            .padding(horizontal = Spacing.l)
-                                            .then(
-                                                if (state.expenseTiles.isEmpty()) {
-                                                    Modifier
-                                                } else {
-                                                    Modifier.height(
-                                                        Spacing.dashboardTileHeight * state.expenseTiles.size +
-                                                            Spacing.s * (state.expenseTiles.size + 1),
-                                                    )
-                                                },
-                                            ),
-                                )
+                                    if (overBudgetText != null) {
+                                        Spacer(modifier = Modifier.height(Spacing.s))
+                                        Surface(
+                                            shape = MaterialTheme.shapes.extraLarge,
+                                            color = MaterialTheme.colorScheme.errorContainer,
+                                            contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                                        ) {
+                                            Text(
+                                                text = overBudgetText,
+                                                style = MaterialTheme.typography.labelMedium,
+                                                modifier = Modifier.padding(horizontal = Spacing.m, vertical = Spacing.s),
+                                            )
+                                        }
+                                    }
+
+                                    CategoryTilesList(
+                                        expenseTiles = state.expenseTiles,
+                                        onTileClick = { categoryId ->
+                                            onEvent(DashboardEvent.SliceClicked(categoryId))
+                                        },
+                                        modifier =
+                                            Modifier
+                                                .padding(horizontal = Spacing.l)
+                                                .then(
+                                                    if (state.expenseTiles.isEmpty()) {
+                                                        Modifier
+                                                    } else {
+                                                        Modifier.height(
+                                                            Spacing.dashboardTileHeight * state.expenseTiles.size +
+                                                                Spacing.s * (state.expenseTiles.size + 1),
+                                                        )
+                                                    },
+                                                ),
+                                    )
+                                }
                             }
 
                             TwoFabLayout(

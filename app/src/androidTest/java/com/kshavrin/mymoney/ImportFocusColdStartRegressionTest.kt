@@ -22,6 +22,7 @@ import com.kshavrin.mymoney.core.domain.csv.ImportPlan
 import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.AccountType
 import com.kshavrin.mymoney.core.domain.usecase.BalanceCalculator
+import com.kshavrin.mymoney.core.domain.usecase.BalanceTrendCalculator
 import com.kshavrin.mymoney.core.domain.usecase.BudgetEvaluator
 import com.kshavrin.mymoney.core.domain.usecase.ObserveBudgetAlertsUseCase
 import com.kshavrin.mymoney.feature.dashboard.DashboardSelection
@@ -194,6 +195,7 @@ class ImportFocusColdStartRegressionTest {
                         accountRepository = accountRepository,
                         currencyRepository = currencyRepository,
                         balanceCalculator = balanceCalculator,
+                        balanceTrendCalculator = BalanceTrendCalculator(),
                         appSettingsRepository = settingsRepository,
                         transactionRepository = transactionRepository,
                         observeBudgetAlertsUseCase = observeBudgetAlerts,

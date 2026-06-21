@@ -376,8 +376,6 @@ class DashboardViewModel
                     val periodNet = snapshot.toPeriodNet()
                     val settings = appSettingsRepository.settings.first()
                     val firstPositive = !settings.firstPositiveSeen && snapshot.net.amount.signum() > 0
-                    val slices = snapshotToSlices(snapshot, _state.value.budgetAlertCategoryIds)
-                    val expenseTiles = snapshotToExpenseTiles(snapshot, _state.value.budgetAlertCategoryIds)
                     val currencyCards = computeCurrencyCards(selection, state.accounts, period)
                     val trendPoints =
                         if (selection.isSeparateMode()) {
@@ -390,6 +388,8 @@ class DashboardViewModel
                                 computeSnapshot(selection, state.accounts, trendPeriod)
                             }
                         }
+                    val slices = snapshotToSlices(snapshot, _state.value.budgetAlertCategoryIds)
+                    val expenseTiles = snapshotToExpenseTiles(snapshot, _state.value.budgetAlertCategoryIds)
                     _state.value =
                         _state.value.copy(
                             balanceSnapshot = snapshot,

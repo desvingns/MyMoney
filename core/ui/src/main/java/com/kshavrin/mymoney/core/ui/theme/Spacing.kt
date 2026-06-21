@@ -80,20 +80,51 @@ object Spacing {
     // Default composable height: tall enough to show meaningful slope at a glance
     // without dominating the dashboard card.
     val trendChartDefaultHeight = 96.dp
+
     // Stroke width of the polyline series.
     val trendChartLineStrokeWidth = 2.dp
+
     // Radius of the filled dot at each data point.
     val trendChartPointRadius = 3.dp
+
     // Radius of the glowing last-point marker (outer halo circle).
     val trendChartMarkerRadius = 5.dp
+
     // BlurMaskFilter sigma for the marker glow — matches neonRingGlowRadius scale.
     val trendChartMarkerGlowRadius = 8.dp
+
     // Stroke width of the zero baseline and vertical decorative grid lines.
     val trendChartGridLineStrokeWidth = 1.dp
+
     // Vertical padding inside the chart canvas so points at extremes are not clipped.
     val trendChartVerticalPadding = 8.dp
+
     // Horizontal padding so the first/last point is not clipped by the glow radius.
     val trendChartHorizontalPadding = 8.dp
+
     // Height reserved for period labels below the canvas when showLabels = true.
     val trendChartLabelHeight = 16.dp
+
+    // Chart settings bottom sheet (ChartSettingsSheet — SPEC 06).
+    // Each settings row (style picker item, segmented row, toggle row) uses the M3
+    // ListItem minimum touch target height of 56dp so controls remain comfortably
+    // tappable without explicit vertical padding overrides.
+    val chartSettingsSheetRowHeight = 56.dp
+
+    // Style-picker thumbnail inside the horizontal style scroll.
+    // 72×40dp gives enough surface to convey the polyline shape at a glance
+    // while fitting ≥4 thumbnails in a 320dp+ sheet width before scrolling.
+    val chartSettingsStyleThumbWidth = 72.dp
+    val chartSettingsStyleThumbHeight = 40.dp
+
+    // Vertical gap between labelled sections inside the sheet
+    // (e.g. between «Тип периода» and «Метрика»).
+    // Uses 8dp (Spacing.s) so sections are clearly grouped without large dead space
+    // on a compact phone screen.
+    val chartSettingsSheetSectionGap = 8.dp
+
+    // «График скрыт» hint strip height — thin placeholder shown on the dashboard
+    // when chartVisible = false; tall enough to be tappable (44dp minimum) while
+    // clearly signalling the chart is collapsed rather than missing.
+    val chartHiddenHintHeight = 44.dp
 }

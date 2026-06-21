@@ -274,3 +274,27 @@ val Typography.dashboardCurrencyCardCurrencyCode: TextStyle
             letterSpacing = 0.sp,
             lineHeight = 22.sp,
         )
+
+// Chart settings bottom sheet (ChartSettingsSheet — SPEC 06).
+// Section header label — sits above each group of controls («Стиль», «Тип периода», etc.).
+// labelMedium weight keeps it clearly subordinate to the sheet title while remaining
+// legible as a group separator; uppercase letter-spacing convention lifted from M3 list
+// subheader pattern.
+val Typography.chartSettingsSectionLabel: TextStyle
+    get() =
+        labelMedium.copy(
+            fontWeight = FontWeight.SemiBold,
+            letterSpacing = 0.8.sp,
+            lineHeight = 16.sp,
+        )
+
+// «График скрыт» hint text — single-line prompt inside the collapsed chart strip.
+// bodyMedium weight matches secondary-information density; kept at default size to
+// be scannable at a glance without drawing too much attention away from the balance figures.
+val Typography.chartHiddenHint: TextStyle
+    get() =
+        bodyMedium.copy(
+            fontWeight = FontWeight.Normal,
+            letterSpacing = 0.sp,
+            lineHeight = 20.sp,
+        )

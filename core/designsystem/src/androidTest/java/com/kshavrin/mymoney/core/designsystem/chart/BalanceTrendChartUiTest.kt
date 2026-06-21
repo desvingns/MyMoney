@@ -1,8 +1,15 @@
 package com.kshavrin.mymoney.core.designsystem.chart
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -18,12 +25,17 @@ class BalanceTrendChartUiTest {
     @get:Rule
     val composeTestRule = createComposeRule()
 
+    private fun styleWrapperTag(style: ChartStyle) = "balance_trend_chart_style_${style.name}"
+
+    private fun chartWrapperTag(name: String) = "balance_trend_chart_wrapper_$name"
+
     private fun setContent(
         points: List<Float>,
         showGridlines: Boolean = true,
         showLabels: Boolean = false,
         labels: List<String> = emptyList(),
         colorRule: ChartColorRule = ChartColorRule.Default,
+        style: ChartStyle = ChartStyle.Default,
     ) {
         composeTestRule.setContent {
             MyMoneyTheme {
@@ -34,12 +46,43 @@ class BalanceTrendChartUiTest {
                     showGridlines = showGridlines,
                     showLabels = showLabels,
                     colorRule = colorRule,
+                    style = style,
                 )
             }
         }
     }
 
-    // ---- chart node is always present ----
+    private fun assertAllStylesRender(points: List<Float>) {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                Column(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState()),
+                ) {
+                    ChartStyle.entries.forEach { style ->
+                        Box(modifier = Modifier.testTag(styleWrapperTag(style))) {
+                            BalanceTrendChart(
+                                points = points,
+                                modifier = Modifier.fillMaxWidth(),
+                                style = style,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        composeTestRule.waitForIdle()
+        composeTestRule
+            .onAllNodesWithTag(BALANCE_TREND_CHART_TAG)
+            .assertCountEquals(ChartStyle.entries.size)
+        ChartStyle.entries.forEach { style ->
+            composeTestRule
+                .onNodeWithTag(styleWrapperTag(style))
+                .assertExists()
+        }
+    }
 
     @Test
     fun `five-point series renders a chart node with the expected testTag`() {
@@ -58,6 +101,31 @@ class BalanceTrendChartUiTest {
     }
 
     @Test
+    fun `every chart style renders without crashing for a five-point series`() {
+        assertAllStylesRender(listOf(10f, 6f, 12f, 12f, 15f))
+    }
+
+    @Test
+    fun `every chart style renders without crashing for a single-point series`() {
+        assertAllStylesRender(listOf(42f))
+    }
+
+    @Test
+    fun `every chart style renders without crashing for an all-zero series`() {
+        assertAllStylesRender(listOf(0f, 0f, 0f, 0f, 0f))
+    }
+
+    @Test
+    fun `every chart style renders without crashing for a negative-only series`() {
+        assertAllStylesRender(listOf(-8f, -3f, -11f, -5f, -2f))
+    }
+
+    @Test
+    fun `every chart style renders without crashing for a zero-crossing series`() {
+        assertAllStylesRender(listOf(4f, 3f, 1f, -2f, -3f))
+    }
+
+    @Test
     fun `empty series renders a chart node without crashing`() {
         setContent(emptyList())
         composeTestRule
@@ -72,8 +140,6 @@ class BalanceTrendChartUiTest {
             .onNodeWithTag(BALANCE_TREND_CHART_TAG)
             .assertExists()
     }
-
-    // ---- default height contract ----
 
     @Test
     fun `chart without labels has height matching trendChartDefaultHeight`() {
@@ -90,21 +156,36 @@ class BalanceTrendChartUiTest {
 
     @Test
     fun `chart with labels is taller than chart without labels`() {
-        setContent(listOf(1f, 2f, 3f), showLabels = false)
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Box(modifier = Modifier.testTag(chartWrapperTag("without_labels"))) {
+                        BalanceTrendChart(
+                            points = listOf(1f, 2f, 3f),
+                            modifier = Modifier.fillMaxWidth(),
+                            showLabels = false,
+                        )
+                    }
+                    Box(modifier = Modifier.testTag(chartWrapperTag("with_labels"))) {
+                        BalanceTrendChart(
+                            points = listOf(1f, 2f, 3f),
+                            modifier = Modifier.fillMaxWidth(),
+                            showLabels = true,
+                            labels = listOf("Jan", "Feb", "Mar"),
+                        )
+                    }
+                }
+            }
+        }
         val heightWithout =
             composeTestRule
-                .onNodeWithTag(BALANCE_TREND_CHART_TAG)
+                .onNodeWithTag(chartWrapperTag("without_labels"))
                 .fetchSemanticsNode()
                 .boundsInRoot.height
 
-        setContent(
-            listOf(1f, 2f, 3f),
-            showLabels = true,
-            labels = listOf("Jan", "Feb", "Mar"),
-        )
         val heightWith =
             composeTestRule
-                .onNodeWithTag(BALANCE_TREND_CHART_TAG)
+                .onNodeWithTag(chartWrapperTag("with_labels"))
                 .fetchSemanticsNode()
                 .boundsInRoot.height
 
@@ -113,8 +194,6 @@ class BalanceTrendChartUiTest {
             heightWith > heightWithout,
         )
     }
-
-    // ---- by_sign color rule renders without crash ----
 
     @Test
     fun `BySign rule on positive-last series renders the chart node`() {
@@ -148,8 +227,6 @@ class BalanceTrendChartUiTest {
             .assertExists()
     }
 
-    // ---- gridlines toggle ----
-
     @Test
     fun `showGridlines false still renders the chart node`() {
         setContent(listOf(1f, 2f, 3f), showGridlines = false)
@@ -157,8 +234,6 @@ class BalanceTrendChartUiTest {
             .onNodeWithTag(BALANCE_TREND_CHART_TAG)
             .assertExists()
     }
-
-    // ---- all-positive series (SPEC acceptance) ----
 
     @Test
     fun `all-positive series 10 6 12 12 15 renders chart with correct default height`() {
@@ -172,8 +247,6 @@ class BalanceTrendChartUiTest {
         val expectedHeightPx = with(composeTestRule.density) { 96.dp.toPx() }
         assertEquals(expectedHeightPx, bounds.height, 2f)
     }
-
-    // ---- chart is at least as wide as it is tall ----
 
     @Test
     fun `chart fills the available width so it is wider than its default height`() {

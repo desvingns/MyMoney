@@ -337,3 +337,20 @@ val ColorScheme.rateStaleContent: Color
 // while clearly marking which currency group the card belongs to.
 val ColorScheme.dashboardCurrencyCardCurrencyLabel: Color
     get() = NeonTextSecondary
+
+// Balance trend chart — zero-baseline rule (D8).
+// Rendered only when the data series crosses zero (min < 0 < max); uses outline so the
+// line is visible against both positive (neonMint) and negative (neonCoral) segments
+// without competing with the series line itself.
+val ColorScheme.trendChartZeroLine: Color
+    get() = outline
+
+// Balance trend chart — decorative vertical grid lines (D6).
+// Three equidistant hairlines drawn at low alpha so they recede behind the series line.
+val ColorScheme.trendChartGridLine: Color
+    get() = NeonTextSecondary.copy(alpha = 0.25f)
+
+// Balance trend chart — glow halo around the last-point marker (D9).
+// Mirrors neonRingGradientStart so the pulsing dot feels consistent with the ring chart.
+val ColorScheme.trendChartMarkerGlow: Color
+    get() = NeonMint

@@ -75,4 +75,25 @@ object Spacing {
     // 2-3 cards without scrolling on a typical phone, while remaining visually distinct from
     // the card's own internal padding.
     val dashboardCurrencyCardStackSpacing = 12.dp
+
+    // Balance trend chart geometry (BalanceTrendChart).
+    // Default composable height: tall enough to show meaningful slope at a glance
+    // without dominating the dashboard card.
+    val trendChartDefaultHeight = 96.dp
+    // Stroke width of the polyline series.
+    val trendChartLineStrokeWidth = 2.dp
+    // Radius of the filled dot at each data point.
+    val trendChartPointRadius = 3.dp
+    // Radius of the glowing last-point marker (outer halo circle).
+    val trendChartMarkerRadius = 5.dp
+    // BlurMaskFilter sigma for the marker glow — matches neonRingGlowRadius scale.
+    val trendChartMarkerGlowRadius = 8.dp
+    // Stroke width of the zero baseline and vertical decorative grid lines.
+    val trendChartGridLineStrokeWidth = 1.dp
+    // Vertical padding inside the chart canvas so points at extremes are not clipped.
+    val trendChartVerticalPadding = 8.dp
+    // Horizontal padding so the first/last point is not clipped by the glow radius.
+    val trendChartHorizontalPadding = 8.dp
+    // Height reserved for period labels below the canvas when showLabels = true.
+    val trendChartLabelHeight = 16.dp
 }

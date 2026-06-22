@@ -67,7 +67,7 @@ object Spacing {
     // is the rendered icon size (smaller than Spacing.xxl = 32dp) so the left/right
     // icon clusters reclaim horizontal space for the period title without shrinking
     // the 48dp IconButton touch target.
-    val dashboardTopBarMinHeight = 44.dp
+    val dashboardTopBarMinHeight = 56.dp
     val dashboardTopBarIconGlyphSize = 24.dp
 
     // Dashboard top-bar (single-row «Dashboard Final» redesign) — mint underline

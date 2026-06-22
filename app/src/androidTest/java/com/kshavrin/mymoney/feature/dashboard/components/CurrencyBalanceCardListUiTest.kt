@@ -13,8 +13,11 @@ import com.kshavrin.mymoney.core.common.money.MoneyFormatter
 import com.kshavrin.mymoney.core.domain.model.BalanceSnapshot
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Money
+import com.kshavrin.mymoney.core.domain.model.Period
+import com.kshavrin.mymoney.core.domain.model.TrendPoint
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import com.kshavrin.mymoney.core.ui.theme.Spacing
+import com.kshavrin.mymoney.feature.dashboard.ChartConfig
 import com.kshavrin.mymoney.feature.dashboard.CurrencyBalanceCard
 import com.kshavrin.mymoney.feature.dashboard.R
 import org.junit.Assert.assertEquals
@@ -22,6 +25,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.math.BigDecimal
+import java.time.YearMonth
 import java.util.Locale
 
 @RunWith(AndroidJUnit4::class)
@@ -216,6 +220,54 @@ class CurrencyBalanceCardListUiTest {
         }
     }
 
+    @Test
+    fun `mini trend chart is shown when chart is visible and the card has trend points`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                CurrencyBalanceCardList(
+                    cards = listOf(usdCard(income = "100.00", expense = "30.00", withTrend = true)),
+                    chartConfig = ChartConfig(visible = true),
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithTag(DASHBOARD_CURRENCY_CARD_MINI_CHART_TAG)
+            .assertExists()
+    }
+
+    @Test
+    fun `mini trend chart is hidden when the chart is disabled in settings`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                CurrencyBalanceCardList(
+                    cards = listOf(usdCard(income = "100.00", expense = "30.00", withTrend = true)),
+                    chartConfig = ChartConfig(visible = false),
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithTag(DASHBOARD_CURRENCY_CARD_MINI_CHART_TAG)
+            .assertDoesNotExist()
+    }
+
+    @Test
+    fun `mini trend chart is absent when the card carries no trend points`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                CurrencyBalanceCardList(
+                    cards = listOf(usdCard(income = "100.00", expense = "30.00", withTrend = false)),
+                    chartConfig = ChartConfig(visible = true),
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithTag(DASHBOARD_CURRENCY_CARD_MINI_CHART_TAG)
+            .assertDoesNotExist()
+    }
+
     // -----------------------------------------------------------------------
     // Helpers
     // -----------------------------------------------------------------------
@@ -223,6 +275,7 @@ class CurrencyBalanceCardListUiTest {
     private fun usdCard(
         income: String,
         expense: String,
+        withTrend: Boolean = false,
     ): CurrencyBalanceCard {
         val incomeAmount = BigDecimal(income)
         val expenseAmount = BigDecimal(expense)
@@ -235,8 +288,18 @@ class CurrencyBalanceCardListUiTest {
                     net = Money(incomeAmount.subtract(expenseAmount), usd),
                     byCategory = emptyList(),
                 ),
+            trendPoints = if (withTrend) usdTrend() else emptyList(),
         )
     }
+
+    private fun usdTrend(): List<TrendPoint> =
+        (0 until 5).map { index ->
+            TrendPoint(
+                index = index,
+                period = Period.Month(YearMonth.of(2026, index + 1)),
+                value = Money(BigDecimal((index + 1) * 10), usd),
+            )
+        }
 
     private fun eurCard(
         income: String,

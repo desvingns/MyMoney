@@ -246,6 +246,7 @@ fun DashboardContent(
                                     Spacer(modifier = Modifier.height(Spacing.l))
                                     CurrencyBalanceCardList(
                                         cards = state.currencyCards,
+                                        chartConfig = state.chartConfig,
                                         modifier = Modifier.padding(horizontal = Spacing.l),
                                     )
                                 } else {

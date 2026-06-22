@@ -17,6 +17,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import com.kshavrin.mymoney.core.common.money.MoneyFormatter
+import com.kshavrin.mymoney.core.designsystem.chart.BalanceTrendChart
 import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.core.ui.theme.dashboardBalanceLabel
@@ -28,6 +29,7 @@ import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanelOutline
 import com.kshavrin.mymoney.core.ui.theme.dashboardBalanceValue
 import com.kshavrin.mymoney.core.ui.theme.dashboardCurrencyCardCurrencyCode
 import com.kshavrin.mymoney.core.ui.theme.dashboardCurrencyCardCurrencyLabel
+import com.kshavrin.mymoney.feature.dashboard.ChartConfig
 import com.kshavrin.mymoney.feature.dashboard.CurrencyBalanceCard
 import com.kshavrin.mymoney.feature.dashboard.R
 import java.util.Locale
@@ -39,6 +41,7 @@ import java.util.Locale
 fun CurrencyBalanceCardList(
     cards: List<CurrencyBalanceCard>,
     modifier: Modifier = Modifier,
+    chartConfig: ChartConfig = ChartConfig(),
 ) {
     Column(
         modifier =
@@ -49,7 +52,7 @@ fun CurrencyBalanceCardList(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         cards.forEach { card ->
-            CurrencyBalanceCardItem(card = card)
+            CurrencyBalanceCardItem(card = card, chartConfig = chartConfig)
         }
     }
 }
@@ -57,6 +60,7 @@ fun CurrencyBalanceCardList(
 @Composable
 private fun CurrencyBalanceCardItem(
     card: CurrencyBalanceCard,
+    chartConfig: ChartConfig,
     modifier: Modifier = Modifier,
 ) {
     val locale = LocalConfiguration.current.locales[0]
@@ -98,6 +102,17 @@ private fun CurrencyBalanceCardItem(
             amount = formatCardAmount(card.snapshot.net, locale),
             isNegative = netNegative,
         )
+        if (chartConfig.visible && card.trendPoints.isNotEmpty()) {
+            BalanceTrendChart(
+                points = card.trendPoints.map { it.value.amount.toFloat() },
+                showGridlines = false,
+                showLabels = false,
+                colorRule = chartConfig.colorRule,
+                style = chartConfig.style,
+                chartHeight = Spacing.trendChartMiniHeight,
+                modifier = Modifier.testTag(DASHBOARD_CURRENCY_CARD_MINI_CHART_TAG),
+            )
+        }
     }
 }
 
@@ -146,3 +161,4 @@ private fun formatCardAmount(
     )
 
 const val DASHBOARD_CURRENCY_CARDS_TAG = "dashboard_currency_cards"
+const val DASHBOARD_CURRENCY_CARD_MINI_CHART_TAG = "dashboard_currency_card_mini_chart"

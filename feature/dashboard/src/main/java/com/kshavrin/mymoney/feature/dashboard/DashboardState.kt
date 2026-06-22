@@ -63,10 +63,12 @@ data class DashboardState(
 
 // One per-currency balance card for the "All accounts → show separately" view (G12). [snapshot] is
 // computed by BalanceCalculator.forAccounts over the accounts in this one currency, so every
-// figure is already in [currency] — no conversion is involved.
+// figure is already in [currency] — no conversion is involved. [trendPoints] is the cumulative
+// balance series for that same currency group (G17); empty when the chart is hidden in settings.
 data class CurrencyBalanceCard(
     val currency: Currency,
     val snapshot: BalanceSnapshot,
+    val trendPoints: List<TrendPoint> = emptyList(),
 )
 
 // Persisted chart configuration (AppSettings, SPEC 02) projected into the dashboard state. Drives

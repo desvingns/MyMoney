@@ -377,8 +377,8 @@ class DashboardViewModel
                     val periodNet = snapshot.toPeriodNet()
                     val settings = appSettingsRepository.settings.first()
                     val firstPositive = !settings.firstPositiveSeen && snapshot.net.amount.signum() > 0
-                    val currencyCards = computeCurrencyCards(selection, state.accounts, period)
                     val chartConfig = _state.value.chartConfig
+                    val currencyCards = computeCurrencyCards(selection, state.accounts, period, chartConfig)
                     val trendPoints =
                         if (selection.isSeparateMode()) {
                             emptyList()
@@ -594,25 +594,52 @@ class DashboardViewModel
 
         // "All accounts → show separately" (D6/G12): one card per currency that has active accounts.
         // Each currency group is balanced on its own with BalanceCalculator.forAccounts (G11 requires
-        // a single currency per call) — no conversion, no rates. Cards are sorted by largest absolute
-        // net first, then by currency code, so the busiest currency leads the stack. Returns empty for
-        // every selection/mode other than Separate so the stacked view only appears where it belongs.
+        // a single currency per call) — no conversion, no rates. Each card also carries a per-currency
+        // cumulative-balance trend (G17), computed by the same provider over that group only so every
+        // point stays in the card's own currency; it honours the global chart config (period type /
+        // point count / metric) and is empty when the chart is hidden in settings. Cards are sorted by
+        // largest absolute net first, then by currency code, so the busiest currency leads the stack.
+        // Returns empty for every selection/mode other than Separate so the stacked view only appears
+        // where it belongs.
         private suspend fun computeCurrencyCards(
             selection: DashboardSelection,
             accounts: List<Account>,
             period: Period,
+            chartConfig: ChartConfig,
         ): List<CurrencyBalanceCard> {
             val allAccounts = selection as? DashboardSelection.AllAccounts ?: return emptyList()
             if (allAccounts.foldMode != AllAccountsFoldMode.Separate) return emptyList()
+
+            val trendWindow =
+                if (chartConfig.visible) {
+                    balanceTrendCalculator.buildWindow(
+                        anchor = trendAnchorPeriod(chartConfig.periodType, period),
+                        count = chartConfig.pointCount,
+                    )
+                } else {
+                    emptyList()
+                }
 
             return accounts
                 .filterNot { it.isArchived }
                 .groupBy { it.currencyId }
                 .mapNotNull { (currencyId, groupAccounts) ->
                     val currency = _state.value.currencies.firstOrNull { it.id == currencyId } ?: return@mapNotNull null
+                    val trendPoints =
+                        if (trendWindow.isEmpty()) {
+                            emptyList()
+                        } else {
+                            balanceTrendCalculator(
+                                window = trendWindow,
+                                metric = chartConfig.metric,
+                            ) { trendPeriod ->
+                                balanceCalculator.forAccounts(groupAccounts, currency, trendPeriod)
+                            }
+                        }
                     CurrencyBalanceCard(
                         currency = currency,
                         snapshot = balanceCalculator.forAccounts(groupAccounts, currency, period),
+                        trendPoints = trendPoints,
                     )
                 }.sortedWith(
                     compareByDescending<CurrencyBalanceCard> {

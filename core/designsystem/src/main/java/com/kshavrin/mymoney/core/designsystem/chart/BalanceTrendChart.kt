@@ -31,6 +31,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.core.ui.theme.expenseAccent
 import com.kshavrin.mymoney.core.ui.theme.incomeAccent
@@ -131,6 +132,7 @@ fun BalanceTrendChart(
     showLabels: Boolean = false,
     colorRule: ChartColorRule = ChartColorRule.Default,
     style: ChartStyle = ChartStyle.Default,
+    chartHeight: Dp = Spacing.trendChartDefaultHeight,
 ) {
     val incomeColor = MaterialTheme.colorScheme.incomeAccent
     val expenseColor = MaterialTheme.colorScheme.expenseAccent
@@ -157,7 +159,7 @@ fun BalanceTrendChart(
         )
     val labelStyle = MaterialTheme.typography.labelSmall.copy(color = gridColor)
 
-    val height = Spacing.trendChartDefaultHeight
+    val height = chartHeight
     val labelHeight = Spacing.trendChartLabelHeight
     val totalHeight = if (showLabels) height + labelHeight else height
 

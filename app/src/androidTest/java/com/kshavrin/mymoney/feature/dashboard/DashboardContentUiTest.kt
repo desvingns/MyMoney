@@ -31,6 +31,7 @@ import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.kshavrin.mymoney.core.common.money.MoneyFormatter
 import com.kshavrin.mymoney.core.designsystem.donut.CategorySlice
 import com.kshavrin.mymoney.core.domain.model.BalanceSnapshot
 import com.kshavrin.mymoney.core.domain.model.Currency
@@ -60,6 +61,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.math.BigDecimal
+import java.math.RoundingMode
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 
@@ -1173,15 +1175,17 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `income and expense pills inside aurora card are shown when snapshot is present`() {
+    fun `income and expense pills inside aurora card show truncated integers with currency after when snapshot is present`() {
         val usd = usdCurrency()
         val snapshot =
             BalanceSnapshot(
-                income = Money(BigDecimal("85000.00"), usd),
-                expense = Money(BigDecimal("47350.00"), usd),
-                net = Money(BigDecimal("37650.00"), usd),
+                income = Money(BigDecimal("85000.99"), usd),
+                expense = Money(BigDecimal("47350.49"), usd),
+                net = Money(BigDecimal("37650.50"), usd),
                 byCategory = emptyList(),
             )
+        val expectedIncome = formatDashboardAmount(snapshot.income.amount, usd)
+        val expectedExpense = formatDashboardAmount(snapshot.expense.amount, usd)
 
         composeTestRule.setContent {
             MyMoneyTheme {
@@ -1203,7 +1207,13 @@ class DashboardContentUiTest {
             .onNodeWithTag(DASHBOARD_AURORA_INCOME_PILL_TAG)
             .assertIsDisplayed()
         composeTestRule
+            .onNodeWithText("\u2191 $expectedIncome")
+            .assertIsDisplayed()
+        composeTestRule
             .onNodeWithTag(DASHBOARD_AURORA_EXPENSE_PILL_TAG)
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText("\u2193 $expectedExpense")
             .assertIsDisplayed()
     }
 
@@ -1353,15 +1363,16 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `aurora card balance value tag is present in non-separate mode`() {
+    fun `aurora card balance value shows negative truncated integer with currency after in non-separate mode`() {
         val usd = usdCurrency()
         val snapshot =
             BalanceSnapshot(
-                income = Money(BigDecimal("200.00"), usd),
-                expense = Money(BigDecimal("50.00"), usd),
-                net = Money(BigDecimal("150.00"), usd),
+                income = Money(BigDecimal("100.00"), usd),
+                expense = Money(BigDecimal("1334.56"), usd),
+                net = Money(BigDecimal("-1234.56"), usd),
                 byCategory = emptyList(),
             )
+        val expectedBalance = formatDashboardAmount(snapshot.net.amount, usd)
 
         composeTestRule.setContent {
             MyMoneyTheme {
@@ -1380,6 +1391,9 @@ class DashboardContentUiTest {
 
         composeTestRule
             .onNodeWithTag(DASHBOARD_AURORA_BALANCE_TAG)
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText(expectedBalance)
             .assertIsDisplayed()
     }
 
@@ -1759,6 +1773,18 @@ class DashboardContentUiTest {
             byCategory = emptyList(),
         )
     }
+
+    private fun formatDashboardAmount(
+        amount: BigDecimal,
+        currency: Currency,
+    ): String =
+        MoneyFormatter.format(
+            amount = amount.setScale(0, RoundingMode.DOWN),
+            currencySymbol = currency.symbol,
+            decimalDigits = 0,
+            locale = targetLocale(),
+            symbolPosition = MoneyFormatter.SymbolPosition.AFTER,
+        )
 
     private fun assertDrawerWidthRatio(
         drawerLabel: String,

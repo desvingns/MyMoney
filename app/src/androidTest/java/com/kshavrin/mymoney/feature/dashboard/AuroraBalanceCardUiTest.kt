@@ -3,6 +3,7 @@ package com.kshavrin.mymoney.feature.dashboard
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
@@ -28,9 +29,9 @@ class AuroraBalanceCardUiTest {
 
     private fun setCard(
         label: String = "BALANCE FOR JUNE",
-        balance: String = "12 345.67",
-        income: String = "20 000.00",
-        expense: String = "7 654.33",
+        balance: String = "12 345 $",
+        income: String = "20 000 $",
+        expense: String = "7 654 $",
         points: List<Float> = defaultPoints,
         chartConfig: ChartConfig = defaultConfig(),
         onChartClick: () -> Unit = {},
@@ -67,8 +68,13 @@ class AuroraBalanceCardUiTest {
     }
 
     @Test
-    fun `aurora balance value tag is displayed`() {
-        setCard(balance = "12 345.67")
+    fun `aurora balance value displays the provided integer amount with currency after`() {
+        val balance = "12 345 $"
+        setCard(balance = balance)
+
+        composeTestRule
+            .onNodeWithText(balance)
+            .assertIsDisplayed()
         composeTestRule
             .onNodeWithTag(DASHBOARD_AURORA_BALANCE_TAG)
             .assertIsDisplayed()
@@ -80,6 +86,9 @@ class AuroraBalanceCardUiTest {
         composeTestRule
             .onNodeWithTag(DASHBOARD_AURORA_INCOME_PILL_TAG)
             .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText("\u2191 20 000 $")
+            .assertIsDisplayed()
     }
 
     @Test
@@ -87,6 +96,9 @@ class AuroraBalanceCardUiTest {
         setCard(chartConfig = defaultConfig(visible = true))
         composeTestRule
             .onNodeWithTag(DASHBOARD_AURORA_EXPENSE_PILL_TAG)
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText("\u2193 7 654 $")
             .assertIsDisplayed()
     }
 

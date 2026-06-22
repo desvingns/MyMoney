@@ -26,6 +26,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.math.BigDecimal
+import java.math.RoundingMode
 import java.time.YearMonth
 
 @RunWith(AndroidJUnit4::class)
@@ -84,7 +85,7 @@ class CurrencyBalanceCardListUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 CurrencyBalanceCardList(
-                    cards = listOf(usdCard(income = "100.00", expense = "30.00")),
+                    cards = listOf(usdCard(income = "100.99", expense = "30.49")),
                 )
             }
         }
@@ -103,7 +104,7 @@ class CurrencyBalanceCardListUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 CurrencyBalanceCardList(
-                    cards = listOf(usdCard(income = "100.00", expense = "30.00")),
+                    cards = listOf(usdCard(income = "100.99", expense = "30.49")),
                 )
             }
         }
@@ -120,12 +121,12 @@ class CurrencyBalanceCardListUiTest {
 
     @Test
     fun `single currency card shows the formatted net balance amount`() {
-        val net = BigDecimal("70.00")
+        val net = BigDecimal("70.50")
 
         composeTestRule.setContent {
             MyMoneyTheme {
                 CurrencyBalanceCardList(
-                    cards = listOf(usdCard(income = "100.00", expense = "30.00")),
+                    cards = listOf(usdCard(income = "100.99", expense = "30.49")),
                 )
             }
         }
@@ -140,12 +141,12 @@ class CurrencyBalanceCardListUiTest {
 
     @Test
     fun `single currency card income pill contains the formatted income amount`() {
-        val income = BigDecimal("100.00")
+        val income = BigDecimal("100.99")
 
         composeTestRule.setContent {
             MyMoneyTheme {
                 CurrencyBalanceCardList(
-                    cards = listOf(usdCard(income = "100.00", expense = "30.00")),
+                    cards = listOf(usdCard(income = "100.99", expense = "30.49")),
                 )
             }
         }
@@ -159,12 +160,12 @@ class CurrencyBalanceCardListUiTest {
 
     @Test
     fun `single currency card expense pill contains the formatted expense amount`() {
-        val expense = BigDecimal("30.00")
+        val expense = BigDecimal("30.49")
 
         composeTestRule.setContent {
             MyMoneyTheme {
                 CurrencyBalanceCardList(
-                    cards = listOf(usdCard(income = "100.00", expense = "30.00")),
+                    cards = listOf(usdCard(income = "100.99", expense = "30.49")),
                 )
             }
         }
@@ -178,12 +179,12 @@ class CurrencyBalanceCardListUiTest {
 
     @Test
     fun `single currency card income pill text starts with the up-arrow prefix`() {
-        val income = BigDecimal("100.00")
+        val income = BigDecimal("100.99")
 
         composeTestRule.setContent {
             MyMoneyTheme {
                 CurrencyBalanceCardList(
-                    cards = listOf(usdCard(income = "100.00", expense = "30.00")),
+                    cards = listOf(usdCard(income = "100.99", expense = "30.49")),
                 )
             }
         }
@@ -197,12 +198,12 @@ class CurrencyBalanceCardListUiTest {
 
     @Test
     fun `single currency card expense pill text starts with the down-arrow prefix`() {
-        val expense = BigDecimal("30.00")
+        val expense = BigDecimal("30.49")
 
         composeTestRule.setContent {
             MyMoneyTheme {
                 CurrencyBalanceCardList(
-                    cards = listOf(usdCard(income = "100.00", expense = "30.00")),
+                    cards = listOf(usdCard(income = "100.99", expense = "30.49")),
                 )
             }
         }
@@ -221,14 +222,14 @@ class CurrencyBalanceCardListUiTest {
     fun `currency card figures are in the card currency with no conversion`() {
         // EUR card: income 50 EUR, expense 20 EUR, net 30 EUR.
         // If ConvertMoneyUseCase were called, figures would differ.
-        val income = BigDecimal("50.00")
-        val expense = BigDecimal("20.00")
-        val net = BigDecimal("30.00")
+        val income = BigDecimal("50.75")
+        val expense = BigDecimal("20.25")
+        val net = BigDecimal("30.50")
 
         composeTestRule.setContent {
             MyMoneyTheme {
                 CurrencyBalanceCardList(
-                    cards = listOf(eurCard(income = "50.00", expense = "20.00")),
+                    cards = listOf(eurCard(income = "50.75", expense = "20.25")),
                 )
             }
         }
@@ -246,6 +247,25 @@ class CurrencyBalanceCardListUiTest {
         }
     }
 
+    @Test
+    fun `negative net balance is truncated toward zero instead of rounded away`() {
+        val expectedNet = formatAmount(BigDecimal("-1234.56"), usd)
+        val expectedExpense = formatAmount(BigDecimal("1334.56"), usd)
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                CurrencyBalanceCardList(
+                    cards = listOf(usdCard(income = "100.00", expense = "1334.56")),
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText(expectedNet).assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText(expectedExpense, substring = true)
+            .assertIsDisplayed()
+    }
+
     // -----------------------------------------------------------------------
     // Two cards — currency codes and per-card tags
     // -----------------------------------------------------------------------
@@ -257,8 +277,8 @@ class CurrencyBalanceCardListUiTest {
                 CurrencyBalanceCardList(
                     cards =
                         listOf(
-                            usdCard(income = "100.00", expense = "30.00"),
-                            eurCard(income = "50.00", expense = "20.00"),
+                            usdCard(income = "100.99", expense = "30.49"),
+                            eurCard(income = "50.75", expense = "20.25"),
                         ),
                 )
             }
@@ -275,8 +295,8 @@ class CurrencyBalanceCardListUiTest {
                 CurrencyBalanceCardList(
                     cards =
                         listOf(
-                            usdCard(income = "100.00", expense = "30.00"),
-                            eurCard(income = "50.00", expense = "20.00"),
+                            usdCard(income = "100.99", expense = "30.49"),
+                            eurCard(income = "50.75", expense = "20.25"),
                         ),
                 )
             }
@@ -301,8 +321,8 @@ class CurrencyBalanceCardListUiTest {
                 CurrencyBalanceCardList(
                     cards =
                         listOf(
-                            usdCard(income = "100.00", expense = "30.00"),
-                            eurCard(income = "50.00", expense = "20.00"),
+                            usdCard(income = "100.99", expense = "30.49"),
+                            eurCard(income = "50.75", expense = "20.25"),
                         ),
                 )
             }
@@ -333,7 +353,7 @@ class CurrencyBalanceCardListUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 CurrencyBalanceCardList(
-                    cards = listOf(usdCard(income = "100.00", expense = "30.00", withTrend = true)),
+                    cards = listOf(usdCard(income = "100.99", expense = "30.49", withTrend = true)),
                     chartConfig = ChartConfig(visible = true),
                 )
             }
@@ -349,7 +369,7 @@ class CurrencyBalanceCardListUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 CurrencyBalanceCardList(
-                    cards = listOf(usdCard(income = "100.00", expense = "30.00", withTrend = true)),
+                    cards = listOf(usdCard(income = "100.99", expense = "30.49", withTrend = true)),
                     chartConfig = ChartConfig(visible = false),
                 )
             }
@@ -365,7 +385,7 @@ class CurrencyBalanceCardListUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 CurrencyBalanceCardList(
-                    cards = listOf(usdCard(income = "100.00", expense = "30.00", withTrend = false)),
+                    cards = listOf(usdCard(income = "100.99", expense = "30.49", withTrend = false)),
                     chartConfig = ChartConfig(visible = true),
                 )
             }
@@ -383,8 +403,8 @@ class CurrencyBalanceCardListUiTest {
                 CurrencyBalanceCardList(
                     cards =
                         listOf(
-                            usdCard(income = "100.00", expense = "30.00", withTrend = true),
-                            eurCard(income = "50.00", expense = "20.00"),
+                            usdCard(income = "100.99", expense = "30.49", withTrend = true),
+                            eurCard(income = "50.75", expense = "20.25"),
                         ),
                     chartConfig = ChartConfig(visible = true),
                 )
@@ -406,8 +426,8 @@ class CurrencyBalanceCardListUiTest {
                 CurrencyBalanceCardList(
                     cards =
                         listOf(
-                            usdCard(income = "100.00", expense = "30.00", withTrend = true),
-                            eurCard(income = "50.00", expense = "20.00", withTrend = true),
+                            usdCard(income = "100.99", expense = "30.49", withTrend = true),
+                            eurCard(income = "50.75", expense = "20.25", withTrend = true),
                         ),
                     chartConfig = ChartConfig(visible = true),
                 )
@@ -490,9 +510,9 @@ class CurrencyBalanceCardListUiTest {
                 .getInstrumentation()
                 .targetContext.resources.configuration.locales[0]
         return MoneyFormatter.format(
-            amount = amount,
+            amount = amount.setScale(0, RoundingMode.DOWN),
             currencySymbol = currency.symbol,
-            decimalDigits = currency.decimalDigits,
+            decimalDigits = 0,
             locale = locale,
             symbolPosition = MoneyFormatter.SymbolPosition.AFTER,
         )

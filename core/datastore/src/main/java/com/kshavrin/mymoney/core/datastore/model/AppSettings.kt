@@ -26,7 +26,7 @@ data class AppSettings(
     val dashboardPeriodEpochMs: Long = 0L,
     val tzNormalizedAt: Long? = null,
     val chartVisible: Boolean = true,
-    val chartStyle: String = "neon_line",
+    val chartStyle: String = "smooth_area",
     val chartPeriodType: String = "follow",
     val chartPointCount: Int = 5,
     val chartMetric: String = "cumulative",

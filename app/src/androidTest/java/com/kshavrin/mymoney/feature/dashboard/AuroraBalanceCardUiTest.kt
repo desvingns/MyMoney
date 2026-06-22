@@ -1,18 +1,27 @@
 package com.kshavrin.mymoney.feature.dashboard
 
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.assertDoesNotExist
+import androidx.compose.ui.test.assertExists
+import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.unit.sp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
+import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.feature.dashboard.components.AuroraBalanceCard
 import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_AURORA_BALANCE_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_AURORA_CARD_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_AURORA_EXPENSE_PILL_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_AURORA_INCOME_PILL_TAG
-import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_AURORA_LABEL_TAG
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -28,7 +37,6 @@ class AuroraBalanceCardUiTest {
     private fun defaultConfig(visible: Boolean = true) = ChartConfig(visible = visible)
 
     private fun setCard(
-        label: String = "BALANCE FOR JUNE",
         balance: String = "12 345 $",
         income: String = "20 000 $",
         expense: String = "7 654 $",
@@ -39,7 +47,6 @@ class AuroraBalanceCardUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 AuroraBalanceCard(
-                    label = label,
                     balance = balance,
                     income = income,
                     expense = expense,
@@ -60,11 +67,35 @@ class AuroraBalanceCardUiTest {
     }
 
     @Test
-    fun `aurora label tag is displayed`() {
-        setCard(label = "BALANCE FOR JUNE")
+    fun `aurora card omits the legacy balance for period label`() {
+        setCard()
         composeTestRule
-            .onNodeWithTag(DASHBOARD_AURORA_LABEL_TAG)
-            .assertIsDisplayed()
+            .onNodeWithText("BALANCE FOR JUNE")
+            .assertDoesNotExist()
+    }
+
+    @Test
+    fun `aurora card spans the host width with equal side insets`() {
+        setCard()
+
+        val rootBounds = composeTestRule.onRoot().fetchSemanticsNode().boundsInRoot
+        val cardBounds = composeTestRule.onNodeWithTag(DASHBOARD_AURORA_CARD_TAG).fetchSemanticsNode().boundsInRoot
+        val expectedInsetPx = with(composeTestRule.density) { Spacing.dashboardAuroraHostHorizontalPaddingWide.toPx() }
+
+        assertCloseTo(expectedInsetPx, cardBounds.left, "left inset")
+        assertCloseTo(rootBounds.right - expectedInsetPx, cardBounds.right, "right inset")
+    }
+
+    @Test
+    fun `aurora balance value uses the compact 34sp typography token`() {
+        setCard(balance = "98 765 $")
+
+        val fontSize =
+            composeTestRule
+                .onNodeWithTag(DASHBOARD_AURORA_BALANCE_TAG)
+                .textLayout()
+                .layoutInput.style.fontSize
+        assertEquals(34.sp, fontSize)
     }
 
     @Test
@@ -124,6 +155,7 @@ class AuroraBalanceCardUiTest {
         composeTestRule
             .onNodeWithTag(DASHBOARD_TREND_CHART_TAG)
             .assertExists()
+            .assertHeightIsEqualTo(Spacing.dashboardAuroraChartHeightCompact)
     }
 
     @Test
@@ -171,5 +203,19 @@ class AuroraBalanceCardUiTest {
         composeTestRule.runOnIdle {
             assertTrue("expected onChartClick to be invoked when hidden hint is tapped", clicked)
         }
+    }
+
+    private fun assertCloseTo(
+        expected: Float,
+        actual: Float,
+        label: String,
+    ) {
+        assertTrue("$label expected=$expected actual=$actual", kotlin.math.abs(expected - actual) <= 1.5f)
+    }
+
+    private fun SemanticsNodeInteraction.textLayout(): TextLayoutResult {
+        val results = mutableListOf<TextLayoutResult>()
+        fetchSemanticsNode().config[SemanticsActions.GetTextLayoutResult].action?.invoke(results)
+        return results.first()
     }
 }

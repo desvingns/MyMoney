@@ -37,6 +37,7 @@ class DataExtractionRulesTest {
                 RuleEntry(domain = "database", path = "monefy.db-shm"),
                 RuleEntry(domain = "database", path = "monefy.db-wal"),
                 RuleEntry(domain = "file", path = "datastore/app_settings.preferences_pb"),
+                RuleEntry(domain = "sharedpref", path = "."),
             ),
             rules.includes,
         )

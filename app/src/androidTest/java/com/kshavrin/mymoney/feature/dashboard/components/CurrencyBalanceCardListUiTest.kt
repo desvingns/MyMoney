@@ -2,13 +2,19 @@ package com.kshavrin.mymoney.feature.dashboard.components
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertExists
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.unit.sp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.common.money.MoneyFormatter
@@ -115,6 +121,28 @@ class CurrencyBalanceCardListUiTest {
             .assertExists()
     }
 
+    @Test
+    fun `single currency card keeps the wide centered aurora container`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                CurrencyBalanceCardList(
+                    cards = listOf(usdCard(income = "100.99", expense = "30.49")),
+                )
+            }
+        }
+
+        val rootBounds = composeTestRule.onRoot().fetchSemanticsNode().boundsInRoot
+        val cardBounds =
+            composeTestRule
+                .onNodeWithTag("${DASHBOARD_CURRENCY_CARDS_TAG}_USD")
+                .fetchSemanticsNode()
+                .boundsInRoot
+        val expectedInsetPx = with(composeTestRule.density) { Spacing.dashboardAuroraHostHorizontalPaddingWide.toPx() }
+
+        assertCloseTo(expectedInsetPx, cardBounds.left, "left inset")
+        assertCloseTo(rootBounds.right - expectedInsetPx, cardBounds.right, "right inset")
+    }
+
     // -----------------------------------------------------------------------
     // Single card — balance value (big number, no "Balance" label in new design)
     // -----------------------------------------------------------------------
@@ -133,6 +161,26 @@ class CurrencyBalanceCardListUiTest {
 
         val expected = formatAmount(net, usd)
         composeTestRule.onNodeWithText(expected).assertIsDisplayed()
+    }
+
+    @Test
+    fun `single currency card balance uses the compact 34sp typography token`() {
+        val expected = formatAmount(BigDecimal("70.50"), usd)
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                CurrencyBalanceCardList(
+                    cards = listOf(usdCard(income = "100.99", expense = "30.49")),
+                )
+            }
+        }
+
+        val fontSize =
+            composeTestRule
+                .onNodeWithText(expected)
+                .textLayout()
+                .layoutInput.style.fontSize
+        assertEquals(34.sp, fontSize)
     }
 
     // -----------------------------------------------------------------------
@@ -516,5 +564,19 @@ class CurrencyBalanceCardListUiTest {
             locale = locale,
             symbolPosition = MoneyFormatter.SymbolPosition.AFTER,
         )
+    }
+
+    private fun assertCloseTo(
+        expected: Float,
+        actual: Float,
+        label: String,
+    ) {
+        assertEquals("$label expected=$expected actual=$actual", expected, actual, 1.5f)
+    }
+
+    private fun SemanticsNodeInteraction.textLayout(): TextLayoutResult {
+        val results = mutableListOf<TextLayoutResult>()
+        fetchSemanticsNode().config[SemanticsActions.GetTextLayoutResult].action?.invoke(results)
+        return results.first()
     }
 }

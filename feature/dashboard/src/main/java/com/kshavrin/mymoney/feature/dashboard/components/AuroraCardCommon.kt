@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,15 +31,14 @@ import com.kshavrin.mymoney.core.ui.theme.dashboardExpensePill
 import com.kshavrin.mymoney.core.ui.theme.dashboardIncomePill
 
 // Shared "Aurora" building blocks (SecAurora — 03_balance-variants.jsx). The aurora gradient
-// container and the income/expense pill row are reused by both the full-width hero card
+// container and the income/expense pill row are reused by both the hero card
 // (AuroraBalanceCard) and the compact per-currency cards (CurrencyBalanceCardList) so the
 // gradient / border / glow / pill styling lives in exactly one place.
 
 // Aurora container surface: a centered Column with the SecAurora look —
 //   radial-gradient(120% 90% at 50% 0%, accent@0.20, white@0.02 70%),
 //   inset 1dp border accent@0.28, soft neon glow, 24dp corners, and the
-//   SecAurora padding (18dp top/horizontal, 14dp bottom). Callers supply the
-//   inner content (label, value, pills, chart) plus the card's testTag.
+//   compact SecAurora padding. Callers supply the inner content plus the card's testTag.
 @Composable
 internal fun AuroraCardSurface(
     cardTestTag: String,
@@ -57,8 +55,7 @@ internal fun AuroraCardSurface(
     Column(
         modifier =
             modifier
-                .widthIn(max = Spacing.dashboardBalancePanelMaxWidth)
-                .fillMaxWidth()
+                .fillMaxWidth(Spacing.dashboardAuroraCardWidthFractionWide)
                 .testTag(cardTestTag)
                 // Soft neon glow around the card (SecAurora boxShadow neonGlow(accent)).
                 .shadow(
@@ -87,8 +84,8 @@ internal fun AuroraCardSurface(
                 ).padding(
                     start = Spacing.dashboardAuroraCardPaddingHorizontal,
                     end = Spacing.dashboardAuroraCardPaddingHorizontal,
-                    top = Spacing.dashboardAuroraCardPaddingTop,
-                    bottom = Spacing.dashboardAuroraCardPaddingBottom,
+                    top = Spacing.dashboardAuroraCardPaddingTopCompact,
+                    bottom = Spacing.dashboardAuroraCardPaddingBottomCompact,
                 ),
         horizontalAlignment = Alignment.CenterHorizontally,
         content = content,

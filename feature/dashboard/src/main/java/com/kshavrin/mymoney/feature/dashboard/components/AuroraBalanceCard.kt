@@ -17,8 +17,7 @@ import androidx.compose.ui.text.style.TextAlign
 import com.kshavrin.mymoney.core.designsystem.chart.BalanceTrendChart
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.core.ui.theme.chartHiddenHint
-import com.kshavrin.mymoney.core.ui.theme.dashboardAuroraBalanceLabel
-import com.kshavrin.mymoney.core.ui.theme.dashboardAuroraBalanceValue
+import com.kshavrin.mymoney.core.ui.theme.dashboardAuroraBalanceValueCompact
 import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanelContent
 import com.kshavrin.mymoney.feature.dashboard.ChartConfig
 import com.kshavrin.mymoney.feature.dashboard.DASHBOARD_CHART_HIDDEN_HINT_TAG
@@ -27,13 +26,12 @@ import com.kshavrin.mymoney.feature.dashboard.R
 
 // Centered "Aurora" hero card (SecAurora — 03_balance-variants.jsx). Replaces the standalone trend
 // card + the two income/expense panels in the non-separate dashboard body. Top-to-bottom: uppercase
-// balance label, big balance value, a centered row of income/expense pills, then the configurable
+// balance value, a centered row of income/expense pills, then the configurable
 // neon-wave trend chart. The chart stays tappable (opens ChartSettingsSheet) and honours the same
 // hidden-state hint as before, so the chart's tag contract is preserved. The aurora container and
 // the pill row are shared with the per-currency cards (see AuroraCardCommon.kt).
 @Composable
 fun AuroraBalanceCard(
-    label: String,
     balance: String,
     income: String,
     expense: String,
@@ -47,30 +45,21 @@ fun AuroraBalanceCard(
         modifier = modifier,
     ) {
         Text(
-            text = label,
-            style = MaterialTheme.typography.dashboardAuroraBalanceLabel,
-            color = Color.White.copy(alpha = 0.55f),
-            maxLines = 1,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.testTag(DASHBOARD_AURORA_LABEL_TAG),
-        )
-        Spacer(modifier = Modifier.height(Spacing.dashboardAuroraValueBottomMargin))
-        Text(
             text = balance,
-            style = MaterialTheme.typography.dashboardAuroraBalanceValue,
+            style = MaterialTheme.typography.dashboardAuroraBalanceValueCompact,
             color = Color.White,
             maxLines = 1,
             textAlign = TextAlign.Center,
             modifier = Modifier.testTag(DASHBOARD_AURORA_BALANCE_TAG),
         )
-        Spacer(modifier = Modifier.height(Spacing.dashboardAuroraPillBottomMargin))
+        Spacer(modifier = Modifier.height(Spacing.dashboardAuroraPillBottomMarginCompact))
         IncomeExpensePills(
             income = income,
             expense = expense,
             incomePillTestTag = DASHBOARD_AURORA_INCOME_PILL_TAG,
             expensePillTestTag = DASHBOARD_AURORA_EXPENSE_PILL_TAG,
         )
-        Spacer(modifier = Modifier.height(Spacing.dashboardAuroraPillBottomMargin))
+        Spacer(modifier = Modifier.height(Spacing.dashboardAuroraPillBottomMarginCompact))
         if (chartConfig.visible) {
             Box(
                 modifier =
@@ -85,7 +74,7 @@ fun AuroraBalanceCard(
                     showLabels = chartConfig.showLabels,
                     colorRule = chartConfig.colorRule,
                     style = chartConfig.style,
-                    chartHeight = Spacing.dashboardAuroraChartHeight,
+                    chartHeight = Spacing.dashboardAuroraChartHeightCompact,
                 )
             }
         } else {
@@ -110,7 +99,6 @@ fun AuroraBalanceCard(
 }
 
 const val DASHBOARD_AURORA_CARD_TAG = "dashboard_aurora_card"
-const val DASHBOARD_AURORA_LABEL_TAG = "dashboard_aurora_label"
 const val DASHBOARD_AURORA_BALANCE_TAG = "dashboard_aurora_balance"
 const val DASHBOARD_AURORA_INCOME_PILL_TAG = "dashboard_aurora_income_pill"
 const val DASHBOARD_AURORA_EXPENSE_PILL_TAG = "dashboard_aurora_expense_pill"

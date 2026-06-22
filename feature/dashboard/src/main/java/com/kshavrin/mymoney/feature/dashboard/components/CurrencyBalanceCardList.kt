@@ -18,7 +18,7 @@ import com.kshavrin.mymoney.core.common.money.MoneyFormatter
 import com.kshavrin.mymoney.core.designsystem.chart.BalanceTrendChart
 import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.ui.theme.Spacing
-import com.kshavrin.mymoney.core.ui.theme.dashboardAuroraBalanceValue
+import com.kshavrin.mymoney.core.ui.theme.dashboardAuroraBalanceValueCompact
 import com.kshavrin.mymoney.core.ui.theme.dashboardCurrencyCardCurrencyCode
 import com.kshavrin.mymoney.feature.dashboard.ChartConfig
 import com.kshavrin.mymoney.feature.dashboard.CurrencyBalanceCard
@@ -73,18 +73,18 @@ private fun CurrencyBalanceCardItem(
         Spacer(modifier = Modifier.height(Spacing.dashboardAuroraValueBottomMargin))
         Text(
             text = formatCardAmount(card.snapshot.net, locale),
-            style = MaterialTheme.typography.dashboardAuroraBalanceValue,
+            style = MaterialTheme.typography.dashboardAuroraBalanceValueCompact,
             color = Color.White,
             maxLines = 1,
             textAlign = TextAlign.Center,
         )
-        Spacer(modifier = Modifier.height(Spacing.dashboardAuroraPillBottomMargin))
+        Spacer(modifier = Modifier.height(Spacing.dashboardAuroraPillBottomMarginCompact))
         IncomeExpensePills(
             income = formatCardAmount(card.snapshot.income, locale),
             expense = formatCardAmount(card.snapshot.expense, locale),
         )
         if (chartConfig.visible && card.trendPoints.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(Spacing.dashboardAuroraPillBottomMargin))
+            Spacer(modifier = Modifier.height(Spacing.dashboardAuroraPillBottomMarginCompact))
             BalanceTrendChart(
                 points = card.trendPoints.map { it.value.amount.toFloat() },
                 showGridlines = false,

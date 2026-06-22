@@ -65,10 +65,8 @@ import com.kshavrin.mymoney.feature.dashboard.components.LeftDrawerContent
 import com.kshavrin.mymoney.feature.dashboard.components.PeriodSwitcher
 import com.kshavrin.mymoney.feature.dashboard.components.RightDrawerContent
 import com.kshavrin.mymoney.feature.dashboard.components.ThreeFabLayout
-import com.kshavrin.mymoney.feature.dashboard.components.localizedLabel
 import java.math.BigDecimal
 import java.math.RoundingMode
-import java.time.Year
 import java.util.Locale
 
 @Composable
@@ -229,19 +227,11 @@ fun DashboardContent(
                                     CurrencyBalanceCardList(
                                         cards = state.currencyCards,
                                         chartConfig = state.chartConfig,
-                                        modifier = Modifier.padding(horizontal = Spacing.l),
                                     )
                                 } else {
                                     val snapshot = state.balanceSnapshot
-                                    val periodLabel =
-                                        state.period.localizedLabel(
-                                            locale = resourceLocale,
-                                            allLabel = stringResource(R.string.period_all),
-                                            currentYear = Year.now().value,
-                                        )
                                     Spacer(modifier = Modifier.height(Spacing.l))
                                     AuroraBalanceCard(
-                                        label = stringResource(R.string.dashboard_balance_for_period, periodLabel),
                                         balance =
                                             formatBalanceAmount(
                                                 state = state,
@@ -257,7 +247,6 @@ fun DashboardContent(
                                         points = state.trendPoints.map { it.value.amount.toFloat() },
                                         chartConfig = state.chartConfig,
                                         onChartClick = { onEvent(DashboardEvent.ChartTapped) },
-                                        modifier = Modifier.padding(horizontal = Spacing.l),
                                     )
 
                                     if (overBudgetText != null) {

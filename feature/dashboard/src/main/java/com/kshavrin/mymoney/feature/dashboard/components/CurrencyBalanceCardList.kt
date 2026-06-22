@@ -26,12 +26,6 @@ import java.math.BigDecimal
 import java.math.RoundingMode
 import java.util.Locale
 
-// "All accounts → show separately" (D6): a vertical stack of per-currency balance cards. Each card
-// is a compact "Aurora" card (SecAurora — 03_balance-variants.jsx) self-contained in its own
-// currency — currency code, that currency's balance, income / expense pills, and a mini wave chart,
-// no conversion (one card per Account.currencyId group). The donut is hidden by the caller in this
-// mode; the list itself scrolls inside the dashboard's scroll content. The aurora container and
-// the pill row are shared with the full-width hero card (see AuroraCardCommon.kt).
 @Composable
 fun CurrencyBalanceCardList(
     cards: List<CurrencyBalanceCard>,
@@ -112,8 +106,6 @@ private fun formatCardAmount(
 
 private fun truncateCardAmount(amount: BigDecimal): BigDecimal = amount.setScale(0, RoundingMode.DOWN)
 
-// Per-card container tag: the shared list tag suffixed with the currency code, so a test can target
-// an individual card without each card claiming the same tag.
 private fun currencyCardTagFor(code: String): String = "${DASHBOARD_CURRENCY_CARDS_TAG}_$code"
 
 const val DASHBOARD_CURRENCY_CARDS_TAG = "dashboard_currency_cards"

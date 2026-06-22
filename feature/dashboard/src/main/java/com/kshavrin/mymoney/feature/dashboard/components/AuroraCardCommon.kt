@@ -30,15 +30,6 @@ import com.kshavrin.mymoney.core.ui.theme.dashboardAuroraPill
 import com.kshavrin.mymoney.core.ui.theme.dashboardExpensePill
 import com.kshavrin.mymoney.core.ui.theme.dashboardIncomePill
 
-// Shared "Aurora" building blocks (SecAurora — 03_balance-variants.jsx). The aurora gradient
-// container and the income/expense pill row are reused by both the hero card
-// (AuroraBalanceCard) and the compact per-currency cards (CurrencyBalanceCardList) so the
-// gradient / border / glow / pill styling lives in exactly one place.
-
-// Aurora container surface: a centered Column with the SecAurora look —
-//   radial-gradient(120% 90% at 50% 0%, accent@0.20, white@0.02 70%),
-//   inset 1dp border accent@0.28, soft neon glow, 24dp corners, and the
-//   compact SecAurora padding. Callers supply the inner content plus the card's testTag.
 @Composable
 internal fun AuroraCardSurface(
     cardTestTag: String,
@@ -47,17 +38,15 @@ internal fun AuroraCardSurface(
 ) {
     val accent = MaterialTheme.colorScheme.dashboardAuroraAccent
     val shape = MaterialTheme.shapes.dashboardAuroraCard
-    // SecAurora: radial-gradient(120% 90% at 50% 0%, accent@0.20, white@0.02 70%). Anchored at the
-    // top-center; the gradient brush is sized to the card by drawBehind so it scales with width.
     val gradientTop = accent.copy(alpha = 0.20f)
     val gradientBottom = Color.White.copy(alpha = 0.02f)
 
     Column(
         modifier =
             modifier
-                .fillMaxWidth(Spacing.dashboardAuroraCardWidthFractionWide)
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.dashboardAuroraHostHorizontalPaddingWide)
                 .testTag(cardTestTag)
-                // Soft neon glow around the card (SecAurora boxShadow neonGlow(accent)).
                 .shadow(
                     elevation = Spacing.s,
                     shape = shape,
@@ -92,9 +81,6 @@ internal fun AuroraCardSurface(
     )
 }
 
-// Centered income/expense pill row (SecAurora). Two pills — "↑ <income>" (green neon) and
-// "↓ <expense>" (coral-pink neon) — separated by dashboardAuroraPillGap. Callers pass the
-// pre-formatted amount strings and optional per-pill testTags.
 @Composable
 internal fun IncomeExpensePills(
     income: String,
@@ -121,8 +107,6 @@ internal fun IncomeExpensePills(
     }
 }
 
-// Income/expense pill (SecAurora StatPill-as-pill): rounded 20dp, text + border in the pill colour,
-// translucent fill (@0.12) and a 1dp inset ring (@0.3).
 @Composable
 private fun AuroraStatPill(
     text: String,

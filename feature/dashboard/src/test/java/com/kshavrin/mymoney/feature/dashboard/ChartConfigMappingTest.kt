@@ -185,13 +185,18 @@ class ChartConfigMappingTest {
         val config = AppSettings().toChartConfig()
 
         assertEquals(true, config.visible)
-        assertEquals(ChartStyle.NeonLine, config.style)
+        assertEquals(ChartStyle.SmoothArea, config.style)
         assertEquals(ChartPeriodType.Follow, config.periodType)
         assertEquals(DEFAULT_CHART_POINT_COUNT, config.pointCount)
         assertEquals(ChartMetric.CUMULATIVE, config.metric)
         assertEquals(true, config.showGridlines)
         assertEquals(true, config.showLabels)
         assertEquals(ChartColorRule.BySign, config.colorRule)
+    }
+
+    @Test
+    fun `ChartStyle Default is SmoothArea`() {
+        assertEquals(ChartStyle.SmoothArea, ChartStyle.Default)
     }
 
     @Test
@@ -209,10 +214,11 @@ class ChartConfigMappingTest {
     }
 
     @Test
-    fun `toChartConfig unknown style id falls back to NeonLine`() {
+    fun `toChartConfig unknown style id falls back to Default which is SmoothArea`() {
         val settings = AppSettings(chartStyle = "does_not_exist")
         val config = settings.toChartConfig()
         assertEquals(ChartStyle.Default, config.style)
+        assertEquals(ChartStyle.SmoothArea, config.style)
     }
 
     @Test

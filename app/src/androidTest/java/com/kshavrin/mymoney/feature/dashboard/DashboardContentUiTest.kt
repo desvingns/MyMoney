@@ -40,6 +40,10 @@ import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.feature.dashboard.components.CHART_SETTINGS_SHEET_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.CategoryTileItem
+import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_AURORA_BALANCE_TAG
+import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_AURORA_EXPENSE_PILL_TAG
+import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_AURORA_INCOME_PILL_TAG
+import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_AURORA_LABEL_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_CURRENCY_CARDS_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_ABOUT_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_ACCOUNTS_TAG
@@ -1169,7 +1173,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `income and expense panels are shown below the balance card when snapshot is present`() {
+    fun `income and expense pills inside aurora card are shown when snapshot is present`() {
         val usd = usdCurrency()
         val snapshot =
             BalanceSnapshot(
@@ -1194,16 +1198,17 @@ class DashboardContentUiTest {
             }
         }
 
+        // Income/expense are now shown as pills inside the Aurora hero card (not standalone panels).
         composeTestRule
-            .onNodeWithText(targetString(R.string.dashboard_currency_card_income))
+            .onNodeWithTag(DASHBOARD_AURORA_INCOME_PILL_TAG)
             .assertIsDisplayed()
         composeTestRule
-            .onNodeWithText(targetString(R.string.dashboard_currency_card_expense))
+            .onNodeWithTag(DASHBOARD_AURORA_EXPENSE_PILL_TAG)
             .assertIsDisplayed()
     }
 
     @Test
-    fun `income and expense panels are absent when snapshot is null`() {
+    fun `income and expense pills inside aurora card are shown even when snapshot is null`() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 DashboardContent(
@@ -1213,12 +1218,14 @@ class DashboardContentUiTest {
             }
         }
 
+        // Aurora card is always rendered in non-separate mode; pills are always present
+        // (showing a dash placeholder when the snapshot is absent).
         composeTestRule
-            .onAllNodes(hasText(targetString(R.string.dashboard_currency_card_income)))
-            .assertCountEquals(0)
+            .onNodeWithTag(DASHBOARD_AURORA_INCOME_PILL_TAG)
+            .assertIsDisplayed()
         composeTestRule
-            .onAllNodes(hasText(targetString(R.string.dashboard_currency_card_expense)))
-            .assertCountEquals(0)
+            .onNodeWithTag(DASHBOARD_AURORA_EXPENSE_PILL_TAG)
+            .assertIsDisplayed()
     }
 
     @Test
@@ -1308,6 +1315,122 @@ class DashboardContentUiTest {
         composeTestRule
             .onNodeWithTag(DASHBOARD_CURRENCY_CARDS_TAG)
             .assertIsDisplayed()
+    }
+
+    // -------------------------------------------------------------------------
+    // Aurora hero card (replaces standalone trend card + two income/expense panels)
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `aurora card label tag is present in non-separate mode`() {
+        val usd = usdCurrency()
+        val snapshot =
+            BalanceSnapshot(
+                income = Money(BigDecimal("200.00"), usd),
+                expense = Money(BigDecimal("50.00"), usd),
+                net = Money(BigDecimal("150.00"), usd),
+                byCategory = emptyList(),
+            )
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state =
+                        dashboardState(
+                            currency = usd,
+                            balanceSnapshot = snapshot,
+                            periodNet = snapshot.net,
+                            isLoading = false,
+                        ),
+                    onEvent = {},
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithTag(DASHBOARD_AURORA_LABEL_TAG)
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun `aurora card balance value tag is present in non-separate mode`() {
+        val usd = usdCurrency()
+        val snapshot =
+            BalanceSnapshot(
+                income = Money(BigDecimal("200.00"), usd),
+                expense = Money(BigDecimal("50.00"), usd),
+                net = Money(BigDecimal("150.00"), usd),
+                byCategory = emptyList(),
+            )
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state =
+                        dashboardState(
+                            currency = usd,
+                            balanceSnapshot = snapshot,
+                            periodNet = snapshot.net,
+                            isLoading = false,
+                        ),
+                    onEvent = {},
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithTag(DASHBOARD_AURORA_BALANCE_TAG)
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun `aurora card is absent in separate mode`() {
+        val usd = usdCurrency()
+        val eur =
+            Currency(
+                id = 2L,
+                code = "EUR",
+                symbol = "EUR",
+                name = "Euro",
+                decimalDigits = 2,
+                isActive = true,
+                sortOrder = 1,
+            )
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state =
+                        DashboardState(
+                            currencies = listOf(usd, eur),
+                            dashboardSelection =
+                                DashboardSelection.AllAccounts(AllAccountsFoldMode.Separate),
+                            currencyCards =
+                                listOf(
+                                    CurrencyBalanceCard(
+                                        currency = usd,
+                                        snapshot =
+                                            BalanceSnapshot(
+                                                income = Money(BigDecimal("100.00"), usd),
+                                                expense = Money(BigDecimal("30.00"), usd),
+                                                net = Money(BigDecimal("70.00"), usd),
+                                                byCategory = emptyList(),
+                                            ),
+                                    ),
+                                ),
+                            isLoading = false,
+                        ),
+                    onEvent = {},
+                )
+            }
+        }
+
+        composeTestRule
+            .onAllNodesWithTag(DASHBOARD_AURORA_LABEL_TAG)
+            .assertCountEquals(0)
+        composeTestRule
+            .onAllNodesWithTag(DASHBOARD_AURORA_INCOME_PILL_TAG)
+            .assertCountEquals(0)
     }
 
     // -------------------------------------------------------------------------

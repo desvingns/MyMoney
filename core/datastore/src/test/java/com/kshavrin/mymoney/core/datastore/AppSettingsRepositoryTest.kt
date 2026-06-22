@@ -68,7 +68,7 @@ class AppSettingsRepositoryTest {
             assertEquals(0L, settings.dashboardPeriodEpochMs)
             assertEquals(null, settings.tzNormalizedAt)
             assertEquals(true, settings.chartVisible)
-            assertEquals("neon_line", settings.chartStyle)
+            assertEquals("smooth_area", settings.chartStyle)
             assertEquals("follow", settings.chartPeriodType)
             assertEquals(5, settings.chartPointCount)
             assertEquals("cumulative", settings.chartMetric)
@@ -141,7 +141,7 @@ class AppSettingsRepositoryTest {
             }
         val settings = legacyPrefs.toAppSettings()
         assertEquals(true, settings.chartVisible)
-        assertEquals("neon_line", settings.chartStyle)
+        assertEquals("smooth_area", settings.chartStyle)
         assertEquals("follow", settings.chartPeriodType)
         assertEquals(5, settings.chartPointCount)
         assertEquals("cumulative", settings.chartMetric)

@@ -66,6 +66,8 @@ import com.kshavrin.mymoney.feature.dashboard.components.PeriodSwitcher
 import com.kshavrin.mymoney.feature.dashboard.components.RightDrawerContent
 import com.kshavrin.mymoney.feature.dashboard.components.ThreeFabLayout
 import com.kshavrin.mymoney.feature.dashboard.components.localizedLabel
+import java.math.BigDecimal
+import java.math.RoundingMode
 import java.time.Year
 import java.util.Locale
 
@@ -400,9 +402,9 @@ private fun formatBalanceAmount(
 ): String {
     if (state.balanceSnapshot == null) return unavailableText
     return MoneyFormatter.format(
-        amount = state.periodNet.amount,
+        amount = truncateDashboardAmount(state.periodNet.amount),
         currencySymbol = state.periodNet.currency.symbol,
-        decimalDigits = state.periodNet.currency.decimalDigits,
+        decimalDigits = 0,
         locale = locale,
         symbolPosition = MoneyFormatter.SymbolPosition.AFTER,
     )
@@ -413,11 +415,14 @@ private fun formatMoney(
     locale: Locale,
 ): String =
     MoneyFormatter.format(
-        amount = money.amount,
+        amount = truncateDashboardAmount(money.amount),
         currencySymbol = money.currency.symbol,
-        decimalDigits = money.currency.decimalDigits,
+        decimalDigits = 0,
         locale = locale,
+        symbolPosition = MoneyFormatter.SymbolPosition.AFTER,
     )
+
+private fun truncateDashboardAmount(amount: BigDecimal): BigDecimal = amount.setScale(0, RoundingMode.DOWN)
 
 const val DASHBOARD_TOP_BAR_TITLE_TAG = "dashboard_top_bar_title"
 const val DASHBOARD_TOP_BAR_SUBTITLE_TAG = "dashboard_top_bar_subtitle"

@@ -22,6 +22,8 @@ import com.kshavrin.mymoney.core.ui.theme.dashboardAuroraBalanceValue
 import com.kshavrin.mymoney.core.ui.theme.dashboardCurrencyCardCurrencyCode
 import com.kshavrin.mymoney.feature.dashboard.ChartConfig
 import com.kshavrin.mymoney.feature.dashboard.CurrencyBalanceCard
+import java.math.BigDecimal
+import java.math.RoundingMode
 import java.util.Locale
 
 // "All accounts → show separately" (D6): a vertical stack of per-currency balance cards. Each card
@@ -101,12 +103,14 @@ private fun formatCardAmount(
     locale: Locale,
 ): String =
     MoneyFormatter.format(
-        amount = money.amount,
+        amount = truncateCardAmount(money.amount),
         currencySymbol = money.currency.symbol,
-        decimalDigits = money.currency.decimalDigits,
+        decimalDigits = 0,
         locale = locale,
         symbolPosition = MoneyFormatter.SymbolPosition.AFTER,
     )
+
+private fun truncateCardAmount(amount: BigDecimal): BigDecimal = amount.setScale(0, RoundingMode.DOWN)
 
 // Per-card container tag: the shared list tag suffixed with the currency code, so a test can target
 // an individual card without each card claiming the same tag.

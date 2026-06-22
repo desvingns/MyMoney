@@ -47,6 +47,7 @@ import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_CATEGORIES
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_CHART_SETTINGS_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_CURRENCIES_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_FINANCIAL_GOALS_TAG
+import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_SEARCH_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_SETTINGS_TAG
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -62,6 +63,117 @@ import java.time.format.DateTimeFormatter
 class DashboardContentUiTest {
     @get:Rule
     val composeTestRule = createComposeRule()
+
+    // ── Three-FAB layout (ThreeFabLayout) ─────────────────────────────────────
+
+    @Test
+    fun `all three fabs are rendered expense transfer income`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state = DashboardState(isLoading = false),
+                    onEvent = {},
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.fab_expense_content_description))
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.fab_transfer_content_description))
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.fab_income_content_description))
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun `middle transfer fab emits TransferClicked and the other two fabs do not`() {
+        val capturedEvents = mutableListOf<DashboardEvent>()
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state = DashboardState(isLoading = false),
+                    onEvent = { capturedEvents += it },
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.fab_transfer_content_description))
+            .assertIsEnabled()
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(DashboardEvent.TransferClicked), capturedEvents)
+        }
+    }
+
+    @Test
+    fun `three fabs carry no visible text labels`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state = DashboardState(isLoading = false),
+                    onEvent = {},
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithText(targetString(R.string.fab_expense_label))
+            .assertDoesNotExist()
+        composeTestRule
+            .onNodeWithText(targetString(R.string.fab_income_label))
+            .assertDoesNotExist()
+        // fab_transfer has no label string — absence is implicit via assertDoesNotExist above.
+    }
+
+    // ── Top bar single-row period switcher ────────────────────────────────────
+
+    @Test
+    fun `period switcher in single-row toolbar shows period title and both chevrons`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state =
+                        DashboardState(
+                            period = Period.Month(YearMonth.of(2026, 6)),
+                            isLoading = false,
+                        ),
+                    onEvent = {},
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithTag(DASHBOARD_TOP_BAR_PERIOD_TAG)
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.period_previous))
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.period_next))
+            .assertIsDisplayed()
+    }
+
+    // ── Right-drawer Search row ───────────────────────────────────────────────
+
+    @Test
+    fun `right drawer search row is displayed when right drawer is open`() {
+        setStatefulDashboardContent(
+            initialState = DashboardState(isLoading = false, rightDrawerOpen = true),
+        )
+        composeTestRule.waitForIdle()
+
+        composeTestRule
+            .onNodeWithTag(RIGHT_DRAWER_SEARCH_TAG, useUnmergedTree = true)
+            .assertIsDisplayed()
+    }
+
+    // ── Legacy tests (unchanged functionality) ────────────────────────────────
 
     @Test
     fun `expense fab stays enabled in empty dashboard and emits minus event`() {
@@ -135,50 +247,30 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `top bar transfer button stays enabled in empty dashboard and emits transfer event`() {
+    fun `search row in right drawer emits search event when clicked`() {
         val capturedEvents = mutableListOf<DashboardEvent>()
 
-        composeTestRule.setContent {
-            MyMoneyTheme {
-                DashboardContent(
-                    state = DashboardState(isLoading = false),
-                    onEvent = { event -> capturedEvents += event },
-                )
-            }
-        }
+        setStatefulDashboardContent(
+            initialState = DashboardState(isLoading = false, rightDrawerOpen = true),
+            onCapturedEvent = { event ->
+                if (event !is DashboardEvent.RightDrawerToggled) {
+                    capturedEvents += event
+                }
+            },
+        )
+        composeTestRule.waitForIdle()
 
-        val transferButtons =
-            composeTestRule
-                .onAllNodesWithContentDescription(targetString(R.string.dashboard_transfer))
-
-        transferButtons.assertCountEquals(1)
-        transferButtons[0].assertIsEnabled().performClick()
-
-        composeTestRule.runOnIdle {
-            assertEquals(listOf(DashboardEvent.TransferClicked), capturedEvents)
-        }
-    }
-
-    @Test
-    fun `search button stays enabled in empty dashboard and emits search event`() {
-        val capturedEvents = mutableListOf<DashboardEvent>()
-
-        composeTestRule.setContent {
-            MyMoneyTheme {
-                DashboardContent(
-                    state = DashboardState(isLoading = false),
-                    onEvent = { event -> capturedEvents += event },
-                )
-            }
-        }
-
+        // Search was moved from the toolbar into RightDrawerContent (RIGHT_DRAWER_SEARCH_TAG).
         composeTestRule
-            .onNodeWithContentDescription(targetString(R.string.dashboard_search))
-            .assertIsEnabled()
+            .onNodeWithTag(RIGHT_DRAWER_SEARCH_TAG, useUnmergedTree = true)
+            .assertIsDisplayed()
             .performClick()
 
         composeTestRule.runOnIdle {
-            assertEquals(listOf(DashboardEvent.SearchClicked), capturedEvents)
+            assertTrue(
+                "expected SearchClicked to be emitted but got $capturedEvents",
+                capturedEvents.contains(DashboardEvent.SearchClicked),
+            )
         }
     }
 
@@ -212,7 +304,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `top bar action icons stay visible and emit their existing events`() {
+    fun `toolbar action icons stay visible and emit their existing events`() {
         val capturedEvents = mutableListOf<DashboardEvent>()
 
         composeTestRule.setContent {
@@ -224,18 +316,10 @@ class DashboardContentUiTest {
             }
         }
 
+        // Single-row top bar: only menu (left) and overflow-menu (right).
+        // Transfer and Search were removed from the toolbar.
         composeTestRule
             .onNodeWithContentDescription(targetString(R.string.dashboard_menu))
-            .assertIsDisplayed()
-            .assertIsEnabled()
-            .performClick()
-        composeTestRule
-            .onNodeWithContentDescription(targetString(R.string.dashboard_transfer))
-            .assertIsDisplayed()
-            .assertIsEnabled()
-            .performClick()
-        composeTestRule
-            .onNodeWithContentDescription(targetString(R.string.dashboard_search))
             .assertIsDisplayed()
             .assertIsEnabled()
             .performClick()
@@ -249,13 +333,33 @@ class DashboardContentUiTest {
             assertEquals(
                 listOf(
                     DashboardEvent.LeftDrawerToggled,
-                    DashboardEvent.TransferClicked,
-                    DashboardEvent.SearchClicked,
                     DashboardEvent.RightDrawerToggled,
                 ),
                 capturedEvents,
             )
         }
+    }
+
+    @Test
+    fun `toolbar does not expose transfer or search icons`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state = DashboardState(isLoading = false),
+                    onEvent = {},
+                )
+            }
+        }
+
+        // Transfer moved from the toolbar to the middle FAB — exactly one node with that
+        // content description is expected (the FAB itself, not a toolbar icon).
+        composeTestRule
+            .onAllNodesWithContentDescription(targetString(R.string.fab_transfer_content_description))
+            .assertCountEquals(1)
+        // Search moved to the right drawer; drawer is closed by default → count stays 0.
+        composeTestRule
+            .onAllNodesWithContentDescription(targetString(R.string.dashboard_search))
+            .assertCountEquals(0)
     }
 
     @Test
@@ -352,9 +456,11 @@ class DashboardContentUiTest {
     @Test
     fun `right drawer rows display and emit their destination events`() {
         val capturedEvents = mutableListOf<DashboardEvent>()
-        // The drawer now includes the chart-settings row between Currencies and Settings (SPEC 06).
+        // Search moved from toolbar into right drawer (this commit).
+        // Order: Search · Categories · Accounts · Goals · Currencies · Chart settings · Settings · About.
         val drawerRows =
             listOf(
+                RIGHT_DRAWER_SEARCH_TAG,
                 RIGHT_DRAWER_CATEGORIES_TAG,
                 RIGHT_DRAWER_ACCOUNTS_TAG,
                 RIGHT_DRAWER_CURRENCIES_TAG,
@@ -384,6 +490,7 @@ class DashboardContentUiTest {
         composeTestRule.runOnIdle {
             assertEquals(
                 listOf(
+                    DashboardEvent.SearchClicked,
                     DashboardEvent.CategoriesClicked,
                     DashboardEvent.AccountsClicked,
                     DashboardEvent.CurrenciesClicked,
@@ -544,7 +651,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `left drawer overlay covers the top bar so search button is not reachable while drawer is open`() {
+    fun `left drawer overlay covers the more button so it is not reachable while left drawer is open`() {
         val capturedEvents = mutableListOf<DashboardEvent>()
 
         setStatefulDashboardContent(
@@ -553,14 +660,16 @@ class DashboardContentUiTest {
         )
         composeTestRule.waitForIdle()
 
+        // The left drawer overlay covers the toolbar. Tapping the "more" area fires DrawerDismissed
+        // because the scrim intercepts it — RightDrawerToggled must not be emitted.
         composeTestRule
-            .onNodeWithContentDescription(targetString(R.string.dashboard_search))
+            .onNodeWithContentDescription(targetString(R.string.dashboard_overflow_menu))
             .performClick()
 
         composeTestRule.runOnIdle {
             assertFalse(
-                "SearchClicked must not be emitted while the drawer overlay covers the top bar",
-                capturedEvents.contains(DashboardEvent.SearchClicked),
+                "RightDrawerToggled must not be emitted while the left drawer overlay covers the top bar",
+                capturedEvents.contains(DashboardEvent.RightDrawerToggled),
             )
             assertTrue(
                 "DrawerDismissed must be emitted when the overlay scrim intercepts the tap",
@@ -569,31 +678,11 @@ class DashboardContentUiTest {
         }
     }
 
-    @Test
-    fun `right drawer overlay covers the top bar so transfer button is not reachable while drawer is open`() {
-        val capturedEvents = mutableListOf<DashboardEvent>()
-
-        setStatefulDashboardContent(
-            initialState = DashboardState(isLoading = false, rightDrawerOpen = true),
-            onCapturedEvent = { event -> capturedEvents += event },
-        )
-        composeTestRule.waitForIdle()
-
-        composeTestRule
-            .onNodeWithContentDescription(targetString(R.string.dashboard_transfer))
-            .performClick()
-
-        composeTestRule.runOnIdle {
-            assertFalse(
-                "TransferClicked must not be emitted while the drawer overlay covers the top bar",
-                capturedEvents.contains(DashboardEvent.TransferClicked),
-            )
-            assertTrue(
-                "DrawerDismissed must be emitted when the overlay scrim intercepts the tap",
-                capturedEvents.contains(DashboardEvent.DrawerDismissed),
-            )
-        }
-    }
+    // Note: FAB-occlusion by the right drawer scrim is not assertable via Compose semantics —
+    // performClick() on a semantics node bypasses the drawn scrim overlay.  The scrim-dismiss
+    // contract is fully covered by `scrim tap dismisses the right drawer` (below) and by
+    // DashboardDrawerOverlayUiTest, which verifies that a raw-coordinates tap on the scrim area
+    // calls onDismiss.  No separate FAB-occlusion test is required.
 
     @Test
     fun `scrim tap dismisses the left drawer and closes both drawer flags`() {
@@ -844,7 +933,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `expense and income fabs are exactly 94dp keep content descriptions and preserve their events`() {
+    fun `all three fabs are exactly dashboardFabSize keep content descriptions and preserve their events`() {
         val capturedEvents = mutableListOf<DashboardEvent>()
         composeTestRule.setContent {
             MyMoneyTheme {
@@ -862,6 +951,12 @@ class DashboardContentUiTest {
             .assertHeightIsEqualTo(94.dp)
             .performClick()
         composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.fab_transfer_content_description))
+            .assertIsDisplayed()
+            .assertWidthIsEqualTo(94.dp)
+            .assertHeightIsEqualTo(94.dp)
+            .performClick()
+        composeTestRule
             .onNodeWithContentDescription(targetString(R.string.fab_income_content_description))
             .assertIsDisplayed()
             .assertWidthIsEqualTo(94.dp)
@@ -870,7 +965,11 @@ class DashboardContentUiTest {
 
         composeTestRule.runOnIdle {
             assertEquals(
-                listOf(DashboardEvent.MinusFabClicked, DashboardEvent.PlusFabClicked),
+                listOf(
+                    DashboardEvent.MinusFabClicked,
+                    DashboardEvent.TransferClicked,
+                    DashboardEvent.PlusFabClicked,
+                ),
                 capturedEvents,
             )
         }

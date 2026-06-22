@@ -2,8 +2,10 @@ package com.kshavrin.mymoney.feature.dashboard
 
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -23,18 +25,20 @@ import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 
 /**
- * Verifies that the two-row top bar renders the period label without overflow or truncation.
+ * Verifies that the single-row top bar renders the period label without overflow or truncation.
  *
- * Layout contract (two-row DashboardTopBar):
- *   Row 1 — exactly 4 icon buttons: menu, transfer, search, more-vert.
- *   Row 2 — full-width PeriodSwitcher: ‹ <AutoShrinkPeriodTitle> ›
+ * Layout contract (single-row DashboardTopBar):
+ *   One row — [menu/back icon] · [PeriodSwitcher centred: ‹ title+mint-underline ›] · [more icon].
+ *   Transfer and Search icons were removed from the toolbar (transfer → middle FAB,
+ *   search → right drawer). The toolbar therefore exposes exactly three interactive controls:
+ *   navigation icon, two period chevrons (inside PeriodSwitcher), and the overflow-menu icon.
  *
- * DASHBOARD_TOP_BAR_PERIOD_TAG is on the PeriodSwitcher Row (row 2).
+ * DASHBOARD_TOP_BAR_PERIOD_TAG is on the PeriodSwitcher Row inside the single toolbar row.
  * GetTextLayoutResult is only populated on Text nodes, so layout assertions use
  * onNodeWithText(..., useUnmergedTree = true) to reach the AutoShrinkPeriodTitle Text.
  *
  * Single-token labels (Day, current-year Month, Year, All) must render on exactly 1 line.
- * Range/multi-part labels (Week, off-year Month, CustomRange) must render on exactly 2 lines.
+ * Range/multi-part labels (Week, CustomRange) must render on exactly 2 lines.
  * Neither variant may overflow its width.
  */
 @RunWith(AndroidJUnit4::class)
@@ -42,10 +46,10 @@ class DashboardTopBarPeriodTitleUiTest {
     @get:Rule
     val composeTestRule = createComposeRule()
 
-    // ── two-row layout structural assertions ──────────────────────────────────
+    // ── single-row layout structural assertions ───────────────────────────────
 
     @Test
-    fun `period switcher sits below the icon row and is not in the same row as the icons`() {
+    fun `period switcher sits in the same single row as the menu and more icons`() {
         setDashboard(Period.Month(YearMonth.of(2026, 9)))
 
         val ctx = InstrumentationRegistry.getInstrumentation().targetContext
@@ -63,55 +67,47 @@ class DashboardTopBarPeriodTitleUiTest {
                 .fetchSemanticsNode()
                 .boundsInRoot
 
+        // In a single-row top bar the period switcher vertically overlaps the menu icon.
+        val periodCentreY = (periodBounds.top + periodBounds.bottom) / 2f
         assertTrue(
-            "PeriodSwitcher row must start at or below the bottom of the icon row " +
-                "(menuBottom=${menuBounds.bottom}, periodTop=${periodBounds.top})",
-            periodBounds.top >= menuBounds.bottom,
+            "PeriodSwitcher vertical centre ($periodCentreY) must be within menu icon bounds " +
+                "(top=${menuBounds.top}, bottom=${menuBounds.bottom})",
+            periodCentreY >= menuBounds.top && periodCentreY <= menuBounds.bottom,
         )
     }
 
     @Test
-    fun `icon row contains exactly four icon buttons menu transfer search more`() {
+    fun `toolbar contains exactly three interactive areas menu period more and no transfer or search icons`() {
         setDashboard(Period.Month(YearMonth.of(2026, 9)))
 
         val ctx = InstrumentationRegistry.getInstrumentation().targetContext
 
+        // Menu and More must exist in the single-row toolbar.
         composeTestRule
             .onNodeWithContentDescription(ctx.getString(R.string.dashboard_menu))
             .assertIsDisplayed()
         composeTestRule
-            .onNodeWithContentDescription(ctx.getString(R.string.dashboard_transfer))
-            .assertIsDisplayed()
-        composeTestRule
-            .onNodeWithContentDescription(ctx.getString(R.string.dashboard_search))
-            .assertIsDisplayed()
-        composeTestRule
             .onNodeWithContentDescription(ctx.getString(R.string.dashboard_overflow_menu))
             .assertIsDisplayed()
+
+        // Transfer moved from the toolbar to the middle FAB.  The FAB is the single node
+        // that carries this content description — assert count == 1 (FAB only, not toolbar).
+        composeTestRule
+            .onAllNodesWithContentDescription(ctx.getString(R.string.fab_transfer_content_description))
+            .assertCountEquals(1)
+        // Search moved to the right drawer; drawer is closed by default → count stays 0.
+        composeTestRule
+            .onAllNodesWithContentDescription(ctx.getString(R.string.dashboard_search))
+            .assertCountEquals(0)
     }
 
     @Test
-    fun `period switcher fills the full width of the top bar second row`() {
+    fun `period switcher is visible inside the single toolbar row`() {
         setDashboard(Period.Month(YearMonth.of(2026, 9)))
 
-        val rootBounds =
-            composeTestRule
-                .onNodeWithTag(DASHBOARD_TOP_BAR_PERIOD_TAG)
-                .assertIsDisplayed()
-                .fetchSemanticsNode()
-                .boundsInRoot
-
-        val screenWidth =
-            InstrumentationRegistry
-                .getInstrumentation()
-                .targetContext.resources.displayMetrics.widthPixels
-                .toFloat()
-
-        assertTrue(
-            "PeriodSwitcher must span the full screen width " +
-                "(switcher width=${rootBounds.width}, screen=$screenWidth)",
-            rootBounds.width >= screenWidth * 0.99f,
-        )
+        composeTestRule
+            .onNodeWithTag(DASHBOARD_TOP_BAR_PERIOD_TAG)
+            .assertIsDisplayed()
     }
 
     // ── single-token labels (must be 1 line, no overflow) ────────────────────
@@ -279,23 +275,25 @@ class DashboardTopBarPeriodTitleUiTest {
     // ── toolbar controls remain accessible ────────────────────────────────────
 
     @Test
-    fun `four icon row controls and period chevrons remain visible when period title spans two lines`() {
+    fun `menu more and period chevrons remain visible when period title spans two lines`() {
         setDashboard(Period.Week(LocalDate.of(2026, 6, 15)))
 
         val ctx = InstrumentationRegistry.getInstrumentation().targetContext
 
+        // Menu and more remain in the single-row toolbar even with a two-line period title.
         composeTestRule
             .onNodeWithContentDescription(ctx.getString(R.string.dashboard_menu))
             .assertIsDisplayed()
         composeTestRule
-            .onNodeWithContentDescription(ctx.getString(R.string.dashboard_transfer))
-            .assertIsDisplayed()
-        composeTestRule
-            .onNodeWithContentDescription(ctx.getString(R.string.dashboard_search))
-            .assertIsDisplayed()
-        composeTestRule
             .onNodeWithContentDescription(ctx.getString(R.string.dashboard_overflow_menu))
             .assertIsDisplayed()
+
+        // Search moved to the right drawer; drawer is closed by default → still 0.
+        composeTestRule
+            .onAllNodesWithContentDescription(ctx.getString(R.string.dashboard_search))
+            .assertCountEquals(0)
+
+        // Chevrons inside PeriodSwitcher must still be present.
         composeTestRule
             .onNodeWithContentDescription(ctx.getString(R.string.period_previous))
             .assertIsDisplayed()
@@ -339,10 +337,10 @@ class DashboardTopBarPeriodTitleUiTest {
         assertChevronControls(Period.CustomRange(LocalDate.of(2026, 3, 1), LocalDate.of(2026, 5, 31)))
     }
 
-    // ── period switcher row does not contain icon-row controls ────────────────
+    // ── period switcher row chevrons sit within the period tag bounds ─────────
 
     @Test
-    fun `period switcher row is distinct from icon row - chevrons sit inside period tag bounds`() {
+    fun `period switcher chevrons sit inside the period tag bounds`() {
         setDashboard(Period.Month(YearMonth.of(2026, 9)))
 
         val ctx = InstrumentationRegistry.getInstrumentation().targetContext

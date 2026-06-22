@@ -23,6 +23,19 @@ object Spacing {
     val dashboardFabOutlineWidth = 3.6.dp
     val dashboardFabIconSize = 29.dp
     val dashboardFabLabelTopPadding = 16.dp
+
+    // Dashboard FAB row (three-button «Dashboard Final» redesign — RealFabs).
+    // Three 94dp neon-outline rings are laid out with space-between justification.
+    // dashboardFabRowHorizontalPadding is the side inset (mockup: padding '12px 26px 18px'
+    // → 26px each side) so the outer FABs sit ~26dp from the screen edge.
+    // dashboardFabRowVerticalPaddingTop / Bottom preserve the mockup's asymmetric
+    // vertical spacing (12dp above, 18dp below) which visually grounds the FABs at the
+    // bottom of the screen without excessive dead space above them.
+    // Distinct from dashboardFabHorizontalPadding (44dp) which was the per-FAB centering
+    // offset used in the two-FAB TwoFabLayout.
+    val dashboardFabRowHorizontalPadding = 26.dp
+    val dashboardFabRowVerticalPaddingTop = 12.dp
+    val dashboardFabRowVerticalPaddingBottom = 18.dp
     val dashboardDonutExplodedOffset = 8.dp
     val dashboardDonutCenterDividerWidth = 52.dp
     val dashboardDonutCenterDividerThickness = 1.dp
@@ -56,6 +69,16 @@ object Spacing {
     // the 48dp IconButton touch target.
     val dashboardTopBarMinHeight = 44.dp
     val dashboardTopBarIconGlyphSize = 24.dp
+
+    // Dashboard top-bar (single-row «Dashboard Final» redesign) — mint underline
+    // bar beneath the period title label.  The bar is always visible (not tied to
+    // selection state) and serves as a decorative accent per the «Dashboard Final»
+    // mockup (RealTopBar: width 78, height 4, borderRadius 2, color NeonMint).
+    // Distinct from dashboardPeriodIndicatorWidth (88dp) which was used for the
+    // two-row layout's horizontal selection strip.
+    val dashboardPeriodUnderlineWidth = 78.dp
+    val dashboardPeriodUnderlineHeight = 4.dp
+    val dashboardPeriodUnderlineRadius = 2.dp
 
     // Edit-form delete button — taller than a standard OutlinedButton so the
     // destructive action stays clearly separate from the save FAB.

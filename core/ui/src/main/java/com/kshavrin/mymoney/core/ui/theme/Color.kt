@@ -216,6 +216,13 @@ val ColorScheme.dashboardActionIncome: Color
 val ColorScheme.dashboardActionExpense: Color
     get() = NeonCoral
 
+// Transfer FAB accent — NeonCyan completes the three-button neon triad
+// (coral=expense / cyan=transfer / mint=income) per the «Dashboard Final» mockup (RealFabs).
+// Named alias for symmetry with dashboardActionIncome / dashboardActionExpense so the
+// developer never needs to reference secondary directly for this semantic role.
+val ColorScheme.dashboardActionTransfer: Color
+    get() = NeonCyan
+
 val ColorScheme.goalSavingsChipContainer: Color
     get() = primaryContainer
 

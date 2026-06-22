@@ -33,6 +33,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import com.kshavrin.mymoney.core.ui.theme.Spacing
+import com.kshavrin.mymoney.core.ui.theme.dashboardAuroraAccent
 import com.kshavrin.mymoney.core.ui.theme.expenseAccent
 import com.kshavrin.mymoney.core.ui.theme.incomeAccent
 import com.kshavrin.mymoney.core.ui.theme.trendChartGridLine
@@ -53,6 +54,12 @@ private data class BalanceTrendChartPalette(
     val income: Color,
     val expense: Color,
     val glow: Color,
+    // Neon-wave accent (ChartWave). Used by SmoothArea when the colour rule is the default
+    // (multi mode): the wave fill + stroke + dots are drawn in this accent instead of a
+    // sign-driven income/expense colour.
+    val accent: Color,
+    // True when no explicit Income/Expense colour was chosen, so the wave should use [accent].
+    val accentLine: Boolean,
 )
 
 data class BalanceTrendChartGeometry(
@@ -150,12 +157,15 @@ fun BalanceTrendChart(
     val gridColor = MaterialTheme.colorScheme.trendChartGridLine
     val zeroLineColor = MaterialTheme.colorScheme.trendChartZeroLine
     val glowColor = MaterialTheme.colorScheme.trendChartMarkerGlow
+    val accentColor = MaterialTheme.colorScheme.dashboardAuroraAccent
     val palette =
         BalanceTrendChartPalette(
             line = lineColor,
             income = incomeColor,
             expense = expenseColor,
             glow = glowColor,
+            accent = accentColor,
+            accentLine = colorRule == ChartColorRule.BySign,
         )
     val labelStyle = MaterialTheme.typography.labelSmall.copy(color = gridColor)
 
@@ -285,9 +295,19 @@ private fun DrawScope.drawBalanceTrendChartStyle(
         }
 
         ChartStyle.SmoothArea -> {
-            drawArea(chartPoints, baseline, palette.line, cache.areaPath, smooth = true, alpha = 0.16f)
-            drawPathLine(chartPoints, palette.line, lineStroke, cache.linePath, smooth = true)
-            drawDots(chartPoints, palette.line, pointRadius)
+            // Neon-wave look (ChartWave, 02_neon-core-charts.jsx): smooth area filled with an
+            // accent gradient (accent@0.4 → 0), a glowing 2.4dp smooth line, small accent dots, and
+            // a larger/lighter last dot.
+            val waveColor = if (palette.accentLine) palette.accent else palette.line
+            drawWave(
+                points = chartPoints,
+                baseline = baseline,
+                color = waveColor,
+                areaPath = cache.areaPath,
+                linePath = cache.linePath,
+                lineStroke = lineStroke,
+                pointRadius = pointRadius,
+            )
             drawMarker(geometry.marker, palette.glow, glowPaint)
         }
 
@@ -522,6 +542,71 @@ private fun DrawScope.drawVerticalGradientArea(
                 startY = 0f,
                 endY = baseline,
             ),
+    )
+}
+
+// Neon-wave renderer (ChartWave). Order matters: gradient area first, then a soft wide glow stroke
+// under the crisp line, then the line, then dots. The last dot is drawn larger and lighter to echo
+// the highlighted "today" point in the mockup.
+private fun DrawScope.drawWave(
+    points: List<Offset>,
+    baseline: Float,
+    color: Color,
+    areaPath: Path,
+    linePath: Path,
+    lineStroke: Float,
+    pointRadius: Float,
+) {
+    if (points.isEmpty()) return
+
+    areaPath.buildArea(points, baseline, smooth = true, stepped = false)
+    drawPath(
+        path = areaPath,
+        brush =
+            Brush.verticalGradient(
+                colors = listOf(color.copy(alpha = 0.4f), color.copy(alpha = 0f)),
+                startY = 0f,
+                endY = baseline,
+            ),
+    )
+
+    if (points.size >= 2) {
+        // Soft neon halo: a wide, very translucent copy of the same smooth line.
+        linePath.buildSmooth(points)
+        drawPath(
+            path = linePath,
+            color = color.copy(alpha = 0.22f),
+            style = Stroke(width = lineStroke * 3.2f, cap = StrokeCap.Round, join = StrokeJoin.Round),
+        )
+        // Crisp accent line — ~2.4dp (2dp base × 1.2).
+        drawPath(
+            path = linePath,
+            color = color,
+            style = Stroke(width = lineStroke * 1.2f, cap = StrokeCap.Round, join = StrokeJoin.Round),
+        )
+    }
+
+    points.forEachIndexed { index, point ->
+        if (index == points.lastIndex) {
+            // Larger, lighter "today" dot.
+            drawCircle(color = lightenColor(color, 1.4f), radius = pointRadius * 1.33f, center = point)
+        } else {
+            drawCircle(color = color, radius = pointRadius * 0.87f, center = point)
+        }
+    }
+}
+
+// Mockup lighten(c, f) for f>1: move each channel toward white by (f-1).
+private fun lightenColor(
+    color: Color,
+    factor: Float,
+): Color {
+    val t = (factor - 1f).coerceIn(0f, 1f)
+    return Color(
+        red = color.red + (1f - color.red) * t,
+        green = color.green + (1f - color.green) * t,
+        blue = color.blue + (1f - color.blue) * t,
+        alpha = color.alpha,
     )
 }
 

@@ -2,10 +2,7 @@ package com.kshavrin.mymoney.feature.dashboard
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,7 +14,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -39,17 +35,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kshavrin.mymoney.core.common.money.MoneyFormatter
-import com.kshavrin.mymoney.core.designsystem.chart.BalanceTrendChart
 import com.kshavrin.mymoney.core.designsystem.confetti.MonefyConfetti
 import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.domain.model.Period
@@ -59,19 +52,10 @@ import com.kshavrin.mymoney.core.ui.flow.CollectActions
 import com.kshavrin.mymoney.core.ui.haptic.HapticKind
 import com.kshavrin.mymoney.core.ui.sound.SoundKey
 import com.kshavrin.mymoney.core.ui.theme.Spacing
-import com.kshavrin.mymoney.core.ui.theme.chartHiddenHint
-import com.kshavrin.mymoney.core.ui.theme.dashboardBalanceLabel
-import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanel
-import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanelContainer
-import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanelContainerNegative
-import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanelContent
-import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanelContentNegative
-import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanelOutline
-import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanelShadow
-import com.kshavrin.mymoney.core.ui.theme.dashboardBalanceValue
 import com.kshavrin.mymoney.core.ui.theme.dashboardNeonBackground
 import com.kshavrin.mymoney.feature.dashboard.components.AllAccountsConversionDialog
 import com.kshavrin.mymoney.feature.dashboard.components.AllAccountsConversionDialogHost
+import com.kshavrin.mymoney.feature.dashboard.components.AuroraBalanceCard
 import com.kshavrin.mymoney.feature.dashboard.components.CategoryTilesList
 import com.kshavrin.mymoney.feature.dashboard.components.ChartSettingsSheet
 import com.kshavrin.mymoney.feature.dashboard.components.CurrencyBalanceCardList
@@ -253,45 +237,26 @@ fun DashboardContent(
                                             allLabel = stringResource(R.string.period_all),
                                             currentYear = Year.now().value,
                                         )
-                                    DashboardTrendBalanceCard(
+                                    Spacer(modifier = Modifier.height(Spacing.l))
+                                    AuroraBalanceCard(
                                         label = stringResource(R.string.dashboard_balance_for_period, periodLabel),
-                                        amount =
+                                        balance =
                                             formatBalanceAmount(
                                                 state = state,
                                                 unavailableText = stringResource(R.string.dashboard_balance_unavailable_amount),
                                                 locale = resourceLocale,
                                             ),
-                                        isNegative = state.periodNet.amount.signum() < 0,
+                                        income =
+                                            snapshot?.let { formatMoney(it.income, resourceLocale) }
+                                                ?: stringResource(R.string.dashboard_balance_unavailable_amount),
+                                        expense =
+                                            snapshot?.let { formatMoney(it.expense, resourceLocale) }
+                                                ?: stringResource(R.string.dashboard_balance_unavailable_amount),
                                         points = state.trendPoints.map { it.value.amount.toFloat() },
                                         chartConfig = state.chartConfig,
-                                        onClick = { onEvent(DashboardEvent.BalanceCardClicked) },
                                         onChartClick = { onEvent(DashboardEvent.ChartTapped) },
                                         modifier = Modifier.padding(horizontal = Spacing.l),
                                     )
-
-                                    if (snapshot != null) {
-                                        Spacer(modifier = Modifier.height(Spacing.s))
-                                        Row(
-                                            modifier =
-                                                Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(horizontal = Spacing.l),
-                                            horizontalArrangement = Arrangement.spacedBy(Spacing.s),
-                                        ) {
-                                            DashboardBalancePanel(
-                                                label = stringResource(R.string.dashboard_currency_card_income),
-                                                amount = formatMoney(snapshot.income, resourceLocale),
-                                                isNegative = false,
-                                                modifier = Modifier.weight(1f),
-                                            )
-                                            DashboardBalancePanel(
-                                                label = stringResource(R.string.dashboard_currency_card_expense),
-                                                amount = formatMoney(snapshot.expense, resourceLocale),
-                                                isNegative = false,
-                                                modifier = Modifier.weight(1f),
-                                            )
-                                        }
-                                    }
 
                                     if (overBudgetText != null) {
                                         Spacer(modifier = Modifier.height(Spacing.s))
@@ -425,165 +390,6 @@ private fun DashboardTopBar(
                 modifier = Modifier.size(Spacing.dashboardTopBarIconGlyphSize),
             )
         }
-    }
-}
-
-@Composable
-private fun DashboardTrendBalanceCard(
-    label: String,
-    amount: String,
-    isNegative: Boolean,
-    points: List<Float>,
-    chartConfig: ChartConfig,
-    onClick: () -> Unit,
-    onChartClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val shape = MaterialTheme.shapes.dashboardBalancePanel
-    val containerColor =
-        if (isNegative) {
-            MaterialTheme.colorScheme.dashboardBalancePanelContainerNegative
-        } else {
-            MaterialTheme.colorScheme.dashboardBalancePanelContainer
-        }
-    val contentColor =
-        if (isNegative) {
-            MaterialTheme.colorScheme.dashboardBalancePanelContentNegative
-        } else {
-            MaterialTheme.colorScheme.dashboardBalancePanelContent
-        }
-    Column(
-        modifier =
-            modifier
-                .widthIn(max = Spacing.dashboardBalancePanelMaxWidth)
-                .fillMaxWidth()
-                .shadow(
-                    elevation = Spacing.s,
-                    shape = shape,
-                    ambientColor = MaterialTheme.colorScheme.dashboardBalancePanelShadow,
-                    spotColor = MaterialTheme.colorScheme.dashboardBalancePanelShadow,
-                ).background(containerColor, shape)
-                .border(
-                    width = Spacing.dashboardBalancePanelBorderWidth,
-                    color = MaterialTheme.colorScheme.dashboardBalancePanelOutline,
-                    shape = shape,
-                ).clickable(onClick = onClick)
-                .padding(horizontal = Spacing.m, vertical = Spacing.m),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.dashboardBalanceLabel,
-            color = contentColor,
-            maxLines = 1,
-            textAlign = TextAlign.Center,
-        )
-        Text(
-            text = amount,
-            style = MaterialTheme.typography.dashboardBalanceValue,
-            color = contentColor,
-            maxLines = 1,
-            textAlign = TextAlign.Center,
-        )
-        Spacer(modifier = Modifier.height(Spacing.s))
-        if (chartConfig.visible) {
-            Box(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .clickable(onClick = onChartClick)
-                        .testTag(DASHBOARD_TREND_CHART_TAG),
-            ) {
-                BalanceTrendChart(
-                    points = points,
-                    showGridlines = chartConfig.showGridlines,
-                    showLabels = chartConfig.showLabels,
-                    colorRule = chartConfig.colorRule,
-                    style = chartConfig.style,
-                )
-            }
-        } else {
-            Box(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .height(Spacing.chartHiddenHintHeight)
-                        .clickable(onClick = onChartClick)
-                        .testTag(DASHBOARD_CHART_HIDDEN_HINT_TAG),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = stringResource(R.string.chart_hidden_hint),
-                    style = MaterialTheme.typography.chartHiddenHint,
-                    color = contentColor,
-                    maxLines = 1,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun DashboardBalancePanel(
-    label: String,
-    amount: String,
-    isNegative: Boolean,
-    onClick: (() -> Unit)? = null,
-    modifier: Modifier = Modifier,
-) {
-    val shape = MaterialTheme.shapes.dashboardBalancePanel
-    val containerColor =
-        if (isNegative) {
-            MaterialTheme.colorScheme.dashboardBalancePanelContainerNegative
-        } else {
-            MaterialTheme.colorScheme.dashboardBalancePanelContainer
-        }
-    val contentColor =
-        if (isNegative) {
-            MaterialTheme.colorScheme.dashboardBalancePanelContentNegative
-        } else {
-            MaterialTheme.colorScheme.dashboardBalancePanelContent
-        }
-    Column(
-        modifier =
-            modifier
-                .widthIn(max = Spacing.dashboardBalancePanelMaxWidth)
-                .fillMaxWidth()
-                .height(Spacing.dashboardBalancePanelHeight)
-                .padding(horizontal = Spacing.none)
-                .shadow(
-                    elevation = Spacing.s,
-                    shape = shape,
-                    ambientColor = MaterialTheme.colorScheme.dashboardBalancePanelShadow,
-                    spotColor = MaterialTheme.colorScheme.dashboardBalancePanelShadow,
-                ).background(containerColor, shape)
-                .border(
-                    width = Spacing.dashboardBalancePanelBorderWidth,
-                    color = MaterialTheme.colorScheme.dashboardBalancePanelOutline,
-                    shape = shape,
-                ).then(
-                    if (onClick != null) {
-                        Modifier.clickable(onClick = onClick)
-                    } else {
-                        Modifier
-                    },
-                ).padding(horizontal = Spacing.m, vertical = Spacing.s),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.dashboardBalanceLabel,
-            color = contentColor,
-            maxLines = 1,
-            textAlign = TextAlign.Center,
-        )
-        Text(
-            text = amount,
-            style = MaterialTheme.typography.dashboardBalanceValue,
-            color = contentColor,
-            maxLines = 1,
-            textAlign = TextAlign.Center,
-        )
     }
 }
 

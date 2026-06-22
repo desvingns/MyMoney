@@ -81,6 +81,12 @@ object Spacing {
     // without dominating the dashboard card.
     val trendChartDefaultHeight = 96.dp
 
+    // Compact height for the mini trend chart embedded inside a CurrencyBalanceCard
+    // («Все счета → раздельно»). 48dp fits one visible slope without labels or
+    // decorative grid lines, leaves room for the balance text above it in the card,
+    // and respects the M3 minimum touch-target floor for the surrounding card.
+    val trendChartMiniHeight = 48.dp
+
     // Stroke width of the polyline series.
     val trendChartLineStrokeWidth = 2.dp
 

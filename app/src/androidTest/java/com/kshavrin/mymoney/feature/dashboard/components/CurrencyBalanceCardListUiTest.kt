@@ -3,6 +3,7 @@ package com.kshavrin.mymoney.feature.dashboard.components
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
@@ -266,6 +267,29 @@ class CurrencyBalanceCardListUiTest {
         composeTestRule
             .onNodeWithTag(DASHBOARD_CURRENCY_CARD_MINI_CHART_TAG)
             .assertDoesNotExist()
+    }
+
+    @Test
+    fun `mini trend chart appears only for the card that has trend points when two cards are present`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                CurrencyBalanceCardList(
+                    cards =
+                        listOf(
+                            usdCard(income = "100.00", expense = "30.00", withTrend = true),
+                            eurCard(income = "50.00", expense = "20.00"),
+                        ),
+                    chartConfig = ChartConfig(visible = true),
+                )
+            }
+        }
+
+        // Only one mini-chart node must exist: the USD card has trend, the EUR card does not.
+        val chartNodes =
+            composeTestRule.onAllNodes(
+                hasTestTag(DASHBOARD_CURRENCY_CARD_MINI_CHART_TAG),
+            )
+        assertEquals(1, chartNodes.fetchSemanticsNodes().size)
     }
 
     // -----------------------------------------------------------------------

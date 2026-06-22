@@ -326,3 +326,12 @@ val Typography.dashboardAuroraBalanceValue: TextStyle
             letterSpacing = (-1).sp,
             lineHeight = 40.sp,
         )
+
+val Typography.dashboardAuroraBalanceValueCompact: TextStyle
+    get() =
+        displayMedium.copy(
+            fontSize = 34.sp,
+            fontWeight = FontWeight.ExtraBold,
+            letterSpacing = (-1).sp,
+            lineHeight = 38.sp,
+        )

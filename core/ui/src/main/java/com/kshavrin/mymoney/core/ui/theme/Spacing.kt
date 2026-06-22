@@ -161,17 +161,22 @@ object Spacing {
     // Top and horizontal padding — 18dp from mockup `padding: '18px 18px 14px'`.
     // Not a standard 4dp-grid value; named here so no raw `18.dp` appears in the
     // composable (exact design spec, see SecAurora padding).
+    val dashboardAuroraCardWidthFractionWide = 0.95f
+    val dashboardAuroraHostHorizontalPaddingWide = 8.dp
     val dashboardAuroraCardPaddingTop = 18.dp
     val dashboardAuroraCardPaddingHorizontal = 18.dp
 
     // Bottom padding — 14dp from the same SecAurora padding rule.
     val dashboardAuroraCardPaddingBottom = 14.dp
+    val dashboardAuroraCardPaddingTopCompact = 16.dp
+    val dashboardAuroraCardPaddingBottomCompact = 12.dp
 
     // In-card NeonChart height — 116dp as specified in SecAurora:
     //   <NeonChart ... h={116} />
     // Distinct from trendChartDefaultHeight (96dp, standalone card) and
     // trendChartMiniHeight (48dp, currency mini-chart).
     val dashboardAuroraChartHeight = 116.dp
+    val dashboardAuroraChartHeightCompact = 110.dp
 
     // Income/expense pill internal padding per SecAurora `padding: '5px 12px'`.
     // 5dp vertical is a design-spec value (not a 4dp multiple); named to avoid
@@ -186,4 +191,5 @@ object Spacing {
     // `marginBottom: 12` on pill row).
     val dashboardAuroraValueBottomMargin = 2.dp
     val dashboardAuroraPillBottomMargin = 12.dp
+    val dashboardAuroraPillBottomMarginCompact = 10.dp
 }

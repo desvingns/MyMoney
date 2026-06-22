@@ -2839,6 +2839,152 @@ class DashboardViewModelTest {
         }
 
     // -------------------------------------------------------------------------
+    // Separate mode — per-currency mini-chart trendPoints (SPEC G17)
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `separate mode currency cards each carry trend points from their own currency group only`() =
+        runTest {
+            val eurAccount = account(id = 3L, name = "Euro card", isDefault = false, currencyId = eur.id)
+            accountRepository.seed(cash, eurAccount)
+            currencyRepository.seed(usd, eur)
+            // USD: income in every month of the 5-point window
+            for (monthOffset in 0 until 5) {
+                val period = Period.Month(YearMonth.now().minusMonths((4 - monthOffset).toLong()))
+                transactionRepository.seedIncomeSummary(
+                    cash.id,
+                    period,
+                    summary(categoryId = 200L, amount = "${(monthOffset + 1) * 10}.00"),
+                )
+            }
+            // EUR: expense in every month of the 5-point window
+            for (monthOffset in 0 until 5) {
+                val period = Period.Month(YearMonth.now().minusMonths((4 - monthOffset).toLong()))
+                transactionRepository.seedExpenseSummary(
+                    eurAccount.id,
+                    period,
+                    summary(categoryId = 10L, amount = "${(monthOffset + 1) * 5}.00"),
+                )
+            }
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.AllAccountsSeparateChosen)
+                runCurrent()
+
+                val cards = viewModel.state.value.currencyCards
+                assertEquals(2, cards.size)
+
+                val usdCard = cards.single { it.currency.code == "USD" }
+                val eurCard2 = cards.single { it.currency.code == "EUR" }
+
+                // Each card must have its own 5-point series.
+                assertEquals(5, usdCard.trendPoints.size)
+                assertEquals(5, eurCard2.trendPoints.size)
+
+                // USD trend is denominated in USD; EUR trend is denominated in EUR — no cross-rate.
+                usdCard.trendPoints.forEach { point ->
+                    assertEquals(usd, point.value.currency)
+                }
+                eurCard2.trendPoints.forEach { point ->
+                    assertEquals(eur, point.value.currency)
+                }
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `separate mode currency card trend points are empty when chart config is not visible`() =
+        runTest {
+            val eurAccount = account(id = 3L, name = "Euro card", isDefault = false, currencyId = eur.id)
+            accountRepository.seed(cash, eurAccount)
+            currencyRepository.seed(usd, eur)
+            settingsRepository =
+                FakeDashboardAppSettingsRepository(
+                    AppSettings(defaultAccountId = cash.id, firstPositiveSeen = true, chartVisible = false),
+                )
+            transactionRepository.seedIncomeSummary(
+                cash.id,
+                initialPeriod,
+                summary(categoryId = 200L, amount = "100.00"),
+            )
+            transactionRepository.seedExpenseSummary(
+                eurAccount.id,
+                initialPeriod,
+                summary(categoryId = 10L, amount = "50.00"),
+            )
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.AllAccountsSeparateChosen)
+                runCurrent()
+
+                val cards = viewModel.state.value.currencyCards
+                assertEquals(2, cards.size)
+                assertTrue(
+                    "all currency card trendPoints must be empty when chartConfig.visible=false",
+                    cards.all { it.trendPoints.isEmpty() },
+                )
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `separate mode currency card for usd does not include transactions from eur accounts in its trend`() =
+        runTest {
+            // G17: USD card trend must be derived from BalanceCalculator.forAccounts(usdAccounts, usd, period)
+            // only. If EUR transactions leaked in, the USD trend values would be inflated.
+            val eurAccount = account(id = 3L, name = "Euro card", isDefault = false, currencyId = eur.id)
+            accountRepository.seed(cash, eurAccount)
+            currencyRepository.seed(usd, eur)
+
+            val trendPeriod = Period.Month(YearMonth.now().minusMonths(1))
+            // USD: income 100 in trendPeriod
+            transactionRepository.seedIncomeSummary(
+                cash.id,
+                trendPeriod,
+                summary(categoryId = 200L, amount = "100.00"),
+            )
+            // EUR: income 9999 in the same trendPeriod — must NOT appear in USD trend
+            transactionRepository.seedIncomeSummary(
+                eurAccount.id,
+                trendPeriod,
+                summary(categoryId = 200L, amount = "9999.00"),
+            )
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.AllAccountsSeparateChosen)
+                runCurrent()
+
+                val cards = viewModel.state.value.currencyCards
+                val usdCard = cards.single { it.currency.code == "USD" }
+
+                // Find the trend point for trendPeriod and verify its value is 100, not 10099.
+                val targetPoint = usdCard.trendPoints.firstOrNull { it.period == trendPeriod }
+                if (targetPoint != null) {
+                    assertTrue(
+                        "USD card trend value must not include EUR account transactions; got ${targetPoint.value.amount}",
+                        targetPoint.value.amount.toDouble() < 200.0,
+                    )
+                }
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    // -------------------------------------------------------------------------
     // Chart config — ChartTapped / ChartSettingsClicked / sheet dismiss (SPEC 06)
     // -------------------------------------------------------------------------
 

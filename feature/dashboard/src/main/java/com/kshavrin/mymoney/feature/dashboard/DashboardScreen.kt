@@ -24,8 +24,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -82,7 +80,7 @@ import com.kshavrin.mymoney.feature.dashboard.components.DrawerSide
 import com.kshavrin.mymoney.feature.dashboard.components.LeftDrawerContent
 import com.kshavrin.mymoney.feature.dashboard.components.PeriodSwitcher
 import com.kshavrin.mymoney.feature.dashboard.components.RightDrawerContent
-import com.kshavrin.mymoney.feature.dashboard.components.TwoFabLayout
+import com.kshavrin.mymoney.feature.dashboard.components.ThreeFabLayout
 import com.kshavrin.mymoney.feature.dashboard.components.localizedLabel
 import java.time.Year
 import java.util.Locale
@@ -172,8 +170,6 @@ fun DashboardContent(
                             },
                         )
                     },
-                    onSearchClick = { onEvent(DashboardEvent.SearchClicked) },
-                    onTransferClick = { onEvent(DashboardEvent.TransferClicked) },
                     onPreviousPeriodClick = {
                         hapticPlayer.fire(HapticKind.SOFT)
                         onEvent(DashboardEvent.PreviousPeriod)
@@ -334,10 +330,14 @@ fun DashboardContent(
                                 }
                             }
 
-                            TwoFabLayout(
+                            ThreeFabLayout(
                                 onMinusClick = {
                                     hapticPlayer.fire(HapticKind.MEDIUM)
                                     onEvent(DashboardEvent.MinusFabClicked)
+                                },
+                                onTransferClick = {
+                                    hapticPlayer.fire(HapticKind.MEDIUM)
+                                    onEvent(DashboardEvent.TransferClicked)
                                 },
                                 onPlusClick = {
                                     hapticPlayer.fire(HapticKind.MEDIUM)
@@ -384,62 +384,29 @@ private fun DashboardTopBar(
     period: Period,
     drawerOpen: Boolean,
     onNavigationClick: () -> Unit,
-    onSearchClick: () -> Unit,
-    onTransferClick: () -> Unit,
     onPreviousPeriodClick: () -> Unit,
     onNextPeriodClick: () -> Unit,
     onMoreClick: () -> Unit,
 ) {
-    Column(
+    Row(
         modifier =
             Modifier
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.dashboardNeonBackground)
-                .statusBarsPadding(),
+                .statusBarsPadding()
+                .heightIn(min = Spacing.dashboardTopBarMinHeight),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = Spacing.dashboardTopBarMinHeight),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            IconButton(onClick = onNavigationClick) {
-                Icon(
-                    imageVector = if (drawerOpen) Icons.AutoMirrored.Filled.ArrowBack else Icons.Filled.Menu,
-                    contentDescription =
-                        stringResource(
-                            if (drawerOpen) R.string.dashboard_back else R.string.dashboard_menu,
-                        ),
-                    tint = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.size(Spacing.dashboardTopBarIconGlyphSize),
-                )
-            }
-            IconButton(onClick = onTransferClick) {
-                Icon(
-                    Icons.Filled.SwapHoriz,
-                    contentDescription = stringResource(R.string.dashboard_transfer),
-                    tint = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.size(Spacing.dashboardTopBarIconGlyphSize),
-                )
-            }
-            Spacer(modifier = Modifier.weight(1f))
-            IconButton(onClick = onSearchClick) {
-                Icon(
-                    Icons.Filled.Search,
-                    contentDescription = stringResource(R.string.dashboard_search),
-                    tint = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.size(Spacing.dashboardTopBarIconGlyphSize),
-                )
-            }
-            IconButton(onClick = onMoreClick) {
-                Icon(
-                    Icons.Filled.MoreVert,
-                    contentDescription = stringResource(R.string.dashboard_overflow_menu),
-                    tint = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.size(Spacing.dashboardTopBarIconGlyphSize),
-                )
-            }
+        IconButton(onClick = onNavigationClick) {
+            Icon(
+                imageVector = if (drawerOpen) Icons.AutoMirrored.Filled.ArrowBack else Icons.Filled.Menu,
+                contentDescription =
+                    stringResource(
+                        if (drawerOpen) R.string.dashboard_back else R.string.dashboard_menu,
+                    ),
+                tint = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.size(Spacing.dashboardTopBarIconGlyphSize),
+            )
         }
         PeriodSwitcher(
             period = period,
@@ -447,9 +414,17 @@ private fun DashboardTopBar(
             onNextClick = onNextPeriodClick,
             modifier =
                 Modifier
-                    .fillMaxWidth()
+                    .weight(1f)
                     .testTag(DASHBOARD_TOP_BAR_PERIOD_TAG),
         )
+        IconButton(onClick = onMoreClick) {
+            Icon(
+                Icons.Filled.MoreVert,
+                contentDescription = stringResource(R.string.dashboard_overflow_menu),
+                tint = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.size(Spacing.dashboardTopBarIconGlyphSize),
+            )
+        }
     }
 }
 

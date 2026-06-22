@@ -37,6 +37,7 @@
     <string name="fab_income">Добавить доход</string>
     <string name="fab_expense_content_description">Расход</string>
     <string name="fab_income_content_description">Доход</string>
+    <string name="fab_transfer_content_description">Перевод</string>
     <string name="fab_expense_label">РАСХОД</string>
     <string name="fab_income_label">ДОХОД</string>
     <string name="fab_transfer">Перевод</string>
@@ -55,6 +56,7 @@
     <string name="all_accounts_cancel">Отмена</string>
 
     <string name="right_drawer_settings">Настройки</string>
+    <string name="right_drawer_search">Поиск</string>
     <string name="right_drawer_categories">Категории</string>
     <string name="right_drawer_accounts">Счета</string>
     <string name="right_drawer_financial_goals">Финансовые цели</string>

@@ -1,6 +1,7 @@
 package com.kshavrin.mymoney.feature.dashboard.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -140,11 +142,25 @@ fun PeriodSwitcher(
             )
         }
         val label = period.localizedLabel(locale, allLabel, currentYear)
-        AutoShrinkPeriodTitle(
-            text = label,
-            allowedLines = if (label.contains('\n')) 2 else 1,
-            modifier = Modifier.weight(1f).fillMaxWidth(),
-        )
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+            modifier = Modifier.weight(1f),
+        ) {
+            AutoShrinkPeriodTitle(
+                text = label,
+                allowedLines = if (label.contains('\n')) 2 else 1,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Box(
+                modifier =
+                    Modifier
+                        .width(Spacing.dashboardPeriodUnderlineWidth)
+                        .height(Spacing.dashboardPeriodUnderlineHeight)
+                        .clip(RoundedCornerShape(Spacing.dashboardPeriodUnderlineRadius))
+                        .background(MaterialTheme.colorScheme.primary),
+            )
+        }
         IconButton(onClick = onNextClick) {
             Icon(
                 Icons.AutoMirrored.Filled.KeyboardArrowRight,

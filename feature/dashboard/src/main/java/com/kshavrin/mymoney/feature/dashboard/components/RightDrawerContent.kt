@@ -16,6 +16,7 @@ import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Paid
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -43,6 +44,12 @@ fun RightDrawerContent(onEvent: (DashboardEvent) -> Unit) {
         verticalArrangement = Arrangement.spacedBy(Spacing.l),
     ) {
         Spacer(modifier = Modifier.height(Spacing.m))
+        RightDrawerItem(
+            label = stringResource(R.string.right_drawer_search),
+            icon = Icons.Outlined.Search,
+            onClick = { onEvent(DashboardEvent.SearchClicked) },
+            testTag = RIGHT_DRAWER_SEARCH_TAG,
+        )
         RightDrawerItem(
             label = stringResource(R.string.right_drawer_categories),
             icon = Icons.Outlined.Category,
@@ -124,6 +131,7 @@ private fun RightDrawerItem(
     }
 }
 
+const val RIGHT_DRAWER_SEARCH_TAG = "right_drawer_search"
 const val RIGHT_DRAWER_CATEGORIES_TAG = "right_drawer_categories"
 const val RIGHT_DRAWER_ACCOUNTS_TAG = "right_drawer_accounts"
 const val RIGHT_DRAWER_FINANCIAL_GOALS_TAG = "right_drawer_financial_goals"

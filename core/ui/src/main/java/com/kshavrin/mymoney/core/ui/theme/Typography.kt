@@ -298,3 +298,31 @@ val Typography.chartHiddenHint: TextStyle
             letterSpacing = 0.sp,
             lineHeight = 20.sp,
         )
+
+// ── Aurora hero card typography (SecAurora — 03_balance-variants.jsx) ────────
+
+// Uppercase balance label above the value — 11sp/700, wide letter-spacing (1sp).
+// The developer applies TextTransform.Uppercase at the call site; the style carries
+// weight + size + tracking so both are consistent.
+// Note: dashboardBalanceLabel (20sp/Medium) and dashboardRingBalanceLabel (14sp/Medium)
+// serve different roles — this token is specifically the Aurora centred label.
+val Typography.dashboardAuroraBalanceLabel: TextStyle
+    get() =
+        labelSmall.copy(
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 1.sp,
+            lineHeight = 16.sp,
+        )
+
+// Big balance value inside the Aurora card — 36sp/ExtraBold, tight letter-spacing (−1sp).
+// Distinct from dashboardBalanceValue (40sp/Bold) used in the standalone balance panel
+// and dashboardRingBalanceValue (48sp/Bold) used in the neon ring.
+val Typography.dashboardAuroraBalanceValue: TextStyle
+    get() =
+        displayMedium.copy(
+            fontSize = 36.sp,
+            fontWeight = FontWeight.ExtraBold,
+            letterSpacing = (-1).sp,
+            lineHeight = 40.sp,
+        )

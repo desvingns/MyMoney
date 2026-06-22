@@ -156,4 +156,34 @@ object Spacing {
     // when chartVisible = false; tall enough to be tappable (44dp minimum) while
     // clearly signalling the chart is collapsed rather than missing.
     val chartHiddenHintHeight = 44.dp
+
+    // ── Aurora hero card dimensions (SecAurora — 03_balance-variants.jsx) ─────
+    // Top and horizontal padding — 18dp from mockup `padding: '18px 18px 14px'`.
+    // Not a standard 4dp-grid value; named here so no raw `18.dp` appears in the
+    // composable (exact design spec, see SecAurora padding).
+    val dashboardAuroraCardPaddingTop = 18.dp
+    val dashboardAuroraCardPaddingHorizontal = 18.dp
+
+    // Bottom padding — 14dp from the same SecAurora padding rule.
+    val dashboardAuroraCardPaddingBottom = 14.dp
+
+    // In-card NeonChart height — 116dp as specified in SecAurora:
+    //   <NeonChart ... h={116} />
+    // Distinct from trendChartDefaultHeight (96dp, standalone card) and
+    // trendChartMiniHeight (48dp, currency mini-chart).
+    val dashboardAuroraChartHeight = 116.dp
+
+    // Income/expense pill internal padding per SecAurora `padding: '5px 12px'`.
+    // 5dp vertical is a design-spec value (not a 4dp multiple); named to avoid
+    // raw literals at call sites.  12dp horizontal == Spacing.m (reuse that).
+    val dashboardAuroraPillPaddingVertical = 5.dp
+
+    // Gap between the two pills in the centered row (SecAurora `gap: 10`).
+    val dashboardAuroraPillGap = 10.dp
+
+    // Vertical gap between the balance value and the pill row, and between the
+    // pill row and the chart (SecAurora `margin: '2px 0 12px'` on value, then
+    // `marginBottom: 12` on pill row).
+    val dashboardAuroraValueBottomMargin = 2.dp
+    val dashboardAuroraPillBottomMargin = 12.dp
 }

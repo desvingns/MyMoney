@@ -34,3 +34,14 @@ val Shapes.dashboardPeriodIndicator: Shape
 // while matching other rounded containers in the app.
 val Shapes.wizardStrategyCard: Shape
     get() = medium
+
+// Aurora hero card container — 24dp corner radius per SecAurora (03_balance-variants.jsx).
+// Sits between M3 large (16dp) and extraLarge (28dp); a named alias avoids a raw
+// RoundedCornerShape(24.dp) at each call site in the developer's composable.
+val Shapes.dashboardAuroraCard: Shape
+    get() = RoundedCornerShape(24.dp)
+
+// Income/expense pill inside the Aurora card — 20dp full-pill radius per SecAurora.
+// Used for both income (↑) and expense (↓) pill containers.
+val Shapes.dashboardAuroraPill: Shape
+    get() = RoundedCornerShape(20.dp)

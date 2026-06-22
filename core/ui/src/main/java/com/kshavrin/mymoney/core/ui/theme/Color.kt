@@ -361,3 +361,27 @@ val ColorScheme.trendChartGridLine: Color
 // Mirrors neonRingGradientStart so the pulsing dot feels consistent with the ring chart.
 val ColorScheme.trendChartMarkerGlow: Color
     get() = NeonMint
+
+// ── Aurora hero card (SecAurora / ChartWave design tokens) ───────────────────
+// Accent for the Aurora card and the default ChartWave series stroke.
+// Source: accentOf() in neon-core.jsx returns '#37E1C0' for multi-hue mode (the default).
+// Used for: radial-gradient top stop, inset border, neon glow, wave polyline + fill,
+//           and as the text-glow accent on the balance value.
+private val DashboardAuroraAccentBase = Color(0xFF37E1C0)
+
+val ColorScheme.dashboardAuroraAccent: Color
+    get() = DashboardAuroraAccentBase
+
+// Income pill — green neon (#3DF59B). Distinct from NeonMint (0xFF5BE3B0).
+// Used as: pill text color, pill background @0.12, pill inset border @0.3.
+private val DashboardIncomePillBase = Color(0xFF3DF59B)
+
+val ColorScheme.dashboardIncomePill: Color
+    get() = DashboardIncomePillBase
+
+// Expense pill — coral-pink neon (#FF8A9B). Distinct from NeonCoral (0xFFFF8A80).
+// Used as: pill text color, pill background @0.12, pill inset border @0.3.
+private val DashboardExpensePillBase = Color(0xFFFF8A9B)
+
+val ColorScheme.dashboardExpensePill: Color
+    get() = DashboardExpensePillBase

@@ -2,10 +2,11 @@ package com.kshavrin.mymoney.feature.dashboard.components
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -20,14 +21,12 @@ import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.feature.dashboard.ChartConfig
 import com.kshavrin.mymoney.feature.dashboard.CurrencyBalanceCard
-import com.kshavrin.mymoney.feature.dashboard.R
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.math.BigDecimal
 import java.time.YearMonth
-import java.util.Locale
 
 @RunWith(AndroidJUnit4::class)
 class CurrencyBalanceCardListUiTest {
@@ -56,6 +55,10 @@ class CurrencyBalanceCardListUiTest {
             sortOrder = 1,
         )
 
+    // -----------------------------------------------------------------------
+    // Empty list
+    // -----------------------------------------------------------------------
+
     @Test
     fun `empty card list renders the currency cards container tag without any children`() {
         composeTestRule.setContent {
@@ -72,6 +75,10 @@ class CurrencyBalanceCardListUiTest {
             .assertExists()
     }
 
+    // -----------------------------------------------------------------------
+    // Single card — currency code
+    // -----------------------------------------------------------------------
+
     @Test
     fun `single currency card shows the currency code`() {
         composeTestRule.setContent {
@@ -87,8 +94,12 @@ class CurrencyBalanceCardListUiTest {
             .assertIsDisplayed()
     }
 
+    // -----------------------------------------------------------------------
+    // Single card — per-card container tag
+    // -----------------------------------------------------------------------
+
     @Test
-    fun `single currency card shows income expense and balance labels`() {
+    fun `single currency card has a per-card container tag derived from the currency code`() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 CurrencyBalanceCardList(
@@ -97,42 +108,18 @@ class CurrencyBalanceCardListUiTest {
             }
         }
 
+        // Tag format: "${DASHBOARD_CURRENCY_CARDS_TAG}_<CODE>"
         composeTestRule
-            .onNodeWithText(targetString(R.string.dashboard_currency_card_income))
-            .assertIsDisplayed()
-        composeTestRule
-            .onNodeWithText(targetString(R.string.dashboard_currency_card_expense))
-            .assertIsDisplayed()
-        composeTestRule
-            .onNodeWithText(targetString(R.string.dashboard_currency_card_balance))
-            .assertIsDisplayed()
+            .onNodeWithTag("${DASHBOARD_CURRENCY_CARDS_TAG}_USD")
+            .assertExists()
     }
 
-    @Test
-    fun `single currency card shows formatted income amount`() {
-        val income = BigDecimal("100.00")
-
-        composeTestRule.setContent {
-            MyMoneyTheme {
-                CurrencyBalanceCardList(
-                    cards = listOf(usdCard(income = "100.00", expense = "30.00")),
-                )
-            }
-        }
-
-        val expected =
-            MoneyFormatter.format(
-                amount = income,
-                currencySymbol = usd.symbol,
-                decimalDigits = usd.decimalDigits,
-                locale = targetLocale(),
-                symbolPosition = MoneyFormatter.SymbolPosition.AFTER,
-            )
-        composeTestRule.onNodeWithText(expected).assertIsDisplayed()
-    }
+    // -----------------------------------------------------------------------
+    // Single card — balance value (big number, no "Balance" label in new design)
+    // -----------------------------------------------------------------------
 
     @Test
-    fun `single currency card shows formatted net balance amount`() {
+    fun `single currency card shows the formatted net balance amount`() {
         val net = BigDecimal("70.00")
 
         composeTestRule.setContent {
@@ -143,16 +130,125 @@ class CurrencyBalanceCardListUiTest {
             }
         }
 
-        val expected =
-            MoneyFormatter.format(
-                amount = net,
-                currencySymbol = usd.symbol,
-                decimalDigits = usd.decimalDigits,
-                locale = targetLocale(),
-                symbolPosition = MoneyFormatter.SymbolPosition.AFTER,
-            )
+        val expected = formatAmount(net, usd)
         composeTestRule.onNodeWithText(expected).assertIsDisplayed()
     }
+
+    // -----------------------------------------------------------------------
+    // Single card — income/expense pills (arrows prefix — use substring match)
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `single currency card income pill contains the formatted income amount`() {
+        val income = BigDecimal("100.00")
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                CurrencyBalanceCardList(
+                    cards = listOf(usdCard(income = "100.00", expense = "30.00")),
+                )
+            }
+        }
+
+        // The pill text is "↑ <formattedAmount>"; substring=true finds the amount inside the pill.
+        val formatted = formatAmount(income, usd)
+        composeTestRule
+            .onNodeWithText(formatted, substring = true)
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun `single currency card expense pill contains the formatted expense amount`() {
+        val expense = BigDecimal("30.00")
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                CurrencyBalanceCardList(
+                    cards = listOf(usdCard(income = "100.00", expense = "30.00")),
+                )
+            }
+        }
+
+        // The pill text is "↓ <formattedAmount>".
+        val formatted = formatAmount(expense, usd)
+        composeTestRule
+            .onNodeWithText(formatted, substring = true)
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun `single currency card income pill text starts with the up-arrow prefix`() {
+        val income = BigDecimal("100.00")
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                CurrencyBalanceCardList(
+                    cards = listOf(usdCard(income = "100.00", expense = "30.00")),
+                )
+            }
+        }
+
+        val formatted = formatAmount(income, usd)
+        // Full pill text "↑ <amount>" must exist as a node.
+        composeTestRule
+            .onNodeWithText("↑ $formatted")
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun `single currency card expense pill text starts with the down-arrow prefix`() {
+        val expense = BigDecimal("30.00")
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                CurrencyBalanceCardList(
+                    cards = listOf(usdCard(income = "100.00", expense = "30.00")),
+                )
+            }
+        }
+
+        val formatted = formatAmount(expense, usd)
+        composeTestRule
+            .onNodeWithText("↓ $formatted")
+            .assertIsDisplayed()
+    }
+
+    // -----------------------------------------------------------------------
+    // Single card — currency figures are in own currency (no conversion)
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `currency card figures are in the card currency with no conversion`() {
+        // EUR card: income 50 EUR, expense 20 EUR, net 30 EUR.
+        // If ConvertMoneyUseCase were called, figures would differ.
+        val income = BigDecimal("50.00")
+        val expense = BigDecimal("20.00")
+        val net = BigDecimal("30.00")
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                CurrencyBalanceCardList(
+                    cards = listOf(eurCard(income = "50.00", expense = "20.00")),
+                )
+            }
+        }
+
+        // Net balance is displayed as a standalone value (exact match).
+        val formattedNet = formatAmount(net, eur)
+        composeTestRule.onNodeWithText(formattedNet).assertIsDisplayed()
+
+        // Income and expense appear inside arrow pills — substring match.
+        listOf(income, expense).forEach { amount ->
+            val formatted = formatAmount(amount, eur)
+            composeTestRule
+                .onNodeWithText(formatted, substring = true)
+                .assertIsDisplayed()
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // Two cards — currency codes and per-card tags
+    // -----------------------------------------------------------------------
 
     @Test
     fun `two currency cards render both currency codes`() {
@@ -173,7 +269,7 @@ class CurrencyBalanceCardListUiTest {
     }
 
     @Test
-    fun `two currency cards render both income label instances`() {
+    fun `two currency cards each have their own per-card container tag`() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 CurrencyBalanceCardList(
@@ -186,40 +282,51 @@ class CurrencyBalanceCardListUiTest {
             }
         }
 
-        val incomeLabel = targetString(R.string.dashboard_currency_card_income)
-        val incomeNodes = composeTestRule.onAllNodesWithText(incomeLabel)
-        // One Income label per card — two cards → two occurrences
-        assertEquals(2, incomeNodes.fetchSemanticsNodes().size)
+        composeTestRule
+            .onNodeWithTag("${DASHBOARD_CURRENCY_CARDS_TAG}_USD")
+            .assertExists()
+        composeTestRule
+            .onNodeWithTag("${DASHBOARD_CURRENCY_CARDS_TAG}_EUR")
+            .assertExists()
     }
 
-    @Test
-    fun `currency card figures are in the card currency with no conversion`() {
-        // EUR card: income 50 EUR, expense 20 EUR, net 30 EUR.
-        // If ConvertMoneyUseCase were called, figures would differ.
-        val income = BigDecimal("50.00")
-        val expense = BigDecimal("20.00")
-        val net = BigDecimal("30.00")
+    // -----------------------------------------------------------------------
+    // Two cards — pill count (one income + one expense pill per card → 2 each)
+    // -----------------------------------------------------------------------
 
+    @Test
+    fun `two currency cards render two income pills and two expense pills`() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 CurrencyBalanceCardList(
-                    cards = listOf(eurCard(income = "50.00", expense = "20.00")),
+                    cards =
+                        listOf(
+                            usdCard(income = "100.00", expense = "30.00"),
+                            eurCard(income = "50.00", expense = "20.00"),
+                        ),
                 )
             }
         }
 
-        listOf(income, expense, net).forEach { amount ->
-            val formatted =
-                MoneyFormatter.format(
-                    amount = amount,
-                    currencySymbol = eur.symbol,
-                    decimalDigits = eur.decimalDigits,
-                    locale = targetLocale(),
-                    symbolPosition = MoneyFormatter.SymbolPosition.AFTER,
-                )
-            composeTestRule.onNodeWithText(formatted).assertIsDisplayed()
-        }
+        // Each card has one "↑ …" pill and one "↓ …" pill. Two cards → two nodes each.
+        val upArrowNodes =
+            composeTestRule.onAllNodes(
+                androidx.compose.ui.test
+                    .hasText("↑", substring = true),
+            )
+        assertEquals(2, upArrowNodes.fetchSemanticsNodes().size)
+
+        val downArrowNodes =
+            composeTestRule.onAllNodes(
+                androidx.compose.ui.test
+                    .hasText("↓", substring = true),
+            )
+        assertEquals(2, downArrowNodes.fetchSemanticsNodes().size)
     }
+
+    // -----------------------------------------------------------------------
+    // Mini trend chart
+    // -----------------------------------------------------------------------
 
     @Test
     fun `mini trend chart is shown when chart is visible and the card has trend points`() {
@@ -284,12 +391,32 @@ class CurrencyBalanceCardListUiTest {
             }
         }
 
-        // Only one mini-chart node must exist: the USD card has trend, the EUR card does not.
+        // Only the USD card has trend points → exactly one mini-chart node.
         val chartNodes =
             composeTestRule.onAllNodes(
                 hasTestTag(DASHBOARD_CURRENCY_CARD_MINI_CHART_TAG),
             )
         assertEquals(1, chartNodes.fetchSemanticsNodes().size)
+    }
+
+    @Test
+    fun `two cards with trend points both render a mini chart`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                CurrencyBalanceCardList(
+                    cards =
+                        listOf(
+                            usdCard(income = "100.00", expense = "30.00", withTrend = true),
+                            eurCard(income = "50.00", expense = "20.00", withTrend = true),
+                        ),
+                    chartConfig = ChartConfig(visible = true),
+                )
+            }
+        }
+
+        composeTestRule
+            .onAllNodesWithTag(DASHBOARD_CURRENCY_CARD_MINI_CHART_TAG)
+            .assertCountEquals(2)
     }
 
     // -----------------------------------------------------------------------
@@ -328,6 +455,7 @@ class CurrencyBalanceCardListUiTest {
     private fun eurCard(
         income: String,
         expense: String,
+        withTrend: Boolean = false,
     ): CurrencyBalanceCard {
         val incomeAmount = BigDecimal(income)
         val expenseAmount = BigDecimal(expense)
@@ -340,14 +468,33 @@ class CurrencyBalanceCardListUiTest {
                     net = Money(incomeAmount.subtract(expenseAmount), eur),
                     byCategory = emptyList(),
                 ),
+            trendPoints = if (withTrend) eurTrend() else emptyList(),
         )
     }
 
-    private fun targetString(resourceId: Int): String =
-        InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)
+    private fun eurTrend(): List<TrendPoint> =
+        (0 until 5).map { index ->
+            TrendPoint(
+                index = index,
+                period = Period.Month(YearMonth.of(2026, index + 1)),
+                value = Money(BigDecimal((index + 1) * 5), eur),
+            )
+        }
 
-    private fun targetLocale(): Locale =
-        InstrumentationRegistry
-            .getInstrumentation()
-            .targetContext.resources.configuration.locales[0]
+    private fun formatAmount(
+        amount: BigDecimal,
+        currency: Currency,
+    ): String {
+        val locale =
+            InstrumentationRegistry
+                .getInstrumentation()
+                .targetContext.resources.configuration.locales[0]
+        return MoneyFormatter.format(
+            amount = amount,
+            currencySymbol = currency.symbol,
+            decimalDigits = currency.decimalDigits,
+            locale = locale,
+            symbolPosition = MoneyFormatter.SymbolPosition.AFTER,
+        )
+    }
 }

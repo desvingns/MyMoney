@@ -86,7 +86,7 @@ class TransactionDetailFormMappingTest {
             kind = CategoryKind.Expense,
             iconKey = "ic_cat_food",
             colorHex = "#FF8888",
-            textColor = "#FFFFFF",
+            textColor = "#FFE27A",
             sortOrder = 0,
             isDefault = false,
             isArchived = false,
@@ -100,7 +100,7 @@ class TransactionDetailFormMappingTest {
             kind = CategoryKind.Expense,
             iconKey = "ic_cat_fun",
             colorHex = "#8888FF",
-            textColor = "#FFFFFF",
+            textColor = "#7FE2FF",
             sortOrder = 1,
             isDefault = false,
             isArchived = false,
@@ -283,6 +283,7 @@ class TransactionDetailFormMappingTest {
                                     name = it.name,
                                     colorHex = it.colorHex,
                                     iconKey = it.iconKey,
+                                    textColorHex = it.textColor,
                                 )
                             },
                         categoryStep = s.categoryStep,
@@ -293,6 +294,16 @@ class TransactionDetailFormMappingTest {
                     "Edit-mode screen must produce TransactionFormMode.Edit",
                     TransactionFormMode.Edit,
                     formState.mode,
+                )
+                assertEquals(
+                    "stored category textColor must be forwarded into TransactionFormCategory",
+                    foodCategory.textColor,
+                    formState.categories.single { it.id == foodCategory.id }.textColorHex,
+                )
+                assertEquals(
+                    "every category keeps its own stored textColor in the edit form grid",
+                    entertainmentCategory.textColor,
+                    formState.categories.single { it.id == entertainmentCategory.id }.textColorHex,
                 )
                 cancelAndIgnoreRemainingEvents()
             }

@@ -54,6 +54,7 @@ class GetCategoryRecordsUseCaseTest {
         kind: CategoryKind = CategoryKind.Expense,
         total: BigDecimal,
         count: Int,
+        textColorHex: String = "#FFE27A",
     ) = CategoryGroup(
         categoryId = categoryId,
         name = name,
@@ -62,6 +63,7 @@ class GetCategoryRecordsUseCaseTest {
         kind = kind,
         total = total,
         count = count,
+        textColorHex = textColorHex,
     )
 
     private fun transaction(
@@ -112,7 +114,14 @@ class GetCategoryRecordsUseCaseTest {
         runTest {
             seedAccountAndCurrency()
             transactionRepo.seedCategoryGroups(
-                group(categoryId = 11L, name = "Salary", kind = CategoryKind.Income, total = BigDecimal("30.00"), count = 4),
+                group(
+                    categoryId = 11L,
+                    name = "Salary",
+                    kind = CategoryKind.Income,
+                    total = BigDecimal("30.00"),
+                    count = 4,
+                    textColorHex = "#102938",
+                ),
             )
 
             val salary = useCase(accountId, period).single()
@@ -121,6 +130,7 @@ class GetCategoryRecordsUseCaseTest {
             assertEquals("Salary", salary.name)
             assertEquals("ic_Salary", salary.iconKey)
             assertEquals("#E07AAE", salary.colorHex)
+            assertEquals("#102938", salary.textColorHex)
             assertEquals(CategoryKind.Income, salary.kind)
             assertEquals(4, salary.count)
         }

@@ -1464,8 +1464,18 @@ class DashboardViewModelTest {
                     viewModel.snapshotToSlices(
                         snapshot =
                             expenseSnapshot(
-                                expenseCategoryBalance(categoryId = 10L, amount = "30.00", iconKey = "food"),
-                                expenseCategoryBalance(categoryId = 20L, amount = "70.00", iconKey = "transport"),
+                                expenseCategoryBalance(
+                                    categoryId = 10L,
+                                    amount = "30.00",
+                                    iconKey = "food",
+                                    textColorHex = "#123456",
+                                ),
+                                expenseCategoryBalance(
+                                    categoryId = 20L,
+                                    amount = "70.00",
+                                    iconKey = "transport",
+                                    textColorHex = "#ABCDEF",
+                                ),
                             ),
                         alertCategoryIds = setOf(20L),
                     )
@@ -1475,6 +1485,8 @@ class DashboardViewModelTest {
                 assertEquals(1.0, slices.sumOf { it.fraction.toDouble() }, 0.0001)
                 assertEquals(0.30f, slices.single { it.categoryId == 10L }.fraction, 0.0001f)
                 assertEquals(0.70f, slices.single { it.categoryId == 20L }.fraction, 0.0001f)
+                assertEquals(parseHexColor("#123456"), slices.single { it.categoryId == 10L }.labelColor)
+                assertEquals(parseHexColor("#ABCDEF"), slices.single { it.categoryId == 20L }.labelColor)
                 assertTrue(slices.single { it.categoryId == 20L }.hasBudgetAlert)
             } finally {
                 store.clear()
@@ -1639,10 +1651,29 @@ class DashboardViewModelTest {
                                 net = Money(BigDecimal("89.00"), usd),
                                 byCategory =
                                     listOf(
-                                        expenseCategoryBalance(categoryId = 10L, amount = "500.00", iconKey = "food"),
-                                        expenseCategoryBalance(categoryId = 20L, amount = "250.00", iconKey = "transport"),
-                                        expenseCategoryBalance(categoryId = 30L, amount = "10.00", iconKey = "snack"),
-                                        expenseCategoryBalance(categoryId = OTHER_CATEGORY_ID, amount = "1.00", iconKey = "other"),
+                                        expenseCategoryBalance(
+                                            categoryId = 10L,
+                                            amount = "500.00",
+                                            iconKey = "food",
+                                            textColorHex = "#FFE27A",
+                                        ),
+                                        expenseCategoryBalance(
+                                            categoryId = 20L,
+                                            amount = "250.00",
+                                            iconKey = "transport",
+                                            textColorHex = "#7FE2FF",
+                                        ),
+                                        expenseCategoryBalance(
+                                            categoryId = 30L,
+                                            amount = "10.00",
+                                            iconKey = "snack",
+                                            textColorHex = "#FF8FE1",
+                                        ),
+                                        expenseCategoryBalance(
+                                            categoryId = OTHER_CATEGORY_ID,
+                                            amount = "1.00",
+                                            iconKey = "other",
+                                        ),
                                         CategoryBalance(
                                             categoryId = 200L,
                                             categoryName = "salary",
@@ -1659,6 +1690,7 @@ class DashboardViewModelTest {
 
                 assertEquals(listOf(10L, 20L, 30L), tiles.map { it.categoryId })
                 assertEquals(listOf("#FF8888", "#FF8888", "#FF8888"), tiles.map { it.colorHex })
+                assertEquals(listOf("#FFE27A", "#7FE2FF", "#FF8FE1"), tiles.map { it.textColorHex })
                 assertEquals(listOf("food", "transport", "snack"), tiles.map { it.iconKey })
                 assertEquals(usd, tiles[0].amount.currency)
                 assertEquals(0, BigDecimal("500.00").compareTo(tiles[0].amount.amount))
@@ -1681,10 +1713,41 @@ class DashboardViewModelTest {
     fun `expense category placeholders are built from observeByKind Expense sorted by sortOrder`() =
         runTest {
             categoryRepository.seed(
-                category(id = 30L, name = "Home", kind = CategoryKind.Expense, sortOrder = 2, iconKey = "home", colorHex = "#112233"),
-                category(id = 10L, name = "Food", kind = CategoryKind.Expense, sortOrder = 0, iconKey = "food", colorHex = "#FF0000"),
-                category(id = 20L, name = "Transport", kind = CategoryKind.Expense, sortOrder = 1, iconKey = "transport", colorHex = "#00FF00"),
-                category(id = 200L, name = "Salary", kind = CategoryKind.Income, sortOrder = 0, iconKey = "salary", colorHex = "#0000FF"),
+                category(
+                    id = 30L,
+                    name = "Home",
+                    kind = CategoryKind.Expense,
+                    sortOrder = 2,
+                    iconKey = "home",
+                    colorHex = "#112233",
+                    textColor = "#AA7733",
+                ),
+                category(
+                    id = 10L,
+                    name = "Food",
+                    kind = CategoryKind.Expense,
+                    sortOrder = 0,
+                    iconKey = "food",
+                    colorHex = "#FF0000",
+                    textColor = "#00AACC",
+                ),
+                category(
+                    id = 20L,
+                    name = "Transport",
+                    kind = CategoryKind.Expense,
+                    sortOrder = 1,
+                    iconKey = "transport",
+                    colorHex = "#00FF00",
+                    textColor = "#CC00AA",
+                ),
+                category(
+                    id = 200L,
+                    name = "Salary",
+                    kind = CategoryKind.Income,
+                    sortOrder = 0,
+                    iconKey = "salary",
+                    colorHex = "#0000FF",
+                ),
             )
 
             val (viewModel, store) = buildViewModel()
@@ -1695,6 +1758,14 @@ class DashboardViewModelTest {
                 assertEquals(listOf(10L, 20L, 30L), placeholders.map { it.categoryId })
                 assertEquals(listOf("Food", "Transport", "Home"), placeholders.map { it.label })
                 assertEquals(listOf("food", "transport", "home"), placeholders.map { it.iconKey })
+                assertEquals(
+                    listOf(
+                        parseHexColor("#00AACC"),
+                        parseHexColor("#CC00AA"),
+                        parseHexColor("#AA7733"),
+                    ),
+                    placeholders.map { it.labelColor },
+                )
             } finally {
                 store.clear()
                 runCurrent()
@@ -2428,6 +2499,7 @@ class DashboardViewModelTest {
         categoryId: Long,
         amount: String,
         iconKey: String,
+        textColorHex: String = "#FFFFFF",
     ) = CategoryBalance(
         categoryId = categoryId,
         categoryName = "category-$categoryId",
@@ -2436,6 +2508,7 @@ class DashboardViewModelTest {
         fraction = 0f,
         iconKey = iconKey,
         isExpense = true,
+        textColorHex = textColorHex,
     )
 
     private fun budget(
@@ -2460,13 +2533,14 @@ class DashboardViewModelTest {
         sortOrder: Int,
         iconKey: String,
         colorHex: String,
+        textColor: String = "#FFFFFF",
     ) = Category(
         id = id,
         name = name,
         kind = kind,
         iconKey = iconKey,
         colorHex = colorHex,
-        textColor = "#FFFFFF",
+        textColor = textColor,
         sortOrder = sortOrder,
         isDefault = false,
         isArchived = false,

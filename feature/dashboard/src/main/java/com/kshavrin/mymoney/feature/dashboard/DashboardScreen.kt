@@ -2,7 +2,6 @@ package com.kshavrin.mymoney.feature.dashboard
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,6 +13,9 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerState
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -35,22 +37,23 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kshavrin.mymoney.core.common.money.MoneyFormatter
 import com.kshavrin.mymoney.core.designsystem.confetti.MonefyConfetti
+import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.domain.model.Period
+import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.ui.feedback.LocalHapticPlayer
 import com.kshavrin.mymoney.core.ui.feedback.LocalSoundPlayer
 import com.kshavrin.mymoney.core.ui.flow.CollectActions
@@ -134,6 +137,21 @@ fun DashboardContent(
     val resourceLocale = configuration.locales[0]
     val drawerOpen = state.leftDrawerOpen || state.rightDrawerOpen
 
+    // Monefy-style swipe pager (SPEC 02): the body becomes a 3-up [prev | current | next] pager.
+    // Page 1 is always the committed period; settling onto a neighbour commits the period change and
+    // re-centres without animation (infinite paging). Period.All has no neighbours, so it collapses
+    // to a single page (paging disabled, G13).
+    val pagingEnabled = state.period !is Period.All
+    // Keyed on pagingEnabled so toggling Period.All on/off rebuilds the pager centred on the right
+    // page (single page 0 for All, centre page otherwise).
+    val pagerState =
+        key(pagingEnabled) {
+            rememberPagerState(
+                initialPage = if (pagingEnabled) DASHBOARD_PAGER_CENTER_PAGE else 0,
+                pageCount = { if (pagingEnabled) DASHBOARD_PAGER_PAGE_COUNT else 1 },
+            )
+        }
+
     BackHandler(enabled = drawerOpen) {
         onEvent(DashboardEvent.DrawerDismissed)
     }
@@ -151,6 +169,8 @@ fun DashboardContent(
             topBar = {
                 DashboardTopBar(
                     period = state.period,
+                    pagerState = pagerState,
+                    pagingEnabled = pagingEnabled,
                     drawerOpen = drawerOpen,
                     onNavigationClick = {
                         hapticPlayer.fire(HapticKind.MEDIUM)
@@ -178,141 +198,48 @@ fun DashboardContent(
                 )
             },
         ) { innerPadding ->
-            val swipeThresholdPx = with(LocalDensity.current) { 56.dp.toPx() }
             Box(
                 modifier =
                     Modifier
                         .fillMaxSize()
                         .padding(innerPadding),
             ) {
-                Box(
-                    modifier =
-                        Modifier
-                            .fillMaxSize()
-                            .pointerInput(Unit) {
-                                var totalDrag = 0f
-                                detectHorizontalDragGestures(
-                                    onDragStart = { totalDrag = 0f },
-                                    onDragEnd = {
-                                        if (totalDrag <= -swipeThresholdPx) {
-                                            soundPlayer.play(SoundKey.SWIPE)
-                                            hapticPlayer.fire(HapticKind.SOFT)
-                                            onEvent(DashboardEvent.NextPeriod)
-                                        } else if (totalDrag >= swipeThresholdPx) {
-                                            soundPlayer.play(SoundKey.SWIPE)
-                                            hapticPlayer.fire(HapticKind.SOFT)
-                                            onEvent(DashboardEvent.PreviousPeriod)
-                                        }
-                                    },
-                                ) { _, dragAmount -> totalDrag += dragAmount }
-                            },
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                    ) {
-                        Column(
-                            modifier = Modifier.fillMaxSize(),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                        ) {
-                            val overBudgetText =
-                                state.overBudgetAmount?.let { overage ->
-                                    stringResource(R.string.dashboard_over_budget, formatMoney(overage, resourceLocale))
-                                }
+                    DashboardBodyPager(
+                        state = state,
+                        pagerState = pagerState,
+                        pagingEnabled = pagingEnabled,
+                        onEvent = onEvent,
+                        locale = resourceLocale,
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                    )
 
-                            Column(
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .weight(1f)
-                                        .testTag(DASHBOARD_SCROLL_CONTENT_TAG)
-                                        .verticalScroll(rememberScrollState()),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                            ) {
-                                if (state.isSeparateMode) {
-                                    // "All accounts → show separately" (D6): the donut is dropped — several
-                                    // currencies would overload it — and replaced by a stack of per-currency
-                                    // balance cards. No category tiles here (no single-currency expense total).
-                                    Spacer(modifier = Modifier.height(Spacing.l))
-                                    CurrencyBalanceCardList(
-                                        cards = state.currencyCards,
-                                        chartConfig = state.chartConfig,
-                                    )
-                                } else {
-                                    val snapshot = state.balanceSnapshot
-                                    Spacer(modifier = Modifier.height(Spacing.l))
-                                    AuroraBalanceCard(
-                                        balance =
-                                            formatBalanceAmount(
-                                                state = state,
-                                                unavailableText = stringResource(R.string.dashboard_balance_unavailable_amount),
-                                                locale = resourceLocale,
-                                            ),
-                                        income =
-                                            snapshot?.let { formatMoney(it.income, resourceLocale) }
-                                                ?: stringResource(R.string.dashboard_balance_unavailable_amount),
-                                        expense =
-                                            snapshot?.let { formatMoney(it.expense, resourceLocale) }
-                                                ?: stringResource(R.string.dashboard_balance_unavailable_amount),
-                                        points = state.trendPoints.map { it.value.amount.toFloat() },
-                                        chartConfig = state.chartConfig,
-                                        onChartClick = { onEvent(DashboardEvent.ChartTapped) },
-                                        netPositive = state.periodNet.amount.signum() >= 0,
-                                    )
-
-                                    if (overBudgetText != null) {
-                                        Spacer(modifier = Modifier.height(Spacing.s))
-                                        Surface(
-                                            shape = MaterialTheme.shapes.extraLarge,
-                                            color = MaterialTheme.colorScheme.errorContainer,
-                                            contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                                        ) {
-                                            Text(
-                                                text = overBudgetText,
-                                                style = MaterialTheme.typography.labelMedium,
-                                                modifier = Modifier.padding(horizontal = Spacing.m, vertical = Spacing.s),
-                                            )
-                                        }
-                                    }
-
-                                    CategoryTilesList(
-                                        expenseTiles = state.expenseTiles,
-                                        expandedCategoryId = state.expandedCategoryId,
-                                        expandedRecords = state.expandedRecords,
-                                        expandedRecordsLoading = state.expandedRecordsLoading,
-                                        currencies = state.currencies,
-                                        onTileClick = { categoryId ->
-                                            onEvent(DashboardEvent.SliceClicked(categoryId))
-                                        },
-                                        onRecordRowClick = { transactionId ->
-                                            onEvent(DashboardEvent.RecordRowClicked(transactionId))
-                                        },
-                                        modifier = Modifier.padding(horizontal = Spacing.l),
-                                    )
-                                }
-                            }
-
-                            ThreeFabLayout(
-                                onMinusClick = {
-                                    hapticPlayer.fire(HapticKind.MEDIUM)
-                                    onEvent(DashboardEvent.MinusFabClicked)
-                                },
-                                onTransferClick = {
-                                    hapticPlayer.fire(HapticKind.MEDIUM)
-                                    onEvent(DashboardEvent.TransferClicked)
-                                },
-                                onPlusClick = {
-                                    hapticPlayer.fire(HapticKind.MEDIUM)
-                                    onEvent(DashboardEvent.PlusFabClicked)
-                                },
-                            )
-                        }
-
-                        MonefyConfetti(
-                            show = state.showConfetti,
-                            onFinished = { onEvent(DashboardEvent.ConfettiAcknowledged) },
-                        )
-                    }
+                    ThreeFabLayout(
+                        onMinusClick = {
+                            hapticPlayer.fire(HapticKind.MEDIUM)
+                            onEvent(DashboardEvent.MinusFabClicked)
+                        },
+                        onTransferClick = {
+                            hapticPlayer.fire(HapticKind.MEDIUM)
+                            onEvent(DashboardEvent.TransferClicked)
+                        },
+                        onPlusClick = {
+                            hapticPlayer.fire(HapticKind.MEDIUM)
+                            onEvent(DashboardEvent.PlusFabClicked)
+                        },
+                    )
                 }
+
+                MonefyConfetti(
+                    show = state.showConfetti,
+                    onFinished = { onEvent(DashboardEvent.ConfettiAcknowledged) },
+                )
             }
         }
         DashboardDrawerOverlay(
@@ -340,10 +267,186 @@ fun DashboardContent(
     }
 }
 
+@Composable
+private fun DashboardBodyPager(
+    state: DashboardState,
+    pagerState: PagerState,
+    pagingEnabled: Boolean,
+    onEvent: (DashboardEvent) -> Unit,
+    locale: Locale,
+    modifier: Modifier = Modifier,
+) {
+    val soundPlayer = LocalSoundPlayer.current
+    val hapticPlayer = LocalHapticPlayer.current
+
+    // When the pager settles onto a neighbour page, commit the period change and snap back to the
+    // centre page without animation so the next swipe again has a page on either side (infinite
+    // paging, D4). Settling onto the centre page (a snap-back below the threshold) changes nothing.
+    if (pagingEnabled) {
+        LaunchedEffect(pagerState, state.period) {
+            snapshotFlow { pagerState.isScrollInProgress to pagerState.settledPage }
+                .collect { (scrolling, settledPage) ->
+                    if (!scrolling && settledPage != DASHBOARD_PAGER_CENTER_PAGE) {
+                        soundPlayer.play(SoundKey.SWIPE)
+                        hapticPlayer.fire(HapticKind.SOFT)
+                        onEvent(
+                            if (settledPage > DASHBOARD_PAGER_CENTER_PAGE) {
+                                DashboardEvent.NextPeriod
+                            } else {
+                                DashboardEvent.PreviousPeriod
+                            },
+                        )
+                        pagerState.scrollToPage(DASHBOARD_PAGER_CENTER_PAGE)
+                    }
+                }
+        }
+    }
+
+    HorizontalPager(
+        state = pagerState,
+        beyondViewportPageCount = if (pagingEnabled) 1 else 0,
+        modifier = modifier,
+    ) { page ->
+        val pageState =
+            when {
+                !pagingEnabled || page == DASHBOARD_PAGER_CENTER_PAGE -> state.toCurrentPageState()
+                page < DASHBOARD_PAGER_CENTER_PAGE -> state.previousPeriodPage
+                else -> state.nextPeriodPage
+            }
+        DashboardPage(
+            pageState = pageState,
+            interactive = !pagingEnabled || page == DASHBOARD_PAGER_CENTER_PAGE,
+            expandedCategoryId = state.expandedCategoryId,
+            expandedRecords = state.expandedRecords,
+            expandedRecordsLoading = state.expandedRecordsLoading,
+            currencies = state.currencies,
+            chartConfig = state.chartConfig,
+            overBudgetAmount = state.overBudgetAmount,
+            onEvent = onEvent,
+            locale = locale,
+        )
+    }
+}
+
+@Composable
+private fun DashboardPage(
+    pageState: PeriodPageState?,
+    interactive: Boolean,
+    expandedCategoryId: Long?,
+    expandedRecords: List<Transaction>,
+    expandedRecordsLoading: Boolean,
+    currencies: List<Currency>,
+    chartConfig: ChartConfig,
+    overBudgetAmount: Money?,
+    onEvent: (DashboardEvent) -> Unit,
+    locale: Locale,
+) {
+    // A neighbour whose background precompute has not landed yet renders nothing (a blank page),
+    // which the pager peeks during the drag and replaces once the real data arrives (H2).
+    if (pageState == null) {
+        Box(modifier = Modifier.fillMaxSize())
+        return
+    }
+
+    Column(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .testTag(DASHBOARD_SCROLL_CONTENT_TAG)
+                .verticalScroll(rememberScrollState()),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        if (pageState.isSeparateMode) {
+            // "All accounts → show separately" (D6): the donut is dropped — several currencies would
+            // overload it — and replaced by a stack of per-currency balance cards. No category tiles
+            // here (no single-currency expense total).
+            Spacer(modifier = Modifier.height(Spacing.l))
+            CurrencyBalanceCardList(
+                cards = pageState.currencyCards,
+                chartConfig = chartConfig,
+            )
+        } else {
+            val snapshot = pageState.balanceSnapshot
+            Spacer(modifier = Modifier.height(Spacing.l))
+            AuroraBalanceCard(
+                balance =
+                    if (snapshot == null) {
+                        stringResource(R.string.dashboard_balance_unavailable_amount)
+                    } else {
+                        formatMoney(pageState.periodNet, locale)
+                    },
+                income =
+                    snapshot?.let { formatMoney(it.income, locale) }
+                        ?: stringResource(R.string.dashboard_balance_unavailable_amount),
+                expense =
+                    snapshot?.let { formatMoney(it.expense, locale) }
+                        ?: stringResource(R.string.dashboard_balance_unavailable_amount),
+                points = pageState.trendPoints.map { it.value.amount.toFloat() },
+                chartConfig = chartConfig,
+                onChartClick = { if (interactive) onEvent(DashboardEvent.ChartTapped) },
+                netPositive = pageState.periodNet.amount.signum() >= 0,
+            )
+
+            val overBudgetText =
+                overBudgetAmount?.takeIf { interactive }?.let { overage ->
+                    stringResource(R.string.dashboard_over_budget, formatMoney(overage, locale))
+                }
+            if (overBudgetText != null) {
+                Spacer(modifier = Modifier.height(Spacing.s))
+                Surface(
+                    shape = MaterialTheme.shapes.extraLarge,
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                ) {
+                    Text(
+                        text = overBudgetText,
+                        style = MaterialTheme.typography.labelMedium,
+                        modifier = Modifier.padding(horizontal = Spacing.m, vertical = Spacing.s),
+                    )
+                }
+            }
+
+            CategoryTilesList(
+                expenseTiles = pageState.expenseTiles,
+                expandedCategoryId = if (interactive) expandedCategoryId else null,
+                expandedRecords = if (interactive) expandedRecords else emptyList(),
+                expandedRecordsLoading = if (interactive) expandedRecordsLoading else false,
+                currencies = currencies,
+                onTileClick = { categoryId ->
+                    if (interactive) onEvent(DashboardEvent.SliceClicked(categoryId))
+                },
+                onRecordRowClick = { transactionId ->
+                    if (interactive) onEvent(DashboardEvent.RecordRowClicked(transactionId))
+                },
+                modifier = Modifier.padding(horizontal = Spacing.l),
+            )
+        }
+    }
+}
+
+// Project the committed full state onto the lightweight page shape so the centre page and the
+// neighbour pages render through the same DashboardPage composable.
+private fun DashboardState.toCurrentPageState(): PeriodPageState =
+    PeriodPageState(
+        period = period,
+        balanceSnapshot = balanceSnapshot,
+        currencyCards = currencyCards,
+        periodNet = periodNet,
+        ringFraction = ringFraction,
+        ringIsExpense = ringIsExpense,
+        trendPoints = trendPoints,
+        slices = slices,
+        expenseTiles = expenseTiles,
+        isSeparateMode = isSeparateMode,
+        isLoading = isLoading,
+    )
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DashboardTopBar(
     period: Period,
+    pagerState: PagerState,
+    pagingEnabled: Boolean,
     drawerOpen: Boolean,
     onNavigationClick: () -> Unit,
     onPreviousPeriodClick: () -> Unit,
@@ -352,6 +455,15 @@ private fun DashboardTopBar(
     onEvent: (DashboardEvent) -> Unit,
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
+    // Drag offset of the body pager relative to the centred page, in [-1, 1]: 0 at rest, +1 as the
+    // user drags toward the next period, -1 toward the previous. Feeds the 3-up label so it tracks
+    // the finger. Stays 0 when paging is disabled (Period.All).
+    val pageDragOffset =
+        if (pagingEnabled) {
+            (pagerState.currentPage + pagerState.currentPageOffsetFraction) - DASHBOARD_PAGER_CENTER_PAGE
+        } else {
+            0f
+        }
     Row(
         modifier =
             Modifier
@@ -374,6 +486,7 @@ private fun DashboardTopBar(
         }
         PeriodSwitcher(
             period = period,
+            dragOffset = pageDragOffset,
             onPreviousClick = onPreviousPeriodClick,
             onNextClick = onNextPeriodClick,
             onPeriodLabelClick = { showDatePicker = true },
@@ -420,21 +533,6 @@ private fun DashboardTopBar(
     }
 }
 
-private fun formatBalanceAmount(
-    state: DashboardState,
-    unavailableText: String,
-    locale: Locale,
-): String {
-    if (state.balanceSnapshot == null) return unavailableText
-    return MoneyFormatter.format(
-        amount = truncateDashboardAmount(state.periodNet.amount),
-        currencySymbol = state.periodNet.currency.symbol,
-        decimalDigits = 0,
-        locale = locale,
-        symbolPosition = MoneyFormatter.SymbolPosition.AFTER,
-    )
-}
-
 private fun formatMoney(
     money: Money,
     locale: Locale,
@@ -456,3 +554,8 @@ const val DASHBOARD_DONUT_TAG = "dashboard_donut"
 const val DASHBOARD_TREND_CHART_TAG = "dashboard_trend_chart"
 const val DASHBOARD_CHART_HIDDEN_HINT_TAG = "dashboard_chart_hidden_hint"
 const val DASHBOARD_SCROLL_CONTENT_TAG = "dashboard_scroll_content"
+
+// The body pager carries the previous / current / next period; the committed period always sits on
+// the centre page and the pager re-centres there after every settle (infinite paging, D4).
+private const val DASHBOARD_PAGER_PAGE_COUNT = 3
+private const val DASHBOARD_PAGER_CENTER_PAGE = 1

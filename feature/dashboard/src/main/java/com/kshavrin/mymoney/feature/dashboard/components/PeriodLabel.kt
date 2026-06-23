@@ -27,6 +27,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -129,6 +131,9 @@ fun PeriodSwitcher(
     onNextClick: () -> Unit,
     onPeriodLabelClick: () -> Unit,
     modifier: Modifier = Modifier,
+    // Drag offset of the body pager in [-1, 1]: 0 at rest, positive as the user drags toward the
+    // next period, negative toward the previous. Slides the title so it tracks the finger (G7).
+    dragOffset: Float = 0f,
 ) {
     val locale = LocalConfiguration.current.locales[0]
     val allLabel = stringResource(R.string.period_all)
@@ -146,6 +151,8 @@ fun PeriodSwitcher(
             )
         }
         val label = period.localizedLabel(locale, allLabel, currentYear)
+        val previousLabel = period.previous().localizedLabel(locale, allLabel, currentYear)
+        val nextLabel = period.next().localizedLabel(locale, allLabel, currentYear)
         val pickDateLabel = stringResource(R.string.period_pick_a_date)
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -157,11 +164,45 @@ fun PeriodSwitcher(
                     .clickable(onClick = onPeriodLabelClick)
                     .semantics { contentDescription = pickDateLabel },
         ) {
-            AutoShrinkPeriodTitle(
-                text = label,
-                allowedLines = if (label.contains('\n')) 2 else 1,
-                modifier = Modifier.fillMaxWidth(),
-            )
+            var titleWidthPx by remember { mutableStateOf(0) }
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .onSizeChanged { titleWidthPx = it.width },
+                contentAlignment = Alignment.Center,
+            ) {
+                // Center title tracks the drag; the incoming neighbour slides in from the side the
+                // finger moves toward. When the offset is 0 only the center title is visible.
+                val slide = -dragOffset * titleWidthPx
+                AutoShrinkPeriodTitle(
+                    text = label,
+                    allowedLines = if (label.contains('\n')) 2 else 1,
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .graphicsLayer { translationX = slide },
+                )
+                if (dragOffset > 0f) {
+                    AutoShrinkPeriodTitle(
+                        text = nextLabel,
+                        allowedLines = if (nextLabel.contains('\n')) 2 else 1,
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .graphicsLayer { translationX = slide + titleWidthPx },
+                    )
+                } else if (dragOffset < 0f) {
+                    AutoShrinkPeriodTitle(
+                        text = previousLabel,
+                        allowedLines = if (previousLabel.contains('\n')) 2 else 1,
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .graphicsLayer { translationX = slide - titleWidthPx },
+                    )
+                }
+            }
             Box(
                 modifier =
                     Modifier

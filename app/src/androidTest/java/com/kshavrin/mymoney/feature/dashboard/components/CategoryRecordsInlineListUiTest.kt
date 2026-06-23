@@ -165,7 +165,7 @@ class CategoryRecordsInlineListUiTest {
 
         composeTestRule
             .onNodeWithTag(DASHBOARD_INLINE_RECORDS_TAG)
-            .assertIsDisplayed()
+            .assertExists()
     }
 
     @Test

@@ -9,6 +9,7 @@ import com.kshavrin.mymoney.core.domain.model.ChartMetric
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.domain.model.Period
+import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.domain.model.TrendPoint
 import com.kshavrin.mymoney.feature.dashboard.components.CategoryTileItem
 import java.time.YearMonth
@@ -33,6 +34,13 @@ data class DashboardState(
     val budgetAlertCategoryIds: Set<Long> = emptySet(),
     val overBudgetAmount: Money? = null,
     val isLoading: Boolean = true,
+    // Inline category drill-down (G5): tapping a real category tile expands its records in place
+    // instead of navigating away. [expandedCategoryId] is the currently expanded category (null =
+    // none), [expandedRecords] are that category's transactions for [period], and
+    // [expandedRecordsLoading] is true while they are being fetched.
+    val expandedCategoryId: Long? = null,
+    val expandedRecords: List<Transaction> = emptyList(),
+    val expandedRecordsLoading: Boolean = false,
     val leftDrawerOpen: Boolean = false,
     val rightDrawerOpen: Boolean = false,
     val showConfetti: Boolean = false,

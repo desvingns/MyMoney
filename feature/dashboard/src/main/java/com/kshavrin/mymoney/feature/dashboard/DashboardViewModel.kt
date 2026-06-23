@@ -12,6 +12,7 @@ import com.kshavrin.mymoney.core.domain.model.BalanceSnapshot
 import com.kshavrin.mymoney.core.domain.model.Category
 import com.kshavrin.mymoney.core.domain.model.CategoryBalance
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
+import com.kshavrin.mymoney.core.domain.model.CategoryRecordGroup
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.DomainEvent
 import com.kshavrin.mymoney.core.domain.model.Money
@@ -24,6 +25,7 @@ import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
 import com.kshavrin.mymoney.core.domain.time.PeriodArithmetic
 import com.kshavrin.mymoney.core.domain.usecase.BalanceCalculator
 import com.kshavrin.mymoney.core.domain.usecase.BalanceTrendCalculator
+import com.kshavrin.mymoney.core.domain.usecase.GetCategoryRecordsUseCase
 import com.kshavrin.mymoney.core.domain.usecase.ObserveBudgetAlertsUseCase
 import com.kshavrin.mymoney.core.domain.usecase.ResolveRateUseCase
 import com.kshavrin.mymoney.core.domain.usecase.RingGaugeCalculator
@@ -63,6 +65,7 @@ class DashboardViewModel
         private val observeBudgetAlertsUseCase: ObserveBudgetAlertsUseCase,
         private val categoryRepository: CategoryRepository,
         private val resolveRateUseCase: ResolveRateUseCase,
+        private val getCategoryRecords: GetCategoryRecordsUseCase,
     ) : ViewModel() {
         private val _state = MutableStateFlow(DashboardState())
         val state: StateFlow<DashboardState> = _state.asStateFlow()
@@ -814,38 +817,7 @@ class DashboardViewModel
                         null -> Unit
                     }
                 }
-                is DashboardEvent.SliceClicked -> {
-                    if (event.categoryId == OTHER_CATEGORY_ID) return
-                    val range = PeriodArithmetic.toEpochMillisRange(_state.value.period)
-                    when (val selection = _state.value.dashboardSelection) {
-                        is DashboardSelection.SpecificAccount -> {
-                            val currency = _state.value.currencies.firstOrNull { it.id == selection.account.currencyId } ?: return
-                            emit(
-                                DashboardAction.NavigateTransactionsByCategory(
-                                    selection.account.id,
-                                    currency.id,
-                                    event.categoryId,
-                                    range.first,
-                                    range.last,
-                                ),
-                            )
-                        }
-                        is DashboardSelection.AllAccounts -> {
-                            (selection.foldMode as? AllAccountsFoldMode.ConvertTo)?.let { mode ->
-                                emit(
-                                    DashboardAction.NavigateTransactionsByCategory(
-                                        null,
-                                        mode.target.id,
-                                        event.categoryId,
-                                        range.first,
-                                        range.last,
-                                    ),
-                                )
-                            }
-                        }
-                        null -> Unit
-                    }
-                }
+                is DashboardEvent.SliceClicked -> toggleExpandedCategory(event.categoryId)
                 DashboardEvent.ConfettiAcknowledged ->
                     _state.value = _state.value.copy(showConfetti = false)
                 DashboardEvent.ChartTapped ->
@@ -977,6 +949,66 @@ class DashboardViewModel
 
         private fun closeDrawers() {
             _state.value = _state.value.copy(leftDrawerOpen = false, rightDrawerOpen = false)
+        }
+
+        // Tapping a real category tile drills down inline (G3): a second tap on the already-expanded
+        // category collapses it; otherwise the tile expands and its records for the current period are
+        // lazily fetched via GetCategoryRecordsUseCase. "Прочее" (OTHER_CATEGORY_ID) and the separate
+        // multi-currency mode never expand.
+        private fun toggleExpandedCategory(categoryId: Long) {
+            if (categoryId == OTHER_CATEGORY_ID) return
+            if (categoryId == _state.value.expandedCategoryId) {
+                _state.value =
+                    _state.value.copy(
+                        expandedCategoryId = null,
+                        expandedRecords = emptyList(),
+                        expandedRecordsLoading = false,
+                    )
+                return
+            }
+            val selection = _state.value.dashboardSelection
+            val period = _state.value.period
+            val source: (suspend () -> List<CategoryRecordGroup>) =
+                when (selection) {
+                    is DashboardSelection.SpecificAccount -> {
+                        { getCategoryRecords(selection.account.id, period, categoryId) }
+                    }
+                    is DashboardSelection.AllAccounts ->
+                        when (val mode = selection.foldMode) {
+                            is AllAccountsFoldMode.ConvertTo -> {
+                                {
+                                    getCategoryRecords.forAccounts(
+                                        _state.value.accounts,
+                                        mode.target,
+                                        period,
+                                        categoryId,
+                                    )
+                                }
+                            }
+                            AllAccountsFoldMode.Separate -> return
+                        }
+                    null -> return
+                }
+            _state.value =
+                _state.value.copy(
+                    expandedCategoryId = categoryId,
+                    expandedRecords = emptyList(),
+                    expandedRecordsLoading = true,
+                )
+            viewModelScope.launch {
+                val records =
+                    source()
+                        .firstOrNull { it.categoryId == categoryId }
+                        ?.transactions
+                        .orEmpty()
+                if (_state.value.expandedCategoryId == categoryId) {
+                    _state.value =
+                        _state.value.copy(
+                            expandedRecords = records,
+                            expandedRecordsLoading = false,
+                        )
+                }
+            }
         }
 
         private fun emit(action: DashboardAction) {

@@ -81,6 +81,11 @@ class DashboardViewModel
 
         private var recomputeJob: Job? = null
 
+        // Best-effort background jobs that precompute the adjacent periods' render-state for the
+        // swipe pager (SPEC 02). Cancelled and relaunched on every committed period/selection change
+        // so a stale neighbor never surfaces (G9). Never run for [Period.All] (no neighbors, G13).
+        private var neighborJob: Job? = null
+
         // One-shot cross-rates the user confirmed for the current "All accounts → convert to one"
         // fold, keyed by source currency id → cross-rate into the target currency. These are NOT
         // persisted (D5); they live only as long as this convert selection is active and are
@@ -363,6 +368,10 @@ class DashboardViewModel
             val selection = state.dashboardSelection ?: return
             val period = _state.value.period
             recomputeJob?.cancel()
+            neighborJob?.cancel()
+            if (_state.value.previousPeriodPage != null || _state.value.nextPeriodPage != null) {
+                _state.value = _state.value.copy(previousPeriodPage = null, nextPeriodPage = null)
+            }
             recomputeJob =
                 viewModelScope.launch {
                     val snapshot = computeSnapshot(selection, state.accounts, period)
@@ -416,7 +425,87 @@ class DashboardViewModel
                     if (firstPositive) {
                         appSettingsRepository.update { it.copy(firstPositiveSeen = true) }
                     }
+                    recomputeNeighbors(selection, state.accounts, period, chartConfig)
                 }
+        }
+
+        // Precompute the previous/next period's render-state in the background so the swipe pager
+        // (SPEC 02) can render the adjacent page with real data. Each neighbor is computed with the
+        // SAME per-period helpers used for the center period (G9) and exposed independently the
+        // moment its job lands. [Period.All] has no neighbors (G13) so nothing is computed.
+        private fun recomputeNeighbors(
+            selection: DashboardSelection,
+            accounts: List<Account>,
+            period: Period,
+            chartConfig: ChartConfig,
+        ) {
+            neighborJob?.cancel()
+            if (period is Period.All) return
+            neighborJob =
+                viewModelScope.launch {
+                    launch {
+                        val page = computePeriodPage(selection, accounts, period.previous(), chartConfig)
+                        if (_state.value.period == period) {
+                            _state.value = _state.value.copy(previousPeriodPage = page)
+                        }
+                    }
+                    launch {
+                        val page = computePeriodPage(selection, accounts, period.next(), chartConfig)
+                        if (_state.value.period == period) {
+                            _state.value = _state.value.copy(nextPeriodPage = page)
+                        }
+                    }
+                }
+        }
+
+        private suspend fun computePeriodPage(
+            selection: DashboardSelection,
+            accounts: List<Account>,
+            period: Period,
+            chartConfig: ChartConfig,
+        ): PeriodPageState {
+            val snapshot = computeSnapshot(selection, accounts, period)
+            val previousExpense =
+                if (snapshot.income.amount.signum() == 0 && snapshot.expense.amount.signum() > 0) {
+                    computeSnapshot(selection, accounts, period.previous()).expense
+                } else {
+                    null
+                }
+            val gauge =
+                RingGaugeCalculator(
+                    income = snapshot.income,
+                    expense = snapshot.expense,
+                    previousExpense = previousExpense,
+                )
+            val currencyCards = computeCurrencyCards(selection, accounts, period, chartConfig)
+            val trendPoints =
+                if (selection.isSeparateMode()) {
+                    emptyList()
+                } else {
+                    balanceTrendCalculator(
+                        window =
+                            balanceTrendCalculator.buildWindow(
+                                anchor = trendAnchorPeriod(chartConfig.periodType, period),
+                                count = chartConfig.pointCount,
+                            ),
+                        metric = chartConfig.metric,
+                    ) { trendPeriod ->
+                        computeSnapshot(selection, accounts, trendPeriod)
+                    }
+                }
+            return PeriodPageState(
+                period = period,
+                balanceSnapshot = snapshot,
+                currencyCards = currencyCards,
+                periodNet = snapshot.toPeriodNet(),
+                ringFraction = gauge.fraction,
+                ringIsExpense = gauge.isExpense,
+                trendPoints = trendPoints,
+                slices = snapshotToSlices(snapshot, _state.value.budgetAlertCategoryIds),
+                expenseTiles = snapshotToExpenseTiles(snapshot, _state.value.budgetAlertCategoryIds),
+                isSeparateMode = selection.isSeparateMode(),
+                isLoading = false,
+            )
         }
 
         internal fun snapshotToExpenseTiles(

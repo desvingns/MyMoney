@@ -46,6 +46,12 @@ data class DashboardState(
     val showConfetti: Boolean = false,
     val chartConfig: ChartConfig = ChartConfig(),
     val chartSettingsSheetOpen: Boolean = false,
+    // Precomputed render-state for the period one step before / after the committed one (G8), used
+    // by the swipe pager (SPEC 02) to peek the adjacent page with real data. Each is null until its
+    // best-effort background job lands, and is cleared the moment the committed period or selection
+    // changes. Null for [Period.All] (no neighbors, G13).
+    val previousPeriodPage: PeriodPageState? = null,
+    val nextPeriodPage: PeriodPageState? = null,
 ) {
     val currentAccount: Account?
         get() = (dashboardSelection as? DashboardSelection.SpecificAccount)?.account
@@ -68,6 +74,24 @@ data class DashboardState(
         get() =
             (dashboardSelection as? DashboardSelection.AllAccounts)?.foldMode == AllAccountsFoldMode.Separate
 }
+
+// Lightweight render-state for a single adjacent period in the swipe pager (SPEC 02). It carries
+// only the fields DashboardContent needs to draw a neighbor page and — by design — no neighbor
+// caches of its own, so the precompute never recurses (only the committed center period precomputes
+// neighbors). [isLoading] stays true until the best-effort background job lands.
+data class PeriodPageState(
+    val period: Period,
+    val balanceSnapshot: BalanceSnapshot? = null,
+    val currencyCards: List<CurrencyBalanceCard> = emptyList(),
+    val periodNet: Money = Money.zero(DASHBOARD_STATE_FALLBACK_CURRENCY),
+    val ringFraction: Float = 0f,
+    val ringIsExpense: Boolean = false,
+    val trendPoints: List<TrendPoint> = emptyList(),
+    val slices: List<CategorySlice> = emptyList(),
+    val expenseTiles: List<CategoryTileItem> = emptyList(),
+    val isSeparateMode: Boolean = false,
+    val isLoading: Boolean = true,
+)
 
 // One per-currency balance card for the "All accounts → show separately" view (G12). [snapshot] is
 // computed by BalanceCalculator.forAccounts over the accounts in this one currency, so every

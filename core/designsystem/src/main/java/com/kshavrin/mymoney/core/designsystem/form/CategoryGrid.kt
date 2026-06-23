@@ -23,7 +23,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
-import com.kshavrin.mymoney.core.common.category.categoryTextColorHex
 import com.kshavrin.mymoney.core.designsystem.R
 import com.kshavrin.mymoney.core.designsystem.icon.NeonCategoryIcon
 import com.kshavrin.mymoney.core.designsystem.icon.NeonCategoryIconDefaults
@@ -40,7 +39,7 @@ data class TransactionFormCategory(
     val name: String,
     val colorHex: String,
     val iconKey: String,
-    val textColorHex: String = categoryTextColorHex(iconKey),
+    val textColorHex: String,
 )
 
 @Composable

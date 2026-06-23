@@ -67,6 +67,7 @@ class BalanceCalculator
                             categoryId = first.first.categoryId,
                             categoryName = first.first.categoryName,
                             colorHex = first.first.colorHex,
+                            textColorHex = first.first.textColorHex,
                             iconKey = first.first.iconKey,
                             isExpense = first.second,
                             amount =
@@ -103,6 +104,7 @@ class BalanceCalculator
                             fraction = if (combined.signum() == 0) 0f else total.amount.toFloat() / combined.toFloat(),
                             iconKey = total.iconKey,
                             isExpense = total.isExpense,
+                            textColorHex = total.textColorHex,
                         )
                     },
             )
@@ -118,6 +120,7 @@ private data class CategoryTotal(
     val categoryId: Long,
     val categoryName: String,
     val colorHex: String,
+    val textColorHex: String,
     val iconKey: String,
     val isExpense: Boolean,
     val amount: BigDecimal,

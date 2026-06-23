@@ -15,4 +15,5 @@ data class CategoryBalance(
     val fraction: Float,
     val iconKey: String = "",
     val isExpense: Boolean = true,
+    val textColorHex: String = colorHex,
 )

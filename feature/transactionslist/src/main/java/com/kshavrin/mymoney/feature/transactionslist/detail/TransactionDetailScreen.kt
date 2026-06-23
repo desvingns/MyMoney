@@ -386,6 +386,7 @@ private fun Category.toTransactionFormCategory(): TransactionFormCategory =
         name = name,
         colorHex = colorHex,
         iconKey = iconKey,
+        textColorHex = textColor,
     )
 
 private fun dispatchTransactionFormEvent(

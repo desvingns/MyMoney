@@ -85,6 +85,7 @@ data class CategorySummary(
     val colorHex: String,
     val total: java.math.BigDecimal,
     val iconKey: String = "",
+    val textColorHex: String = colorHex,
 )
 
 data class CategoryGroup(
@@ -92,6 +93,7 @@ data class CategoryGroup(
     val name: String,
     val iconKey: String,
     val colorHex: String,
+    val textColorHex: String,
     val kind: CategoryKind,
     val total: java.math.BigDecimal,
     val count: Int,

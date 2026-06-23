@@ -7,6 +7,7 @@ data class CategoryGroupRow(
     @ColumnInfo(name = "name") val name: String,
     @ColumnInfo(name = "iconKey") val iconKey: String,
     @ColumnInfo(name = "colorHex") val colorHex: String,
+    @ColumnInfo(name = "textColorHex") val textColorHex: String,
     @ColumnInfo(name = "kind") val kind: String,
     @ColumnInfo(name = "total") val total: Double,
     @ColumnInfo(name = "txCount") val txCount: Int,

@@ -67,6 +67,7 @@ interface TransactionDao {
     @Query(
         """
         SELECT c.id AS categoryId, c.name AS categoryName, c.color_hex AS colorHex,
+               c.text_color AS textColorHex,
                c.icon_key AS iconKey, SUM(t.amount) AS total
         FROM `transaction` t
         INNER JOIN category c ON c.id = t.category_id
@@ -88,7 +89,7 @@ interface TransactionDao {
     @Query(
         """
         SELECT c.id AS categoryId, c.name AS name, c.icon_key AS iconKey,
-               c.color_hex AS colorHex, c.kind AS kind,
+               c.color_hex AS colorHex, c.text_color AS textColorHex, c.kind AS kind,
                SUM(t.amount) AS total, COUNT(t.id) AS txCount
         FROM `transaction` t
         INNER JOIN category c ON c.id = t.category_id

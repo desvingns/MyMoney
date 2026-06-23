@@ -351,6 +351,7 @@ internal fun CategorySummaryRow.toDomain(): CategorySummary =
         colorHex = colorHex,
         total = BigDecimal.valueOf(total),
         iconKey = iconKey,
+        textColorHex = textColorHex,
     )
 
 internal fun CategoryGroupRow.toDomain(): CategoryGroup =
@@ -359,6 +360,7 @@ internal fun CategoryGroupRow.toDomain(): CategoryGroup =
         name = name,
         iconKey = iconKey,
         colorHex = colorHex,
+        textColorHex = textColorHex,
         kind = CategoryKind.fromString(kind),
         total = BigDecimal.valueOf(total),
         count = txCount,

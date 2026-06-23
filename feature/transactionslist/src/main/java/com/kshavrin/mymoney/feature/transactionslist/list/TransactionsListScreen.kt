@@ -55,7 +55,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.kshavrin.mymoney.core.common.category.categoryTextColorHex
 import com.kshavrin.mymoney.core.common.money.MoneyFormatter
 import com.kshavrin.mymoney.core.designsystem.appbar.MoneyHeroAppBar
 import com.kshavrin.mymoney.core.designsystem.icon.NeonCategoryIcon
@@ -576,7 +575,7 @@ private fun CategoryHeader(
     modifier: Modifier = Modifier,
 ) {
     val tint = parseHexColor(group.colorHex)
-    val categoryTextColor = parseHexColor(categoryTextColorHex(group.iconKey))
+    val categoryTextColor = parseHexColor(group.textColorHex)
     val totalColor =
         when (group.kind) {
             CategoryKind.Income -> MaterialTheme.colorScheme.primary

@@ -42,9 +42,9 @@ import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.feature.dashboard.components.CHART_SETTINGS_SHEET_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.CategoryTileItem
 import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_AURORA_BALANCE_TAG
+import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_AURORA_CARD_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_AURORA_EXPENSE_PILL_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_AURORA_INCOME_PILL_TAG
-import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_AURORA_LABEL_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_CURRENCY_CARDS_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_ABOUT_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_ACCOUNTS_TAG
@@ -1332,7 +1332,48 @@ class DashboardContentUiTest {
     // -------------------------------------------------------------------------
 
     @Test
-    fun `aurora card label tag is present in non-separate mode`() {
+    fun `aurora card omits the legacy balance for period label in non-separate mode`() {
+        val usd = usdCurrency()
+        val snapshot =
+            BalanceSnapshot(
+                income = Money(BigDecimal("200.00"), usd),
+                expense = Money(BigDecimal("50.00"), usd),
+                net = Money(BigDecimal("150.00"), usd),
+                byCategory = emptyList(),
+            )
+        val period = Period.All
+        val removedLabel =
+            InstrumentationRegistry.getInstrumentation().targetContext.getString(
+                R.string.dashboard_balance_for_period,
+                targetString(R.string.period_all),
+            )
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state =
+                        dashboardState(
+                            currency = usd,
+                            balanceSnapshot = snapshot,
+                            periodNet = snapshot.net,
+                            period = period,
+                            isLoading = false,
+                        ),
+                    onEvent = {},
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithText(removedLabel)
+            .assertDoesNotExist()
+        composeTestRule
+            .onNodeWithTag(DASHBOARD_TOP_BAR_PERIOD_TAG)
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun `aurora card spans nearly the full dashboard width and stays centered in non-separate mode`() {
         val usd = usdCurrency()
         val snapshot =
             BalanceSnapshot(
@@ -1357,9 +1398,12 @@ class DashboardContentUiTest {
             }
         }
 
-        composeTestRule
-            .onNodeWithTag(DASHBOARD_AURORA_LABEL_TAG)
-            .assertIsDisplayed()
+        val rootBounds = composeTestRule.onRoot().fetchSemanticsNode().boundsInRoot
+        val cardBounds = composeTestRule.onNodeWithTag(DASHBOARD_AURORA_CARD_TAG).fetchSemanticsNode().boundsInRoot
+        val expectedInsetPx = with(composeTestRule.density) { Spacing.dashboardAuroraHostHorizontalPaddingWide.toPx() }
+
+        assertEquals(expectedInsetPx, cardBounds.left, 1.5f)
+        assertEquals(rootBounds.right - expectedInsetPx, cardBounds.right, 1.5f)
     }
 
     @Test
@@ -1398,7 +1442,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `aurora card is absent in separate mode`() {
+    fun `aurora card is absent in separate mode while per currency cards stay visible`() {
         val usd = usdCurrency()
         val eur =
             Currency(
@@ -1440,11 +1484,14 @@ class DashboardContentUiTest {
         }
 
         composeTestRule
-            .onAllNodesWithTag(DASHBOARD_AURORA_LABEL_TAG)
+            .onAllNodesWithTag(DASHBOARD_AURORA_CARD_TAG)
             .assertCountEquals(0)
         composeTestRule
-            .onAllNodesWithTag(DASHBOARD_AURORA_INCOME_PILL_TAG)
-            .assertCountEquals(0)
+            .onNodeWithTag(DASHBOARD_CURRENCY_CARDS_TAG)
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText("USD")
+            .assertIsDisplayed()
     }
 
     // -------------------------------------------------------------------------

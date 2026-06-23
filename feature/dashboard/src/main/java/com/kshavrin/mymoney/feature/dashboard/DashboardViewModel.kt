@@ -3,6 +3,7 @@ package com.kshavrin.mymoney.feature.dashboard
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.kshavrin.mymoney.core.common.category.categoryTextColorHex
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
 import com.kshavrin.mymoney.core.datastore.model.AppSettings
 import com.kshavrin.mymoney.core.designsystem.dialog.RateRow
@@ -121,6 +122,7 @@ class DashboardViewModel
                 color = parseHexColor(category.colorHex),
                 fraction = 0f,
                 label = category.name,
+                labelColor = parseHexColor(category.textColor),
                 iconKey = category.iconKey,
             )
 
@@ -436,6 +438,7 @@ class DashboardViewModel
                         amount = catBal.total,
                         fraction = fraction,
                         colorHex = catBal.colorHex,
+                        textColorHex = categoryTextColorHex(catBal.iconKey),
                         iconKey = catBal.iconKey,
                         hasBudgetAlert = catBal.categoryId in alertCategoryIds,
                     )
@@ -462,6 +465,7 @@ class DashboardViewModel
                             color = parseHexColor(catBal.colorHex),
                             fraction = fraction,
                             label = catBal.categoryName,
+                            labelColor = parseHexColor(categoryTextColorHex(catBal.iconKey)),
                             iconKey = catBal.iconKey,
                             hasBudgetAlert = catBal.categoryId in alertCategoryIds,
                         )

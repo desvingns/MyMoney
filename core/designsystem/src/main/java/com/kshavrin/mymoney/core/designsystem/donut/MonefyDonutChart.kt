@@ -360,7 +360,6 @@ fun MonefyDonutChart(
                             centerDividerThickness = centerDividerThickness,
                             calloutLabelStyle = calloutLabelStyle,
                             calloutPercentageStyle = calloutPercentageStyle,
-                            calloutLabelColor = calloutLabelColor,
                             leaderLineThickness = leaderLineThickness,
                         )
                     }
@@ -418,7 +417,6 @@ private fun DrawScope.drawDonutChart(
     centerDividerThickness: Dp,
     calloutLabelStyle: TextStyle,
     calloutPercentageStyle: TextStyle,
-    calloutLabelColor: Color,
     leaderLineThickness: Dp,
 ) {
     val center = Offset(size.width / 2f, size.height / 2f)
@@ -589,7 +587,7 @@ private fun DrawScope.drawDonutChart(
                 label = p.slice.label.takeIf { showCategoryLabels },
                 percentage = labelText,
                 sliceColor = p.slice.color,
-                labelColor = calloutLabelColor,
+                labelColor = p.slice.labelColor,
                 labelStyle = calloutLabelStyle,
                 percentageStyle = calloutPercentageStyle,
                 textMeasurer = textMeasurer,

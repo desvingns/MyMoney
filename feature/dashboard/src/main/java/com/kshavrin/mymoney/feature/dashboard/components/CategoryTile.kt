@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,12 +24,12 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import com.kshavrin.mymoney.core.common.money.MoneyFormatter
-import com.kshavrin.mymoney.core.designsystem.icon.categoryIcon
+import com.kshavrin.mymoney.core.designsystem.icon.NeonCategoryIcon
+import com.kshavrin.mymoney.core.designsystem.icon.NeonCategoryIconDefaults
 import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.core.ui.theme.dashboardCategoryTileAmount
 import com.kshavrin.mymoney.core.ui.theme.dashboardCategoryTileTitle
-import com.kshavrin.mymoney.core.ui.theme.textPrimary
 import com.kshavrin.mymoney.core.ui.theme.textSecondary
 import com.kshavrin.mymoney.core.ui.theme.tileSurface
 import com.kshavrin.mymoney.feature.dashboard.parseHexColor
@@ -42,6 +41,7 @@ data class CategoryTileItem(
     val fraction: Float,
     val colorHex: String,
     val iconKey: String,
+    val textColorHex: String = colorHex,
     val hasBudgetAlert: Boolean = false,
 )
 
@@ -53,6 +53,7 @@ fun CategoryTile(
 ) {
     val locale = LocalConfiguration.current.locales[0]
     val categoryColor = remember(tile.colorHex) { parseHexColor(tile.colorHex) }
+    val categoryTextColor = remember(tile.textColorHex) { parseHexColor(tile.textColorHex) }
     val formattedAmount =
         remember(tile.amount, locale) {
             MoneyFormatter.format(
@@ -82,26 +83,21 @@ fun CategoryTile(
                     .padding(horizontal = Spacing.l),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(
+            NeonCategoryIcon(
+                iconKey = tile.iconKey,
+                accent = categoryColor,
                 modifier =
                     Modifier
-                        .size(Spacing.dashboardTileIconChipSize)
-                        .clip(MaterialTheme.shapes.extraLarge)
-                        .background(categoryColor.copy(alpha = CATEGORY_ICON_CHIP_ALPHA)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = categoryIcon(tile.iconKey),
-                    contentDescription = null,
-                    tint = categoryColor,
-                    modifier = Modifier.size(Spacing.xxl),
-                )
-            }
+                        .size(Spacing.dashboardTileIconChipSize),
+                containerSize = Spacing.dashboardTileIconChipSize,
+                iconSize = NeonCategoryIconDefaults.DashboardTileIconSize,
+                shape = MaterialTheme.shapes.extraLarge,
+            )
             Spacer(modifier = Modifier.width(Spacing.l))
             Text(
                 text = tile.label,
                 style = MaterialTheme.typography.dashboardCategoryTileTitle,
-                color = MaterialTheme.colorScheme.textPrimary,
+                color = categoryTextColor,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
@@ -126,5 +122,3 @@ fun CategoryTile(
         )
     }
 }
-
-private const val CATEGORY_ICON_CHIP_ALPHA = 0.16f

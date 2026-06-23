@@ -55,9 +55,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.kshavrin.mymoney.core.common.category.categoryTextColorHex
 import com.kshavrin.mymoney.core.common.money.MoneyFormatter
 import com.kshavrin.mymoney.core.designsystem.appbar.MoneyHeroAppBar
-import com.kshavrin.mymoney.core.designsystem.icon.categoryIcon
+import com.kshavrin.mymoney.core.designsystem.icon.NeonCategoryIcon
+import com.kshavrin.mymoney.core.designsystem.icon.NeonCategoryIconDefaults
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.core.domain.model.CategoryRecordGroup
 import com.kshavrin.mymoney.core.domain.model.Currency
@@ -574,6 +576,7 @@ private fun CategoryHeader(
     modifier: Modifier = Modifier,
 ) {
     val tint = parseHexColor(group.colorHex)
+    val categoryTextColor = parseHexColor(categoryTextColorHex(group.iconKey))
     val totalColor =
         when (group.kind) {
             CategoryKind.Income -> MaterialTheme.colorScheme.primary
@@ -603,15 +606,17 @@ private fun CategoryHeader(
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.testTag(RecordsTestTags.chevron(group.categoryId)),
         )
-        Icon(
-            imageVector = categoryIcon(group.iconKey),
-            contentDescription = null,
-            tint = tint,
+        NeonCategoryIcon(
+            iconKey = group.iconKey,
+            accent = tint,
+            containerSize = NeonCategoryIconDefaults.RowContainerSize,
+            iconSize = NeonCategoryIconDefaults.RowIconSize,
+            shape = MaterialTheme.shapes.large,
         )
         Text(
             text = group.name,
             style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
+            color = categoryTextColor,
             modifier = Modifier.weight(1f),
         )
         Surface(

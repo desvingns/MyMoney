@@ -2363,6 +2363,95 @@ class DashboardViewModelTest {
             }
         }
 
+    // -------------------------------------------------------------------------
+    // Record-row tap → navigate to transaction detail (SPEC category-inline-records-03)
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `RecordRowClicked emits NavigateToTransactionDetail with the given transaction id`() =
+        runTest {
+            val (viewModel, store) = buildViewModel()
+            val actions = mutableListOf<DashboardAction>()
+            val collector =
+                backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+                    viewModel.actions.toList(actions)
+                }
+
+            try {
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.RecordRowClicked(transactionId = 42L))
+                runCurrent()
+
+                assertEquals(1, actions.size)
+                assertEquals(DashboardAction.NavigateToTransactionDetail(transactionId = 42L), actions.single())
+            } finally {
+                collector.cancel()
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `RecordRowClicked does not mutate state — expandedCategoryId and expandedRecords are unchanged`() =
+        runTest {
+            val tx = transaction(id = 5L, categoryId = 10L, accountId = cash.id)
+            transactionRepository.seedCategoryGroups(cash.id, initialPeriod, categoryGroup(categoryId = 10L))
+            transactionRepository.seedTransactionsByPeriod(cash.id, initialPeriod, tx)
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                // Expand a category first so state is non-trivial.
+                viewModel.onEvent(DashboardEvent.SliceClicked(categoryId = 10L))
+                runCurrent()
+                assertEquals(10L, viewModel.state.value.expandedCategoryId)
+
+                viewModel.onEvent(DashboardEvent.RecordRowClicked(transactionId = 5L))
+                runCurrent()
+
+                // State must not change: expansion stays open, records stay loaded.
+                assertEquals(10L, viewModel.state.value.expandedCategoryId)
+                assertEquals(listOf(tx), viewModel.state.value.expandedRecords)
+                assertFalse(viewModel.state.value.expandedRecordsLoading)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `RecordRowClicked with different ids emits separate NavigateToTransactionDetail actions`() =
+        runTest {
+            val (viewModel, store) = buildViewModel()
+            val actions = mutableListOf<DashboardAction>()
+            val collector =
+                backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+                    viewModel.actions.toList(actions)
+                }
+
+            try {
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.RecordRowClicked(transactionId = 1L))
+                viewModel.onEvent(DashboardEvent.RecordRowClicked(transactionId = 99L))
+                runCurrent()
+
+                assertEquals(
+                    listOf(
+                        DashboardAction.NavigateToTransactionDetail(transactionId = 1L),
+                        DashboardAction.NavigateToTransactionDetail(transactionId = 99L),
+                    ),
+                    actions,
+                )
+            } finally {
+                collector.cancel()
+                store.clear()
+                runCurrent()
+            }
+        }
+
     @Test
     fun `all accounts balance card on Year period carries epoch-millis range and no account id after convert flow`() =
         runTest {

@@ -37,6 +37,8 @@ import com.kshavrin.mymoney.core.domain.model.BalanceSnapshot
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.domain.model.Period
+import com.kshavrin.mymoney.core.domain.model.Transaction
+import com.kshavrin.mymoney.core.domain.model.TransactionKind
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.feature.dashboard.components.CHART_SETTINGS_SHEET_TAG
@@ -46,6 +48,7 @@ import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_AURORA_CARD_T
 import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_AURORA_EXPENSE_PILL_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_AURORA_INCOME_PILL_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_CURRENCY_CARDS_TAG
+import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_INLINE_RECORDS_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_ABOUT_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_ACCOUNTS_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_CATEGORIES_TAG
@@ -62,6 +65,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import java.math.BigDecimal
 import java.math.RoundingMode
+import java.time.Instant
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 
@@ -163,6 +167,78 @@ class DashboardContentUiTest {
         composeTestRule
             .onNodeWithContentDescription(targetString(R.string.period_next))
             .assertIsDisplayed()
+    }
+
+    // ── Period label tap → date picker dialog ────────────────────────────────
+
+    @Test
+    fun `tapping period label opens the date picker dialog`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state =
+                        DashboardState(
+                            period = Period.Month(YearMonth.of(2026, 6)),
+                            isLoading = false,
+                        ),
+                    onEvent = {},
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.period_pick_a_date))
+            .assertIsDisplayed()
+            .performClick()
+
+        composeTestRule.waitForIdle()
+
+        composeTestRule
+            .onNodeWithText(targetString(R.string.period_apply))
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun `confirming date picker emits PeriodChanged with a Day period`() {
+        val capturedEvents = mutableListOf<DashboardEvent>()
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state =
+                        DashboardState(
+                            period = Period.Month(YearMonth.of(2026, 6)),
+                            isLoading = false,
+                        ),
+                    onEvent = { capturedEvents += it },
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.period_pick_a_date))
+            .assertIsDisplayed()
+            .performClick()
+
+        composeTestRule.waitForIdle()
+
+        composeTestRule
+            .onNodeWithText(targetString(R.string.period_apply))
+            .assertIsDisplayed()
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            val periodChangedEvent = capturedEvents.filterIsInstance<DashboardEvent.PeriodChanged>().firstOrNull()
+            assertTrue(
+                "expected PeriodChanged to be emitted but got $capturedEvents",
+                periodChangedEvent != null,
+            )
+            val period = periodChangedEvent!!.period
+            assertTrue(
+                "expected PeriodChanged to carry a Period.Day but got $period",
+                period is Period.Day,
+            )
+        }
     }
 
     // ── Right-drawer Search row ───────────────────────────────────────────────
@@ -1819,6 +1895,171 @@ class DashboardContentUiTest {
             net = Money(net, currency),
             byCategory = emptyList(),
         )
+    }
+
+    // -------------------------------------------------------------------------
+    // Inline category accordion (G5) — SliceClicked + expandedCategoryId state
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `inline records list appears under the tile whose category is expanded`() {
+        val usd = usdCurrency()
+        val tile = categoryTile(categoryId = 42L, label = "Groceries", currency = usd)
+        val record =
+            Transaction(
+                id = 1L,
+                kind = TransactionKind.Expense,
+                amount = BigDecimal("500"),
+                currencyId = usd.id,
+                accountId = 1L,
+                categoryId = 42L,
+                note = "Supermarket trip",
+                occurredAt = Instant.parse("2026-06-15T10:00:00Z"),
+                createdAt = Instant.parse("2026-06-15T10:00:00Z"),
+                updatedAt = Instant.parse("2026-06-15T10:00:00Z"),
+                isDeleted = false,
+                toAccountId = null,
+                toAmount = null,
+                exchangeRate = null,
+            )
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state =
+                        dashboardState(
+                            currency = usd,
+                            balanceSnapshot = balanceSnapshot(netAmount = "100", currency = usd),
+                            expenseTiles = listOf(tile),
+                            isLoading = false,
+                        ).copy(
+                            expandedCategoryId = 42L,
+                            expandedRecords = listOf(record),
+                            expandedRecordsLoading = false,
+                        ),
+                    onEvent = {},
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithTag("category_tile_42")
+            .performScrollTo()
+        composeTestRule
+            .onNodeWithTag(DASHBOARD_INLINE_RECORDS_TAG)
+            .assertExists()
+        composeTestRule
+            .onNodeWithText("Supermarket trip")
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun `inline records list is absent when no category is expanded`() {
+        val usd = usdCurrency()
+        val tile = categoryTile(categoryId = 42L, label = "Groceries", currency = usd)
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state =
+                        dashboardState(
+                            currency = usd,
+                            balanceSnapshot = balanceSnapshot(netAmount = "100", currency = usd),
+                            expenseTiles = listOf(tile),
+                            isLoading = false,
+                        ).copy(expandedCategoryId = null),
+                    onEvent = {},
+                )
+            }
+        }
+
+        composeTestRule
+            .onAllNodesWithTag(DASHBOARD_INLINE_RECORDS_TAG)
+            .assertCountEquals(0)
+    }
+
+    @Test
+    fun `tapping a tile emits SliceClicked with that category id`() {
+        val usd = usdCurrency()
+        val capturedEvents = mutableListOf<DashboardEvent>()
+        val tile1 = categoryTile(categoryId = 11L, label = "Food", currency = usd)
+        val tile2 = categoryTile(categoryId = 22L, label = "Transport", currency = usd)
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state =
+                        dashboardState(
+                            currency = usd,
+                            balanceSnapshot = balanceSnapshot(netAmount = "200", currency = usd),
+                            expenseTiles = listOf(tile1, tile2),
+                            isLoading = false,
+                        ),
+                    onEvent = { capturedEvents += it },
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithTag("category_tile_11")
+            .performScrollTo()
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertTrue(
+                "expected SliceClicked(11) but got $capturedEvents",
+                capturedEvents.contains(DashboardEvent.SliceClicked(11L)),
+            )
+        }
+    }
+
+    @Test
+    fun `record with null note shows placeholder text in expanded accordion`() {
+        val usd = usdCurrency()
+        val tile = categoryTile(categoryId = 55L, label = "Other", currency = usd)
+        val record =
+            Transaction(
+                id = 2L,
+                kind = TransactionKind.Expense,
+                amount = BigDecimal("250"),
+                currencyId = usd.id,
+                accountId = 1L,
+                categoryId = 55L,
+                note = null,
+                occurredAt = Instant.parse("2026-06-10T08:00:00Z"),
+                createdAt = Instant.parse("2026-06-10T08:00:00Z"),
+                updatedAt = Instant.parse("2026-06-10T08:00:00Z"),
+                isDeleted = false,
+                toAccountId = null,
+                toAmount = null,
+                exchangeRate = null,
+            )
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state =
+                        dashboardState(
+                            currency = usd,
+                            balanceSnapshot = balanceSnapshot(netAmount = "100", currency = usd),
+                            expenseTiles = listOf(tile),
+                            isLoading = false,
+                        ).copy(
+                            expandedCategoryId = 55L,
+                            expandedRecords = listOf(record),
+                            expandedRecordsLoading = false,
+                        ),
+                    onEvent = {},
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithTag("category_tile_55")
+            .performScrollTo()
+        composeTestRule
+            .onNodeWithText(targetString(R.string.dashboard_inline_records_no_note))
+            .assertIsDisplayed()
     }
 
     private fun formatDashboardAmount(

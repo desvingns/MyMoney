@@ -5,9 +5,9 @@ data class CategoryRecordGroup(
     val name: String,
     val iconKey: String,
     val colorHex: String,
-    val textColorHex: String,
     val kind: CategoryKind,
     val total: Money,
     val count: Int,
     val transactions: List<Transaction>,
+    val textColorHex: String = colorHex,
 )

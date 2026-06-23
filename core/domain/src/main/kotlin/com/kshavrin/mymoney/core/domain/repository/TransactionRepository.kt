@@ -93,10 +93,10 @@ data class CategoryGroup(
     val name: String,
     val iconKey: String,
     val colorHex: String,
-    val textColorHex: String,
     val kind: CategoryKind,
     val total: java.math.BigDecimal,
     val count: Int,
+    val textColorHex: String = colorHex,
 )
 
 data class TransferRow(

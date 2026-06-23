@@ -39,7 +39,7 @@ data class TransactionFormCategory(
     val name: String,
     val colorHex: String,
     val iconKey: String,
-    val textColorHex: String,
+    val textColorHex: String = colorHex,
 )
 
 @Composable

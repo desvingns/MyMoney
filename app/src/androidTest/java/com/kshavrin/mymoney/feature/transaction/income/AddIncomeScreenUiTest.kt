@@ -367,6 +367,7 @@ class AddIncomeScreenUiTest {
             kind = CategoryKind.Income,
             iconKey = "ic_cat_salary",
             colorHex = "#7AC794",
+            textColor = "#FFFFFF",
             sortOrder = 0,
             isDefault = false,
             isArchived = false,

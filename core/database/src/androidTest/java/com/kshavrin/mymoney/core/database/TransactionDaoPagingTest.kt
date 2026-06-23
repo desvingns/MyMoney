@@ -78,6 +78,7 @@ class TransactionDaoPagingTest {
             kind = "expense",
             iconKey = "ic_cat_${name.lowercase()}",
             colorHex = "#E07AAE",
+            textColor = "#FFFFFF",
             sortOrder = 0,
             isDefault = false,
             isArchived = false,

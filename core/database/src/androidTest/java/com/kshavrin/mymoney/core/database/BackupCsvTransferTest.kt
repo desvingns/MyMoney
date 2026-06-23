@@ -123,6 +123,7 @@ class BackupCsvTransferTest {
                 kind = kind,
                 iconKey = "ic_cat_other",
                 colorHex = "#9CCC65",
+                textColor = "#FFFFFF",
                 sortOrder = sortOrder,
                 isDefault = false,
                 isArchived = false,

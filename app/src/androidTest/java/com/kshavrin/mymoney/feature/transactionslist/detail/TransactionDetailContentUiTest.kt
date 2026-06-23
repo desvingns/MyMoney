@@ -462,6 +462,7 @@ class TransactionDetailContentUiTest {
             kind = CategoryKind.Expense,
             iconKey = "ic_cat_food",
             colorHex = "#7AC794",
+            textColor = "#FFFFFF",
             sortOrder = 0,
             isDefault = false,
             isArchived = false,

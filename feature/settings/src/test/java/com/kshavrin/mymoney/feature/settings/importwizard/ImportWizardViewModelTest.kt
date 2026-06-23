@@ -185,6 +185,7 @@ class ImportWizardViewModelTest {
             kind = kind,
             iconKey = "food",
             colorHex = "#FF0000",
+            textColor = "#FFFFFF",
             sortOrder = id.toInt(),
             isDefault = false,
             isArchived = false,

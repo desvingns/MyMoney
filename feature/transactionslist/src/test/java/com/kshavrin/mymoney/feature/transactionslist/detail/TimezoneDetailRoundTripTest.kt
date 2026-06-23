@@ -69,6 +69,7 @@ class TimezoneDetailRoundTripTest {
             kind = CategoryKind.Expense,
             iconKey = "ic_cat_food",
             colorHex = "#FF8888",
+            textColor = "#FFFFFF",
             sortOrder = 0,
             isDefault = false,
             isArchived = false,

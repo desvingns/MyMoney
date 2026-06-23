@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -253,6 +254,7 @@ class MonefyCsvImportE2ETest {
                         kind = "income",
                         iconKey = "ic_cat_other",
                         colorHex = "#9CCC65",
+                        textColor = "#FFFFFF",
                         sortOrder = 0,
                         isDefault = true,
                         isArchived = false,
@@ -266,6 +268,7 @@ class MonefyCsvImportE2ETest {
                         kind = "expense",
                         iconKey = "ic_cat_other",
                         colorHex = "#EF5350",
+                        textColor = "#FFFFFF",
                         sortOrder = 1,
                         isDefault = true,
                         isArchived = false,
@@ -378,6 +381,7 @@ class MonefyCsvImportE2ETest {
                     kind = "expense",
                     iconKey = "ic_cat_other",
                     colorHex = "#EF5350",
+                    textColor = "#FFFFFF",
                     sortOrder = 0,
                     isDefault = true,
                     isArchived = false,
@@ -508,6 +512,7 @@ class MonefyCsvImportE2ETest {
                     kind = "income",
                     iconKey = "ic_cat_other",
                     colorHex = "#9CCC65",
+                    textColor = "#FFFFFF",
                     sortOrder = 0,
                     isDefault = true,
                     isArchived = false,
@@ -599,6 +604,7 @@ class MonefyCsvImportE2ETest {
                     kind = "expense",
                     iconKey = "ic_cat_other",
                     colorHex = "#EF5350",
+                    textColor = "#FFFFFF",
                     sortOrder = 0,
                     isDefault = true,
                     isArchived = false,
@@ -697,6 +703,7 @@ class MonefyCsvImportE2ETest {
                     kind = "income",
                     iconKey = "ic_cat_other",
                     colorHex = "#9CCC65",
+                    textColor = "#FFFFFF",
                     sortOrder = 0,
                     isDefault = true,
                     isArchived = false,
@@ -798,6 +805,7 @@ class MonefyCsvImportE2ETest {
                     kind = "income",
                     iconKey = "ic_cat_other",
                     colorHex = "#9CCC65",
+                    textColor = "#FFFFFF",
                     sortOrder = 0,
                     isDefault = true,
                     isArchived = false,
@@ -895,6 +903,7 @@ class MonefyCsvImportE2ETest {
                         kind = "expense",
                         iconKey = "ic_cat_other",
                         colorHex = "#EF5350",
+                        textColor = "#FFFFFF",
                         sortOrder = 0,
                         isDefault = true,
                         isArchived = false,
@@ -996,6 +1005,7 @@ class MonefyCsvImportE2ETest {
                     kind = "expense",
                     iconKey = "ic_cat_other",
                     colorHex = "#EF5350",
+                    textColor = "#FFFFFF",
                     sortOrder = 0,
                     isDefault = true,
                     isArchived = false,
@@ -1130,6 +1140,7 @@ class MonefyCsvImportE2ETest {
                         kind = "expense",
                         iconKey = "ic_cat_other",
                         colorHex = "#EF5350",
+                        textColor = "#FFFFFF",
                         sortOrder = 0,
                         isDefault = true,
                         isArchived = false,
@@ -1251,6 +1262,7 @@ class MonefyCsvImportE2ETest {
                     kind = "expense",
                     iconKey = "ic_cat_other",
                     colorHex = "#EF5350",
+                    textColor = "#FFFFFF",
                     sortOrder = 0,
                     isDefault = true,
                     isArchived = false,
@@ -1386,6 +1398,7 @@ class MonefyCsvImportE2ETest {
                         kind = "expense",
                         iconKey = "ic_cat_other",
                         colorHex = "#EF5350",
+                        textColor = "#FFFFFF",
                         sortOrder = 0,
                         isDefault = true,
                         isArchived = false,
@@ -1545,6 +1558,7 @@ class MonefyCsvImportE2ETest {
                         kind = "expense",
                         iconKey = "ic_cat_other",
                         colorHex = "#EF5350",
+                        textColor = "#FFFFFF",
                         sortOrder = 0,
                         isDefault = true,
                         isArchived = false,
@@ -1651,6 +1665,7 @@ class MonefyCsvImportE2ETest {
                     kind = "expense",
                     iconKey = "ic_cat_other",
                     colorHex = "#EF5350",
+                    textColor = "#FFFFFF",
                     sortOrder = 0,
                     isDefault = true,
                     isArchived = false,
@@ -1723,6 +1738,7 @@ class MonefyCsvImportE2ETest {
                         kind = "income",
                         iconKey = "ic_cat_other",
                         colorHex = "#9CCC65",
+                        textColor = "#FFFFFF",
                         sortOrder = 0,
                         isDefault = true,
                         isArchived = false,
@@ -1841,6 +1857,7 @@ class MonefyCsvImportE2ETest {
                         kind = "expense",
                         iconKey = "ic_cat_other",
                         colorHex = "#EF5350",
+                        textColor = "#FFFFFF",
                         sortOrder = 0,
                         isDefault = true,
                         isArchived = false,
@@ -1958,6 +1975,7 @@ class MonefyCsvImportE2ETest {
                         kind = "expense",
                         iconKey = "ic_cat_other",
                         colorHex = "#EF5350",
+                        textColor = "#FFFFFF",
                         sortOrder = 0,
                         isDefault = false,
                         isArchived = false,
@@ -2052,6 +2070,7 @@ class MonefyCsvImportE2ETest {
                         kind = "expense",
                         iconKey = "ic_cat_other",
                         colorHex = "#EF5350",
+                        textColor = "#FFFFFF",
                         sortOrder = 0,
                         isDefault = true,
                         isArchived = false,
@@ -2186,6 +2205,7 @@ class MonefyCsvImportE2ETest {
                         kind = "expense",
                         iconKey = "ic_cat_other",
                         colorHex = "#EF5350",
+                        textColor = "#FFFFFF",
                         sortOrder = 0,
                         isDefault = true,
                         isArchived = false,
@@ -2321,6 +2341,7 @@ class MonefyCsvImportE2ETest {
                         kind = "expense",
                         iconKey = "ic_cat_other",
                         colorHex = "#EF5350",
+                        textColor = "#FFFFFF",
                         sortOrder = 0,
                         isDefault = true,
                         isArchived = false,
@@ -2358,5 +2379,62 @@ class MonefyCsvImportE2ETest {
             assertEquals("amount must match inserted amount", amount, row.amount, 0.001)
             assertEquals("occurredAt must match inserted value", occurredAt, row.occurredAt)
             assertEquals("note must be preserved", "dedup note", row.note)
+        }
+
+    @Test
+    fun `csv import without color column auto-computes colorHex and textColor from iconKey`() =
+        runTest {
+            val context = ApplicationProvider.getApplicationContext<Context>()
+
+            db.currencyDao().upsert(
+                CurrencyEntity(
+                    code = "RUB",
+                    symbol = "₽",
+                    name = "Russian Ruble",
+                    decimalDigits = 2,
+                    isActive = true,
+                    sortOrder = 0,
+                ),
+            )
+
+            val header = "date,account,category,amount,currency,converted amount,currency,description"
+            val csv =
+                buildString {
+                    append(header).append("\r\n")
+                    append("01/01/2020,Cash,Food,-500,RUB,-500,RUB,\r\n")
+                }
+            val csvFile = File(context.cacheDir, "monefy_no_color_col_test.csv")
+            csvFile.writeText(csv, Charsets.UTF_8)
+
+            val repo = BackupRepositoryImpl(context, db, Dispatchers.IO)
+            val result = repo.importTransactionsCsv("file://${csvFile.absolutePath}")
+
+            assertTrue(
+                "Import without color column must not crash: ${result.exceptionOrNull()?.message}",
+                result.isSuccess,
+            )
+
+            val categories = db.categoryDao().observeAll().first()
+            assertTrue("At least one auto-created category must exist", categories.isNotEmpty())
+
+            val autoCategory = categories.first()
+            assertFalse(
+                "Auto-created category colorHex must not be empty",
+                autoCategory.colorHex.isEmpty(),
+            )
+            assertFalse(
+                "Auto-created category textColor must not be empty",
+                autoCategory.textColor.isEmpty(),
+            )
+            assertTrue(
+                "Auto-created category colorHex must start with '#'",
+                autoCategory.colorHex.startsWith("#"),
+            )
+            assertTrue(
+                "Auto-created category textColor must start with '#'",
+                autoCategory.textColor.startsWith("#"),
+            )
+
+            csvFile.delete()
         }
 }

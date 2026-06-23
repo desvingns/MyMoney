@@ -41,6 +41,7 @@ class CategoriesListContentUiTest {
             kind = kind,
             iconKey = "ic_cat_food",
             colorHex = "#7AC794",
+            textColor = "#FFFFFF",
             sortOrder = sortOrder,
             isDefault = false,
             isArchived = false,

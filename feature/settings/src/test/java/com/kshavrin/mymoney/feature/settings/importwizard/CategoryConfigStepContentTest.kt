@@ -36,6 +36,7 @@ class CategoryConfigStepContentTest {
             kind = kind,
             iconKey = iconKey,
             colorHex = colorHex,
+            textColor = "#FFFFFF",
             sortOrder = id.toInt(),
             isDefault = false,
             isArchived = false,

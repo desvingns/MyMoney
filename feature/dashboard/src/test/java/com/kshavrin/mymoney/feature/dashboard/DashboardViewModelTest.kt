@@ -2466,6 +2466,7 @@ class DashboardViewModelTest {
         kind = kind,
         iconKey = iconKey,
         colorHex = colorHex,
+        textColor = "#FFFFFF",
         sortOrder = sortOrder,
         isDefault = false,
         isArchived = false,

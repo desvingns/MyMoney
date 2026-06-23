@@ -85,6 +85,7 @@ class TransactionDaoGetTransfersTest {
             kind = "expense",
             iconKey = "ic_cat_food",
             colorHex = "#E07AAE",
+            textColor = "#FFFFFF",
             sortOrder = 0,
             isDefault = false,
             isArchived = false,

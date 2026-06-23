@@ -40,6 +40,7 @@ class CategoriesListViewModelTest {
             kind = kind,
             iconKey = "ic_cat_${name.lowercase()}",
             colorHex = "#7AC794",
+            textColor = "#FFFFFF",
             sortOrder = sortOrder,
             isDefault = false,
             isArchived = false,

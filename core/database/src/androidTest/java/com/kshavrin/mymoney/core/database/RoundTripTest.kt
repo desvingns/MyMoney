@@ -89,6 +89,7 @@ class RoundTripTest {
                         kind = "expense",
                         iconKey = "ic_cat_food",
                         colorHex = "#E07AAE",
+                        textColor = "#FFFFFF",
                         sortOrder = 0,
                         isDefault = true,
                         isArchived = false,
@@ -113,7 +114,7 @@ class RoundTripTest {
                 )
             val categoryId =
                 db.categoryDao().upsert(
-                    CategoryEntity(name = "Food", kind = "expense", iconKey = "ic_cat_food", colorHex = "#E07AAE", sortOrder = 0, isDefault = true, isArchived = false, createdAt = 0L),
+                    CategoryEntity(name = "Food", kind = "expense", iconKey = "ic_cat_food", colorHex = "#E07AAE", textColor = "#FFFFFF", sortOrder = 0, isDefault = true, isArchived = false, createdAt = 0L),
                 )
             val id =
                 db.transactionDao().upsert(
@@ -147,7 +148,7 @@ class RoundTripTest {
                 )
             val categoryId =
                 db.categoryDao().upsert(
-                    CategoryEntity(name = "Food", kind = "expense", iconKey = "ic_cat_food", colorHex = "#E07AAE", sortOrder = 0, isDefault = true, isArchived = false, createdAt = 0L),
+                    CategoryEntity(name = "Food", kind = "expense", iconKey = "ic_cat_food", colorHex = "#E07AAE", textColor = "#FFFFFF", sortOrder = 0, isDefault = true, isArchived = false, createdAt = 0L),
                 )
             val id =
                 db.budgetDao().upsert(

@@ -60,6 +60,7 @@ class CategoryEditViewModelTest {
             kind = kind,
             iconKey = "ic_cat_food",
             colorHex = "#7A9685",
+            textColor = "#FFFFFF",
             sortOrder = 0,
             isDefault = false,
             isArchived = false,

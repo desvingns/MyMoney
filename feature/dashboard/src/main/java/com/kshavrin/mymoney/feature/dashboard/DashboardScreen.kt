@@ -247,6 +247,7 @@ fun DashboardContent(
                                         points = state.trendPoints.map { it.value.amount.toFloat() },
                                         chartConfig = state.chartConfig,
                                         onChartClick = { onEvent(DashboardEvent.ChartTapped) },
+                                        netPositive = state.periodNet.amount.signum() >= 0,
                                     )
 
                                     if (overBudgetText != null) {

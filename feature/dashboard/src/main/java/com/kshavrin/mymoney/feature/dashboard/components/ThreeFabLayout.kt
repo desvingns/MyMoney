@@ -18,6 +18,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
@@ -91,7 +92,12 @@ private fun NeonOutlineFab(
         modifier =
             Modifier
                 .size(Spacing.dashboardFabSize)
-                .border(
+                .shadow(
+                    elevation = Spacing.s,
+                    shape = CircleShape,
+                    ambientColor = color.copy(alpha = 0.4f),
+                    spotColor = color.copy(alpha = 0.4f),
+                ).border(
                     width = Spacing.dashboardFabOutlineWidth,
                     color = color,
                     shape = CircleShape,

@@ -34,9 +34,9 @@ import com.kshavrin.mymoney.core.ui.theme.dashboardIncomePill
 internal fun AuroraCardSurface(
     cardTestTag: String,
     modifier: Modifier = Modifier,
+    accent: Color = MaterialTheme.colorScheme.dashboardAuroraAccent,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val accent = MaterialTheme.colorScheme.dashboardAuroraAccent
     val shape = MaterialTheme.shapes.dashboardAuroraCard
     val gradientTop = accent.copy(alpha = 0.20f)
     val gradientBottom = Color.White.copy(alpha = 0.02f)

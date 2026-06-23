@@ -18,6 +18,7 @@ import com.kshavrin.mymoney.core.common.money.MoneyFormatter
 import com.kshavrin.mymoney.core.designsystem.chart.BalanceTrendChart
 import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.ui.theme.Spacing
+import com.kshavrin.mymoney.core.ui.theme.dashboardAuroraAccentForSign
 import com.kshavrin.mymoney.core.ui.theme.dashboardAuroraBalanceValueCompact
 import com.kshavrin.mymoney.core.ui.theme.dashboardCurrencyCardCurrencyCode
 import com.kshavrin.mymoney.feature.dashboard.ChartConfig
@@ -53,9 +54,13 @@ private fun CurrencyBalanceCardItem(
     modifier: Modifier = Modifier,
 ) {
     val locale = LocalConfiguration.current.locales[0]
+    val netPositive =
+        card.snapshot.net.amount
+            .signum() >= 0
     AuroraCardSurface(
         cardTestTag = currencyCardTagFor(card.currency.code),
         modifier = modifier,
+        accent = MaterialTheme.colorScheme.dashboardAuroraAccentForSign(netPositive),
     ) {
         Text(
             text = card.currency.code,

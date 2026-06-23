@@ -17,6 +17,7 @@ import androidx.compose.ui.text.style.TextAlign
 import com.kshavrin.mymoney.core.designsystem.chart.BalanceTrendChart
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.core.ui.theme.chartHiddenHint
+import com.kshavrin.mymoney.core.ui.theme.dashboardAuroraAccentForSign
 import com.kshavrin.mymoney.core.ui.theme.dashboardAuroraBalanceValueCompact
 import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanelContent
 import com.kshavrin.mymoney.feature.dashboard.ChartConfig
@@ -33,10 +34,12 @@ fun AuroraBalanceCard(
     chartConfig: ChartConfig,
     onChartClick: () -> Unit,
     modifier: Modifier = Modifier,
+    netPositive: Boolean = true,
 ) {
     AuroraCardSurface(
         cardTestTag = DASHBOARD_AURORA_CARD_TAG,
         modifier = modifier,
+        accent = MaterialTheme.colorScheme.dashboardAuroraAccentForSign(netPositive),
     ) {
         Text(
             text = balance,

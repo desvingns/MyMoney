@@ -3733,6 +3733,354 @@ class DashboardViewModelTest {
                 runCurrent()
             }
         }
+
+    // -------------------------------------------------------------------------
+    // Neighbor-period precompute (SPEC dashboard-swipe-period-paging-01)
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `neighbor pages are null before center period finishes loading`() =
+        runTest {
+            val (viewModel, store) = buildViewModel()
+            try {
+                assertNull(viewModel.state.value.previousPeriodPage)
+                assertNull(viewModel.state.value.nextPeriodPage)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `after center period settles both neighbor pages are computed with correct period values`() =
+        runTest {
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                val prevExpected = initialPeriod.previous()
+                val nextExpected = initialPeriod.next()
+
+                assertNotNull(viewModel.state.value.previousPeriodPage)
+                assertNotNull(viewModel.state.value.nextPeriodPage)
+                assertEquals(
+                    prevExpected,
+                    viewModel.state.value.previousPeriodPage!!
+                        .period,
+                )
+                assertEquals(
+                    nextExpected,
+                    viewModel.state.value.nextPeriodPage!!
+                        .period,
+                )
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `neighbor page isLoading is false after background job lands`() =
+        runTest {
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                assertFalse(
+                    "previousPeriodPage.isLoading must be false after job lands",
+                    viewModel.state.value.previousPeriodPage!!
+                        .isLoading,
+                )
+                assertFalse(
+                    "nextPeriodPage.isLoading must be false after job lands",
+                    viewModel.state.value.nextPeriodPage!!
+                        .isLoading,
+                )
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `neighbor pages carry the correct balance data for their respective periods`() =
+        runTest {
+            val prevPeriod = initialPeriod.previous()
+            val nextPeriod = initialPeriod.next()
+            transactionRepository.seedExpenseSummary(cash.id, prevPeriod, summary(categoryId = 10L, amount = "111.00"))
+            transactionRepository.seedExpenseSummary(cash.id, nextPeriod, summary(categoryId = 20L, amount = "222.00"))
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                val prev = viewModel.state.value.previousPeriodPage
+                val next = viewModel.state.value.nextPeriodPage
+                assertNotNull(prev)
+                assertNotNull(next)
+                assertEquals(
+                    0,
+                    java.math.BigDecimal("111.00").compareTo(prev!!.balanceSnapshot!!.expense.amount),
+                )
+                assertEquals(
+                    0,
+                    java.math.BigDecimal("222.00").compareTo(next!!.balanceSnapshot!!.expense.amount),
+                )
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `All period keeps both neighbor pages null`() =
+        runTest {
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.PeriodChanged(Period.All))
+                runCurrent()
+
+                assertNull(
+                    "previousPeriodPage must be null for Period.All",
+                    viewModel.state.value.previousPeriodPage,
+                )
+                assertNull(
+                    "nextPeriodPage must be null for Period.All",
+                    viewModel.state.value.nextPeriodPage,
+                )
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `committing a new period clears stale neighbor pages and recomputes them for the new center`() =
+        runTest {
+            val nextPeriod = initialPeriod.next()
+            transactionRepository.seedExpenseSummary(cash.id, nextPeriod.previous(), summary(categoryId = 30L, amount = "30.00"))
+            transactionRepository.seedExpenseSummary(cash.id, nextPeriod.next(), summary(categoryId = 40L, amount = "40.00"))
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.NextPeriod)
+                runCurrent()
+
+                assertEquals(nextPeriod, viewModel.state.value.period)
+                val prev = viewModel.state.value.previousPeriodPage
+                val next = viewModel.state.value.nextPeriodPage
+                assertNotNull(prev)
+                assertNotNull(next)
+                assertEquals(nextPeriod.previous(), prev!!.period)
+                assertEquals(nextPeriod.next(), next!!.period)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `changing account resets neighbor pages and recomputes them for the new selection`() =
+        runTest {
+            transactionRepository.seedExpenseSummary(card.id, initialPeriod.previous(), summary(categoryId = 50L, amount = "50.00"))
+            transactionRepository.seedExpenseSummary(card.id, initialPeriod.next(), summary(categoryId = 60L, amount = "60.00"))
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.AccountSelected(card.id))
+                runCurrent()
+
+                val prev = viewModel.state.value.previousPeriodPage
+                val next = viewModel.state.value.nextPeriodPage
+                assertNotNull(prev)
+                assertNotNull(next)
+                assertEquals(initialPeriod.previous(), prev!!.period)
+                assertEquals(initialPeriod.next(), next!!.period)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `custom range neighbors shift by the range length in each direction`() =
+        runTest {
+            val rangeStart = java.time.LocalDate.of(2026, 5, 1)
+            val rangeEnd = java.time.LocalDate.of(2026, 5, 7)
+            val customRange = Period.CustomRange(start = rangeStart, end = rangeEnd)
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.PeriodChanged(customRange))
+                runCurrent()
+
+                val prev = viewModel.state.value.previousPeriodPage
+                val next = viewModel.state.value.nextPeriodPage
+                assertNotNull(prev)
+                assertNotNull(next)
+                assertEquals(customRange.previous(), prev!!.period)
+                assertEquals(customRange.next(), next!!.period)
+                assertEquals(java.time.LocalDate.of(2026, 4, 24), (prev.period as Period.CustomRange).start)
+                assertEquals(java.time.LocalDate.of(2026, 4, 30), (prev.period as Period.CustomRange).end)
+                assertEquals(java.time.LocalDate.of(2026, 5, 8), (next.period as Period.CustomRange).start)
+                assertEquals(java.time.LocalDate.of(2026, 5, 14), (next.period as Period.CustomRange).end)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `neighbor jobs are cancelled and pages cleared when period changes mid-flight`() =
+        runTest {
+            val may = Period.Month(YearMonth.of(2026, 5))
+            val june = Period.Month(YearMonth.of(2026, 6))
+
+            val neighborGate = CompletableDeferred<Unit>()
+
+            val gatedRepo =
+                object : FakeDashboardTransactionRepository() {
+                    override suspend fun getCategorySummary(
+                        accountId: Long,
+                        period: Period,
+                        kind: TransactionKind,
+                    ): List<CategorySummary> {
+                        if (period == may.previous() || period == may.next()) {
+                            neighborGate.await()
+                        }
+                        return super.getCategorySummary(accountId, period, kind)
+                    }
+                }
+
+            val dispatcher = mainDispatcherRule.testDispatcher
+            val calculator =
+                BalanceCalculator(
+                    accountRepository = accountRepository,
+                    currencyRepository = currencyRepository,
+                    transactionRepository = gatedRepo,
+                    defaultDispatcher = dispatcher,
+                )
+            val alerts =
+                ObserveBudgetAlertsUseCase(
+                    transactionRepository = gatedRepo,
+                    budgetRepository = budgetRepository,
+                    balanceCalculator = calculator,
+                    budgetEvaluator = BudgetEvaluator(),
+                    defaultDispatcher = dispatcher,
+                )
+            val store = ViewModelStore()
+            val factory =
+                object : ViewModelProvider.Factory {
+                    @Suppress("UNCHECKED_CAST")
+                    override fun <T : ViewModel> create(modelClass: Class<T>): T =
+                        DashboardViewModel(
+                            accountRepository = accountRepository,
+                            currencyRepository = currencyRepository,
+                            balanceCalculator = calculator,
+                            balanceTrendCalculator = BalanceTrendCalculator(),
+                            appSettingsRepository = settingsRepository,
+                            transactionRepository = gatedRepo,
+                            observeBudgetAlertsUseCase = alerts,
+                            categoryRepository = categoryRepository,
+                            resolveRateUseCase = buildResolveRate(),
+                            getCategoryRecords =
+                                GetCategoryRecordsUseCase(
+                                    accountRepository = accountRepository,
+                                    currencyRepository = currencyRepository,
+                                    transactionRepository = gatedRepo,
+                                    defaultDispatcher = dispatcher,
+                                ),
+                        ) as T
+                }
+            val viewModel = ViewModelProvider(store, factory)[DashboardViewModel::class.java]
+
+            try {
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.PeriodChanged(may))
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.PeriodChanged(june))
+                neighborGate.complete(Unit)
+                runCurrent()
+
+                assertEquals(june, viewModel.state.value.period)
+                val prev = viewModel.state.value.previousPeriodPage
+                val next = viewModel.state.value.nextPeriodPage
+                if (prev != null) {
+                    assertEquals(june.previous(), prev.period)
+                }
+                if (next != null) {
+                    assertEquals(june.next(), next.period)
+                }
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `PreviousPeriod event also recomputes neighbor pages for the new center period`() =
+        runTest {
+            val prevPeriod = initialPeriod.previous()
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.PreviousPeriod)
+                runCurrent()
+
+                assertEquals(prevPeriod, viewModel.state.value.period)
+                assertNotNull(viewModel.state.value.previousPeriodPage)
+                assertNotNull(viewModel.state.value.nextPeriodPage)
+                assertEquals(
+                    prevPeriod.previous(),
+                    viewModel.state.value.previousPeriodPage!!
+                        .period,
+                )
+                assertEquals(
+                    prevPeriod.next(),
+                    viewModel.state.value.nextPeriodPage!!
+                        .period,
+                )
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `neighbor pages do not recurse — PeriodPageState has no neighbor fields`() =
+        runTest {
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                val prev = viewModel.state.value.previousPeriodPage
+                assertNotNull(prev)
+                val fieldNames = prev!!.javaClass.declaredFields.map { it.name }
+                assertFalse(
+                    "PeriodPageState must not contain previousPeriodPage field",
+                    fieldNames.contains("previousPeriodPage"),
+                )
+                assertFalse(
+                    "PeriodPageState must not contain nextPeriodPage field",
+                    fieldNames.contains("nextPeriodPage"),
+                )
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
 }
 
 private class FakeDashboardAppSettingsRepository(

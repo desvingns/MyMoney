@@ -41,6 +41,7 @@ class AuroraBalanceCardUiTest {
         points: List<Float> = defaultPoints,
         chartConfig: ChartConfig = defaultConfig(),
         onChartClick: () -> Unit = {},
+        netPositive: Boolean = true,
     ) {
         composeTestRule.setContent {
             MyMoneyTheme {
@@ -51,9 +52,53 @@ class AuroraBalanceCardUiTest {
                     points = points,
                     chartConfig = chartConfig,
                     onChartClick = onChartClick,
+                    netPositive = netPositive,
                 )
             }
         }
+    }
+
+    @Test
+    fun `aurora card renders without crash when net is positive`() {
+        setCard(balance = "12 345 $", netPositive = true)
+        composeTestRule
+            .onNodeWithTag(DASHBOARD_AURORA_CARD_TAG)
+            .assertExists()
+    }
+
+    @Test
+    fun `aurora card renders without crash when net is negative`() {
+        setCard(balance = "-3 210 $", netPositive = false)
+        composeTestRule
+            .onNodeWithTag(DASHBOARD_AURORA_CARD_TAG)
+            .assertExists()
+    }
+
+    @Test
+    fun `aurora card renders without crash when net is zero treated as positive`() {
+        setCard(balance = "0 $", netPositive = true)
+        composeTestRule
+            .onNodeWithTag(DASHBOARD_AURORA_CARD_TAG)
+            .assertExists()
+        composeTestRule
+            .onNodeWithTag(DASHBOARD_AURORA_BALANCE_TAG)
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun `aurora card displays balance text when net is positive`() {
+        setCard(balance = "5 000 $", netPositive = true)
+        composeTestRule
+            .onNodeWithTag(DASHBOARD_AURORA_BALANCE_TAG)
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun `aurora card displays balance text when net is negative`() {
+        setCard(balance = "-5 000 $", netPositive = false)
+        composeTestRule
+            .onNodeWithTag(DASHBOARD_AURORA_BALANCE_TAG)
+            .assertIsDisplayed()
     }
 
     @Test

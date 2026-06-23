@@ -385,3 +385,11 @@ private val DashboardExpensePillBase = Color(0xFFFF8A9B)
 
 val ColorScheme.dashboardExpensePill: Color
     get() = DashboardExpensePillBase
+
+// Aurora card sign-aware accent (G9).
+// net >= 0 (positive or zero) → NeonMint; net < 0 → NeonRed.
+// Use instead of dashboardAuroraAccent when the card tint should reflect the sign
+// of the period net balance. The caller determines the sign via signum() >= 0.
+// dashboardAuroraAccent (DashboardAuroraAccentBase) is kept as the neutral default.
+fun ColorScheme.dashboardAuroraAccentForSign(positive: Boolean): Color =
+    if (positive) NeonMint else NeonRed

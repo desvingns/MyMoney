@@ -1,6 +1,7 @@
 package com.kshavrin.mymoney.feature.dashboard.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +29,8 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -124,6 +127,7 @@ fun PeriodSwitcher(
     period: Period,
     onPreviousClick: () -> Unit,
     onNextClick: () -> Unit,
+    onPeriodLabelClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val locale = LocalConfiguration.current.locales[0]
@@ -142,10 +146,16 @@ fun PeriodSwitcher(
             )
         }
         val label = period.localizedLabel(locale, allLabel, currentYear)
+        val pickDateLabel = stringResource(R.string.period_pick_a_date)
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-            modifier = Modifier.weight(1f),
+            modifier =
+                Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(Spacing.dashboardPeriodUnderlineRadius))
+                    .clickable(onClick = onPeriodLabelClick)
+                    .semantics { contentDescription = pickDateLabel },
         ) {
             AutoShrinkPeriodTitle(
                 text = label,

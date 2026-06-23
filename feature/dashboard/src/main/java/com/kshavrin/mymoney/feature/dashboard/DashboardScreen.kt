@@ -20,12 +20,17 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -65,8 +70,11 @@ import com.kshavrin.mymoney.feature.dashboard.components.LeftDrawerContent
 import com.kshavrin.mymoney.feature.dashboard.components.PeriodSwitcher
 import com.kshavrin.mymoney.feature.dashboard.components.RightDrawerContent
 import com.kshavrin.mymoney.feature.dashboard.components.ThreeFabLayout
+import com.kshavrin.mymoney.feature.dashboard.components.localDateToMaterialPickerUtcMillis
+import com.kshavrin.mymoney.feature.dashboard.components.materialPickerUtcMillisToLocalDate
 import java.math.BigDecimal
 import java.math.RoundingMode
+import java.time.LocalDate
 import java.util.Locale
 
 @Composable
@@ -166,6 +174,7 @@ fun DashboardContent(
                         hapticPlayer.fire(HapticKind.MEDIUM)
                         onEvent(DashboardEvent.RightDrawerToggled)
                     },
+                    onEvent = onEvent,
                 )
             },
         ) { innerPadding ->
@@ -331,6 +340,7 @@ fun DashboardContent(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DashboardTopBar(
     period: Period,
@@ -339,7 +349,9 @@ private fun DashboardTopBar(
     onPreviousPeriodClick: () -> Unit,
     onNextPeriodClick: () -> Unit,
     onMoreClick: () -> Unit,
+    onEvent: (DashboardEvent) -> Unit,
 ) {
+    var showDatePicker by remember { mutableStateOf(false) }
     Row(
         modifier =
             Modifier
@@ -364,6 +376,7 @@ private fun DashboardTopBar(
             period = period,
             onPreviousClick = onPreviousPeriodClick,
             onNextClick = onNextPeriodClick,
+            onPeriodLabelClick = { showDatePicker = true },
             modifier =
                 Modifier
                     .weight(1f)
@@ -376,6 +389,33 @@ private fun DashboardTopBar(
                 tint = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.size(Spacing.dashboardTopBarIconGlyphSize),
             )
+        }
+    }
+
+    if (showDatePicker) {
+        val pickerState =
+            rememberDatePickerState(
+                initialSelectedDateMillis = localDateToMaterialPickerUtcMillis(LocalDate.now()),
+            )
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    pickerState.selectedDateMillis?.let { selectedMillis ->
+                        onEvent(DashboardEvent.PeriodChanged(Period.Day(materialPickerUtcMillisToLocalDate(selectedMillis))))
+                    }
+                    showDatePicker = false
+                }) {
+                    Text(stringResource(R.string.period_apply))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text(stringResource(R.string.period_cancel))
+                }
+            },
+        ) {
+            DatePicker(state = pickerState)
         }
     }
 }

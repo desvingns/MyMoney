@@ -6,3 +6,6 @@ import java.time.ZoneOffset
 
 internal fun materialPickerUtcMillisToLocalDate(millis: Long): LocalDate =
     Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate()
+
+internal fun localDateToMaterialPickerUtcMillis(date: LocalDate): Long =
+    date.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()

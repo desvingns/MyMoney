@@ -74,8 +74,6 @@ class CategoryEditViewModel
                     _state.value = _state.value.copy(kind = event.value)
                 is CategoryEditEvent.IconChanged ->
                     _state.value = _state.value.copy(iconKey = event.value)
-                is CategoryEditEvent.ColorChanged ->
-                    _state.value = _state.value.copy(colorHex = event.value)
                 CategoryEditEvent.SaveClicked -> save()
                 CategoryEditEvent.BackClicked ->
                     viewModelScope.launch { _actions.emit(CategoryEditAction.NavigateBack) }
@@ -165,10 +163,6 @@ sealed interface CategoryEditEvent {
     ) : CategoryEditEvent
 
     data class IconChanged(
-        val value: String,
-    ) : CategoryEditEvent
-
-    data class ColorChanged(
         val value: String,
     ) : CategoryEditEvent
 

@@ -32,15 +32,19 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.kshavrin.mymoney.core.common.category.categoryIconDominantHex
+import com.kshavrin.mymoney.core.common.category.categoryTextColorHex
 import com.kshavrin.mymoney.core.designsystem.form.FormBottomBar
+import com.kshavrin.mymoney.core.designsystem.icon.NeonCategoryIcon
+import com.kshavrin.mymoney.core.designsystem.icon.NeonCategoryIconDefaults
 import com.kshavrin.mymoney.core.designsystem.icon.categoryIcon
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.feature.dictionaries.R
 import com.kshavrin.mymoney.feature.dictionaries.common.BlockedDeleteDialog
-import com.kshavrin.mymoney.feature.dictionaries.common.ColorPicker
 import com.kshavrin.mymoney.feature.dictionaries.common.EXPENSE_ICON_KEYS
 import com.kshavrin.mymoney.feature.dictionaries.common.INCOME_ICON_KEYS
 import com.kshavrin.mymoney.feature.dictionaries.common.IconPickerSheet
+import com.kshavrin.mymoney.feature.dictionaries.common.parseHexColor
 
 @Composable
 fun CategoryEditRoute(
@@ -170,17 +174,18 @@ fun CategoryEditContent(
                 onClick = { iconPickerVisible = true },
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(state.iconKey)
+                NeonCategoryIcon(
+                    iconKey = state.iconKey,
+                    accent = parseHexColor(categoryIconDominantHex(state.iconKey)),
+                    containerSize = NeonCategoryIconDefaults.CompactContainerSize,
+                    iconSize = NeonCategoryIconDefaults.CompactIconSize,
+                    modifier = Modifier.padding(end = 8.dp),
+                )
+                Text(
+                    text = state.name.ifBlank { stringResource(R.string.dictionaries_choose_icon) },
+                    color = parseHexColor(categoryTextColorHex(state.iconKey)),
+                )
             }
-
-            Text(
-                text = stringResource(R.string.dictionaries_field_color),
-                style = MaterialTheme.typography.titleSmall,
-            )
-            ColorPicker(
-                selectedHex = state.colorHex,
-                onColorSelected = { onEvent(CategoryEditEvent.ColorChanged(it)) },
-            )
 
             if (!state.isCreateMode) {
                 OutlinedButton(

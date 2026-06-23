@@ -2,11 +2,9 @@ package com.kshavrin.mymoney.feature.dashboard.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -14,6 +12,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import com.kshavrin.mymoney.core.domain.model.Currency
+import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.core.ui.theme.textSecondary
 import com.kshavrin.mymoney.feature.dashboard.R
@@ -21,6 +21,10 @@ import com.kshavrin.mymoney.feature.dashboard.R
 @Composable
 fun CategoryTilesList(
     expenseTiles: List<CategoryTileItem>,
+    expandedCategoryId: Long?,
+    expandedRecords: List<Transaction>,
+    expandedRecordsLoading: Boolean,
+    currencies: List<Currency>,
     onTileClick: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -40,19 +44,25 @@ fun CategoryTilesList(
             )
         }
     } else {
-        LazyColumn(
-            modifier = modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(vertical = Spacing.s),
+        Column(
+            modifier =
+                modifier
+                    .fillMaxWidth()
+                    .padding(vertical = Spacing.s),
             verticalArrangement = Arrangement.spacedBy(Spacing.s),
         ) {
-            items(
-                items = expenseTiles,
-                key = { it.categoryId },
-            ) { tile ->
+            expenseTiles.forEach { tile ->
                 CategoryTile(
                     tile = tile,
                     onTileClick = onTileClick,
                 )
+                if (tile.categoryId == expandedCategoryId) {
+                    CategoryRecordsInlineList(
+                        records = expandedRecords,
+                        loading = expandedRecordsLoading,
+                        currencies = currencies,
+                    )
+                }
             }
         }
     }

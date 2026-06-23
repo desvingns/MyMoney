@@ -15,6 +15,8 @@
     <string name="dashboard_ring_income">↑ %1$s</string>
     <string name="dashboard_ring_expense">↓ %1$s</string>
     <string name="dashboard_category_tiles_empty">За период нет расходов</string>
+    <string name="dashboard_inline_records_loading">Загрузка…</string>
+    <string name="dashboard_inline_records_no_note">Без комментария</string>
     <string name="dashboard_currency_card_income">Доход</string>
     <string name="dashboard_currency_card_expense">Расход</string>
     <string name="dashboard_currency_card_balance">Остаток</string>

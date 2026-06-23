@@ -267,22 +267,14 @@ fun DashboardContent(
 
                                     CategoryTilesList(
                                         expenseTiles = state.expenseTiles,
+                                        expandedCategoryId = state.expandedCategoryId,
+                                        expandedRecords = state.expandedRecords,
+                                        expandedRecordsLoading = state.expandedRecordsLoading,
+                                        currencies = state.currencies,
                                         onTileClick = { categoryId ->
                                             onEvent(DashboardEvent.SliceClicked(categoryId))
                                         },
-                                        modifier =
-                                            Modifier
-                                                .padding(horizontal = Spacing.l)
-                                                .then(
-                                                    if (state.expenseTiles.isEmpty()) {
-                                                        Modifier
-                                                    } else {
-                                                        Modifier.height(
-                                                            Spacing.dashboardTileHeight * state.expenseTiles.size +
-                                                                Spacing.s * (state.expenseTiles.size + 1),
-                                                        )
-                                                    },
-                                                ),
+                                        modifier = Modifier.padding(horizontal = Spacing.l),
                                     )
                                 }
                             }

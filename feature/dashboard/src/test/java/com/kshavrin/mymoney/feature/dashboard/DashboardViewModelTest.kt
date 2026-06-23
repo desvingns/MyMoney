@@ -33,6 +33,7 @@ import com.kshavrin.mymoney.core.domain.usecase.BalanceCalculator
 import com.kshavrin.mymoney.core.domain.usecase.BalanceTrendCalculator
 import com.kshavrin.mymoney.core.domain.usecase.BudgetEvaluator
 import com.kshavrin.mymoney.core.domain.usecase.ConvertMoneyUseCase
+import com.kshavrin.mymoney.core.domain.usecase.GetCategoryRecordsUseCase
 import com.kshavrin.mymoney.core.domain.usecase.ObserveBudgetAlertsUseCase
 import com.kshavrin.mymoney.core.domain.usecase.ResolveRateUseCase
 import kotlinx.coroutines.CompletableDeferred
@@ -615,7 +616,7 @@ class DashboardViewModelTest {
         }
 
     @Test
-    fun `all accounts balance and slice taps emit aggregate transactions actions without a fake account id after convert flow`() =
+    fun `all accounts balance card emits NavigateTransactionsByCurrency after convert flow`() =
         runTest {
             accountRepository.seed(cash)
             currencyRepository.seed(usd)
@@ -630,7 +631,6 @@ class DashboardViewModelTest {
             try {
                 runCurrent()
 
-                // Complete the full convert flow to reach ConvertTo(usd) selection.
                 viewModel.onEvent(DashboardEvent.AllAccountsTargetCurrencyChosen(usd.id))
                 runCurrent()
                 viewModel.onEvent(DashboardEvent.AllAccountsRatesConfirmed(emptyMap()))
@@ -638,8 +638,6 @@ class DashboardViewModelTest {
                 actions.clear()
 
                 viewModel.onEvent(DashboardEvent.BalanceCardClicked)
-                viewModel.onEvent(DashboardEvent.SliceClicked(categoryId = 77L))
-
                 runCurrent()
 
                 val expectedRange = PeriodArithmetic.toEpochMillisRange(initialPeriod)
@@ -650,15 +648,51 @@ class DashboardViewModelTest {
                             fromMillis = expectedRange.first,
                             toMillis = expectedRange.last,
                         ),
-                        DashboardAction.NavigateTransactionsByCategory(
-                            accountId = null,
-                            currencyId = usd.id,
-                            categoryId = 77L,
-                            fromMillis = expectedRange.first,
-                            toMillis = expectedRange.last,
-                        ),
                     ),
                     actions,
+                )
+            } finally {
+                collector.cancel()
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `slice click in AllAccounts ConvertTo mode expands the category inline via forAccounts`() =
+        runTest {
+            accountRepository.seed(cash)
+            currencyRepository.seed(usd)
+
+            val tx = transaction(id = 10L, categoryId = 77L, accountId = cash.id)
+            transactionRepository.seedCategoryGroups(cash.id, initialPeriod, categoryGroup(categoryId = 77L))
+            transactionRepository.seedTransactionsByPeriod(cash.id, initialPeriod, tx)
+
+            val (viewModel, store) = buildViewModel()
+            val actions = mutableListOf<DashboardAction>()
+            val collector =
+                backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+                    viewModel.actions.toList(actions)
+                }
+
+            try {
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.AllAccountsTargetCurrencyChosen(usd.id))
+                runCurrent()
+                viewModel.onEvent(DashboardEvent.AllAccountsRatesConfirmed(emptyMap()))
+                runCurrent()
+                actions.clear()
+
+                viewModel.onEvent(DashboardEvent.SliceClicked(categoryId = 77L))
+                runCurrent()
+
+                assertEquals(77L, viewModel.state.value.expandedCategoryId)
+                assertEquals(listOf(tx), viewModel.state.value.expandedRecords)
+                assertFalse(viewModel.state.value.expandedRecordsLoading)
+                assertTrue(
+                    "NavigateTransactionsByCategory must NOT be emitted in ConvertTo expand; actions=$actions",
+                    actions.none { it is DashboardAction.NavigateTransactionsByCategory },
                 )
             } finally {
                 collector.cancel()
@@ -1932,8 +1966,16 @@ class DashboardViewModelTest {
         }
 
     @Test
-    fun `slice click on a real category emits navigation for the current account`() =
+    fun `slice click on a real category sets expandedCategoryId and loads its records without emitting navigation`() =
         runTest {
+            val tx = transaction(id = 1L, categoryId = 77L, accountId = cash.id)
+            transactionRepository.seedCategoryGroups(
+                cash.id,
+                initialPeriod,
+                categoryGroup(categoryId = 77L),
+            )
+            transactionRepository.seedTransactionsByPeriod(cash.id, initialPeriod, tx)
+
             val (viewModel, store) = buildViewModel()
             val actions = mutableListOf<DashboardAction>()
             val collector =
@@ -1948,18 +1990,12 @@ class DashboardViewModelTest {
 
                 runCurrent()
 
-                val expectedRange = PeriodArithmetic.toEpochMillisRange(initialPeriod)
-                assertEquals(
-                    listOf(
-                        DashboardAction.NavigateTransactionsByCategory(
-                            accountId = cash.id,
-                            currencyId = usd.id,
-                            categoryId = 77L,
-                            fromMillis = expectedRange.first,
-                            toMillis = expectedRange.last,
-                        ),
-                    ),
-                    actions,
+                assertEquals(77L, viewModel.state.value.expandedCategoryId)
+                assertEquals(listOf(tx), viewModel.state.value.expandedRecords)
+                assertFalse(viewModel.state.value.expandedRecordsLoading)
+                assertTrue(
+                    "NavigateTransactionsByCategory must NOT be emitted on tile tap; actions=$actions",
+                    actions.none { it is DashboardAction.NavigateTransactionsByCategory },
                 )
             } finally {
                 collector.cancel()
@@ -1969,7 +2005,7 @@ class DashboardViewModelTest {
         }
 
     @Test
-    fun `all accounts balance and slice taps in Separate mode do not emit navigation because no target currency exists`() =
+    fun `slice click in Separate mode neither expands the category nor emits navigation`() =
         runTest {
             val (viewModel, store) = buildViewModel()
             val actions = mutableListOf<DashboardAction>()
@@ -1981,21 +2017,28 @@ class DashboardViewModelTest {
             try {
                 runCurrent()
 
-                // Reach AllAccounts(Separate) — the fork-dialog path that does NOT confirm a target.
                 viewModel.onEvent(DashboardEvent.AllAccountsSeparateChosen)
                 runCurrent()
                 actions.clear()
 
-                // In Separate mode there is no fold target, so BalanceCardClicked and SliceClicked
-                // must not emit navigation (they silently no-op for AllAccounts when foldMode is Separate).
+                // AllAccounts.Separate returns early in toggleExpandedCategory — no expansion,
+                // no action.
                 viewModel.onEvent(DashboardEvent.BalanceCardClicked)
                 viewModel.onEvent(DashboardEvent.SliceClicked(categoryId = 77L))
 
                 runCurrent()
 
+                assertNull(
+                    "expandedCategoryId must remain null in Separate mode",
+                    viewModel.state.value.expandedCategoryId,
+                )
                 assertTrue(
-                    "BalanceCardClicked and SliceClicked on Separate AllAccounts must not emit navigation; got $actions",
-                    actions.isEmpty(),
+                    viewModel.state.value.expandedRecords
+                        .isEmpty(),
+                )
+                assertTrue(
+                    "no navigation action must be emitted in Separate mode; got $actions",
+                    actions.none { it is DashboardAction.NavigateTransactionsByCategory },
                 )
             } finally {
                 collector.cancel()
@@ -2075,9 +2118,13 @@ class DashboardViewModelTest {
         }
 
     @Test
-    fun `slice click on Year period carries epoch-millis range for that year`() =
+    fun `slice click on Year period expands the category using records for that year`() =
         runTest {
             val yearPeriod = Period.Year(2026)
+            val tx = transaction(id = 5L, categoryId = 42L, accountId = cash.id)
+            transactionRepository.seedCategoryGroups(cash.id, yearPeriod, categoryGroup(categoryId = 42L))
+            transactionRepository.seedTransactionsByPeriod(cash.id, yearPeriod, tx)
+
             val (viewModel, store) = buildViewModel()
             val actions = mutableListOf<DashboardAction>()
             val collector =
@@ -2094,14 +2141,13 @@ class DashboardViewModelTest {
                 viewModel.onEvent(DashboardEvent.SliceClicked(categoryId = 42L))
                 runCurrent()
 
-                val expectedRange = PeriodArithmetic.toEpochMillisRange(yearPeriod)
-                assertEquals(1, actions.size)
-                val action = actions.single() as DashboardAction.NavigateTransactionsByCategory
-                assertEquals(cash.id, action.accountId)
-                assertEquals(usd.id, action.currencyId)
-                assertEquals(42L, action.categoryId)
-                assertEquals(expectedRange.first, action.fromMillis)
-                assertEquals(expectedRange.last, action.toMillis)
+                assertEquals(42L, viewModel.state.value.expandedCategoryId)
+                assertEquals(listOf(tx), viewModel.state.value.expandedRecords)
+                assertFalse(viewModel.state.value.expandedRecordsLoading)
+                assertTrue(
+                    "NavigateTransactionsByCategory must NOT be emitted; actions=$actions",
+                    actions.none { it is DashboardAction.NavigateTransactionsByCategory },
+                )
             } finally {
                 collector.cancel()
                 store.clear()
@@ -2110,13 +2156,17 @@ class DashboardViewModelTest {
         }
 
     @Test
-    fun `slice click on CustomRange period carries exact custom epoch-millis range`() =
+    fun `slice click on CustomRange period expands the category using records for that range`() =
         runTest {
             val customRange =
                 Period.CustomRange(
                     start = LocalDate.of(2026, 5, 10),
                     end = LocalDate.of(2026, 5, 20),
                 )
+            val tx = transaction(id = 6L, categoryId = 55L, accountId = cash.id)
+            transactionRepository.seedCategoryGroups(cash.id, customRange, categoryGroup(categoryId = 55L))
+            transactionRepository.seedTransactionsByPeriod(cash.id, customRange, tx)
+
             val (viewModel, store) = buildViewModel()
             val actions = mutableListOf<DashboardAction>()
             val collector =
@@ -2133,14 +2183,13 @@ class DashboardViewModelTest {
                 viewModel.onEvent(DashboardEvent.SliceClicked(categoryId = 55L))
                 runCurrent()
 
-                val expectedRange = PeriodArithmetic.toEpochMillisRange(customRange)
-                assertEquals(1, actions.size)
-                val action = actions.single() as DashboardAction.NavigateTransactionsByCategory
-                assertEquals(cash.id, action.accountId)
-                assertEquals(usd.id, action.currencyId)
-                assertEquals(55L, action.categoryId)
-                assertEquals(expectedRange.first, action.fromMillis)
-                assertEquals(expectedRange.last, action.toMillis)
+                assertEquals(55L, viewModel.state.value.expandedCategoryId)
+                assertEquals(listOf(tx), viewModel.state.value.expandedRecords)
+                assertFalse(viewModel.state.value.expandedRecordsLoading)
+                assertTrue(
+                    "NavigateTransactionsByCategory must NOT be emitted; actions=$actions",
+                    actions.none { it is DashboardAction.NavigateTransactionsByCategory },
+                )
             } finally {
                 collector.cancel()
                 store.clear()
@@ -2149,7 +2198,7 @@ class DashboardViewModelTest {
         }
 
     @Test
-    fun `slice click on OTHER_CATEGORY_ID guard does not emit navigation even when period is non-default`() =
+    fun `slice click on OTHER_CATEGORY_ID guard does not expand or emit any action`() =
         runTest {
             val yearPeriod = Period.Year(2026)
             val (viewModel, store) = buildViewModel()
@@ -2168,9 +2217,147 @@ class DashboardViewModelTest {
                 viewModel.onEvent(DashboardEvent.SliceClicked(OTHER_CATEGORY_ID))
                 runCurrent()
 
-                assertTrue(actions.isEmpty())
+                assertNull(
+                    "expandedCategoryId must remain null after OTHER_CATEGORY_ID tap",
+                    viewModel.state.value.expandedCategoryId,
+                )
+                assertTrue(
+                    viewModel.state.value.expandedRecords
+                        .isEmpty(),
+                )
+                assertTrue(
+                    "no action must be emitted for OTHER_CATEGORY_ID; got $actions",
+                    actions.isEmpty(),
+                )
             } finally {
                 collector.cancel()
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    // -------------------------------------------------------------------------
+    // Inline category expansion (G5 / SPEC category-inline-records-01)
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `second tap on already expanded category collapses it and clears expandedRecords`() =
+        runTest {
+            val tx = transaction(id = 2L, categoryId = 10L, accountId = cash.id)
+            transactionRepository.seedCategoryGroups(cash.id, initialPeriod, categoryGroup(categoryId = 10L))
+            transactionRepository.seedTransactionsByPeriod(cash.id, initialPeriod, tx)
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                // First tap — expands.
+                viewModel.onEvent(DashboardEvent.SliceClicked(categoryId = 10L))
+                runCurrent()
+                assertEquals(10L, viewModel.state.value.expandedCategoryId)
+                assertEquals(listOf(tx), viewModel.state.value.expandedRecords)
+
+                // Second tap on the same id — collapses.
+                viewModel.onEvent(DashboardEvent.SliceClicked(categoryId = 10L))
+                runCurrent()
+
+                assertNull(viewModel.state.value.expandedCategoryId)
+                assertTrue(
+                    viewModel.state.value.expandedRecords
+                        .isEmpty(),
+                )
+                assertFalse(viewModel.state.value.expandedRecordsLoading)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `tapping a different category while one is expanded switches expansion to the new one`() =
+        runTest {
+            val tx10 = transaction(id = 3L, categoryId = 10L, accountId = cash.id)
+            val tx20 = transaction(id = 4L, categoryId = 20L, accountId = cash.id)
+            transactionRepository.seedCategoryGroups(
+                cash.id,
+                initialPeriod,
+                categoryGroup(categoryId = 10L),
+                categoryGroup(categoryId = 20L),
+            )
+            transactionRepository.seedTransactionsByPeriod(cash.id, initialPeriod, tx10, tx20)
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.SliceClicked(categoryId = 10L))
+                runCurrent()
+                assertEquals(10L, viewModel.state.value.expandedCategoryId)
+                assertEquals(listOf(tx10), viewModel.state.value.expandedRecords)
+
+                // Tap a different category — must switch.
+                viewModel.onEvent(DashboardEvent.SliceClicked(categoryId = 20L))
+                runCurrent()
+
+                assertEquals(20L, viewModel.state.value.expandedCategoryId)
+                assertEquals(listOf(tx20), viewModel.state.value.expandedRecords)
+                assertFalse(viewModel.state.value.expandedRecordsLoading)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `expandedRecordsLoading is true immediately after tap before the records coroutine completes`() =
+        runTest {
+            // StandardTestDispatcher does not advance coroutines automatically — the launched
+            // viewModelScope coroutine that fetches records is queued but not yet run after onEvent().
+            // The state update setting expandedRecordsLoading = true happens synchronously before
+            // launch, so it is visible immediately.
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.SliceClicked(categoryId = 10L))
+                // Do NOT call runCurrent() here — the fetch coroutine has not yet executed.
+
+                assertTrue(
+                    "expandedRecordsLoading must be true while the fetch coroutine has not yet run",
+                    viewModel.state.value.expandedRecordsLoading,
+                )
+                assertEquals(10L, viewModel.state.value.expandedCategoryId)
+
+                // Advance scheduler — records arrive (empty, since no seeds), loading clears.
+                runCurrent()
+
+                assertFalse(viewModel.state.value.expandedRecordsLoading)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `OTHER_CATEGORY_ID slice click does not set expandedCategoryId`() =
+        runTest {
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.SliceClicked(categoryId = OTHER_CATEGORY_ID))
+                runCurrent()
+
+                assertNull(
+                    "OTHER_CATEGORY_ID must never be expanded",
+                    viewModel.state.value.expandedCategoryId,
+                )
+                assertTrue(
+                    viewModel.state.value.expandedRecords
+                        .isEmpty(),
+                )
+                assertFalse(viewModel.state.value.expandedRecordsLoading)
+            } finally {
                 store.clear()
                 runCurrent()
             }
@@ -2331,6 +2518,13 @@ class DashboardViewModelTest {
                             observeBudgetAlertsUseCase = alerts,
                             categoryRepository = categoryRepository,
                             resolveRateUseCase = buildResolveRate(),
+                            getCategoryRecords =
+                                GetCategoryRecordsUseCase(
+                                    accountRepository = accountRepository,
+                                    currencyRepository = currencyRepository,
+                                    transactionRepository = gatedTransactionRepository,
+                                    defaultDispatcher = dispatcher,
+                                ),
                         ) as T
                 }
             val viewModel = ViewModelProvider(store, factory)[DashboardViewModel::class.java]
@@ -2400,6 +2594,13 @@ class DashboardViewModelTest {
                 budgetEvaluator = BudgetEvaluator(),
                 defaultDispatcher = dispatcher,
             )
+        val getCategoryRecords =
+            GetCategoryRecordsUseCase(
+                accountRepository = accountRepository,
+                currencyRepository = currencyRepository,
+                transactionRepository = transactionRepository,
+                defaultDispatcher = dispatcher,
+            )
         val store = ViewModelStore()
         val factory =
             object : ViewModelProvider.Factory {
@@ -2415,6 +2616,7 @@ class DashboardViewModelTest {
                         observeBudgetAlertsUseCase = alerts,
                         categoryRepository = categoryRepository,
                         resolveRateUseCase = buildResolveRate(),
+                        getCategoryRecords = getCategoryRecords,
                     ) as T
             }
         return ViewModelProvider(store, factory)[DashboardViewModel::class.java] to store
@@ -2448,6 +2650,13 @@ class DashboardViewModelTest {
                 budgetEvaluator = BudgetEvaluator(),
                 defaultDispatcher = dispatcher,
             )
+        val getCategoryRecords =
+            GetCategoryRecordsUseCase(
+                accountRepository = accountRepository,
+                currencyRepository = currencyRepository,
+                transactionRepository = transactionRepository,
+                defaultDispatcher = dispatcher,
+            )
         val store = ViewModelStore()
         val factory =
             object : ViewModelProvider.Factory {
@@ -2463,6 +2672,7 @@ class DashboardViewModelTest {
                         observeBudgetAlertsUseCase = alerts,
                         categoryRepository = categoryRepository,
                         resolveRateUseCase = buildResolveRate(rateRepository),
+                        getCategoryRecords = getCategoryRecords,
                     ) as T
             }
         return ViewModelProvider(store, factory)[DashboardViewModel::class.java] to store
@@ -2546,6 +2756,38 @@ class DashboardViewModelTest {
         isArchived = false,
         createdAt = Instant.EPOCH,
     )
+
+    private fun transaction(
+        id: Long,
+        categoryId: Long,
+        accountId: Long,
+    ) = Transaction(
+        id = id,
+        kind = TransactionKind.Expense,
+        amount = BigDecimal("10.00"),
+        currencyId = usd.id,
+        accountId = accountId,
+        categoryId = categoryId,
+        note = null,
+        occurredAt = java.time.Instant.EPOCH,
+        createdAt = java.time.Instant.EPOCH,
+        updatedAt = java.time.Instant.EPOCH,
+        isDeleted = false,
+        toAccountId = null,
+        toAmount = null,
+        exchangeRate = null,
+    )
+
+    private fun categoryGroup(categoryId: Long) =
+        CategoryGroup(
+            categoryId = categoryId,
+            name = "category-$categoryId",
+            iconKey = "ic_cat",
+            colorHex = "#FF8888",
+            kind = CategoryKind.Expense,
+            total = BigDecimal("10.00"),
+            count = 1,
+        )
 
     private fun account(
         id: Long,
@@ -3537,6 +3779,8 @@ private open class FakeDashboardTransactionRepository : TransactionRepository {
     private val state = MutableStateFlow<List<Transaction>>(emptyList())
     private val expenseSummaries = mutableMapOf<Pair<Long, Period>, List<CategorySummary>>()
     private val incomeSummaries = mutableMapOf<Pair<Long, Period>, List<CategorySummary>>()
+    private val categoryGroups = mutableMapOf<Pair<Long, Period>, List<CategoryGroup>>()
+    private val transactionsByPeriod = mutableMapOf<Pair<Long, Period>, List<Transaction>>()
 
     fun seedExpenseSummary(
         accountId: Long,
@@ -3552,6 +3796,22 @@ private open class FakeDashboardTransactionRepository : TransactionRepository {
         vararg summaries: CategorySummary,
     ) {
         incomeSummaries[accountId to period] = summaries.toList()
+    }
+
+    fun seedCategoryGroups(
+        accountId: Long,
+        period: Period,
+        vararg groups: CategoryGroup,
+    ) {
+        categoryGroups[accountId to period] = groups.toList()
+    }
+
+    fun seedTransactionsByPeriod(
+        accountId: Long,
+        period: Period,
+        vararg transactions: Transaction,
+    ) {
+        transactionsByPeriod[accountId to period] = transactions.toList()
     }
 
     override fun observeRecent(limit: Int): Flow<List<Transaction>> = state.asStateFlow()
@@ -3571,7 +3831,7 @@ private open class FakeDashboardTransactionRepository : TransactionRepository {
     override suspend fun findByPeriod(
         accountId: Long,
         period: Period,
-    ): List<Transaction> = emptyList()
+    ): List<Transaction> = transactionsByPeriod[accountId to period].orEmpty()
 
     override suspend fun getCategorySummary(
         accountId: Long,
@@ -3587,7 +3847,7 @@ private open class FakeDashboardTransactionRepository : TransactionRepository {
     override suspend fun getCategoryGroups(
         accountId: Long,
         period: Period,
-    ): List<CategoryGroup> = emptyList()
+    ): List<CategoryGroup> = categoryGroups[accountId to period].orEmpty()
 
     override suspend fun searchByNote(
         query: String,

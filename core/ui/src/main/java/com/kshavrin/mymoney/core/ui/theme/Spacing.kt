@@ -175,4 +175,10 @@ object Spacing {
     val dashboardAuroraValueBottomMargin = 2.dp
     val dashboardAuroraPillBottomMargin = 12.dp
     val dashboardAuroraPillBottomMarginCompact = 10.dp
+
+    // Dashboard inline category accordion (SPEC 02 — CategoryRecordsInlineList).
+    // Read-only record rows inside the expanded block have no tap-target requirement, so
+    // 40dp (vs the tile's 76dp or M3's 56dp sheet row) keeps the list compact while
+    // remaining legible at body text scale.
+    val dashboardInlineRecordRowHeight = 40.dp
 }

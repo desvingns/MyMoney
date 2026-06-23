@@ -393,3 +393,16 @@ val ColorScheme.dashboardExpensePill: Color
 // dashboardAuroraAccent (DashboardAuroraAccentBase) is kept as the neutral default.
 fun ColorScheme.dashboardAuroraAccentForSign(positive: Boolean): Color =
     if (positive) NeonMint else NeonRed
+
+// Dashboard inline category accordion (SPEC 02 — CategoryRecordsInlineList).
+// The accordion block sits flush under the expanded tile; it uses NeonSurfaceAlt so the
+// block is visually distinct from the dashboard background (NeonBackground) and from the
+// tile surface (NeonSurface) without introducing a new colour.
+val ColorScheme.dashboardInlineRecordContainer: Color
+    get() = NeonSurfaceAlt
+
+// Hairline divider between individual record rows inside the accordion.
+// outlineVariant (@0x2B354D in the neon palette) is dim enough not to compete with
+// the amount/note text while still giving the eye a row separator.
+val ColorScheme.dashboardInlineRecordDivider: Color
+    get() = outlineVariant

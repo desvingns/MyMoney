@@ -6,7 +6,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -27,7 +28,7 @@ class CategoryEditContentUiTest {
     val composeTestRule = createComposeRule()
 
     @Test
-    fun nameKindColorAndSaveEmitTheirEvents() {
+    fun nameKindAndSaveEmitTheirEvents() {
         val events = mutableListOf<CategoryEditEvent>()
         composeTestRule.setContent {
             MyMoneyTheme {
@@ -40,7 +41,6 @@ class CategoryEditContentUiTest {
                             when (event) {
                                 is CategoryEditEvent.NameChanged -> state.copy(name = event.value)
                                 is CategoryEditEvent.KindChanged -> state.copy(kind = event.value)
-                                is CategoryEditEvent.ColorChanged -> state.copy(colorHex = event.value)
                                 else -> state
                             }
                     },
@@ -55,10 +55,6 @@ class CategoryEditContentUiTest {
             .onNodeWithText(targetString(R.string.dictionaries_kind_income))
             .performScrollTo()
             .performClick()
-        // #9C5BB8 is the first palette swatch (always visible). performScrollTo on a
-        // LazyVerticalGrid item deadlocks the nested scroll inside Column(verticalScroll)
-        // (waitForIdle never settles), so click it directly.
-        composeTestRule.onNodeWithContentDescription("#9C5BB8").performClick()
         composeTestRule
             .onNodeWithText(targetString(R.string.dictionaries_save))
             .performClick()
@@ -68,11 +64,64 @@ class CategoryEditContentUiTest {
                 listOf(
                     CategoryEditEvent.NameChanged("Coffee"),
                     CategoryEditEvent.KindChanged(CategoryKind.Income),
-                    CategoryEditEvent.ColorChanged("#9C5BB8"),
                     CategoryEditEvent.SaveClicked,
                 ),
                 events,
             )
+        }
+    }
+
+    @Test
+    fun `color picker is not present on the screen`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                CategoryEditContent(
+                    state = CategoryEditState(),
+                    onEvent = {},
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithText(targetString(R.string.dictionaries_field_color))
+            .assertDoesNotExist()
+        composeTestRule
+            .onNodeWithText(targetString(R.string.dictionaries_choose_color))
+            .assertDoesNotExist()
+    }
+
+    @Test
+    fun `changing icon updates preview name text color`() {
+        val events = mutableListOf<CategoryEditEvent>()
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                var state by remember { mutableStateOf(CategoryEditState(iconKey = "ic_cat_food", name = "Preview")) }
+                CategoryEditContent(
+                    state = state,
+                    onEvent = { event ->
+                        events += event
+                        state =
+                            when (event) {
+                                is CategoryEditEvent.IconChanged -> state.copy(iconKey = event.value)
+                                else -> state
+                            }
+                    },
+                )
+            }
+        }
+
+        // Two nodes contain "Preview": index 0 = name TextField, index 1 = icon preview button.
+        composeTestRule.onAllNodesWithText("Preview")[1].assertIsDisplayed()
+
+        composeTestRule
+            .onNodeWithText(targetString(R.string.dictionaries_field_icon))
+            .performScrollTo()
+        composeTestRule.onAllNodesWithText("Preview")[1].performScrollTo().performClick()
+        composeTestRule.onNodeWithTag("ic_cat_car").assertIsDisplayed().performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(CategoryEditEvent.IconChanged("ic_cat_car")), events)
+            assertEquals("ic_cat_car", events.filterIsInstance<CategoryEditEvent.IconChanged>().last().value)
         }
     }
 
@@ -88,9 +137,8 @@ class CategoryEditContentUiTest {
             }
         }
 
-        composeTestRule.onNodeWithText("ic_cat_food").performScrollTo().performClick()
-        composeTestRule.onNodeWithText(targetString(R.string.dictionaries_choose_icon)).assertIsDisplayed()
-        composeTestRule.onNodeWithContentDescription("ic_cat_bills").performClick()
+        composeTestRule.onNodeWithText(targetString(R.string.dictionaries_choose_icon)).performScrollTo().performClick()
+        composeTestRule.onNodeWithTag("ic_cat_bills").assertIsDisplayed().performClick()
 
         composeTestRule.runOnIdle {
             assertEquals(listOf(CategoryEditEvent.IconChanged("ic_cat_bills")), events)

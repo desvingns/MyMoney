@@ -202,13 +202,24 @@ class CategoryEditViewModelTest {
         }
 
     @Test
-    fun `ColorChanged updates colorHex in state`() =
+    fun `save derives colorHex from iconKey not from user input`() =
         runTest {
             val viewModel = buildViewModel()
 
-            viewModel.onEvent(CategoryEditEvent.ColorChanged("#FF0000"))
+            viewModel.onEvent(CategoryEditEvent.NameChanged("Transport"))
+            viewModel.onEvent(CategoryEditEvent.IconChanged("ic_cat_car"))
 
-            assertEquals("#FF0000", viewModel.state.value.colorHex)
+            viewModel.actions.test {
+                viewModel.onEvent(CategoryEditEvent.SaveClicked)
+                advanceUntilIdle()
+
+                assertEquals(CategoryEditAction.NavigateBack, awaitItem())
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            val persisted = categoryRepo.observeAll().first().first { it.name == "Transport" }
+            assertEquals("ic_cat_car", persisted.iconKey)
+            assertEquals("#FF8A80", persisted.colorHex)
         }
 
     // --- archive (delete with no transactions) ---

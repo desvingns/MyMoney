@@ -806,8 +806,13 @@ class DashboardContentUiTest {
         }
     }
 
+    // The body is now a HorizontalPager (SPEC dashboard-swipe-period-paging-02).
+    // A full-width swipe settles the pager onto the neighbour page, which triggers a
+    // LaunchedEffect/snapshotFlow inside DashboardBodyPager that emits the period event and
+    // re-centres the pager. waitForIdle() lets those coroutines complete before assertions.
+
     @Test
-    fun `swiping the dashboard left emits next period`() {
+    fun `swiping the dashboard body left past settle threshold emits next period`() {
         val capturedEvents = mutableListOf<DashboardEvent>()
 
         composeTestRule.setContent {
@@ -820,23 +825,23 @@ class DashboardContentUiTest {
         }
 
         composeTestRule
-            .onRoot()
+            .onNodeWithTag(DASHBOARD_SCROLL_CONTENT_TAG)
             .performTouchInput { swipeLeft() }
 
-        composeTestRule.runOnIdle {
-            assertTrue(
-                "a left swipe must request the next period",
-                capturedEvents.contains(DashboardEvent.NextPeriod),
-            )
-            assertTrue(
-                "a left swipe must not request the previous period",
-                !capturedEvents.contains(DashboardEvent.PreviousPeriod),
-            )
-        }
+        composeTestRule.waitForIdle()
+
+        assertTrue(
+            "a left swipe past the settle threshold must emit NextPeriod",
+            capturedEvents.contains(DashboardEvent.NextPeriod),
+        )
+        assertTrue(
+            "a left swipe must not emit PreviousPeriod",
+            !capturedEvents.contains(DashboardEvent.PreviousPeriod),
+        )
     }
 
     @Test
-    fun `swiping the dashboard right emits previous period`() {
+    fun `swiping the dashboard body right past settle threshold emits previous period`() {
         val capturedEvents = mutableListOf<DashboardEvent>()
 
         composeTestRule.setContent {
@@ -849,23 +854,23 @@ class DashboardContentUiTest {
         }
 
         composeTestRule
-            .onRoot()
+            .onNodeWithTag(DASHBOARD_SCROLL_CONTENT_TAG)
             .performTouchInput { swipeRight() }
 
-        composeTestRule.runOnIdle {
-            assertTrue(
-                "a right swipe must request the previous period",
-                capturedEvents.contains(DashboardEvent.PreviousPeriod),
-            )
-            assertTrue(
-                "a right swipe must not request the next period",
-                !capturedEvents.contains(DashboardEvent.NextPeriod),
-            )
-        }
+        composeTestRule.waitForIdle()
+
+        assertTrue(
+            "a right swipe past the settle threshold must emit PreviousPeriod",
+            capturedEvents.contains(DashboardEvent.PreviousPeriod),
+        )
+        assertTrue(
+            "a right swipe must not emit NextPeriod",
+            !capturedEvents.contains(DashboardEvent.NextPeriod),
+        )
     }
 
     @Test
-    fun `horizontal swipe does not open the left drawer`() {
+    fun `horizontal swipe on pager body does not open the left drawer`() {
         val capturedEvents = mutableListOf<DashboardEvent>()
 
         composeTestRule.setContent {
@@ -878,15 +883,15 @@ class DashboardContentUiTest {
         }
 
         composeTestRule
-            .onRoot()
+            .onNodeWithTag(DASHBOARD_SCROLL_CONTENT_TAG)
             .performTouchInput { swipeRight() }
 
-        composeTestRule.runOnIdle {
-            assertTrue(
-                "a horizontal swipe must not toggle the left drawer",
-                !capturedEvents.contains(DashboardEvent.LeftDrawerToggled),
-            )
-        }
+        composeTestRule.waitForIdle()
+
+        assertTrue(
+            "a horizontal swipe on the pager body must not toggle the left drawer",
+            !capturedEvents.contains(DashboardEvent.LeftDrawerToggled),
+        )
     }
 
     @Test

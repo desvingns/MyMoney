@@ -153,7 +153,7 @@ class AuroraBalanceCardUiTest {
         composeTestRule
             .onNodeWithTag(DASHBOARD_TREND_CHART_TAG)
             .assertExists()
-            .assertHeightIsEqualTo(Spacing.dashboardAuroraChartHeightCompact)
+            .assertHeightIsEqualTo(Spacing.dashboardAuroraChartHeightCompact + Spacing.trendChartLabelHeight)
     }
 
     @Test

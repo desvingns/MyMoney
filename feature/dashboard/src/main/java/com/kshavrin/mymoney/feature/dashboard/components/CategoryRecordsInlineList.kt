@@ -1,6 +1,7 @@
 package com.kshavrin.mymoney.feature.dashboard.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -45,6 +46,7 @@ fun CategoryRecordsInlineList(
     records: List<Transaction>,
     loading: Boolean,
     currencies: List<Currency>,
+    onRowClick: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val locale = LocalConfiguration.current.locales[0]
@@ -87,6 +89,7 @@ fun CategoryRecordsInlineList(
                     currencySymbol = currencySymbol,
                     occurredAt = record.occurredAt,
                     locale = locale,
+                    onClick = { onRowClick(record.id) },
                 )
             }
         }
@@ -100,6 +103,7 @@ private fun CategoryRecordRow(
     currencySymbol: String,
     occurredAt: Instant,
     locale: Locale,
+    onClick: () -> Unit,
 ) {
     val hasNote = !note.isNullOrBlank()
     val formattedAmount =
@@ -120,6 +124,7 @@ private fun CategoryRecordRow(
         modifier =
             Modifier
                 .fillMaxWidth()
+                .clickable(onClick = onClick)
                 .heightIn(min = Spacing.dashboardInlineRecordRowHeight)
                 .padding(horizontal = Spacing.l, vertical = Spacing.s),
         verticalAlignment = Alignment.CenterVertically,

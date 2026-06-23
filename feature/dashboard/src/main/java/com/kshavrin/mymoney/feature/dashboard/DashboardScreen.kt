@@ -274,6 +274,9 @@ fun DashboardContent(
                                         onTileClick = { categoryId ->
                                             onEvent(DashboardEvent.SliceClicked(categoryId))
                                         },
+                                        onRecordRowClick = { transactionId ->
+                                            onEvent(DashboardEvent.RecordRowClicked(transactionId))
+                                        },
                                         modifier = Modifier.padding(horizontal = Spacing.l),
                                     )
                                 }

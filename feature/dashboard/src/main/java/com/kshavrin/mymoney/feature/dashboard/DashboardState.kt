@@ -212,6 +212,10 @@ sealed interface DashboardEvent {
         val categoryId: Long,
     ) : DashboardEvent
 
+    data class RecordRowClicked(
+        val transactionId: Long,
+    ) : DashboardEvent
+
     data object ConfettiAcknowledged : DashboardEvent
 
     // Tap on the chart area opens the settings sheet (G1/G9).

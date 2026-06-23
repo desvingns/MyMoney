@@ -818,6 +818,8 @@ class DashboardViewModel
                     }
                 }
                 is DashboardEvent.SliceClicked -> toggleExpandedCategory(event.categoryId)
+                is DashboardEvent.RecordRowClicked ->
+                    emit(DashboardAction.NavigateToTransactionDetail(event.transactionId))
                 DashboardEvent.ConfettiAcknowledged ->
                     _state.value = _state.value.copy(showConfetti = false)
                 DashboardEvent.ChartTapped ->

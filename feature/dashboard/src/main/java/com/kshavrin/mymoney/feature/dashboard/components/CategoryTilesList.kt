@@ -26,6 +26,7 @@ fun CategoryTilesList(
     expandedRecordsLoading: Boolean,
     currencies: List<Currency>,
     onTileClick: (Long) -> Unit,
+    onRecordRowClick: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (expenseTiles.isEmpty()) {
@@ -61,6 +62,7 @@ fun CategoryTilesList(
                         records = expandedRecords,
                         loading = expandedRecordsLoading,
                         currencies = currencies,
+                        onRowClick = onRecordRowClick,
                     )
                 }
             }

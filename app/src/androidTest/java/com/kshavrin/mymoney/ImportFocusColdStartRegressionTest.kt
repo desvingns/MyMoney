@@ -200,6 +200,13 @@ class ImportFocusColdStartRegressionTest {
                         transactionRepository = transactionRepository,
                         observeBudgetAlertsUseCase = observeBudgetAlerts,
                         categoryRepository = categoryRepository,
+                        getCategoryRecords =
+                            com.kshavrin.mymoney.core.domain.usecase.GetCategoryRecordsUseCase(
+                                accountRepository = accountRepository,
+                                currencyRepository = currencyRepository,
+                                transactionRepository = transactionRepository,
+                                defaultDispatcher = default,
+                            ),
                         resolveRateUseCase =
                             com.kshavrin.mymoney.core.domain.usecase.ResolveRateUseCase(
                                 currencyRateRepository = NoRatesCurrencyRateRepository(),

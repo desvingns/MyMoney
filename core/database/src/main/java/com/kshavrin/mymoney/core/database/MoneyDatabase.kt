@@ -64,6 +64,6 @@ abstract class MoneyDatabase : RoomDatabase() {
     abstract fun goalDao(): GoalDao
 
     companion object {
-        const val SCHEMA_VERSION = 6
+        const val SCHEMA_VERSION = 7
     }
 }

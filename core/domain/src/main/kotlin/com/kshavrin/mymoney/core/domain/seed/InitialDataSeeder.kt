@@ -1,5 +1,7 @@
 package com.kshavrin.mymoney.core.domain.seed
 
+import com.kshavrin.mymoney.core.common.category.categoryIconDominantHex
+import com.kshavrin.mymoney.core.common.category.categoryTextColorHex
 import com.kshavrin.mymoney.core.common.di.IoDispatcher
 import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.AccountType
@@ -100,7 +102,8 @@ class InitialDataSeeder
                                 name = if (russian) seed.nameRu else seed.nameEn,
                                 kind = CategoryKind.Expense,
                                 iconKey = seed.iconKey,
-                                colorHex = seed.colorHex,
+                                colorHex = categoryIconDominantHex(seed.iconKey),
+                                textColor = categoryTextColorHex(seed.iconKey),
                                 sortOrder = index,
                                 isDefault = true,
                                 isArchived = false,
@@ -114,7 +117,8 @@ class InitialDataSeeder
                                 name = if (russian) seed.nameRu else seed.nameEn,
                                 kind = CategoryKind.Income,
                                 iconKey = seed.iconKey,
-                                colorHex = seed.colorHex,
+                                colorHex = categoryIconDominantHex(seed.iconKey),
+                                textColor = categoryTextColorHex(seed.iconKey),
                                 sortOrder = index,
                                 isDefault = true,
                                 isArchived = false,

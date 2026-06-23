@@ -1,5 +1,7 @@
 package com.kshavrin.mymoney.core.database.mapper
 
+import com.kshavrin.mymoney.core.common.category.categoryIconDominantHex
+import com.kshavrin.mymoney.core.common.category.categoryTextColorHex
 import com.kshavrin.mymoney.core.database.entity.AccountEntity
 import com.kshavrin.mymoney.core.database.entity.BudgetEntity
 import com.kshavrin.mymoney.core.database.entity.CategoryEntity
@@ -197,6 +199,7 @@ internal fun CategoryEntity.toDomain(): Category =
         kind = CategoryKind.fromString(kind),
         iconKey = iconKey,
         colorHex = colorHex,
+        textColor = textColor,
         sortOrder = sortOrder,
         isDefault = isDefault,
         isArchived = isArchived,
@@ -209,7 +212,8 @@ internal fun Category.toEntity(): CategoryEntity =
         name = name,
         kind = kind.name.lowercase(),
         iconKey = iconKey,
-        colorHex = colorHex,
+        colorHex = categoryIconDominantHex(iconKey),
+        textColor = categoryTextColorHex(iconKey),
         sortOrder = sortOrder,
         isDefault = isDefault,
         isArchived = isArchived,

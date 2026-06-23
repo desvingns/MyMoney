@@ -3,6 +3,8 @@ package com.kshavrin.mymoney.feature.dictionaries.categories
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.kshavrin.mymoney.core.common.category.categoryIconDominantHex
+import com.kshavrin.mymoney.core.common.category.categoryTextColorHex
 import com.kshavrin.mymoney.core.domain.model.Category
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.core.domain.repository.CategoryRepository
@@ -100,7 +102,8 @@ class CategoryEditViewModel
                                 name = s.name,
                                 kind = s.kind,
                                 iconKey = s.iconKey,
-                                colorHex = s.colorHex,
+                                colorHex = categoryIconDominantHex(s.iconKey),
+                                textColor = categoryTextColorHex(s.iconKey),
                                 sortOrder = s.sortOrder,
                                 isDefault = s.isDefault,
                                 isArchived = false,

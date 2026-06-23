@@ -8,6 +8,7 @@ data class Category(
     val kind: CategoryKind,
     val iconKey: String,
     val colorHex: String,
+    val textColor: String,
     val sortOrder: Int,
     val isDefault: Boolean,
     val isArchived: Boolean,

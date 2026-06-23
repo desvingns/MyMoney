@@ -2,6 +2,8 @@ package com.kshavrin.mymoney.core.database.migration
 
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.kshavrin.mymoney.core.common.category.categoryIconDominantHex
+import com.kshavrin.mymoney.core.common.category.categoryTextColorHex
 
 val MIGRATION_1_2 =
     object : Migration(1, 2) {
@@ -87,6 +89,29 @@ val MIGRATION_5_6 =
                         "FROM `currency` base, `currency` target " +
                         "WHERE base.`code` = 'EUR' AND target.`code` = '$toCode'",
                 )
+            }
+        }
+    }
+
+val MIGRATION_6_7 =
+    object : Migration(6, 7) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `category` ADD COLUMN `text_color` TEXT NOT NULL DEFAULT ''")
+
+            val cursor = db.query("SELECT `id`, `icon_key` FROM `category`")
+            cursor.use {
+                val idIndex = it.getColumnIndexOrThrow("id")
+                val iconKeyIndex = it.getColumnIndexOrThrow("icon_key")
+                while (it.moveToNext()) {
+                    val id = it.getLong(idIndex)
+                    val iconKey = it.getString(iconKeyIndex)
+                    val colorHex = categoryIconDominantHex(iconKey)
+                    val textColor = categoryTextColorHex(iconKey)
+                    db.execSQL(
+                        "UPDATE `category` SET `color_hex` = ?, `text_color` = ? WHERE `id` = ?",
+                        arrayOf<Any>(colorHex, textColor, id),
+                    )
+                }
             }
         }
     }

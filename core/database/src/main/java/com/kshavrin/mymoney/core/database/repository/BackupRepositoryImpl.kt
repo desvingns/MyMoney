@@ -5,6 +5,8 @@ import android.database.sqlite.SQLiteDatabase
 import android.net.Uri
 import androidx.documentfile.provider.DocumentFile
 import androidx.room.withTransaction
+import com.kshavrin.mymoney.core.common.category.categoryIconDominantHex
+import com.kshavrin.mymoney.core.common.category.categoryTextColorHex
 import com.kshavrin.mymoney.core.common.di.IoDispatcher
 import com.kshavrin.mymoney.core.database.MoneyDatabase
 import com.kshavrin.mymoney.core.database.mapper.toDomain
@@ -686,7 +688,8 @@ class BackupRepositoryImpl
                             name = name.trim(),
                             kind = kind,
                             iconKey = AUTO_CATEGORY_ICON,
-                            colorHex = AUTO_PALETTE[paletteIndex++ % AUTO_PALETTE.size],
+                            colorHex = categoryIconDominantHex(AUTO_CATEGORY_ICON),
+                            textColor = categoryTextColorHex(AUTO_CATEGORY_ICON),
                             sortOrder = categorySortOrder++,
                             isDefault = false,
                             isArchived = false,

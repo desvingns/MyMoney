@@ -15,6 +15,7 @@ data class CategoryEntity(
     @ColumnInfo(name = "kind") val kind: String,
     @ColumnInfo(name = "icon_key") val iconKey: String,
     @ColumnInfo(name = "color_hex") val colorHex: String,
+    @ColumnInfo(name = "text_color") val textColor: String,
     @ColumnInfo(name = "sort_order") val sortOrder: Int,
     @ColumnInfo(name = "is_default") val isDefault: Boolean,
     @ColumnInfo(name = "is_archived") val isArchived: Boolean,

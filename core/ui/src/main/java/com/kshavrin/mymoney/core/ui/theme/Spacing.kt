@@ -191,4 +191,11 @@ object Spacing {
     // 24dp (> 18dp card padding) means the fade zone extends slightly inside the content area,
     // giving a smooth visual blend even at the rounded-corner overlap region.
     val dashboardAuroraChartEdgeFade = 24.dp
+
+    // Aurora hero card — perimeter feather width for the dark backdrop panel behind the wave chart.
+    // The backdrop's alpha is ramped from 0 → full over this distance on all four edges/corners,
+    // so the dark panel dissolves smoothly into the card surface with no hard rectangular boundary.
+    // 16dp sits within the 16–20dp target band and is distinct from dashboardAuroraChartEdgeFade
+    // (24dp, which was the wider horizontal-only wave fill fade for the now-reverted full-bleed mode).
+    val dashboardAuroraChartBackdropFade = 16.dp
 }

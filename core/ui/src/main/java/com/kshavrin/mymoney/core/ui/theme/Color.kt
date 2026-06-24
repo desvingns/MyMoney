@@ -406,3 +406,12 @@ val ColorScheme.dashboardInlineRecordContainer: Color
 // the amount/note text while still giving the eye a row separator.
 val ColorScheme.dashboardInlineRecordDivider: Color
     get() = outlineVariant
+
+// Aurora hero card — dark translucent backdrop behind the wave chart panel.
+// Renders as a near-black scrim over the card's radial-gradient surface so the
+// chart area reads as a subtly darker inset panel without introducing a hard
+// rectangular boundary (the perimeter is feathered via Spacing.dashboardAuroraChartBackdropFade).
+// Alpha 0.25 sits mid-range of the 0.22–0.30 target band — visible on both the teal
+// (positive) and red (negative) gradient variants while staying clearly subordinate.
+val ColorScheme.dashboardAuroraChartBackdrop: Color
+    get() = Color.Black.copy(alpha = 0.25f)

@@ -72,6 +72,51 @@ class BalanceTrendCalculator
                 }
             }
 
+        suspend fun buildAutoSeries(
+            window: List<Period>,
+            metric: ChartMetric,
+            snapshotProvider: suspend (Period) -> BalanceSnapshot,
+        ): List<TrendPoint> {
+            val snapshots = window.map { period -> snapshotProvider(period) }
+            val lastActiveIndex =
+                snapshots.indexOfLast { snapshot ->
+                    snapshot.income.amount.signum() > 0 || snapshot.expense.amount.signum() > 0
+                }
+            if (lastActiveIndex < 0) return emptyList()
+
+            var cumulative: BigDecimal? = null
+            return window.take(lastActiveIndex + 1).mapIndexed { index, period ->
+                val snapshot = snapshots[index]
+                val currency = snapshot.net.currency
+                val net = snapshot.net.amount
+                when (metric) {
+                    ChartMetric.CUMULATIVE -> {
+                        val running = (cumulative ?: BigDecimal.ZERO).add(net).toMoneyScale(currency)
+                        cumulative = running
+                        TrendPoint(
+                            index = index,
+                            period = period,
+                            value = Money(running, currency),
+                        )
+                    }
+                    ChartMetric.PERIOD_NET ->
+                        TrendPoint(
+                            index = index,
+                            period = period,
+                            value = Money(net.toMoneyScale(currency), currency),
+                        )
+                    ChartMetric.INCOME_EXPENSE ->
+                        TrendPoint(
+                            index = index,
+                            period = period,
+                            value = Money(net.toMoneyScale(currency), currency),
+                            income = snapshot.income,
+                            expense = snapshot.expense,
+                        )
+                }
+            }
+        }
+
         suspend operator fun invoke(
             window: List<Period>,
             metric: ChartMetric,

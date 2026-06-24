@@ -5,6 +5,7 @@ import com.kshavrin.mymoney.core.domain.model.ChartMetric
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.domain.model.Period
+import com.kshavrin.mymoney.core.domain.model.TrendPoint
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -254,6 +255,168 @@ class BalanceTrendCalculatorTest {
 
         assertTrue(threw)
     }
+
+    // ---- buildAutoSeries ----------------------------------------------
+
+    @Test
+    fun `buildAutoSeries trims trailing empty month buckets and keeps internal stagnation for cumulative`() =
+        runTest {
+            val window =
+                calculator.buildAutoWindow(
+                    anchor = Period.Month(YearMonth.of(2026, 6)),
+                    today = fixedToday,
+                    zone = fixedZone,
+                )
+            val snapshotsByPeriod =
+                mapOf(
+                    window[0] to snapshot("10", "0"),
+                    window[1] to snapshot("0", "4"),
+                    window[2] to snapshot("6", "0"),
+                    window[4] to snapshot("3", "0"),
+                    window[6] to snapshot("2", "0"),
+                )
+
+            val result =
+                calculator.buildAutoSeries(
+                    window = window,
+                    metric = ChartMetric.CUMULATIVE,
+                    snapshotProvider = providerFor(snapshotsByPeriod),
+                )
+
+            assertEquals(7, result.size)
+            assertEquals(window.take(7), result.map { it.period })
+            assertEquals((0..6).toList(), result.map { it.index })
+            assertSeriesValues(result, "10.00", "6.00", "12.00", "12.00", "15.00", "15.00", "17.00")
+        }
+
+    @Test
+    fun `buildAutoSeries keeps internal stagnation and trims week tail for cumulative`() =
+        runTest {
+            val window =
+                calculator.buildAutoWindow(
+                    anchor = Period.Week(LocalDate.of(2026, 5, 11)),
+                    today = fixedToday,
+                    zone = fixedZone,
+                )
+            val snapshotsByPeriod =
+                mapOf(
+                    window[0] to snapshot("10", "0"),
+                    window[4] to snapshot("0", "4"),
+                )
+
+            val result =
+                calculator.buildAutoSeries(
+                    window = window,
+                    metric = ChartMetric.CUMULATIVE,
+                    snapshotProvider = providerFor(snapshotsByPeriod),
+                )
+
+            assertEquals(5, result.size)
+            assertEquals(window.take(5), result.map { it.period })
+            assertSeriesValues(result, "10.00", "10.00", "10.00", "10.00", "6.00")
+        }
+
+    @Test
+    fun `buildAutoSeries returns empty when no window bucket has activity`() =
+        runTest {
+            val window =
+                calculator.buildAutoWindow(
+                    anchor = Period.Week(LocalDate.of(2026, 5, 11)),
+                    today = fixedToday,
+                    zone = fixedZone,
+                )
+
+            val result =
+                calculator.buildAutoSeries(
+                    window = window,
+                    metric = ChartMetric.CUMULATIVE,
+                    snapshotProvider = { zeroSnapshot() },
+                )
+
+            assertTrue(result.isEmpty())
+        }
+
+    @Test
+    fun `buildAutoSeries returns one point when only the first bucket has activity`() =
+        runTest {
+            val window =
+                calculator.buildAutoWindow(
+                    anchor = Period.Week(LocalDate.of(2026, 5, 11)),
+                    today = fixedToday,
+                    zone = fixedZone,
+                )
+
+            val result =
+                calculator.buildAutoSeries(
+                    window = window,
+                    metric = ChartMetric.CUMULATIVE,
+                    snapshotProvider = providerFor(mapOf(window[0] to snapshot("10", "0"))),
+                )
+
+            assertEquals(1, result.size)
+            assertEquals(listOf(window[0]), result.map { it.period })
+            assertSeriesValues(result, "10.00")
+        }
+
+    @Test
+    fun `buildAutoSeries calls snapshot provider once per input bucket`() =
+        runTest {
+            val window =
+                calculator.buildAutoWindow(
+                    anchor = Period.Week(LocalDate.of(2026, 5, 11)),
+                    today = fixedToday,
+                    zone = fixedZone,
+                )
+            val snapshotsByPeriod =
+                mapOf(
+                    window[0] to snapshot("10", "0"),
+                    window[4] to snapshot("0", "4"),
+                )
+            val callCounts = mutableMapOf<Period, Int>()
+
+            val result =
+                calculator.buildAutoSeries(
+                    window = window,
+                    metric = ChartMetric.CUMULATIVE,
+                    snapshotProvider = { period ->
+                        callCounts[period] = (callCounts[period] ?: 0) + 1
+                        snapshotsByPeriod[period] ?: zeroSnapshot()
+                    },
+                )
+
+            assertEquals(5, result.size)
+            assertEquals(window.size, callCounts.values.sum())
+            window.forEach { period ->
+                assertEquals(1, callCounts[period] ?: 0)
+            }
+        }
+
+    @Test
+    fun `buildAutoSeries applies the same trailing trim for period net`() =
+        runTest {
+            val window =
+                calculator.buildAutoWindow(
+                    anchor = Period.Week(LocalDate.of(2026, 5, 11)),
+                    today = fixedToday,
+                    zone = fixedZone,
+                )
+            val snapshotsByPeriod =
+                mapOf(
+                    window[0] to snapshot("10", "0"),
+                    window[4] to snapshot("0", "4"),
+                )
+
+            val result =
+                calculator.buildAutoSeries(
+                    window = window,
+                    metric = ChartMetric.PERIOD_NET,
+                    snapshotProvider = providerFor(snapshotsByPeriod),
+                )
+
+            assertEquals(5, result.size)
+            assertEquals(window.take(5), result.map { it.period })
+            assertSeriesValues(result, "10.00", "0.00", "0.00", "0.00", "-4.00")
+        }
 
     // ---- CUMULATIVE: 3 worked SPEC examples ----------------------------
 
@@ -510,5 +673,15 @@ class BalanceTrendCalculatorTest {
             0,
             BigDecimal(expected).compareTo(money.amount),
         )
+    }
+
+    private fun assertSeriesValues(
+        points: List<TrendPoint>,
+        vararg expected: String,
+    ) {
+        assertEquals(expected.size, points.size)
+        points.zip(expected).forEach { (point, amount) ->
+            assertAmount(point.value, amount)
+        }
     }
 }

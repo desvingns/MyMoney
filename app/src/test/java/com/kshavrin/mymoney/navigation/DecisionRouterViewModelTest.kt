@@ -6,8 +6,10 @@ import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.Category
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.core.domain.model.Currency
+import com.kshavrin.mymoney.core.domain.model.CurrencyRate
 import com.kshavrin.mymoney.core.domain.repository.AccountRepository
 import com.kshavrin.mymoney.core.domain.repository.CategoryRepository
+import com.kshavrin.mymoney.core.domain.repository.CurrencyRateRepository
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
 import com.kshavrin.mymoney.core.domain.seed.InitialDataSeeder
 import com.kshavrin.mymoney.core.domain.transaction.TransactionRunner
@@ -16,6 +18,7 @@ import com.kshavrin.mymoney.util.MainDispatcherRule
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -36,6 +39,7 @@ class DecisionRouterViewModelTest {
     private fun buildSeeder(): InitialDataSeeder =
         InitialDataSeeder(
             currencyRepository = StubCurrencyRepository(),
+            currencyRateRepository = NoRatesCurrencyRateRepository,
             accountRepository = StubAccountRepository(),
             categoryRepository = StubCategoryRepository(),
             transactionRunner = NoOpTransactionRunner,
@@ -149,6 +153,7 @@ class DecisionRouterViewModelTest {
             val seeder =
                 InitialDataSeeder(
                     currencyRepository = tracker.TrackingCurrencyRepository(),
+                    currencyRateRepository = NoRatesCurrencyRateRepository,
                     accountRepository = StubAccountRepository(),
                     categoryRepository = StubCategoryRepository(),
                     transactionRunner = NoOpTransactionRunner,
@@ -191,6 +196,21 @@ class DecisionRouterViewModelTest {
 
     private object NoOpTransactionRunner : TransactionRunner {
         override suspend fun <T> runInTransaction(block: suspend () -> T): T = block()
+    }
+
+    private object NoRatesCurrencyRateRepository : CurrencyRateRepository {
+        override suspend fun findRate(
+            fromCurrencyId: Long,
+            toCurrencyId: Long,
+        ): CurrencyRate? = null
+
+        override fun observeAll(): Flow<List<CurrencyRate>> = flowOf(emptyList())
+
+        override suspend fun upsert(rate: CurrencyRate): Long = rate.id
+
+        override suspend fun deleteById(id: Long) = Unit
+
+        override suspend fun refreshRatesFromNetwork(): Result<Int> = Result.success(0)
     }
 
     private class StubCurrencyRepository(

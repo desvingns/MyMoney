@@ -9,5 +9,6 @@ Read AGENTS.md, then read the canonical Claude agent body at C:/Users/k.shavrin/
 Read .claude/mp/config.json and .claude/mp/extras/mp-runner-instrumented-android.md if it exists.
 This is the only MP Codex role allowed to invoke powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run_connected_test_on_host_avd.ps1 for host-AVD connected tests.
 A connected Pixel_5_API_34 device is mandatory; never claim connected tests ran without parsed report evidence.
+Before returning a no-device failure, try the project fallback from AGENTS.md and .claude/mp/extras/mp-runner-instrumented-android.md: if the documented 10.0.2.2:5555 attach fails or hangs, inspect local adb devices and accept a serial only when it reports Pixel_5_API_34, SDK 34, and sys.boot_completed=1.
 Return only the required JSON payload. Do not edit source files or spawn descendant agents.
 """

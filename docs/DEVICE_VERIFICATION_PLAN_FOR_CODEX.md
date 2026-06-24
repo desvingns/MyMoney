@@ -92,6 +92,17 @@ $device = '10.0.2.2:5555'
 while ((& $adb -s $device shell getprop sys.boot_completed 2>$null).Trim() -ne "1") { Start-Sleep -Seconds 2 }
 & $adb -s $device shell input keyevent 82               # dismiss keyguard
 
+# If the NAT attach fails or hangs, discover a local host-side device before stopping.
+& $adb devices -l
+$device = $null
+foreach ($serial in ((& $adb devices | Select-String "`tdevice$").Line | ForEach-Object { ($_ -split "`t")[0] })) {
+  $avd = (& $adb -s $serial shell getprop ro.boot.qemu.avd_name).Trim()
+  $sdk = (& $adb -s $serial shell getprop ro.build.version.sdk).Trim()
+  $boot = (& $adb -s $serial shell getprop sys.boot_completed).Trim()
+  if ($avd -eq 'Pixel_5_API_34' -and $sdk -eq '34' -and $boot -eq '1') { $device = $serial; break }
+}
+if (-not $device) { throw 'Pixel_5_API_34 not connected or not boot-complete' }
+
 # 3. Run instrumented tests through the host-AVD helper. AGP 8.7.3 UTP cannot
 #    profile a Windows remote serial containing ":" (`10.0.2.2:5555`); the helper
 #    exposes the host ADB server locally so UTP uses serial `emulator-5554`.

@@ -1,0 +1,13 @@
+{
+  "epic": "dashboard-neon-ring-redesign",
+  "board": ".claude/specs/backlog",
+  "reference": "docs/design/dashboard-redesign/neon-ring/",
+  "specs": [
+    {"order": "01", "slug": "neon-design-tokens", "what": "Неон-палитра всего приложения + токены кольца/плиток/FAB (+15%)", "layers": ["presentation"], "depends_on": [], "touches": ["core/ui/theme/Color.kt", "core/ui/theme/Theme.kt", "core/ui/theme/Spacing.kt", "core/ui/theme/Typography.kt"], "domain_math": false, "clash_with": []},
+    {"order": "02", "slug": "dashboard-state-neon", "what": "VM/State: periodNet, ringFraction=расход/доход, развёрнутый список расходных категорий (без OTHER)", "layers": ["presentation"], "depends_on": [], "touches": ["feature/dashboard/.../DashboardViewModel.kt", "feature/dashboard/.../DashboardState.kt"], "domain_math": true, "clash_with": []},
+    {"order": "03", "slug": "neon-ring-chart", "what": "NeonRingChart: градиентная дуга + неклиппируемое свечение + слот центра", "layers": ["presentation"], "depends_on": ["01"], "touches": ["core/designsystem/.../donut/NeonRingChart.kt"], "domain_math": false, "clash_with": []},
+    {"order": "04", "slug": "ring-center-balance", "what": "Авто-ужатие «Остаток» (целое) + пилюля доход/расход в слоте центра", "layers": ["presentation"], "depends_on": ["01", "03"], "touches": ["feature/dashboard/.../components/RingCenterContent.kt", "feature/dashboard/src/main/res/values/strings.xml", "feature/dashboard/src/main/res/values-ru/strings.xml"], "domain_math": false, "clash_with": ["05: additive strings.xml (последовательны по --next, безопасно)"]},
+    {"order": "05", "slug": "category-tiles-list", "what": "Плитка категории + скроллируемый список, тап → drill-down", "layers": ["presentation"], "depends_on": ["01"], "touches": ["feature/dashboard/.../components/CategoryTile.kt", "feature/dashboard/.../components/CategoryTilesList.kt", "feature/dashboard/src/main/res/values/strings.xml", "feature/dashboard/src/main/res/values-ru/strings.xml"], "domain_math": false, "clash_with": ["04: additive strings.xml (последовательны по --next, безопасно)"]},
+    {"order": "06", "slug": "dashboard-assembly", "what": "Сборка DashboardContent (кольцо+центр+плитки+скролл), рестайл топ-бара, FAB +15%, обновить androidTest", "layers": ["presentation"], "depends_on": ["01", "02", "03", "04", "05"], "touches": ["feature/dashboard/.../DashboardScreen.kt", "feature/dashboard/.../components/TwoFabLayout.kt", "app/src/androidTest/.../dashboard/*"], "domain_math": false, "clash_with": []}
+  ]
+}

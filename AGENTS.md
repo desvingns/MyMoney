@@ -122,10 +122,12 @@ Windows host, not inside the guest.
 
 **A connected test device is mandatory for any instrumented (`connectedDebugAndroidTest`) run — never
 run, or claim to run, on-device tests without one.** Use the connection recorded in this section (the
-verified default below). If `adb devices` is empty, the AVD is wrong, or the attachment was lost
-mid-session, STOP and ask the user where/how the test device is connected now (address / serial /
-method), then update this section with their answer so it is not asked again while it keeps working.
-(Claude keeps the same fact in its `mymoney-device-connection` memory memo.)
+verified default below). If the documented attach is unavailable, first run the local discovery
+fallback below and accept any `device` serial that reports `Pixel_5_API_34`, SDK `34`, and boot
+complete. Only if both the documented attach and local discovery fail, or the discovered device is
+wrong/offline/unauthorized/lost, STOP and ask the user where/how the test device is connected now
+(address / serial / method), then update this section with their answer so it is not asked again while
+it keeps working. (Claude keeps the same fact in its `mymoney-device-connection` memory memo.)
 
 Verified on 2026-05-27:
 
@@ -133,6 +135,10 @@ Verified on 2026-05-27:
 - For manual ADB/screenshot commands, reach the primary Windows host through the
   VirtualBox NAT gateway with `adb connect 10.0.2.2:5555`; the guest reports
   that attachment under serial `10.0.2.2:5555`.
+- If `adb connect 10.0.2.2:5555` fails or hangs, but `adb devices -l` already lists a local serial,
+  inspect each `device` serial before stopping. A local `emulator-5554` that reports
+  `Pixel_5_API_34`, SDK `34`, and `sys.boot_completed=1` is valid for this preflight; this happens
+  when Codex is running on the Windows host side rather than in the NAT-only guest.
 - For Gradle `connected*AndroidTest`, do not use the remote serial directly.
   AGP 8.7.3 UTP attempts to write a profile filename containing that serial and
   fails on Windows with `java.io.FileNotFoundException: Invalid file path`.
@@ -160,6 +166,20 @@ $device = '10.0.2.2:5555'
 & $adb -s $device shell getprop ro.boot.qemu.avd_name   # Pixel_5_API_34
 & $adb -s $device shell getprop ro.build.version.sdk     # 34
 & $adb -s $device shell getprop sys.boot_completed       # 1
+```
+
+Local-host fallback when the NAT attach is unavailable or hangs:
+
+```powershell
+& $adb devices -l
+$device = $null
+foreach ($serial in ((& $adb devices | Select-String "`tdevice$").Line | ForEach-Object { ($_ -split "`t")[0] })) {
+  $avd = (& $adb -s $serial shell getprop ro.boot.qemu.avd_name).Trim()
+  $sdk = (& $adb -s $serial shell getprop ro.build.version.sdk).Trim()
+  $boot = (& $adb -s $serial shell getprop sys.boot_completed).Trim()
+  if ($avd -eq 'Pixel_5_API_34' -and $sdk -eq '34' -and $boot -eq '1') { $device = $serial; break }
+}
+if (-not $device) { throw 'Pixel_5_API_34 not connected or not boot-complete' }
 ```
 
 Connected verification:
@@ -190,8 +210,9 @@ New-Item -ItemType Directory -Force -Path 'build\visual-check' | Out-Null
 For a visual review, load the pulled PNG with the local image viewer tool. If a
 manual ADB command has no device, first confirm that `Pixel_5_API_34` is booted
 on the primary Windows host, then repeat the guest `adb kill-server` /
-`adb start-server` / `adb connect 10.0.2.2:5555` sequence. For Gradle
-instrumented tests, use the helper instead of that remote attachment.
+`adb start-server` / `adb connect 10.0.2.2:5555` sequence and, if that attach is
+unavailable, run the local-host fallback discovery above. For Gradle instrumented
+tests, use the helper instead of that remote attachment.
 
 ### Visual-change device gate
 
@@ -204,10 +225,12 @@ animation, visual QA, or similar changes where a device-rendered result matters.
 Before starting agents or claiming verification for such work, confirm the
 documented `Pixel_5_API_34` connection and boot state (`ro.boot.qemu.avd_name`
 must be `Pixel_5_API_34`, SDK `34`, and `sys.boot_completed` must be `1`). If
-the device is absent, wrong, offline, unauthorized, or loses attachment, STOP
-and ask the user to start/connect `Pixel_5_API_34` first. Correct development
-cannot proceed without visual testing: do not continue blind, do not replace the
-device visual gate with JVM-only checks, and do not claim visual tests passed.
+the documented attach fails or hangs, run the local-host fallback discovery above
+before declaring the device absent. If both paths fail, or the device is wrong,
+offline, unauthorized, or loses attachment, STOP and ask the user to start/connect
+`Pixel_5_API_34` first. Correct development cannot proceed without visual testing:
+do not continue blind, do not replace the device visual gate with JVM-only checks,
+and do not claim visual tests passed.
 The archived `$cmp` fallback (`.claude/_archive_pre_mp/`) must follow this same gate only if
 the user explicitly restores it for fallback work.
 

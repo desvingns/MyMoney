@@ -6,7 +6,7 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
-import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -24,8 +24,8 @@ class IconPickerSheetUiTest {
     val composeTestRule = createComposeRule()
 
     @Test
-    fun `picker cells resolve vectors and expose each key once`() {
-        val iconKeys = listOf("ic_cat_food", "ic_cat_bills", "ic_cat_salary")
+    fun `category picker cells render bitmap assets and expose each key once`() {
+        val iconKeys = listOf("ic_cat_food", "ic_cat_bills", "ic_cat_transport")
         val resolvedKeys = linkedSetOf<String>()
 
         composeTestRule.setContent {
@@ -44,13 +44,15 @@ class IconPickerSheetUiTest {
         }
 
         composeTestRule.onNodeWithText(targetString(R.string.dictionaries_choose_icon)).assertIsDisplayed()
+        composeTestRule
+            .onAllNodesWithContentDescription(targetString(R.string.dictionaries_icon_option_cd), useUnmergedTree = true)
+            .assertCountEquals(iconKeys.size)
         iconKeys.forEach { key ->
-            composeTestRule.onAllNodesWithContentDescription(key, useUnmergedTree = true).assertCountEquals(1)
-            composeTestRule.onNodeWithContentDescription(key).assertIsDisplayed()
+            composeTestRule.onNodeWithTag(key).assertIsDisplayed()
         }
 
         composeTestRule.runOnIdle {
-            assertEquals(iconKeys, resolvedKeys.toList())
+            assertEquals(emptyList<String>(), resolvedKeys.toList())
         }
     }
 
@@ -70,7 +72,7 @@ class IconPickerSheetUiTest {
             }
         }
 
-        composeTestRule.onNodeWithContentDescription("ic_account_bank").performClick()
+        composeTestRule.onNodeWithTag("ic_account_bank").performClick()
 
         composeTestRule.runOnIdle {
             assertEquals(listOf("ic_account_bank"), selectedKeys)

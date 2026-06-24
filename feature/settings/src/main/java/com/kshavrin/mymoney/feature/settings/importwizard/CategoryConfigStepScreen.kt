@@ -95,6 +95,7 @@ fun CategoryConfigStep(
         text = stringResource(R.string.import_wizard_config_field_icon),
         style = MaterialTheme.typography.titleSmall,
     )
+    val iconOptionDescription = stringResource(R.string.import_wizard_config_icon_option_cd)
     val iconKeys =
         if (state.configCurrentKind == CategoryKind.Income) {
             CATEGORY_INCOME_ICON_KEYS
@@ -106,6 +107,7 @@ fun CategoryConfigStep(
         selectedIconKey = state.configIconKey,
         iconFor = { categoryIcon(it) },
         onIconSelected = { onEvent(ImportWizardEvent.ConfigIconChanged(it)) },
+        iconContentDescription = { iconOptionDescription },
     )
 
     Text(

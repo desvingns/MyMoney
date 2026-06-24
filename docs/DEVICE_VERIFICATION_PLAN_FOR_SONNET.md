@@ -72,7 +72,8 @@ Both paths use the **same device-run step (§4)** and the **same template (§5)*
 **A connected, booted test device is mandatory for every device run — there is no dry run.** The
 verified connection is recorded in the `mymoney-device-connection` memory memo (host AVD
 `Pixel_5_API_34` via `adb connect 10.0.2.2:5555`); use whatever that memo says. Run the block below
-to confirm it.
+to confirm it. If the documented attach is unavailable or hangs, discover local `adb` devices before
+stopping.
 
 ```powershell
 $env:JAVA_HOME = 'C:\Program Files\Android\Android Studio\jbr'
@@ -87,11 +88,25 @@ $device = '10.0.2.2:5555'
 & $adb -s $device shell input keyevent 82                # dismiss keyguard
 ```
 
-If `adb devices` does not list the device, the AVD is wrong, or the connection was lost: **STOP and
-ask the user where/how the test device is connected now** (address / serial / connection method),
-then **update the `mymoney-device-connection` memo** with their answer so you never ask again while it
-keeps working, and rerun this preflight. Never "fix" a missing device by retrying tests in a loop, and
-never proceed to write/run a test without a confirmed connection.
+Fallback discovery:
+
+```powershell
+& $adb devices -l
+$device = $null
+foreach ($serial in ((& $adb devices | Select-String "`tdevice$").Line | ForEach-Object { ($_ -split "`t")[0] })) {
+  $avd = (& $adb -s $serial shell getprop ro.boot.qemu.avd_name).Trim()
+  $sdk = (& $adb -s $serial shell getprop ro.build.version.sdk).Trim()
+  $boot = (& $adb -s $serial shell getprop sys.boot_completed).Trim()
+  if ($avd -eq 'Pixel_5_API_34' -and $sdk -eq '34' -and $boot -eq '1') { $device = $serial; break }
+}
+if (-not $device) { throw 'Pixel_5_API_34 not connected or not boot-complete' }
+```
+
+If both the documented attach and fallback discovery fail, the AVD is wrong, or the connection was
+lost: **STOP and ask the user where/how the test device is connected now** (address / serial /
+connection method), then **update the `mymoney-device-connection` memo** with their answer so you never
+ask again while it keeps working, and rerun this preflight. Never "fix" a missing device by retrying
+tests in a loop, and never proceed to write/run a test without a confirmed connection.
 
 ---
 

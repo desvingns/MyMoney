@@ -4,10 +4,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -146,9 +148,9 @@ class AccountEditContentUiTest {
             }
         }
 
-        composeTestRule.onNodeWithText("ic_account_cash").performScrollTo().performClick()
-        composeTestRule.onNodeWithText(targetString(R.string.dictionaries_choose_icon)).assertIsDisplayed()
-        composeTestRule.onNodeWithContentDescription("ic_account_bank").performClick()
+        composeTestRule.onNodeWithText(targetString(R.string.dictionaries_choose_icon)).performScrollTo().performClick()
+        composeTestRule.onAllNodesWithText(targetString(R.string.dictionaries_choose_icon)).assertCountEquals(2)
+        composeTestRule.onNodeWithTag("ic_account_bank").performClick()
 
         composeTestRule.runOnIdle {
             assertEquals(listOf(AccountEditEvent.IconChanged("ic_account_bank")), events)

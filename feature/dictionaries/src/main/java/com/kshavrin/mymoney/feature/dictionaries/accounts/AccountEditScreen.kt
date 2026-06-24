@@ -190,7 +190,7 @@ fun AccountEditContent(
                 onClick = { iconPickerVisible = true },
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(state.iconKey)
+                Text(stringResource(R.string.dictionaries_choose_icon))
             }
 
             Text(

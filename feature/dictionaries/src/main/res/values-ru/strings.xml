@@ -33,6 +33,7 @@
     <string name="dictionaries_type_savings">Сбережения</string>
 
     <string name="dictionaries_choose_icon">Выберите иконку</string>
+    <string name="dictionaries_icon_option_cd">Вариант иконки</string>
     <string name="dictionaries_choose_color">Выберите цвет</string>
 
     <string name="dictionaries_save">Сохранить</string>

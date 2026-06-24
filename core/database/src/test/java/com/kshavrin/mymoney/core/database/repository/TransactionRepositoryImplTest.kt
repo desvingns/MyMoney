@@ -79,6 +79,17 @@ class TransactionRepositoryImplTest {
             limit: Int,
         ): List<TransactionEntity> = emptyList()
 
+        override suspend fun listDedupRows(): List<com.kshavrin.mymoney.core.database.projection.TransactionDedupRow> = emptyList()
+
+        override suspend fun deleteAll() = Unit
+
+        override suspend fun reassignCategory(
+            oldId: Long,
+            newId: Long,
+        ) = Unit
+
+        override suspend fun deleteByCategory(categoryId: Long) = Unit
+
         override suspend fun findById(id: Long): TransactionEntity? = normalizationRows.firstOrNull { it.id == id }
 
         override suspend fun listForTimezoneNormalization(): List<TransactionEntity> = normalizationRows

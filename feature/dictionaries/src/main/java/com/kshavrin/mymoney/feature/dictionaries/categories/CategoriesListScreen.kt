@@ -1,6 +1,5 @@
 package com.kshavrin.mymoney.feature.dictionaries.categories
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
@@ -10,12 +9,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
@@ -37,7 +34,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -49,7 +45,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.kshavrin.mymoney.core.designsystem.icon.categoryIcon
+import com.kshavrin.mymoney.core.designsystem.icon.NeonCategoryIcon
+import com.kshavrin.mymoney.core.designsystem.icon.NeonCategoryIconDefaults
 import com.kshavrin.mymoney.core.domain.model.Category
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.feature.dictionaries.R
@@ -276,18 +273,13 @@ private fun CategoryCard(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(
-            modifier =
-                Modifier
-                    .size(56.dp)
-                    .clip(CircleShape)
-                    .background(parseHexColor(category.colorHex)),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(
-                imageVector = categoryIcon(category.iconKey),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.size(22.dp),
+            NeonCategoryIcon(
+                iconKey = category.iconKey,
+                accent = parseHexColor(category.colorHex),
+                containerSize = NeonCategoryIconDefaults.ContainerSize,
+                iconSize = NeonCategoryIconDefaults.ListIconSize,
             )
         }
         Text(

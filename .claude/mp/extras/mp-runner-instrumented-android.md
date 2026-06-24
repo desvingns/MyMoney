@@ -16,15 +16,21 @@ booted test device. Before every device run:
    `Pixel_5_API_34` via `adb connect 10.0.2.2:5555`.
 2. Confirm it with the preflight (runbook §3). A device must show in `adb devices` AND report
    `Pixel_5_API_34` AND `sys.boot_completed = 1`.
-3. **If there is no connection** (empty `adb devices`, wrong AVD, or the attachment was lost
-   mid-session): STOP and **ask the user** where/how the test device is connected now
-   (address / serial / connection method). **Record their answer to the `mymoney-device-connection`
-   memo** so it is never asked again while it keeps working. Then retry the preflight.
-4. Only proceed once a device is confirmed. Never silently skip the device run, never fake a report.
+3. If `adb connect 10.0.2.2:5555` fails or hangs, **do local discovery before stopping**:
+   run `adb devices -l`, inspect every `device` serial, and accept any serial whose properties are
+   `ro.boot.qemu.avd_name=Pixel_5_API_34`, `ro.build.version.sdk=34`, and
+   `sys.boot_completed=1`. A local `emulator-5554` is valid when Codex is running on the Windows host
+   side rather than in the NAT-only guest.
+4. **If there is still no connection** after both the documented attach and local discovery, or the
+   only device is wrong/offline/unauthorized/lost: STOP and **ask the user** where/how the test device
+   is connected now (address / serial / connection method). **Record their answer to the
+   `mymoney-device-connection` memo** so it is never asked again while it keeps working. Then retry the
+   preflight.
+5. Only proceed once a device is confirmed. Never silently skip the device run, never fake a report.
 
-(The `mp-runner-instrumented-android` agent cannot prompt — if it finds no device it returns
-`pass:false` with a "no device connected" error; the orchestrator/main session does the asking and
-memo update.)
+(The `mp-runner-instrumented-android` agent cannot prompt — if the documented attach and local
+discovery both fail, it returns `pass:false` with a "no device connected" error; the
+orchestrator/main session does the asking and memo update.)
 
 ## The loop (non-negotiable)
 

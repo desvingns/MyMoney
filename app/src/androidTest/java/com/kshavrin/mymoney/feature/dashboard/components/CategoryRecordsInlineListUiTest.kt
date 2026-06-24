@@ -46,6 +46,7 @@ class CategoryRecordsInlineListUiTest {
                         records = listOf(record),
                         loading = false,
                         currencies = listOf(usd),
+                        onRowClick = {},
                     )
                 }
             }
@@ -77,6 +78,7 @@ class CategoryRecordsInlineListUiTest {
                         records = listOf(record),
                         loading = false,
                         currencies = listOf(usd),
+                        onRowClick = {},
                     )
                 }
             }
@@ -105,6 +107,7 @@ class CategoryRecordsInlineListUiTest {
                         records = listOf(record),
                         loading = false,
                         currencies = listOf(usd),
+                        onRowClick = {},
                     )
                 }
             }
@@ -133,6 +136,7 @@ class CategoryRecordsInlineListUiTest {
                         records = listOf(record),
                         loading = true,
                         currencies = listOf(usd),
+                        onRowClick = {},
                     )
                 }
             }
@@ -158,6 +162,7 @@ class CategoryRecordsInlineListUiTest {
                         records = emptyList(),
                         loading = false,
                         currencies = listOf(usd),
+                        onRowClick = {},
                     )
                 }
             }
@@ -184,6 +189,7 @@ class CategoryRecordsInlineListUiTest {
                         records = records,
                         loading = false,
                         currencies = listOf(usd),
+                        onRowClick = {},
                     )
                 }
             }

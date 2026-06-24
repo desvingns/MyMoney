@@ -181,4 +181,14 @@ object Spacing {
     // 40dp (vs the tile's 76dp or M3's 56dp sheet row) keeps the list compact while
     // remaining legible at body text scale.
     val dashboardInlineRecordRowHeight = 40.dp
+
+    // Aurora card wave chart full-bleed + edge-fade (presentation SPEC — wave blend).
+    // The chart Box is offset by -dashboardAuroraCardPaddingHorizontal on each side so the wave
+    // canvas spans the full card width (full-bleed, no inner panel boundary).
+    // dashboardAuroraChartEdgeFade is the width of the horizontal transparency feather applied to
+    // the wave area fill at the left and right edges inside drawWave (SmoothArea only), so the fill
+    // dissolves to transparent rather than cutting off sharply at the canvas edge.
+    // 24dp (> 18dp card padding) means the fade zone extends slightly inside the content area,
+    // giving a smooth visual blend even at the rounded-corner overlap region.
+    val dashboardAuroraChartEdgeFade = 24.dp
 }

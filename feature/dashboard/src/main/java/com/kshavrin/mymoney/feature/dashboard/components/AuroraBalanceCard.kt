@@ -64,7 +64,6 @@ fun AuroraBalanceCard(
             Box(
                 modifier =
                     Modifier
-                        .fillMaxWidth()
                         .fullBleedHorizontal(Spacing.dashboardAuroraCardPaddingHorizontal)
                         .clickable(onClick = onChartClick)
                         .testTag(DASHBOARD_TREND_CHART_TAG),
@@ -102,25 +101,21 @@ fun AuroraBalanceCard(
 
 // Cancels the card's horizontal inner padding for this child only, so the wave chart spans the full
 // (clipped) card width while the balance value and pills keep their padding. Compose's
-// Modifier.padding rejects negative dp, so we widen the measured constraints by 2×[inset] and shift
-// the placement left by [inset]. The parent Column already clips to the 24dp shape, so the bled
-// chart stays within the rounded corners.
+// Modifier.padding rejects negative dp, so we force the child to measure to (cardInnerWidth +
+// 2×[inset]) and shift its placement left by [inset]. Because the over-wide child is laid out by the
+// parent Column (horizontalAlignment = CenterHorizontally), it centers itself so left = cardOuterLeft
+// and right = cardOuterRight — a symmetric bleed. The parent Column already clips to the 24dp shape,
+// so the bled chart stays within the rounded corners.
 private fun Modifier.fullBleedHorizontal(inset: Dp): Modifier =
     layout { measurable, constraints ->
-        val extra = inset.roundToPx() * 2
-        val widened =
-            constraints.copy(
-                minWidth = (constraints.minWidth + extra).coerceAtLeast(0),
-                maxWidth =
-                    if (constraints.hasBoundedWidth) {
-                        constraints.maxWidth + extra
-                    } else {
-                        constraints.maxWidth
-                    },
+        val pad = inset.roundToPx()
+        val targetWidth = constraints.maxWidth + pad * 2
+        val placeable =
+            measurable.measure(
+                constraints.copy(minWidth = targetWidth, maxWidth = targetWidth),
             )
-        val placeable = measurable.measure(widened)
         layout(placeable.width, placeable.height) {
-            placeable.place(-inset.roundToPx(), 0)
+            placeable.place(-pad, 0)
         }
     }
 

@@ -11,9 +11,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import com.kshavrin.mymoney.core.designsystem.chart.BalanceTrendChart
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.core.ui.theme.chartHiddenHint
@@ -63,6 +65,7 @@ fun AuroraBalanceCard(
                 modifier =
                     Modifier
                         .fillMaxWidth()
+                        .fullBleedHorizontal(Spacing.dashboardAuroraCardPaddingHorizontal)
                         .clickable(onClick = onChartClick)
                         .testTag(DASHBOARD_TREND_CHART_TAG),
             ) {
@@ -96,6 +99,30 @@ fun AuroraBalanceCard(
         }
     }
 }
+
+// Cancels the card's horizontal inner padding for this child only, so the wave chart spans the full
+// (clipped) card width while the balance value and pills keep their padding. Compose's
+// Modifier.padding rejects negative dp, so we widen the measured constraints by 2×[inset] and shift
+// the placement left by [inset]. The parent Column already clips to the 24dp shape, so the bled
+// chart stays within the rounded corners.
+private fun Modifier.fullBleedHorizontal(inset: Dp): Modifier =
+    layout { measurable, constraints ->
+        val extra = inset.roundToPx() * 2
+        val widened =
+            constraints.copy(
+                minWidth = (constraints.minWidth + extra).coerceAtLeast(0),
+                maxWidth =
+                    if (constraints.hasBoundedWidth) {
+                        constraints.maxWidth + extra
+                    } else {
+                        constraints.maxWidth
+                    },
+            )
+        val placeable = measurable.measure(widened)
+        layout(placeable.width, placeable.height) {
+            placeable.place(-inset.roundToPx(), 0)
+        }
+    }
 
 const val DASHBOARD_AURORA_CARD_TAG = "dashboard_aurora_card"
 const val DASHBOARD_AURORA_BALANCE_TAG = "dashboard_aurora_balance"

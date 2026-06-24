@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Paint
@@ -559,40 +560,83 @@ private fun DrawScope.drawWave(
 ) {
     if (points.isEmpty()) return
 
-    areaPath.buildArea(points, baseline, smooth = true, stepped = false)
-    drawPath(
-        path = areaPath,
-        brush =
-            Brush.verticalGradient(
-                colors = listOf(color.copy(alpha = 0.4f), color.copy(alpha = 0f)),
-                startY = 0f,
-                endY = baseline,
-            ),
-    )
+    val edgeFade = Spacing.dashboardAuroraChartEdgeFade.toPx().coerceAtMost(size.width / 2f)
 
-    if (points.size >= 2) {
-        // Soft neon halo: a wide, very translucent copy of the same smooth line.
-        linePath.buildSmooth(points)
-        drawPath(
-            path = linePath,
-            color = color.copy(alpha = 0.22f),
-            style = Stroke(width = lineStroke * 3.2f, cap = StrokeCap.Round, join = StrokeJoin.Round),
+    // Render the whole wave (area + halo line + crisp line + dots) into an offscreen layer, then
+    // multiply its alpha with left/right horizontal gradients (BlendMode.DstIn) so the wave dissolves
+    // to transparent at the card edges instead of cutting off with a hard vertical line. The bottom
+    // already fades via the vertical area gradient below.
+    drawIntoCanvas { canvas ->
+        canvas.saveLayer(
+            bounds =
+                androidx.compose.ui.geometry
+                    .Rect(0f, 0f, size.width, size.height),
+            paint = Paint(),
         )
-        // Crisp accent line — ~2.4dp (2dp base × 1.2).
-        drawPath(
-            path = linePath,
-            color = color,
-            style = Stroke(width = lineStroke * 1.2f, cap = StrokeCap.Round, join = StrokeJoin.Round),
-        )
-    }
 
-    points.forEachIndexed { index, point ->
-        if (index == points.lastIndex) {
-            // Larger, lighter "today" dot.
-            drawCircle(color = lightenColor(color, 1.4f), radius = pointRadius * 1.33f, center = point)
-        } else {
-            drawCircle(color = color, radius = pointRadius * 0.87f, center = point)
+        areaPath.buildArea(points, baseline, smooth = true, stepped = false)
+        drawPath(
+            path = areaPath,
+            brush =
+                Brush.verticalGradient(
+                    colors = listOf(color.copy(alpha = 0.4f), color.copy(alpha = 0f)),
+                    startY = 0f,
+                    endY = baseline,
+                ),
+        )
+
+        if (points.size >= 2) {
+            // Soft neon halo: a wide, very translucent copy of the same smooth line.
+            linePath.buildSmooth(points)
+            drawPath(
+                path = linePath,
+                color = color.copy(alpha = 0.22f),
+                style = Stroke(width = lineStroke * 3.2f, cap = StrokeCap.Round, join = StrokeJoin.Round),
+            )
+            // Crisp accent line — ~2.4dp (2dp base × 1.2).
+            drawPath(
+                path = linePath,
+                color = color,
+                style = Stroke(width = lineStroke * 1.2f, cap = StrokeCap.Round, join = StrokeJoin.Round),
+            )
         }
+
+        points.forEachIndexed { index, point ->
+            if (index == points.lastIndex) {
+                // Larger, lighter "today" dot.
+                drawCircle(color = lightenColor(color, 1.4f), radius = pointRadius * 1.33f, center = point)
+            } else {
+                drawCircle(color = color, radius = pointRadius * 0.87f, center = point)
+            }
+        }
+
+        if (edgeFade > 0f) {
+            // Left edge: alpha ramps 0 → 1 over the fade width.
+            drawRect(
+                brush =
+                    Brush.horizontalGradient(
+                        colors = listOf(Color.Transparent, Color.Black),
+                        startX = 0f,
+                        endX = edgeFade,
+                    ),
+                size = Size(edgeFade, size.height),
+                blendMode = BlendMode.DstIn,
+            )
+            // Right edge: alpha ramps 1 → 0 over the fade width.
+            drawRect(
+                brush =
+                    Brush.horizontalGradient(
+                        colors = listOf(Color.Black, Color.Transparent),
+                        startX = size.width - edgeFade,
+                        endX = size.width,
+                    ),
+                topLeft = Offset(size.width - edgeFade, 0f),
+                size = Size(edgeFade, size.height),
+                blendMode = BlendMode.DstIn,
+            )
+        }
+
+        canvas.restore()
     }
 }
 

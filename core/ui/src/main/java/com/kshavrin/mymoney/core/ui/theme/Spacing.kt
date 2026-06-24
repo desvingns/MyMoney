@@ -181,4 +181,14 @@ object Spacing {
     // 40dp (vs the tile's 76dp or M3's 56dp sheet row) keeps the list compact while
     // remaining legible at body text scale.
     val dashboardInlineRecordRowHeight = 40.dp
+
+    // Aurora hero card — dark display panel geometry.
+    // dashboardAuroraInnerPanelInset: margin from the card's inner edge to the panel so the
+    // neon border has visible breathing room on all four sides.  7dp sits in the 6–8dp spec
+    // range and aligns to the 4dp grid (4+3 — close enough to avoid awkward half-pixels).
+    // dashboardAuroraInnerPanelFeather: how far the panel's perimeter fades to transparent
+    // via a radial/edge gradient on all four corners/edges.  20dp is mid-range of the 18–22dp
+    // spec, keeps the fade wide enough to be perceived as soft at typical display densities.
+    val dashboardAuroraInnerPanelInset = 7.dp
+    val dashboardAuroraInnerPanelFeather = 20.dp
 }

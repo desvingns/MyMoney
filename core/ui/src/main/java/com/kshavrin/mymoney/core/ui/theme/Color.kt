@@ -394,6 +394,16 @@ val ColorScheme.dashboardExpensePill: Color
 fun ColorScheme.dashboardAuroraAccentForSign(positive: Boolean): Color =
     if (positive) NeonMint else NeonRed
 
+// Aurora hero card — dark display panel behind all card content (balance + pills + chart).
+// Black @0.34 reads as an intentional inset "screen" over the card interior tint without
+// collapsing to a pure void; soft enough not to fight the neon accent border glow.
+// The panel corner reuses dashboardAuroraCard (24dp) and its perimeter is feathered via
+// dashboardAuroraInnerPanelFeather so there is no hard edge between panel and card fill.
+private val DashboardAuroraInnerPanelFill = Color.Black.copy(alpha = 0.34f)
+
+val ColorScheme.dashboardAuroraInnerPanel: Color
+    get() = DashboardAuroraInnerPanelFill
+
 // Dashboard inline category accordion (SPEC 02 — CategoryRecordsInlineList).
 // The accordion block sits flush under the expanded tile; it uses NeonSurfaceAlt so the
 // block is visually distinct from the dashboard background (NeonBackground) and from the

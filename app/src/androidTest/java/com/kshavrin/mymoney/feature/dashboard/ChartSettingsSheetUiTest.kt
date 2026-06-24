@@ -3,8 +3,8 @@ package com.kshavrin.mymoney.feature.dashboard
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -16,6 +16,8 @@ import com.kshavrin.mymoney.core.domain.model.ChartMetric
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import com.kshavrin.mymoney.feature.dashboard.components.CHART_SETTINGS_GRIDLINES_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.CHART_SETTINGS_LABELS_TAG
+import com.kshavrin.mymoney.feature.dashboard.components.CHART_SETTINGS_MODE_AUTO_TAG
+import com.kshavrin.mymoney.feature.dashboard.components.CHART_SETTINGS_MODE_MANUAL_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.CHART_SETTINGS_POINTS_DECREASE_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.CHART_SETTINGS_POINTS_INCREASE_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.CHART_SETTINGS_POINTS_VALUE_TAG
@@ -46,6 +48,9 @@ class ChartSettingsSheetUiTest {
             showGridlines = true,
             showLabels = true,
             colorRule = ChartColorRule.BySign,
+            // Manual mode: keeps period-type and point-count controls visible so that all
+            // pre-existing stepper/period tests can assert on them without extra `.copy(autoMode=false)`.
+            autoMode = false,
         )
 
     private fun setSheet(
@@ -374,5 +379,205 @@ class ChartSettingsSheetUiTest {
                 captured.any { it == DashboardEvent.ChartVisibilityChanged(true) },
             )
         }
+    }
+
+    // -------------------------------------------------------------------------
+    // Auto / Manual mode toggle
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `auto mode button exists when autoMode is true`() {
+        setSheet(config = defaultConfig().copy(autoMode = true))
+        composeTestRule
+            .onNodeWithTag(CHART_SETTINGS_MODE_AUTO_TAG)
+            .assertExists()
+    }
+
+    @Test
+    fun `manual mode button exists when autoMode is false`() {
+        setSheet(config = defaultConfig().copy(autoMode = false))
+        composeTestRule
+            .onNodeWithTag(CHART_SETTINGS_MODE_MANUAL_TAG)
+            .assertExists()
+    }
+
+    @Test
+    fun `both mode buttons are visible regardless of current mode`() {
+        setSheet(config = defaultConfig().copy(autoMode = true))
+        composeTestRule.onNodeWithTag(CHART_SETTINGS_MODE_AUTO_TAG).assertExists()
+        composeTestRule.onNodeWithTag(CHART_SETTINGS_MODE_MANUAL_TAG).assertExists()
+    }
+
+    @Test
+    fun `period type controls are not present when autoMode is true`() {
+        setSheet(config = defaultConfig().copy(autoMode = true))
+        composeTestRule
+            .onNodeWithTag(chartPeriodTag(ChartPeriodType.Follow))
+            .assertDoesNotExist()
+        composeTestRule
+            .onNodeWithTag(chartPeriodTag(ChartPeriodType.Month))
+            .assertDoesNotExist()
+    }
+
+    @Test
+    fun `point count stepper is not present when autoMode is true`() {
+        setSheet(config = defaultConfig().copy(autoMode = true))
+        composeTestRule
+            .onNodeWithTag(CHART_SETTINGS_POINTS_VALUE_TAG)
+            .assertDoesNotExist()
+        composeTestRule
+            .onNodeWithTag(CHART_SETTINGS_POINTS_DECREASE_TAG)
+            .assertDoesNotExist()
+        composeTestRule
+            .onNodeWithTag(CHART_SETTINGS_POINTS_INCREASE_TAG)
+            .assertDoesNotExist()
+    }
+
+    @Test
+    fun `period type controls are present when autoMode is false`() {
+        setSheet(config = defaultConfig().copy(autoMode = false))
+        composeTestRule
+            .onNodeWithTag(chartPeriodTag(ChartPeriodType.Follow))
+            .performScrollTo()
+            .assertExists()
+    }
+
+    @Test
+    fun `point count stepper is present when autoMode is false`() {
+        setSheet(config = defaultConfig().copy(autoMode = false))
+        composeTestRule
+            .onNodeWithTag(CHART_SETTINGS_POINTS_VALUE_TAG)
+            .performScrollTo()
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun `tapping manual mode button emits ChartAutoModeChanged false`() {
+        val captured = mutableListOf<DashboardEvent>()
+        setSheet(
+            config = defaultConfig().copy(autoMode = true),
+            onEvent = { captured += it },
+        )
+
+        composeTestRule
+            .onNodeWithTag(CHART_SETTINGS_MODE_MANUAL_TAG)
+            .performScrollTo()
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertTrue(
+                "expected ChartAutoModeChanged(false); got $captured",
+                captured.any { it == DashboardEvent.ChartAutoModeChanged(false) },
+            )
+        }
+    }
+
+    @Test
+    fun `tapping auto mode button emits ChartAutoModeChanged true`() {
+        val captured = mutableListOf<DashboardEvent>()
+        setSheet(
+            config = defaultConfig().copy(autoMode = false),
+            onEvent = { captured += it },
+        )
+
+        composeTestRule
+            .onNodeWithTag(CHART_SETTINGS_MODE_AUTO_TAG)
+            .performScrollTo()
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertTrue(
+                "expected ChartAutoModeChanged(true); got $captured",
+                captured.any { it == DashboardEvent.ChartAutoModeChanged(true) },
+            )
+        }
+    }
+
+    @Test
+    fun `style thumbs are visible in auto mode`() {
+        setSheet(config = defaultConfig().copy(autoMode = true))
+        composeTestRule
+            .onNodeWithTag(chartStyleThumbTag(ChartStyle.NeonLine))
+            .assertExists()
+    }
+
+    @Test
+    fun `style thumbs are visible in manual mode`() {
+        setSheet(config = defaultConfig().copy(autoMode = false))
+        composeTestRule
+            .onNodeWithTag(chartStyleThumbTag(ChartStyle.NeonLine))
+            .assertExists()
+    }
+
+    @Test
+    fun `metric buttons are visible in auto mode`() {
+        setSheet(config = defaultConfig().copy(autoMode = true))
+        composeTestRule
+            .onNodeWithTag(chartMetricTag(ChartMetric.CUMULATIVE))
+            .performScrollTo()
+            .assertExists()
+    }
+
+    @Test
+    fun `metric buttons are visible in manual mode`() {
+        setSheet(config = defaultConfig().copy(autoMode = false))
+        composeTestRule
+            .onNodeWithTag(chartMetricTag(ChartMetric.CUMULATIVE))
+            .performScrollTo()
+            .assertExists()
+    }
+
+    @Test
+    fun `color rule buttons are visible in auto mode`() {
+        setSheet(config = defaultConfig().copy(autoMode = true))
+        composeTestRule
+            .onNodeWithTag(chartColorTag(ChartColorRule.BySign))
+            .performScrollTo()
+            .assertExists()
+    }
+
+    @Test
+    fun `color rule buttons are visible in manual mode`() {
+        setSheet(config = defaultConfig().copy(autoMode = false))
+        composeTestRule
+            .onNodeWithTag(chartColorTag(ChartColorRule.BySign))
+            .performScrollTo()
+            .assertExists()
+    }
+
+    @Test
+    fun `gridlines toggle is visible in auto mode`() {
+        setSheet(config = defaultConfig().copy(autoMode = true))
+        composeTestRule
+            .onNodeWithTag(CHART_SETTINGS_GRIDLINES_TAG)
+            .performScrollTo()
+            .assertExists()
+    }
+
+    @Test
+    fun `gridlines toggle is visible in manual mode`() {
+        setSheet(config = defaultConfig().copy(autoMode = false))
+        composeTestRule
+            .onNodeWithTag(CHART_SETTINGS_GRIDLINES_TAG)
+            .performScrollTo()
+            .assertExists()
+    }
+
+    @Test
+    fun `visible toggle is present in auto mode`() {
+        setSheet(config = defaultConfig().copy(autoMode = true))
+        composeTestRule
+            .onNodeWithTag(CHART_SETTINGS_VISIBLE_TAG)
+            .performScrollTo()
+            .assertExists()
+    }
+
+    @Test
+    fun `visible toggle is present in manual mode`() {
+        setSheet(config = defaultConfig().copy(autoMode = false))
+        composeTestRule
+            .onNodeWithTag(CHART_SETTINGS_VISIBLE_TAG)
+            .performScrollTo()
+            .assertExists()
     }
 }

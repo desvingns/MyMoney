@@ -262,4 +262,75 @@ class BalanceTrendChartUiTest {
             bounds.width > bounds.height,
         )
     }
+
+    // ---- SmoothArea / wave edge-fade (wave blend SPEC) ----
+
+    @Test
+    fun `SmoothArea style with five-point positive series renders chart node without crash`() {
+        setContent(listOf(10f, 6f, 12f, 12f, 15f), style = ChartStyle.SmoothArea)
+        composeTestRule
+            .onNodeWithTag(BALANCE_TREND_CHART_TAG)
+            .assertExists()
+    }
+
+    @Test
+    fun `SmoothArea style with zero-crossing series renders chart node without crash`() {
+        setContent(listOf(4f, 3f, 1f, -2f, -3f), style = ChartStyle.SmoothArea)
+        composeTestRule
+            .onNodeWithTag(BALANCE_TREND_CHART_TAG)
+            .assertExists()
+    }
+
+    @Test
+    fun `SmoothArea style with all-zero series renders chart node without crash`() {
+        setContent(listOf(0f, 0f, 0f, 0f, 0f), style = ChartStyle.SmoothArea)
+        composeTestRule
+            .onNodeWithTag(BALANCE_TREND_CHART_TAG)
+            .assertExists()
+    }
+
+    @Test
+    fun `SmoothArea style with single-point series renders chart node without crash`() {
+        setContent(listOf(42f), style = ChartStyle.SmoothArea)
+        composeTestRule
+            .onNodeWithTag(BALANCE_TREND_CHART_TAG)
+            .assertExists()
+    }
+
+    @Test
+    fun `SmoothArea style with empty series renders chart node without crash`() {
+        setContent(emptyList(), style = ChartStyle.SmoothArea)
+        composeTestRule
+            .onNodeWithTag(BALANCE_TREND_CHART_TAG)
+            .assertExists()
+    }
+
+    @Test
+    fun `SmoothArea style with BySign color rule renders chart node without crash`() {
+        setContent(listOf(10f, 6f, 12f, 12f, 15f), colorRule = ChartColorRule.BySign, style = ChartStyle.SmoothArea)
+        composeTestRule
+            .onNodeWithTag(BALANCE_TREND_CHART_TAG)
+            .assertExists()
+    }
+
+    @Test
+    fun `SmoothArea style with BySign negative series renders chart node without crash`() {
+        setContent(listOf(-5f, -3f, -8f, -1f), colorRule = ChartColorRule.BySign, style = ChartStyle.SmoothArea)
+        composeTestRule
+            .onNodeWithTag(BALANCE_TREND_CHART_TAG)
+            .assertExists()
+    }
+
+    @Test
+    fun `SmoothArea style height is unchanged and matches trendChartDefaultHeight`() {
+        setContent(listOf(1f, 2f, 3f, 4f, 5f), style = ChartStyle.SmoothArea, showLabels = false)
+        val bounds =
+            composeTestRule
+                .onNodeWithTag(BALANCE_TREND_CHART_TAG)
+                .assertExists()
+                .fetchSemanticsNode()
+                .boundsInRoot
+        val expectedHeightPx = with(composeTestRule.density) { 96.dp.toPx() }
+        assertEquals(expectedHeightPx, bounds.height, 2f)
+    }
 }

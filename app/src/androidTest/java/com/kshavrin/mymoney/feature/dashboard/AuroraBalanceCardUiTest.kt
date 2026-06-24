@@ -12,6 +12,8 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.sp
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.kshavrin.mymoney.core.designsystem.chart.BALANCE_TREND_CHART_TAG
+import com.kshavrin.mymoney.core.designsystem.chart.ChartStyle
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.feature.dashboard.components.AuroraBalanceCard
@@ -246,6 +248,154 @@ class AuroraBalanceCardUiTest {
         composeTestRule.runOnIdle {
             assertTrue("expected onChartClick to be invoked when hidden hint is tapped", clicked)
         }
+    }
+
+    // ---- full-bleed + edge-fade tests (wave blend SPEC) ----
+
+    @Test
+    fun `full-bleed chart box is wider than the card inset content area`() {
+        setCard(chartConfig = defaultConfig(visible = true))
+
+        val cardBounds =
+            composeTestRule
+                .onNodeWithTag(DASHBOARD_AURORA_CARD_TAG)
+                .fetchSemanticsNode()
+                .boundsInRoot
+        val chartBounds =
+            composeTestRule
+                .onNodeWithTag(DASHBOARD_TREND_CHART_TAG)
+                .fetchSemanticsNode()
+                .boundsInRoot
+
+        val cardInnerWidthPx =
+            cardBounds.width -
+                2f * with(composeTestRule.density) { Spacing.dashboardAuroraCardPaddingHorizontal.toPx() }
+
+        assertTrue(
+            "full-bleed chart width (${chartBounds.width}) must exceed card inner content width ($cardInnerWidthPx)",
+            chartBounds.width > cardInnerWidthPx,
+        )
+    }
+
+    @Test
+    fun `full-bleed chart left edge reaches or exceeds the card left edge`() {
+        setCard(chartConfig = defaultConfig(visible = true))
+
+        val cardBounds =
+            composeTestRule
+                .onNodeWithTag(DASHBOARD_AURORA_CARD_TAG)
+                .fetchSemanticsNode()
+                .boundsInRoot
+        val chartBounds =
+            composeTestRule
+                .onNodeWithTag(DASHBOARD_TREND_CHART_TAG)
+                .fetchSemanticsNode()
+                .boundsInRoot
+
+        assertTrue(
+            "chart left (${chartBounds.left}) must be <= card left (${cardBounds.left}) for full-bleed",
+            chartBounds.left <= cardBounds.left + 1.5f,
+        )
+    }
+
+    @Test
+    fun `full-bleed chart right edge reaches or exceeds the card right edge`() {
+        setCard(chartConfig = defaultConfig(visible = true))
+
+        val cardBounds =
+            composeTestRule
+                .onNodeWithTag(DASHBOARD_AURORA_CARD_TAG)
+                .fetchSemanticsNode()
+                .boundsInRoot
+        val chartBounds =
+            composeTestRule
+                .onNodeWithTag(DASHBOARD_TREND_CHART_TAG)
+                .fetchSemanticsNode()
+                .boundsInRoot
+
+        assertTrue(
+            "chart right (${chartBounds.right}) must be >= card right (${cardBounds.right}) for full-bleed",
+            chartBounds.right >= cardBounds.right - 1.5f,
+        )
+    }
+
+    @Test
+    fun `embedded BalanceTrendChart node exists inside aurora card when chart is visible`() {
+        setCard(chartConfig = defaultConfig(visible = true))
+        composeTestRule
+            .onNodeWithTag(BALANCE_TREND_CHART_TAG, useUnmergedTree = true)
+            .assertExists()
+    }
+
+    @Test
+    fun `SmoothArea style renders without crash inside aurora card`() {
+        setCard(
+            chartConfig = defaultConfig(visible = true).copy(style = ChartStyle.SmoothArea),
+            points = listOf(100f, 200f, 150f, 300f, 250f),
+        )
+        composeTestRule
+            .onNodeWithTag(DASHBOARD_TREND_CHART_TAG)
+            .assertExists()
+        composeTestRule
+            .onNodeWithTag(BALANCE_TREND_CHART_TAG, useUnmergedTree = true)
+            .assertExists()
+    }
+
+    @Test
+    fun `SmoothArea style with empty points renders without crash inside aurora card`() {
+        setCard(
+            chartConfig = defaultConfig(visible = true).copy(style = ChartStyle.SmoothArea),
+            points = emptyList(),
+        )
+        composeTestRule
+            .onNodeWithTag(DASHBOARD_TREND_CHART_TAG)
+            .assertExists()
+    }
+
+    @Test
+    fun `SmoothArea style with single point renders without crash inside aurora card`() {
+        setCard(
+            chartConfig = defaultConfig(visible = true).copy(style = ChartStyle.SmoothArea),
+            points = listOf(42f),
+        )
+        composeTestRule
+            .onNodeWithTag(DASHBOARD_TREND_CHART_TAG)
+            .assertExists()
+    }
+
+    @Test
+    fun `full-bleed chart height is unchanged and matches dashboardAuroraChartHeightCompact`() {
+        setCard(chartConfig = defaultConfig(visible = true))
+        composeTestRule
+            .onNodeWithTag(DASHBOARD_TREND_CHART_TAG)
+            .assertExists()
+            .assertHeightIsEqualTo(Spacing.dashboardAuroraChartHeightCompact + Spacing.trendChartLabelHeight)
+    }
+
+    @Test
+    fun `balance and pills are unaffected by full-bleed chart when chart is visible`() {
+        setCard(
+            balance = "9 999 $",
+            income = "15 000 $",
+            expense = "5 001 $",
+            chartConfig = defaultConfig(visible = true),
+        )
+        composeTestRule.onNodeWithTag(DASHBOARD_AURORA_BALANCE_TAG).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(DASHBOARD_AURORA_INCOME_PILL_TAG).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(DASHBOARD_AURORA_EXPENSE_PILL_TAG).assertIsDisplayed()
+    }
+
+    @Test
+    fun `balance and pills are unaffected by hidden-hint path when chart is hidden`() {
+        setCard(
+            balance = "9 999 $",
+            income = "15 000 $",
+            expense = "5 001 $",
+            chartConfig = defaultConfig(visible = false),
+        )
+        composeTestRule.onNodeWithTag(DASHBOARD_AURORA_BALANCE_TAG).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(DASHBOARD_AURORA_INCOME_PILL_TAG).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(DASHBOARD_AURORA_EXPENSE_PILL_TAG).assertIsDisplayed()
     }
 
     private fun assertCloseTo(

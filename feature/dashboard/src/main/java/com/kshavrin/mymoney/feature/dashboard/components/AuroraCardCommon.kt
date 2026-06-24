@@ -17,14 +17,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.core.ui.theme.dashboardAuroraAccent
 import com.kshavrin.mymoney.core.ui.theme.dashboardAuroraBalanceLabel
 import com.kshavrin.mymoney.core.ui.theme.dashboardAuroraCard
+import com.kshavrin.mymoney.core.ui.theme.dashboardAuroraInnerPanel
 import com.kshavrin.mymoney.core.ui.theme.dashboardAuroraPill
 import com.kshavrin.mymoney.core.ui.theme.dashboardExpensePill
 import com.kshavrin.mymoney.core.ui.theme.dashboardIncomePill
@@ -37,6 +46,7 @@ internal fun AuroraCardSurface(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val shape = MaterialTheme.shapes.dashboardAuroraCard
+    val panelColor = MaterialTheme.colorScheme.dashboardAuroraInnerPanel
 
     Column(
         modifier =
@@ -52,18 +62,62 @@ internal fun AuroraCardSurface(
                 ).clip(shape)
                 .drawBehind {
                     drawRect(color = accent.copy(alpha = 0.10f))
-                    drawRect(
-                        brush =
-                            Brush.verticalGradient(
-                                colors =
-                                    listOf(
-                                        accent.copy(alpha = 0.10f),
-                                        Color.Transparent,
+
+                    val inset = Spacing.dashboardAuroraInnerPanelInset.toPx()
+                    val feather = Spacing.dashboardAuroraInnerPanelFeather.toPx()
+                    val left = inset
+                    val top = inset
+                    val right = size.width - inset
+                    val bottom = size.height - inset
+                    if (right > left && bottom > top) {
+                        val corner = (24.dp.toPx() - inset).coerceAtLeast(0f)
+                        drawIntoCanvas { canvas ->
+                            canvas.saveLayer(Rect(left, top, right, bottom), Paint())
+                            drawRoundRect(
+                                color = panelColor,
+                                topLeft = Offset(left, top),
+                                size = Size(right - left, bottom - top),
+                                cornerRadius = CornerRadius(corner, corner),
+                            )
+                            drawRect(
+                                brush =
+                                    Brush.linearGradient(
+                                        listOf(Color.Transparent, Color.Black),
+                                        start = Offset(left, 0f),
+                                        end = Offset(left + feather, 0f),
                                     ),
-                                startY = 0f,
-                                endY = size.height,
-                            ),
-                    )
+                                blendMode = BlendMode.DstIn,
+                            )
+                            drawRect(
+                                brush =
+                                    Brush.linearGradient(
+                                        listOf(Color.Transparent, Color.Black),
+                                        start = Offset(right, 0f),
+                                        end = Offset(right - feather, 0f),
+                                    ),
+                                blendMode = BlendMode.DstIn,
+                            )
+                            drawRect(
+                                brush =
+                                    Brush.linearGradient(
+                                        listOf(Color.Transparent, Color.Black),
+                                        start = Offset(0f, top),
+                                        end = Offset(0f, top + feather),
+                                    ),
+                                blendMode = BlendMode.DstIn,
+                            )
+                            drawRect(
+                                brush =
+                                    Brush.linearGradient(
+                                        listOf(Color.Transparent, Color.Black),
+                                        start = Offset(0f, bottom),
+                                        end = Offset(0f, bottom - feather),
+                                    ),
+                                blendMode = BlendMode.DstIn,
+                            )
+                            canvas.restore()
+                        }
+                    }
                 }.border(
                     width = Spacing.dashboardBalancePanelBorderWidth,
                     color = accent.copy(alpha = 0.28f),

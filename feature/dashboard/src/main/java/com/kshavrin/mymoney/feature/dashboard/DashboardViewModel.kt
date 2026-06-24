@@ -367,6 +367,50 @@ class DashboardViewModel
             }
         }
 
+        // Commit a swipe-driven period change WITHOUT a stale frame. The pager snaps back to the
+        // centre page synchronously, and the centre page projects the committed render fields; if we
+        // only changed [period] here the centre page would read the previous period's figures until
+        // the async recomputeBalance() lands (~100-300ms later), flashing the wrong-period chart.
+        // So we atomically promote the already-precomputed neighbour page's fields into the committed
+        // state in the SAME copy that sets the new period. recomputeBalance() then re-confirms the
+        // identical data with no visible change. If the neighbour was not precomputed yet (very fast
+        // swipe), fall back to a clean loading placeholder rather than retain the old period's data.
+        private fun commitSwipedPeriod(
+            period: Period,
+            neighbor: PeriodPageState?,
+        ) {
+            _state.value =
+                if (neighbor != null) {
+                    _state.value.copy(
+                        period = period,
+                        balanceSnapshot = neighbor.balanceSnapshot,
+                        currencyCards = neighbor.currencyCards,
+                        periodNet = neighbor.periodNet,
+                        ringFraction = neighbor.ringFraction,
+                        ringIsExpense = neighbor.ringIsExpense,
+                        trendPoints = neighbor.trendPoints,
+                        trendAxis = neighbor.trendAxis,
+                        slices = neighbor.slices,
+                        expenseTiles = neighbor.expenseTiles,
+                        isLoading = neighbor.isLoading,
+                    )
+                } else {
+                    _state.value.copy(
+                        period = period,
+                        balanceSnapshot = null,
+                        currencyCards = emptyList(),
+                        periodNet = Money.zero(DASHBOARD_FALLBACK_CURRENCY),
+                        ringFraction = 0f,
+                        ringIsExpense = false,
+                        trendPoints = emptyList(),
+                        trendAxis = ChartTrendAxis.None,
+                        slices = emptyList(),
+                        expenseTiles = emptyList(),
+                        isLoading = true,
+                    )
+                }
+        }
+
         private fun recomputeBalance() {
             val state = _state.value
             val selection = state.dashboardSelection ?: return
@@ -932,7 +976,7 @@ class DashboardViewModel
                 }
                 DashboardEvent.PreviousPeriod -> {
                     val period = _state.value.period.previous()
-                    _state.value = _state.value.copy(period = period)
+                    commitSwipedPeriod(period, _state.value.previousPeriodPage)
                     restoredPersistedPeriod = true
                     clearImportFocus()
                     persistDashboardPeriod(period)
@@ -940,7 +984,7 @@ class DashboardViewModel
                 }
                 DashboardEvent.NextPeriod -> {
                     val period = _state.value.period.next()
-                    _state.value = _state.value.copy(period = period)
+                    commitSwipedPeriod(period, _state.value.nextPeriodPage)
                     restoredPersistedPeriod = true
                     clearImportFocus()
                     persistDashboardPeriod(period)

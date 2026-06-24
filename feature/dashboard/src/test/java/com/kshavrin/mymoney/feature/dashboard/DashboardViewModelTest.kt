@@ -4260,6 +4260,134 @@ class DashboardViewModelTest {
             }
         }
 
+    // -------------------------------------------------------------------------
+    // Swipe-commit promotes the precomputed neighbor synchronously (no stale frame)
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `NextPeriod promotes the precomputed nextPeriodPage into committed state synchronously before recompute lands`() =
+        runTest {
+            val nextMonth = Period.Month(YearMonth.now().plusMonths(1))
+            transactionRepository.seedExpenseSummary(cash.id, initialPeriod, summary(categoryId = 10L, amount = "30.00"))
+            transactionRepository.seedExpenseSummary(cash.id, nextMonth, summary(categoryId = 20L, amount = "70.00"))
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+                // The neighbor for the next period must be precomputed before the swipe commit so the
+                // promotion has real data to copy (the bug only flickers for filled periods).
+                val precomputedNext = viewModel.state.value.nextPeriodPage
+                assertNotNull("nextPeriodPage must be precomputed before the swipe commit", precomputedNext)
+                assertEquals(nextMonth, precomputedNext!!.period)
+                assertEquals(0, BigDecimal("70.00").compareTo(precomputedNext.balanceSnapshot!!.expense.amount))
+                assertEquals(initialPeriod, viewModel.state.value.period)
+                // The current center still shows the initial period's figures.
+                assertEquals(
+                    0,
+                    BigDecimal("30.00").compareTo(
+                        viewModel.state.value.balanceSnapshot!!
+                            .expense.amount,
+                    ),
+                )
+
+                viewModel.onEvent(DashboardEvent.NextPeriod)
+
+                // No runCurrent() — assert the SYNCHRONOUS state before the async recomputeBalance job runs.
+                val state = viewModel.state.value
+                assertEquals(nextMonth, state.period)
+                // The committed render fields must already match the precomputed next page — never the
+                // old period's values. This pins "no stale frame on swipe-commit".
+                assertEquals(
+                    "balanceSnapshot must be promoted from nextPeriodPage synchronously",
+                    0,
+                    BigDecimal("70.00").compareTo(state.balanceSnapshot!!.expense.amount),
+                )
+                assertEquals(
+                    "periodNet must be promoted from nextPeriodPage synchronously",
+                    0,
+                    precomputedNext.periodNet.amount.compareTo(state.periodNet.amount),
+                )
+                assertEquals(
+                    "trendPoints must be promoted from nextPeriodPage synchronously",
+                    precomputedNext.trendPoints,
+                    state.trendPoints,
+                )
+                assertEquals(listOf(20L), state.slices.map { it.categoryId })
+                assertEquals(listOf(20L), state.expenseTiles.map { it.categoryId })
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `PreviousPeriod promotes the precomputed previousPeriodPage into committed state synchronously before recompute lands`() =
+        runTest {
+            val prevMonth = Period.Month(YearMonth.now().minusMonths(1))
+            transactionRepository.seedExpenseSummary(cash.id, initialPeriod, summary(categoryId = 10L, amount = "30.00"))
+            transactionRepository.seedExpenseSummary(cash.id, prevMonth, summary(categoryId = 40L, amount = "55.00"))
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+                val precomputedPrev = viewModel.state.value.previousPeriodPage
+                assertNotNull("previousPeriodPage must be precomputed before the swipe commit", precomputedPrev)
+                assertEquals(prevMonth, precomputedPrev!!.period)
+
+                viewModel.onEvent(DashboardEvent.PreviousPeriod)
+
+                // No runCurrent() — the committed state must already carry the previous period's figures.
+                val state = viewModel.state.value
+                assertEquals(prevMonth, state.period)
+                assertEquals(
+                    "balanceSnapshot must be promoted from previousPeriodPage synchronously",
+                    0,
+                    BigDecimal("55.00").compareTo(state.balanceSnapshot!!.expense.amount),
+                )
+                assertEquals(
+                    "trendPoints must be promoted from previousPeriodPage synchronously",
+                    precomputedPrev.trendPoints,
+                    state.trendPoints,
+                )
+                assertEquals(listOf(40L), state.slices.map { it.categoryId })
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `NextPeriod with no precomputed neighbor falls back to a clean loading placeholder not the old period figures`() =
+        runTest {
+            val nextMonth = Period.Month(YearMonth.now().plusMonths(1))
+            transactionRepository.seedExpenseSummary(cash.id, initialPeriod, summary(categoryId = 10L, amount = "30.00"))
+            transactionRepository.seedExpenseSummary(cash.id, nextMonth, summary(categoryId = 20L, amount = "70.00"))
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+                // Simulate a very fast swipe: the precompute has not landed (force the neighbor null).
+                viewModel.onEvent(DashboardEvent.PeriodChanged(initialPeriod))
+                // recomputeBalance() clears the neighbor pages and relaunches the async precompute, which
+                // has NOT run yet (no runCurrent()), so nextPeriodPage is null at swipe time.
+                assertNull(viewModel.state.value.nextPeriodPage)
+
+                viewModel.onEvent(DashboardEvent.NextPeriod)
+
+                val state = viewModel.state.value
+                assertEquals(nextMonth, state.period)
+                // The center must NOT retain the old period's figures; it shows a clean loading placeholder.
+                assertTrue("isLoading must be true while the placeholder waits for recompute", state.isLoading)
+                assertNull("balanceSnapshot must be blank, not the old period's snapshot", state.balanceSnapshot)
+                assertTrue(state.slices.isEmpty())
+                assertTrue(state.expenseTiles.isEmpty())
+                assertTrue(state.trendPoints.isEmpty())
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
     @Test
     fun `custom range neighbors shift by the range length in each direction`() =
         runTest {

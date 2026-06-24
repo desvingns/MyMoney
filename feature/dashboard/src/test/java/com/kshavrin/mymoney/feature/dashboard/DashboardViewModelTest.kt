@@ -2668,6 +2668,354 @@ class DashboardViewModelTest {
             }
         }
 
+    // -------------------------------------------------------------------------
+    // Auto mode — trend window derived from the selected period (SPEC 01/02/03)
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `auto mode with Period Month produces one point per day in the month`() =
+        runTest {
+            settingsRepository =
+                FakeDashboardAppSettingsRepository(
+                    AppSettings(defaultAccountId = cash.id, firstPositiveSeen = true, chartAutoMode = true),
+                )
+            val month = Period.Month(YearMonth.of(2026, 6))
+            transactionRepository.seedIncomeSummary(
+                cash.id,
+                Period.Day(month.yearMonth.atDay(1)),
+                summary(categoryId = 200L, amount = "50.00"),
+            )
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                viewModel.onEvent(DashboardEvent.PeriodChanged(month))
+                runCurrent()
+
+                val points = viewModel.state.value.trendPoints
+                val expectedDays = month.yearMonth.lengthOfMonth()
+                assertTrue(
+                    "auto Month must produce at most $expectedDays points; got ${points.size}",
+                    points.size <= expectedDays,
+                )
+                assertTrue("auto Month must produce at least 1 point when income exists", points.isNotEmpty())
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `auto mode with Period Week produces at most 7 day-points`() =
+        runTest {
+            settingsRepository =
+                FakeDashboardAppSettingsRepository(
+                    AppSettings(defaultAccountId = cash.id, firstPositiveSeen = true, chartAutoMode = true),
+                )
+            val monday = LocalDate.of(2026, 6, 1)
+            val week = Period.Week(monday)
+            transactionRepository.seedIncomeSummary(
+                cash.id,
+                Period.Day(monday),
+                summary(categoryId = 200L, amount = "100.00"),
+            )
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                viewModel.onEvent(DashboardEvent.PeriodChanged(week))
+                runCurrent()
+
+                val points = viewModel.state.value.trendPoints
+                assertTrue(
+                    "auto Week must produce at most 7 points; got ${points.size}",
+                    points.size <= 7,
+                )
+                assertTrue("auto Week must produce at least 1 point when income exists", points.isNotEmpty())
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `auto mode with Period Year produces exactly 12 month-points when all months have data`() =
+        runTest {
+            settingsRepository =
+                FakeDashboardAppSettingsRepository(
+                    AppSettings(defaultAccountId = cash.id, firstPositiveSeen = true, chartAutoMode = true),
+                )
+            val year = Period.Year(2026)
+            for (month in 1..12) {
+                transactionRepository.seedIncomeSummary(
+                    cash.id,
+                    Period.Month(YearMonth.of(2026, month)),
+                    summary(categoryId = 200L, amount = "100.00"),
+                )
+            }
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                viewModel.onEvent(DashboardEvent.PeriodChanged(year))
+                runCurrent()
+
+                assertEquals(12, viewModel.state.value.trendPoints.size)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `auto mode with Period Year sets trendAxis to Months`() =
+        runTest {
+            settingsRepository =
+                FakeDashboardAppSettingsRepository(
+                    AppSettings(defaultAccountId = cash.id, firstPositiveSeen = true, chartAutoMode = true),
+                )
+            val year = Period.Year(2026)
+            transactionRepository.seedIncomeSummary(
+                cash.id,
+                Period.Month(YearMonth.of(2026, 1)),
+                summary(categoryId = 200L, amount = "100.00"),
+            )
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                viewModel.onEvent(DashboardEvent.PeriodChanged(year))
+                runCurrent()
+
+                assertEquals(ChartTrendAxis.Months, viewModel.state.value.trendAxis)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `auto mode with Period Day routes through intraday calculator — trendAxis is Hours`() =
+        runTest {
+            settingsRepository =
+                FakeDashboardAppSettingsRepository(
+                    AppSettings(defaultAccountId = cash.id, firstPositiveSeen = true, chartAutoMode = true),
+                )
+            val day = LocalDate.of(2026, 6, 1)
+            val dayPeriod = Period.Day(day)
+            val tx =
+                Transaction(
+                    id = 1L,
+                    kind = com.kshavrin.mymoney.core.domain.model.TransactionKind.Income,
+                    amount = java.math.BigDecimal("100.00"),
+                    currencyId = usd.id,
+                    accountId = cash.id,
+                    categoryId = 200L,
+                    note = null,
+                    occurredAt = java.time.Instant.parse("2026-06-01T08:00:00Z"),
+                    createdAt = java.time.Instant.EPOCH,
+                    updatedAt = java.time.Instant.EPOCH,
+                    isDeleted = false,
+                    toAccountId = null,
+                    toAmount = null,
+                    exchangeRate = null,
+                )
+            transactionRepository.seedTransactionsByPeriod(cash.id, dayPeriod, tx)
+            transactionRepository.seedIncomeSummary(cash.id, dayPeriod, summary(categoryId = 200L, amount = "100.00"))
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                viewModel.onEvent(DashboardEvent.PeriodChanged(dayPeriod))
+                runCurrent()
+
+                assertEquals(
+                    "Period.Day auto mode must set trendAxis to Hours",
+                    ChartTrendAxis.Hours,
+                    viewModel.state.value.trendAxis,
+                )
+                assertTrue(
+                    "Period.Day auto mode must produce at most 12 intraday points",
+                    viewModel.state.value.trendPoints.size <= 12,
+                )
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `auto mode with Period CustomRange produces at most 30 points`() =
+        runTest {
+            settingsRepository =
+                FakeDashboardAppSettingsRepository(
+                    AppSettings(defaultAccountId = cash.id, firstPositiveSeen = true, chartAutoMode = true),
+                )
+            val start = LocalDate.of(2026, 1, 1)
+            val end = LocalDate.of(2026, 6, 30)
+            val customRange = Period.CustomRange(start, end)
+            transactionRepository.seedIncomeSummary(
+                cash.id,
+                Period.CustomRange(start, start),
+                summary(categoryId = 200L, amount = "50.00"),
+            )
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                viewModel.onEvent(DashboardEvent.PeriodChanged(customRange))
+                runCurrent()
+
+                val points = viewModel.state.value.trendPoints
+                assertTrue(
+                    "auto CustomRange must produce at most 30 points; got ${points.size}",
+                    points.size <= 30,
+                )
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `auto mode Month axis is Days for Month period`() =
+        runTest {
+            settingsRepository =
+                FakeDashboardAppSettingsRepository(
+                    AppSettings(defaultAccountId = cash.id, firstPositiveSeen = true, chartAutoMode = true),
+                )
+            val month = Period.Month(YearMonth.of(2026, 6))
+            transactionRepository.seedIncomeSummary(
+                cash.id,
+                Period.Day(month.yearMonth.atDay(1)),
+                summary(categoryId = 200L, amount = "10.00"),
+            )
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                viewModel.onEvent(DashboardEvent.PeriodChanged(month))
+                runCurrent()
+
+                assertEquals(ChartTrendAxis.Days, viewModel.state.value.trendAxis)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `manual mode with autoMode false produces exactly the configured point count — old 4-previous path`() =
+        runTest {
+            // Explicit manual mode: chartAutoMode=false, 5 points. Default setUp already has
+            // chartAutoMode=false so this documents that the test uses the legacy path.
+            transactionRepository.seedIncomeSummary(
+                cash.id,
+                initialPeriod,
+                summary(categoryId = 200L, amount = "85000.00"),
+            )
+            transactionRepository.seedExpenseSummary(
+                cash.id,
+                initialPeriod,
+                summary(categoryId = 10L, amount = "47350.00"),
+            )
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                assertEquals(5, viewModel.state.value.trendPoints.size)
+                assertEquals(ChartTrendAxis.None, viewModel.state.value.trendAxis)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `auto mode with zero transactions produces empty trend series and does not crash`() =
+        runTest {
+            settingsRepository =
+                FakeDashboardAppSettingsRepository(
+                    AppSettings(defaultAccountId = cash.id, firstPositiveSeen = true, chartAutoMode = true),
+                )
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                assertTrue(
+                    "empty period auto mode must produce empty trendPoints without crashing",
+                    viewModel.state.value.trendPoints
+                        .isEmpty(),
+                )
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `auto mode Period Day with no transactions produces empty series and does not crash`() =
+        runTest {
+            settingsRepository =
+                FakeDashboardAppSettingsRepository(
+                    AppSettings(defaultAccountId = cash.id, firstPositiveSeen = true, chartAutoMode = true),
+                )
+            val dayPeriod = Period.Day(LocalDate.of(2026, 6, 1))
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                viewModel.onEvent(DashboardEvent.PeriodChanged(dayPeriod))
+                runCurrent()
+
+                assertTrue(
+                    "Day auto mode with no transactions must produce empty trendPoints",
+                    viewModel.state.value.trendPoints
+                        .isEmpty(),
+                )
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `auto mode separate cards follow the selected period — Month period produces per-day points per currency`() =
+        runTest {
+            settingsRepository =
+                FakeDashboardAppSettingsRepository(
+                    AppSettings(defaultAccountId = cash.id, firstPositiveSeen = true, chartAutoMode = true),
+                )
+            val eurAccount = account(id = 3L, name = "Euro card", isDefault = false, currencyId = eur.id)
+            accountRepository.seed(cash, eurAccount)
+            currencyRepository.seed(usd, eur)
+            val month = Period.Month(YearMonth.of(2026, 6))
+            transactionRepository.seedIncomeSummary(
+                cash.id,
+                Period.Day(month.yearMonth.atDay(1)),
+                summary(categoryId = 200L, amount = "100.00"),
+            )
+            transactionRepository.seedIncomeSummary(
+                eurAccount.id,
+                Period.Day(month.yearMonth.atDay(1)),
+                summary(categoryId = 200L, amount = "80.00"),
+            )
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                viewModel.onEvent(DashboardEvent.PeriodChanged(month))
+                runCurrent()
+                viewModel.onEvent(DashboardEvent.AllAccountsSeparateChosen)
+                runCurrent()
+
+                val cards = viewModel.state.value.currencyCards
+                assertEquals(2, cards.size)
+                val usdCard = cards.single { it.currency.code == "USD" }
+                val eurCard2 = cards.single { it.currency.code == "EUR" }
+                assertTrue("USD card must have trend points in auto Month mode", usdCard.trendPoints.isNotEmpty())
+                assertTrue("EUR card must have trend points in auto Month mode", eurCard2.trendPoints.isNotEmpty())
+                usdCard.trendPoints.forEach { assertEquals(usd, it.value.currency) }
+                eurCard2.trendPoints.forEach { assertEquals(eur, it.value.currency) }
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
     private fun buildViewModel(): Pair<DashboardViewModel, ViewModelStore> {
         val dispatcher = mainDispatcherRule.testDispatcher
         val calculator =

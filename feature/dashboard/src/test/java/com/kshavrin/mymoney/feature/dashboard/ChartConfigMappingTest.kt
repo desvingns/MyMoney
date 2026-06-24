@@ -241,4 +241,33 @@ class ChartConfigMappingTest {
         val config = settings.toChartConfig()
         assertEquals(ChartPeriodType.Follow, config.periodType)
     }
+
+    // -------------------------------------------------------------------------
+    // chartAutoMode mapping (SPEC dashboard-trend-selected-period)
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `toChartConfig maps chartAutoMode true to autoMode true`() {
+        val settings = AppSettings(chartAutoMode = true)
+        val config = settings.toChartConfig()
+        assertEquals(true, config.autoMode)
+    }
+
+    @Test
+    fun `toChartConfig maps chartAutoMode false to autoMode false`() {
+        val settings = AppSettings(chartAutoMode = false)
+        val config = settings.toChartConfig()
+        assertEquals(false, config.autoMode)
+    }
+
+    @Test
+    fun `AppSettings default chartAutoMode is true so default ChartConfig autoMode is true`() {
+        val config = AppSettings().toChartConfig()
+        assertEquals(true, config.autoMode)
+    }
+
+    @Test
+    fun `ChartConfig default autoMode is true`() {
+        assertEquals(true, ChartConfig().autoMode)
+    }
 }

@@ -299,4 +299,10 @@ sealed interface DashboardEvent {
     data class ChartVisibilityChanged(
         val visible: Boolean,
     ) : DashboardEvent
+
+    // Auto/manual toggle: auto derives the trend window from the dashboard period and hides the
+    // period-type/point-count controls; manual restores the legacy independent-anchor controls.
+    data class ChartAutoModeChanged(
+        val autoMode: Boolean,
+    ) : DashboardEvent
 }

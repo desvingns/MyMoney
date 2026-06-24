@@ -1068,6 +1068,10 @@ class DashboardViewModel
                     updateChartSettings { it.copy(chartColorRule = event.colorRule.toId()) }
                 is DashboardEvent.ChartVisibilityChanged ->
                     updateChartSettings { it.copy(chartVisible = event.visible) }
+                is DashboardEvent.ChartAutoModeChanged ->
+                    updateChartSettings(recomputeTrend = true) {
+                        it.copy(chartAutoMode = event.autoMode)
+                    }
             }
         }
 

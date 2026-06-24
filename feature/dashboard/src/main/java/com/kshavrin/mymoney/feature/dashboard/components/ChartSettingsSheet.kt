@@ -77,21 +77,30 @@ fun ChartSettingsSheet(
                 color = MaterialTheme.colorScheme.onSurface,
             )
 
+            SectionLabel(stringResource(R.string.chart_settings_section_mode))
+            SegmentedRow(
+                options = autoModeOptions(),
+                selected = config.autoMode,
+                onSelected = { onEvent(DashboardEvent.ChartAutoModeChanged(it)) },
+            )
+
             SectionLabel(stringResource(R.string.chart_settings_section_style))
             StyleRow(selected = config.style, onSelected = { onEvent(DashboardEvent.ChartStyleChanged(it)) })
 
-            SectionLabel(stringResource(R.string.chart_settings_section_period))
-            SegmentedRow(
-                options = periodTypeOptions(),
-                selected = config.periodType,
-                onSelected = { onEvent(DashboardEvent.ChartPeriodTypeChanged(it)) },
-            )
+            if (!config.autoMode) {
+                SectionLabel(stringResource(R.string.chart_settings_section_period))
+                SegmentedRow(
+                    options = periodTypeOptions(),
+                    selected = config.periodType,
+                    onSelected = { onEvent(DashboardEvent.ChartPeriodTypeChanged(it)) },
+                )
 
-            SectionLabel(stringResource(R.string.chart_settings_section_points))
-            PointCountStepper(
-                count = config.pointCount,
-                onChange = { onEvent(DashboardEvent.ChartPointCountChanged(it)) },
-            )
+                SectionLabel(stringResource(R.string.chart_settings_section_points))
+                PointCountStepper(
+                    count = config.pointCount,
+                    onChange = { onEvent(DashboardEvent.ChartPointCountChanged(it)) },
+                )
+            }
 
             SectionLabel(stringResource(R.string.chart_settings_section_metric))
             SegmentedRow(
@@ -281,6 +290,13 @@ private data class SegmentOption<T>(
 )
 
 @Composable
+private fun autoModeOptions(): List<SegmentOption<Boolean>> =
+    listOf(
+        SegmentOption(true, stringResource(R.string.chart_settings_mode_auto), CHART_SETTINGS_MODE_AUTO_TAG),
+        SegmentOption(false, stringResource(R.string.chart_settings_mode_manual), CHART_SETTINGS_MODE_MANUAL_TAG),
+    )
+
+@Composable
 private fun periodTypeOptions(): List<SegmentOption<ChartPeriodType>> =
     listOf(
         SegmentOption(ChartPeriodType.Follow, stringResource(R.string.chart_settings_period_follow), chartPeriodTag(ChartPeriodType.Follow)),
@@ -309,6 +325,8 @@ private fun colorRuleOptions(): List<SegmentOption<ChartColorRule>> =
 private val STYLE_PREVIEW_POINTS = listOf(-1f, 0.5f, -0.5f, 1.2f, 0.8f)
 
 const val CHART_SETTINGS_SHEET_TAG = "chart_settings_sheet"
+const val CHART_SETTINGS_MODE_AUTO_TAG = "chart_settings_mode_auto"
+const val CHART_SETTINGS_MODE_MANUAL_TAG = "chart_settings_mode_manual"
 const val CHART_SETTINGS_GRIDLINES_TAG = "chart_settings_gridlines"
 const val CHART_SETTINGS_LABELS_TAG = "chart_settings_labels"
 const val CHART_SETTINGS_VISIBLE_TAG = "chart_settings_visible"

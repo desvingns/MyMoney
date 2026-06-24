@@ -67,6 +67,9 @@
     <string name="right_drawer_chart_settings">Chart settings</string>
 
     <string name="chart_settings_title">Chart settings</string>
+    <string name="chart_settings_section_mode">Window</string>
+    <string name="chart_settings_mode_auto">Auto</string>
+    <string name="chart_settings_mode_manual">Manual</string>
     <string name="chart_settings_section_style">Style</string>
     <string name="chart_settings_section_period">Period</string>
     <string name="chart_settings_section_points">Points</string>

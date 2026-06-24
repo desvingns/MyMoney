@@ -67,6 +67,9 @@
     <string name="right_drawer_chart_settings">Настройки графика</string>
 
     <string name="chart_settings_title">Настройки графика</string>
+    <string name="chart_settings_section_mode">Окно</string>
+    <string name="chart_settings_mode_auto">Авто</string>
+    <string name="chart_settings_mode_manual">Вручную</string>
     <string name="chart_settings_section_style">Стиль</string>
     <string name="chart_settings_section_period">Период</string>
     <string name="chart_settings_section_points">Точки</string>

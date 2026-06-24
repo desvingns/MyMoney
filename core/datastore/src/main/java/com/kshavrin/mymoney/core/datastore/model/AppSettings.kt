@@ -33,4 +33,5 @@ data class AppSettings(
     val chartShowGridlines: Boolean = true,
     val chartShowLabels: Boolean = true,
     val chartColorRule: String = "by_sign",
+    val chartAutoMode: Boolean = true,
 )

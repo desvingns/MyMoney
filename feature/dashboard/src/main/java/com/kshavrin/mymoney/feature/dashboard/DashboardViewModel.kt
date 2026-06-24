@@ -17,6 +17,8 @@ import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.DomainEvent
 import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.domain.model.Period
+import com.kshavrin.mymoney.core.domain.model.Transaction
+import com.kshavrin.mymoney.core.domain.model.TrendPoint
 import com.kshavrin.mymoney.core.domain.model.toMoneyScale
 import com.kshavrin.mymoney.core.domain.repository.AccountRepository
 import com.kshavrin.mymoney.core.domain.repository.CategoryRepository
@@ -26,6 +28,7 @@ import com.kshavrin.mymoney.core.domain.time.PeriodArithmetic
 import com.kshavrin.mymoney.core.domain.usecase.BalanceCalculator
 import com.kshavrin.mymoney.core.domain.usecase.BalanceTrendCalculator
 import com.kshavrin.mymoney.core.domain.usecase.GetCategoryRecordsUseCase
+import com.kshavrin.mymoney.core.domain.usecase.IntradayTrendCalculator
 import com.kshavrin.mymoney.core.domain.usecase.ObserveBudgetAlertsUseCase
 import com.kshavrin.mymoney.core.domain.usecase.ResolveRateUseCase
 import com.kshavrin.mymoney.core.domain.usecase.RingGaugeCalculator
@@ -60,6 +63,7 @@ class DashboardViewModel
         private val currencyRepository: CurrencyRepository,
         private val balanceCalculator: BalanceCalculator,
         private val balanceTrendCalculator: BalanceTrendCalculator,
+        private val intradayTrendCalculator: IntradayTrendCalculator,
         private val appSettingsRepository: AppSettingsRepository,
         private val transactionRepository: TransactionRepository,
         private val observeBudgetAlertsUseCase: ObserveBudgetAlertsUseCase,
@@ -392,20 +396,11 @@ class DashboardViewModel
                     val firstPositive = !settings.firstPositiveSeen && snapshot.net.amount.signum() > 0
                     val chartConfig = _state.value.chartConfig
                     val currencyCards = computeCurrencyCards(selection, state.accounts, period, chartConfig)
-                    val trendPoints =
+                    val trend =
                         if (selection.isSeparateMode()) {
-                            emptyList()
+                            TrendResult(emptyList(), ChartTrendAxis.None)
                         } else {
-                            balanceTrendCalculator(
-                                window =
-                                    balanceTrendCalculator.buildWindow(
-                                        anchor = trendAnchorPeriod(chartConfig.periodType, period),
-                                        count = chartConfig.pointCount,
-                                    ),
-                                metric = chartConfig.metric,
-                            ) { trendPeriod ->
-                                computeSnapshot(selection, state.accounts, trendPeriod)
-                            }
+                            computeTrend(selection, state.accounts, period, chartConfig)
                         }
                     val slices = snapshotToSlices(snapshot, _state.value.budgetAlertCategoryIds)
                     val expenseTiles = snapshotToExpenseTiles(snapshot, _state.value.budgetAlertCategoryIds)
@@ -416,7 +411,8 @@ class DashboardViewModel
                             periodNet = periodNet,
                             ringFraction = gauge.fraction,
                             ringIsExpense = gauge.isExpense,
-                            trendPoints = trendPoints,
+                            trendPoints = trend.points,
+                            trendAxis = trend.axis,
                             slices = slices,
                             expenseTiles = expenseTiles,
                             isLoading = false,
@@ -478,20 +474,11 @@ class DashboardViewModel
                     previousExpense = previousExpense,
                 )
             val currencyCards = computeCurrencyCards(selection, accounts, period, chartConfig)
-            val trendPoints =
+            val trend =
                 if (selection.isSeparateMode()) {
-                    emptyList()
+                    TrendResult(emptyList(), ChartTrendAxis.None)
                 } else {
-                    balanceTrendCalculator(
-                        window =
-                            balanceTrendCalculator.buildWindow(
-                                anchor = trendAnchorPeriod(chartConfig.periodType, period),
-                                count = chartConfig.pointCount,
-                            ),
-                        metric = chartConfig.metric,
-                    ) { trendPeriod ->
-                        computeSnapshot(selection, accounts, trendPeriod)
-                    }
+                    computeTrend(selection, accounts, period, chartConfig)
                 }
             return PeriodPageState(
                 period = period,
@@ -500,7 +487,8 @@ class DashboardViewModel
                 periodNet = snapshot.toPeriodNet(),
                 ringFraction = gauge.fraction,
                 ringIsExpense = gauge.isExpense,
-                trendPoints = trendPoints,
+                trendPoints = trend.points,
+                trendAxis = trend.axis,
                 slices = snapshotToSlices(snapshot, _state.value.budgetAlertCategoryIds),
                 expenseTiles = snapshotToExpenseTiles(snapshot, _state.value.budgetAlertCategoryIds),
                 isSeparateMode = selection.isSeparateMode(),
@@ -705,8 +693,8 @@ class DashboardViewModel
             val allAccounts = selection as? DashboardSelection.AllAccounts ?: return emptyList()
             if (allAccounts.foldMode != AllAccountsFoldMode.Separate) return emptyList()
 
-            val trendWindow =
-                if (chartConfig.visible) {
+            val manualWindow =
+                if (chartConfig.visible && !chartConfig.autoMode) {
                     balanceTrendCalculator.buildWindow(
                         anchor = trendAnchorPeriod(chartConfig.periodType, period),
                         count = chartConfig.pointCount,
@@ -721,15 +709,10 @@ class DashboardViewModel
                 .mapNotNull { (currencyId, groupAccounts) ->
                     val currency = _state.value.currencies.firstOrNull { it.id == currencyId } ?: return@mapNotNull null
                     val trendPoints =
-                        if (trendWindow.isEmpty()) {
+                        if (!chartConfig.visible) {
                             emptyList()
                         } else {
-                            balanceTrendCalculator(
-                                window = trendWindow,
-                                metric = chartConfig.metric,
-                            ) { trendPeriod ->
-                                balanceCalculator.forAccounts(groupAccounts, currency, trendPeriod)
-                            }
+                            computeGroupTrend(groupAccounts, currency, period, chartConfig, manualWindow).points
                         }
                     CurrencyBalanceCard(
                         currency = currency,
@@ -791,6 +774,152 @@ class DashboardViewModel
                 ChartPeriodType.Year -> Period.Year(today.year)
             }
         }
+
+        // The aggregate (Aurora-card) trend for the current selection. In auto mode (the default) the
+        // window is derived from the dashboard's selected period: Period.Day routes through the
+        // intra-day calculator on the raw transactions of the selection (SPEC 03), every other period
+        // builds an auto window + auto series anchored on the selected period (SPEC 01/02). Manual
+        // mode keeps the legacy buildWindow + independent-anchor + pointCount path byte-for-byte (G14).
+        private suspend fun computeTrend(
+            selection: DashboardSelection,
+            accounts: List<Account>,
+            period: Period,
+            chartConfig: ChartConfig,
+        ): TrendResult {
+            if (!chartConfig.autoMode) {
+                val points =
+                    balanceTrendCalculator(
+                        window =
+                            balanceTrendCalculator.buildWindow(
+                                anchor = trendAnchorPeriod(chartConfig.periodType, period),
+                                count = chartConfig.pointCount,
+                            ),
+                        metric = chartConfig.metric,
+                    ) { trendPeriod ->
+                        computeSnapshot(selection, accounts, trendPeriod)
+                    }
+                return TrendResult(points, ChartTrendAxis.None)
+            }
+            if (period is Period.Day) {
+                val transactions = selectionTransactions(selection, accounts, period)
+                return intradayTrendResult(transactions, period.date, computeSnapshot(selection, accounts, period))
+            }
+            val window =
+                balanceTrendCalculator.buildAutoWindow(
+                    anchor = period,
+                    earliestDate = if (period is Period.All) earliestTransactionDate() else null,
+                    today = java.time.LocalDate.now(ZoneId.systemDefault()),
+                )
+            val points =
+                balanceTrendCalculator.buildAutoSeries(window, chartConfig.metric) { trendPeriod ->
+                    computeSnapshot(selection, accounts, trendPeriod)
+                }
+            return TrendResult(points, autoAxisFor(period))
+        }
+
+        // Per-currency-group trend for the "show separately" cards (D5/G10). Same auto/manual fork as
+        // the aggregate trend, but every snapshot stays inside the group's own currency — no
+        // conversion. Day routes through intra-day on the group's transactions only.
+        private suspend fun computeGroupTrend(
+            groupAccounts: List<Account>,
+            currency: Currency,
+            period: Period,
+            chartConfig: ChartConfig,
+            manualWindow: List<Period>,
+        ): TrendResult {
+            if (!chartConfig.autoMode) {
+                if (manualWindow.isEmpty()) return TrendResult(emptyList(), ChartTrendAxis.None)
+                val points =
+                    balanceTrendCalculator(
+                        window = manualWindow,
+                        metric = chartConfig.metric,
+                    ) { trendPeriod ->
+                        balanceCalculator.forAccounts(groupAccounts, currency, trendPeriod)
+                    }
+                return TrendResult(points, ChartTrendAxis.None)
+            }
+            if (period is Period.Day) {
+                val transactions = groupTransactions(groupAccounts, period)
+                return intradayTrendResult(
+                    transactions,
+                    period.date,
+                    balanceCalculator.forAccounts(groupAccounts, currency, period),
+                )
+            }
+            val window =
+                balanceTrendCalculator.buildAutoWindow(
+                    anchor = period,
+                    earliestDate = if (period is Period.All) earliestTransactionDate() else null,
+                    today = java.time.LocalDate.now(ZoneId.systemDefault()),
+                )
+            val points =
+                balanceTrendCalculator.buildAutoSeries(window, chartConfig.metric) { trendPeriod ->
+                    balanceCalculator.forAccounts(groupAccounts, currency, trendPeriod)
+                }
+            return TrendResult(points, autoAxisFor(period))
+        }
+
+        // Wrap the intra-day cumulative-net series (SPEC 03 — slot 0..n, 2-hour buckets) into
+        // TrendPoints in the snapshot's currency so the chart and labels share one shape. Survives a
+        // 0- or 1-slot series (G13).
+        private fun intradayTrendResult(
+            transactions: List<Transaction>,
+            day: java.time.LocalDate,
+            snapshot: BalanceSnapshot,
+        ): TrendResult {
+            val currency = snapshot.net.currency
+            val series = intradayTrendCalculator.buildIntradaySeries(transactions, day)
+            val points =
+                series.mapIndexed { index, amount ->
+                    TrendPoint(
+                        index = index,
+                        period = Period.Day(day),
+                        value = Money(amount.toMoneyScale(currency), currency),
+                    )
+                }
+            return TrendResult(points, ChartTrendAxis.Hours)
+        }
+
+        private fun autoAxisFor(period: Period): ChartTrendAxis =
+            when (period) {
+                is Period.Year -> ChartTrendAxis.Months
+                is Period.All, is Period.CustomRange -> ChartTrendAxis.RangeBuckets
+                else -> ChartTrendAxis.Days
+            }
+
+        // Raw transactions backing the intra-day chart for the whole selection (G6). SpecificAccount
+        // reads its own account; an all-accounts selection merges every active account's transactions
+        // for the day. Amounts stay in each account's own currency — the intra-day net is a single
+        // signed running total, so a multi-currency ConvertTo selection is intentionally summed
+        // unconverted (the per-currency cards carry the currency-correct breakdown).
+        private suspend fun selectionTransactions(
+            selection: DashboardSelection,
+            accounts: List<Account>,
+            period: Period.Day,
+        ): List<Transaction> =
+            when (selection) {
+                is DashboardSelection.SpecificAccount -> transactionRepository.findByPeriod(selection.account.id, period)
+                is DashboardSelection.AllAccounts ->
+                    groupTransactions(accounts.filterNot { it.isArchived }, period)
+            }
+
+        private suspend fun groupTransactions(
+            groupAccounts: List<Account>,
+            period: Period.Day,
+        ): List<Transaction> =
+            groupAccounts.flatMap { account -> transactionRepository.findByPeriod(account.id, period) }
+
+        // Earliest transaction date for the Period.All auto window (O2). Derived from the existing
+        // observeAll() flow — no new DAO — and null when the ledger is empty (buildAutoWindow then
+        // yields an empty window, which the chart renders as empty, G13).
+        private suspend fun earliestTransactionDate(): java.time.LocalDate? =
+            transactionRepository
+                .observeAll()
+                .first()
+                .minByOrNull { it.occurredAt }
+                ?.occurredAt
+                ?.atZone(ZoneId.systemDefault())
+                ?.toLocalDate()
 
         fun onEvent(event: DashboardEvent) {
             when (event) {
@@ -1109,6 +1238,11 @@ class DashboardViewModel
 
 private data class BudgetAlertSelection(
     val accountId: Long,
+)
+
+private data class TrendResult(
+    val points: List<TrendPoint>,
+    val axis: ChartTrendAxis,
 )
 
 private data class DashboardInputs(

@@ -90,4 +90,5 @@ fun AppSettings.toChartConfig(): ChartConfig =
         showGridlines = chartShowGridlines,
         showLabels = chartShowLabels,
         colorRule = chartColorRuleFromId(chartColorRule),
+        autoMode = chartAutoMode,
     )

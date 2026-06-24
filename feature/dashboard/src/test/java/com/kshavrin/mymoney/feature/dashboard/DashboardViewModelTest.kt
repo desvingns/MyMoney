@@ -34,6 +34,7 @@ import com.kshavrin.mymoney.core.domain.usecase.BalanceTrendCalculator
 import com.kshavrin.mymoney.core.domain.usecase.BudgetEvaluator
 import com.kshavrin.mymoney.core.domain.usecase.ConvertMoneyUseCase
 import com.kshavrin.mymoney.core.domain.usecase.GetCategoryRecordsUseCase
+import com.kshavrin.mymoney.core.domain.usecase.IntradayTrendCalculator
 import com.kshavrin.mymoney.core.domain.usecase.ObserveBudgetAlertsUseCase
 import com.kshavrin.mymoney.core.domain.usecase.ResolveRateUseCase
 import kotlinx.coroutines.CompletableDeferred
@@ -115,7 +116,7 @@ class DashboardViewModelTest {
         budgetRepository = FakeDashboardBudgetRepository()
         settingsRepository =
             FakeDashboardAppSettingsRepository(
-                AppSettings(defaultAccountId = cash.id, firstPositiveSeen = true),
+                AppSettings(defaultAccountId = cash.id, firstPositiveSeen = true, chartAutoMode = false),
             )
         categoryRepository = FakeDashboardCategoryRepository()
     }
@@ -2602,6 +2603,7 @@ class DashboardViewModelTest {
                             currencyRepository = currencyRepository,
                             balanceCalculator = calculator,
                             balanceTrendCalculator = BalanceTrendCalculator(),
+                            intradayTrendCalculator = IntradayTrendCalculator(),
                             appSettingsRepository = settingsRepository,
                             transactionRepository = gatedTransactionRepository,
                             observeBudgetAlertsUseCase = alerts,
@@ -2700,6 +2702,7 @@ class DashboardViewModelTest {
                         currencyRepository = currencyRepository,
                         balanceCalculator = calculator,
                         balanceTrendCalculator = BalanceTrendCalculator(),
+                        intradayTrendCalculator = IntradayTrendCalculator(),
                         appSettingsRepository = settingsRepository,
                         transactionRepository = transactionRepository,
                         observeBudgetAlertsUseCase = alerts,
@@ -2756,6 +2759,7 @@ class DashboardViewModelTest {
                         currencyRepository = currencyRepository,
                         balanceCalculator = calculator,
                         balanceTrendCalculator = BalanceTrendCalculator(),
+                        intradayTrendCalculator = IntradayTrendCalculator(),
                         appSettingsRepository = settingsRepository,
                         transactionRepository = transactionRepository,
                         observeBudgetAlertsUseCase = alerts,
@@ -3986,6 +3990,7 @@ class DashboardViewModelTest {
                             currencyRepository = currencyRepository,
                             balanceCalculator = calculator,
                             balanceTrendCalculator = BalanceTrendCalculator(),
+                            intradayTrendCalculator = IntradayTrendCalculator(),
                             appSettingsRepository = settingsRepository,
                             transactionRepository = gatedRepo,
                             observeBudgetAlertsUseCase = alerts,

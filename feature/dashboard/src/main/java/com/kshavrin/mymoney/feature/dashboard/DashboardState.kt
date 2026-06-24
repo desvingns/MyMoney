@@ -28,6 +28,7 @@ data class DashboardState(
     val ringFraction: Float = 0f,
     val ringIsExpense: Boolean = false,
     val trendPoints: List<TrendPoint> = emptyList(),
+    val trendAxis: ChartTrendAxis = ChartTrendAxis.None,
     val slices: List<CategorySlice> = emptyList(),
     val expenseTiles: List<CategoryTileItem> = emptyList(),
     val expenseCategoryPlaceholders: List<CategorySlice> = emptyList(),
@@ -87,6 +88,7 @@ data class PeriodPageState(
     val ringFraction: Float = 0f,
     val ringIsExpense: Boolean = false,
     val trendPoints: List<TrendPoint> = emptyList(),
+    val trendAxis: ChartTrendAxis = ChartTrendAxis.None,
     val slices: List<CategorySlice> = emptyList(),
     val expenseTiles: List<CategoryTileItem> = emptyList(),
     val isSeparateMode: Boolean = false,
@@ -103,6 +105,17 @@ data class CurrencyBalanceCard(
     val trendPoints: List<TrendPoint> = emptyList(),
 )
 
+// Which axis the trend chart's point labels represent. Derived from the auto/manual window the
+// ViewModel built so the chart components can localize the labels (day numbers, month
+// abbreviations, hour numbers) without re-deriving the window. [None] hides the labels.
+enum class ChartTrendAxis {
+    None,
+    Days,
+    Months,
+    Hours,
+    RangeBuckets,
+}
+
 // Persisted chart configuration (AppSettings, SPEC 02) projected into the dashboard state. Drives
 // BOTH the rendered chart (style/color/toggles) and the trend recompute (period type / point
 // count / metric). [periodType] == Follow means the chart window mirrors the dashboard period;
@@ -116,6 +129,10 @@ data class ChartConfig(
     val showGridlines: Boolean = true,
     val showLabels: Boolean = true,
     val colorRule: ChartColorRule = ChartColorRule.Default,
+    // Auto mode (the default) derives the trend window from the dashboard's selected period and
+    // ignores [periodType]/[pointCount]. Manual mode (false) keeps the legacy independent-anchor
+    // path unchanged (G14).
+    val autoMode: Boolean = true,
 )
 
 // How the trend window is anchored relative to the dashboard. Follow tracks the dashboard period;

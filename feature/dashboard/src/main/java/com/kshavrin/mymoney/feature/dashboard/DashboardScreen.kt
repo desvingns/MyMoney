@@ -75,6 +75,7 @@ import com.kshavrin.mymoney.feature.dashboard.components.RightDrawerContent
 import com.kshavrin.mymoney.feature.dashboard.components.ThreeFabLayout
 import com.kshavrin.mymoney.feature.dashboard.components.localDateToMaterialPickerUtcMillis
 import com.kshavrin.mymoney.feature.dashboard.components.materialPickerUtcMillisToLocalDate
+import com.kshavrin.mymoney.feature.dashboard.components.trendPointLabels
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.LocalDate
@@ -382,6 +383,7 @@ private fun DashboardPage(
                     snapshot?.let { formatMoney(it.expense, locale) }
                         ?: stringResource(R.string.dashboard_balance_unavailable_amount),
                 points = pageState.trendPoints.map { it.value.amount.toFloat() },
+                labels = trendPointLabels(pageState.trendPoints, pageState.trendAxis, locale),
                 chartConfig = chartConfig,
                 onChartClick = { if (interactive) onEvent(DashboardEvent.ChartTapped) },
                 netPositive = pageState.periodNet.amount.signum() >= 0,
@@ -435,6 +437,7 @@ private fun DashboardState.toCurrentPageState(): PeriodPageState =
         ringFraction = ringFraction,
         ringIsExpense = ringIsExpense,
         trendPoints = trendPoints,
+        trendAxis = trendAxis,
         slices = slices,
         expenseTiles = expenseTiles,
         isSeparateMode = isSeparateMode,

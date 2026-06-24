@@ -34,6 +34,7 @@ fun AuroraBalanceCard(
     chartConfig: ChartConfig,
     onChartClick: () -> Unit,
     modifier: Modifier = Modifier,
+    labels: List<String> = emptyList(),
     netPositive: Boolean = true,
 ) {
     AuroraCardSurface(
@@ -67,6 +68,7 @@ fun AuroraBalanceCard(
             ) {
                 BalanceTrendChart(
                     points = points,
+                    labels = labels,
                     showGridlines = chartConfig.showGridlines,
                     showLabels = chartConfig.showLabels,
                     colorRule = chartConfig.colorRule,

@@ -250,10 +250,10 @@ class AuroraBalanceCardUiTest {
         }
     }
 
-    // ---- full-bleed + edge-fade tests (wave blend SPEC) ----
+    // ---- inset layout tests (feathered-backdrop SPEC — full-bleed reverted) ----
 
     @Test
-    fun `full-bleed chart box is wider than the card inset content area`() {
+    fun `chart box is inset within card bounds after full-bleed revert`() {
         setCard(chartConfig = defaultConfig(visible = true))
 
         val cardBounds =
@@ -267,55 +267,13 @@ class AuroraBalanceCardUiTest {
                 .fetchSemanticsNode()
                 .boundsInRoot
 
-        val cardInnerWidthPx =
-            cardBounds.width -
-                2f * with(composeTestRule.density) { Spacing.dashboardAuroraCardPaddingHorizontal.toPx() }
-
         assertTrue(
-            "full-bleed chart width (${chartBounds.width}) must exceed card inner content width ($cardInnerWidthPx)",
-            chartBounds.width > cardInnerWidthPx,
+            "chart left (${chartBounds.left}) must be >= card left (${cardBounds.left}) — chart is inset, not full-bleed",
+            chartBounds.left >= cardBounds.left - 1.5f,
         )
-    }
-
-    @Test
-    fun `full-bleed chart left edge reaches or exceeds the card left edge`() {
-        setCard(chartConfig = defaultConfig(visible = true))
-
-        val cardBounds =
-            composeTestRule
-                .onNodeWithTag(DASHBOARD_AURORA_CARD_TAG)
-                .fetchSemanticsNode()
-                .boundsInRoot
-        val chartBounds =
-            composeTestRule
-                .onNodeWithTag(DASHBOARD_TREND_CHART_TAG)
-                .fetchSemanticsNode()
-                .boundsInRoot
-
         assertTrue(
-            "chart left (${chartBounds.left}) must be <= card left (${cardBounds.left}) for full-bleed",
-            chartBounds.left <= cardBounds.left + 1.5f,
-        )
-    }
-
-    @Test
-    fun `full-bleed chart right edge reaches or exceeds the card right edge`() {
-        setCard(chartConfig = defaultConfig(visible = true))
-
-        val cardBounds =
-            composeTestRule
-                .onNodeWithTag(DASHBOARD_AURORA_CARD_TAG)
-                .fetchSemanticsNode()
-                .boundsInRoot
-        val chartBounds =
-            composeTestRule
-                .onNodeWithTag(DASHBOARD_TREND_CHART_TAG)
-                .fetchSemanticsNode()
-                .boundsInRoot
-
-        assertTrue(
-            "chart right (${chartBounds.right}) must be >= card right (${cardBounds.right}) for full-bleed",
-            chartBounds.right >= cardBounds.right - 1.5f,
+            "chart right (${chartBounds.right}) must be <= card right (${cardBounds.right}) — chart is inset, not full-bleed",
+            chartBounds.right <= cardBounds.right + 1.5f,
         )
     }
 
@@ -364,7 +322,7 @@ class AuroraBalanceCardUiTest {
     }
 
     @Test
-    fun `full-bleed chart height is unchanged and matches dashboardAuroraChartHeightCompact`() {
+    fun `chart height is unchanged and matches dashboardAuroraChartHeightCompact`() {
         setCard(chartConfig = defaultConfig(visible = true))
         composeTestRule
             .onNodeWithTag(DASHBOARD_TREND_CHART_TAG)
@@ -373,7 +331,7 @@ class AuroraBalanceCardUiTest {
     }
 
     @Test
-    fun `balance and pills are unaffected by full-bleed chart when chart is visible`() {
+    fun `balance and pills are unaffected by inset chart when chart is visible`() {
         setCard(
             balance = "9 999 $",
             income = "15 000 $",

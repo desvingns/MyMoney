@@ -17,7 +17,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
@@ -38,8 +37,6 @@ internal fun AuroraCardSurface(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val shape = MaterialTheme.shapes.dashboardAuroraCard
-    val gradientTop = accent.copy(alpha = 0.20f)
-    val gradientBottom = Color.White.copy(alpha = 0.02f)
 
     Column(
         modifier =
@@ -54,16 +51,17 @@ internal fun AuroraCardSurface(
                     spotColor = accent,
                 ).clip(shape)
                 .drawBehind {
+                    drawRect(color = accent.copy(alpha = 0.10f))
                     drawRect(
                         brush =
-                            Brush.radialGradient(
-                                colorStops =
-                                    arrayOf(
-                                        0f to gradientTop,
-                                        0.70f to gradientBottom,
+                            Brush.verticalGradient(
+                                colors =
+                                    listOf(
+                                        accent.copy(alpha = 0.10f),
+                                        Color.Transparent,
                                     ),
-                                center = Offset(x = size.width / 2f, y = 0f),
-                                radius = size.height * 1.4f,
+                                startY = 0f,
+                                endY = size.height,
                             ),
                     )
                 }.border(

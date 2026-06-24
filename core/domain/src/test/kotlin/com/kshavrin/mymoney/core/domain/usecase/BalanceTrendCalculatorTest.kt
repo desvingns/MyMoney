@@ -30,6 +30,7 @@ class BalanceTrendCalculatorTest {
         )
 
     private val fixedZone: ZoneId = ZoneOffset.UTC
+    private val fixedToday: LocalDate = LocalDate.of(2026, 6, 22)
 
     // ---- helpers -------------------------------------------------------
 
@@ -129,6 +130,128 @@ class BalanceTrendCalculatorTest {
         } catch (e: IllegalArgumentException) {
             threw = true
         }
+        assertTrue(threw)
+    }
+
+    // ---- buildAutoWindow -----------------------------------------------
+
+    @Test
+    fun `buildAutoWindow for Week returns seven daily buckets`() {
+        val anchor = Period.Week(LocalDate.of(2026, 5, 11))
+
+        val window = calculator.buildAutoWindow(anchor, today = fixedToday, zone = fixedZone)
+
+        assertEquals(7, window.size)
+        assertEquals(Period.Day(LocalDate.of(2026, 5, 11)), window.first())
+        assertEquals(Period.Day(LocalDate.of(2026, 5, 17)), window.last())
+    }
+
+    @Test
+    fun `buildAutoWindow for non leap-year February returns twenty eight daily buckets`() {
+        val anchor = Period.Month(YearMonth.of(2026, 2))
+
+        val window = calculator.buildAutoWindow(anchor, today = fixedToday, zone = fixedZone)
+
+        assertEquals(28, window.size)
+        assertEquals(Period.Day(LocalDate.of(2026, 2, 1)), window.first())
+        assertEquals(Period.Day(LocalDate.of(2026, 2, 28)), window.last())
+    }
+
+    @Test
+    fun `buildAutoWindow for leap-year February returns twenty nine daily buckets`() {
+        val anchor = Period.Month(YearMonth.of(2024, 2))
+
+        val window = calculator.buildAutoWindow(anchor, today = fixedToday, zone = fixedZone)
+
+        assertEquals(29, window.size)
+        assertEquals(Period.Day(LocalDate.of(2024, 2, 1)), window.first())
+        assertEquals(Period.Day(LocalDate.of(2024, 2, 29)), window.last())
+    }
+
+    @Test
+    fun `buildAutoWindow for Year returns twelve monthly buckets`() {
+        val anchor = Period.Year(2026)
+
+        val window = calculator.buildAutoWindow(anchor, today = fixedToday, zone = fixedZone)
+
+        assertEquals(12, window.size)
+        assertEquals(Period.Month(YearMonth.of(2026, 1)), window.first())
+        assertEquals(Period.Month(YearMonth.of(2026, 12)), window.last())
+    }
+
+    @Test
+    fun `buildAutoWindow for All returns thirty custom buckets from earliest date to today`() {
+        val earliestDate = LocalDate.of(2026, 1, 1)
+
+        val window =
+            calculator.buildAutoWindow(
+                anchor = Period.All,
+                earliestDate = earliestDate,
+                today = fixedToday,
+                zone = fixedZone,
+            )
+
+        assertEquals(30, window.size)
+        assertTrue(window.all { it is Period.CustomRange })
+        assertEquals(earliestDate, (window.first() as Period.CustomRange).start)
+        assertEquals(fixedToday, (window.last() as Period.CustomRange).end)
+    }
+
+    @Test
+    fun `buildAutoWindow for All returns empty when earliest date is null`() {
+        val window =
+            calculator.buildAutoWindow(
+                anchor = Period.All,
+                earliestDate = null,
+                today = fixedToday,
+                zone = fixedZone,
+            )
+
+        assertTrue(window.isEmpty())
+    }
+
+    @Test
+    fun `buildAutoWindow for thirty day CustomRange returns daily buckets`() {
+        val start = LocalDate.of(2026, 1, 1)
+        val end = LocalDate.of(2026, 1, 30)
+        val anchor = Period.CustomRange(start, end)
+
+        val window = calculator.buildAutoWindow(anchor, today = fixedToday, zone = fixedZone)
+
+        assertEquals(30, window.size)
+        assertTrue(window.all { it is Period.Day })
+        assertEquals(Period.Day(start), window.first())
+        assertEquals(Period.Day(end), window.last())
+    }
+
+    @Test
+    fun `buildAutoWindow for CustomRange longer than thirty days returns thirty buckets ending at range end`() {
+        val start = LocalDate.of(2026, 1, 1)
+        val end = LocalDate.of(2026, 3, 31)
+        val anchor = Period.CustomRange(start, end)
+
+        val window = calculator.buildAutoWindow(anchor, today = fixedToday, zone = fixedZone)
+
+        assertEquals(30, window.size)
+        assertTrue(window.all { it is Period.CustomRange })
+        assertEquals(start, (window.first() as Period.CustomRange).start)
+        assertEquals(end, (window.last() as Period.CustomRange).end)
+    }
+
+    @Test
+    fun `buildAutoWindow for Day throws IllegalArgumentException`() {
+        var threw = false
+
+        try {
+            calculator.buildAutoWindow(
+                anchor = Period.Day(LocalDate.of(2026, 5, 10)),
+                today = fixedToday,
+                zone = fixedZone,
+            )
+        } catch (e: IllegalArgumentException) {
+            threw = true
+        }
+
         assertTrue(threw)
     }
 

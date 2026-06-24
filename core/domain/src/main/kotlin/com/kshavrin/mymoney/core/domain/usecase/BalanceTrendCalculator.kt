@@ -9,6 +9,8 @@ import com.kshavrin.mymoney.core.domain.model.toMoneyScale
 import com.kshavrin.mymoney.core.domain.time.PeriodArithmetic
 import java.math.BigDecimal
 import java.time.Instant
+import java.time.LocalDate
+import java.time.YearMonth
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import javax.inject.Inject
@@ -33,6 +35,42 @@ class BalanceTrendCalculator
                         .reversed()
             }
         }
+
+        fun buildAutoWindow(
+            anchor: Period,
+            earliestDate: LocalDate? = null,
+            today: LocalDate,
+            zone: ZoneId = ZoneId.systemDefault(),
+        ): List<Period> =
+            when (anchor) {
+                is Period.Day -> throw IllegalArgumentException("Period.Day uses the intra-day trend path")
+                is Period.Week ->
+                    (0L..6L).map { offset ->
+                        Period.Day(anchor.weekStart.plusDays(offset))
+                    }
+                is Period.Month ->
+                    (1..anchor.yearMonth.lengthOfMonth()).map { day ->
+                        Period.Day(anchor.yearMonth.atDay(day))
+                    }
+                is Period.Year ->
+                    (1..12).map { month ->
+                        Period.Month(YearMonth.of(anchor.year, month))
+                    }
+                is Period.All ->
+                    earliestDate?.let { start ->
+                        splitRange(Period.CustomRange(start, today), count = 30, zone = zone)
+                    } ?: emptyList()
+                is Period.CustomRange -> {
+                    val days = ChronoUnit.DAYS.between(anchor.start, anchor.end) + 1
+                    if (days <= 30) {
+                        (0L until days).map { offset ->
+                            Period.Day(anchor.start.plusDays(offset))
+                        }
+                    } else {
+                        splitRange(anchor, count = 30, zone = zone)
+                    }
+                }
+            }
 
         suspend operator fun invoke(
             window: List<Period>,

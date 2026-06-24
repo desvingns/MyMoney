@@ -102,9 +102,9 @@ fun AuroraBalanceCard(
 // Cancels the card's horizontal inner padding for this child only, so the wave chart spans the full
 // (clipped) card width while the balance value and pills keep their padding. Compose's
 // Modifier.padding rejects negative dp, so we force the child to measure to (cardInnerWidth +
-// 2×[inset]) and shift its placement left by [inset]. Because the over-wide child is laid out by the
-// parent Column (horizontalAlignment = CenterHorizontally), it centers itself so left = cardOuterLeft
-// and right = cardOuterRight — a symmetric bleed. The parent Column already clips to the 24dp shape,
+// 2×[inset]) and place it at origin. Because the over-wide child is laid out by the parent Column
+// (horizontalAlignment = CenterHorizontally), the Column centers it so it bleeds symmetrically
+// (left = cardOuterLeft, right = cardOuterRight). The parent Column already clips to the 24dp shape,
 // so the bled chart stays within the rounded corners.
 private fun Modifier.fullBleedHorizontal(inset: Dp): Modifier =
     layout { measurable, constraints ->
@@ -115,7 +115,7 @@ private fun Modifier.fullBleedHorizontal(inset: Dp): Modifier =
                 constraints.copy(minWidth = targetWidth, maxWidth = targetWidth),
             )
         layout(placeable.width, placeable.height) {
-            placeable.place(-pad, 0)
+            placeable.place(0, 0)
         }
     }
 

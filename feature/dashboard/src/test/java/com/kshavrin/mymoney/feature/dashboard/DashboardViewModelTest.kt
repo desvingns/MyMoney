@@ -673,8 +673,8 @@ class DashboardViewModelTest {
                 assertNotNull("operations summary must be open after SliceClicked in ConvertTo mode", summary)
                 assertEquals(77L, summary!!.categoryFilter)
                 assertTrue(
-                    "NavigateTransactionsByCategory must NOT be emitted; actions=$actions",
-                    actions.none { it is DashboardAction.NavigateTransactionsByCategory },
+                    "SliceClicked must not emit any one-shot action in ConvertTo mode; actions=$actions",
+                    actions.isEmpty(),
                 )
             } finally {
                 collector.cancel()
@@ -1904,10 +1904,10 @@ class DashboardViewModelTest {
 
                 runCurrent()
 
-                // No Navigate* action — summary opens in state, not as a one-shot action.
+                // No one-shot action — summary opens in state, not as a navigation event.
                 assertTrue(
-                    "BalanceCardClicked must not emit Navigate* actions; got $actions",
-                    actions.none { it is DashboardAction.NavigateTransactionsByAccount },
+                    "BalanceCardClicked must not emit any one-shot action; got $actions",
+                    actions.isEmpty(),
                 )
                 val summary = viewModel.state.value.operationsSummary
                 assertNotNull("operations summary must be open after BalanceCardClicked", summary)
@@ -1969,8 +1969,8 @@ class DashboardViewModelTest {
                 assertNotNull("operations summary must open after SliceClicked", summary)
                 assertEquals(77L, summary!!.categoryFilter)
                 assertTrue(
-                    "NavigateTransactionsByCategory must NOT be emitted on tile tap; actions=$actions",
-                    actions.none { it is DashboardAction.NavigateTransactionsByCategory },
+                    "SliceClicked must not emit any one-shot action; actions=$actions",
+                    actions.isEmpty(),
                 )
             } finally {
                 collector.cancel()
@@ -2007,8 +2007,8 @@ class DashboardViewModelTest {
                     viewModel.state.value.operationsSummary,
                 )
                 assertTrue(
-                    "no navigation action must be emitted in Separate mode; got $actions",
-                    actions.none { it is DashboardAction.NavigateTransactionsByCategory },
+                    "no one-shot action must be emitted in Separate mode; got $actions",
+                    actions.isEmpty(),
                 )
             } finally {
                 collector.cancel()
@@ -2038,8 +2038,8 @@ class DashboardViewModelTest {
                 runCurrent()
 
                 assertTrue(
-                    "BalanceCardClicked must not emit Navigate* actions; got $actions",
-                    actions.none { it is DashboardAction.NavigateTransactionsByAccount },
+                    "BalanceCardClicked must not emit any one-shot action; got $actions",
+                    actions.isEmpty(),
                 )
                 val summary = viewModel.state.value.operationsSummary
                 assertNotNull("operations summary must open after BalanceCardClicked on Year period", summary)
@@ -2076,8 +2076,8 @@ class DashboardViewModelTest {
                 runCurrent()
 
                 assertTrue(
-                    "BalanceCardClicked must not emit Navigate* actions; got $actions",
-                    actions.none { it is DashboardAction.NavigateTransactionsByAccount },
+                    "BalanceCardClicked must not emit any one-shot action; got $actions",
+                    actions.isEmpty(),
                 )
                 val summary = viewModel.state.value.operationsSummary
                 assertNotNull("operations summary must open after BalanceCardClicked on CustomRange period", summary)
@@ -2115,8 +2115,8 @@ class DashboardViewModelTest {
                 assertNotNull("operations summary must open after SliceClicked on Year period", summary)
                 assertEquals(42L, summary!!.categoryFilter)
                 assertTrue(
-                    "NavigateTransactionsByCategory must NOT be emitted; actions=$actions",
-                    actions.none { it is DashboardAction.NavigateTransactionsByCategory },
+                    "SliceClicked must not emit any one-shot action; actions=$actions",
+                    actions.isEmpty(),
                 )
             } finally {
                 collector.cancel()
@@ -2155,8 +2155,8 @@ class DashboardViewModelTest {
                 assertNotNull("operations summary must open after SliceClicked on CustomRange period", summary)
                 assertEquals(55L, summary!!.categoryFilter)
                 assertTrue(
-                    "NavigateTransactionsByCategory must NOT be emitted; actions=$actions",
-                    actions.none { it is DashboardAction.NavigateTransactionsByCategory },
+                    "SliceClicked must not emit any one-shot action; actions=$actions",
+                    actions.isEmpty(),
                 )
             } finally {
                 collector.cancel()
@@ -2448,8 +2448,8 @@ class DashboardViewModelTest {
                 runCurrent()
 
                 assertTrue(
-                    "BalanceCardClicked must not emit NavigateTransactionsByCurrency in the new contract; got $actions",
-                    actions.none { it is DashboardAction.NavigateTransactionsByCurrency },
+                    "BalanceCardClicked must not emit any one-shot action in AllAccounts/ConvertTo mode; got $actions",
+                    actions.isEmpty(),
                 )
                 val summary = viewModel.state.value.operationsSummary
                 assertNotNull("operations summary must open after BalanceCardClicked in AllAccounts/ConvertTo mode", summary)
@@ -3899,7 +3899,10 @@ class DashboardViewModelTest {
 
                 assertFalse(viewModel.state.value.chartSettingsSheetOpen)
                 assertNotNull(viewModel.state.value.operationsSummary)
-                assertNull(viewModel.state.value.operationsSummary?.categoryFilter)
+                assertNull(
+                    viewModel.state.value.operationsSummary
+                        ?.categoryFilter,
+                )
             } finally {
                 store.clear()
                 runCurrent()

@@ -190,5 +190,5 @@ object Spacing {
     // via a radial/edge gradient on all four corners/edges.  20dp is mid-range of the 18–22dp
     // spec, keeps the fade wide enough to be perceived as soft at typical display densities.
     val dashboardAuroraInnerPanelInset = 2.dp
-    val dashboardAuroraInnerPanelFeather = 28.dp
+    val dashboardAuroraInnerPanelFeather = 6.dp
 }

@@ -65,11 +65,15 @@ internal fun AuroraCardSurface(
 
                     val inset = Spacing.dashboardAuroraInnerPanelInset.toPx()
                     val feather = Spacing.dashboardAuroraInnerPanelFeather.toPx()
+                    val topFade =
+                        Spacing.dashboardAuroraInnerPanelTopFeather
+                            .toPx()
+                            .coerceAtMost(minOf(size.width, size.height) / 2f)
                     val left = inset
                     val top = inset
                     val right = size.width - inset
                     val bottom = size.height - inset
-                    if (right > left && bottom > top) {
+                    if (right > left && bottom > top && (feather > 0f || topFade > 0f)) {
                         val corner = (24.dp.toPx() - inset).coerceAtLeast(0f)
                         drawIntoCanvas { canvas ->
                             canvas.saveLayer(Rect(left, top, right, bottom), Paint())
@@ -97,15 +101,17 @@ internal fun AuroraCardSurface(
                                     ),
                                 blendMode = BlendMode.DstIn,
                             )
-                            drawRect(
-                                brush =
-                                    Brush.linearGradient(
-                                        listOf(Color.Transparent, Color.Black),
-                                        start = Offset(0f, top),
-                                        end = Offset(0f, top + feather),
-                                    ),
-                                blendMode = BlendMode.DstIn,
-                            )
+                            if (topFade > 0f) {
+                                drawRect(
+                                    brush =
+                                        Brush.linearGradient(
+                                            listOf(Color.Transparent, Color.Black),
+                                            start = Offset(0f, top),
+                                            end = Offset(0f, top + topFade),
+                                        ),
+                                    blendMode = BlendMode.DstIn,
+                                )
+                            }
                             drawRect(
                                 brush =
                                     Brush.linearGradient(

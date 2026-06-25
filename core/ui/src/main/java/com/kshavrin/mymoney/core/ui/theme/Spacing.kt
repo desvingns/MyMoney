@@ -189,6 +189,10 @@ object Spacing {
     // dashboardAuroraInnerPanelFeather: how far the panel's perimeter fades to transparent
     // via a radial/edge gradient on all four corners/edges.  20dp is mid-range of the 18–22dp
     // spec, keeps the fade wide enough to be perceived as soft at typical display densities.
-    val dashboardAuroraInnerPanelInset = 2.dp
-    val dashboardAuroraInnerPanelFeather = 6.dp
+    val dashboardAuroraInnerPanelInset = 1.dp
+    val dashboardAuroraInnerPanelFeather = 14.dp
+
+    // dashboardAuroraInnerPanelTopFeather: tiny fade for the TOP edge only so the opaque panel
+    // reaches near the card top, above the balance number, leaving the number fully inside.
+    val dashboardAuroraInnerPanelTopFeather = 3.dp
 }

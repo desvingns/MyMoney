@@ -17,6 +17,9 @@
     <string name="dashboard_category_tiles_empty">No expenses this period</string>
     <string name="dashboard_inline_records_loading">Loading…</string>
     <string name="dashboard_inline_records_no_note">No comment</string>
+    <string name="operations_summary_title_all_operations">All operations</string>
+    <string name="operations_summary_empty">No operations for the period</string>
+    <string name="operations_summary_transfer_route">%1$s &#8594; %2$s</string>
     <string name="dashboard_currency_card_income">Income</string>
     <string name="dashboard_currency_card_expense">Expenses</string>
     <string name="dashboard_currency_card_balance">Balance</string>

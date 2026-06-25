@@ -17,6 +17,9 @@
     <string name="dashboard_category_tiles_empty">За период нет расходов</string>
     <string name="dashboard_inline_records_loading">Загрузка…</string>
     <string name="dashboard_inline_records_no_note">Без комментария</string>
+    <string name="operations_summary_title_all_operations">&#1042;&#1089;&#1077; &#1086;&#1087;&#1077;&#1088;&#1072;&#1094;&#1080;&#1080;</string>
+    <string name="operations_summary_empty">&#1053;&#1077;&#1090; &#1086;&#1087;&#1077;&#1088;&#1072;&#1094;&#1080;&#1081; &#1079;&#1072; &#1087;&#1077;&#1088;&#1080;&#1086;&#1076;</string>
+    <string name="operations_summary_transfer_route">%1$s &#8594; %2$s</string>
     <string name="dashboard_currency_card_income">Доход</string>
     <string name="dashboard_currency_card_expense">Расход</string>
     <string name="dashboard_currency_card_balance">Остаток</string>

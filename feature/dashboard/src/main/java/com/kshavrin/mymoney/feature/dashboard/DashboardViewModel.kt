@@ -12,11 +12,11 @@ import com.kshavrin.mymoney.core.domain.model.BalanceSnapshot
 import com.kshavrin.mymoney.core.domain.model.Category
 import com.kshavrin.mymoney.core.domain.model.CategoryBalance
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
-import com.kshavrin.mymoney.core.domain.model.CategoryRecordGroup
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.DomainEvent
 import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.domain.model.Period
+import com.kshavrin.mymoney.core.domain.model.SummaryRecord
 import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.domain.model.TrendPoint
 import com.kshavrin.mymoney.core.domain.model.toMoneyScale
@@ -24,15 +24,15 @@ import com.kshavrin.mymoney.core.domain.repository.AccountRepository
 import com.kshavrin.mymoney.core.domain.repository.CategoryRepository
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
-import com.kshavrin.mymoney.core.domain.time.PeriodArithmetic
 import com.kshavrin.mymoney.core.domain.usecase.BalanceCalculator
 import com.kshavrin.mymoney.core.domain.usecase.BalanceTrendCalculator
-import com.kshavrin.mymoney.core.domain.usecase.GetCategoryRecordsUseCase
+import com.kshavrin.mymoney.core.domain.usecase.GetOperationsSummaryUseCase
 import com.kshavrin.mymoney.core.domain.usecase.IntradayTrendCalculator
 import com.kshavrin.mymoney.core.domain.usecase.ObserveBudgetAlertsUseCase
 import com.kshavrin.mymoney.core.domain.usecase.ResolveRateUseCase
 import com.kshavrin.mymoney.core.domain.usecase.RingGaugeCalculator
 import com.kshavrin.mymoney.feature.dashboard.components.CategoryTileItem
+import com.kshavrin.mymoney.feature.dashboard.components.SummaryRecordCategoryDisplay
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -69,7 +69,7 @@ class DashboardViewModel
         private val observeBudgetAlertsUseCase: ObserveBudgetAlertsUseCase,
         private val categoryRepository: CategoryRepository,
         private val resolveRateUseCase: ResolveRateUseCase,
-        private val getCategoryRecords: GetCategoryRecordsUseCase,
+        private val getOperationsSummary: GetOperationsSummaryUseCase,
     ) : ViewModel() {
         private val _state = MutableStateFlow(DashboardState())
         val state: StateFlow<DashboardState> = _state.asStateFlow()
@@ -111,6 +111,27 @@ class DashboardViewModel
             observeTransactionChanges()
             observeBudgetAlerts()
             observeExpenseCategories()
+            observeCategoryDisplays()
+        }
+
+        // Resolve icon + name for every category (income and expense) so the operations-summary rows
+        // (SPEC 03) can render each operation's category leaf without re-querying per row.
+        private fun observeCategoryDisplays() {
+            viewModelScope.launch {
+                categoryRepository.observeAll().collect { categories ->
+                    _state.value =
+                        _state.value.copy(
+                            categoryDisplays =
+                                categories.associate { category ->
+                                    category.id to
+                                        SummaryRecordCategoryDisplay(
+                                            name = category.name,
+                                            iconKey = category.iconKey,
+                                        )
+                                },
+                        )
+                }
+            }
         }
 
         private fun observeExpenseCategories() {
@@ -1063,29 +1084,17 @@ class DashboardViewModel
                     closeDrawers()
                     emit(DashboardAction.NavigateAbout)
                 }
-                DashboardEvent.BalanceCardClicked -> {
-                    val range = PeriodArithmetic.toEpochMillisRange(_state.value.period)
-                    when (val selection = _state.value.dashboardSelection) {
-                        is DashboardSelection.SpecificAccount ->
-                            emit(
-                                DashboardAction.NavigateTransactionsByAccount(selection.account.id, range.first, range.last),
-                            )
-                        is DashboardSelection.AllAccounts ->
-                            (selection.foldMode as? AllAccountsFoldMode.ConvertTo)?.let { mode ->
-                                emit(
-                                    DashboardAction.NavigateTransactionsByCurrency(mode.target.id, range.first, range.last),
-                                )
-                            }
-                        null -> Unit
-                    }
-                }
-                is DashboardEvent.SliceClicked -> toggleExpandedCategory(event.categoryId)
-                is DashboardEvent.RecordRowClicked ->
+                DashboardEvent.BalanceCardClicked -> openOperationsSummary(categoryId = null)
+                is DashboardEvent.SliceClicked -> openOperationsSummary(categoryId = event.categoryId)
+                is DashboardEvent.RecordRowClicked -> {
+                    _state.value = _state.value.copy(operationsSummary = null)
                     emit(DashboardAction.NavigateToTransactionDetail(event.transactionId))
+                }
+                DashboardEvent.OperationsSummaryDismissed ->
+                    _state.value = _state.value.copy(operationsSummary = null)
                 DashboardEvent.ConfettiAcknowledged ->
                     _state.value = _state.value.copy(showConfetti = false)
-                DashboardEvent.ChartTapped ->
-                    _state.value = _state.value.copy(chartSettingsSheetOpen = true)
+                DashboardEvent.ChartTapped -> openOperationsSummary(categoryId = null)
                 DashboardEvent.ChartSettingsClicked -> {
                     closeDrawers()
                     _state.value = _state.value.copy(chartSettingsSheetOpen = true)
@@ -1219,33 +1228,24 @@ class DashboardViewModel
             _state.value = _state.value.copy(leftDrawerOpen = false, rightDrawerOpen = false)
         }
 
-        // Tapping a real category tile drills down inline (G3): a second tap on the already-expanded
-        // category collapses it; otherwise the tile expands and its records for the current period are
-        // lazily fetched via GetCategoryRecordsUseCase. "Прочее" (OTHER_CATEGORY_ID) and the separate
-        // multi-currency mode never expand.
-        private fun toggleExpandedCategory(categoryId: Long) {
+        // Open the operations-summary drawer (SPEC 03). [categoryId] null = "all operations" (income
+        // + expense + transfers); a real category id filters to that one category (transfers
+        // excluded, GetOperationsSummaryUseCase). The drawer lives in DashboardState so it survives
+        // recomposition. "Прочее" (OTHER_CATEGORY_ID) and the separate multi-currency mode never open.
+        private fun openOperationsSummary(categoryId: Long?) {
             if (categoryId == OTHER_CATEGORY_ID) return
-            if (categoryId == _state.value.expandedCategoryId) {
-                _state.value =
-                    _state.value.copy(
-                        expandedCategoryId = null,
-                        expandedRecords = emptyList(),
-                        expandedRecordsLoading = false,
-                    )
-                return
-            }
             val selection = _state.value.dashboardSelection
             val period = _state.value.period
-            val source: (suspend () -> List<CategoryRecordGroup>) =
+            val source: (suspend () -> List<SummaryRecord>) =
                 when (selection) {
                     is DashboardSelection.SpecificAccount -> {
-                        { getCategoryRecords(selection.account.id, period, categoryId) }
+                        { getOperationsSummary(selection.account.id, period, categoryId) }
                     }
                     is DashboardSelection.AllAccounts ->
                         when (val mode = selection.foldMode) {
                             is AllAccountsFoldMode.ConvertTo -> {
                                 {
-                                    getCategoryRecords.forAccounts(
+                                    getOperationsSummary.forAccounts(
                                         _state.value.accounts,
                                         mode.target,
                                         period,
@@ -1257,23 +1257,28 @@ class DashboardViewModel
                         }
                     null -> return
                 }
+            val categoryName = categoryId?.let { _state.value.categoryDisplays[it]?.name }
             _state.value =
                 _state.value.copy(
-                    expandedCategoryId = categoryId,
-                    expandedRecords = emptyList(),
-                    expandedRecordsLoading = true,
+                    operationsSummary =
+                        OperationsSummaryState(
+                            categoryFilter = categoryId,
+                            categoryName = categoryName,
+                            records = emptyList(),
+                            loading = true,
+                        ),
                 )
             viewModelScope.launch {
-                val records =
-                    source()
-                        .firstOrNull { it.categoryId == categoryId }
-                        ?.transactions
-                        .orEmpty()
-                if (_state.value.expandedCategoryId == categoryId) {
+                val records = source()
+                val open = _state.value.operationsSummary
+                if (open != null && open.categoryFilter == categoryId) {
                     _state.value =
                         _state.value.copy(
-                            expandedRecords = records,
-                            expandedRecordsLoading = false,
+                            operationsSummary =
+                                open.copy(
+                                    records = records,
+                                    loading = false,
+                                ),
                         )
                 }
             }

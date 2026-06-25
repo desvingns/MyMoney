@@ -9,9 +9,10 @@ import com.kshavrin.mymoney.core.domain.model.ChartMetric
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.domain.model.Period
-import com.kshavrin.mymoney.core.domain.model.Transaction
+import com.kshavrin.mymoney.core.domain.model.SummaryRecord
 import com.kshavrin.mymoney.core.domain.model.TrendPoint
 import com.kshavrin.mymoney.feature.dashboard.components.CategoryTileItem
+import com.kshavrin.mymoney.feature.dashboard.components.SummaryRecordCategoryDisplay
 import java.time.YearMonth
 
 data class DashboardState(
@@ -35,13 +36,12 @@ data class DashboardState(
     val budgetAlertCategoryIds: Set<Long> = emptySet(),
     val overBudgetAmount: Money? = null,
     val isLoading: Boolean = true,
-    // Inline category drill-down (G5): tapping a real category tile expands its records in place
-    // instead of navigating away. [expandedCategoryId] is the currently expanded category (null =
-    // none), [expandedRecords] are that category's transactions for [period], and
-    // [expandedRecordsLoading] is true while they are being fetched.
-    val expandedCategoryId: Long? = null,
-    val expandedRecords: List<Transaction> = emptyList(),
-    val expandedRecordsLoading: Boolean = false,
+    // Operations-summary drawer (SPEC 03): tapping the Aurora card or the balance opens it with no
+    // filter; tapping a category tile opens it filtered to that category. Null while closed so the
+    // open/loading/records state survives recomposition (the sheet is hosted off DashboardState, not
+    // a one-shot Action). [categoryDisplays] resolves each record's category icon/name for the rows.
+    val operationsSummary: OperationsSummaryState? = null,
+    val categoryDisplays: Map<Long, SummaryRecordCategoryDisplay> = emptyMap(),
     val leftDrawerOpen: Boolean = false,
     val rightDrawerOpen: Boolean = false,
     val showConfetti: Boolean = false,
@@ -75,6 +75,17 @@ data class DashboardState(
         get() =
             (dashboardSelection as? DashboardSelection.AllAccounts)?.foldMode == AllAccountsFoldMode.Separate
 }
+
+// Open-state of the operations-summary drawer (SPEC 03). [categoryFilter] null means "all
+// operations" (income + expense + transfers); a non-null id filters to that one category (transfers
+// excluded). [categoryName] is the resolved display name used as the sheet title when filtered;
+// null falls back to the localized "all operations" title in the host composable.
+data class OperationsSummaryState(
+    val categoryFilter: Long? = null,
+    val categoryName: String? = null,
+    val records: List<SummaryRecord> = emptyList(),
+    val loading: Boolean = true,
+)
 
 // Lightweight render-state for a single adjacent period in the swipe pager (SPEC 02). It carries
 // only the fields DashboardContent needs to draw a neighbor page and — by design — no neighbor
@@ -259,8 +270,12 @@ sealed interface DashboardEvent {
 
     data object ConfettiAcknowledged : DashboardEvent
 
-    // Tap on the chart area opens the settings sheet (G1/G9).
+    // Tap on the Aurora/chart card opens the operations summary with no filter (SPEC 03). Chart
+    // settings are now reachable only via the ⋮ menu (ChartSettingsClicked).
     data object ChartTapped : DashboardEvent
+
+    // The operations-summary drawer was dismissed (scrim/back/swipe-down).
+    data object OperationsSummaryDismissed : DashboardEvent
 
     // «Настройки графика» entry in the ⋮ menu — the way to reach the sheet while the chart is
     // hidden (D13).

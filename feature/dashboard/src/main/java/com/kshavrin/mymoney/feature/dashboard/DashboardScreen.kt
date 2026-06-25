@@ -50,10 +50,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kshavrin.mymoney.core.common.money.MoneyFormatter
 import com.kshavrin.mymoney.core.designsystem.confetti.MonefyConfetti
-import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.domain.model.Period
-import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.ui.feedback.LocalHapticPlayer
 import com.kshavrin.mymoney.core.ui.feedback.LocalSoundPlayer
 import com.kshavrin.mymoney.core.ui.flow.CollectActions
@@ -70,6 +68,7 @@ import com.kshavrin.mymoney.feature.dashboard.components.CurrencyBalanceCardList
 import com.kshavrin.mymoney.feature.dashboard.components.DashboardDrawerOverlay
 import com.kshavrin.mymoney.feature.dashboard.components.DrawerSide
 import com.kshavrin.mymoney.feature.dashboard.components.LeftDrawerContent
+import com.kshavrin.mymoney.feature.dashboard.components.OperationsSummarySheet
 import com.kshavrin.mymoney.feature.dashboard.components.PeriodSwitcher
 import com.kshavrin.mymoney.feature.dashboard.components.RightDrawerContent
 import com.kshavrin.mymoney.feature.dashboard.components.ThreeFabLayout
@@ -266,6 +265,20 @@ fun DashboardContent(
             onDismiss = { onEvent(DashboardEvent.ChartSettingsDismissed) },
         )
     }
+
+    state.operationsSummary?.let { summary ->
+        OperationsSummarySheet(
+            records = summary.records,
+            loading = summary.loading,
+            title =
+                summary.categoryName
+                    ?: stringResource(R.string.operations_summary_title_all_operations),
+            onRowClick = { transactionId -> onEvent(DashboardEvent.RecordRowClicked(transactionId)) },
+            onDismiss = { onEvent(DashboardEvent.OperationsSummaryDismissed) },
+            currencies = state.currencies,
+            categoryDisplays = state.categoryDisplays,
+        )
+    }
 }
 
 @Composable
@@ -317,10 +330,6 @@ private fun DashboardBodyPager(
         DashboardPage(
             pageState = pageState,
             interactive = !pagingEnabled || page == DASHBOARD_PAGER_CENTER_PAGE,
-            expandedCategoryId = state.expandedCategoryId,
-            expandedRecords = state.expandedRecords,
-            expandedRecordsLoading = state.expandedRecordsLoading,
-            currencies = state.currencies,
             chartConfig = state.chartConfig,
             overBudgetAmount = state.overBudgetAmount,
             onEvent = onEvent,
@@ -333,10 +342,6 @@ private fun DashboardBodyPager(
 private fun DashboardPage(
     pageState: PeriodPageState?,
     interactive: Boolean,
-    expandedCategoryId: Long?,
-    expandedRecords: List<Transaction>,
-    expandedRecordsLoading: Boolean,
-    currencies: List<Currency>,
     chartConfig: ChartConfig,
     overBudgetAmount: Money?,
     onEvent: (DashboardEvent) -> Unit,
@@ -410,15 +415,8 @@ private fun DashboardPage(
 
             CategoryTilesList(
                 expenseTiles = pageState.expenseTiles,
-                expandedCategoryId = if (interactive) expandedCategoryId else null,
-                expandedRecords = if (interactive) expandedRecords else emptyList(),
-                expandedRecordsLoading = if (interactive) expandedRecordsLoading else false,
-                currencies = currencies,
                 onTileClick = { categoryId ->
                     if (interactive) onEvent(DashboardEvent.SliceClicked(categoryId))
-                },
-                onRecordRowClick = { transactionId ->
-                    if (interactive) onEvent(DashboardEvent.RecordRowClicked(transactionId))
                 },
                 modifier = Modifier.padding(horizontal = Spacing.l),
             )

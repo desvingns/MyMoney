@@ -20,6 +20,7 @@ import com.kshavrin.mymoney.core.domain.repository.CurrencyRateRepository
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
 import com.kshavrin.mymoney.core.domain.repository.RecurringTemplateRepository
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
+import com.kshavrin.mymoney.core.domain.repository.TransferRow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -183,10 +184,13 @@ class FakeTransactionRepository : TransactionRepository {
     private var incomeSummary: List<CategorySummary> = emptyList()
     private var categoryGroups: List<CategoryGroup> = emptyList()
     private var periodTransactions: List<Transaction> = emptyList()
+    private var transfers: List<TransferRow> = emptyList()
     private val expenseSummaryByAccount = mutableMapOf<Pair<Long, Period>, List<CategorySummary>>()
     private val incomeSummaryByAccount = mutableMapOf<Pair<Long, Period>, List<CategorySummary>>()
     private val categoryGroupsByAccount = mutableMapOf<Pair<Long, Period>, List<CategoryGroup>>()
     private val periodTransactionsByAccount = mutableMapOf<Pair<Long, Period>, List<Transaction>>()
+    private val transfersByAccount = mutableMapOf<Pair<Long?, Period>, List<TransferRow>>()
+    val transferRequests = mutableListOf<Pair<Long?, Period>>()
 
     fun seedExpenseSummary(vararg rows: CategorySummary) {
         expenseSummary = rows.toList()
@@ -236,6 +240,18 @@ class FakeTransactionRepository : TransactionRepository {
         periodTransactionsByAccount[accountId to period] = rows.toList()
     }
 
+    fun seedTransfers(vararg rows: TransferRow) {
+        transfers = rows.toList()
+    }
+
+    fun seedTransfers(
+        accountId: Long?,
+        period: Period,
+        vararg rows: TransferRow,
+    ) {
+        transfersByAccount[accountId to period] = rows.toList()
+    }
+
     fun upserted(): List<Transaction> = transactions.value
 
     override fun observeRecent(limit: Int): Flow<List<Transaction>> = transactions.asStateFlow()
@@ -274,6 +290,14 @@ class FakeTransactionRepository : TransactionRepository {
         period: Period,
     ): List<CategoryGroup> =
         categoryGroupsByAccount[accountId to period] ?: categoryGroups
+
+    override suspend fun getTransfers(
+        accountId: Long?,
+        period: Period,
+    ): List<TransferRow> {
+        transferRequests += accountId to period
+        return transfersByAccount[accountId to period] ?: transfers
+    }
 
     override suspend fun searchByNote(
         query: String,

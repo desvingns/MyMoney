@@ -1,15 +1,17 @@
 package com.kshavrin.mymoney.feature.dashboard.components
 
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.test.hasProgressBarRangeInfo
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.domain.model.Currency
@@ -71,14 +73,16 @@ class OperationsSummarySheetUiTest {
                     currencies = listOf(usd),
                     categoryDisplays =
                         mapOf(
-                            11L to SummaryRecordCategoryDisplay(
-                                name = targetString(R.string.category_other),
-                                iconKey = "ic_cat_other",
-                            ),
-                            12L to SummaryRecordCategoryDisplay(
-                                name = targetString(R.string.category_other),
-                                iconKey = "ic_cat_other",
-                            ),
+                            11L to
+                                SummaryRecordCategoryDisplay(
+                                    name = targetString(R.string.category_other),
+                                    iconKey = "ic_cat_other",
+                                ),
+                            12L to
+                                SummaryRecordCategoryDisplay(
+                                    name = targetString(R.string.category_other),
+                                    iconKey = "ic_cat_other",
+                                ),
                         ),
                 )
             }
@@ -140,10 +144,11 @@ class OperationsSummarySheetUiTest {
                     currencies = listOf(usd),
                     categoryDisplays =
                         mapOf(
-                            77L to SummaryRecordCategoryDisplay(
-                                name = targetString(R.string.category_other),
-                                iconKey = "ic_cat_other",
-                            ),
+                            77L to
+                                SummaryRecordCategoryDisplay(
+                                    name = targetString(R.string.category_other),
+                                    iconKey = "ic_cat_other",
+                                ),
                         ),
                 )
             }
@@ -215,18 +220,22 @@ class OperationsSummarySheetUiTest {
                     currencies = listOf(usd),
                     categoryDisplays =
                         mapOf(
-                            90L to SummaryRecordCategoryDisplay(
-                                name = targetString(R.string.category_other),
-                                iconKey = "ic_cat_other",
-                            ),
+                            90L to
+                                SummaryRecordCategoryDisplay(
+                                    name = targetString(R.string.category_other),
+                                    iconKey = "ic_cat_other",
+                                ),
                         ),
                 )
             }
         }
 
         composeTestRule
+            .onNode(hasScrollAction())
+            .performScrollToNode(hasTestTag(operationsSummaryRowTag(targetId)))
+
+        composeTestRule
             .onNodeWithTag(operationsSummaryRowTag(targetId))
-            .performScrollTo()
             .performClick()
 
         composeTestRule.runOnIdle {
@@ -258,9 +267,21 @@ class OperationsSummarySheetUiTest {
         secondId: Long,
         thirdId: Long,
     ) {
-        val firstTop = composeTestRule.onNodeWithTag(operationsSummaryRowTag(firstId)).fetchSemanticsNode().boundsInRoot.top
-        val secondTop = composeTestRule.onNodeWithTag(operationsSummaryRowTag(secondId)).fetchSemanticsNode().boundsInRoot.top
-        val thirdTop = composeTestRule.onNodeWithTag(operationsSummaryRowTag(thirdId)).fetchSemanticsNode().boundsInRoot.top
+        val firstTop =
+            composeTestRule
+                .onNodeWithTag(operationsSummaryRowTag(firstId))
+                .fetchSemanticsNode()
+                .boundsInRoot.top
+        val secondTop =
+            composeTestRule
+                .onNodeWithTag(operationsSummaryRowTag(secondId))
+                .fetchSemanticsNode()
+                .boundsInRoot.top
+        val thirdTop =
+            composeTestRule
+                .onNodeWithTag(operationsSummaryRowTag(thirdId))
+                .fetchSemanticsNode()
+                .boundsInRoot.top
 
         assertTrue(
             "expected rows to stay in supplied order, got tops: $firstTop, $secondTop, $thirdTop",

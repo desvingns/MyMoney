@@ -70,7 +70,7 @@ internal fun AuroraCardSurface(
                             .toPx()
                             .coerceAtMost(minOf(size.width, size.height) / 2f)
                     val left = inset
-                    val top = inset
+                    val top = inset - Spacing.dashboardAuroraCardPaddingTopCompact.toPx()
                     val right = size.width - inset
                     val bottom = size.height - inset
                     if (right > left && bottom > top && (feather > 0f || topFade > 0f)) {

@@ -399,7 +399,7 @@ fun ColorScheme.dashboardAuroraAccentForSign(positive: Boolean): Color =
 // collapsing to a pure void; soft enough not to fight the neon accent border glow.
 // The panel corner reuses dashboardAuroraCard (24dp) and its perimeter is feathered via
 // dashboardAuroraInnerPanelFeather so there is no hard edge between panel and card fill.
-private val DashboardAuroraInnerPanelFill = Color.Black.copy(alpha = 0.34f)
+private val DashboardAuroraInnerPanelFill = Color.Black.copy(alpha = 0.16f)
 
 val ColorScheme.dashboardAuroraInnerPanel: Color
     get() = DashboardAuroraInnerPanelFill

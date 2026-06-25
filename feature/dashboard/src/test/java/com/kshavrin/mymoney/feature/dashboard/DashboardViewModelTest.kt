@@ -28,12 +28,13 @@ import com.kshavrin.mymoney.core.domain.repository.CategorySummary
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRateRepository
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
-import com.kshavrin.mymoney.core.domain.time.PeriodArithmetic
 import com.kshavrin.mymoney.core.domain.usecase.BalanceCalculator
 import com.kshavrin.mymoney.core.domain.usecase.BalanceTrendCalculator
 import com.kshavrin.mymoney.core.domain.usecase.BudgetEvaluator
 import com.kshavrin.mymoney.core.domain.usecase.ConvertMoneyUseCase
 import com.kshavrin.mymoney.core.domain.usecase.GetCategoryRecordsUseCase
+import com.kshavrin.mymoney.core.domain.usecase.GetOperationsSummaryUseCase
+import com.kshavrin.mymoney.core.domain.usecase.GetTransferRecordsUseCase
 import com.kshavrin.mymoney.core.domain.usecase.IntradayTrendCalculator
 import com.kshavrin.mymoney.core.domain.usecase.ObserveBudgetAlertsUseCase
 import com.kshavrin.mymoney.core.domain.usecase.ResolveRateUseCase
@@ -617,18 +618,12 @@ class DashboardViewModelTest {
         }
 
     @Test
-    fun `all accounts balance card emits NavigateTransactionsByCurrency after convert flow`() =
+    fun `all accounts balance card opens operations summary without filter after convert flow`() =
         runTest {
             accountRepository.seed(cash)
             currencyRepository.seed(usd)
 
             val (viewModel, store) = buildViewModel()
-            val actions = mutableListOf<DashboardAction>()
-            val collector =
-                backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
-                    viewModel.actions.toList(actions)
-                }
-
             try {
                 runCurrent()
 
@@ -636,38 +631,24 @@ class DashboardViewModelTest {
                 runCurrent()
                 viewModel.onEvent(DashboardEvent.AllAccountsRatesConfirmed(emptyMap()))
                 runCurrent()
-                actions.clear()
 
                 viewModel.onEvent(DashboardEvent.BalanceCardClicked)
                 runCurrent()
 
-                val expectedRange = PeriodArithmetic.toEpochMillisRange(initialPeriod)
-                assertEquals(
-                    listOf(
-                        DashboardAction.NavigateTransactionsByCurrency(
-                            currencyId = usd.id,
-                            fromMillis = expectedRange.first,
-                            toMillis = expectedRange.last,
-                        ),
-                    ),
-                    actions,
-                )
+                val summary = viewModel.state.value.operationsSummary
+                assertNotNull("operations summary must be open after BalanceCardClicked in ConvertTo mode", summary)
+                assertNull("no category filter expected for BalanceCardClicked", summary!!.categoryFilter)
             } finally {
-                collector.cancel()
                 store.clear()
                 runCurrent()
             }
         }
 
     @Test
-    fun `slice click in AllAccounts ConvertTo mode expands the category inline via forAccounts`() =
+    fun `slice click in AllAccounts ConvertTo mode opens operations summary filtered to that category`() =
         runTest {
             accountRepository.seed(cash)
             currencyRepository.seed(usd)
-
-            val tx = transaction(id = 10L, categoryId = 77L, accountId = cash.id)
-            transactionRepository.seedCategoryGroups(cash.id, initialPeriod, categoryGroup(categoryId = 77L))
-            transactionRepository.seedTransactionsByPeriod(cash.id, initialPeriod, tx)
 
             val (viewModel, store) = buildViewModel()
             val actions = mutableListOf<DashboardAction>()
@@ -688,11 +669,11 @@ class DashboardViewModelTest {
                 viewModel.onEvent(DashboardEvent.SliceClicked(categoryId = 77L))
                 runCurrent()
 
-                assertEquals(77L, viewModel.state.value.expandedCategoryId)
-                assertEquals(listOf(tx), viewModel.state.value.expandedRecords)
-                assertFalse(viewModel.state.value.expandedRecordsLoading)
+                val summary = viewModel.state.value.operationsSummary
+                assertNotNull("operations summary must be open after SliceClicked in ConvertTo mode", summary)
+                assertEquals(77L, summary!!.categoryFilter)
                 assertTrue(
-                    "NavigateTransactionsByCategory must NOT be emitted in ConvertTo expand; actions=$actions",
+                    "NavigateTransactionsByCategory must NOT be emitted; actions=$actions",
                     actions.none { it is DashboardAction.NavigateTransactionsByCategory },
                 )
             } finally {
@@ -1907,7 +1888,7 @@ class DashboardViewModelTest {
         }
 
     @Test
-    fun `balance card event emits unfiltered transactions action for active account`() =
+    fun `balance card event opens unfiltered operations summary for specific account`() =
         runTest {
             val (viewModel, store) = buildViewModel()
             val actions = mutableListOf<DashboardAction>()
@@ -1923,17 +1904,14 @@ class DashboardViewModelTest {
 
                 runCurrent()
 
-                val expectedRange = PeriodArithmetic.toEpochMillisRange(initialPeriod)
-                assertEquals(
-                    listOf(
-                        DashboardAction.NavigateTransactionsByAccount(
-                            accountId = cash.id,
-                            fromMillis = expectedRange.first,
-                            toMillis = expectedRange.last,
-                        ),
-                    ),
-                    actions,
+                // No Navigate* action — summary opens in state, not as a one-shot action.
+                assertTrue(
+                    "BalanceCardClicked must not emit Navigate* actions; got $actions",
+                    actions.none { it is DashboardAction.NavigateTransactionsByAccount },
                 )
+                val summary = viewModel.state.value.operationsSummary
+                assertNotNull("operations summary must be open after BalanceCardClicked", summary)
+                assertNull("no category filter expected for BalanceCardClicked", summary!!.categoryFilter)
             } finally {
                 collector.cancel()
                 store.clear()
@@ -1942,7 +1920,7 @@ class DashboardViewModelTest {
         }
 
     @Test
-    fun `slice click on other does not emit navigation`() =
+    fun `slice click on other does not open summary`() =
         runTest {
             val (viewModel, store) = buildViewModel()
             val actions = mutableListOf<DashboardAction>()
@@ -1959,6 +1937,10 @@ class DashboardViewModelTest {
                 runCurrent()
 
                 assertTrue(actions.isEmpty())
+                assertNull(
+                    "OTHER_CATEGORY_ID tap must not open the summary",
+                    viewModel.state.value.operationsSummary,
+                )
             } finally {
                 collector.cancel()
                 store.clear()
@@ -1967,16 +1949,8 @@ class DashboardViewModelTest {
         }
 
     @Test
-    fun `slice click on a real category sets expandedCategoryId and loads its records without emitting navigation`() =
+    fun `slice click on a real category opens operations summary filtered to that category`() =
         runTest {
-            val tx = transaction(id = 1L, categoryId = 77L, accountId = cash.id)
-            transactionRepository.seedCategoryGroups(
-                cash.id,
-                initialPeriod,
-                categoryGroup(categoryId = 77L),
-            )
-            transactionRepository.seedTransactionsByPeriod(cash.id, initialPeriod, tx)
-
             val (viewModel, store) = buildViewModel()
             val actions = mutableListOf<DashboardAction>()
             val collector =
@@ -1991,9 +1965,9 @@ class DashboardViewModelTest {
 
                 runCurrent()
 
-                assertEquals(77L, viewModel.state.value.expandedCategoryId)
-                assertEquals(listOf(tx), viewModel.state.value.expandedRecords)
-                assertFalse(viewModel.state.value.expandedRecordsLoading)
+                val summary = viewModel.state.value.operationsSummary
+                assertNotNull("operations summary must open after SliceClicked", summary)
+                assertEquals(77L, summary!!.categoryFilter)
                 assertTrue(
                     "NavigateTransactionsByCategory must NOT be emitted on tile tap; actions=$actions",
                     actions.none { it is DashboardAction.NavigateTransactionsByCategory },
@@ -2006,7 +1980,7 @@ class DashboardViewModelTest {
         }
 
     @Test
-    fun `slice click in Separate mode neither expands the category nor emits navigation`() =
+    fun `slice click in Separate mode neither opens summary nor emits navigation`() =
         runTest {
             val (viewModel, store) = buildViewModel()
             val actions = mutableListOf<DashboardAction>()
@@ -2022,20 +1996,15 @@ class DashboardViewModelTest {
                 runCurrent()
                 actions.clear()
 
-                // AllAccounts.Separate returns early in toggleExpandedCategory — no expansion,
-                // no action.
+                // AllAccounts.Separate returns early in openOperationsSummary — no sheet, no action.
                 viewModel.onEvent(DashboardEvent.BalanceCardClicked)
                 viewModel.onEvent(DashboardEvent.SliceClicked(categoryId = 77L))
 
                 runCurrent()
 
                 assertNull(
-                    "expandedCategoryId must remain null in Separate mode",
-                    viewModel.state.value.expandedCategoryId,
-                )
-                assertTrue(
-                    viewModel.state.value.expandedRecords
-                        .isEmpty(),
+                    "operationsSummary must remain null in Separate mode",
+                    viewModel.state.value.operationsSummary,
                 )
                 assertTrue(
                     "no navigation action must be emitted in Separate mode; got $actions",
@@ -2049,7 +2018,7 @@ class DashboardViewModelTest {
         }
 
     @Test
-    fun `balance card on Year period carries epoch-millis range for that year`() =
+    fun `balance card on Year period opens unfiltered summary for that year`() =
         runTest {
             val yearPeriod = Period.Year(2026)
             val (viewModel, store) = buildViewModel()
@@ -2068,12 +2037,13 @@ class DashboardViewModelTest {
                 viewModel.onEvent(DashboardEvent.BalanceCardClicked)
                 runCurrent()
 
-                val expectedRange = PeriodArithmetic.toEpochMillisRange(yearPeriod)
-                assertEquals(1, actions.size)
-                val action = actions.single() as DashboardAction.NavigateTransactionsByAccount
-                assertEquals(cash.id, action.accountId)
-                assertEquals(expectedRange.first, action.fromMillis)
-                assertEquals(expectedRange.last, action.toMillis)
+                assertTrue(
+                    "BalanceCardClicked must not emit Navigate* actions; got $actions",
+                    actions.none { it is DashboardAction.NavigateTransactionsByAccount },
+                )
+                val summary = viewModel.state.value.operationsSummary
+                assertNotNull("operations summary must open after BalanceCardClicked on Year period", summary)
+                assertNull("no category filter expected", summary!!.categoryFilter)
             } finally {
                 collector.cancel()
                 store.clear()
@@ -2082,7 +2052,7 @@ class DashboardViewModelTest {
         }
 
     @Test
-    fun `balance card on CustomRange period carries exact custom epoch-millis range`() =
+    fun `balance card on CustomRange period opens unfiltered summary for that range`() =
         runTest {
             val customRange =
                 Period.CustomRange(
@@ -2105,12 +2075,13 @@ class DashboardViewModelTest {
                 viewModel.onEvent(DashboardEvent.BalanceCardClicked)
                 runCurrent()
 
-                val expectedRange = PeriodArithmetic.toEpochMillisRange(customRange)
-                assertEquals(1, actions.size)
-                val action = actions.single() as DashboardAction.NavigateTransactionsByAccount
-                assertEquals(cash.id, action.accountId)
-                assertEquals(expectedRange.first, action.fromMillis)
-                assertEquals(expectedRange.last, action.toMillis)
+                assertTrue(
+                    "BalanceCardClicked must not emit Navigate* actions; got $actions",
+                    actions.none { it is DashboardAction.NavigateTransactionsByAccount },
+                )
+                val summary = viewModel.state.value.operationsSummary
+                assertNotNull("operations summary must open after BalanceCardClicked on CustomRange period", summary)
+                assertNull("no category filter expected", summary!!.categoryFilter)
             } finally {
                 collector.cancel()
                 store.clear()
@@ -2119,12 +2090,10 @@ class DashboardViewModelTest {
         }
 
     @Test
-    fun `slice click on Year period expands the category using records for that year`() =
+    fun `slice click on Year period opens filtered summary for that year`() =
         runTest {
             val yearPeriod = Period.Year(2026)
-            val tx = transaction(id = 5L, categoryId = 42L, accountId = cash.id)
             transactionRepository.seedCategoryGroups(cash.id, yearPeriod, categoryGroup(categoryId = 42L))
-            transactionRepository.seedTransactionsByPeriod(cash.id, yearPeriod, tx)
 
             val (viewModel, store) = buildViewModel()
             val actions = mutableListOf<DashboardAction>()
@@ -2142,9 +2111,9 @@ class DashboardViewModelTest {
                 viewModel.onEvent(DashboardEvent.SliceClicked(categoryId = 42L))
                 runCurrent()
 
-                assertEquals(42L, viewModel.state.value.expandedCategoryId)
-                assertEquals(listOf(tx), viewModel.state.value.expandedRecords)
-                assertFalse(viewModel.state.value.expandedRecordsLoading)
+                val summary = viewModel.state.value.operationsSummary
+                assertNotNull("operations summary must open after SliceClicked on Year period", summary)
+                assertEquals(42L, summary!!.categoryFilter)
                 assertTrue(
                     "NavigateTransactionsByCategory must NOT be emitted; actions=$actions",
                     actions.none { it is DashboardAction.NavigateTransactionsByCategory },
@@ -2157,16 +2126,14 @@ class DashboardViewModelTest {
         }
 
     @Test
-    fun `slice click on CustomRange period expands the category using records for that range`() =
+    fun `slice click on CustomRange period opens filtered summary for that range`() =
         runTest {
             val customRange =
                 Period.CustomRange(
                     start = LocalDate.of(2026, 5, 10),
                     end = LocalDate.of(2026, 5, 20),
                 )
-            val tx = transaction(id = 6L, categoryId = 55L, accountId = cash.id)
             transactionRepository.seedCategoryGroups(cash.id, customRange, categoryGroup(categoryId = 55L))
-            transactionRepository.seedTransactionsByPeriod(cash.id, customRange, tx)
 
             val (viewModel, store) = buildViewModel()
             val actions = mutableListOf<DashboardAction>()
@@ -2184,9 +2151,9 @@ class DashboardViewModelTest {
                 viewModel.onEvent(DashboardEvent.SliceClicked(categoryId = 55L))
                 runCurrent()
 
-                assertEquals(55L, viewModel.state.value.expandedCategoryId)
-                assertEquals(listOf(tx), viewModel.state.value.expandedRecords)
-                assertFalse(viewModel.state.value.expandedRecordsLoading)
+                val summary = viewModel.state.value.operationsSummary
+                assertNotNull("operations summary must open after SliceClicked on CustomRange period", summary)
+                assertEquals(55L, summary!!.categoryFilter)
                 assertTrue(
                     "NavigateTransactionsByCategory must NOT be emitted; actions=$actions",
                     actions.none { it is DashboardAction.NavigateTransactionsByCategory },
@@ -2199,7 +2166,7 @@ class DashboardViewModelTest {
         }
 
     @Test
-    fun `slice click on OTHER_CATEGORY_ID guard does not expand or emit any action`() =
+    fun `slice click on OTHER_CATEGORY_ID guard does not open summary or emit any action`() =
         runTest {
             val yearPeriod = Period.Year(2026)
             val (viewModel, store) = buildViewModel()
@@ -2219,12 +2186,8 @@ class DashboardViewModelTest {
                 runCurrent()
 
                 assertNull(
-                    "expandedCategoryId must remain null after OTHER_CATEGORY_ID tap",
-                    viewModel.state.value.expandedCategoryId,
-                )
-                assertTrue(
-                    viewModel.state.value.expandedRecords
-                        .isEmpty(),
+                    "operationsSummary must remain null after OTHER_CATEGORY_ID tap",
+                    viewModel.state.value.operationsSummary,
                 )
                 assertTrue(
                     "no action must be emitted for OTHER_CATEGORY_ID; got $actions",
@@ -2238,36 +2201,37 @@ class DashboardViewModelTest {
         }
 
     // -------------------------------------------------------------------------
-    // Inline category expansion (G5 / SPEC category-inline-records-01)
+    // Operations summary sheet (SPEC dashboard-operations-summary-drawer-02/03)
     // -------------------------------------------------------------------------
 
     @Test
-    fun `second tap on already expanded category collapses it and clears expandedRecords`() =
+    fun `second slice click on same category reopens summary with same filter`() =
         runTest {
-            val tx = transaction(id = 2L, categoryId = 10L, accountId = cash.id)
             transactionRepository.seedCategoryGroups(cash.id, initialPeriod, categoryGroup(categoryId = 10L))
-            transactionRepository.seedTransactionsByPeriod(cash.id, initialPeriod, tx)
 
             val (viewModel, store) = buildViewModel()
             try {
                 runCurrent()
 
-                // First tap — expands.
+                // First tap — opens with filter 10L.
                 viewModel.onEvent(DashboardEvent.SliceClicked(categoryId = 10L))
                 runCurrent()
-                assertEquals(10L, viewModel.state.value.expandedCategoryId)
-                assertEquals(listOf(tx), viewModel.state.value.expandedRecords)
-
-                // Second tap on the same id — collapses.
-                viewModel.onEvent(DashboardEvent.SliceClicked(categoryId = 10L))
-                runCurrent()
-
-                assertNull(viewModel.state.value.expandedCategoryId)
-                assertTrue(
-                    viewModel.state.value.expandedRecords
-                        .isEmpty(),
+                assertEquals(
+                    10L,
+                    viewModel.state.value.operationsSummary
+                        ?.categoryFilter,
                 )
-                assertFalse(viewModel.state.value.expandedRecordsLoading)
+
+                // Second tap on the same id — reopens (no toggle/collapse in the new contract).
+                viewModel.onEvent(DashboardEvent.SliceClicked(categoryId = 10L))
+                runCurrent()
+
+                assertNotNull("summary must remain open after second tap on same category", viewModel.state.value.operationsSummary)
+                assertEquals(
+                    10L,
+                    viewModel.state.value.operationsSummary
+                        ?.categoryFilter,
+                )
             } finally {
                 store.clear()
                 runCurrent()
@@ -2275,17 +2239,14 @@ class DashboardViewModelTest {
         }
 
     @Test
-    fun `tapping a different category while one is expanded switches expansion to the new one`() =
+    fun `tapping a different category while summary is open switches the category filter`() =
         runTest {
-            val tx10 = transaction(id = 3L, categoryId = 10L, accountId = cash.id)
-            val tx20 = transaction(id = 4L, categoryId = 20L, accountId = cash.id)
             transactionRepository.seedCategoryGroups(
                 cash.id,
                 initialPeriod,
                 categoryGroup(categoryId = 10L),
                 categoryGroup(categoryId = 20L),
             )
-            transactionRepository.seedTransactionsByPeriod(cash.id, initialPeriod, tx10, tx20)
 
             val (viewModel, store) = buildViewModel()
             try {
@@ -2293,16 +2254,22 @@ class DashboardViewModelTest {
 
                 viewModel.onEvent(DashboardEvent.SliceClicked(categoryId = 10L))
                 runCurrent()
-                assertEquals(10L, viewModel.state.value.expandedCategoryId)
-                assertEquals(listOf(tx10), viewModel.state.value.expandedRecords)
+                assertEquals(
+                    10L,
+                    viewModel.state.value.operationsSummary
+                        ?.categoryFilter,
+                )
 
-                // Tap a different category — must switch.
+                // Tap a different category — must switch filter.
                 viewModel.onEvent(DashboardEvent.SliceClicked(categoryId = 20L))
                 runCurrent()
 
-                assertEquals(20L, viewModel.state.value.expandedCategoryId)
-                assertEquals(listOf(tx20), viewModel.state.value.expandedRecords)
-                assertFalse(viewModel.state.value.expandedRecordsLoading)
+                assertNotNull("summary must remain open after switching category", viewModel.state.value.operationsSummary)
+                assertEquals(
+                    20L,
+                    viewModel.state.value.operationsSummary
+                        ?.categoryFilter,
+                )
             } finally {
                 store.clear()
                 runCurrent()
@@ -2310,12 +2277,11 @@ class DashboardViewModelTest {
         }
 
     @Test
-    fun `expandedRecordsLoading is true immediately after tap before the records coroutine completes`() =
+    fun `operationsSummary loading is true immediately after tap before the records coroutine completes`() =
         runTest {
             // StandardTestDispatcher does not advance coroutines automatically — the launched
             // viewModelScope coroutine that fetches records is queued but not yet run after onEvent().
-            // The state update setting expandedRecordsLoading = true happens synchronously before
-            // launch, so it is visible immediately.
+            // The state update setting loading = true happens synchronously before launch.
             val (viewModel, store) = buildViewModel()
             try {
                 runCurrent()
@@ -2323,16 +2289,22 @@ class DashboardViewModelTest {
                 viewModel.onEvent(DashboardEvent.SliceClicked(categoryId = 10L))
                 // Do NOT call runCurrent() here — the fetch coroutine has not yet executed.
 
+                val summary = viewModel.state.value.operationsSummary
+                assertNotNull("operationsSummary must be set immediately after SliceClicked", summary)
                 assertTrue(
-                    "expandedRecordsLoading must be true while the fetch coroutine has not yet run",
-                    viewModel.state.value.expandedRecordsLoading,
+                    "loading must be true while the fetch coroutine has not yet run",
+                    summary!!.loading,
                 )
-                assertEquals(10L, viewModel.state.value.expandedCategoryId)
+                assertEquals(10L, summary.categoryFilter)
 
                 // Advance scheduler — records arrive (empty, since no seeds), loading clears.
                 runCurrent()
 
-                assertFalse(viewModel.state.value.expandedRecordsLoading)
+                assertFalse(
+                    "loading must be false after the fetch coroutine completes",
+                    viewModel.state.value.operationsSummary
+                        ?.loading ?: false,
+                )
             } finally {
                 store.clear()
                 runCurrent()
@@ -2340,7 +2312,7 @@ class DashboardViewModelTest {
         }
 
     @Test
-    fun `OTHER_CATEGORY_ID slice click does not set expandedCategoryId`() =
+    fun `OTHER_CATEGORY_ID slice click does not open operationsSummary`() =
         runTest {
             val (viewModel, store) = buildViewModel()
             try {
@@ -2350,14 +2322,9 @@ class DashboardViewModelTest {
                 runCurrent()
 
                 assertNull(
-                    "OTHER_CATEGORY_ID must never be expanded",
-                    viewModel.state.value.expandedCategoryId,
+                    "OTHER_CATEGORY_ID must never open the summary",
+                    viewModel.state.value.operationsSummary,
                 )
-                assertTrue(
-                    viewModel.state.value.expandedRecords
-                        .isEmpty(),
-                )
-                assertFalse(viewModel.state.value.expandedRecordsLoading)
             } finally {
                 store.clear()
                 runCurrent()
@@ -2394,28 +2361,26 @@ class DashboardViewModelTest {
         }
 
     @Test
-    fun `RecordRowClicked does not mutate state — expandedCategoryId and expandedRecords are unchanged`() =
+    fun `RecordRowClicked closes the summary sheet`() =
         runTest {
-            val tx = transaction(id = 5L, categoryId = 10L, accountId = cash.id)
             transactionRepository.seedCategoryGroups(cash.id, initialPeriod, categoryGroup(categoryId = 10L))
-            transactionRepository.seedTransactionsByPeriod(cash.id, initialPeriod, tx)
 
             val (viewModel, store) = buildViewModel()
             try {
                 runCurrent()
 
-                // Expand a category first so state is non-trivial.
+                // Open the summary first.
                 viewModel.onEvent(DashboardEvent.SliceClicked(categoryId = 10L))
                 runCurrent()
-                assertEquals(10L, viewModel.state.value.expandedCategoryId)
+                assertNotNull("pre-condition: summary must be open before RecordRowClicked", viewModel.state.value.operationsSummary)
 
                 viewModel.onEvent(DashboardEvent.RecordRowClicked(transactionId = 5L))
                 runCurrent()
 
-                // State must not change: expansion stays open, records stay loaded.
-                assertEquals(10L, viewModel.state.value.expandedCategoryId)
-                assertEquals(listOf(tx), viewModel.state.value.expandedRecords)
-                assertFalse(viewModel.state.value.expandedRecordsLoading)
+                assertNull(
+                    "operationsSummary must be closed (null) after RecordRowClicked",
+                    viewModel.state.value.operationsSummary,
+                )
             } finally {
                 store.clear()
                 runCurrent()
@@ -2454,7 +2419,7 @@ class DashboardViewModelTest {
         }
 
     @Test
-    fun `all accounts balance card on Year period carries epoch-millis range and no account id after convert flow`() =
+    fun `all accounts balance card on Year period opens unfiltered summary after convert flow`() =
         runTest {
             val yearPeriod = Period.Year(2026)
             accountRepository.seed(cash)
@@ -2482,14 +2447,155 @@ class DashboardViewModelTest {
                 viewModel.onEvent(DashboardEvent.BalanceCardClicked)
                 runCurrent()
 
-                val expectedRange = PeriodArithmetic.toEpochMillisRange(yearPeriod)
-                assertEquals(1, actions.size)
-                val action = actions.single() as DashboardAction.NavigateTransactionsByCurrency
-                assertEquals(usd.id, action.currencyId)
-                assertEquals(expectedRange.first, action.fromMillis)
-                assertEquals(expectedRange.last, action.toMillis)
+                assertTrue(
+                    "BalanceCardClicked must not emit NavigateTransactionsByCurrency in the new contract; got $actions",
+                    actions.none { it is DashboardAction.NavigateTransactionsByCurrency },
+                )
+                val summary = viewModel.state.value.operationsSummary
+                assertNotNull("operations summary must open after BalanceCardClicked in AllAccounts/ConvertTo mode", summary)
+                assertNull("no category filter expected", summary!!.categoryFilter)
             } finally {
                 collector.cancel()
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `ChartTapped opens unfiltered operations summary`() =
+        runTest {
+            val (viewModel, store) = buildViewModel()
+            val actions = mutableListOf<DashboardAction>()
+            val collector =
+                backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+                    viewModel.actions.toList(actions)
+                }
+
+            try {
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.ChartTapped)
+                runCurrent()
+
+                val summary = viewModel.state.value.operationsSummary
+                assertNotNull("operations summary must open after ChartTapped", summary)
+                assertNull("no category filter expected when chart (not slice) is tapped", summary!!.categoryFilter)
+                assertTrue(
+                    "ChartTapped must not emit any Navigate* action; got $actions",
+                    actions.none { it is DashboardAction.NavigateToTransactionDetail },
+                )
+            } finally {
+                collector.cancel()
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `ChartSettingsClicked opens chart settings sheet and does not open summary`() =
+        runTest {
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.ChartSettingsClicked)
+                runCurrent()
+
+                assertTrue(
+                    "chart settings sheet must be open after ChartSettingsClicked",
+                    viewModel.state.value.chartSettingsSheetOpen,
+                )
+                assertNull(
+                    "operations summary must NOT open after ChartSettingsClicked",
+                    viewModel.state.value.operationsSummary,
+                )
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `OperationsSummaryDismissed closes the summary sheet`() =
+        runTest {
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                // Open via ChartTapped first.
+                viewModel.onEvent(DashboardEvent.ChartTapped)
+                runCurrent()
+                assertNotNull("pre-condition: summary must be open", viewModel.state.value.operationsSummary)
+
+                viewModel.onEvent(DashboardEvent.OperationsSummaryDismissed)
+                runCurrent()
+
+                assertNull(
+                    "operationsSummary must be null after OperationsSummaryDismissed",
+                    viewModel.state.value.operationsSummary,
+                )
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `RecordRowClicked emits NavigateToTransactionDetail and closes summary in one event`() =
+        runTest {
+            val (viewModel, store) = buildViewModel()
+            val actions = mutableListOf<DashboardAction>()
+            val collector =
+                backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+                    viewModel.actions.toList(actions)
+                }
+
+            try {
+                runCurrent()
+
+                // Open summary first.
+                viewModel.onEvent(DashboardEvent.ChartTapped)
+                runCurrent()
+                assertNotNull("pre-condition: summary must be open", viewModel.state.value.operationsSummary)
+
+                viewModel.onEvent(DashboardEvent.RecordRowClicked(transactionId = 77L))
+                runCurrent()
+
+                assertNull(
+                    "operationsSummary must close after RecordRowClicked",
+                    viewModel.state.value.operationsSummary,
+                )
+                assertEquals(1, actions.size)
+                assertEquals(
+                    DashboardAction.NavigateToTransactionDetail(transactionId = 77L),
+                    actions.single(),
+                )
+            } finally {
+                collector.cancel()
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `BalanceCardClicked does not open summary when selection is AllAccounts Separate`() =
+        runTest {
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                // Switch to Separate mode.
+                viewModel.onEvent(DashboardEvent.AllAccountsSeparateChosen)
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.BalanceCardClicked)
+                runCurrent()
+
+                assertNull(
+                    "operationsSummary must not open in Separate mode",
+                    viewModel.state.value.operationsSummary,
+                )
+            } finally {
                 store.clear()
                 runCurrent()
             }
@@ -2597,8 +2703,21 @@ class DashboardViewModelTest {
             val factory =
                 object : ViewModelProvider.Factory {
                     @Suppress("UNCHECKED_CAST")
-                    override fun <T : ViewModel> create(modelClass: Class<T>): T =
-                        DashboardViewModel(
+                    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                        val getCategoryRecordsGated =
+                            GetCategoryRecordsUseCase(
+                                accountRepository = accountRepository,
+                                currencyRepository = currencyRepository,
+                                transactionRepository = gatedTransactionRepository,
+                                defaultDispatcher = dispatcher,
+                            )
+                        val getTransferRecordsGated =
+                            GetTransferRecordsUseCase(
+                                currencyRepository = currencyRepository,
+                                transactionRepository = gatedTransactionRepository,
+                                defaultDispatcher = dispatcher,
+                            )
+                        return DashboardViewModel(
                             accountRepository = accountRepository,
                             currencyRepository = currencyRepository,
                             balanceCalculator = calculator,
@@ -2609,14 +2728,13 @@ class DashboardViewModelTest {
                             observeBudgetAlertsUseCase = alerts,
                             categoryRepository = categoryRepository,
                             resolveRateUseCase = buildResolveRate(),
-                            getCategoryRecords =
-                                GetCategoryRecordsUseCase(
-                                    accountRepository = accountRepository,
-                                    currencyRepository = currencyRepository,
-                                    transactionRepository = gatedTransactionRepository,
-                                    defaultDispatcher = dispatcher,
+                            getOperationsSummary =
+                                GetOperationsSummaryUseCase(
+                                    getCategoryRecords = getCategoryRecordsGated,
+                                    getTransferRecords = getTransferRecordsGated,
                                 ),
                         ) as T
+                    }
                 }
             val viewModel = ViewModelProvider(store, factory)[DashboardViewModel::class.java]
 
@@ -3040,6 +3158,17 @@ class DashboardViewModelTest {
                 transactionRepository = transactionRepository,
                 defaultDispatcher = dispatcher,
             )
+        val getTransferRecords =
+            GetTransferRecordsUseCase(
+                currencyRepository = currencyRepository,
+                transactionRepository = transactionRepository,
+                defaultDispatcher = dispatcher,
+            )
+        val getOperationsSummary =
+            GetOperationsSummaryUseCase(
+                getCategoryRecords = getCategoryRecords,
+                getTransferRecords = getTransferRecords,
+            )
         val store = ViewModelStore()
         val factory =
             object : ViewModelProvider.Factory {
@@ -3056,7 +3185,7 @@ class DashboardViewModelTest {
                         observeBudgetAlertsUseCase = alerts,
                         categoryRepository = categoryRepository,
                         resolveRateUseCase = buildResolveRate(),
-                        getCategoryRecords = getCategoryRecords,
+                        getOperationsSummary = getOperationsSummary,
                     ) as T
             }
         return ViewModelProvider(store, factory)[DashboardViewModel::class.java] to store
@@ -3097,6 +3226,17 @@ class DashboardViewModelTest {
                 transactionRepository = transactionRepository,
                 defaultDispatcher = dispatcher,
             )
+        val getTransferRecords =
+            GetTransferRecordsUseCase(
+                currencyRepository = currencyRepository,
+                transactionRepository = transactionRepository,
+                defaultDispatcher = dispatcher,
+            )
+        val getOperationsSummary =
+            GetOperationsSummaryUseCase(
+                getCategoryRecords = getCategoryRecords,
+                getTransferRecords = getTransferRecords,
+            )
         val store = ViewModelStore()
         val factory =
             object : ViewModelProvider.Factory {
@@ -3113,7 +3253,7 @@ class DashboardViewModelTest {
                         observeBudgetAlertsUseCase = alerts,
                         categoryRepository = categoryRepository,
                         resolveRateUseCase = buildResolveRate(rateRepository),
-                        getCategoryRecords = getCategoryRecords,
+                        getOperationsSummary = getOperationsSummary,
                     ) as T
             }
         return ViewModelProvider(store, factory)[DashboardViewModel::class.java] to store
@@ -4460,8 +4600,21 @@ class DashboardViewModelTest {
             val factory =
                 object : ViewModelProvider.Factory {
                     @Suppress("UNCHECKED_CAST")
-                    override fun <T : ViewModel> create(modelClass: Class<T>): T =
-                        DashboardViewModel(
+                    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                        val getCategoryRecordsGated =
+                            GetCategoryRecordsUseCase(
+                                accountRepository = accountRepository,
+                                currencyRepository = currencyRepository,
+                                transactionRepository = gatedRepo,
+                                defaultDispatcher = dispatcher,
+                            )
+                        val getTransferRecordsGated =
+                            GetTransferRecordsUseCase(
+                                currencyRepository = currencyRepository,
+                                transactionRepository = gatedRepo,
+                                defaultDispatcher = dispatcher,
+                            )
+                        return DashboardViewModel(
                             accountRepository = accountRepository,
                             currencyRepository = currencyRepository,
                             balanceCalculator = calculator,
@@ -4472,14 +4625,13 @@ class DashboardViewModelTest {
                             observeBudgetAlertsUseCase = alerts,
                             categoryRepository = categoryRepository,
                             resolveRateUseCase = buildResolveRate(),
-                            getCategoryRecords =
-                                GetCategoryRecordsUseCase(
-                                    accountRepository = accountRepository,
-                                    currencyRepository = currencyRepository,
-                                    transactionRepository = gatedRepo,
-                                    defaultDispatcher = dispatcher,
+                            getOperationsSummary =
+                                GetOperationsSummaryUseCase(
+                                    getCategoryRecords = getCategoryRecordsGated,
+                                    getTransferRecords = getTransferRecordsGated,
                                 ),
                         ) as T
+                    }
                 }
             val viewModel = ViewModelProvider(store, factory)[DashboardViewModel::class.java]
 

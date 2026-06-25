@@ -81,27 +81,6 @@ fun MyMoneyNavHost(
                                 navController.navigate(Destinations.FINANCIAL_GOALS)
                             com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateCurrencies ->
                                 navController.navigate(Destinations.CURRENCIES_LIST)
-                            is com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateTransactionsByAccount ->
-                                navController.navigate(
-                                    "${Destinations.TRANSACTIONS_LIST}?accountId=${action.accountId}" +
-                                        "&from=${action.fromMillis}&to=${action.toMillis}",
-                                )
-                            is com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateTransactionsByCurrency ->
-                                navController.navigate(
-                                    "${Destinations.TRANSACTIONS_LIST}?currencyId=${action.currencyId}" +
-                                        "&from=${action.fromMillis}&to=${action.toMillis}",
-                                )
-                            is com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateTransactionsByCategory ->
-                                navController.navigate(
-                                    buildString {
-                                        append("${Destinations.TRANSACTIONS_LIST}?")
-                                        if (action.accountId != null) {
-                                            append("accountId=${action.accountId}&")
-                                        }
-                                        append("currencyId=${action.currencyId}&categoryId=${action.categoryId}")
-                                        append("&from=${action.fromMillis}&to=${action.toMillis}")
-                                    },
-                                )
                             com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateAbout ->
                                 navController.navigate(Destinations.SETTINGS)
                             is com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateToTransactionDetail ->
@@ -123,40 +102,6 @@ fun MyMoneyNavHost(
                     )
                 }
             }
-        }
-        composable(
-            route = "${Destinations.TRANSACTIONS_LIST}?accountId={accountId}&currencyId={currencyId}&categoryId={categoryId}&from={from}&to={to}",
-            arguments =
-                listOf(
-                    navArgument("accountId") {
-                        type = NavType.LongType
-                        defaultValue = -1L
-                    },
-                    navArgument("currencyId") {
-                        type = NavType.LongType
-                        defaultValue = -1L
-                    },
-                    navArgument("categoryId") {
-                        type = NavType.LongType
-                        defaultValue = -1L
-                    },
-                    navArgument("from") {
-                        type = NavType.LongType
-                        defaultValue = -1L
-                    },
-                    navArgument("to") {
-                        type = NavType.LongType
-                        defaultValue = -1L
-                    },
-                ),
-        ) {
-            com.kshavrin.mymoney.feature.transactionslist.list.TransactionsListRoute(
-                onOpenDetail = { id -> navController.navigate("${Destinations.TRANSACTION_DETAIL}/$id") },
-                onSearch = { navController.navigate(Destinations.SEARCH) },
-                onTransfer = { navController.navigate(Destinations.TRANSFER) },
-                onOverflow = { navController.navigate(Destinations.SETTINGS) },
-                onBack = { navController.popBackStack() },
-            )
         }
         composable(Destinations.SEARCH) {
             com.kshavrin.mymoney.feature.transactionslist.search.SearchRoute(

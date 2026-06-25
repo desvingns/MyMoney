@@ -40,26 +40,6 @@ sealed interface DashboardAction {
 
     data object NavigateCurrencies : DashboardAction
 
-    data class NavigateTransactionsByAccount(
-        val accountId: Long,
-        val fromMillis: Long,
-        val toMillis: Long,
-    ) : DashboardAction
-
-    data class NavigateTransactionsByCurrency(
-        val currencyId: Long,
-        val fromMillis: Long,
-        val toMillis: Long,
-    ) : DashboardAction
-
-    data class NavigateTransactionsByCategory(
-        val accountId: Long?,
-        val currencyId: Long,
-        val categoryId: Long,
-        val fromMillis: Long,
-        val toMillis: Long,
-    ) : DashboardAction
-
     data class NavigateToTransactionDetail(
         val transactionId: Long,
     ) : DashboardAction

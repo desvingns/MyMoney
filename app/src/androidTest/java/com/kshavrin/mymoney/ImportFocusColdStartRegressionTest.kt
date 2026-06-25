@@ -24,6 +24,9 @@ import com.kshavrin.mymoney.core.domain.model.AccountType
 import com.kshavrin.mymoney.core.domain.usecase.BalanceCalculator
 import com.kshavrin.mymoney.core.domain.usecase.BalanceTrendCalculator
 import com.kshavrin.mymoney.core.domain.usecase.BudgetEvaluator
+import com.kshavrin.mymoney.core.domain.usecase.GetCategoryRecordsUseCase
+import com.kshavrin.mymoney.core.domain.usecase.GetOperationsSummaryUseCase
+import com.kshavrin.mymoney.core.domain.usecase.GetTransferRecordsUseCase
 import com.kshavrin.mymoney.core.domain.usecase.IntradayTrendCalculator
 import com.kshavrin.mymoney.core.domain.usecase.ObserveBudgetAlertsUseCase
 import com.kshavrin.mymoney.feature.dashboard.DashboardSelection
@@ -202,12 +205,21 @@ class ImportFocusColdStartRegressionTest {
                         transactionRepository = transactionRepository,
                         observeBudgetAlertsUseCase = observeBudgetAlerts,
                         categoryRepository = categoryRepository,
-                        getCategoryRecords =
-                            com.kshavrin.mymoney.core.domain.usecase.GetCategoryRecordsUseCase(
-                                accountRepository = accountRepository,
-                                currencyRepository = currencyRepository,
-                                transactionRepository = transactionRepository,
-                                defaultDispatcher = default,
+                        getOperationsSummary =
+                            GetOperationsSummaryUseCase(
+                                getCategoryRecords =
+                                    GetCategoryRecordsUseCase(
+                                        accountRepository = accountRepository,
+                                        currencyRepository = currencyRepository,
+                                        transactionRepository = transactionRepository,
+                                        defaultDispatcher = default,
+                                    ),
+                                getTransferRecords =
+                                    GetTransferRecordsUseCase(
+                                        currencyRepository = currencyRepository,
+                                        transactionRepository = transactionRepository,
+                                        defaultDispatcher = default,
+                                    ),
                             ),
                         resolveRateUseCase =
                             com.kshavrin.mymoney.core.domain.usecase.ResolveRateUseCase(

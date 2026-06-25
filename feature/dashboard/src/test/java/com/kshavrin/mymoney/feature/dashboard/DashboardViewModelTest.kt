@@ -3887,16 +3887,19 @@ class DashboardViewModelTest {
     // -------------------------------------------------------------------------
 
     @Test
-    fun `ChartTapped sets chartSettingsSheetOpen to true`() =
+    fun `ChartTapped opens operations summary without filter`() =
         runTest {
             val (viewModel, store) = buildViewModel()
             try {
                 runCurrent()
                 assertFalse(viewModel.state.value.chartSettingsSheetOpen)
+                assertNull(viewModel.state.value.operationsSummary)
 
                 viewModel.onEvent(DashboardEvent.ChartTapped)
 
-                assertTrue(viewModel.state.value.chartSettingsSheetOpen)
+                assertFalse(viewModel.state.value.chartSettingsSheetOpen)
+                assertNotNull(viewModel.state.value.operationsSummary)
+                assertNull(viewModel.state.value.operationsSummary?.categoryFilter)
             } finally {
                 store.clear()
                 runCurrent()
@@ -3929,7 +3932,7 @@ class DashboardViewModelTest {
             val (viewModel, store) = buildViewModel()
             try {
                 runCurrent()
-                viewModel.onEvent(DashboardEvent.ChartTapped)
+                viewModel.onEvent(DashboardEvent.ChartSettingsClicked)
                 assertTrue(viewModel.state.value.chartSettingsSheetOpen)
 
                 viewModel.onEvent(DashboardEvent.ChartSettingsDismissed)

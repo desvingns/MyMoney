@@ -48,7 +48,8 @@ import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_AURORA_CARD_T
 import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_AURORA_EXPENSE_PILL_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_AURORA_INCOME_PILL_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_CURRENCY_CARDS_TAG
-import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_INLINE_RECORDS_TAG
+import com.kshavrin.mymoney.feature.dashboard.components.OPERATIONS_SUMMARY_SHEET_TAG
+import com.kshavrin.mymoney.feature.dashboard.components.OPERATIONS_SUMMARY_EMPTY_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_ABOUT_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_ACCOUNTS_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_CATEGORIES_TAG
@@ -1903,30 +1904,12 @@ class DashboardContentUiTest {
     }
 
     // -------------------------------------------------------------------------
-    // Inline category accordion (G5) — SliceClicked + expandedCategoryId state
+    // Operations summary sheet (SPEC 03) — operationsSummary state
     // -------------------------------------------------------------------------
 
     @Test
-    fun `inline records list appears under the tile whose category is expanded`() {
+    fun `operations summary sheet is shown when operationsSummary is not null`() {
         val usd = usdCurrency()
-        val tile = categoryTile(categoryId = 42L, label = "Groceries", currency = usd)
-        val record =
-            Transaction(
-                id = 1L,
-                kind = TransactionKind.Expense,
-                amount = BigDecimal("500"),
-                currencyId = usd.id,
-                accountId = 1L,
-                categoryId = 42L,
-                note = "Supermarket trip",
-                occurredAt = Instant.parse("2026-06-15T10:00:00Z"),
-                createdAt = Instant.parse("2026-06-15T10:00:00Z"),
-                updatedAt = Instant.parse("2026-06-15T10:00:00Z"),
-                isDeleted = false,
-                toAccountId = null,
-                toAmount = null,
-                exchangeRate = null,
-            )
 
         composeTestRule.setContent {
             MyMoneyTheme {
@@ -1935,12 +1918,14 @@ class DashboardContentUiTest {
                         dashboardState(
                             currency = usd,
                             balanceSnapshot = balanceSnapshot(netAmount = "100", currency = usd),
-                            expenseTiles = listOf(tile),
                             isLoading = false,
                         ).copy(
-                            expandedCategoryId = 42L,
-                            expandedRecords = listOf(record),
-                            expandedRecordsLoading = false,
+                            operationsSummary =
+                                OperationsSummaryState(
+                                    categoryFilter = null,
+                                    records = emptyList(),
+                                    loading = false,
+                                ),
                         ),
                     onEvent = {},
                 )
@@ -1948,19 +1933,67 @@ class DashboardContentUiTest {
         }
 
         composeTestRule
-            .onNodeWithTag("category_tile_42")
-            .performScrollTo()
-        composeTestRule
-            .onNodeWithTag(DASHBOARD_INLINE_RECORDS_TAG)
+            .onNodeWithTag(OPERATIONS_SUMMARY_SHEET_TAG)
             .assertExists()
-        composeTestRule
-            .onNodeWithText("Supermarket trip")
-            .assertIsDisplayed()
     }
 
     @Test
-    fun `inline records list is absent when no category is expanded`() {
+    fun `operations summary sheet is absent when operationsSummary is null`() {
         val usd = usdCurrency()
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state =
+                        dashboardState(
+                            currency = usd,
+                            balanceSnapshot = balanceSnapshot(netAmount = "100", currency = usd),
+                            isLoading = false,
+                        ).copy(operationsSummary = null),
+                    onEvent = {},
+                )
+            }
+        }
+
+        composeTestRule
+            .onAllNodesWithTag(OPERATIONS_SUMMARY_SHEET_TAG)
+            .assertCountEquals(0)
+    }
+
+    @Test
+    fun `operations summary sheet shows empty state when records list is empty`() {
+        val usd = usdCurrency()
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state =
+                        dashboardState(
+                            currency = usd,
+                            balanceSnapshot = balanceSnapshot(netAmount = "100", currency = usd),
+                            isLoading = false,
+                        ).copy(
+                            operationsSummary =
+                                OperationsSummaryState(
+                                    categoryFilter = null,
+                                    records = emptyList(),
+                                    loading = false,
+                                ),
+                        ),
+                    onEvent = {},
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithTag(OPERATIONS_SUMMARY_EMPTY_TAG)
+            .assertExists()
+    }
+
+    @Test
+    fun `tapping category tile emits SliceClicked with correct category id`() {
+        val usd = usdCurrency()
+        val capturedEvents = mutableListOf<DashboardEvent>()
         val tile = categoryTile(categoryId = 42L, label = "Groceries", currency = usd)
 
         composeTestRule.setContent {
@@ -1972,15 +2005,23 @@ class DashboardContentUiTest {
                             balanceSnapshot = balanceSnapshot(netAmount = "100", currency = usd),
                             expenseTiles = listOf(tile),
                             isLoading = false,
-                        ).copy(expandedCategoryId = null),
-                    onEvent = {},
+                        ),
+                    onEvent = { capturedEvents += it },
                 )
             }
         }
 
         composeTestRule
-            .onAllNodesWithTag(DASHBOARD_INLINE_RECORDS_TAG)
-            .assertCountEquals(0)
+            .onNodeWithTag("category_tile_42")
+            .performScrollTo()
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertTrue(
+                "expected SliceClicked(42) but got $capturedEvents",
+                capturedEvents.contains(DashboardEvent.SliceClicked(42L)),
+            )
+        }
     }
 
     @Test
@@ -2019,26 +2060,8 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `record with null note shows placeholder text in expanded accordion`() {
+    fun `operations summary sheet title uses category name when filtered`() {
         val usd = usdCurrency()
-        val tile = categoryTile(categoryId = 55L, label = "Other", currency = usd)
-        val record =
-            Transaction(
-                id = 2L,
-                kind = TransactionKind.Expense,
-                amount = BigDecimal("250"),
-                currencyId = usd.id,
-                accountId = 1L,
-                categoryId = 55L,
-                note = null,
-                occurredAt = Instant.parse("2026-06-10T08:00:00Z"),
-                createdAt = Instant.parse("2026-06-10T08:00:00Z"),
-                updatedAt = Instant.parse("2026-06-10T08:00:00Z"),
-                isDeleted = false,
-                toAccountId = null,
-                toAmount = null,
-                exchangeRate = null,
-            )
 
         composeTestRule.setContent {
             MyMoneyTheme {
@@ -2047,12 +2070,15 @@ class DashboardContentUiTest {
                         dashboardState(
                             currency = usd,
                             balanceSnapshot = balanceSnapshot(netAmount = "100", currency = usd),
-                            expenseTiles = listOf(tile),
                             isLoading = false,
                         ).copy(
-                            expandedCategoryId = 55L,
-                            expandedRecords = listOf(record),
-                            expandedRecordsLoading = false,
+                            operationsSummary =
+                                OperationsSummaryState(
+                                    categoryFilter = 55L,
+                                    categoryName = "Groceries",
+                                    records = emptyList(),
+                                    loading = false,
+                                ),
                         ),
                     onEvent = {},
                 )
@@ -2060,10 +2086,10 @@ class DashboardContentUiTest {
         }
 
         composeTestRule
-            .onNodeWithTag("category_tile_55")
-            .performScrollTo()
+            .onNodeWithTag(OPERATIONS_SUMMARY_SHEET_TAG)
+            .assertExists()
         composeTestRule
-            .onNodeWithText(targetString(R.string.dashboard_inline_records_no_note))
+            .onNodeWithText("Groceries")
             .assertIsDisplayed()
     }
 

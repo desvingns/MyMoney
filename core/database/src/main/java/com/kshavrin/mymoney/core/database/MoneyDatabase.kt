@@ -10,6 +10,7 @@ import com.kshavrin.mymoney.core.database.dao.CategoryDao
 import com.kshavrin.mymoney.core.database.dao.CurrencyDao
 import com.kshavrin.mymoney.core.database.dao.CurrencyRateDao
 import com.kshavrin.mymoney.core.database.dao.GoalDao
+import com.kshavrin.mymoney.core.database.dao.OperationDao
 import com.kshavrin.mymoney.core.database.dao.RecurringTemplateDao
 import com.kshavrin.mymoney.core.database.dao.SearchHistoryDao
 import com.kshavrin.mymoney.core.database.dao.SyncLogDao
@@ -20,6 +21,7 @@ import com.kshavrin.mymoney.core.database.entity.CategoryEntity
 import com.kshavrin.mymoney.core.database.entity.CurrencyEntity
 import com.kshavrin.mymoney.core.database.entity.CurrencyRateEntity
 import com.kshavrin.mymoney.core.database.entity.GoalEntity
+import com.kshavrin.mymoney.core.database.entity.OperationEntity
 import com.kshavrin.mymoney.core.database.entity.RecurringTemplateEntity
 import com.kshavrin.mymoney.core.database.entity.SearchHistoryEntity
 import com.kshavrin.mymoney.core.database.entity.SyncLogEntity
@@ -37,6 +39,7 @@ import com.kshavrin.mymoney.core.database.entity.TransactionEntity
         SyncLogEntity::class,
         SearchHistoryEntity::class,
         GoalEntity::class,
+        OperationEntity::class,
     ],
     version = MoneyDatabase.SCHEMA_VERSION,
     exportSchema = true,
@@ -63,7 +66,9 @@ abstract class MoneyDatabase : RoomDatabase() {
 
     abstract fun goalDao(): GoalDao
 
+    abstract fun operationDao(): OperationDao
+
     companion object {
-        const val SCHEMA_VERSION = 7
+        const val SCHEMA_VERSION = 8
     }
 }

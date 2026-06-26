@@ -93,6 +93,38 @@ val MIGRATION_5_6 =
         }
     }
 
+val MIGRATION_7_8 =
+    object : Migration(7, 8) {
+        private val tablesWithIdentity = listOf("transaction", "category", "account")
+
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `op_journal` (" +
+                    "`op_id` TEXT NOT NULL, " +
+                    "`device_id` TEXT NOT NULL, " +
+                    "`entity_kind` TEXT NOT NULL, " +
+                    "`entity_uuid` TEXT NOT NULL, " +
+                    "`op_type` TEXT NOT NULL, " +
+                    "`payload` TEXT, " +
+                    "`updated_at` INTEGER NOT NULL, " +
+                    "`synced_to_remote` INTEGER NOT NULL DEFAULT 0, " +
+                    "`applied_from_remote` INTEGER NOT NULL DEFAULT 0, " +
+                    "PRIMARY KEY(`op_id`))",
+            )
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_op_journal_entity_uuid` ON `op_journal` (`entity_uuid`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_op_journal_synced_to_remote` ON `op_journal` (`synced_to_remote`)")
+
+            db.execSQL("ALTER TABLE `category` ADD COLUMN `updated_at` INTEGER NOT NULL DEFAULT 0")
+
+            tablesWithIdentity.forEach { table ->
+                db.execSQL("ALTER TABLE `$table` ADD COLUMN `uuid` TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE `$table` ADD COLUMN `device_id` TEXT NOT NULL DEFAULT ''")
+                db.execSQL("UPDATE `$table` SET `uuid` = lower(hex(randomblob(16))) WHERE `uuid` = ''")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_${table}_uuid` ON `$table` (`uuid`)")
+            }
+        }
+    }
+
 val MIGRATION_6_7 =
     object : Migration(6, 7) {
         override fun migrate(db: SupportSQLiteDatabase) {

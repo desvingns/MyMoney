@@ -9,6 +9,7 @@ import com.kshavrin.mymoney.core.database.dao.CategoryDao
 import com.kshavrin.mymoney.core.database.dao.CurrencyDao
 import com.kshavrin.mymoney.core.database.dao.CurrencyRateDao
 import com.kshavrin.mymoney.core.database.dao.GoalDao
+import com.kshavrin.mymoney.core.database.dao.OperationDao
 import com.kshavrin.mymoney.core.database.dao.RecurringTemplateDao
 import com.kshavrin.mymoney.core.database.dao.SearchHistoryDao
 import com.kshavrin.mymoney.core.database.dao.SyncLogDao
@@ -19,6 +20,7 @@ import com.kshavrin.mymoney.core.database.migration.MIGRATION_3_4
 import com.kshavrin.mymoney.core.database.migration.MIGRATION_4_5
 import com.kshavrin.mymoney.core.database.migration.MIGRATION_5_6
 import com.kshavrin.mymoney.core.database.migration.MIGRATION_6_7
+import com.kshavrin.mymoney.core.database.migration.MIGRATION_7_8
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -36,8 +38,15 @@ object DatabaseModule {
     ): MoneyDatabase =
         Room
             .databaseBuilder(context, MoneyDatabase::class.java, "monefy.db")
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
-            .fallbackToDestructiveMigrationFrom(99)
+            .addMigrations(
+                MIGRATION_1_2,
+                MIGRATION_2_3,
+                MIGRATION_3_4,
+                MIGRATION_4_5,
+                MIGRATION_5_6,
+                MIGRATION_6_7,
+                MIGRATION_7_8,
+            ).fallbackToDestructiveMigrationFrom(99)
             .build()
 
     @Provides
@@ -69,4 +78,7 @@ object DatabaseModule {
 
     @Provides
     fun provideGoalDao(db: MoneyDatabase): GoalDao = db.goalDao()
+
+    @Provides
+    fun provideOperationDao(db: MoneyDatabase): OperationDao = db.operationDao()
 }

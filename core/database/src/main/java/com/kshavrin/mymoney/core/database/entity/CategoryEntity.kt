@@ -7,10 +7,12 @@ import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "category",
-    indices = [Index("kind"), Index("sort_order")],
+    indices = [Index("kind"), Index("sort_order"), Index(value = ["uuid"], unique = true)],
 )
 data class CategoryEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0L,
+    @ColumnInfo(name = "uuid") val uuid: String = "",
+    @ColumnInfo(name = "device_id") val deviceId: String = "",
     @ColumnInfo(name = "name") val name: String,
     @ColumnInfo(name = "kind") val kind: String,
     @ColumnInfo(name = "icon_key") val iconKey: String,
@@ -20,4 +22,5 @@ data class CategoryEntity(
     @ColumnInfo(name = "is_default") val isDefault: Boolean,
     @ColumnInfo(name = "is_archived") val isArchived: Boolean,
     @ColumnInfo(name = "created_at") val createdAt: Long,
+    @ColumnInfo(name = "updated_at") val updatedAt: Long = 0L,
 )

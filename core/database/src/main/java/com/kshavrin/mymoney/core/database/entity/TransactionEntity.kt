@@ -42,10 +42,13 @@ import androidx.room.PrimaryKey
         Index(value = ["category_id", "occurred_at"]),
         Index("occurred_at"),
         Index("is_deleted"),
+        Index(value = ["uuid"], unique = true),
     ],
 )
 data class TransactionEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0L,
+    @ColumnInfo(name = "uuid") val uuid: String = "",
+    @ColumnInfo(name = "device_id") val deviceId: String = "",
     @ColumnInfo(name = "kind") val kind: String,
     @ColumnInfo(name = "amount") val amount: Double,
     @ColumnInfo(name = "currency_id") val currencyId: Long,

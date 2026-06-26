@@ -16,10 +16,12 @@ import androidx.room.PrimaryKey
             onDelete = ForeignKey.RESTRICT,
         ),
     ],
-    indices = [Index("currency_id"), Index("sort_order")],
+    indices = [Index("currency_id"), Index("sort_order"), Index(value = ["uuid"], unique = true)],
 )
 data class AccountEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0L,
+    @ColumnInfo(name = "uuid") val uuid: String = "",
+    @ColumnInfo(name = "device_id") val deviceId: String = "",
     @ColumnInfo(name = "name") val name: String,
     @ColumnInfo(name = "currency_id") val currencyId: Long,
     @ColumnInfo(name = "initial_balance") val initialBalance: Double,

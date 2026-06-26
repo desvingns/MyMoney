@@ -117,8 +117,7 @@ class AccountRepositoryImpl
                         (previousDefaults.filter { it.id != id }.map { it.copy(isDefault = false) } + target.copy(isDefault = true))
                             .map { account ->
                                 account.copy(deviceId = deviceId, updatedAt = updatedAt)
-                            }
-                            .distinctBy { it.id }
+                            }.distinctBy { it.id }
                     changed.forEach { account ->
                         require(account.uuid.isNotBlank()) { "account uuid must not be blank" }
                         dao.upsert(account)

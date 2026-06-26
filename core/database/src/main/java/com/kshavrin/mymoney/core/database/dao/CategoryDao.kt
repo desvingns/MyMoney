@@ -17,6 +17,12 @@ interface CategoryDao {
     @Query("SELECT * FROM category WHERE id = :id LIMIT 1")
     suspend fun findById(id: Long): CategoryEntity?
 
+    @Query("SELECT * FROM category WHERE uuid = :uuid LIMIT 1")
+    suspend fun findByUuid(uuid: String): CategoryEntity?
+
+    @Query("UPDATE category SET is_archived = 1 WHERE uuid = :uuid")
+    suspend fun archiveByUuid(uuid: String)
+
     @Upsert
     suspend fun upsert(category: CategoryEntity): Long
 

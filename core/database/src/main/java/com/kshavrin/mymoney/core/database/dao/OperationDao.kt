@@ -20,6 +20,9 @@ interface OperationDao {
     @Query("UPDATE op_journal SET synced_to_remote = 1 WHERE op_id IN (:opIds)")
     suspend fun markSynced(opIds: List<String>)
 
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertApplied(ops: List<OperationEntity>)
+
     @Query("SELECT op_id FROM op_journal")
     suspend fun knownOpIds(): List<String>
 

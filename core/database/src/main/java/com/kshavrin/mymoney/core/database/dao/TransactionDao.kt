@@ -166,6 +166,15 @@ interface TransactionDao {
     @Query("SELECT * FROM `transaction` WHERE id = :id LIMIT 1")
     suspend fun findById(id: Long): TransactionEntity?
 
+    @Query("SELECT * FROM `transaction` WHERE uuid = :uuid LIMIT 1")
+    suspend fun findByUuid(uuid: String): TransactionEntity?
+
+    @Query("UPDATE `transaction` SET is_deleted = 1, updated_at = :now WHERE uuid = :uuid")
+    suspend fun softDeleteByUuid(
+        uuid: String,
+        now: Long,
+    )
+
     @Query("SELECT * FROM `transaction`")
     suspend fun listForTimezoneNormalization(): List<TransactionEntity>
 

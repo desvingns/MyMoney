@@ -1,7 +1,7 @@
 # Эмиссия операций при мутациях (dual-write)
 Epic: operations-journal-sync
 Order: 03 of 07
-Status: backlog
+Status: done
 Depends-on: 01, 02
 Date: 2026-06-25
 
@@ -58,5 +58,19 @@ Feature: Журналирование пользовательских мута�
 Мутации сейчас пишут только в таблицы состояния (G18) — журнал из 02 остаётся пустым, синхронизировать нечего. Этот SPEC включает запись ops на каждой пользовательской мутации (объём v1: tx/cat/acc) и даёт стабильный `deviceId`.
 
 ## Implementation links
-- commit: (pending)
-- files:  (pending)
+- commits: `3eddec02`, `3c96c5eb`, `16c031e0`, `30ade859`, `6dc7b266`, `bbaf3bfb`
+- files:
+  - `core/domain/src/main/java/com/kshavrin/mymoney/core/domain/sync/DeviceIdProvider.kt`
+  - `core/database/src/main/java/com/kshavrin/mymoney/core/database/journal/OperationPayloadCodec.kt`
+  - `core/database/src/main/java/com/kshavrin/mymoney/core/database/repository/TransactionRepositoryImpl.kt`
+  - `core/database/src/main/java/com/kshavrin/mymoney/core/database/repository/CategoryRepositoryImpl.kt`
+  - `core/database/src/main/java/com/kshavrin/mymoney/core/database/repository/AccountRepositoryImpl.kt`
+  - `core/database/src/main/java/com/kshavrin/mymoney/core/database/dao/AccountDao.kt`
+  - `core/datastore/src/main/java/com/kshavrin/mymoney/core/datastore/DeviceIdProviderImpl.kt`
+  - `core/datastore/src/main/java/com/kshavrin/mymoney/core/datastore/di/DataStoreModule.kt`
+  - `core/datastore/src/main/java/com/kshavrin/mymoney/core/datastore/AppSettingsRepositoryImpl.kt`
+  - `core/database/src/test/java/com/kshavrin/mymoney/core/database/journal/OperationPayloadCodecTest.kt`
+  - `core/datastore/src/test/java/com/kshavrin/mymoney/core/datastore/DeviceIdProviderImplTest.kt`
+  - `core/database/src/androidTest/java/com/kshavrin/mymoney/core/database/TransactionRepositoryImplDualWriteTest.kt`
+  - `core/database/src/androidTest/java/com/kshavrin/mymoney/core/database/CategoryRepositoryImplDualWriteTest.kt`
+  - `core/database/src/androidTest/java/com/kshavrin/mymoney/core/database/AccountRepositoryImplDualWriteTest.kt`

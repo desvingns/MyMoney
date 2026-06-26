@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kshavrin.mymoney.core.common.exception.SyncError
 import com.kshavrin.mymoney.core.common.exception.SyncException
+import com.kshavrin.mymoney.core.common.exception.reportToSentry
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
 import com.kshavrin.mymoney.core.datastore.JournalSyncConfigStore
 import com.kshavrin.mymoney.core.domain.repository.RemoteConfigRepository
@@ -23,9 +24,11 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.coroutines.cancellation.CancellationException
 
 @HiltViewModel
 class CloudSyncViewModel
@@ -111,16 +114,18 @@ class CloudSyncViewModel
             if (_state.value.isSyncing) return
             viewModelScope.launch {
                 _state.value = _state.value.copy(isSyncing = true, errorBannerRes = null)
-                val result = runCatching { journalSync.syncNow() }
-                result.onSuccess {
+                try {
+                    journalSync.syncNow()
                     refresh(SyncTarget.Dropbox)
                     refresh(SyncTarget.GoogleDrive)
                     reloadJournalStatus(_state.value.folderId)
+                } catch (t: Throwable) {
+                    if (t is CancellationException) throw t
+                    t.reportToSentry()
+                    _state.value = _state.value.copy(errorBannerRes = mapError(t.toSyncError()))
+                } finally {
+                    _state.value = _state.value.copy(isSyncing = false)
                 }
-                result.onFailure {
-                    _state.value = _state.value.copy(errorBannerRes = mapError(it.toSyncError()))
-                }
-                _state.value = _state.value.copy(isSyncing = false)
             }
         }
 
@@ -145,44 +150,50 @@ class CloudSyncViewModel
             _state.value = _state.value.copy(folderId = folderId, errorBannerRes = null)
             viewModelScope.launch {
                 val normalized = folderId.trim()
-                journalSyncConfig.setFolderId(normalized)
-                val settings = appSettings.settings.first()
-                if (settings.autoSyncEnabled) {
-                    if (normalized.isBlank()) {
-                        syncScheduler.disablePeriodicSync()
-                    } else {
-                        syncScheduler.enablePeriodicSync()
+                try {
+                    journalSyncConfig.setFolderId(normalized)
+                    val settings = appSettings.settings.first()
+                    if (settings.autoSyncEnabled) {
+                        if (normalized.isBlank()) {
+                            syncScheduler.disablePeriodicSync()
+                        } else {
+                            syncScheduler.enablePeriodicSync()
+                        }
                     }
+                    reloadJournalStatus(normalized)
+                } catch (t: Throwable) {
+                    setJournalStatusError(t)
                 }
-                reloadJournalStatus(normalized)
             }
         }
 
         private fun refreshJournalStatus() {
             viewModelScope.launch {
-                val folderId = journalSyncConfig.folderId()
-                _state.value = _state.value.copy(folderId = folderId)
-                reloadJournalStatus(folderId)
+                try {
+                    val folderId = journalSyncConfig.folderId()
+                    _state.value = _state.value.copy(folderId = folderId)
+                    reloadJournalStatus(folderId)
+                } catch (t: Throwable) {
+                    setJournalStatusError(t)
+                }
             }
         }
 
         private suspend fun reloadJournalStatus(folderId: String) {
-            if (folderId.isBlank()) {
-                _state.value = _state.value.copy(peerStatuses = emptyList())
-                return
+            try {
+                if (folderId.isBlank()) {
+                    _state.value = _state.value.copy(peerStatuses = emptyList())
+                    return
+                }
+                val ownDeviceId = deviceIdProvider.deviceId()
+                val files = journalBackend.listPeerJournals(folderId).getOrThrow()
+                _state.value =
+                    _state.value.copy(
+                        peerStatuses = files.toPeerStates(ownDeviceId),
+                    )
+            } catch (t: Throwable) {
+                setJournalStatusError(t)
             }
-            val ownDeviceId = runCatching { deviceIdProvider.deviceId() }.getOrNull()
-            val files =
-                journalBackend
-                    .listPeerJournals(folderId)
-                    .getOrElse { error ->
-                        _state.value = _state.value.copy(errorBannerRes = mapError(error.toSyncError()))
-                        return
-                    }
-            _state.value =
-                _state.value.copy(
-                    peerStatuses = files.toPeerStates(ownDeviceId),
-                )
         }
 
         private suspend fun List<RemoteJournalFile>.toPeerStates(ownDeviceId: String?): List<PeerJournalState> =
@@ -197,14 +208,32 @@ class CloudSyncViewModel
 
         private fun observeSettings() {
             viewModelScope.launch {
-                appSettings.settings.collect { settings ->
-                    _state.value =
-                        _state.value.copy(
-                            autoSyncEnabled = settings.autoSyncEnabled,
-                            lastSyncAtMs = settings.lastSyncAt,
-                        )
-                }
+                appSettings.settings
+                    .catch { t -> setGeneralError(t) }
+                    .collect { settings ->
+                        _state.value =
+                            _state.value.copy(
+                                autoSyncEnabled = settings.autoSyncEnabled,
+                                lastSyncAtMs = settings.lastSyncAt,
+                            )
+                    }
             }
+        }
+
+        private fun setJournalStatusError(t: Throwable) {
+            if (t is CancellationException) throw t
+            t.reportToSentry()
+            _state.value =
+                _state.value.copy(
+                    errorBannerRes = mapError(t.toSyncError()),
+                    peerStatuses = emptyList(),
+                )
+        }
+
+        private fun setGeneralError(t: Throwable) {
+            if (t is CancellationException) throw t
+            t.reportToSentry()
+            _state.value = _state.value.copy(errorBannerRes = mapError(t.toSyncError()))
         }
 
         private fun card(target: SyncTarget): TargetCardState =

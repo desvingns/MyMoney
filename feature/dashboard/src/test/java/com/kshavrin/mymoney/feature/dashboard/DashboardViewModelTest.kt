@@ -38,6 +38,7 @@ import com.kshavrin.mymoney.core.domain.usecase.GetTransferRecordsUseCase
 import com.kshavrin.mymoney.core.domain.usecase.IntradayTrendCalculator
 import com.kshavrin.mymoney.core.domain.usecase.ObserveBudgetAlertsUseCase
 import com.kshavrin.mymoney.core.domain.usecase.ResolveRateUseCase
+import com.kshavrin.mymoney.core.sync.JournalSync
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -108,6 +109,7 @@ class DashboardViewModelTest {
     private lateinit var budgetRepository: FakeDashboardBudgetRepository
     private lateinit var settingsRepository: FakeDashboardAppSettingsRepository
     private lateinit var categoryRepository: FakeDashboardCategoryRepository
+    private lateinit var journalSync: FakeDashboardJournalSync
 
     @Before
     fun setUp() {
@@ -120,7 +122,60 @@ class DashboardViewModelTest {
                 AppSettings(defaultAccountId = cash.id, firstPositiveSeen = true, chartAutoMode = false),
             )
         categoryRepository = FakeDashboardCategoryRepository()
+        journalSync = FakeDashboardJournalSync()
     }
+
+    @Test
+    fun `refresh requested runs journal sync and clears refreshing when it succeeds`() =
+        runTest {
+            journalSync.blockSync = true
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.RefreshRequested)
+                runCurrent()
+
+                assertTrue(viewModel.state.value.isRefreshing)
+                assertEquals(1, journalSync.syncNowCalls)
+
+                journalSync.blockSync = false
+                journalSync.release()
+                runCurrent()
+
+                assertFalse(viewModel.state.value.isRefreshing)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `refresh requested ignores a second gesture while a refresh is already running`() =
+        runTest {
+            journalSync.blockSync = true
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.RefreshRequested)
+                runCurrent()
+                viewModel.onEvent(DashboardEvent.RefreshRequested)
+                runCurrent()
+
+                assertEquals(1, journalSync.syncNowCalls)
+                assertTrue(viewModel.state.value.isRefreshing)
+
+                journalSync.blockSync = false
+                journalSync.release()
+                runCurrent()
+
+                assertFalse(viewModel.state.value.isRefreshing)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
 
     @Test
     fun `alerted categories mark donut slices and the largest overage is retained for the chip`() =
@@ -2733,6 +2788,7 @@ class DashboardViewModelTest {
                                     getCategoryRecords = getCategoryRecordsGated,
                                     getTransferRecords = getTransferRecordsGated,
                                 ),
+                            journalSync = FakeDashboardJournalSync(),
                         ) as T
                     }
                 }
@@ -3186,6 +3242,7 @@ class DashboardViewModelTest {
                         categoryRepository = categoryRepository,
                         resolveRateUseCase = buildResolveRate(),
                         getOperationsSummary = getOperationsSummary,
+                        journalSync = journalSync,
                     ) as T
             }
         return ViewModelProvider(store, factory)[DashboardViewModel::class.java] to store
@@ -3254,6 +3311,7 @@ class DashboardViewModelTest {
                         categoryRepository = categoryRepository,
                         resolveRateUseCase = buildResolveRate(rateRepository),
                         getOperationsSummary = getOperationsSummary,
+                        journalSync = journalSync,
                     ) as T
             }
         return ViewModelProvider(store, factory)[DashboardViewModel::class.java] to store
@@ -4636,6 +4694,7 @@ class DashboardViewModelTest {
                                     getCategoryRecords = getCategoryRecordsGated,
                                     getTransferRecords = getTransferRecordsGated,
                                 ),
+                            journalSync = FakeDashboardJournalSync(),
                         ) as T
                     }
                 }
@@ -4849,6 +4908,30 @@ private class FakeDashboardCategoryRepository : CategoryRepository {
     override suspend fun upsertAll(categories: List<Category>) = Unit
 
     override suspend fun archive(id: Long) = Unit
+}
+
+private class FakeDashboardJournalSync : JournalSync {
+    var syncNowCalls = 0
+    var blockSync = false
+    private var gate = CompletableDeferred<Unit>()
+
+    fun release() {
+        if (!gate.isCompleted) {
+            gate.complete(Unit)
+        }
+    }
+
+    override suspend fun push() = Unit
+
+    override suspend fun pull() = Unit
+
+    override suspend fun syncNow() {
+        syncNowCalls++
+        if (blockSync) {
+            gate.await()
+            gate = CompletableDeferred()
+        }
+    }
 }
 
 private open class FakeDashboardTransactionRepository : TransactionRepository {

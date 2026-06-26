@@ -32,6 +32,7 @@ import com.kshavrin.mymoney.core.domain.usecase.GetOperationsSummaryUseCase
 import com.kshavrin.mymoney.core.domain.usecase.GetTransferRecordsUseCase
 import com.kshavrin.mymoney.core.domain.usecase.IntradayTrendCalculator
 import com.kshavrin.mymoney.core.domain.usecase.ObserveBudgetAlertsUseCase
+import com.kshavrin.mymoney.core.sync.JournalSync
 import com.kshavrin.mymoney.feature.dashboard.DashboardSelection
 import com.kshavrin.mymoney.feature.dashboard.DashboardViewModel
 import kotlinx.coroutines.CoroutineScope
@@ -241,6 +242,7 @@ class ImportFocusColdStartRegressionTest {
                         transactionRepository = transactionRepository,
                         observeBudgetAlertsUseCase = observeBudgetAlerts,
                         categoryRepository = categoryRepository,
+                        journalSync = NoOpJournalSync(),
                         getOperationsSummary =
                             GetOperationsSummaryUseCase(
                                 getCategoryRecords =
@@ -322,4 +324,12 @@ private class NoRatesCurrencyRateRepository : com.kshavrin.mymoney.core.domain.r
 
 private class StaticDeviceIdProvider : DeviceIdProvider {
     override suspend fun deviceId(): String = "import-focus-test-device"
+}
+
+private class NoOpJournalSync : JournalSync {
+    override suspend fun push() = Unit
+
+    override suspend fun pull() = Unit
+
+    override suspend fun syncNow() = Unit
 }

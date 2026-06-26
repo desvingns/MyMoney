@@ -10,11 +10,13 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.sync.SyncTarget
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -45,7 +47,7 @@ class CloudSyncContentUiTest {
     }
 
     @Test
-    fun `disconnected provider buttons emit connect and keep sync disabled`() {
+    fun `provider buttons emit connect and disconnect events`() {
         val events = mutableListOf<CloudSyncEvent>()
 
         setContent(
@@ -59,59 +61,6 @@ class CloudSyncContentUiTest {
                     drive =
                         TargetCardState(
                             target = SyncTarget.GoogleDrive,
-                            enabled = false,
-                        ),
-                ),
-            onEvent = events::add,
-        )
-
-        composeTestRule
-            .onNodeWithText(targetString(R.string.sync_dropbox_section))
-            .assertIsDisplayed()
-        composeTestRule
-            .onNodeWithText(targetString(R.string.sync_gdrive_section))
-            .assertIsDisplayed()
-
-        composeTestRule
-            .onNodeWithTag(providerControlTag(SyncTarget.Dropbox, "connect"))
-            .performScrollTo()
-            .assertIsEnabled()
-            .performClick()
-        composeTestRule
-            .onNodeWithTag(providerControlTag(SyncTarget.GoogleDrive, "connect"))
-            .performScrollTo()
-            .assertIsNotEnabled()
-
-        composeTestRule
-            .onNodeWithTag(providerControlTag(SyncTarget.Dropbox, "sync_now"))
-            .performScrollTo()
-            .assertIsNotEnabled()
-        composeTestRule
-            .onNodeWithTag(providerControlTag(SyncTarget.GoogleDrive, "sync_now"))
-            .performScrollTo()
-            .assertIsNotEnabled()
-
-        composeTestRule.runOnIdle {
-            assertEquals(listOf(CloudSyncEvent.ConnectClicked(SyncTarget.Dropbox)), events)
-        }
-    }
-
-    @Test
-    fun `connected provider buttons emit disconnect and sync events`() {
-        val events = mutableListOf<CloudSyncEvent>()
-
-        setContent(
-            state =
-                CloudSyncState(
-                    dropbox =
-                        TargetCardState(
-                            target = SyncTarget.Dropbox,
-                            connected = true,
-                            accountLabel = "dropbox@example.test",
-                        ),
-                    drive =
-                        TargetCardState(
-                            target = SyncTarget.GoogleDrive,
                             connected = true,
                             accountLabel = "drive@example.test",
                         ),
@@ -120,20 +69,7 @@ class CloudSyncContentUiTest {
         )
 
         composeTestRule
-            .onNodeWithText("dropbox@example.test")
-            .assertIsDisplayed()
-        composeTestRule
-            .onNodeWithText("drive@example.test")
-            .performScrollTo()
-            .assertIsDisplayed()
-
-        composeTestRule
-            .onNodeWithTag(providerControlTag(SyncTarget.Dropbox, "disconnect"))
-            .performScrollTo()
-            .assertIsEnabled()
-            .performClick()
-        composeTestRule
-            .onNodeWithTag(providerControlTag(SyncTarget.Dropbox, "sync_now"))
+            .onNodeWithTag(providerControlTag(SyncTarget.Dropbox, "connect"))
             .performScrollTo()
             .assertIsEnabled()
             .performClick()
@@ -142,19 +78,12 @@ class CloudSyncContentUiTest {
             .performScrollTo()
             .assertIsEnabled()
             .performClick()
-        composeTestRule
-            .onNodeWithTag(providerControlTag(SyncTarget.GoogleDrive, "sync_now"))
-            .performScrollTo()
-            .assertIsEnabled()
-            .performClick()
 
         composeTestRule.runOnIdle {
             assertEquals(
                 listOf(
-                    CloudSyncEvent.DisconnectClicked(SyncTarget.Dropbox),
-                    CloudSyncEvent.SyncNowClicked(SyncTarget.Dropbox),
+                    CloudSyncEvent.ConnectClicked(SyncTarget.Dropbox),
                     CloudSyncEvent.DisconnectClicked(SyncTarget.GoogleDrive),
-                    CloudSyncEvent.SyncNowClicked(SyncTarget.GoogleDrive),
                 ),
                 events,
             )
@@ -162,23 +91,99 @@ class CloudSyncContentUiTest {
     }
 
     @Test
-    fun `auto sync switch emits toggle event`() {
+    fun `folder id field and sync now button emit the new journal sync events`() {
         val events = mutableListOf<CloudSyncEvent>()
 
-        setContent(onEvent = events::add)
+        setContent(
+            state = CloudSyncState(folderId = "shared-folder"),
+            onEvent = events::add,
+        )
 
         composeTestRule
-            .onNodeWithText(targetString(R.string.sync_auto_toggle))
+            .onNodeWithTag(FOLDER_ID_TAG)
             .performScrollTo()
-            .assertIsDisplayed()
+            .performTextInput("-next")
         composeTestRule
-            .onNodeWithTag(AUTO_SYNC_TAG)
-            .assertIsOff()
+            .onNodeWithTag(SYNC_NOW_TAG)
+            .performScrollTo()
+            .assertIsEnabled()
             .performClick()
 
         composeTestRule.runOnIdle {
-            assertEquals(listOf(CloudSyncEvent.AutoSyncToggled(true)), events)
+            assertTrue(events.firstOrNull() is CloudSyncEvent.FolderIdChanged)
+            assertEquals(CloudSyncEvent.SyncNowClicked(), events.lastOrNull())
         }
+    }
+
+    @Test
+    fun `blank folder surface shows not configured status and disables sync now`() {
+        setContent(state = CloudSyncState(folderId = ""))
+
+        composeTestRule
+            .onNodeWithText(targetString(R.string.sync_folder_not_configured))
+            .performScrollTo()
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithTag(SYNC_NOW_TAG)
+            .performScrollTo()
+            .assertIsNotEnabled()
+    }
+
+    @Test
+    fun `status section shows last sync timestamp peer states and configured folder copy`() {
+        val lastSyncAt = Instant.parse("2026-06-25T09:30:00Z").toEpochMilli()
+        val peerModifiedAt = Instant.parse("2026-06-25T08:00:00Z").toEpochMilli()
+        val peerPulledAt = Instant.parse("2026-06-25T08:30:00Z").toEpochMilli()
+
+        setContent(
+            state =
+                CloudSyncState(
+                    folderId = "shared-folder",
+                    lastSyncAtMs = lastSyncAt,
+                    peerStatuses =
+                        listOf(
+                            PeerJournalState(
+                                deviceId = "device-a",
+                                modifiedAtMs = peerModifiedAt,
+                                pulledThroughMs = peerPulledAt,
+                            ),
+                            PeerJournalState(
+                                deviceId = "device-b",
+                                modifiedAtMs = peerModifiedAt,
+                                pulledThroughMs = 0L,
+                            ),
+                        ),
+                ),
+        )
+
+        composeTestRule
+            .onNodeWithText(targetString(R.string.sync_last_at, formattedTimestamp(lastSyncAt)))
+            .performScrollTo()
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText(targetString(R.string.sync_folder_configured))
+            .performScrollTo()
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText(targetString(R.string.sync_peer_device, "device-a"))
+            .performScrollTo()
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText(targetString(R.string.sync_peer_up_to_date))
+            .performScrollTo()
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText(targetString(R.string.sync_peer_pulled_through, formattedTimestamp(peerPulledAt)))
+            .performScrollTo()
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText(targetString(R.string.sync_peer_pending))
+            .performScrollTo()
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText(targetString(R.string.sync_peer_never_pulled))
+            .performScrollTo()
+            .assertIsDisplayed()
     }
 
     @Test
@@ -204,49 +209,36 @@ class CloudSyncContentUiTest {
     }
 
     @Test
-    fun `conflict dialog buttons emit keep remote and keep local events`() {
+    fun `auto sync switch emits toggle event`() {
         val events = mutableListOf<CloudSyncEvent>()
-        val remoteMs = Instant.parse("2026-05-28T09:30:00Z").toEpochMilli()
-        val localMs = Instant.parse("2026-05-27T18:15:00Z").toEpochMilli()
 
-        setContent(
-            state =
-                CloudSyncState(
-                    conflict =
-                        ConflictPrompt(
-                            target = SyncTarget.Dropbox,
-                            remoteMs = remoteMs,
-                            localMs = localMs,
-                        ),
-                ),
-            onEvent = events::add,
-        )
+        setContent(onEvent = events::add)
 
         composeTestRule
-            .onNodeWithText(targetString(R.string.sync_conflict_title))
+            .onNodeWithText(targetString(R.string.sync_auto_toggle))
+            .performScrollTo()
             .assertIsDisplayed()
         composeTestRule
-            .onNodeWithText(targetString(R.string.sync_conflict_remote, formattedTimestamp(remoteMs)))
-            .assertIsDisplayed()
-        composeTestRule
-            .onNodeWithText(targetString(R.string.sync_conflict_local, formattedTimestamp(localMs)))
-            .assertIsDisplayed()
-        composeTestRule
-            .onNodeWithText(targetString(R.string.sync_keep_remote))
-            .performClick()
-        composeTestRule
-            .onNodeWithText(targetString(R.string.sync_keep_local))
+            .onNodeWithTag(AUTO_SYNC_TAG)
+            .assertIsOff()
             .performClick()
 
         composeTestRule.runOnIdle {
-            assertEquals(
-                listOf(
-                    CloudSyncEvent.ConflictKeepRemote,
-                    CloudSyncEvent.ConflictKeepLocal,
-                ),
-                events,
-            )
+            assertEquals(listOf(CloudSyncEvent.AutoSyncToggled(true)), events)
         }
+    }
+
+    @Test
+    fun `sync now button still exists while syncing`() {
+        setContent(
+            state = CloudSyncState(folderId = "shared-folder", isSyncing = true),
+        )
+
+        composeTestRule
+            .onNodeWithTag(SYNC_NOW_TAG)
+            .performScrollTo()
+            .assertExists()
+            .assertIsNotEnabled()
     }
 
     private fun setContent(
@@ -286,5 +278,7 @@ class CloudSyncContentUiTest {
 
     private companion object {
         const val AUTO_SYNC_TAG = "cloud_sync_auto_sync"
+        const val FOLDER_ID_TAG = "cloud_sync_folder_id"
+        const val SYNC_NOW_TAG = "cloud_sync_sync_now"
     }
 }

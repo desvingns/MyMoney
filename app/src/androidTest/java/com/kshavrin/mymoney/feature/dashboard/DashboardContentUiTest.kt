@@ -25,6 +25,7 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
 import androidx.compose.ui.test.swipeUp
@@ -253,6 +254,46 @@ class DashboardContentUiTest {
             .assertIsDisplayed()
     }
 
+    @Test
+    fun `pull to refresh gesture emits refresh requested`() {
+        val capturedEvents = mutableListOf<DashboardEvent>()
+        val usd = usdCurrency()
+        val snapshot =
+            BalanceSnapshot(
+                income = Money(BigDecimal("120.00"), usd),
+                expense = Money(BigDecimal("20.00"), usd),
+                net = Money(BigDecimal("100.00"), usd),
+                byCategory = emptyList(),
+            )
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state =
+                        dashboardState(
+                            currency = usd,
+                            balanceSnapshot = snapshot,
+                            periodNet = snapshot.net,
+                            expenseTiles = listOf(categoryTile(42L, "Groceries", usd)),
+                            isLoading = false,
+                        ),
+                    onEvent = { capturedEvents += it },
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithTag(DASHBOARD_SCROLL_CONTENT_TAG)
+            .performTouchInput { swipeDown() }
+
+        composeTestRule.runOnIdle {
+            assertTrue(
+                "expected RefreshRequested to be emitted; got $capturedEvents",
+                capturedEvents.contains(DashboardEvent.RefreshRequested),
+            )
+        }
+    }
+
     // ── Legacy tests (unchanged functionality) ────────────────────────────────
 
     @Test
@@ -340,7 +381,6 @@ class DashboardContentUiTest {
         )
         composeTestRule.waitForIdle()
 
-        // Search was moved from the toolbar into RightDrawerContent (RIGHT_DRAWER_SEARCH_TAG).
         composeTestRule
             .onNodeWithTag(RIGHT_DRAWER_SEARCH_TAG, useUnmergedTree = true)
             .assertIsDisplayed()

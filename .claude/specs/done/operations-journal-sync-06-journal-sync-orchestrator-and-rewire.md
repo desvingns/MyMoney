@@ -1,7 +1,7 @@
 # Оркестратор JournalSync + перепроводка планировщика + bootstrap
 Epic: operations-journal-sync
 Order: 06 of 07
-Status: backlog
+Status: done
 Depends-on: 03, 04, 05
 Date: 2026-06-25
 
@@ -68,5 +68,5 @@ Feature: Оркестрация журнального синка и перев�
 После 03–05 есть запись, применение и транспорт, но они не связаны и планировщик всё ещё гоняет снапшот-синк (G6–G8). Этот SPEC даёт оркестратор, переводит расписание и стартовый триггер на журнал и публикует существующие данные через bootstrap.
 
 ## Implementation links
-- commit: (pending)
-- files:  (pending)
+- commit: f1c6fefc (prod) + b41aecad (tests)
+- files: core/sync/{JournalSync,JournalSyncImpl,SyncSchedulerImpl,WorkSchedulerImpl,di/SyncModule,worker/SyncWorker}.kt; core/database/journal/{JournalBootstrap,OperationMapper}.kt + dao/{Operation,Transaction,Category,Account}Dao.kt; core/datastore/{JournalSyncConfigStore,Impl,di/DataStoreModule}.kt; app/MyMoneyApp.kt; feature/cloudsync/{CloudSyncViewModel,fake/FakeJournalSync}.kt; +tests JournalSyncImplTest/JournalSyncConfigStoreImplTest/JournalBootstrapTest(androidTest)/WorkSchedulerImplTest

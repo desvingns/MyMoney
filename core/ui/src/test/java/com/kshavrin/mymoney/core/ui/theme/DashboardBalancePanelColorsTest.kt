@@ -37,6 +37,13 @@ class DashboardBalancePanelColorsTest {
     }
 
     @Test
+    fun `aurora balance panel keeps the display wash light and balance compact`() {
+        assertTrue(DarkColors.dashboardAuroraInnerPanel.alpha <= 0.05f)
+        assertEquals(26f, MoneyTypography.dashboardAuroraBalanceValueCompact.fontSize.value, 0f)
+        assertEquals(30f, MoneyTypography.dashboardAuroraBalanceValueCompact.lineHeight.value, 0f)
+    }
+
+    @Test
     fun `surface variant content keeps normal text contrast readable`() {
         assertTrue(contrastRatio(DarkColors.onSurfaceVariant, DarkColors.surfaceVariant) >= 4.5)
     }

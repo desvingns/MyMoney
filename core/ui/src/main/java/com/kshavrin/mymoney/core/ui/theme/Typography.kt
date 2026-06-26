@@ -330,8 +330,8 @@ val Typography.dashboardAuroraBalanceValue: TextStyle
 val Typography.dashboardAuroraBalanceValueCompact: TextStyle
     get() =
         displayMedium.copy(
-            fontSize = 34.sp,
+            fontSize = 26.sp,
             fontWeight = FontWeight.ExtraBold,
             letterSpacing = (-1).sp,
-            lineHeight = 38.sp,
+            lineHeight = 30.sp,
         )

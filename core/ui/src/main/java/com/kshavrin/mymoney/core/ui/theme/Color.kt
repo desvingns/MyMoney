@@ -395,11 +395,11 @@ fun ColorScheme.dashboardAuroraAccentForSign(positive: Boolean): Color =
     if (positive) NeonMint else NeonRed
 
 // Aurora hero card — dark display panel behind all card content (balance + pills + chart).
-// Black @0.34 reads as an intentional inset "screen" over the card interior tint without
+// Low-alpha black reads as a soft inset "screen" over the card interior tint without
 // collapsing to a pure void; soft enough not to fight the neon accent border glow.
 // The panel corner reuses dashboardAuroraCard (24dp) and its perimeter is feathered via
 // dashboardAuroraInnerPanelFeather so there is no hard edge between panel and card fill.
-private val DashboardAuroraInnerPanelFill = Color.Black.copy(alpha = 0.10f)
+private val DashboardAuroraInnerPanelFill = Color.Black.copy(alpha = 0.045f)
 
 val ColorScheme.dashboardAuroraInnerPanel: Color
     get() = DashboardAuroraInnerPanelFill

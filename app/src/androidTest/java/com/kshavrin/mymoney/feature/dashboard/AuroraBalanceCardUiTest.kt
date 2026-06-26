@@ -133,7 +133,7 @@ class AuroraBalanceCardUiTest {
     }
 
     @Test
-    fun `aurora balance value uses the compact 34sp typography token`() {
+    fun `aurora balance value uses the compact 26sp typography token`() {
         setCard(balance = "98 765 $")
 
         val fontSize =
@@ -141,7 +141,7 @@ class AuroraBalanceCardUiTest {
                 .onNodeWithTag(DASHBOARD_AURORA_BALANCE_TAG)
                 .textLayout()
                 .layoutInput.style.fontSize
-        assertEquals(34.sp, fontSize)
+        assertEquals(26.sp, fontSize)
     }
 
     @Test

@@ -163,7 +163,7 @@ class CurrencyBalanceCardListUiTest {
     }
 
     @Test
-    fun `single currency card balance uses the compact 34sp typography token`() {
+    fun `single currency card balance uses the compact 26sp typography token`() {
         val expected = formatAmount(BigDecimal("70.50"), usd)
 
         composeTestRule.setContent {
@@ -179,7 +179,7 @@ class CurrencyBalanceCardListUiTest {
                 .onNodeWithText(expected)
                 .textLayout()
                 .layoutInput.style.fontSize
-        assertEquals(34.sp, fontSize)
+        assertEquals(26.sp, fontSize)
     }
 
     // -----------------------------------------------------------------------

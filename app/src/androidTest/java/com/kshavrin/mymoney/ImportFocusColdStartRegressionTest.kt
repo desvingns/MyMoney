@@ -42,8 +42,8 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.plus
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.After
@@ -106,7 +106,7 @@ class ImportFocusColdStartRegressionTest {
 
     @Test
     fun importedRowsSurviveColdStartAndShowOnDashboard() =
-        runBlocking {
+        runTest {
             val context = ApplicationProvider.getApplicationContext<Context>()
             val io = Dispatchers.IO
             val default = Dispatchers.Default

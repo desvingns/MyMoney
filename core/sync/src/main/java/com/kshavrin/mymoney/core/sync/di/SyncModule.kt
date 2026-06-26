@@ -2,6 +2,7 @@ package com.kshavrin.mymoney.core.sync.di
 
 import com.kshavrin.mymoney.core.domain.repository.RemoteConfigRepository
 import com.kshavrin.mymoney.core.sync.CloudSyncBackend
+import com.kshavrin.mymoney.core.sync.JournalBackend
 import com.kshavrin.mymoney.core.sync.SnapshotSync
 import com.kshavrin.mymoney.core.sync.SnapshotSyncRepository
 import com.kshavrin.mymoney.core.sync.SyncScheduler
@@ -9,6 +10,7 @@ import com.kshavrin.mymoney.core.sync.SyncSchedulerImpl
 import com.kshavrin.mymoney.core.sync.WorkScheduler
 import com.kshavrin.mymoney.core.sync.WorkSchedulerImpl
 import com.kshavrin.mymoney.core.sync.dropbox.DropboxRepository
+import com.kshavrin.mymoney.core.sync.gdrive.GoogleDriveJournalBackend
 import com.kshavrin.mymoney.core.sync.gdrive.GoogleDriveRepository
 import com.kshavrin.mymoney.core.sync.remoteconfig.RemoteConfigRepositoryImpl
 import dagger.Binds
@@ -44,4 +46,8 @@ abstract class SyncModule {
     @Binds
     @IntoSet
     abstract fun bindGdriveBackend(impl: GoogleDriveRepository): CloudSyncBackend
+
+    @Binds
+    @Singleton
+    abstract fun bindJournalBackend(impl: GoogleDriveJournalBackend): JournalBackend
 }

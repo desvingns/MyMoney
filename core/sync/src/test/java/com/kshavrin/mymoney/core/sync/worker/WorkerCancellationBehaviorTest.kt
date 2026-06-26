@@ -31,8 +31,7 @@ import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
 import com.kshavrin.mymoney.core.domain.transaction.TransactionRunner
 import com.kshavrin.mymoney.core.domain.usecase.GenerateDueRecurringUseCase
 import com.kshavrin.mymoney.core.domain.usecase.RecurringScheduler
-import com.kshavrin.mymoney.core.sync.SnapshotSync
-import com.kshavrin.mymoney.core.sync.SyncOutcome
+import com.kshavrin.mymoney.core.sync.JournalSync
 import com.kshavrin.mymoney.core.sync.SyncTarget
 import com.kshavrin.mymoney.core.sync.fake.FakeAppSettingsRepository
 import kotlinx.coroutines.CancellationException
@@ -213,7 +212,7 @@ class WorkerCancellationBehaviorTest {
                                     .putString(SyncWorker.KEY_TARGET, SyncTarget.Dropbox.name)
                                     .build(),
                         ),
-                    orchestrator = FakeSnapshotSync(pushResult = Result.failure(CancellationException("cancelled"))),
+                    journalSync = FakeJournalSync(error = CancellationException("cancelled")),
                     settings = settings,
                 )
 
@@ -239,10 +238,7 @@ class WorkerCancellationBehaviorTest {
                                     .putString(SyncWorker.KEY_TARGET, SyncTarget.Dropbox.name)
                                     .build(),
                         ),
-                    orchestrator =
-                        FakeSnapshotSync(
-                            pushResult = Result.failure(SyncException(SyncError.Network)),
-                        ),
+                    journalSync = FakeJournalSync(error = SyncException(SyncError.Network)),
                     settings = settings,
                 )
 
@@ -284,32 +280,20 @@ class WorkerCancellationBehaviorTest {
     private fun completedFuture(): ListenableFuture<Void> =
         SettableFuture.create<Void>().apply { set(null) }
 
-    private class FakeSnapshotSync(
-        private val pushResult: Result<SyncOutcome> = Result.success(SyncOutcome.Pushed),
-        private val autoSyncResult: Result<Unit> = Result.success(Unit),
-    ) : SnapshotSync {
-        override fun isConnected(target: SyncTarget): Boolean = true
+    private class FakeJournalSync(
+        private val error: Throwable? = null,
+    ) : JournalSync {
+        override suspend fun push() {
+            error?.let { throw it }
+        }
 
-        override fun connectedTargets(): List<SyncTarget> = listOf(SyncTarget.Dropbox)
+        override suspend fun pull() {
+            error?.let { throw it }
+        }
 
-        override suspend fun syncNow(target: SyncTarget): Result<SyncOutcome> = pushResult
-
-        override suspend fun push(target: SyncTarget): Result<SyncOutcome> = pushResult
-
-        override suspend fun keepLocal(target: SyncTarget): Result<SyncOutcome> = pushResult
-
-        override suspend fun keepRemote(target: SyncTarget): Result<SyncOutcome> = pushResult
-
-        override fun connect(
-            target: SyncTarget,
-            payload: String,
-        ) = Unit
-
-        override fun disconnect(target: SyncTarget) = Unit
-
-        override suspend fun accountLabel(target: SyncTarget): Result<String> = Result.success(target.name)
-
-        override suspend fun autoSyncConnected(): Result<Unit> = autoSyncResult
+        override suspend fun syncNow() {
+            error?.let { throw it }
+        }
     }
 
     private class ImmediateTaskExecutor(

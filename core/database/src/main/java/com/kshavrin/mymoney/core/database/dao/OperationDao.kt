@@ -26,6 +26,9 @@ interface OperationDao {
     @Query("SELECT op_id FROM op_journal")
     suspend fun knownOpIds(): List<String>
 
+    @Query("SELECT DISTINCT entity_uuid FROM op_journal")
+    suspend fun knownEntityUuids(): List<String>
+
     @Query("SELECT EXISTS(SELECT 1 FROM op_journal WHERE op_id = :opId)")
     suspend fun existsByOpId(opId: String): Boolean
 

@@ -7,6 +7,7 @@ import com.kshavrin.mymoney.core.common.di.IoDispatcher
 import com.kshavrin.mymoney.core.common.scope.ApplicationScope
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
 import com.kshavrin.mymoney.core.domain.usecase.NormalizeLegacyUtcMidnightUseCase
+import com.kshavrin.mymoney.core.sync.JournalSync
 import com.kshavrin.mymoney.core.sync.WorkScheduler
 import dagger.hilt.android.HiltAndroidApp
 import io.sentry.Sentry
@@ -27,6 +28,9 @@ class MyMoneyApp :
 
     @Inject
     lateinit var workScheduler: WorkScheduler
+
+    @Inject
+    lateinit var journalSync: JournalSync
 
     @Inject
     lateinit var appSettingsRepository: AppSettingsRepository
@@ -54,6 +58,7 @@ class MyMoneyApp :
         applicationScope.launch(ioDispatcher) {
             workScheduler.scheduleDailyJobs()
         }
+        triggerJournalSyncOnOpen()
         if (BuildConfig.SENTRY_DSN.isNotBlank()) {
             SentryAndroid.init(this) { options ->
                 options.dsn = BuildConfig.SENTRY_DSN
@@ -63,6 +68,13 @@ class MyMoneyApp :
             }
         }
         normalizeLegacyUtcMidnightDates()
+    }
+
+    private fun triggerJournalSyncOnOpen() {
+        applicationScope.launch(ioDispatcher) {
+            runCatching { journalSync.syncNow() }
+                .onFailure { throwable -> Sentry.captureException(throwable) }
+        }
     }
 
     private fun normalizeLegacyUtcMidnightDates() {

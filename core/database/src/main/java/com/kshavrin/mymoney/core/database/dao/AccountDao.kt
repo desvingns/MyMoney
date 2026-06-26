@@ -18,6 +18,12 @@ abstract class AccountDao {
     @Query("SELECT * FROM account WHERE uuid = :uuid LIMIT 1")
     abstract suspend fun findByUuid(uuid: String): AccountEntity?
 
+    @Query("SELECT * FROM account")
+    abstract suspend fun listAll(): List<AccountEntity>
+
+    @Query("UPDATE account SET device_id = :deviceId WHERE device_id = ''")
+    abstract suspend fun stampMissingDeviceId(deviceId: String)
+
     @Query("UPDATE account SET is_archived = 1 WHERE uuid = :uuid")
     abstract suspend fun archiveByUuid(uuid: String)
 

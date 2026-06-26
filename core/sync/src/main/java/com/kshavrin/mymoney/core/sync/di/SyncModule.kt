@@ -3,6 +3,8 @@ package com.kshavrin.mymoney.core.sync.di
 import com.kshavrin.mymoney.core.domain.repository.RemoteConfigRepository
 import com.kshavrin.mymoney.core.sync.CloudSyncBackend
 import com.kshavrin.mymoney.core.sync.JournalBackend
+import com.kshavrin.mymoney.core.sync.JournalSync
+import com.kshavrin.mymoney.core.sync.JournalSyncImpl
 import com.kshavrin.mymoney.core.sync.SnapshotSync
 import com.kshavrin.mymoney.core.sync.SnapshotSyncRepository
 import com.kshavrin.mymoney.core.sync.SyncScheduler
@@ -30,6 +32,10 @@ abstract class SyncModule {
     @Binds
     @Singleton
     abstract fun bindSnapshotSync(impl: SnapshotSyncRepository): SnapshotSync
+
+    @Binds
+    @Singleton
+    abstract fun bindJournalSync(impl: JournalSyncImpl): JournalSync
 
     @Binds
     @Singleton

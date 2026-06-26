@@ -9,6 +9,8 @@ import com.kshavrin.mymoney.core.common.di.IoDispatcher
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepositoryImpl
 import com.kshavrin.mymoney.core.datastore.DeviceIdProviderImpl
+import com.kshavrin.mymoney.core.datastore.JournalSyncConfigStore
+import com.kshavrin.mymoney.core.datastore.JournalSyncConfigStoreImpl
 import com.kshavrin.mymoney.core.datastore.SecureStorage
 import com.kshavrin.mymoney.core.datastore.SecureStorageImpl
 import com.kshavrin.mymoney.core.domain.sync.DeviceIdProvider
@@ -55,4 +57,8 @@ abstract class DataStoreBindings {
     @Binds
     @Singleton
     abstract fun bindDeviceIdProvider(impl: DeviceIdProviderImpl): DeviceIdProvider
+
+    @Binds
+    @Singleton
+    abstract fun bindJournalSyncConfigStore(impl: JournalSyncConfigStoreImpl): JournalSyncConfigStore
 }

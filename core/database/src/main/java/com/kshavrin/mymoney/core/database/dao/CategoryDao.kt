@@ -20,6 +20,12 @@ interface CategoryDao {
     @Query("SELECT * FROM category WHERE uuid = :uuid LIMIT 1")
     suspend fun findByUuid(uuid: String): CategoryEntity?
 
+    @Query("SELECT * FROM category")
+    suspend fun listAll(): List<CategoryEntity>
+
+    @Query("UPDATE category SET device_id = :deviceId WHERE device_id = ''")
+    suspend fun stampMissingDeviceId(deviceId: String)
+
     @Query("UPDATE category SET is_archived = 1 WHERE uuid = :uuid")
     suspend fun archiveByUuid(uuid: String)
 

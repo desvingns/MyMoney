@@ -8,6 +8,7 @@ import com.kshavrin.mymoney.core.common.exception.SyncException
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
 import com.kshavrin.mymoney.core.domain.repository.RemoteConfigRepository
 import com.kshavrin.mymoney.core.domain.repository.SyncLogRepository
+import com.kshavrin.mymoney.core.sync.JournalSync
 import com.kshavrin.mymoney.core.sync.SnapshotSync
 import com.kshavrin.mymoney.core.sync.SyncOutcome
 import com.kshavrin.mymoney.core.sync.SyncScheduler
@@ -28,6 +29,7 @@ class CloudSyncViewModel
     @Inject
     constructor(
         private val snapshotSync: SnapshotSync,
+        private val journalSync: JournalSync,
         private val syncScheduler: SyncScheduler,
         private val appSettings: AppSettingsRepository,
         private val syncLog: SyncLogRepository,
@@ -105,9 +107,8 @@ class CloudSyncViewModel
             if (!snapshotSync.isConnected(target)) return
             viewModelScope.launch {
                 updateCard(target) { it.copy(syncing = true) }
-                snapshotSync
-                    .syncNow(target)
-                    .onSuccess { outcome -> applyOutcome(target, outcome) }
+                runCatching { journalSync.syncNow() }
+                    .onSuccess { refresh(target) }
                     .onFailure { _state.value = _state.value.copy(errorBannerRes = mapError(it.toSyncError())) }
                 updateCard(target) { it.copy(syncing = false) }
             }

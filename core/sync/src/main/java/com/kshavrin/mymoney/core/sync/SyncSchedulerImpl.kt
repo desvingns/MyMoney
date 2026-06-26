@@ -25,12 +25,11 @@ class SyncSchedulerImpl
 
         override fun enablePeriodicSync() {
             val request =
-                PeriodicWorkRequestBuilder<SyncWorker>(PERIOD_HOURS, TimeUnit.HOURS)
+                PeriodicWorkRequestBuilder<SyncWorker>(PERIOD_MINUTES, TimeUnit.MINUTES)
                     .setConstraints(
                         Constraints
                             .Builder()
-                            .setRequiredNetworkType(NetworkType.UNMETERED)
-                            .setRequiresBatteryNotLow(true)
+                            .setRequiredNetworkType(NetworkType.CONNECTED)
                             .build(),
                     ).build()
             workManager.enqueueUniquePeriodicWork(
@@ -63,6 +62,8 @@ class SyncSchedulerImpl
         }
 
         private companion object {
-            const val PERIOD_HOURS = 6L
+            // WorkManager's minimum periodic interval is 15 minutes; near-real-time freshness comes
+            // from open-app + pull-to-refresh (07), not this timer (D7).
+            const val PERIOD_MINUTES = 15L
         }
     }

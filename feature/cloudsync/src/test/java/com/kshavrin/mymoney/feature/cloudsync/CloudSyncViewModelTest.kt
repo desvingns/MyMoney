@@ -8,6 +8,7 @@ import com.kshavrin.mymoney.core.domain.model.SyncLogEntry
 import com.kshavrin.mymoney.core.sync.SyncOutcome
 import com.kshavrin.mymoney.core.sync.SyncTarget
 import com.kshavrin.mymoney.feature.cloudsync.fake.FakeAppSettingsRepository
+import com.kshavrin.mymoney.feature.cloudsync.fake.FakeJournalSync
 import com.kshavrin.mymoney.feature.cloudsync.fake.FakeRemoteConfigRepository
 import com.kshavrin.mymoney.feature.cloudsync.fake.FakeSnapshotSync
 import com.kshavrin.mymoney.feature.cloudsync.fake.FakeSyncLogRepository
@@ -29,6 +30,7 @@ class CloudSyncViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private lateinit var snapshotSync: FakeSnapshotSync
+    private lateinit var journalSync: FakeJournalSync
     private lateinit var scheduler: FakeSyncScheduler
     private lateinit var appSettings: FakeAppSettingsRepository
     private lateinit var syncLog: FakeSyncLogRepository
@@ -40,6 +42,7 @@ class CloudSyncViewModelTest {
         gdriveEnabled: Boolean = true,
     ): CloudSyncViewModel {
         snapshotSync = FakeSnapshotSync()
+        journalSync = FakeJournalSync()
         scheduler = FakeSyncScheduler()
         appSettings = FakeAppSettingsRepository(initialSettings)
         syncLog = FakeSyncLogRepository()
@@ -48,7 +51,7 @@ class CloudSyncViewModelTest {
                 dropboxEnabled = dropboxEnabled,
                 gdriveEnabled = gdriveEnabled,
             )
-        return CloudSyncViewModel(snapshotSync, scheduler, appSettings, syncLog, remoteConfig)
+        return CloudSyncViewModel(snapshotSync, journalSync, scheduler, appSettings, syncLog, remoteConfig)
     }
 
     private fun logEntry(target: String) =
@@ -87,11 +90,12 @@ class CloudSyncViewModelTest {
                     setConnected(SyncTarget.Dropbox, true)
                     setAccountLabel(SyncTarget.Dropbox, Result.success("alice@dropbox.com"))
                 }
+            journalSync = FakeJournalSync()
             scheduler = FakeSyncScheduler()
             appSettings = FakeAppSettingsRepository(AppSettings())
             syncLog = FakeSyncLogRepository()
             remoteConfig = FakeRemoteConfigRepository()
-            val viewModel = CloudSyncViewModel(snapshotSync, scheduler, appSettings, syncLog, remoteConfig)
+            val viewModel = CloudSyncViewModel(snapshotSync, journalSync, scheduler, appSettings, syncLog, remoteConfig)
 
             viewModel.state.test {
                 val state = awaitItem()
@@ -118,6 +122,7 @@ class CloudSyncViewModelTest {
     fun `init loads recent log per target from the sync log repository`() =
         runTest {
             snapshotSync = FakeSnapshotSync()
+            journalSync = FakeJournalSync()
             scheduler = FakeSyncScheduler()
             appSettings = FakeAppSettingsRepository(AppSettings())
             syncLog =
@@ -125,7 +130,7 @@ class CloudSyncViewModelTest {
                     seedRecent(SyncTarget.Dropbox.name, listOf(logEntry(SyncTarget.Dropbox.name)))
                 }
             remoteConfig = FakeRemoteConfigRepository()
-            val viewModel = CloudSyncViewModel(snapshotSync, scheduler, appSettings, syncLog, remoteConfig)
+            val viewModel = CloudSyncViewModel(snapshotSync, journalSync, scheduler, appSettings, syncLog, remoteConfig)
 
             viewModel.state.test {
                 val state = awaitItem()
@@ -170,11 +175,12 @@ class CloudSyncViewModelTest {
                     setConnected(SyncTarget.Dropbox, true)
                     setSyncNowResult(SyncTarget.Dropbox, Result.success(SyncOutcome.Pushed))
                 }
+            journalSync = FakeJournalSync()
             scheduler = FakeSyncScheduler()
             appSettings = FakeAppSettingsRepository(AppSettings())
             syncLog = FakeSyncLogRepository()
             remoteConfig = FakeRemoteConfigRepository()
-            val viewModel = CloudSyncViewModel(snapshotSync, scheduler, appSettings, syncLog, remoteConfig)
+            val viewModel = CloudSyncViewModel(snapshotSync, journalSync, scheduler, appSettings, syncLog, remoteConfig)
 
             viewModel.onEvent(CloudSyncEvent.SyncNowClicked(SyncTarget.Dropbox))
 
@@ -184,7 +190,7 @@ class CloudSyncViewModelTest {
                 assertNull(state.conflict)
                 cancelAndIgnoreRemainingEvents()
             }
-            assertEquals(listOf(SyncTarget.Dropbox), snapshotSync.syncNowCalls)
+            assertEquals(1, journalSync.syncNowCalls)
         }
 
     @Test
@@ -195,11 +201,12 @@ class CloudSyncViewModelTest {
                     setConnected(SyncTarget.Dropbox, true)
                     setSyncNowResult(SyncTarget.Dropbox, Result.success(SyncOutcome.Pushed))
                 }
+            journalSync = FakeJournalSync()
             scheduler = FakeSyncScheduler()
             appSettings = FakeAppSettingsRepository(AppSettings())
             syncLog = FakeSyncLogRepository()
             remoteConfig = FakeRemoteConfigRepository()
-            val viewModel = CloudSyncViewModel(snapshotSync, scheduler, appSettings, syncLog, remoteConfig)
+            val viewModel = CloudSyncViewModel(snapshotSync, journalSync, scheduler, appSettings, syncLog, remoteConfig)
 
             viewModel.onEvent(CloudSyncEvent.SyncNowClicked(SyncTarget.Dropbox))
 
@@ -212,32 +219,28 @@ class CloudSyncViewModelTest {
     // --- 3. sync now conflict -------------------------------------------------------------
 
     @Test
-    fun `sync now with a conflict outcome sets a conflict prompt for the target`() =
+    fun `sync now never raises a conflict prompt under journal LWW`() =
         runTest {
             snapshotSync =
                 FakeSnapshotSync().apply {
                     setConnected(SyncTarget.Dropbox, true)
-                    setSyncNowResult(
-                        SyncTarget.Dropbox,
-                        Result.success(SyncOutcome.ConflictDetected(remoteModifiedMs = 200L, localLastSyncMs = 100L)),
-                    )
                 }
+            journalSync = FakeJournalSync()
             scheduler = FakeSyncScheduler()
             appSettings = FakeAppSettingsRepository(AppSettings())
             syncLog = FakeSyncLogRepository()
             remoteConfig = FakeRemoteConfigRepository()
-            val viewModel = CloudSyncViewModel(snapshotSync, scheduler, appSettings, syncLog, remoteConfig)
+            val viewModel = CloudSyncViewModel(snapshotSync, journalSync, scheduler, appSettings, syncLog, remoteConfig)
 
             viewModel.onEvent(CloudSyncEvent.SyncNowClicked(SyncTarget.Dropbox))
 
             viewModel.state.test {
                 val state = awaitItem()
-                assertEquals(SyncTarget.Dropbox, state.conflict?.target)
-                assertEquals(200L, state.conflict?.remoteMs)
-                assertEquals(100L, state.conflict?.localMs)
+                assertNull(state.conflict)
                 assertNull(state.errorBannerRes)
                 cancelAndIgnoreRemainingEvents()
             }
+            assertEquals(1, journalSync.syncNowCalls)
         }
 
     // --- 4. sync now failure --------------------------------------------------------------
@@ -248,13 +251,13 @@ class CloudSyncViewModelTest {
             snapshotSync =
                 FakeSnapshotSync().apply {
                     setConnected(SyncTarget.Dropbox, true)
-                    setSyncNowResult(SyncTarget.Dropbox, Result.failure(SyncException(SyncError.Server)))
                 }
+            journalSync = FakeJournalSync().apply { syncNowError = SyncException(SyncError.Server) }
             scheduler = FakeSyncScheduler()
             appSettings = FakeAppSettingsRepository(AppSettings())
             syncLog = FakeSyncLogRepository()
             remoteConfig = FakeRemoteConfigRepository()
-            val viewModel = CloudSyncViewModel(snapshotSync, scheduler, appSettings, syncLog, remoteConfig)
+            val viewModel = CloudSyncViewModel(snapshotSync, journalSync, scheduler, appSettings, syncLog, remoteConfig)
 
             viewModel.onEvent(CloudSyncEvent.SyncNowClicked(SyncTarget.Dropbox))
 
@@ -329,90 +332,10 @@ class CloudSyncViewModelTest {
 
     // --- 7. conflict resolution -----------------------------------------------------------
 
-    @Test
-    fun `keep remote invokes the keep remote seam and clears the conflict`() =
-        runTest {
-            snapshotSync =
-                FakeSnapshotSync().apply {
-                    setConnected(SyncTarget.Dropbox, true)
-                    setSyncNowResult(
-                        SyncTarget.Dropbox,
-                        Result.success(SyncOutcome.ConflictDetected(remoteModifiedMs = 200L, localLastSyncMs = 100L)),
-                    )
-                    setKeepRemoteResult(SyncTarget.Dropbox, Result.success(SyncOutcome.PulledRequiresRestart))
-                }
-            scheduler = FakeSyncScheduler()
-            appSettings = FakeAppSettingsRepository(AppSettings())
-            syncLog = FakeSyncLogRepository()
-            remoteConfig = FakeRemoteConfigRepository()
-            val viewModel = CloudSyncViewModel(snapshotSync, scheduler, appSettings, syncLog, remoteConfig)
-            viewModel.onEvent(CloudSyncEvent.SyncNowClicked(SyncTarget.Dropbox))
-
-            viewModel.onEvent(CloudSyncEvent.ConflictKeepRemote)
-
-            viewModel.state.test {
-                assertNull(awaitItem().conflict)
-                cancelAndIgnoreRemainingEvents()
-            }
-            assertEquals(listOf(SyncTarget.Dropbox), snapshotSync.keepRemoteCalls)
-            assertTrue(snapshotSync.keepLocalCalls.isEmpty())
-        }
-
-    @Test
-    fun `keep remote requiring restart emits the restart action`() =
-        runTest {
-            snapshotSync =
-                FakeSnapshotSync().apply {
-                    setConnected(SyncTarget.Dropbox, true)
-                    setSyncNowResult(
-                        SyncTarget.Dropbox,
-                        Result.success(SyncOutcome.ConflictDetected(remoteModifiedMs = 200L, localLastSyncMs = 100L)),
-                    )
-                    setKeepRemoteResult(SyncTarget.Dropbox, Result.success(SyncOutcome.PulledRequiresRestart))
-                }
-            scheduler = FakeSyncScheduler()
-            appSettings = FakeAppSettingsRepository(AppSettings())
-            syncLog = FakeSyncLogRepository()
-            remoteConfig = FakeRemoteConfigRepository()
-            val viewModel = CloudSyncViewModel(snapshotSync, scheduler, appSettings, syncLog, remoteConfig)
-            viewModel.onEvent(CloudSyncEvent.SyncNowClicked(SyncTarget.Dropbox))
-
-            viewModel.actions.test {
-                viewModel.onEvent(CloudSyncEvent.ConflictKeepRemote)
-                assertEquals(CloudSyncAction.RestartAfterRestore, awaitItem())
-                cancelAndIgnoreRemainingEvents()
-            }
-            assertEquals(listOf(SyncTarget.Dropbox), snapshotSync.keepRemoteCalls)
-        }
-
-    @Test
-    fun `keep local invokes the keep local seam and clears the conflict`() =
-        runTest {
-            snapshotSync =
-                FakeSnapshotSync().apply {
-                    setConnected(SyncTarget.Dropbox, true)
-                    setSyncNowResult(
-                        SyncTarget.Dropbox,
-                        Result.success(SyncOutcome.ConflictDetected(remoteModifiedMs = 200L, localLastSyncMs = 100L)),
-                    )
-                    setKeepLocalResult(SyncTarget.Dropbox, Result.success(SyncOutcome.Pushed))
-                }
-            scheduler = FakeSyncScheduler()
-            appSettings = FakeAppSettingsRepository(AppSettings())
-            syncLog = FakeSyncLogRepository()
-            remoteConfig = FakeRemoteConfigRepository()
-            val viewModel = CloudSyncViewModel(snapshotSync, scheduler, appSettings, syncLog, remoteConfig)
-            viewModel.onEvent(CloudSyncEvent.SyncNowClicked(SyncTarget.Dropbox))
-
-            viewModel.onEvent(CloudSyncEvent.ConflictKeepLocal)
-
-            viewModel.state.test {
-                assertNull(awaitItem().conflict)
-                cancelAndIgnoreRemainingEvents()
-            }
-            assertEquals(listOf(SyncTarget.Dropbox), snapshotSync.keepLocalCalls)
-            assertTrue(snapshotSync.keepRemoteCalls.isEmpty())
-        }
+    // The journal sync resolves merges automatically via last-writer-wins (D5), so SyncNowClicked
+    // can no longer raise a conflict prompt. The former keep-remote / keep-local / restart-on-keep
+    // tests are removed here; the residual conflict UI is cleaned up in SPEC 07. The dead-but-present
+    // resolveConflict seam is still covered by the no-active-conflict case below.
 
     @Test
     fun `resolving a conflict with no active conflict does nothing`() =
@@ -485,11 +408,12 @@ class CloudSyncViewModelTest {
                     setConnected(SyncTarget.Dropbox, true)
                     setAccountLabel(SyncTarget.Dropbox, Result.success("alice@dropbox.com"))
                 }
+            journalSync = FakeJournalSync()
             scheduler = FakeSyncScheduler()
             appSettings = FakeAppSettingsRepository(AppSettings())
             syncLog = FakeSyncLogRepository()
             remoteConfig = FakeRemoteConfigRepository()
-            val viewModel = CloudSyncViewModel(snapshotSync, scheduler, appSettings, syncLog, remoteConfig)
+            val viewModel = CloudSyncViewModel(snapshotSync, journalSync, scheduler, appSettings, syncLog, remoteConfig)
 
             viewModel.onEvent(CloudSyncEvent.DisconnectClicked(SyncTarget.Dropbox))
 
@@ -529,11 +453,12 @@ class CloudSyncViewModelTest {
                         Result.success(SyncOutcome.ConflictDetected(remoteModifiedMs = 200L, localLastSyncMs = 100L)),
                     )
                 }
+            journalSync = FakeJournalSync()
             scheduler = FakeSyncScheduler()
             appSettings = FakeAppSettingsRepository(AppSettings())
             syncLog = FakeSyncLogRepository()
             remoteConfig = FakeRemoteConfigRepository()
-            val viewModel = CloudSyncViewModel(snapshotSync, scheduler, appSettings, syncLog, remoteConfig)
+            val viewModel = CloudSyncViewModel(snapshotSync, journalSync, scheduler, appSettings, syncLog, remoteConfig)
             viewModel.onEvent(CloudSyncEvent.SyncNowClicked(SyncTarget.Dropbox))
 
             viewModel.onEvent(CloudSyncEvent.DismissConflict)

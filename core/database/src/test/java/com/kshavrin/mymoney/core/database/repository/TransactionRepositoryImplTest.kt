@@ -104,6 +104,10 @@ class TransactionRepositoryImplTest {
 
         override suspend fun listForTimezoneNormalization(): List<TransactionEntity> = normalizationRows
 
+        override suspend fun listAll(): List<TransactionEntity> = normalizationRows
+
+        override suspend fun stampMissingDeviceId(deviceId: String) = Unit
+
         override suspend fun upsert(transaction: TransactionEntity): Long = transaction.id
 
         override suspend fun updateOccurredAt(
@@ -150,6 +154,10 @@ class TransactionRepositoryImplTest {
 
             override suspend fun findByUuid(uuid: String): AccountEntity? = null
 
+            override suspend fun listAll(): List<AccountEntity> = emptyList()
+
+            override suspend fun stampMissingDeviceId(deviceId: String) = Unit
+
             override suspend fun archiveByUuid(uuid: String) = Unit
 
             override suspend fun findDefault(): AccountEntity? = null
@@ -179,6 +187,10 @@ class TransactionRepositoryImplTest {
             override suspend fun findById(id: Long): CategoryEntity? = null
 
             override suspend fun findByUuid(uuid: String): CategoryEntity? = null
+
+            override suspend fun listAll(): List<CategoryEntity> = emptyList()
+
+            override suspend fun stampMissingDeviceId(deviceId: String) = Unit
 
             override suspend fun archiveByUuid(uuid: String) = Unit
 
@@ -210,6 +222,8 @@ class TransactionRepositoryImplTest {
             override suspend fun markSynced(opIds: List<String>) = Unit
 
             override suspend fun knownOpIds(): List<String> = emptyList()
+
+            override suspend fun knownEntityUuids(): List<String> = emptyList()
 
             override suspend fun existsByOpId(opId: String): Boolean = false
 

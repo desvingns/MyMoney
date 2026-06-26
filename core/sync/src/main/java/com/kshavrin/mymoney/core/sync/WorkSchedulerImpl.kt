@@ -6,6 +6,7 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
+import com.kshavrin.mymoney.core.datastore.JournalSyncConfigStore
 import com.kshavrin.mymoney.core.sync.worker.PruneDeletedWorker
 import com.kshavrin.mymoney.core.sync.worker.RecurringWorker
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -20,7 +21,7 @@ class WorkSchedulerImpl
     constructor(
         @ApplicationContext private val context: Context,
         private val appSettings: AppSettingsRepository,
-        private val snapshotSync: SnapshotSync,
+        private val journalSyncConfig: JournalSyncConfigStore,
         private val syncScheduler: SyncScheduler,
     ) : WorkScheduler {
         private val workManager: WorkManager get() = WorkManager.getInstance(context)
@@ -51,7 +52,7 @@ class WorkSchedulerImpl
             )
 
             val autoSyncEnabled = appSettings.settings.first().autoSyncEnabled
-            if (autoSyncEnabled && snapshotSync.connectedTargets().isNotEmpty()) {
+            if (autoSyncEnabled && journalSyncConfig.folderId().isNotBlank()) {
                 syncScheduler.enablePeriodicSync()
             } else {
                 syncScheduler.disablePeriodicSync()

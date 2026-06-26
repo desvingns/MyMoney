@@ -5,8 +5,7 @@ import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
-import com.kshavrin.mymoney.core.sync.SnapshotSync
-import com.kshavrin.mymoney.core.sync.SyncTarget
+import com.kshavrin.mymoney.core.sync.JournalSync
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.CancellationException
@@ -18,19 +17,13 @@ class SyncWorker
     constructor(
         @Assisted appContext: Context,
         @Assisted params: WorkerParameters,
-        private val orchestrator: SnapshotSync,
+        private val journalSync: JournalSync,
         private val settings: AppSettingsRepository,
     ) : CoroutineWorker(appContext, params) {
         override suspend fun doWork(): Result {
-            val target = inputData.getString(KEY_TARGET)
-            val result =
-                if (target != null) {
-                    orchestrator.push(SyncTarget.valueOf(target)).map { }
-                } else {
-                    if (!settings.settings.first().autoSyncEnabled) return Result.success()
-                    orchestrator.autoSyncConnected()
-                }
-            return result.fold(
+            val manual = inputData.getString(KEY_TARGET) != null
+            if (!manual && !settings.settings.first().autoSyncEnabled) return Result.success()
+            return runCatching { journalSync.syncNow() }.fold(
                 onSuccess = { Result.success() },
                 onFailure = {
                     if (it is CancellationException) throw it

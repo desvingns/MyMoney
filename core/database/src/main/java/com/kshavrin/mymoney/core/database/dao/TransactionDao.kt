@@ -178,6 +178,12 @@ interface TransactionDao {
     @Query("SELECT * FROM `transaction`")
     suspend fun listForTimezoneNormalization(): List<TransactionEntity>
 
+    @Query("SELECT * FROM `transaction`")
+    suspend fun listAll(): List<TransactionEntity>
+
+    @Query("UPDATE `transaction` SET device_id = :deviceId WHERE device_id = ''")
+    suspend fun stampMissingDeviceId(deviceId: String)
+
     @Upsert
     suspend fun upsert(transaction: TransactionEntity): Long
 

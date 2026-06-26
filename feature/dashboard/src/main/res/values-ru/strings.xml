@@ -14,6 +14,9 @@
     <string name="dashboard_ring_balance">Остаток</string>
     <string name="dashboard_ring_income">↑ %1$s</string>
     <string name="dashboard_ring_expense">↓ %1$s</string>
+    <string name="dashboard_aurora_free_balance_label">Свободный баланс</string>
+    <string name="dashboard_aurora_income_label">Доходы</string>
+    <string name="dashboard_aurora_expense_label">Расходы</string>
     <string name="dashboard_category_tiles_empty">За период нет расходов</string>
     <string name="dashboard_inline_records_loading">Загрузка…</string>
     <string name="dashboard_inline_records_no_note">Без комментария</string>

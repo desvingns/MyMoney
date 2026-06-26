@@ -37,8 +37,6 @@ import com.kshavrin.mymoney.core.domain.model.BalanceSnapshot
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.domain.model.Period
-import com.kshavrin.mymoney.core.domain.model.Transaction
-import com.kshavrin.mymoney.core.domain.model.TransactionKind
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.feature.dashboard.components.CHART_SETTINGS_SHEET_TAG
@@ -48,8 +46,8 @@ import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_AURORA_CARD_T
 import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_AURORA_EXPENSE_PILL_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_AURORA_INCOME_PILL_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_CURRENCY_CARDS_TAG
-import com.kshavrin.mymoney.feature.dashboard.components.OPERATIONS_SUMMARY_SHEET_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.OPERATIONS_SUMMARY_EMPTY_TAG
+import com.kshavrin.mymoney.feature.dashboard.components.OPERATIONS_SUMMARY_SHEET_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_ABOUT_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_ACCOUNTS_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_CATEGORIES_TAG
@@ -66,7 +64,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import java.math.BigDecimal
 import java.math.RoundingMode
-import java.time.Instant
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 
@@ -1257,7 +1254,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `income and expense pills inside aurora card show truncated integers with currency after when snapshot is present`() {
+    fun `income and expense pills inside aurora card show word label and plain amount without currency symbol when snapshot is present`() {
         val usd = usdCurrency()
         val snapshot =
             BalanceSnapshot(
@@ -1266,8 +1263,11 @@ class DashboardContentUiTest {
                 net = Money(BigDecimal("37650.50"), usd),
                 byCategory = emptyList(),
             )
-        val expectedIncome = formatDashboardAmount(snapshot.income.amount, usd)
-        val expectedExpense = formatDashboardAmount(snapshot.expense.amount, usd)
+        // Pills now show the worded label + plain integer (no currency symbol).
+        val expectedIncomePlain = formatDashboardAmountPlain(snapshot.income.amount)
+        val expectedExpensePlain = formatDashboardAmountPlain(snapshot.expense.amount)
+        val incomeWord = targetString(R.string.dashboard_aurora_income_label)
+        val expenseWord = targetString(R.string.dashboard_aurora_expense_label)
 
         composeTestRule.setContent {
             MyMoneyTheme {
@@ -1284,18 +1284,18 @@ class DashboardContentUiTest {
             }
         }
 
-        // Income/expense are now shown as pills inside the Aurora hero card (not standalone panels).
+        // Income/expense are shown as worded pills: "\u2191 Income 85 000" / "\u2193 Expenses 47 350".
         composeTestRule
             .onNodeWithTag(DASHBOARD_AURORA_INCOME_PILL_TAG)
             .assertIsDisplayed()
         composeTestRule
-            .onNodeWithText("\u2191 $expectedIncome")
+            .onNodeWithText("\u2191 $incomeWord $expectedIncomePlain")
             .assertIsDisplayed()
         composeTestRule
             .onNodeWithTag(DASHBOARD_AURORA_EXPENSE_PILL_TAG)
             .assertIsDisplayed()
         composeTestRule
-            .onNodeWithText("\u2193 $expectedExpense")
+            .onNodeWithText("\u2193 $expenseWord $expectedExpensePlain")
             .assertIsDisplayed()
     }
 
@@ -2104,6 +2104,17 @@ class DashboardContentUiTest {
             locale = targetLocale(),
             symbolPosition = MoneyFormatter.SymbolPosition.AFTER,
         )
+
+    // Mirrors DashboardScreen.formatMoneyPlain: grouped integer, no currency symbol, trimmed.
+    private fun formatDashboardAmountPlain(amount: BigDecimal): String =
+        MoneyFormatter
+            .format(
+                amount = amount.setScale(0, RoundingMode.DOWN),
+                currencySymbol = "",
+                decimalDigits = 0,
+                locale = targetLocale(),
+                symbolPosition = MoneyFormatter.SymbolPosition.AFTER,
+            ).trim()
 
     private fun assertDrawerWidthRatio(
         drawerLabel: String,

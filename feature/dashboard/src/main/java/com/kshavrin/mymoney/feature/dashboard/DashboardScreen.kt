@@ -391,10 +391,10 @@ private fun DashboardPage(
                         formatMoney(pageState.periodNet, locale)
                     },
                 income =
-                    snapshot?.let { formatMoney(it.income, locale) }
+                    snapshot?.let { formatMoneyPlain(it.income, locale) }
                         ?: stringResource(R.string.dashboard_balance_unavailable_amount),
                 expense =
-                    snapshot?.let { formatMoney(it.expense, locale) }
+                    snapshot?.let { formatMoneyPlain(it.expense, locale) }
                         ?: stringResource(R.string.dashboard_balance_unavailable_amount),
                 points = pageState.trendPoints.map { it.value.amount.toFloat() },
                 labels = trendPointLabels(pageState.trendPoints, pageState.trendAxis, locale),
@@ -554,6 +554,20 @@ private fun formatMoney(
         locale = locale,
         symbolPosition = MoneyFormatter.SymbolPosition.AFTER,
     )
+
+// Grouped integer with no currency symbol — SecAurora's income/expense pills (ccFmtPlain).
+private fun formatMoneyPlain(
+    money: Money,
+    locale: Locale,
+): String =
+    MoneyFormatter
+        .format(
+            amount = truncateDashboardAmount(money.amount),
+            currencySymbol = "",
+            decimalDigits = 0,
+            locale = locale,
+            symbolPosition = MoneyFormatter.SymbolPosition.AFTER,
+        ).trim()
 
 private fun truncateDashboardAmount(amount: BigDecimal): BigDecimal = amount.setScale(0, RoundingMode.DOWN)
 

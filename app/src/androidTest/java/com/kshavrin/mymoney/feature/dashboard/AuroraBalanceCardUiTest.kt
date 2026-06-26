@@ -12,6 +12,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.sp
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.designsystem.chart.BALANCE_TREND_CHART_TAG
 import com.kshavrin.mymoney.core.designsystem.chart.ChartStyle
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
@@ -157,25 +158,57 @@ class AuroraBalanceCardUiTest {
     }
 
     @Test
+    fun `free balance label is displayed above the balance value`() {
+        setCard(balance = "12 345 $")
+        // The label is rendered uppercase by the composable; getString returns the raw resource.
+        val rawLabel = targetString(R.string.dashboard_aurora_free_balance_label)
+        composeTestRule
+            .onNodeWithText(rawLabel.uppercase())
+            .assertIsDisplayed()
+    }
+
+    @Test
     fun `income pill tag is displayed when chart config is visible`() {
-        setCard(chartConfig = defaultConfig(visible = true))
+        setCard(income = "20 000", chartConfig = defaultConfig(visible = true))
         composeTestRule
             .onNodeWithTag(DASHBOARD_AURORA_INCOME_PILL_TAG)
             .assertIsDisplayed()
+        // Pill now reads "\u2191 <Income word> <plain amount>" \u2014 no currency symbol.
+        val incomeLabel = targetString(R.string.dashboard_aurora_income_label)
         composeTestRule
-            .onNodeWithText("\u2191 20 000 $")
+            .onNodeWithText("\u2191 $incomeLabel 20 000")
             .assertIsDisplayed()
     }
 
     @Test
     fun `expense pill tag is displayed when chart config is visible`() {
-        setCard(chartConfig = defaultConfig(visible = true))
+        setCard(expense = "7 654", chartConfig = defaultConfig(visible = true))
         composeTestRule
             .onNodeWithTag(DASHBOARD_AURORA_EXPENSE_PILL_TAG)
             .assertIsDisplayed()
+        // Pill now reads "\u2193 <Expenses word> <plain amount>" \u2014 no currency symbol.
+        val expenseLabel = targetString(R.string.dashboard_aurora_expense_label)
+        composeTestRule
+            .onNodeWithText("\u2193 $expenseLabel 7 654")
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun `income pill does not show old symbol-only format without word label`() {
+        // The previous contract was "\u2191 20 000 $"; now it must NOT match that pattern.
+        setCard(income = "20 000", chartConfig = defaultConfig(visible = true))
+        composeTestRule
+            .onNodeWithText("\u2191 20 000 $")
+            .assertDoesNotExist()
+    }
+
+    @Test
+    fun `expense pill does not show old symbol-only format without word label`() {
+        // The previous contract was "\u2193 7 654 $"; now it must NOT match that pattern.
+        setCard(expense = "7 654", chartConfig = defaultConfig(visible = true))
         composeTestRule
             .onNodeWithText("\u2193 7 654 $")
-            .assertIsDisplayed()
+            .assertDoesNotExist()
     }
 
     @Test
@@ -369,4 +402,7 @@ class AuroraBalanceCardUiTest {
         fetchSemanticsNode().config[SemanticsActions.GetTextLayoutResult].action?.invoke(results)
         return results.first()
     }
+
+    private fun targetString(resourceId: Int): String =
+        InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)
 }

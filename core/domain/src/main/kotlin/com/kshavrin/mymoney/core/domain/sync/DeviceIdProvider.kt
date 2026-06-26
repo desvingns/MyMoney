@@ -1,5 +1,5 @@
 package com.kshavrin.mymoney.core.domain.sync
 
 interface DeviceIdProvider {
-    fun deviceId(): String
+    suspend fun deviceId(): String
 }

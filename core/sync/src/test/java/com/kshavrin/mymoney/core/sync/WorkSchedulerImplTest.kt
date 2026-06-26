@@ -1,6 +1,7 @@
 package com.kshavrin.mymoney.core.sync
 
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
+import com.kshavrin.mymoney.core.datastore.JournalSyncConfigStore
 import com.kshavrin.mymoney.core.datastore.model.AppSettings
 import com.kshavrin.mymoney.core.sync.fake.FakeAppSettingsRepository
 import kotlinx.coroutines.flow.first
@@ -9,14 +10,16 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * Unit tests for the autoSync conditional dispatch added to [WorkSchedulerImpl.scheduleDailyJobs].
+ * Unit tests for the autoSync conditional dispatch in [WorkSchedulerImpl.scheduleDailyJobs].
  *
  * [WorkSchedulerImpl] calls [WorkManager.getInstance] before reaching the conditional, which
  * requires an Android Application context unavailable in a pure-JVM test (no Robolectric in
  * :core:sync). The tests therefore exercise the identical conditional logic through a
- * [TestableAutoSyncDispatch] helper that isolates the decision (lines 53-58 of the production
- * class) from the WorkManager scheduling boilerplate. The WorkManager enqueue calls for
- * RecurringWorker / PruneDeletedWorker are framework wiring verified in androidTest.
+ * [TestableAutoSyncDispatch] helper that isolates the decision from the WorkManager boilerplate.
+ *
+ * The condition was updated in SPEC 06: instead of checking snapshotSync.connectedTargets()
+ * (SnapshotSync-era), the gate is now journalSyncConfig.folderId().isNotBlank() — a folder must be
+ * configured for the journal sync to have somewhere to write.
  */
 class WorkSchedulerImplTest {
     // -------------------------------------------------------------------------
@@ -41,50 +44,37 @@ class WorkSchedulerImplTest {
         }
     }
 
-    private class FakeSnapshotSync(
-        private val connected: List<SyncTarget> = emptyList(),
-    ) : SnapshotSync {
-        override fun isConnected(target: SyncTarget): Boolean = target in connected
+    private class FakeJournalSyncConfigStore(
+        private val folderId: String,
+    ) : JournalSyncConfigStore {
+        override suspend fun folderId(): String = folderId
 
-        override fun connectedTargets(): List<SyncTarget> = connected
+        override suspend fun setFolderId(folderId: String) = Unit
 
-        override suspend fun syncNow(target: SyncTarget): Result<SyncOutcome> =
-            Result.success(SyncOutcome.UpToDate)
+        override suspend fun peerHighWaterMs(fileId: String): Long = 0L
 
-        override suspend fun push(target: SyncTarget): Result<SyncOutcome> =
-            Result.success(SyncOutcome.Pushed)
-
-        override suspend fun autoSyncConnected(): Result<Unit> = Result.success(Unit)
-
-        override suspend fun keepLocal(target: SyncTarget): Result<SyncOutcome> =
-            Result.success(SyncOutcome.Pushed)
-
-        override suspend fun keepRemote(target: SyncTarget): Result<SyncOutcome> =
-            Result.success(SyncOutcome.PulledRequiresRestart)
-
-        override fun connect(
-            target: SyncTarget,
-            payload: String,
+        override suspend fun setPeerHighWaterMs(
+            fileId: String,
+            modifiedAtMs: Long,
         ) = Unit
 
-        override fun disconnect(target: SyncTarget) = Unit
+        override suspend fun isBootstrapDone(): Boolean = false
 
-        override suspend fun accountLabel(target: SyncTarget): Result<String> =
-            Result.success(target.name)
+        override suspend fun markBootstrapDone() = Unit
     }
 
     /**
-     * Mirrors the exact conditional from [WorkSchedulerImpl.scheduleDailyJobs] (lines 53-58)
+     * Mirrors the exact conditional from [WorkSchedulerImpl.scheduleDailyJobs] (lines 54-58)
      * without the [WorkManager] calls that require an Android process.
      */
     private class TestableAutoSyncDispatch(
         private val appSettings: AppSettingsRepository,
-        private val snapshotSync: SnapshotSync,
+        private val journalSyncConfig: JournalSyncConfigStore,
         private val syncScheduler: SyncScheduler,
     ) {
         suspend fun dispatch() {
             val autoSyncEnabled = appSettings.settings.first().autoSyncEnabled
-            if (autoSyncEnabled && snapshotSync.connectedTargets().isNotEmpty()) {
+            if (autoSyncEnabled && journalSyncConfig.folderId().isNotBlank()) {
                 syncScheduler.enablePeriodicSync()
             } else {
                 syncScheduler.disablePeriodicSync()
@@ -98,12 +88,12 @@ class WorkSchedulerImplTest {
 
     private fun dispatch(
         autoSyncEnabled: Boolean,
-        connected: List<SyncTarget>,
+        folderId: String,
     ): FakeSyncScheduler {
         val scheduler = FakeSyncScheduler()
         val settings = FakeAppSettingsRepository(AppSettings(autoSyncEnabled = autoSyncEnabled))
-        val snapshotSync = FakeSnapshotSync(connected)
-        val subject = TestableAutoSyncDispatch(settings, snapshotSync, scheduler)
+        val configStore = FakeJournalSyncConfigStore(folderId)
+        val subject = TestableAutoSyncDispatch(settings, configStore, scheduler)
         runTest { subject.dispatch() }
         return scheduler
     }
@@ -113,75 +103,61 @@ class WorkSchedulerImplTest {
     // -------------------------------------------------------------------------
 
     @Test
-    fun `enablePeriodicSync is called when autoSyncEnabled is true and a target is connected`() {
-        val scheduler = dispatch(autoSyncEnabled = true, connected = listOf(SyncTarget.Dropbox))
+    fun `enablePeriodicSync is called when autoSyncEnabled is true and folderId is set`() {
+        val scheduler = dispatch(autoSyncEnabled = true, folderId = "drive-folder-abc")
 
         assertEquals(1, scheduler.enableCalls.size)
         assertEquals(0, scheduler.disableCalls.size)
     }
 
     @Test
-    fun `disablePeriodicSync is called when autoSyncEnabled is false even if a target is connected`() {
-        val scheduler = dispatch(autoSyncEnabled = false, connected = listOf(SyncTarget.Dropbox))
+    fun `disablePeriodicSync is called when autoSyncEnabled is false even if folderId is set`() {
+        val scheduler = dispatch(autoSyncEnabled = false, folderId = "drive-folder-abc")
 
         assertEquals(0, scheduler.enableCalls.size)
         assertEquals(1, scheduler.disableCalls.size)
     }
 
     @Test
-    fun `disablePeriodicSync is called when autoSyncEnabled is true but no target is connected`() {
-        val scheduler = dispatch(autoSyncEnabled = true, connected = emptyList())
+    fun `disablePeriodicSync is called when autoSyncEnabled is true but folderId is blank`() {
+        val scheduler = dispatch(autoSyncEnabled = true, folderId = "")
 
         assertEquals(0, scheduler.enableCalls.size)
         assertEquals(1, scheduler.disableCalls.size)
     }
 
     @Test
-    fun `disablePeriodicSync is called when both autoSyncEnabled is false and no target is connected`() {
-        val scheduler = dispatch(autoSyncEnabled = false, connected = emptyList())
+    fun `disablePeriodicSync is called when both autoSyncEnabled is false and folderId is blank`() {
+        val scheduler = dispatch(autoSyncEnabled = false, folderId = "")
 
         assertEquals(0, scheduler.enableCalls.size)
         assertEquals(1, scheduler.disableCalls.size)
     }
 
     @Test
-    fun `KEEP policy - calling dispatch twice with autoSync enabled does not accumulate duplicates in SyncScheduler`() =
+    fun `KEEP policy - calling dispatch twice with autoSync enabled and folder set does not drop enable calls`() =
         runTest {
             val scheduler = FakeSyncScheduler()
             val settings = FakeAppSettingsRepository(AppSettings(autoSyncEnabled = true))
-            val snapshotSync = FakeSnapshotSync(connected = listOf(SyncTarget.GoogleDrive))
-            val subject = TestableAutoSyncDispatch(settings, snapshotSync, scheduler)
+            val configStore = FakeJournalSyncConfigStore("drive-folder-xyz")
+            val subject = TestableAutoSyncDispatch(settings, configStore, scheduler)
 
             subject.dispatch()
             subject.dispatch()
 
             // enablePeriodicSync is called once per scheduleDailyJobs invocation;
             // the underlying WorkManager uses KEEP so no duplicate work is enqueued.
-            // The scheduler itself has no deduplication — two calls produce two records —
-            // but the contract is that dispatch routes to enable (not disable) each time.
             assertEquals(2, scheduler.enableCalls.size)
             assertEquals(0, scheduler.disableCalls.size)
         }
-
-    @Test
-    fun `multiple connected targets still result in exactly one enablePeriodicSync call per dispatch`() {
-        val scheduler =
-            dispatch(
-                autoSyncEnabled = true,
-                connected = listOf(SyncTarget.Dropbox, SyncTarget.GoogleDrive),
-            )
-
-        assertEquals(1, scheduler.enableCalls.size)
-        assertEquals(0, scheduler.disableCalls.size)
-    }
 
     @Test
     fun `disabling autoSync after being enabled routes to disablePeriodicSync on next dispatch`() =
         runTest {
             val scheduler = FakeSyncScheduler()
             val fakeSettings = FakeAppSettingsRepository(AppSettings(autoSyncEnabled = true))
-            val snapshotSync = FakeSnapshotSync(connected = listOf(SyncTarget.Dropbox))
-            val subject = TestableAutoSyncDispatch(fakeSettings, snapshotSync, scheduler)
+            val configStore = FakeJournalSyncConfigStore("drive-folder-123")
+            val subject = TestableAutoSyncDispatch(fakeSettings, configStore, scheduler)
 
             subject.dispatch()
             fakeSettings.seed(AppSettings(autoSyncEnabled = false))

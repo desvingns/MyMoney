@@ -260,8 +260,9 @@ class AppSettingsRepositoryTest {
         }
 
     @Test
-    fun `reset clears stored settings including the monotonic flag`() =
+    fun `reset clears stored settings including the monotonic flag while preserving device id`() =
         runTest(UnconfinedTestDispatcher()) {
+            val preservedDeviceId = DeviceIdProviderImpl(dataStore).deviceId()
             repository.update {
                 AppSettings(
                     language = "ru",
@@ -277,6 +278,7 @@ class AppSettingsRepositoryTest {
             repository.reset()
 
             assertEquals(AppSettings(), repository.settings.first())
+            assertEquals(preservedDeviceId, dataStore.data.first()[AppSettingsKeys.DEVICE_ID])
         }
 
     private fun Preferences.copySettings(transform: (AppSettings) -> AppSettings): Preferences =

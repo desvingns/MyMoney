@@ -9,18 +9,21 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.kshavrin.mymoney.core.database.MoneyDatabase
 import com.kshavrin.mymoney.core.database.entity.CurrencyEntity
+import com.kshavrin.mymoney.core.database.journal.OperationPayloadCodec
 import com.kshavrin.mymoney.core.database.repository.AccountRepositoryImpl
 import com.kshavrin.mymoney.core.database.repository.BackupRepositoryImpl
 import com.kshavrin.mymoney.core.database.repository.BudgetRepositoryImpl
 import com.kshavrin.mymoney.core.database.repository.CategoryRepositoryImpl
 import com.kshavrin.mymoney.core.database.repository.CurrencyRepositoryImpl
 import com.kshavrin.mymoney.core.database.repository.TransactionRepositoryImpl
+import com.kshavrin.mymoney.core.database.transaction.RoomTransactionRunner
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepositoryImpl
 import com.kshavrin.mymoney.core.domain.csv.ImportCategoryStrategy
 import com.kshavrin.mymoney.core.domain.csv.ImportDataStrategy
 import com.kshavrin.mymoney.core.domain.csv.ImportPlan
 import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.AccountType
+import com.kshavrin.mymoney.core.domain.sync.DeviceIdProvider
 import com.kshavrin.mymoney.core.domain.usecase.BalanceCalculator
 import com.kshavrin.mymoney.core.domain.usecase.BalanceTrendCalculator
 import com.kshavrin.mymoney.core.domain.usecase.BudgetEvaluator
@@ -107,11 +110,44 @@ class ImportFocusColdStartRegressionTest {
             val context = ApplicationProvider.getApplicationContext<Context>()
             val io = Dispatchers.IO
             val default = Dispatchers.Default
+            val payloadCodec = OperationPayloadCodec()
+            val transactionRunner = RoomTransactionRunner(db)
+            val deviceIdProvider = StaticDeviceIdProvider()
+            val clock = java.time.Clock.systemUTC()
 
             val currencyRepository = CurrencyRepositoryImpl(db.currencyDao(), io)
-            val accountRepository = AccountRepositoryImpl(db.accountDao(), io)
-            val categoryRepository = CategoryRepositoryImpl(db.categoryDao(), io)
-            val transactionRepository = TransactionRepositoryImpl(db.transactionDao(), io)
+            val accountRepository =
+                AccountRepositoryImpl(
+                    dao = db.accountDao(),
+                    operationDao = db.operationDao(),
+                    payloadCodec = payloadCodec,
+                    deviceIdProvider = deviceIdProvider,
+                    clock = clock,
+                    transactionRunner = transactionRunner,
+                    ioDispatcher = io,
+                )
+            val categoryRepository =
+                CategoryRepositoryImpl(
+                    dao = db.categoryDao(),
+                    operationDao = db.operationDao(),
+                    payloadCodec = payloadCodec,
+                    deviceIdProvider = deviceIdProvider,
+                    clock = clock,
+                    transactionRunner = transactionRunner,
+                    ioDispatcher = io,
+                )
+            val transactionRepository =
+                TransactionRepositoryImpl(
+                    dao = db.transactionDao(),
+                    accountDao = db.accountDao(),
+                    categoryDao = db.categoryDao(),
+                    operationDao = db.operationDao(),
+                    payloadCodec = payloadCodec,
+                    deviceIdProvider = deviceIdProvider,
+                    clock = clock,
+                    transactionRunner = transactionRunner,
+                    ioDispatcher = io,
+                )
             val budgetRepository = BudgetRepositoryImpl(db.budgetDao(), io)
             val settingsRepository = AppSettingsRepositoryImpl(dataStore)
             val backupRepository = BackupRepositoryImpl(context, db, io)
@@ -282,4 +318,8 @@ private class NoRatesCurrencyRateRepository : com.kshavrin.mymoney.core.domain.r
     override suspend fun deleteById(id: Long) = Unit
 
     override suspend fun refreshRatesFromNetwork(): Result<Int> = Result.success(0)
+}
+
+private class StaticDeviceIdProvider : DeviceIdProvider {
+    override suspend fun deviceId(): String = "import-focus-test-device"
 }

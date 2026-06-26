@@ -1,8 +1,17 @@
 package com.kshavrin.mymoney.core.database.repository
 
 import androidx.paging.PagingSource
+import com.kshavrin.mymoney.core.database.dao.AccountDao
+import com.kshavrin.mymoney.core.database.dao.CategoryDao
+import com.kshavrin.mymoney.core.database.dao.OperationDao
 import com.kshavrin.mymoney.core.database.dao.TransactionDao
+import com.kshavrin.mymoney.core.database.entity.AccountEntity
+import com.kshavrin.mymoney.core.database.entity.CategoryEntity
+import com.kshavrin.mymoney.core.database.entity.OperationEntity
 import com.kshavrin.mymoney.core.database.entity.TransactionEntity
+import com.kshavrin.mymoney.core.database.journal.OperationPayloadCodec
+import com.kshavrin.mymoney.core.domain.sync.DeviceIdProvider
+import com.kshavrin.mymoney.core.domain.transaction.TransactionRunner
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -12,6 +21,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import java.time.Clock
 import java.time.Instant
 
 class TransactionRepositoryImplTest {
@@ -124,13 +134,95 @@ class TransactionRepositoryImplTest {
     }
 
     private val dispatcher = StandardTestDispatcher()
+    private val accountDao =
+        object : AccountDao() {
+            override fun observeActive(): Flow<List<AccountEntity>> = flowOf(emptyList())
+
+            override suspend fun findById(id: Long): AccountEntity? = null
+
+            override suspend fun findDefault(): AccountEntity? = null
+
+            override suspend fun listDefaults(): List<AccountEntity> = emptyList()
+
+            override suspend fun computeBalance(id: Long): Double = 0.0
+
+            override suspend fun upsert(account: AccountEntity): Long = account.id
+
+            override suspend fun archive(id: Long) = Unit
+
+            override suspend fun countByCurrency(id: Long): Int = 0
+
+            override suspend fun deleteAll() = Unit
+
+            override suspend fun clearDefaults() = Unit
+
+            override suspend fun markDefault(id: Long) = Unit
+        }
+    private val categoryDao =
+        object : CategoryDao {
+            override fun observeByKind(kind: String): Flow<List<CategoryEntity>> = flowOf(emptyList())
+
+            override fun observeAll(): Flow<List<CategoryEntity>> = flowOf(emptyList())
+
+            override suspend fun findById(id: Long): CategoryEntity? = null
+
+            override suspend fun upsert(category: CategoryEntity): Long = category.id
+
+            override suspend fun upsertAll(categories: List<CategoryEntity>) = Unit
+
+            override suspend fun archive(id: Long) = Unit
+
+            override suspend fun rename(
+                id: Long,
+                name: String,
+            ) = Unit
+
+            override suspend fun deleteAll() = Unit
+
+            override suspend fun deleteByIds(ids: List<Long>) = Unit
+        }
+    private val operationDao =
+        object : OperationDao {
+            override suspend fun insert(op: OperationEntity) = Unit
+
+            override suspend fun insertAll(ops: List<OperationEntity>) = Unit
+
+            override suspend fun unsyncedLocal(): List<OperationEntity> = emptyList()
+
+            override suspend fun markSynced(opIds: List<String>) = Unit
+
+            override suspend fun knownOpIds(): List<String> = emptyList()
+
+            override suspend fun existsByOpId(opId: String): Boolean = false
+
+            override suspend fun opsForEntity(entityUuid: String): List<OperationEntity> = emptyList()
+        }
+    private val deviceIdProvider =
+        object : DeviceIdProvider {
+            override suspend fun deviceId(): String = "device-id"
+        }
+    private val transactionRunner =
+        object : TransactionRunner {
+            override suspend fun <T> runInTransaction(block: suspend () -> T): T = block()
+        }
     private lateinit var fakeDao: FakeTransactionDao
     private lateinit var repository: TransactionRepositoryImpl
 
     @Before
     fun setUp() {
         fakeDao = FakeTransactionDao()
-        repository = TransactionRepositoryImpl(fakeDao, dispatcher)
+        repository =
+            TransactionRepositoryImpl(
+                dao = fakeDao,
+                accountDao = accountDao,
+                categoryDao = categoryDao,
+                operationDao = operationDao,
+                payloadCodec = OperationPayloadCodec(),
+                deviceIdProvider = deviceIdProvider,
+                clock = Clock.systemUTC(),
+                transactionRunner = transactionRunner,
+                ioDispatcher = dispatcher,
+            )
     }
 
     @Test

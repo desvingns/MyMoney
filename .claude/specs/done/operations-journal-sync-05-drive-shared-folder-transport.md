@@ -1,7 +1,7 @@
 # Транспорт журнала через общую папку Google Drive
 Epic: operations-journal-sync
 Order: 05 of 07
-Status: backlog
+Status: done
 Depends-on: 01, 02
 Date: 2026-06-25
 
@@ -57,5 +57,5 @@ Feature: Транспорт журнала через общую папку Driv
 Текущий `GoogleDriveRepository` умеет лишь снапшот в приватную appData-папку (G4) и не поддерживает общую папку для разных аккаунтов (G5). Этот SPEC даёт транспорт per-device файлов журнала в общей папке — на абстракции, тестируемой без живого Google.
 
 ## Implementation links
-- commit: (pending)
-- files:  (pending)
+- commit: 9db6cec9 (prod) + 8ddb79cf (tests)
+- files: core/sync/.../JournalBackend.kt, JournalSerializer.kt, gdrive/GoogleDriveJournalBackend.kt, di/SyncModule.kt, build.gradle.kts, test/fake/FakeJournalBackend.kt, test/JournalSerializerTest.kt, test/fake/FakeJournalBackendTest.kt

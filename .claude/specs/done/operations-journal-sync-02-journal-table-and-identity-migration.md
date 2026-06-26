@@ -1,7 +1,7 @@
 # Таблица журнала + миграция глобальной идентичности
 Epic: operations-journal-sync
 Order: 02 of 07
-Status: backlog
+Status: done
 Depends-on: 01
 Date: 2026-06-25
 

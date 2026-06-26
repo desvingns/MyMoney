@@ -1,7 +1,7 @@
 # Движок применения удалённых операций
 Epic: operations-journal-sync
 Order: 04 of 07
-Status: backlog
+Status: done
 Depends-on: 01, 02, 03
 Date: 2026-06-25
 
@@ -67,5 +67,12 @@ Feature: Применение удалённых операций к локал�
 После 03 локальные ops пишутся и (в 05) выгружаются, но чужие ops применять нечем — состояния устройств не сходятся. Этот SPEC реализует слияние входящих ops в локальное состояние с LWW, идемпотентностью и защитой от петли.
 
 ## Implementation links
-- commit: (pending)
-- files:  (pending)
+- commit: c4ef1b36 (prod: JournalApplier + DAO uuid methods), c551f774 (tests: JournalApplierTest + stale-fake reconcile)
+- files:
+  - core/database/src/main/java/com/kshavrin/mymoney/core/database/journal/JournalApplier.kt (new)
+  - core/database/src/main/java/com/kshavrin/mymoney/core/database/dao/OperationDao.kt (insertApplied)
+  - core/database/src/main/java/com/kshavrin/mymoney/core/database/dao/TransactionDao.kt (findByUuid, softDeleteByUuid)
+  - core/database/src/main/java/com/kshavrin/mymoney/core/database/dao/CategoryDao.kt (findByUuid, archiveByUuid)
+  - core/database/src/main/java/com/kshavrin/mymoney/core/database/dao/AccountDao.kt (findByUuid, archiveByUuid)
+  - core/database/src/androidTest/java/com/kshavrin/mymoney/core/database/JournalApplierTest.kt (new, 19 instrumented tests green on emulator-5554)
+  - core/database/src/test/java/com/kshavrin/mymoney/core/database/repository/TransactionRepositoryImplTest.kt (stale DAO fakes reconciled — G26)

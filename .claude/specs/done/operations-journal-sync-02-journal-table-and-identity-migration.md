@@ -65,5 +65,16 @@ Feature: Журнал операций и глобальная идентичн�
 В проекте нет ни таблицы журнала, ни глобальных идентификаторов сущностей (всё на `Long` autoincrement, G15), у категорий нет `updatedAt` (G16). Без этого нельзя ни писать, ни сливать, ни переносить ops между устройствами. Этот SPEC закрывает разрыв на уровне схемы.
 
 ## Implementation links
-- commit: (pending)
-- files:  (pending)
+- commits: `45b042f7` (prod: op_journal table + entity identity columns), `7add423a` (tests: migration 7->8 + OperationDao)
+- files:
+  - `core/database/src/main/java/com/kshavrin/mymoney/core/database/MoneyDatabase.kt`
+  - `core/database/src/main/java/com/kshavrin/mymoney/core/database/entity/OperationEntity.kt`
+  - `core/database/src/main/java/com/kshavrin/mymoney/core/database/entity/TransactionEntity.kt`
+  - `core/database/src/main/java/com/kshavrin/mymoney/core/database/entity/CategoryEntity.kt`
+  - `core/database/src/main/java/com/kshavrin/mymoney/core/database/entity/AccountEntity.kt`
+  - `core/database/src/main/java/com/kshavrin/mymoney/core/database/dao/OperationDao.kt`
+  - `core/database/src/main/java/com/kshavrin/mymoney/core/database/di/DatabaseModule.kt`
+  - `core/database/src/main/java/com/kshavrin/mymoney/core/database/migration/Migrations.kt`
+  - `core/database/schemas/com.kshavrin.mymoney.core.database.MoneyDatabase/8.json`
+  - `core/database/src/androidTest/java/com/kshavrin/mymoney/core/database/MoneyDatabaseMigration7To8Test.kt`
+  - `core/database/src/androidTest/java/com/kshavrin/mymoney/core/database/OperationDaoTest.kt`

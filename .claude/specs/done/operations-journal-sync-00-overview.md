@@ -1,7 +1,7 @@
 # Append-only журнал операций через Google Drive — epic overview
 Epic: operations-journal-sync
 Order: 00 of 07
-Status: backlog
+Status: done
 Depends-on: —
 Date: 2026-06-25
 
@@ -55,5 +55,5 @@ Foundation-first: чистая доменная логика (01) → фунда
 - O2: компакция/снапшоттинг растущего журнала.
 
 ## Implementation links
-- commit: (pending)
-- files:  (pending)
+- commits: SPEC 01 `b34075c8`, `a4f2fea6`; SPEC 02 `45b042f7`, `7add423a`; SPEC 03 `3eddec02`, `3c96c5eb`, `16c031e0`, `30ade859`, `6dc7b266`, `bbaf3bfb`; SPEC 04 `c4ef1b36`, `c551f774`; SPEC 05 `9db6cec9`, `8ddb79cf`; SPEC 06 `f1c6fefc`, `b41aecad`; SPEC 07 `f9db31f1`, `ffb3be4c`, `2fbf4d3b`
+- files: see implementation links in `operations-journal-sync-01` through `operations-journal-sync-07` done SPECs.

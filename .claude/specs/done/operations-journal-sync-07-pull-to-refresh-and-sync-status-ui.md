@@ -1,7 +1,7 @@
 # Pull-to-refresh + статус синка (UI)
 Epic: operations-journal-sync
 Order: 07 of 07
-Status: backlog
+Status: done
 Depends-on: 06
 Date: 2026-06-25
 
@@ -61,5 +61,22 @@ Feature: UI-триггеры и статус журнального синка
 После 06 синк работает по периодике и при открытии, но у пользователя нет ни ручного «потянуть-обновить», ни видимости состояния, ни способа задать общую папку. Этот SPEC добавляет UI-триггер и статус, завершая near-real-time контур (в рамках отложенного live-OQ).
 
 ## Implementation links
-- commit: (pending)
-- files:  (pending)
+- commits: `f9db31f1` (prod: dashboard/cloudsync journal status UI), `ffb3be4c` (prod: dashboard refresh failure reporting), `2fbf4d3b` (tests + reviewer hardening)
+- files:
+  - `feature/dashboard/src/main/java/com/kshavrin/mymoney/feature/dashboard/DashboardScreen.kt`
+  - `feature/dashboard/src/main/java/com/kshavrin/mymoney/feature/dashboard/DashboardState.kt`
+  - `feature/dashboard/src/main/java/com/kshavrin/mymoney/feature/dashboard/DashboardViewModel.kt`
+  - `feature/dashboard/build.gradle.kts`
+  - `feature/cloudsync/src/main/java/com/kshavrin/mymoney/feature/cloudsync/CloudSyncScreen.kt`
+  - `feature/cloudsync/src/main/java/com/kshavrin/mymoney/feature/cloudsync/CloudSyncState.kt`
+  - `feature/cloudsync/src/main/java/com/kshavrin/mymoney/feature/cloudsync/CloudSyncEvent.kt`
+  - `feature/cloudsync/src/main/java/com/kshavrin/mymoney/feature/cloudsync/CloudSyncViewModel.kt`
+  - `feature/cloudsync/src/main/res/values/strings.xml`
+  - `feature/cloudsync/src/main/res/values-ru/strings.xml`
+  - `feature/cloudsync/src/test/java/com/kshavrin/mymoney/feature/cloudsync/CloudSyncViewModelTest.kt`
+  - `feature/cloudsync/src/test/java/com/kshavrin/mymoney/feature/cloudsync/CloudSyncContentTest.kt`
+  - `feature/dashboard/src/test/java/com/kshavrin/mymoney/feature/dashboard/DashboardViewModelTest.kt`
+  - `app/src/androidTest/java/com/kshavrin/mymoney/feature/cloudsync/CloudSyncContentUiTest.kt`
+  - `app/src/androidTest/java/com/kshavrin/mymoney/feature/dashboard/DashboardContentUiTest.kt`
+  - `app/src/androidTest/java/com/kshavrin/mymoney/di/TestDatabaseModule.kt`
+  - `app/src/androidTest/java/com/kshavrin/mymoney/ImportFocusColdStartRegressionTest.kt`

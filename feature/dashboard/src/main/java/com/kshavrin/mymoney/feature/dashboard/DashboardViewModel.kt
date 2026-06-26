@@ -3,6 +3,7 @@ package com.kshavrin.mymoney.feature.dashboard
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.kshavrin.mymoney.core.common.exception.reportToSentry
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
 import com.kshavrin.mymoney.core.datastore.model.AppSettings
 import com.kshavrin.mymoney.core.designsystem.dialog.RateRow
@@ -54,6 +55,7 @@ import java.time.Instant
 import java.time.YearMonth
 import java.time.ZoneId
 import javax.inject.Inject
+import kotlin.coroutines.cancellation.CancellationException
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -1238,6 +1240,9 @@ class DashboardViewModel
                 try {
                     journalSync.syncNow()
                     recomputeBalance()
+                } catch (t: Throwable) {
+                    if (t is CancellationException) throw t
+                    t.reportToSentry()
                 } finally {
                     _state.value = _state.value.copy(isRefreshing = false)
                 }

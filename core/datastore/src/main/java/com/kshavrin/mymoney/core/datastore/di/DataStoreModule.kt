@@ -8,8 +8,10 @@ import androidx.datastore.preferences.preferencesDataStoreFile
 import com.kshavrin.mymoney.core.common.di.IoDispatcher
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepositoryImpl
+import com.kshavrin.mymoney.core.datastore.DeviceIdProviderImpl
 import com.kshavrin.mymoney.core.datastore.SecureStorage
 import com.kshavrin.mymoney.core.datastore.SecureStorageImpl
+import com.kshavrin.mymoney.core.domain.sync.DeviceIdProvider
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -49,4 +51,8 @@ abstract class DataStoreBindings {
     @Binds
     @Singleton
     abstract fun bindSecureStorage(impl: SecureStorageImpl): SecureStorage
+
+    @Binds
+    @Singleton
+    abstract fun bindDeviceIdProvider(impl: DeviceIdProviderImpl): DeviceIdProvider
 }

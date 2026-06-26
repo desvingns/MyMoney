@@ -33,7 +33,13 @@ class AppSettingsRepositoryImpl
         }
 
         override suspend fun reset() {
-            dataStore.edit { prefs -> prefs.clear() }
+            dataStore.edit { prefs ->
+                val deviceId = prefs[AppSettingsKeys.DEVICE_ID]
+                prefs.clear()
+                if (deviceId != null) {
+                    prefs[AppSettingsKeys.DEVICE_ID] = deviceId
+                }
+            }
         }
     }
 

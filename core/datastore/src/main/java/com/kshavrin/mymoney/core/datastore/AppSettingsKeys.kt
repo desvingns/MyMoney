@@ -35,4 +35,5 @@ internal object AppSettingsKeys {
     val CHART_SHOW_LABELS = booleanPreferencesKey("chart_show_labels")
     val CHART_COLOR_RULE = stringPreferencesKey("chart_color_rule")
     val CHART_AUTO_MODE = booleanPreferencesKey("chart_auto_mode")
+    val DEVICE_ID = stringPreferencesKey("device_id")
 }

@@ -114,6 +114,14 @@ class TransactionRepositoryImplTest {
             updateCalls += UpdateCall(id = id, occurredAt = occurredAt, updatedAt = updatedAt)
         }
 
+        override suspend fun findByUuid(uuid: String): TransactionEntity? =
+            normalizationRows.firstOrNull { it.uuid == uuid }
+
+        override suspend fun softDeleteByUuid(
+            uuid: String,
+            now: Long,
+        ) = Unit
+
         override suspend fun softDelete(
             id: Long,
             now: Long,
@@ -139,6 +147,10 @@ class TransactionRepositoryImplTest {
             override fun observeActive(): Flow<List<AccountEntity>> = flowOf(emptyList())
 
             override suspend fun findById(id: Long): AccountEntity? = null
+
+            override suspend fun findByUuid(uuid: String): AccountEntity? = null
+
+            override suspend fun archiveByUuid(uuid: String) = Unit
 
             override suspend fun findDefault(): AccountEntity? = null
 
@@ -166,6 +178,10 @@ class TransactionRepositoryImplTest {
 
             override suspend fun findById(id: Long): CategoryEntity? = null
 
+            override suspend fun findByUuid(uuid: String): CategoryEntity? = null
+
+            override suspend fun archiveByUuid(uuid: String) = Unit
+
             override suspend fun upsert(category: CategoryEntity): Long = category.id
 
             override suspend fun upsertAll(categories: List<CategoryEntity>) = Unit
@@ -186,6 +202,8 @@ class TransactionRepositoryImplTest {
             override suspend fun insert(op: OperationEntity) = Unit
 
             override suspend fun insertAll(ops: List<OperationEntity>) = Unit
+
+            override suspend fun insertApplied(ops: List<OperationEntity>) = Unit
 
             override suspend fun unsyncedLocal(): List<OperationEntity> = emptyList()
 

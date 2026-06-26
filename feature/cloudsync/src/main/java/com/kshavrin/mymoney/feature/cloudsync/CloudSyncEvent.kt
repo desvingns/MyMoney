@@ -12,18 +12,16 @@ sealed interface CloudSyncEvent {
     ) : CloudSyncEvent
 
     data class SyncNowClicked(
-        val target: SyncTarget,
+        val target: SyncTarget? = null,
+    ) : CloudSyncEvent
+
+    data class FolderIdChanged(
+        val folderId: String,
     ) : CloudSyncEvent
 
     data class AutoSyncToggled(
         val enabled: Boolean,
     ) : CloudSyncEvent
-
-    data object ConflictKeepRemote : CloudSyncEvent
-
-    data object ConflictKeepLocal : CloudSyncEvent
-
-    data object DismissConflict : CloudSyncEvent
 
     data object DismissError : CloudSyncEvent
 

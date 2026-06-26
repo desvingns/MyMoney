@@ -36,6 +36,7 @@ data class DashboardState(
     val budgetAlertCategoryIds: Set<Long> = emptySet(),
     val overBudgetAmount: Money? = null,
     val isLoading: Boolean = true,
+    val isRefreshing: Boolean = false,
     // Operations-summary drawer (SPEC 03): tapping the Aurora card or the balance opens it with no
     // filter; tapping a category tile opens it filtered to that category. Null while closed so the
     // open/loading/records state survives recomposition (the sheet is hosted off DashboardState, not
@@ -237,6 +238,8 @@ sealed interface DashboardEvent {
     data object RightDrawerToggled : DashboardEvent
 
     data object DrawerDismissed : DashboardEvent
+
+    data object RefreshRequested : DashboardEvent
 
     data object MinusFabClicked : DashboardEvent
 

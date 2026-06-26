@@ -6,11 +6,13 @@ import androidx.lifecycle.viewModelScope
 import com.kshavrin.mymoney.core.common.exception.SyncError
 import com.kshavrin.mymoney.core.common.exception.SyncException
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
+import com.kshavrin.mymoney.core.datastore.JournalSyncConfigStore
 import com.kshavrin.mymoney.core.domain.repository.RemoteConfigRepository
-import com.kshavrin.mymoney.core.domain.repository.SyncLogRepository
+import com.kshavrin.mymoney.core.domain.sync.DeviceIdProvider
+import com.kshavrin.mymoney.core.sync.JournalBackend
 import com.kshavrin.mymoney.core.sync.JournalSync
+import com.kshavrin.mymoney.core.sync.RemoteJournalFile
 import com.kshavrin.mymoney.core.sync.SnapshotSync
-import com.kshavrin.mymoney.core.sync.SyncOutcome
 import com.kshavrin.mymoney.core.sync.SyncScheduler
 import com.kshavrin.mymoney.core.sync.SyncTarget
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -21,6 +23,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -30,10 +33,12 @@ class CloudSyncViewModel
     constructor(
         private val snapshotSync: SnapshotSync,
         private val journalSync: JournalSync,
+        private val journalBackend: JournalBackend,
+        private val journalSyncConfig: JournalSyncConfigStore,
         private val syncScheduler: SyncScheduler,
         private val appSettings: AppSettingsRepository,
-        private val syncLog: SyncLogRepository,
         private val remoteConfig: RemoteConfigRepository,
+        private val deviceIdProvider: DeviceIdProvider,
     ) : ViewModel() {
         private val _state =
             MutableStateFlow(
@@ -63,17 +68,16 @@ class CloudSyncViewModel
             refresh(SyncTarget.Dropbox)
             refresh(SyncTarget.GoogleDrive)
             observeSettings()
+            refreshJournalStatus()
         }
 
         fun onEvent(event: CloudSyncEvent) {
             when (event) {
                 is CloudSyncEvent.ConnectClicked -> connect(event.target)
                 is CloudSyncEvent.DisconnectClicked -> disconnect(event.target)
-                is CloudSyncEvent.SyncNowClicked -> syncNow(event.target)
+                is CloudSyncEvent.SyncNowClicked -> syncNow()
+                is CloudSyncEvent.FolderIdChanged -> setFolderId(event.folderId)
                 is CloudSyncEvent.AutoSyncToggled -> toggleAutoSync(event.enabled)
-                CloudSyncEvent.ConflictKeepRemote -> resolveConflict(keepRemote = true)
-                CloudSyncEvent.ConflictKeepLocal -> resolveConflict(keepRemote = false)
-                CloudSyncEvent.DismissConflict -> _state.value = _state.value.copy(conflict = null)
                 CloudSyncEvent.DismissError -> _state.value = _state.value.copy(errorBannerRes = null)
                 CloudSyncEvent.BackClicked ->
                     viewModelScope.launch {
@@ -103,31 +107,20 @@ class CloudSyncViewModel
             refresh(target)
         }
 
-        private fun syncNow(target: SyncTarget) {
-            if (!snapshotSync.isConnected(target)) return
+        private fun syncNow() {
+            if (_state.value.isSyncing) return
             viewModelScope.launch {
-                updateCard(target) { it.copy(syncing = true) }
-                runCatching { journalSync.syncNow() }
-                    .onSuccess { refresh(target) }
-                    .onFailure { _state.value = _state.value.copy(errorBannerRes = mapError(it.toSyncError())) }
-                updateCard(target) { it.copy(syncing = false) }
-            }
-        }
-
-        private fun resolveConflict(keepRemote: Boolean) {
-            val prompt = _state.value.conflict ?: return
-            viewModelScope.launch {
-                val result =
-                    if (keepRemote) {
-                        snapshotSync.keepRemote(prompt.target)
-                    } else {
-                        snapshotSync.keepLocal(prompt.target)
-                    }
-                result
-                    .onSuccess { outcome ->
-                        _state.value = _state.value.copy(conflict = null)
-                        applyOutcome(prompt.target, outcome)
-                    }.onFailure { _state.value = _state.value.copy(errorBannerRes = mapError(it.toSyncError())) }
+                _state.value = _state.value.copy(isSyncing = true, errorBannerRes = null)
+                val result = runCatching { journalSync.syncNow() }
+                result.onSuccess {
+                    refresh(SyncTarget.Dropbox)
+                    refresh(SyncTarget.GoogleDrive)
+                    reloadJournalStatus(_state.value.folderId)
+                }
+                result.onFailure {
+                    _state.value = _state.value.copy(errorBannerRes = mapError(it.toSyncError()))
+                }
+                _state.value = _state.value.copy(isSyncing = false)
             }
         }
 
@@ -138,42 +131,69 @@ class CloudSyncViewModel
             }
         }
 
-        private fun applyOutcome(
-            target: SyncTarget,
-            outcome: SyncOutcome,
-        ) {
-            when (outcome) {
-                is SyncOutcome.ConflictDetected ->
-                    _state.value =
-                        _state.value.copy(
-                            conflict =
-                                ConflictPrompt(
-                                    target = target,
-                                    remoteMs = outcome.remoteModifiedMs,
-                                    localMs = outcome.localLastSyncMs,
-                                ),
-                        )
-                SyncOutcome.PulledRequiresRestart ->
-                    viewModelScope.launch {
-                        _actions.emit(CloudSyncAction.RestartAfterRestore)
-                    }
-                SyncOutcome.Pushed,
-                SyncOutcome.Pulled,
-                SyncOutcome.UpToDate,
-                -> refresh(target)
-            }
-        }
-
         private fun refresh(target: SyncTarget) {
             viewModelScope.launch {
                 val connected = snapshotSync.isConnected(target)
                 val label = if (connected) snapshotSync.accountLabel(target).getOrNull() else null
-                val log = syncLog.recentByTarget(target.name, RECENT_LOG_LIMIT)
                 updateCard(target) {
-                    it.copy(connected = connected, accountLabel = label, recentLog = log)
+                    it.copy(connected = connected, accountLabel = label)
                 }
             }
         }
+
+        private fun setFolderId(folderId: String) {
+            _state.value = _state.value.copy(folderId = folderId, errorBannerRes = null)
+            viewModelScope.launch {
+                val normalized = folderId.trim()
+                journalSyncConfig.setFolderId(normalized)
+                val settings = appSettings.settings.first()
+                if (settings.autoSyncEnabled) {
+                    if (normalized.isBlank()) {
+                        syncScheduler.disablePeriodicSync()
+                    } else {
+                        syncScheduler.enablePeriodicSync()
+                    }
+                }
+                reloadJournalStatus(normalized)
+            }
+        }
+
+        private fun refreshJournalStatus() {
+            viewModelScope.launch {
+                val folderId = journalSyncConfig.folderId()
+                _state.value = _state.value.copy(folderId = folderId)
+                reloadJournalStatus(folderId)
+            }
+        }
+
+        private suspend fun reloadJournalStatus(folderId: String) {
+            if (folderId.isBlank()) {
+                _state.value = _state.value.copy(peerStatuses = emptyList())
+                return
+            }
+            val ownDeviceId = runCatching { deviceIdProvider.deviceId() }.getOrNull()
+            val files =
+                journalBackend
+                    .listPeerJournals(folderId)
+                    .getOrElse { error ->
+                        _state.value = _state.value.copy(errorBannerRes = mapError(error.toSyncError()))
+                        return
+                    }
+            _state.value =
+                _state.value.copy(
+                    peerStatuses = files.toPeerStates(ownDeviceId),
+                )
+        }
+
+        private suspend fun List<RemoteJournalFile>.toPeerStates(ownDeviceId: String?): List<PeerJournalState> =
+            filterNot { file -> file.deviceId == ownDeviceId }
+                .map { file ->
+                    PeerJournalState(
+                        deviceId = file.deviceId,
+                        modifiedAtMs = file.modifiedAtEpochMs,
+                        pulledThroughMs = journalSyncConfig.peerHighWaterMs(file.fileId),
+                    )
+                }
 
         private fun observeSettings() {
             viewModelScope.launch {
@@ -181,8 +201,7 @@ class CloudSyncViewModel
                     _state.value =
                         _state.value.copy(
                             autoSyncEnabled = settings.autoSyncEnabled,
-                            dropbox = _state.value.dropbox.copy(lastSyncAtMs = settings.lastSyncAt),
-                            drive = _state.value.drive.copy(lastSyncAtMs = settings.lastSyncAt),
+                            lastSyncAtMs = settings.lastSyncAt,
                         )
                 }
             }
@@ -218,8 +237,4 @@ class CloudSyncViewModel
 
         private fun Throwable.toSyncError(): SyncError =
             (this as? SyncException)?.syncError ?: SyncError.Unknown
-
-        private companion object {
-            const val RECENT_LOG_LIMIT = 5
-        }
     }

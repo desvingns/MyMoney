@@ -34,6 +34,7 @@ dependencies {
     implementation(project(":core:domain"))
     implementation(project(":core:datastore"))
     implementation(project(":core:common"))
+    implementation(project(":core:sync"))
     implementation(libs.androidx.core.ktx)
 
     testImplementation(libs.junit)

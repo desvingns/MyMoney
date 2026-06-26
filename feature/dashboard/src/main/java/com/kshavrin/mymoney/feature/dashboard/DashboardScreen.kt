@@ -32,6 +32,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -80,6 +81,7 @@ import java.math.RoundingMode
 import java.time.LocalDate
 import java.util.Locale
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardRoute(
     onAction: (DashboardAction) -> Unit,
@@ -126,6 +128,7 @@ fun DashboardRoute(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardContent(
     state: DashboardState,
@@ -208,17 +211,23 @@ fun DashboardContent(
                     modifier = Modifier.fillMaxSize(),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    DashboardBodyPager(
-                        state = state,
-                        pagerState = pagerState,
-                        pagingEnabled = pagingEnabled,
-                        onEvent = onEvent,
-                        locale = resourceLocale,
+                    PullToRefreshBox(
+                        isRefreshing = state.isRefreshing,
+                        onRefresh = { onEvent(DashboardEvent.RefreshRequested) },
                         modifier =
                             Modifier
                                 .fillMaxWidth()
                                 .weight(1f),
-                    )
+                    ) {
+                        DashboardBodyPager(
+                            state = state,
+                            pagerState = pagerState,
+                            pagingEnabled = pagingEnabled,
+                            onEvent = onEvent,
+                            locale = resourceLocale,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
 
                     ThreeFabLayout(
                         onMinusClick = {

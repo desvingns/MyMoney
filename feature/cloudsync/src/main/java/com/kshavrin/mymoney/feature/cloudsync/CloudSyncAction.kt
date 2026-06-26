@@ -6,6 +6,4 @@ sealed interface CloudSyncAction {
     data object LaunchDropboxAuth : CloudSyncAction
 
     data object LaunchGoogleSignIn : CloudSyncAction
-
-    data object RestartAfterRestore : CloudSyncAction
 }

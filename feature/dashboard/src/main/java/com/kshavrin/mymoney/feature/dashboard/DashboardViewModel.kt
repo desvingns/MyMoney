@@ -31,6 +31,7 @@ import com.kshavrin.mymoney.core.domain.usecase.IntradayTrendCalculator
 import com.kshavrin.mymoney.core.domain.usecase.ObserveBudgetAlertsUseCase
 import com.kshavrin.mymoney.core.domain.usecase.ResolveRateUseCase
 import com.kshavrin.mymoney.core.domain.usecase.RingGaugeCalculator
+import com.kshavrin.mymoney.core.sync.JournalSync
 import com.kshavrin.mymoney.feature.dashboard.components.CategoryTileItem
 import com.kshavrin.mymoney.feature.dashboard.components.SummaryRecordCategoryDisplay
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -70,6 +71,7 @@ class DashboardViewModel
         private val categoryRepository: CategoryRepository,
         private val resolveRateUseCase: ResolveRateUseCase,
         private val getOperationsSummary: GetOperationsSummaryUseCase,
+        private val journalSync: JournalSync,
     ) : ViewModel() {
         private val _state = MutableStateFlow(DashboardState())
         val state: StateFlow<DashboardState> = _state.asStateFlow()
@@ -1056,6 +1058,7 @@ class DashboardViewModel
                         )
                 DashboardEvent.DrawerDismissed ->
                     _state.value = _state.value.copy(leftDrawerOpen = false, rightDrawerOpen = false)
+                DashboardEvent.RefreshRequested -> refreshNow()
                 DashboardEvent.MinusFabClicked -> emit(DashboardAction.NavigateAddExpense)
                 DashboardEvent.PlusFabClicked -> emit(DashboardAction.NavigateAddIncome)
                 DashboardEvent.TransferClicked -> emit(DashboardAction.NavigateTransfer)
@@ -1226,6 +1229,19 @@ class DashboardViewModel
 
         private fun closeDrawers() {
             _state.value = _state.value.copy(leftDrawerOpen = false, rightDrawerOpen = false)
+        }
+
+        private fun refreshNow() {
+            if (_state.value.isRefreshing) return
+            viewModelScope.launch {
+                _state.value = _state.value.copy(isRefreshing = true)
+                try {
+                    journalSync.syncNow()
+                    recomputeBalance()
+                } finally {
+                    _state.value = _state.value.copy(isRefreshing = false)
+                }
+            }
         }
 
         // Open the operations-summary drawer (SPEC 03). [categoryId] null = "all operations" (income

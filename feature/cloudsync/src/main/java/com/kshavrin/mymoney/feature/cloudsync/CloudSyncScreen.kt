@@ -1,9 +1,5 @@
 package com.kshavrin.mymoney.feature.cloudsync
 
-import android.content.Context
-import android.content.Intent
-import android.os.Process
-import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -24,6 +20,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -34,12 +31,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.kshavrin.mymoney.core.domain.model.SyncLogEntry
 import com.kshavrin.mymoney.core.sync.SyncTarget
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import java.time.Instant
@@ -54,20 +49,13 @@ fun CloudSyncRoute(
     viewModel: CloudSyncViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
-    val context = LocalContext.current
-    val restoreMessage = stringResource(R.string.sync_restore_restart)
 
     LaunchedEffect(viewModel) {
         viewModel.actions.collect { action ->
             when (action) {
                 CloudSyncAction.NavigateBack -> onBack()
-                // Gated: RC flags ship false in this build, so these auth actions never fire; real OAuth lands with OQ-2/OQ-3.
                 CloudSyncAction.LaunchDropboxAuth -> Unit
                 CloudSyncAction.LaunchGoogleSignIn -> Unit
-                CloudSyncAction.RestartAfterRestore -> {
-                    Toast.makeText(context, restoreMessage, Toast.LENGTH_LONG).show()
-                    relaunchApplication(context)
-                }
             }
         }
     }
@@ -107,6 +95,7 @@ fun CloudSyncContent(
                     .padding(Spacing.l),
             verticalArrangement = Arrangement.spacedBy(Spacing.m),
         ) {
+            JournalStatusCard(state = state, onEvent = onEvent)
             TargetCard(
                 title = stringResource(R.string.sync_dropbox_section),
                 card = state.dropbox,
@@ -155,14 +144,140 @@ fun CloudSyncContent(
             }
         }
     }
+}
 
-    state.conflict?.let { prompt ->
-        ConflictResolutionDialog(
-            remoteTimestamp = formatTimestamp(prompt.remoteMs),
-            localTimestamp = formatTimestamp(prompt.localMs),
-            onKeepRemote = { onEvent(CloudSyncEvent.ConflictKeepRemote) },
-            onKeepLocal = { onEvent(CloudSyncEvent.ConflictKeepLocal) },
-            onDismiss = { onEvent(CloudSyncEvent.DismissConflict) },
+@Composable
+private fun JournalStatusCard(
+    state: CloudSyncState,
+    onEvent: (CloudSyncEvent) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(modifier = modifier.fillMaxWidth()) {
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(Spacing.l),
+            verticalArrangement = Arrangement.spacedBy(Spacing.s),
+        ) {
+            Text(
+                text = stringResource(R.string.sync_journal_status_title),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Text(
+                text =
+                    state.lastSyncAtMs?.let { ms ->
+                        stringResource(R.string.sync_last_at, formatTimestamp(ms))
+                    } ?: stringResource(R.string.sync_last_never),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            OutlinedTextField(
+                value = state.folderId,
+                onValueChange = { onEvent(CloudSyncEvent.FolderIdChanged(it)) },
+                label = { Text(stringResource(R.string.sync_folder_id_label)) },
+                supportingText = {
+                    Text(
+                        stringResource(
+                            if (state.folderId.isBlank()) {
+                                R.string.sync_folder_not_configured
+                            } else {
+                                R.string.sync_folder_configured
+                            },
+                        ),
+                    )
+                },
+                singleLine = true,
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .testTag(CLOUD_SYNC_FOLDER_ID_TAG),
+            )
+            Button(
+                modifier = Modifier.testTag(CLOUD_SYNC_SYNC_NOW_TAG),
+                onClick = { onEvent(CloudSyncEvent.SyncNowClicked()) },
+                enabled = state.folderId.isNotBlank() && !state.isSyncing,
+            ) {
+                if (state.isSyncing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(Spacing.l),
+                        strokeWidth = Spacing.xxs,
+                    )
+                } else {
+                    Text(stringResource(R.string.sync_now))
+                }
+            }
+            Text(
+                text = stringResource(R.string.sync_peer_devices),
+                style = MaterialTheme.typography.titleSmall,
+            )
+            if (state.peerStatuses.isEmpty()) {
+                Text(
+                    text = stringResource(R.string.sync_peers_empty),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                state.peerStatuses.forEach { peer ->
+                    PeerStatusRow(peer = peer)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PeerStatusRow(
+    peer: PeerJournalState,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = stringResource(R.string.sync_peer_device, peer.deviceId),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.weight(1f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text =
+                    stringResource(
+                        if (peer.upToDate) {
+                            R.string.sync_peer_up_to_date
+                        } else {
+                            R.string.sync_peer_pending
+                        },
+                    ),
+                style = MaterialTheme.typography.labelMedium,
+                color =
+                    if (peer.upToDate) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.error
+                    },
+            )
+        }
+        Text(
+            text = stringResource(R.string.sync_peer_modified_at, formatTimestamp(peer.modifiedAtMs)),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text =
+                if (peer.pulledThroughMs > 0L) {
+                    stringResource(R.string.sync_peer_pulled_through, formatTimestamp(peer.pulledThroughMs))
+                } else {
+                    stringResource(R.string.sync_peer_never_pulled)
+                },
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
@@ -188,13 +303,6 @@ private fun TargetCard(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            card.lastSyncAtMs?.let { ms ->
-                Text(
-                    text = stringResource(R.string.sync_last_at, formatTimestamp(ms)),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.s),
@@ -216,47 +324,8 @@ private fun TargetCard(
                         Text(stringResource(R.string.sync_connect))
                     }
                 }
-                Button(
-                    modifier = Modifier.testTag(card.target.controlTag("sync_now")),
-                    onClick = { onEvent(CloudSyncEvent.SyncNowClicked(card.target)) },
-                    enabled = card.connected && !card.syncing,
-                ) {
-                    if (card.syncing) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(18.dp),
-                            strokeWidth = 2.dp,
-                        )
-                    } else {
-                        Text(stringResource(R.string.sync_now))
-                    }
-                }
-            }
-            card.recentLog.forEach { entry ->
-                SyncLogRow(entry = entry)
             }
         }
-    }
-}
-
-@Composable
-private fun SyncLogRow(
-    entry: SyncLogEntry,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Text(
-            text = entry.event,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            text = entry.status,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
     }
 }
 
@@ -269,18 +338,11 @@ private fun formatTimestamp(epochMillis: Long): String =
     TIMESTAMP_FORMAT.format(Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()))
 
 private const val CLOUD_SYNC_AUTO_SYNC_TAG = "cloud_sync_auto_sync"
+private const val CLOUD_SYNC_FOLDER_ID_TAG = "cloud_sync_folder_id"
+private const val CLOUD_SYNC_SYNC_NOW_TAG = "cloud_sync_sync_now"
 
 private fun SyncTarget.controlTag(control: String): String =
     when (this) {
         SyncTarget.Dropbox -> "cloud_sync_dropbox_$control"
         SyncTarget.GoogleDrive -> "cloud_sync_google_drive_$control"
     }
-
-private fun relaunchApplication(context: Context) {
-    val component =
-        checkNotNull(
-            context.packageManager.getLaunchIntentForPackage(context.packageName)?.component,
-        )
-    context.startActivity(Intent.makeRestartActivityTask(component))
-    Process.killProcess(Process.myPid())
-}

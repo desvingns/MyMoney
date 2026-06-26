@@ -200,7 +200,26 @@ class TransactionRepositoryImpl
             now: Instant,
         ) =
             withContext(ioDispatcher) {
-                dao.restore(id, now.toEpochMilli())
+                val updatedAt = clock.instant()
+                val deviceId = deviceIdProvider.deviceId()
+                transactionRunner.runInTransaction {
+                    val existing = requireNotNull(dao.findById(id)) { "transaction not found: $id" }
+                    require(existing.uuid.isNotBlank()) { "transaction uuid must not be blank" }
+                    val restored = existing.copy(isDeleted = false, deviceId = deviceId, updatedAt = updatedAt.toEpochMilli())
+                    dao.upsert(restored)
+                    val accountUuid = requireAccountUuid(restored.accountId)
+                    val categoryUuid = restored.categoryId?.let { requireCategoryUuid(it) }
+                    val toAccountUuid = restored.toAccountId?.let { requireAccountUuid(it) }
+                    operationDao.insert(
+                        operation(
+                            deviceId = deviceId,
+                            entityUuid = restored.uuid,
+                            opType = OpType.Upsert,
+                            payload = payloadCodec.encodeTransaction(restored, accountUuid, categoryUuid, toAccountUuid),
+                            updatedAt = updatedAt,
+                        ),
+                    )
+                }
             }
 
         override suspend fun pruneDeleted(before: Instant) =

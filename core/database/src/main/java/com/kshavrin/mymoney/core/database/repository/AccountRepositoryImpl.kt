@@ -107,7 +107,32 @@ class AccountRepositoryImpl
 
         override suspend fun setDefault(id: Long) =
             withContext(ioDispatcher) {
-                dao.setDefault(id)
+                val now = clock.instant()
+                val deviceId = deviceIdProvider.deviceId()
+                transactionRunner.runInTransaction {
+                    val previousDefaults = dao.listDefaults()
+                    val target = requireNotNull(dao.findById(id)) { "account not found: $id" }
+                    val updatedAt = now.toEpochMilli()
+                    val changed =
+                        (previousDefaults.filter { it.id != id }.map { it.copy(isDefault = false) } + target.copy(isDefault = true))
+                            .map { account ->
+                                account.copy(deviceId = deviceId, updatedAt = updatedAt)
+                            }
+                            .distinctBy { it.id }
+                    changed.forEach { account ->
+                        require(account.uuid.isNotBlank()) { "account uuid must not be blank" }
+                        dao.upsert(account)
+                        operationDao.insert(
+                            operation(
+                                deviceId = deviceId,
+                                entityUuid = account.uuid,
+                                opType = OpType.Upsert,
+                                payload = payloadCodec.encodeAccount(account),
+                                updatedAt = now,
+                            ),
+                        )
+                    }
+                }
             }
 
         override suspend fun countByCurrency(currencyId: Long): Int =

@@ -18,6 +18,9 @@ abstract class AccountDao {
     @Query("SELECT * FROM account WHERE is_default = 1 LIMIT 1")
     abstract suspend fun findDefault(): AccountEntity?
 
+    @Query("SELECT * FROM account WHERE is_default = 1")
+    abstract suspend fun listDefaults(): List<AccountEntity>
+
     @Query(
         """
         SELECT a.initial_balance

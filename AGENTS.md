@@ -245,6 +245,20 @@ the user explicitly restores it for fallback work.
 
 Default to **zero comments**. Only add when WHY is non-obvious — a hidden constraint, subtle invariant, workaround for a specific bug. Never narrate WHAT (well-named identifiers do that). Don't reference the current task/PR/issue — those belong in commit messages.
 
+## File deletion — archive, never delete
+
+Never delete files. When running the `/mp` / `$mp` skill (or any task), any file that should be removed — a stale/redundant SPEC, a superseded duplicate on the `.claude/specs/` board, dead artifacts — is **moved to `archive/`** (repo root, git-ignored) instead of being deleted, then reported to the user for manual deletion. Preserve a recognizable name (add a `.<reason>` suffix, e.g. `.backlog-stale`, when the name would otherwise collide). The user empties `archive/` by hand.
+
+## Shared cross-tool workspace + second brain
+
+- `.ai/memory/MEMORY.md` (git-tracked) is the durable memory BOTH tools share for this repo;
+  `.ai/handoff.md` is the cross-tool session scratchpad. Phase/release state still lives ONLY
+  in `docs/implementation_plan/PROGRESS.md` — the `.ai/` files never compete with it.
+- Cross-project knowledge lives in the second brain: `D:\Pet\brain` on the host,
+  `C:\Pet\brain` in the VirtualBox guest (clone of `github.com/desvingns/brain`; `git pull`
+  first). Entry point `INDEX.md`; this repo's card: `brain/projects/mymoney.md`. Lessons that
+  generalize beyond MyMoney go to `brain/inbox/` (human-gated promotion via `/brain promote`).
+
 ## Project state files — important note
 
 This project now uses MP Dev's SPEC board (`.claude/specs/{backlog,active,done}/`) plus the implementation-plan phase model (PROGRESS). **PROGRESS.md is the sole writer of phase/release state.** The root `STATE.md`, `ROADMAP.md`, and `DOCUMENTATION.md` files are one-line stub redirects pointing at the implementation plan and the TDD.

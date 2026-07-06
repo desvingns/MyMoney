@@ -129,6 +129,10 @@ android {
     }
 }
 
+hilt {
+    enableAggregatingTask = true
+}
+
 baselineProfile {
     automaticGenerationDuringBuild = false
 }

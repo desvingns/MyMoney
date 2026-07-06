@@ -34,8 +34,10 @@ $devices = (& $adb devices -l | Out-String)
 if ($devices -notmatch "$serial\s+device") {
     throw "AVD is not reachable. `adb devices` did not list `$serial`.`nStart the Pixel_5_API_34 emulator in Android Studio and retry.`n$devices"
 }
-if ((& $adb -s $serial shell getprop ro.boot.qemu.avd_name).Trim() -ne 'Pixel_5_API_34') {
-    throw 'Connected emulator is not Pixel_5_API_34.'
+$avdName = (& $adb -s $serial shell getprop ro.boot.qemu.avd_name).Trim()
+$sdkVersion = (& $adb -s $serial shell getprop ro.build.version.sdk).Trim()
+if ($avdName -ne 'Pixel_5_API_34' -and -not ($avdName -eq 'Pixel_5' -and $sdkVersion -eq '34')) {
+    throw "Connected emulator is not Pixel_5_API_34 (avd=$avdName sdk=$sdkVersion)."
 }
 if ((& $adb -s $serial shell getprop sys.boot_completed).Trim() -ne '1') {
     throw 'Pixel_5_API_34 is not boot-complete.'

@@ -1,7 +1,7 @@
 # Execute Slice 5: manual QA + minified release walk + macrobenchmark
 Epic: review-2026-07
 Order: 02 of 35
-Status: draft
+Status: active
 Depends-on: —
 Date: 2026-07-06
 

@@ -16,3 +16,9 @@ tool-local memories — tool-local copies remain historical snapshots.
   test APK is not sent by mistake (2026-06-21 lesson, now also in the mp orchestrator).
 - Deviations AS-12 (range date picker) and AS-14 (donut labels >=3%) are locked —
   never "fix" them back to Monefy behavior.
+- External services must stay on FREE tiers (user directive, 2026-07-06): Sentry
+  Developer plan in errors-only mode (`tracesSampleRate = 0`, no session replay /
+  profiling, ~5k errors/mo budget + quota alert), GitHub Actions within free minutes
+  (run heavy emulator jobs nightly/`workflow_dispatch` if the repo is private),
+  Firebase Spark plan, personal Dropbox/Google Drive quotas. Never propose or wire
+  paid tiers or features that exceed free limits.

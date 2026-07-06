@@ -43,9 +43,9 @@ Keep `libs.sentry.android.core`; do not replace it with the umbrella
 3. Copy the project DSN from Project Settings -> Client Keys (DSN).
 4. Add the DSN to local `local.properties` and to GitHub Actions secret
    `SENTRY_DSN`.
-5. In Settings -> Spike Protection, keep Spike Protection enabled for the
-   project if the Developer-plan UI exposes it.
-6. Keep the subscription on Developer/free and do not add pay-as-you-go budget.
+5. Keep the subscription on Developer/free and do not add pay-as-you-go budget.
+6. Do not enable or rely on Spike Protection, per-DSN rate limits,
+   Delete & Discard, or any other quota guard that requires a paid plan.
 
 ## Quota guard
 

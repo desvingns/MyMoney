@@ -59,15 +59,31 @@ class MyMoneyApp :
             workScheduler.scheduleDailyJobs()
         }
         triggerJournalSyncOnOpen()
-        if (BuildConfig.SENTRY_DSN.isNotBlank()) {
-            SentryAndroid.init(this) { options ->
-                options.dsn = BuildConfig.SENTRY_DSN
-                options.tracesSampleRate = 0.0
-                options.isAttachStacktrace = true
-                options.isEnableAutoSessionTracking = true
-            }
-        }
+        initSentry()
         normalizeLegacyUtcMidnightDates()
+    }
+
+    @Suppress("DEPRECATION")
+    private fun initSentry() {
+        if (BuildConfig.SENTRY_DSN.isBlank()) {
+            return
+        }
+        SentryAndroid.init(this) { options ->
+            options.dsn = BuildConfig.SENTRY_DSN
+            options.tracesSampleRate = 0.0
+            options.setEnableTracing(false)
+            options.profilesSampleRate = 0.0
+            options.profilesSampler = null
+            options.isEnableAppStartProfiling = false
+            options.isEnableAutoActivityLifecycleTracing = false
+            options.isEnableActivityLifecycleTracingAutoFinish = false
+            options.isEnablePerformanceV2 = false
+            options.isEnableFramesTracking = false
+            options.isEnableAutoSessionTracking = false
+            options.isAttachStacktrace = true
+            options.isAttachScreenshot = false
+            options.isAttachViewHierarchy = false
+        }
     }
 
     private fun triggerJournalSyncOnOpen() {

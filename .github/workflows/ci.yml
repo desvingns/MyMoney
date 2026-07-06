@@ -27,6 +27,17 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Materialize Sentry DSN only when the OQ-1 secret is supplied
+        shell: bash
+        env:
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+        run: |
+          if [[ -n "$SENTRY_DSN" ]]; then
+            printf '%s\n' "sentry.dsn=$SENTRY_DSN" >> local.properties
+          else
+            echo "OQ-1 unresolved or no CI secret supplied: Sentry remains disabled."
+          fi
+
       - name: Materialize Firebase config only when the OQ-9 secret is supplied
         shell: bash
         env:
@@ -78,6 +89,17 @@ jobs:
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
+
+      - name: Materialize Sentry DSN only when the OQ-1 secret is supplied
+        shell: bash
+        env:
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+        run: |
+          if [[ -n "$SENTRY_DSN" ]]; then
+            printf '%s\n' "sentry.dsn=$SENTRY_DSN" >> local.properties
+          else
+            echo "OQ-1 unresolved or no CI secret supplied: Sentry remains disabled."
+          fi
 
       - name: Materialize Firebase config only when the OQ-9 secret is supplied
         shell: bash

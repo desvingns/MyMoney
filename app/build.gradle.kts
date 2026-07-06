@@ -11,13 +11,20 @@ plugins {
     alias(libs.plugins.androidx.baselineprofile)
 }
 
-val releaseSigningProperties =
+val localProperties =
     Properties().apply {
         val localPropertiesFile = rootProject.file("local.properties")
         if (localPropertiesFile.isFile) {
             localPropertiesFile.inputStream().use(::load)
         }
     }
+val sentryDsn =
+    providers.gradleProperty("sentry.dsn").orNull
+        ?: localProperties.getProperty("sentry.dsn")
+        ?: localProperties.getProperty("SENTRY_DSN")
+        ?: providers.environmentVariable("SENTRY_DSN").orNull
+        ?: ""
+val releaseSigningProperties = localProperties
 val releaseSigningKeys =
     listOf(
         "keystore.path",
@@ -29,6 +36,9 @@ val hasReleaseSigningConfig =
     releaseSigningKeys.all { key ->
         !releaseSigningProperties.getProperty(key).isNullOrBlank()
     }
+
+fun String.asBuildConfigString(): String =
+    "\"${replace("\\", "\\\\").replace("\"", "\\\"")}\""
 
 // google-services is applied only when a google-services.json is present
 // (firebase.enabled=true); the default build ships without Firebase.
@@ -49,12 +59,12 @@ android {
         applicationId = "com.kshavrin.mymoney"
         minSdk = 31
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.0.1"
 
         testInstrumentationRunner = "com.kshavrin.mymoney.HiltTestRunner"
 
-        buildConfigField("String", "SENTRY_DSN", "\"${providers.gradleProperty("sentry.dsn").getOrElse("")}\"")
+        buildConfigField("String", "SENTRY_DSN", sentryDsn.asBuildConfigString())
         buildConfigField(
             "boolean",
             "HAS_FIREBASE",

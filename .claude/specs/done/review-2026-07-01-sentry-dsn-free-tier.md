@@ -1,7 +1,7 @@
 # Wire Sentry crash reporting on the free Developer plan (errors-only)
 Epic: review-2026-07
 Order: 01 of 35
-Status: draft
+Status: done
 Depends-on: —
 Date: 2026-07-06
 
@@ -20,5 +20,12 @@ OQ-1: DSN is blank-by-default, so production crashes go nowhere while all report
 code already exists. Source: project review 2026-07-06, item 1 (P1/S).
 
 ## Implementation links
-- commit: (pending)
-- files: (pending)
+- commit: 2e3ceaa0, 0e49310c, 0b2257dc
+- files:
+  - .github/workflows/ci.yml
+  - app/build.gradle.kts
+  - app/src/main/java/com/kshavrin/mymoney/MyMoneyApp.kt
+  - app/src/test/java/com/kshavrin/mymoney/SentryFreeTierContractTest.kt
+  - core/common/src/main/kotlin/com/kshavrin/mymoney/core/common/exception/SentryExt.kt
+  - core/common/src/test/kotlin/com/kshavrin/mymoney/core/common/exception/SentryExtTest.kt
+  - docs/operations/sentry-free-tier.md

@@ -50,6 +50,8 @@ across sessions, and is updated one green test at a time (`/mp --device <Sxx>` o
 | 2026-05-28 | S16 setup direct controls green, 6/6 | `BiometricSetupContentUiTest` covers Back, enable switch, unavailable/not-enrolled states, idle-timeout menu, PIN setup keypad confirmation, and PIN backspace on `Pixel_5_API_34`; BiometricPrompt and runtime overlay remain route/runtime gaps. |
 | 2026-05-27 | UTP-safe device runner established | Direct remote serial causes AGP 8.7.3 UTP profile-path failure; `scripts/run_connected_test_on_host_avd.ps1` proxies host ADB so Gradle uses `emulator-5554` and waits 60 seconds after each run. |
 | 2026-07-06 | Slice 5 attempt blocked, Hilt smoke blocker fixed | Device evidence: `emulator-5554`, Android Studio tab `Pixel 5 API 34`, `ro.boot.qemu.avd_name=Pixel_5`, SDK `34`, boot complete. `:app:assembleRelease` passed and produced `app/build/outputs/apk/release/app-release-unsigned.apk` (18,075,747 bytes) plus baseline profile `.dm` artifacts. Initial `MainActivityLaunchTest` smoke failed because Hilt generated `MainActivityLaunchTest_TestComponentDataSupplier` was missing from the test APK; follow-up SPEC `review-2026-07-02a-hilt-smoke-generated-supplier` enabled Hilt's aggregating task and the sanctioned smoke then passed 1/1 with failures=0/errors=0/skipped=0 at `app/build/outputs/androidTest-results/connected/debug/TEST-Pixel_5(AVD) - 14-_app-.xml`. Clean minified release install/walk and macrobenchmark remain blocked by missing release signing (`:app:signingReport`: release config null). |
+| 2026-07-08 | Slice 5 resumed, macrobenchmark defects filed | Device evidence: `emulator-5554`, `ro.boot.qemu.avd_name=Pixel_5`, SDK `34`, boot complete; `scripts/preflight_device_health.ps1` passed with hardware GL and `MainActivityLaunchTest` 1/1. `:app:signingReport` still shows ordinary `release`/`staging` signing `Config: null`, but `benchmarkRelease`/`nonMinifiedRelease` are debug-signed by the baseline-profile plugin. `:macrobenchmark:connectedBenchmarkReleaseAndroidTest` installed the minified `benchmarkRelease` target and ran `StartupBenchmark` 3/3, but all 3 tests failed because the benchmark journey no longer recognizes the current dashboard signals; filed `review-2026-07-02b-macrobenchmark-dashboard-probes`. A release-style onboarding visual smoke also found near-black title/body text on the dark background; filed `review-2026-07-02c-release-onboarding-contrast`. |
+| 2026-07-08 | Macrobenchmark dashboard probes fixed | Commit `48d45218` updates `BenchmarkJourney` probes for the redesigned dashboard and current onboarding surface. Verification: device gate green on `emulator-5554` / `Pixel_5(AVD) - 14`; `:macrobenchmark:compileBenchmarkReleaseKotlin` and `:macrobenchmark:ktlintCheck` passed; `:macrobenchmark:connectedBenchmarkReleaseAndroidTest` reported `StartupBenchmark` 3/3 passed in `macrobenchmark/build/outputs/androidTest-results/connected/benchmarkRelease/TEST-Pixel_5(AVD) - 14-_macrobenchmark-.xml` (the suite-level `BaselineProfileGenerator.generate` testcase is skipped). |
 
 ## Delivery Order
 
@@ -60,7 +62,7 @@ across sessions, and is updated one green test at a time (`/mp --device <Sxx>` o
 | 2 | Transaction forms S07/S03/S09/S27, including AS-4 and AS-6 paths | **Done (E2E)** | J2 cross-currency transfer (AS-6/AS-7) and J3 create-category (AS-4) E2E green 2026-05-29 (`cc8c30f`, `210c1f4`); S07 7/7, S03 12/12, S09 3/3, S27 5/5. Two real defects fixed (`beb64c0`, `566e8c4`). S09 long-press context actions + error seams remain Pattern B gaps. |
 | 3 | Dictionaries S21-S26 CRUD and validation controls | **Done** | S21-S26 Content tests green on `Pixel_5_API_34` (Phase B of `COVERAGE_HARDENING_PLAN.md`); re-confirmed in the 2026-05-30 final full run |
 | 4 | List/detail/search/settings/lock/sync/backup plus worker instrumentation | In progress | S08 direct controls 8/8, S12 direct/header controls 9/9, S13 direct controls 11/11, S14 direct controls 3/3, S15 direct controls 2/2, S16 setup direct controls 6/6, S17 direct controls 6/6, S18 direct controls 5/5, S19 direct controls 2/2, and S20 direct controls 2/2 green; S12 loading/error/filter-removal/undo, S16 BiometricPrompt/overlay runtime, provider/OAuth E2E pending. **Worker instrumentation done 4/4 (`155a5b2`).** |
-| 5 | Manual QA, minified release walk, macrobenchmark/Baseline Profile | Blocked | 2026-07-06 attempt: device present, `:app:assembleRelease` green, and connected smoke `MainActivityLaunchTest` is now green after `review-2026-07-02a-hilt-smoke-generated-supplier`; release APK is still unsigned, so clean minified release install/walk and macrobenchmark are deferred until the signing gate is resolved. |
+| 5 | Manual QA, minified release walk, macrobenchmark/Baseline Profile | Blocked | 2026-07-08 update: stale dashboard probes are fixed in `48d45218`, and `StartupBenchmark` now passes 3/3 on `benchmarkRelease`. Slice 5 still has the release-style onboarding contrast defect (`review-2026-07-02c`). Ordinary `release` remains unsigned (`:app:signingReport` release config null), so the clean signed-release walkthrough remains deferred until signing is resolved. |
 
 ## Screen Matrix
 
@@ -98,6 +100,39 @@ entry identifies coverage already recorded before this tracker was created.
 | Workers | recurring, prune, rotation, sync no-op | Green: 4/4 | n/a | Rotation guard green | `core:sync` `WorkerInstrumentationTest` 4/4 green 2026-05-29 (`155a5b2`): Recurring Room effect, Prune 30-day Room effect, Sync gated no-op, BackupRotation missing-URI failure; rotation success path needs real SAF |
 
 ## Session Log
+
+### 2026-07-08 - Slice 5 blocker: macrobenchmark dashboard probes fixed
+
+- Commit `48d45218` updates `BenchmarkJourney` to recognize the redesigned dashboard
+  (`FREE BALANCE`, amount text, income/expense stats, empty-period copy) and the current
+  onboarding action sequence.
+- Device gate passed on `emulator-5554` / `Pixel_5(AVD) - 14` before the fix run:
+  SDK 34, boot complete, hardware GL, `MainActivityLaunchTest` 1/1, `HEALTH: OK`.
+- Verification passed: `:macrobenchmark:compileBenchmarkReleaseKotlin`,
+  `:macrobenchmark:ktlintCheck`, and `:macrobenchmark:connectedBenchmarkReleaseAndroidTest`.
+  XML evidence:
+  `macrobenchmark/build/outputs/androidTest-results/connected/benchmarkRelease/TEST-Pixel_5(AVD) - 14-_macrobenchmark-.xml`.
+- `StartupBenchmark` is green 3/3 (`coldStartupToDashboard`, `dashboardRenderFrames`,
+  `transactionsListNavigationAndScrollFrames`); the same XML suite also records
+  `BaselineProfileGenerator.generate` as skipped.
+- Slice 5 remains blocked by `review-2026-07-02c-release-onboarding-contrast` plus the
+  ordinary signed-release walkthrough.
+
+### 2026-07-08 - Slice 5 resume: benchmark release smoke found defects
+
+- Device preflight passed on `emulator-5554` / `Pixel_5(AVD) - 14`: hardware GL via
+  NVIDIA OpenGL ES translator, `MainActivityLaunchTest` 1/1, `HEALTH: OK`.
+- `:app:signingReport` still reports ordinary `release` and `staging` as unsigned
+  (`Config: null`), while `benchmarkRelease` and `nonMinifiedRelease` are debug-signed.
+- `:macrobenchmark:connectedBenchmarkReleaseAndroidTest` ran against the minified
+  `benchmarkRelease` target and failed `StartupBenchmark` 3/3. XML evidence:
+  `macrobenchmark/build/outputs/androidTest-results/connected/benchmarkRelease/TEST-Pixel_5(AVD) - 14-_macrobenchmark-.xml`.
+- Filed `review-2026-07-02b-macrobenchmark-dashboard-probes` because the benchmark
+  journey still waits for `MyMoney` / `Balance`, but the current dashboard exposes
+  `FREE BALANCE`, `0 $`, `No expenses this period`, and toolbar content descriptions.
+- Filed `review-2026-07-02c-release-onboarding-contrast` because release-style
+  onboarding title/body text renders nearly black on the dark background. Evidence:
+  `build/visual-check/mymoney-benchmark-launch-installed.png`.
 
 ### 2026-06-03 - S12 records header stability
 

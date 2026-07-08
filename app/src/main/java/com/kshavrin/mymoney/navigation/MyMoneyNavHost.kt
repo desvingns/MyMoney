@@ -85,6 +85,8 @@ fun MyMoneyNavHost(
                                 navController.navigate(Destinations.SETTINGS)
                             is com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateToTransactionDetail ->
                                 navController.navigate("${Destinations.TRANSACTION_DETAIL}/${action.transactionId}")
+                            is com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateToTransactionsList ->
+                                navController.navigate(transactionsListRoute(action))
                             // The "All accounts" conversion dialogs are handled inside DashboardRoute
                             // and never reach navigation.
                             else -> Unit
@@ -106,6 +108,38 @@ fun MyMoneyNavHost(
         composable(Destinations.SEARCH) {
             com.kshavrin.mymoney.feature.transactionslist.search.SearchRoute(
                 onOpenDetail = { id -> navController.navigate("${Destinations.TRANSACTION_DETAIL}/$id") },
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(
+            route = "${Destinations.TRANSACTIONS_LIST}?accountId={accountId}&currencyId={currencyId}&categoryId={categoryId}&from={from}&to={to}",
+            arguments =
+                listOf(
+                    navArgument("accountId") {
+                        type = NavType.LongType
+                        defaultValue = -1L
+                    },
+                    navArgument("currencyId") {
+                        type = NavType.LongType
+                        defaultValue = -1L
+                    },
+                    navArgument("categoryId") {
+                        type = NavType.LongType
+                        defaultValue = -1L
+                    },
+                    navArgument("from") {
+                        type = NavType.LongType
+                        defaultValue = -1L
+                    },
+                    navArgument("to") {
+                        type = NavType.LongType
+                        defaultValue = -1L
+                    },
+                ),
+        ) {
+            com.kshavrin.mymoney.feature.transactionslist.list.TransactionsListRoute(
+                onOpenDetail = { id -> navController.navigate("${Destinations.TRANSACTION_DETAIL}/$id") },
+                onSearch = { navController.navigate(Destinations.SEARCH) },
                 onBack = { navController.popBackStack() },
             )
         }
@@ -352,3 +386,13 @@ private fun DecisionRouter(
     }
     Box(modifier = Modifier.fillMaxSize())
 }
+
+private fun transactionsListRoute(
+    action: com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateToTransactionsList,
+): String =
+    "${Destinations.TRANSACTIONS_LIST}?" +
+        "accountId=${action.accountId ?: -1L}" +
+        "&currencyId=${action.currencyId ?: -1L}" +
+        "&categoryId=${action.categoryId ?: -1L}" +
+        "&from=${action.fromMillis}" +
+        "&to=${action.toMillis}"

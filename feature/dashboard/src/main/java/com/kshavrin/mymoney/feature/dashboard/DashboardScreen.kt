@@ -283,6 +283,7 @@ fun DashboardContent(
                 summary.categoryName
                     ?: stringResource(R.string.operations_summary_title_all_operations),
             onRowClick = { transactionId -> onEvent(DashboardEvent.RecordRowClicked(transactionId)) },
+            onOpenTransactionsList = { onEvent(DashboardEvent.OpenTransactionsListClicked) },
             onDismiss = { onEvent(DashboardEvent.OperationsSummaryDismissed) },
             currencies = state.currencies,
             categoryDisplays = state.categoryDisplays,

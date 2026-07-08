@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -18,6 +19,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -41,6 +43,7 @@ fun OperationsSummarySheet(
     loading: Boolean,
     title: String,
     onRowClick: (Long) -> Unit,
+    onOpenTransactionsList: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     currencies: List<Currency> = emptyList(),
@@ -72,11 +75,20 @@ fun OperationsSummarySheet(
                     .padding(bottom = Spacing.l),
             verticalArrangement = Arrangement.spacedBy(Spacing.m),
         ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(onClick = onOpenTransactionsList) {
+                    Text(text = stringResource(R.string.operations_summary_open_transactions))
+                }
+            }
             when {
                 loading -> {
                     Box(

@@ -25,6 +25,7 @@ import com.kshavrin.mymoney.core.domain.repository.AccountRepository
 import com.kshavrin.mymoney.core.domain.repository.CategoryRepository
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
+import com.kshavrin.mymoney.core.domain.time.PeriodArithmetic
 import com.kshavrin.mymoney.core.domain.usecase.BalanceCalculator
 import com.kshavrin.mymoney.core.domain.usecase.BalanceTrendCalculator
 import com.kshavrin.mymoney.core.domain.usecase.GetOperationsSummaryUseCase
@@ -1095,6 +1096,7 @@ class DashboardViewModel
                     _state.value = _state.value.copy(operationsSummary = null)
                     emit(DashboardAction.NavigateToTransactionDetail(event.transactionId))
                 }
+                DashboardEvent.OpenTransactionsListClicked -> openTransactionsList()
                 DashboardEvent.OperationsSummaryDismissed ->
                     _state.value = _state.value.copy(operationsSummary = null)
                 DashboardEvent.ConfettiAcknowledged ->
@@ -1303,6 +1305,37 @@ class DashboardViewModel
                         )
                 }
             }
+        }
+
+        private fun openTransactionsList() {
+            val summary = _state.value.operationsSummary ?: return
+            val range = PeriodArithmetic.toEpochMillisRange(_state.value.period)
+            val action =
+                when (val selection = _state.value.dashboardSelection) {
+                    is DashboardSelection.SpecificAccount ->
+                        DashboardAction.NavigateToTransactionsList(
+                            accountId = selection.account.id,
+                            currencyId = null,
+                            categoryId = summary.categoryFilter,
+                            fromMillis = range.first,
+                            toMillis = range.last,
+                        )
+                    is DashboardSelection.AllAccounts ->
+                        when (val mode = selection.foldMode) {
+                            is AllAccountsFoldMode.ConvertTo ->
+                                DashboardAction.NavigateToTransactionsList(
+                                    accountId = null,
+                                    currencyId = mode.target.id,
+                                    categoryId = summary.categoryFilter,
+                                    fromMillis = range.first,
+                                    toMillis = range.last,
+                                )
+                            AllAccountsFoldMode.Separate -> return
+                        }
+                    null -> return
+                }
+            _state.value = _state.value.copy(operationsSummary = null)
+            emit(action)
         }
 
         private fun emit(action: DashboardAction) {

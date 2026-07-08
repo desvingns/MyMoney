@@ -44,5 +44,13 @@ sealed interface DashboardAction {
         val transactionId: Long,
     ) : DashboardAction
 
+    data class NavigateToTransactionsList(
+        val accountId: Long?,
+        val currencyId: Long?,
+        val categoryId: Long?,
+        val fromMillis: Long,
+        val toMillis: Long,
+    ) : DashboardAction
+
     data object NavigateAbout : DashboardAction
 }

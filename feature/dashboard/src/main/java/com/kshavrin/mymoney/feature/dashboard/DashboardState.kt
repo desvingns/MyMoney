@@ -271,6 +271,8 @@ sealed interface DashboardEvent {
         val transactionId: Long,
     ) : DashboardEvent
 
+    data object OpenTransactionsListClicked : DashboardEvent
+
     data object ConfettiAcknowledged : DashboardEvent
 
     // Tap on the Aurora/chart card opens the operations summary with no filter (SPEC 03). Chart

@@ -21,6 +21,8 @@
     <string name="transactions_list_tab_transfers">Переводы</string>
     <string name="transactions_list_transfers_empty">Нет переводов за данный период</string>
     <string name="transactions_list_transfer_route">%1$s → %2$s</string>
+    <string name="transactions_list_category_other">&#1044;&#1088;&#1091;&#1075;&#1086;&#1077;</string>
+    <string name="transactions_list_no_note">&#1041;&#1077;&#1079; &#1082;&#1086;&#1084;&#1084;&#1077;&#1085;&#1090;&#1072;&#1088;&#1080;&#1103;</string>
     <string name="detail_title_expense">Изменить расход</string>
     <string name="detail_title_income">Изменить доход</string>
     <string name="detail_title_transfer">Изменить перевод</string>

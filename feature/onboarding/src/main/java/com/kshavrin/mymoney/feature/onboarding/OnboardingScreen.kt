@@ -155,12 +155,14 @@ private fun OnboardingSlide(page: Int) {
         Spacer(modifier = Modifier.height(Spacing.xl))
         Text(
             text = stringResource(id = slide.headlineRes),
+            color = MaterialTheme.colorScheme.onBackground,
             style = MaterialTheme.typography.headlineMedium,
             textAlign = TextAlign.Center,
         )
         Spacer(modifier = Modifier.height(Spacing.m))
         Text(
             text = stringResource(id = slide.bodyRes),
+            color = MaterialTheme.colorScheme.onBackground,
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = Spacing.l),

@@ -1,7 +1,7 @@
 # Fix release onboarding text contrast on dark neon background
 Epic: review-2026-07
 Order: 02c of 35
-Status: draft
+Status: done
 Depends-on: review-2026-07-02
 Date: 2026-07-08
 
@@ -23,5 +23,5 @@ CTA and icon remained visible. Evidence:
 onboarding, so this escaped the usual debug launch smoke.
 
 ## Implementation links
-- commit: (pending)
-- files: (pending)
+- commit: 39439425, 9657d249
+- files: app/build.gradle.kts; feature/onboarding/src/main/java/com/kshavrin/mymoney/feature/onboarding/OnboardingScreen.kt; app/src/androidTest/java/com/kshavrin/mymoney/feature/onboarding/OnboardingContentUiTest.kt

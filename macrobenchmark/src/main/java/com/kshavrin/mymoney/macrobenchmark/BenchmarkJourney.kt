@@ -7,15 +7,35 @@ import androidx.test.uiautomator.Until
 import java.util.regex.Pattern
 
 internal const val TARGET_PACKAGE = "com.kshavrin.mymoney"
-private const val DASHBOARD_TITLE = "MyMoney"
 private const val TIMEOUT_MILLIS = 10_000L
 private const val DASHBOARD_PROBE_MILLIS = 1_000L
-private val balancePattern = Pattern.compile("^(Balance|Баланс)(?:\\s|$).*")
-private val readyBalancePattern = Pattern.compile("^(Balance|Баланс)(?:\\s|$).*\\d.*")
+private const val SUMMARY_ENTRY_Y_FRACTION = 3
+private val legacyBalancePattern = Pattern.compile("^(Balance|Баланс)(?:\\s|$).*")
+private val freeBalancePattern =
+    Pattern.compile(
+        "^(Free balance|Свободный баланс)$",
+        Pattern.CASE_INSENSITIVE or Pattern.UNICODE_CASE,
+    )
+private val dashboardEmptyPattern =
+    Pattern.compile(
+        "^(No expenses this period|За период нет расходов)$",
+        Pattern.CASE_INSENSITIVE or Pattern.UNICODE_CASE,
+    )
+private val dashboardStatPattern =
+    Pattern.compile(
+        "^.*(Income|Expenses|Доходы|Расходы)\\s+.*\\d.*$",
+        Pattern.CASE_INSENSITIVE or Pattern.UNICODE_CASE,
+    )
+private val readyBalancePattern =
+    Pattern.compile("^-?\\d[\\d\\s.,]*(?:\\s*\\p{Sc}|\\s+(?:USD|EUR|RUB))$")
 private val getStartedPattern = Pattern.compile("^(Get started|Начать)$")
 private val nextPattern = Pattern.compile("^(Next|Далее)$")
 private val skipPattern = Pattern.compile("^(Skip|Пропустить)$")
-private val transactionsTitlePattern = Pattern.compile("^(Transactions|Транзакции)$")
+private val transactionsSurfacePattern =
+    Pattern.compile(
+        "^(Transactions|Транзакции|All operations|Все операции|No operations for the period)$",
+        Pattern.CASE_INSENSITIVE or Pattern.UNICODE_CASE,
+    )
 
 internal fun MacrobenchmarkScope.launchDashboard() {
     startActivityAndWait()
@@ -34,18 +54,10 @@ internal fun MacrobenchmarkScope.awaitDashboard() {
 }
 
 internal fun MacrobenchmarkScope.openTransactionsList() {
-    check(waitForReadyBalance(TIMEOUT_MILLIS)) {
-        "Dashboard balance was not rendered"
-    }
-    val balance =
-        checkNotNull(
-            device.findObject(By.text(readyBalancePattern)),
-        ) {
-            "Dashboard balance was not rendered"
-        }
-    balance.click()
-    check(device.wait(Until.hasObject(By.text(transactionsTitlePattern)), TIMEOUT_MILLIS)) {
-        "Transactions list did not render"
+    awaitDashboard()
+    device.click(device.displayWidth / 2, device.displayHeight / SUMMARY_ENTRY_Y_FRACTION)
+    check(device.wait(Until.hasObject(By.text(transactionsSurfacePattern)), TIMEOUT_MILLIS)) {
+        "Transactions surface did not render"
     }
 }
 
@@ -79,38 +91,45 @@ private fun MacrobenchmarkScope.awaitLaunchScreen(): LaunchScreen {
 }
 
 private fun MacrobenchmarkScope.completeOnboarding() {
-    val skip = device.wait(Until.findObject(By.text(skipPattern)), DASHBOARD_PROBE_MILLIS)
-    if (skip != null) {
-        skip.click()
-        device.waitForIdle()
-        if (waitForDashboard(TIMEOUT_MILLIS)) return
-    }
+    repeat(5) {
+        if (waitForDashboard(DASHBOARD_PROBE_MILLIS)) return
 
-    repeat(3) {
-        val next =
-            checkNotNull(device.wait(Until.findObject(By.text(nextPattern)), TIMEOUT_MILLIS)) {
-                "Onboarding Next button was not found"
-            }
+        val getStarted = device.wait(Until.findObject(By.text(getStartedPattern)), DASHBOARD_PROBE_MILLIS)
+        if (getStarted != null) {
+            getStarted.click()
+            device.waitForIdle()
+            if (waitForDashboard(TIMEOUT_MILLIS)) return
+        }
+
+        val skip = device.wait(Until.findObject(By.text(skipPattern)), DASHBOARD_PROBE_MILLIS)
+        if (skip != null) {
+            skip.click()
+            device.waitForIdle()
+            if (waitForDashboard(TIMEOUT_MILLIS)) return
+        }
+
+        val next = device.wait(Until.findObject(By.text(nextPattern)), TIMEOUT_MILLIS)
+        if (next == null) {
+            if (waitForDashboard(DASHBOARD_PROBE_MILLIS)) return
+            error("Onboarding action button was not found")
+        }
         next.click()
         device.waitForIdle()
     }
-    val getStarted =
-        checkNotNull(
-            device.wait(Until.findObject(By.text(getStartedPattern)), TIMEOUT_MILLIS),
-        ) {
-            "Onboarding completion button was not found"
-        }
-    getStarted.click()
+    check(waitForDashboard(TIMEOUT_MILLIS)) {
+        "Onboarding did not reach dashboard"
+    }
 }
 
 private fun MacrobenchmarkScope.waitForDashboard(timeoutMillis: Long): Boolean =
     waitUntil(timeoutMillis) { hasDashboardSignal() }
 
-private fun MacrobenchmarkScope.waitForReadyBalance(timeoutMillis: Long): Boolean =
-    waitUntil(timeoutMillis) { device.hasObject(By.text(readyBalancePattern)) }
-
 private fun MacrobenchmarkScope.hasDashboardSignal(): Boolean =
-    device.hasObject(By.text(DASHBOARD_TITLE)) || device.hasObject(By.text(balancePattern))
+    device.hasObject(By.text(legacyBalancePattern)) ||
+        device.hasObject(By.text(freeBalancePattern)) ||
+        device.hasObject(By.text(readyBalancePattern)) ||
+        device.hasObject(By.text(dashboardStatPattern)) ||
+        device.hasObject(By.text(dashboardEmptyPattern))
 
 private fun MacrobenchmarkScope.hasOnboardingSignal(): Boolean =
     device.hasObject(By.text(nextPattern)) ||

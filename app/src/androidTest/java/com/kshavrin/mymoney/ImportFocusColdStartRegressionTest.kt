@@ -46,6 +46,7 @@ import kotlinx.coroutines.plus
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.After
 import org.junit.Assert.assertNotNull
@@ -271,21 +272,24 @@ class ImportFocusColdStartRegressionTest {
                     )
 
                 val populated =
-                    withTimeoutOrNull(5_000) {
-                        var resolved: BigDecimal? = null
-                        while (resolved == null) {
-                            val state = viewModel.state.value
-                            val snapshot = state.balanceSnapshot
-                            if (!state.isLoading &&
-                                snapshot != null &&
-                                (snapshot.expense.amount.signum() > 0 || snapshot.income.amount.signum() > 0)
-                            ) {
-                                resolved = snapshot.expense.amount
-                            } else {
-                                delay(50)
+                    withContext(default) {
+                        withTimeoutOrNull(5_000) {
+                            var resolved: BigDecimal? = null
+                            while (resolved == null) {
+                                val state = viewModel.state.value
+                                val snapshot = state.balanceSnapshot
+                                if (!state.isLoading &&
+                                    snapshot != null &&
+                                    snapshot.expense.amount.signum() > 0 &&
+                                    snapshot.income.amount.signum() > 0
+                                ) {
+                                    resolved = snapshot.expense.amount
+                                } else {
+                                    delay(50)
+                                }
                             }
+                            viewModel.state.value
                         }
-                        viewModel.state.value
                     }
 
                 assertNotNull("Dashboard never surfaced the imported rows after cold start", populated)

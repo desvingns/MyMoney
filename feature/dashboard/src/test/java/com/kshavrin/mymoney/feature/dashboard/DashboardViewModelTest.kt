@@ -938,6 +938,76 @@ class DashboardViewModelTest {
         }
 
     @Test
+    fun `cold start import focus surfaces inactive currency data via separate fallback and currency cards`() =
+        runTest {
+            val rub =
+                Currency(
+                    id = 3L,
+                    code = "RUB",
+                    symbol = "RUB",
+                    name = "Russian Ruble",
+                    decimalDigits = 2,
+                    isActive = false,
+                    sortOrder = 2,
+                )
+            val importedRubAccount = account(id = 4L, name = "Imported RUB", isDefault = false, currencyId = rub.id)
+            val focusEpochMs = Instant.parse("2020-03-14T12:00:00Z").toEpochMilli()
+            val importedMonth = Period.Month(YearMonth.of(2020, 3))
+            settingsRepository =
+                FakeDashboardAppSettingsRepository(
+                    AppSettings(
+                        defaultAccountId = cash.id,
+                        firstPositiveSeen = true,
+                        importFocusEpochMs = focusEpochMs,
+                        importFocusCurrencyId = rub.id,
+                    ),
+                )
+            accountRepository.seed(cash, importedRubAccount)
+            currencyRepository.seed(usd, rub)
+            transactionRepository.seedExpenseSummary(
+                importedRubAccount.id,
+                importedMonth,
+                summary(categoryId = 10L, amount = "1500.00"),
+            )
+            transactionRepository.seedIncomeSummary(
+                importedRubAccount.id,
+                importedMonth,
+                summary(categoryId = 200L, amount = "50000.00"),
+            )
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                val state = viewModel.state.value
+                assertEquals(importedMonth, state.period)
+                assertEquals(listOf(usd), state.currencies)
+                val selection = state.dashboardSelection
+                assertTrue(selection is DashboardSelection.AllAccounts)
+                assertEquals(
+                    AllAccountsFoldMode.Separate,
+                    (selection as DashboardSelection.AllAccounts).foldMode,
+                )
+                assertNull(state.currentCurrency)
+                assertEquals(rub, state.balanceSnapshot!!.income.currency)
+                assertEquals(0, BigDecimal("50000.00").compareTo(state.balanceSnapshot!!.income.amount))
+                assertEquals(0, BigDecimal("1500.00").compareTo(state.balanceSnapshot!!.expense.amount))
+
+                val rubCard = state.currencyCards.single { it.currency.code == "RUB" }
+                assertEquals(rub, rubCard.currency)
+                assertEquals(0, BigDecimal("50000.00").compareTo(rubCard.snapshot.income.amount))
+                assertEquals(0, BigDecimal("1500.00").compareTo(rubCard.snapshot.expense.amount))
+
+                val usdCard = state.currencyCards.single { it.currency.code == "USD" }
+                assertEquals(0, BigDecimal.ZERO.compareTo(usdCard.snapshot.income.amount))
+                assertEquals(0, BigDecimal.ZERO.compareTo(usdCard.snapshot.expense.amount))
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
     fun `explicit navigation clears import focus but the rebuilt view model restores the last viewed month`() =
         runTest {
             val focusEpochMs = Instant.parse("2020-03-14T12:00:00Z").toEpochMilli()
@@ -4875,7 +4945,7 @@ private class FakeDashboardCurrencyRepository : CurrencyRepository {
         state.value = currencies.toList()
     }
 
-    override fun observeActive(): Flow<List<Currency>> = state.asStateFlow()
+    override fun observeActive(): Flow<List<Currency>> = state.map { list -> list.filter { it.isActive } }
 
     override fun observeAll(): Flow<List<Currency>> = state.asStateFlow()
 

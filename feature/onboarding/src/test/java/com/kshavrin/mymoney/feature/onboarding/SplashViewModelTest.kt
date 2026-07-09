@@ -5,8 +5,10 @@ import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.Category
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.core.domain.model.Currency
+import com.kshavrin.mymoney.core.domain.model.CurrencyRate
 import com.kshavrin.mymoney.core.domain.repository.AccountRepository
 import com.kshavrin.mymoney.core.domain.repository.CategoryRepository
+import com.kshavrin.mymoney.core.domain.repository.CurrencyRateRepository
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
 import com.kshavrin.mymoney.core.domain.seed.InitialDataSeeder
 import com.kshavrin.mymoney.core.domain.transaction.TransactionRunner
@@ -55,7 +57,7 @@ class SplashViewModelTest {
 
             assertEquals(1, currencyRepository.observeAllCalls)
             assertEquals(1, currencyRepository.upsertAllCalls)
-            assertEquals(20, currencyRepository.snapshot().size)
+            assertEquals(23, currencyRepository.snapshot().size)
             assertEquals(1, accountRepository.snapshot().size)
             assertEquals(17, categoryRepository.snapshot().size)
         }
@@ -93,7 +95,7 @@ class SplashViewModelTest {
             assertFalse(viewModel.state.value.seedFailed)
             assertEquals(2, currencyRepository.observeAllCalls)
             assertEquals(1, currencyRepository.upsertAllCalls)
-            assertEquals(20, currencyRepository.snapshot().size)
+            assertEquals(23, currencyRepository.snapshot().size)
             assertEquals(1, accountRepository.snapshot().size)
             assertEquals(17, categoryRepository.snapshot().size)
         }
@@ -104,6 +106,7 @@ class SplashViewModelTest {
         categoryRepository: CategoryRepository,
     ) = InitialDataSeeder(
         currencyRepository = currencyRepository,
+        currencyRateRepository = FakeCurrencyRateRepository(),
         accountRepository = accountRepository,
         categoryRepository = categoryRepository,
         transactionRunner = NoOpTransactionRunner,
@@ -112,6 +115,32 @@ class SplashViewModelTest {
 
     private object NoOpTransactionRunner : TransactionRunner {
         override suspend fun <T> runInTransaction(block: suspend () -> T): T = block()
+    }
+
+    private class FakeCurrencyRateRepository : CurrencyRateRepository {
+        private val state = MutableStateFlow<List<CurrencyRate>>(emptyList())
+
+        override suspend fun findRate(
+            fromCurrencyId: Long,
+            toCurrencyId: Long,
+        ): CurrencyRate? =
+            state.value.firstOrNull {
+                it.fromCurrencyId == fromCurrencyId && it.toCurrencyId == toCurrencyId
+            }
+
+        override fun observeAll(): Flow<List<CurrencyRate>> = state.asStateFlow()
+
+        override suspend fun upsert(rate: CurrencyRate): Long {
+            val id = if (rate.id == 0L) (state.value.maxOfOrNull { it.id } ?: 0L) + 1L else rate.id
+            state.value = state.value.filterNot { it.id == id } + rate.copy(id = id)
+            return id
+        }
+
+        override suspend fun deleteById(id: Long) {
+            state.value = state.value.filterNot { it.id == id }
+        }
+
+        override suspend fun refreshRatesFromNetwork(): Result<Int> = Result.success(0)
     }
 
     private class FakeCurrencyRepository : CurrencyRepository {

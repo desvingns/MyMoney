@@ -110,6 +110,7 @@ class DashboardViewModel
         // one-shot import focus is cleared. On the first settings emission we restore the persisted
         // period anchor; afterwards in-session navigation owns the period.
         private var restoredPersistedPeriod = false
+        private var importFocusCurrencyId: Long? = null
 
         init {
             observeAccountsAndCurrencies()
@@ -174,15 +175,22 @@ class DashboardViewModel
                 }.collect { inputs ->
                     val current = _state.value
                     val focusPeriod = inputs.settings.importFocusPeriod()
-                    val focusSelection = inputs.settings.importFocusSelection(inputs.accounts, inputs.currencies)
+                    val focusSelection = inputs.settings.importFocusSelection(inputs.accounts)
+                    importFocusCurrencyId =
+                        if (focusSelection != null) {
+                            inputs.settings.importFocusCurrencyId
+                        } else {
+                            null
+                        }
                     val selection =
                         if (focusPeriod != null) {
-                            focusSelection ?: resolveDashboardSelection(
-                                current.dashboardSelection,
-                                inputs.accounts,
-                                inputs.currencies,
-                                inputs.settings,
-                            )
+                            focusSelection
+                                ?: resolveDashboardSelection(
+                                    current.dashboardSelection,
+                                    inputs.accounts,
+                                    inputs.currencies,
+                                    inputs.settings,
+                                )
                         } else {
                             resolveDashboardSelection(
                                 current.dashboardSelection,
@@ -320,13 +328,9 @@ class DashboardViewModel
                     Period.Month(YearMonth.from(Instant.ofEpochMilli(epochMs).atZone(ZoneId.systemDefault())))
                 }
 
-        private fun AppSettings.importFocusSelection(
-            accounts: List<Account>,
-            currencies: List<Currency>,
-        ): DashboardSelection.AllAccounts? {
+        private fun AppSettings.importFocusSelection(accounts: List<Account>): DashboardSelection.AllAccounts? {
             if (importFocusEpochMs <= 0L || importFocusCurrencyId <= 0L) return null
-            val currency = currencies.firstOrNull { it.id == importFocusCurrencyId } ?: return null
-            if (accounts.none { it.currencyId == currency.id }) return null
+            if (accounts.none { it.currencyId == importFocusCurrencyId }) return null
             // Import focus surfaces the freshly imported data across every account; the per-currency
             // breakdown (SPEC 08) is the safe default since no fold target was chosen (D7).
             return DashboardSelection.AllAccounts(AllAccountsFoldMode.Separate)
@@ -649,8 +653,6 @@ class DashboardViewModel
                         is AllAccountsFoldMode.ConvertTo ->
                             convertedAllAccountsSnapshot(accounts, mode.target, period)
                         AllAccountsFoldMode.Separate ->
-                            // Per-currency rendering is delivered by SPEC 08; until then fold into the
-                            // first account's currency group so the dashboard has a non-crashing snapshot.
                             separateFallbackSnapshot(accounts, period)
                     }
             }
@@ -777,7 +779,7 @@ class DashboardViewModel
                 .filterNot { it.isArchived }
                 .groupBy { it.currencyId }
                 .mapNotNull { (currencyId, groupAccounts) ->
-                    val currency = _state.value.currencies.firstOrNull { it.id == currencyId } ?: return@mapNotNull null
+                    val currency = resolveRenderableCurrency(currencyId) ?: return@mapNotNull null
                     val trendPoints =
                         if (!chartConfig.visible) {
                             emptyList()
@@ -802,14 +804,23 @@ class DashboardViewModel
             period: Period,
         ): BalanceSnapshot {
             val active = accounts.filterNot { it.isArchived }
+            val focusedAccount =
+                importFocusCurrencyId?.let { currencyId ->
+                    active.firstOrNull { it.currencyId == currencyId }
+                }
             val firstCurrency =
-                active
-                    .firstOrNull()
-                    ?.let { account -> _state.value.currencies.firstOrNull { it.id == account.currencyId } }
+                (focusedAccount ?: active.firstOrNull())
+                    ?.let { account -> resolveRenderableCurrency(account.currencyId) }
                     ?: return emptySnapshot(DASHBOARD_FALLBACK_CURRENCY)
             val group = active.filter { it.currencyId == firstCurrency.id }
             return balanceCalculator.forAccounts(group, firstCurrency, period)
         }
+
+        private suspend fun resolveRenderableCurrency(currencyId: Long): Currency? =
+            _state.value.currencies.firstOrNull { it.id == currencyId }
+                ?: importFocusCurrencyId
+                    ?.takeIf { it == currencyId }
+                    ?.let { currencyRepository.findById(it) }
 
         private fun emptySnapshot(currency: Currency): BalanceSnapshot =
             BalanceSnapshot(

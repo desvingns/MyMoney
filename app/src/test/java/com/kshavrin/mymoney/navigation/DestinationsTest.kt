@@ -1,10 +1,13 @@
 package com.kshavrin.mymoney.navigation
 
+import com.kshavrin.mymoney.feature.dashboard.DashboardAction
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.nio.file.Files
+import java.nio.file.Path
 
 class DestinationsTest {
     @Test
@@ -442,6 +445,63 @@ class DestinationsTest {
     }
 
     @Test
+    fun `transactions list route helper fills missing ids with minus one sentinels`() {
+        val route =
+            invokeTransactionsListRoute(
+                DashboardAction.NavigateToTransactionsList(
+                    accountId = 7L,
+                    currencyId = null,
+                    categoryId = 42L,
+                    fromMillis = 1_746_489_600_000L,
+                    toMillis = 1_777_939_199_999L,
+                ),
+            )
+
+        assertEquals(
+            "transactions?accountId=7&currencyId=-1&categoryId=42&from=1746489600000&to=1777939199999",
+            route,
+        )
+    }
+
+    @Test
+    fun `transactions list route helper uses currency route when dashboard is in all accounts convert mode`() {
+        val route =
+            invokeTransactionsListRoute(
+                DashboardAction.NavigateToTransactionsList(
+                    accountId = null,
+                    currencyId = 2L,
+                    categoryId = null,
+                    fromMillis = 0L,
+                    toMillis = Long.MAX_VALUE,
+                ),
+            )
+
+        assertEquals(
+            "transactions?accountId=-1&currencyId=2&categoryId=-1&from=0&to=9223372036854775807",
+            route,
+        )
+    }
+
+    @Test
+    fun `MyMoneyNavHost registers the transactions list composable route`() {
+        val source = readMyMoneyNavHostSource()
+
+        assertTrue(
+            "MyMoneyNavHost must register the transactions list route in the NavHost graph",
+            source.contains("Destinations.TRANSACTIONS_LIST") &&
+                source.contains("accountId={accountId}") &&
+                source.contains("currencyId={currencyId}") &&
+                source.contains("categoryId={categoryId}") &&
+                source.contains("from={from}") &&
+                source.contains("to={to}"),
+        )
+        assertTrue(
+            "MyMoneyNavHost must render TransactionsListRoute for the registered transactions destination",
+            source.contains("TransactionsListRoute("),
+        )
+    }
+
+    @Test
     fun `transaction routes do not collide with other navigation routes`() {
         val transactionRoutes =
             setOf(
@@ -472,5 +532,26 @@ class DestinationsTest {
             "Transaction routes must not overlap with other navigation routes; collisions: $intersection",
             intersection.isEmpty(),
         )
+    }
+
+    private fun invokeTransactionsListRoute(action: DashboardAction.NavigateToTransactionsList): String {
+        val method =
+            Class
+                .forName("com.kshavrin.mymoney.navigation.MyMoneyNavHostKt")
+                .getDeclaredMethod("transactionsListRoute", DashboardAction.NavigateToTransactionsList::class.java)
+        method.isAccessible = true
+        return method.invoke(null, action) as String
+    }
+
+    private fun readMyMoneyNavHostSource(): String {
+        val candidates =
+            listOf(
+                Path.of("src", "main", "java", "com", "kshavrin", "mymoney", "navigation", "MyMoneyNavHost.kt"),
+                Path.of("app", "src", "main", "java", "com", "kshavrin", "mymoney", "navigation", "MyMoneyNavHost.kt"),
+            )
+        val existing =
+            candidates.firstOrNull(Files::exists)
+                ?: error("Unable to locate MyMoneyNavHost.kt from ${Path.of("").toAbsolutePath()}")
+        return existing.toFile().readText()
     }
 }

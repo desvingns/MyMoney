@@ -69,6 +69,7 @@ class OperationsSummarySheetUiTest {
                     loading = false,
                     title = targetString(R.string.operations_summary_title_all_operations),
                     onRowClick = {},
+                    onOpenTransactionsList = {},
                     onDismiss = {},
                     currencies = listOf(usd),
                     categoryDisplays =
@@ -140,6 +141,7 @@ class OperationsSummarySheetUiTest {
                     loading = false,
                     title = categoryTitle,
                     onRowClick = {},
+                    onOpenTransactionsList = {},
                     onDismiss = {},
                     currencies = listOf(usd),
                     categoryDisplays =
@@ -182,6 +184,7 @@ class OperationsSummarySheetUiTest {
                     loading = false,
                     title = targetString(R.string.operations_summary_title_all_operations),
                     onRowClick = {},
+                    onOpenTransactionsList = {},
                     onDismiss = {},
                 )
             }
@@ -193,6 +196,27 @@ class OperationsSummarySheetUiTest {
         composeTestRule
             .onNodeWithText(targetString(R.string.operations_summary_empty))
             .assertExists()
+    }
+
+    @Test
+    fun `transactions list action is hidden when the summary context cannot be routed`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                OperationsSummarySheet(
+                    records = emptyList(),
+                    loading = false,
+                    title = targetString(R.string.operations_summary_title_all_operations),
+                    onRowClick = {},
+                    onOpenTransactionsList = {},
+                    onDismiss = {},
+                    canOpenTransactionsList = false,
+                )
+            }
+        }
+
+        composeTestRule
+            .onAllNodesWithText(targetString(R.string.operations_summary_open_transactions))
+            .assertCountEquals(0)
     }
 
     @Test
@@ -216,6 +240,7 @@ class OperationsSummarySheetUiTest {
                     loading = false,
                     title = targetString(R.string.operations_summary_title_all_operations),
                     onRowClick = { clickedIds += it },
+                    onOpenTransactionsList = {},
                     onDismiss = {},
                     currencies = listOf(usd),
                     categoryDisplays =
@@ -252,6 +277,7 @@ class OperationsSummarySheetUiTest {
                     loading = true,
                     title = targetString(R.string.operations_summary_title_all_operations),
                     onRowClick = {},
+                    onOpenTransactionsList = {},
                     onDismiss = {},
                 )
             }

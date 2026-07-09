@@ -46,6 +46,7 @@ fun OperationsSummarySheet(
     onOpenTransactionsList: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    canOpenTransactionsList: Boolean = true,
     currencies: List<Currency> = emptyList(),
     categoryDisplays: Map<Long, SummaryRecordCategoryDisplay> = emptyMap(),
 ) {
@@ -85,8 +86,10 @@ fun OperationsSummarySheet(
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f),
                 )
-                TextButton(onClick = onOpenTransactionsList) {
-                    Text(text = stringResource(R.string.operations_summary_open_transactions))
+                if (canOpenTransactionsList) {
+                    TextButton(onClick = onOpenTransactionsList) {
+                        Text(text = stringResource(R.string.operations_summary_open_transactions))
+                    }
                 }
             }
             when {

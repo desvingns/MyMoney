@@ -285,6 +285,7 @@ fun DashboardContent(
             onRowClick = { transactionId -> onEvent(DashboardEvent.RecordRowClicked(transactionId)) },
             onOpenTransactionsList = { onEvent(DashboardEvent.OpenTransactionsListClicked) },
             onDismiss = { onEvent(DashboardEvent.OperationsSummaryDismissed) },
+            canOpenTransactionsList = summary.canOpenTransactionsList,
             currencies = state.currencies,
             categoryDisplays = state.categoryDisplays,
         )

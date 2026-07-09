@@ -86,6 +86,7 @@ data class OperationsSummaryState(
     val categoryName: String? = null,
     val records: List<SummaryRecord> = emptyList(),
     val loading: Boolean = true,
+    val canOpenTransactionsList: Boolean = true,
 )
 
 // Lightweight render-state for a single adjacent period in the swipe pager (SPEC 02). It carries

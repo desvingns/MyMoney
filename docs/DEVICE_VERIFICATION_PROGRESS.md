@@ -53,6 +53,9 @@ across sessions, and is updated one green test at a time (`/mp --device <Sxx>` o
 | 2026-07-08 | Slice 5 resumed, macrobenchmark defects filed | Device evidence: `emulator-5554`, `ro.boot.qemu.avd_name=Pixel_5`, SDK `34`, boot complete; `scripts/preflight_device_health.ps1` passed with hardware GL and `MainActivityLaunchTest` 1/1. `:app:signingReport` still shows ordinary `release`/`staging` signing `Config: null`, but `benchmarkRelease`/`nonMinifiedRelease` are debug-signed by the baseline-profile plugin. `:macrobenchmark:connectedBenchmarkReleaseAndroidTest` installed the minified `benchmarkRelease` target and ran `StartupBenchmark` 3/3, but all 3 tests failed because the benchmark journey no longer recognizes the current dashboard signals; filed `review-2026-07-02b-macrobenchmark-dashboard-probes`. A release-style onboarding visual smoke also found near-black title/body text on the dark background; filed `review-2026-07-02c-release-onboarding-contrast`. |
 | 2026-07-08 | Macrobenchmark dashboard probes fixed | Commit `48d45218` updates `BenchmarkJourney` probes for the redesigned dashboard and current onboarding surface. Verification: device gate green on `emulator-5554` / `Pixel_5(AVD) - 14`; `:macrobenchmark:compileBenchmarkReleaseKotlin` and `:macrobenchmark:ktlintCheck` passed; `:macrobenchmark:connectedBenchmarkReleaseAndroidTest` reported `StartupBenchmark` 3/3 passed in `macrobenchmark/build/outputs/androidTest-results/connected/benchmarkRelease/TEST-Pixel_5(AVD) - 14-_macrobenchmark-.xml` (the suite-level `BaselineProfileGenerator.generate` testcase is skipped). |
 | 2026-07-08 | Release onboarding contrast fixed | Commits `39439425` and `9657d249` make S11 onboarding headline/body text readable on the dark release onboarding surface and add a connected contrast regression. Device evidence: `emulator-5554`, `ro.boot.qemu.avd_name=Pixel_5`, SDK `34`, boot complete. Visual artifact: `build/visual-check/mymoney-release-onboarding-contrast.png`. Connected `OnboardingContentUiTest` passed 6/6 with failures=0/errors=0/skipped=0 in `app/build/outputs/androidTest-results/connected/debug/TEST-Pixel_5(AVD) - 14-_app-.xml`. |
+| 2026-07-08 | Signed release smoke + partial walkthrough evidence captured | Device evidence: `emulator-5554`, `ro.boot.qemu.avd_name=Pixel_5`, SDK `34`, boot complete. `app/build/outputs/apk/release/app-release.apk` is signed and installs cleanly; after `pm clear`, cold start of `com.kshavrin.mymoney/.MainActivity` succeeded with `TotalTime=1092ms`. Native `mp-runner-instrumented-android` reran `MainActivityLaunchTest` after clearing the release/debug signature mismatch and passed 1/1 with failures=0/errors=0/skipped=0 in `app/build/outputs/androidTest-results/connected/debug/TEST-Pixel_5(AVD) - 14-_app-.xml`. Release screenshots/XML captured under `build/visual-check/release-walk/` for onboarding, dashboard, add expense, add income, transfer, date picker, left drawer, right drawer, and chart settings. Full 27-screen manual walkthrough remains pending; do not close Slice 5 yet. |
+| 2026-07-08 | Slice 5 signed release walkthrough completed with S12 defect filed | Device evidence: `emulator-5554`, `ro.boot.qemu.avd_name=Pixel_5`, SDK `34`, boot complete; `scripts/preflight_device_health.ps1` passed with `MainActivityLaunchTest` 1/1 before release work. Signed `app/build/outputs/apk/release/app-release.apk` installed and cold-started (`TotalTime=631ms` on the final resume). Fresh release screenshots/XML in `build/visual-check/release-walk/` cover S00 launch evidence, S11, S01/S05, S02/S04, S03, S06/S07/S09, S08, S13-S27, plus setup evidence for the EUR account used to reach S27. The only release walkthrough defect found is full S12 runtime reachability: `Destinations.TRANSACTIONS_LIST` exists, but no production `MyMoneyNavHost` route/current UI path opens it; filed backlog SPEC `review-2026-07-02d-transactions-list-runtime-route`. |
+| 2026-07-09 | S12 transactions-list runtime route restored | Device evidence: local `emulator-5554`, `ro.boot.qemu.avd_name=Pixel_5`, SDK `34`, boot complete. Commit `20588d82` restores `Destinations.TRANSACTIONS_LIST` in `MyMoneyNavHost`, adds the dashboard operations-summary CTA into the full transactions list, and wires `TransactionsListRoute`. Follow-up closeout hides the CTA for mixed-currency `ConvertTo` summaries that cannot be faithfully routed. Connected `OperationsSummarySheetUiTest` passed 6/6 and `TransactionsListRuntimeRouteTest` passed 1/1 with failures=0/errors=0/skipped=0 on `Pixel_5(AVD) - 14`; testcase `dashboardOperationsSummaryOpensTransactionsListAndBackReturnsToDashboard` opened the summary, tapped Transactions, verified S12 title/search, pressed Back, and returned to dashboard with the sheet closed. |
 
 ## Delivery Order
 
@@ -63,7 +66,7 @@ across sessions, and is updated one green test at a time (`/mp --device <Sxx>` o
 | 2 | Transaction forms S07/S03/S09/S27, including AS-4 and AS-6 paths | **Done (E2E)** | J2 cross-currency transfer (AS-6/AS-7) and J3 create-category (AS-4) E2E green 2026-05-29 (`cc8c30f`, `210c1f4`); S07 7/7, S03 12/12, S09 3/3, S27 5/5. Two real defects fixed (`beb64c0`, `566e8c4`). S09 long-press context actions + error seams remain Pattern B gaps. |
 | 3 | Dictionaries S21-S26 CRUD and validation controls | **Done** | S21-S26 Content tests green on `Pixel_5_API_34` (Phase B of `COVERAGE_HARDENING_PLAN.md`); re-confirmed in the 2026-05-30 final full run |
 | 4 | List/detail/search/settings/lock/sync/backup plus worker instrumentation | In progress | S08 direct controls 8/8, S12 direct/header controls 9/9, S13 direct controls 11/11, S14 direct controls 3/3, S15 direct controls 2/2, S16 setup direct controls 6/6, S17 direct controls 6/6, S18 direct controls 5/5, S19 direct controls 2/2, and S20 direct controls 2/2 green; S12 loading/error/filter-removal/undo, S16 BiometricPrompt/overlay runtime, provider/OAuth E2E pending. **Worker instrumentation done 4/4 (`155a5b2`).** |
-| 5 | Manual QA, minified release walk, macrobenchmark/Baseline Profile | Blocked | 2026-07-08 update: stale dashboard probes are fixed in `48d45218`, `StartupBenchmark` now passes 3/3 on `benchmarkRelease`, and the release-style onboarding contrast defect is fixed in `39439425`/`9657d249`. Ordinary `release` remains unsigned (`:app:signingReport` release config null), so the clean signed-release walkthrough remains deferred until signing is resolved. |
+| 5 | Manual QA, minified release walk, macrobenchmark/Baseline Profile | **Done with follow-up defect** | 2026-07-08 update: stale dashboard probes are fixed in `48d45218`, `StartupBenchmark` now passes 3/3 on `benchmarkRelease`, the release-style onboarding contrast defect is fixed in `39439425`/`9657d249`, and local release/staging signing is configured. Signed `app-release.apk` installs and cold-starts on `emulator-5554` / `Pixel_5`, SDK 34. Release screenshots/XML are in `build/visual-check/release-walk/`; S12 full transactions-list runtime reachability is the only remaining product defect and is filed as `review-2026-07-02d-transactions-list-runtime-route`. |
 
 ## Screen Matrix
 
@@ -83,7 +86,7 @@ entry identifies coverage already recorded before this tracker was created.
 | S09 Category picker | category cell, add, back, context actions | Green: Back/+ADD/category cell 3/3 | Add visible in empty state green | n/a | `CategoryPickerContentUiTest` 3/3 green 2026-05-28; long-press Edit/Archive and AS-4 E2E pending |
 | S27 Currency rate | amount input, save, back | Green: rate input/save/back 5/5 | n/a | Inline invalid-rate error green | `CurrencyRateScreenUiTest` 5/5 green 2026-05-28; localized preview and read-only From/To rows green; AS-6 return/inverse-rate E2E pending |
 | S08 Search | back, query/clear, voice affordance, result row, chips | Green: back/query/clear/voice/chip/result row 8/8 | Empty-results green | Error message green | `SearchContentUiTest` 8/8 green 2026-05-28; focus crash and row-click TDD AC4 defect fixed; debounce remains JVM-covered |
-| S12 Transactions list | search, filters, row, header/sort, swipe/undo | Green: Back/Search/category chip/row/header/sort 9/9 plus swipe 1/1 | Empty-state copy green | Pending | `TransactionsListContentUiTest` 9/9 green 2026-06-03; records balance/sort strip remains visible/actionable with long currency and large net; `SwipeToDeleteUiTest` existing green; whole-row tap fixed; loading/error/filter-removal/undo pending |
+| S12 Transactions list | search, filters, row, header/sort, swipe/undo | Green: Back/Search/category chip/row/header/sort 9/9 plus swipe 1/1; runtime dashboard-summary route 1/1; unrouteable mixed-currency CTA hidden | Empty-state copy green | Pending | `TransactionsListContentUiTest` 9/9 green 2026-06-03; records balance/sort strip remains visible/actionable with long currency and large net; `SwipeToDeleteUiTest` existing green; whole-row tap fixed. `TransactionsListRuntimeRouteTest` 1/1 green 2026-07-09 proves the release UI path from dashboard operations summary to full S12 and Back to dashboard. `OperationsSummarySheetUiTest` covers the hidden CTA guard for mixed-currency `ConvertTo`. Loading/error/filter-removal/undo pending |
 | S13 Detail/edit | back, delete/confirm/undo, edit/save, rate | Green: direct controls 11/11 | n/a | Snackbar error green | `TransactionDetailContentUiTest` 11/11 green 2026-05-28; covers pre-populated edit controls, delete dialog, inline transfer rate, and error dismissal; S13/S12 undo snackbar routing remains Pattern A |
 | S14 Settings root | all destination rows, sound/haptic toggles | Green: direct controls 3/3 | n/a | n/a | `SettingsRootContentUiTest` 3/3 green 2026-05-28; covers Back, seven destination rows, current labels, Sound/Haptic switches |
 | S15 Theme | System, Light, Dark rows | Green: direct controls 2/2 | n/a | n/a | `ThemeSettingsContentUiTest` 2/2 green 2026-05-28; covers Back, selected Dark row semantics, and System/Light/Dark selection events |
@@ -101,6 +104,53 @@ entry identifies coverage already recorded before this tracker was created.
 | Workers | recurring, prune, rotation, sync no-op | Green: 4/4 | n/a | Rotation guard green | `core:sync` `WorkerInstrumentationTest` 4/4 green 2026-05-29 (`155a5b2`): Recurring Room effect, Prune 30-day Room effect, Sync gated no-op, BackupRotation missing-URI failure; rotation success path needs real SAF |
 
 ## Session Log
+
+### 2026-07-09 - S12 runtime route restored
+
+- Device gate passed on local `emulator-5554` / `Pixel_5`, SDK 34, boot complete.
+- Production commit `20588d82` restores `Destinations.TRANSACTIONS_LIST` as a real app graph route and
+  opens it from the dashboard operations-summary sheet through a localized `Transactions` CTA.
+- The first scoped connected run failed before tests with `INSTALL_FAILED_UPDATE_INCOMPATIBLE`
+  because the signed release package from Slice 5 was still installed; the rerun after package cleanup
+  passed.
+- Connected `TransactionsListRuntimeRouteTest` passed 1/1 with failures=0/errors=0/skipped=0 in
+  `app/build/outputs/androidTest-results/connected/debug/TEST-Pixel_5(AVD) - 14-_app-.xml`.
+- Closeout guards mixed-currency `ConvertTo` summaries that cannot be faithfully represented by the
+  S12 route by hiding/ignoring the CTA and covering this with `DashboardViewModelTest` plus
+  `OperationsSummarySheetUiTest`.
+- Connected `OperationsSummarySheetUiTest` passed 6/6 with failures=0/errors=0/skipped=0 on
+  `Pixel_5(AVD) - 14`.
+- JVM/unit and style gates passed: `DestinationsTest`, `DashboardViewModelTest`,
+  `TransactionsListViewModelTest`, `:app:compileDebugAndroidTestKotlin`, `:app:ktlintCheck`,
+  `:feature:dashboard:ktlintCheck`, and `:feature:transactionslist:ktlintCheck`.
+
+### 2026-07-08 - Slice 5 signed release walkthrough completed
+
+- Device gate passed on `emulator-5554` / `Pixel_5`, SDK 34, boot complete before the release walk;
+  the final signed release cold start succeeded with `TotalTime=631ms`.
+- Fresh release screenshots/XML under `build/visual-check/release-walk/` cover onboarding, dashboard
+  day/year, both drawers, settings S14-S20, transaction forms S03/S06/S07/S09, search S08, detail/edit
+  S13, dictionaries S21-S26, and S27 currency rate setup reached through a real EUR account + transfer
+  path.
+- S00 is covered by cold-start/smoke evidence rather than a separate static screen capture.
+- The only walkthrough defect found is S12 runtime reachability: full transactions list is still
+  declared as `Destinations.TRANSACTIONS_LIST`, but no current production nav graph route/UI path opens
+  it. Filed backlog SPEC `review-2026-07-02d-transactions-list-runtime-route`.
+
+### 2026-07-08 - Slice 5 signed release smoke + partial walkthrough
+
+- Local release/staging signing is now configured, and `app/build/outputs/apk/release/app-release.apk`
+  installs on `emulator-5554` / `Pixel_5`, SDK 34.
+- Cold start after `pm clear` succeeded for `com.kshavrin.mymoney/.MainActivity` with `TotalTime=1092ms`.
+- Native `mp-runner-instrumented-android` first hit the expected release/debug signature mismatch when
+  trying to install the debug androidTest APK over the signed release app. After clearing package state,
+  the sanctioned `MainActivityLaunchTest` rerun passed 1/1 with failures=0/errors=0/skipped=0 at
+  `app/build/outputs/androidTest-results/connected/debug/TEST-Pixel_5(AVD) - 14-_app-.xml`.
+- Release screenshots/XML were captured under `build/visual-check/release-walk/` for onboarding,
+  dashboard, S06 add expense, S07 add income, S03 transfer, date picker, left drawer, right drawer,
+  and chart settings. No blocking visual defect was found in those captured surfaces.
+- Slice 5 is no longer blocked by signing. It remains active because the full 27-screen manual
+  walkthrough/reporting is still incomplete.
 
 ### 2026-07-08 - Slice 5 blocker: release onboarding contrast fixed
 

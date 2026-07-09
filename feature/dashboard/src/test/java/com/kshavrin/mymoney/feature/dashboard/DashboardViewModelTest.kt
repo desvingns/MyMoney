@@ -2509,6 +2509,55 @@ class DashboardViewModelTest {
                 val summary = viewModel.state.value.operationsSummary
                 assertNotNull("operations summary must open after BalanceCardClicked in AllAccounts/ConvertTo mode", summary)
                 assertNull("no category filter expected", summary!!.categoryFilter)
+                assertTrue("same-currency ConvertTo can open the full transactions list", summary.canOpenTransactionsList)
+            } finally {
+                collector.cancel()
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `all accounts ConvertTo with mixed currencies does not emit incomplete transactions list navigation`() =
+        runTest {
+            val eurCard = account(id = 3L, name = "Euro card", isDefault = false, currencyId = eur.id)
+            accountRepository.seed(cash, eurCard)
+            currencyRepository.seed(usd, eur)
+
+            val (viewModel, store) = buildViewModel()
+            val actions = mutableListOf<DashboardAction>()
+            val collector =
+                backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+                    viewModel.actions.toList(actions)
+                }
+
+            try {
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.AllAccountsTargetCurrencyChosen(usd.id))
+                runCurrent()
+                viewModel.onEvent(DashboardEvent.AllAccountsRatesConfirmed(mapOf(eur.id to BigDecimal("1.2"))))
+                runCurrent()
+                actions.clear()
+
+                viewModel.onEvent(DashboardEvent.BalanceCardClicked)
+                runCurrent()
+
+                val summary = viewModel.state.value.operationsSummary
+                assertNotNull("operations summary must still open in mixed-currency ConvertTo mode", summary)
+                assertFalse(
+                    "mixed-currency ConvertTo cannot be represented by the current S12 route without rate overrides",
+                    summary!!.canOpenTransactionsList,
+                )
+
+                viewModel.onEvent(DashboardEvent.OpenTransactionsListClicked)
+                runCurrent()
+
+                assertTrue(
+                    "mixed-currency ConvertTo must not emit an incomplete NavigateToTransactionsList action; got $actions",
+                    actions.none { it is DashboardAction.NavigateToTransactionsList },
+                )
+                assertNotNull("summary sheet must remain open after the guarded click", viewModel.state.value.operationsSummary)
             } finally {
                 collector.cancel()
                 store.clear()

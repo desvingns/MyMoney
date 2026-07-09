@@ -1289,26 +1289,40 @@ class DashboardViewModel
                             categoryName = categoryName,
                             records = emptyList(),
                             loading = true,
+                            canOpenTransactionsList = canOpenTransactionsList(selection),
                         ),
                 )
             viewModelScope.launch {
-                val records = source()
-                val open = _state.value.operationsSummary
-                if (open != null && open.categoryFilter == categoryId) {
-                    _state.value =
-                        _state.value.copy(
-                            operationsSummary =
-                                open.copy(
-                                    records = records,
-                                    loading = false,
-                                ),
-                        )
+                try {
+                    val records = source()
+                    val open = _state.value.operationsSummary
+                    if (open != null && open.categoryFilter == categoryId) {
+                        _state.value =
+                            _state.value.copy(
+                                operationsSummary =
+                                    open.copy(
+                                        records = records,
+                                        loading = false,
+                                    ),
+                            )
+                    }
+                } catch (t: Throwable) {
+                    if (t is CancellationException) throw t
+                    t.reportToSentry()
+                    val open = _state.value.operationsSummary
+                    if (open != null && open.categoryFilter == categoryId) {
+                        _state.value =
+                            _state.value.copy(
+                                operationsSummary = open.copy(loading = false),
+                            )
+                    }
                 }
             }
         }
 
         private fun openTransactionsList() {
             val summary = _state.value.operationsSummary ?: return
+            if (!summary.canOpenTransactionsList) return
             val range = PeriodArithmetic.toEpochMillisRange(_state.value.period)
             val action =
                 when (val selection = _state.value.dashboardSelection) {
@@ -1337,6 +1351,20 @@ class DashboardViewModel
             _state.value = _state.value.copy(operationsSummary = null)
             emit(action)
         }
+
+        private fun canOpenTransactionsList(selection: DashboardSelection?): Boolean =
+            when (selection) {
+                is DashboardSelection.SpecificAccount -> true
+                is DashboardSelection.AllAccounts ->
+                    when (val mode = selection.foldMode) {
+                        is AllAccountsFoldMode.ConvertTo ->
+                            _state.value.accounts
+                                .filterNot { it.isArchived }
+                                .all { it.currencyId == mode.target.id }
+                        AllAccountsFoldMode.Separate -> false
+                    }
+                null -> false
+            }
 
         private fun emit(action: DashboardAction) {
             viewModelScope.launch { _actions.emit(action) }

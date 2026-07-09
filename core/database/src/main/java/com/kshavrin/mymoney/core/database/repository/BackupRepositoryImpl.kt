@@ -9,6 +9,11 @@ import com.kshavrin.mymoney.core.common.category.categoryIconDominantHex
 import com.kshavrin.mymoney.core.common.category.categoryTextColorHex
 import com.kshavrin.mymoney.core.common.di.IoDispatcher
 import com.kshavrin.mymoney.core.database.MoneyDatabase
+import com.kshavrin.mymoney.core.database.entity.AccountEntity
+import com.kshavrin.mymoney.core.database.entity.CategoryEntity
+import com.kshavrin.mymoney.core.database.entity.OperationEntity
+import com.kshavrin.mymoney.core.database.entity.TransactionEntity
+import com.kshavrin.mymoney.core.database.journal.OperationPayloadCodec
 import com.kshavrin.mymoney.core.database.mapper.toDomain
 import com.kshavrin.mymoney.core.database.mapper.toEntity
 import com.kshavrin.mymoney.core.domain.csv.CsvImportFormat
@@ -38,6 +43,9 @@ import com.kshavrin.mymoney.core.domain.model.toMoneyScale
 import com.kshavrin.mymoney.core.domain.repository.BackupRepository
 import com.kshavrin.mymoney.core.domain.repository.BackupSchemaTooNewException
 import com.kshavrin.mymoney.core.domain.repository.CsvImportFocus
+import com.kshavrin.mymoney.core.domain.sync.DeviceIdProvider
+import com.kshavrin.mymoney.core.domain.sync.EntityKind
+import com.kshavrin.mymoney.core.domain.sync.OpType
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.first
@@ -49,6 +57,7 @@ import java.io.Reader
 import java.math.BigDecimal
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
+import java.time.Clock
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -63,8 +72,27 @@ class BackupRepositoryImpl
     constructor(
         @ApplicationContext private val context: Context,
         private val database: MoneyDatabase,
+        private val payloadCodec: OperationPayloadCodec,
+        private val deviceIdProvider: DeviceIdProvider,
+        private val clock: Clock,
         @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     ) : BackupRepository {
+        constructor(
+            context: Context,
+            database: MoneyDatabase,
+            ioDispatcher: CoroutineDispatcher,
+        ) : this(
+            context = context,
+            database = database,
+            payloadCodec = OperationPayloadCodec(),
+            deviceIdProvider =
+                object : DeviceIdProvider {
+                    override suspend fun deviceId(): String = TEST_DEVICE_ID
+                },
+            clock = Clock.systemUTC(),
+            ioDispatcher = ioDispatcher,
+        )
+
         override suspend fun exportDb(treeUriString: String): Result<Unit> =
             withContext(ioDispatcher) {
                 runCatching {
@@ -224,6 +252,7 @@ class BackupRepositoryImpl
         ): Result<CsvImportFocus?> =
             withContext(ioDispatcher) {
                 runCatching {
+                    val deviceId = deviceIdProvider.deviceId()
                     database.withTransaction {
                         if (plan.dataStrategy is ImportDataStrategy.ReplaceAll) {
                             // O2: wipe transactions, accounts and app categories; currencies and
@@ -241,8 +270,8 @@ class BackupRepositoryImpl
                         val focus =
                             when (staged.format) {
                                 CsvImportFormat.Monefy ->
-                                    importMonefyCsv(staged.records, plan.dataStrategy, plan.categoryStrategy)
-                                CsvImportFormat.MyMoney -> importMyMoneyCsv(staged.records, plan.dataStrategy)
+                                    importMonefyCsv(staged.records, plan.dataStrategy, plan.categoryStrategy, deviceId)
+                                CsvImportFormat.MyMoney -> importMyMoneyCsv(staged.records, plan.dataStrategy, deviceId)
                                 CsvImportFormat.Unknown ->
                                     throw IOException("CSV header does not match the transaction schema")
                             }
@@ -364,7 +393,9 @@ class BackupRepositoryImpl
         private suspend fun importMyMoneyCsv(
             records: List<List<String>>,
             dataStrategy: ImportDataStrategy,
+            deviceId: String,
         ): CsvImportFocus? {
+            val now = clock.instant()
             val currencies =
                 database
                     .currencyDao()
@@ -510,7 +541,16 @@ class BackupRepositoryImpl
                     transaction.toAccountId
                         ?.let { toAccountId -> checkNotNull(accountsById[toAccountId]) }
                         ?.let { toAccount -> checkNotNull(currenciesById[toAccount.currencyId]) }
-                database.transactionDao().upsert(transaction.toImportEntity(currency, toCurrency))
+                upsertImportedTransaction(
+                    transaction.toImportEntity(
+                        currency = currency,
+                        toCurrency = toCurrency,
+                        deviceId = deviceId,
+                        updatedAt = now,
+                    ),
+                    deviceId = deviceId,
+                    updatedAt = now,
+                )
             }
             return toInsert.maxByOrNull { it.occurredAt }?.let { latest ->
                 CsvImportFocus(
@@ -537,21 +577,28 @@ class BackupRepositoryImpl
         private fun Transaction.toImportEntity(
             currency: Currency,
             toCurrency: Currency? = null,
+            deviceId: String,
+            updatedAt: Instant,
         ) = copy(
             amount = amount.toMoneyScale(currency),
             toAmount =
                 toAmount?.let { amount ->
                     amount.toMoneyScale(checkNotNull(toCurrency))
                 },
-        ).toEntity().copy(uuid = UUID.randomUUID().toString())
+        ).toEntity().copy(
+            uuid = UUID.randomUUID().toString(),
+            deviceId = deviceId,
+            updatedAt = updatedAt.toEpochMilli(),
+        )
 
         private suspend fun importMonefyCsv(
             records: List<List<String>>,
             dataStrategy: ImportDataStrategy,
             categoryStrategy: ImportCategoryStrategy,
+            deviceId: String,
         ): CsvImportFocus? {
             val parsedRows = MonefyCsvImportParser.parse(records)
-            val now = Instant.now()
+            val now = clock.instant()
             val currenciesByCode = mutableMapOf<String, Currency>()
             val accountsByNameCurrency = mutableMapOf<Pair<String, Long>, Long>()
             val categoriesByNameKind = mutableMapOf<Pair<String, CategoryKind>, Long>()
@@ -633,7 +680,15 @@ class BackupRepositoryImpl
                                     }
                             if (target != null) {
                                 if (action.resultName != target.name) {
-                                    database.categoryDao().rename(target.id, action.resultName)
+                                    val targetEntity =
+                                        requireNotNull(database.categoryDao().findById(target.id)) {
+                                            "category not found: ${target.id}"
+                                        }
+                                    upsertImportedCategory(
+                                        targetEntity.copy(name = action.resultName),
+                                        deviceId = deviceId,
+                                        updatedAt = now,
+                                    )
                                     categoriesByNameKind[
                                         MonefyCsvImportParser.normalizeName(action.resultName) to target.kind,
                                     ] = target.id
@@ -674,10 +729,11 @@ class BackupRepositoryImpl
                             updatedAt = now,
                             isArchived = false,
                         )
-                    return database
-                        .accountDao()
-                        .upsert(account.toEntity().copy(uuid = UUID.randomUUID().toString()))
-                        .also { accountsByNameCurrency[key] = it }
+                    return upsertImportedAccount(
+                        account.toEntity().copy(uuid = UUID.randomUUID().toString()),
+                        deviceId = deviceId,
+                        updatedAt = now,
+                    ).also { accountsByNameCurrency[key] = it }
                 }
 
                 suspend fun resolveCategoryId(
@@ -699,10 +755,11 @@ class BackupRepositoryImpl
                             isArchived = false,
                             createdAt = now,
                         )
-                    return database
-                        .categoryDao()
-                        .upsert(category.toEntity().copy(uuid = UUID.randomUUID().toString()))
-                        .also { categoriesByNameKind[key] = it }
+                    return upsertImportedCategory(
+                        category.toEntity().copy(uuid = UUID.randomUUID().toString()),
+                        deviceId = deviceId,
+                        updatedAt = now,
+                    ).also { categoriesByNameKind[key] = it }
                 }
 
                 rows.forEach { row ->
@@ -743,11 +800,153 @@ class BackupRepositoryImpl
                             toAmount = null,
                             exchangeRate = null,
                         )
-                    database.transactionDao().upsert(transaction.toImportEntity(currency))
+                    upsertImportedTransaction(
+                        transaction.toImportEntity(
+                            currency = currency,
+                            deviceId = deviceId,
+                            updatedAt = now,
+                        ),
+                        deviceId = deviceId,
+                        updatedAt = now,
+                    )
                 }
             }
             return latestImportFocus
         }
+
+        private suspend fun upsertImportedAccount(
+            entity: AccountEntity,
+            deviceId: String,
+            updatedAt: Instant,
+        ): Long {
+            val persistedAt = updatedAt.toEpochMilli()
+            val prepared =
+                entity.copy(
+                    uuid = entity.uuid.takeIf(String::isNotBlank) ?: UUID.randomUUID().toString(),
+                    deviceId = deviceId,
+                    updatedAt = persistedAt,
+                )
+            val id = database.accountDao().upsert(prepared).takeIf { prepared.id == 0L } ?: prepared.id
+            val persisted = prepared.copy(id = id)
+            database.operationDao().insert(
+                operation(
+                    deviceId = deviceId,
+                    entityKind = EntityKind.Account,
+                    entityUuid = persisted.uuid,
+                    payload = payloadCodec.encodeAccount(persisted),
+                    updatedAt = updatedAt,
+                ),
+            )
+            return id
+        }
+
+        private suspend fun upsertImportedCategory(
+            entity: CategoryEntity,
+            deviceId: String,
+            updatedAt: Instant,
+        ): Long {
+            val persistedAt = updatedAt.toEpochMilli()
+            val prepared =
+                entity.copy(
+                    uuid = entity.uuid.takeIf(String::isNotBlank) ?: UUID.randomUUID().toString(),
+                    deviceId = deviceId,
+                    updatedAt = persistedAt,
+                )
+            val id = database.categoryDao().upsert(prepared).takeIf { prepared.id == 0L } ?: prepared.id
+            val persisted = prepared.copy(id = id)
+            database.operationDao().insert(
+                operation(
+                    deviceId = deviceId,
+                    entityKind = EntityKind.Category,
+                    entityUuid = persisted.uuid,
+                    payload = payloadCodec.encodeCategory(persisted),
+                    updatedAt = updatedAt,
+                ),
+            )
+            return id
+        }
+
+        private suspend fun upsertImportedTransaction(
+            entity: TransactionEntity,
+            deviceId: String,
+            updatedAt: Instant,
+        ): Long {
+            val persistedAt = updatedAt.toEpochMilli()
+            val prepared =
+                entity.copy(
+                    uuid = entity.uuid.takeIf(String::isNotBlank) ?: UUID.randomUUID().toString(),
+                    deviceId = deviceId,
+                    updatedAt = persistedAt,
+                )
+            val id = database.transactionDao().upsert(prepared).takeIf { prepared.id == 0L } ?: prepared.id
+            val persisted = prepared.copy(id = id)
+            val accountUuid = ensureAccountUuid(persisted.accountId, deviceId, updatedAt)
+            val categoryUuid = persisted.categoryId?.let { ensureCategoryUuid(it, deviceId, updatedAt) }
+            val toAccountUuid = persisted.toAccountId?.let { ensureAccountUuid(it, deviceId, updatedAt) }
+            database.operationDao().insert(
+                operation(
+                    deviceId = deviceId,
+                    entityKind = EntityKind.Transaction,
+                    entityUuid = persisted.uuid,
+                    payload = payloadCodec.encodeTransaction(persisted, accountUuid, categoryUuid, toAccountUuid),
+                    updatedAt = updatedAt,
+                ),
+            )
+            return id
+        }
+
+        private suspend fun ensureAccountUuid(
+            id: Long,
+            deviceId: String,
+            updatedAt: Instant,
+        ): String {
+            val entity = requireNotNull(database.accountDao().findById(id)) { "account not found: $id" }
+            val uuid = entity.uuid.takeIf(String::isNotBlank) ?: UUID.randomUUID().toString()
+            if (entity.uuid.isNotBlank() && entity.deviceId.isNotBlank()) {
+                return uuid
+            }
+            upsertImportedAccount(
+                entity.copy(uuid = uuid),
+                deviceId = deviceId,
+                updatedAt = updatedAt,
+            )
+            return uuid
+        }
+
+        private suspend fun ensureCategoryUuid(
+            id: Long,
+            deviceId: String,
+            updatedAt: Instant,
+        ): String {
+            val entity = requireNotNull(database.categoryDao().findById(id)) { "category not found: $id" }
+            val uuid = entity.uuid.takeIf(String::isNotBlank) ?: UUID.randomUUID().toString()
+            if (entity.uuid.isNotBlank() && entity.deviceId.isNotBlank()) {
+                return uuid
+            }
+            upsertImportedCategory(
+                entity.copy(uuid = uuid),
+                deviceId = deviceId,
+                updatedAt = updatedAt,
+            )
+            return uuid
+        }
+
+        private fun operation(
+            deviceId: String,
+            entityKind: EntityKind,
+            entityUuid: String,
+            payload: String,
+            updatedAt: Instant,
+        ): OperationEntity =
+            OperationEntity(
+                opId = UUID.randomUUID().toString(),
+                deviceId = deviceId,
+                entityKind = entityKind.name,
+                entityUuid = entityUuid,
+                opType = OpType.Upsert.name,
+                payload = payload,
+                updatedAt = updatedAt.toEpochMilli(),
+            )
 
         override suspend fun clearDatabase(): Result<Unit> =
             withContext(ioDispatcher) {
@@ -942,6 +1141,7 @@ class BackupRepositoryImpl
             const val CSV_LINE_ENDING = "\r\n"
             const val AUTO_ACCOUNT_ICON = "ic_account_cash"
             const val AUTO_CATEGORY_ICON = "ic_cat_other"
+            const val TEST_DEVICE_ID = "test-device"
             val AUTO_PALETTE: List<String> =
                 listOf(
                     "#EF5350",

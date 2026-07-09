@@ -1,7 +1,7 @@
 # Signed release AAB from CI (OQ-9) within free Actions minutes
 Epic: review-2026-07
 Order: 03 of 35
-Status: draft
+Status: done
 Depends-on: —
 Date: 2026-07-06
 
@@ -20,5 +20,12 @@ CI builds only an unsigned APK; Play requires a signed AAB. versionCode manageme
 stays hardcoded until SPEC 30. Source: project review 2026-07-06, item 3 (P1/S).
 
 ## Implementation links
-- commit: (pending)
-- files: (pending)
+- commits:
+  - 6914620b feat: produce signed CI release artifacts
+  - 8789f80f fix: format app gradle script
+  - bf2fead9 test: cover signed CI release artifacts
+- files:
+  - .github/workflows/ci.yml
+  - app/build.gradle.kts
+  - app/src/test/java/com/kshavrin/mymoney/SentryFreeTierContractTest.kt
+  - app/src/test/java/com/kshavrin/mymoney/ReleaseSigningCiContractTest.kt

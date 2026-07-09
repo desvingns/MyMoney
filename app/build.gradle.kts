@@ -25,17 +25,40 @@ val sentryDsn =
         ?: providers.environmentVariable("SENTRY_DSN").orNull
         ?: ""
 val releaseSigningProperties = localProperties
-val releaseSigningKeys =
-    listOf(
-        "keystore.path",
-        "keystore.pass",
-        "keystore.key.alias",
-        "keystore.key.pass",
+fun Properties.propertyOrEnv(
+    propertyName: String,
+    environmentName: String,
+): String? =
+    getProperty(propertyName)?.takeUnless { it.isBlank() }
+        ?: providers.environmentVariable(environmentName).orNull?.takeUnless { it.isBlank() }
+
+val releaseKeystorePath =
+    releaseSigningProperties.propertyOrEnv(
+        propertyName = "keystore.path",
+        environmentName = "MYMONEY_RELEASE_KEYSTORE_PATH",
+    )
+val releaseKeystorePassword =
+    releaseSigningProperties.propertyOrEnv(
+        propertyName = "keystore.pass",
+        environmentName = "MYMONEY_RELEASE_KEYSTORE_PASSWORD",
+    )
+val releaseKeyAlias =
+    releaseSigningProperties.propertyOrEnv(
+        propertyName = "keystore.key.alias",
+        environmentName = "MYMONEY_RELEASE_KEY_ALIAS",
+    )
+val releaseKeyPassword =
+    releaseSigningProperties.propertyOrEnv(
+        propertyName = "keystore.key.pass",
+        environmentName = "MYMONEY_RELEASE_KEY_PASSWORD",
     )
 val hasReleaseSigningConfig =
-    releaseSigningKeys.all { key ->
-        !releaseSigningProperties.getProperty(key).isNullOrBlank()
-    }
+    listOf(
+        releaseKeystorePath,
+        releaseKeystorePassword,
+        releaseKeyAlias,
+        releaseKeyPassword,
+    ).all { !it.isNullOrBlank() }
 
 fun String.asBuildConfigString(): String =
     "\"${replace("\\", "\\\\").replace("\"", "\\\"")}\""
@@ -59,8 +82,8 @@ android {
         applicationId = "com.kshavrin.mymoney"
         minSdk = 31
         targetSdk = 36
-        versionCode = 3
-        versionName = "1.0.2"
+        versionCode = 4
+        versionName = "1.0.3"
 
         testInstrumentationRunner = "com.kshavrin.mymoney.HiltTestRunner"
 
@@ -75,10 +98,10 @@ android {
     signingConfigs {
         if (hasReleaseSigningConfig) {
             create("release") {
-                storeFile = rootProject.file(releaseSigningProperties.getProperty("keystore.path"))
-                storePassword = releaseSigningProperties.getProperty("keystore.pass")
-                keyAlias = releaseSigningProperties.getProperty("keystore.key.alias")
-                keyPassword = releaseSigningProperties.getProperty("keystore.key.pass")
+                storeFile = rootProject.file(requireNotNull(releaseKeystorePath))
+                storePassword = releaseKeystorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
             }
         }
     }

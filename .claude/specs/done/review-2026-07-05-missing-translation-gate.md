@@ -1,7 +1,7 @@
 # Enforce EN/RU string parity: MissingTranslation as error + RU plurals
 Epic: review-2026-07
 Order: 05 of 35
-Status: draft
+Status: done
 Depends-on: —
 Date: 2026-07-06
 
@@ -20,5 +20,7 @@ RU parity was deferred and nothing guards it — English fallbacks can ship sile
 Source: project review 2026-07-06, items 36+37 (P1/S + P2/S).
 
 ## Implementation links
-- commit: (pending)
-- files: (pending)
+- commit: 8ff5afeb (feat: gate build on Russian translation completeness) + 657bec12 (test: EN/RU parity regression guard)
+- files: lint.xml, build.gradle.kts, app/build.gradle.kts, app/src/test/java/com/kshavrin/mymoney/L10nParityTest.kt
+- result: EN↔RU parity was already complete (0 missing keys across 10 modules); deliverable is the enforced lint gate (MissingTranslation + ExtraTranslation = error on every android application/library module) + a pure-JVM parity/plurals regression test. Verified negatively (deleting one RU string fails the build) and positively (:feature:onboarding:lintDebug green).
+- side-fixes (pre-existing blockers cleared in their own commits so the whole-project gate could go green, unrelated to l10n): 12e645f0 (chore: clear pre-existing detekt debt in DecisionRouter), 278edd18 (test: wire currencyRateRepository into SplashViewModelTest seeder).

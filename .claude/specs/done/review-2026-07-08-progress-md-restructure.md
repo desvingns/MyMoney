@@ -1,7 +1,7 @@
 # Restructure PROGRESS.md: compact current state + monthly log archives
 Epic: review-2026-07
 Order: 08 of 35
-Status: draft
+Status: done
 Depends-on: —
 Date: 2026-07-06
 
@@ -20,5 +20,19 @@ The mandatory-read state file costs ~33k tokens per session — directly against
 project's token-conscious workflow. Source: review item 51 (P1/S).
 
 ## Implementation links
-- commit: (pending)
-- files: (pending)
+- commit: e1bd0eb4
+- files:
+  - docs/implementation_plan/PROGRESS.md
+  - docs/implementation_plan/log/2026-05.md
+  - docs/implementation_plan/log/2026-06.md
+  - docs/implementation_plan/log/2026-07.md
+  - docs/implementation_plan/log/legacy.md
+  - docs/implementation_plan/README.md
+  - AGENTS.md
+  - .agents/skills/mp-dev/SKILL.md
+  - .claude/mp/RUNBOOK_SELECTED_MODE.md
+  - .claude/mp/extras/mp-token-budget.md
+  - .claude/mp/extras/mp-runner-android.md
+  - .claude/mp/extras/mp-runner-instrumented-android.md
+  - .codex/agents/mp-*.toml
+  - scripts/mp-runner-instrumented-android.ps1

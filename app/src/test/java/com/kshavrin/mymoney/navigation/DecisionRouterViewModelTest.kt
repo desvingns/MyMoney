@@ -268,9 +268,9 @@ class DecisionRouterViewModelTest {
             return id
         }
 
-        override suspend fun archive(id: Long) {}
+        override suspend fun archive(id: Long) = Unit
 
-        override suspend fun setDefault(id: Long) {}
+        override suspend fun setDefault(id: Long) = Unit
 
         override suspend fun countByCurrency(currencyId: Long): Int = 0
     }
@@ -297,7 +297,7 @@ class DecisionRouterViewModelTest {
 
         override suspend fun upsertAll(categories: List<Category>) = categories.forEach { upsert(it) }
 
-        override suspend fun archive(id: Long) {}
+        override suspend fun archive(id: Long) = Unit
     }
 
     private class SeedCallTracker {
@@ -318,12 +318,12 @@ class DecisionRouterViewModelTest {
 
             override suspend fun upsert(currency: Currency): Long = 0L
 
-            override suspend fun upsertAll(currencies: List<Currency>) {}
+            override suspend fun upsertAll(currencies: List<Currency>) = Unit
 
             override suspend fun setActive(
                 id: Long,
                 active: Boolean,
-            ) {}
+            ) = Unit
         }
     }
 }

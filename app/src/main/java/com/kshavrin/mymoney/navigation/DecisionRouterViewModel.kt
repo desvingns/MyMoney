@@ -41,6 +41,9 @@ class DecisionRouterViewModel
             }
         }
 
+        // Catch-all is intentional: all throwables funnel to Sentry (AGENTS.md §2.3);
+        // CancellationException is re-thrown above to keep coroutine cancellation cooperative.
+        @Suppress("TooGenericExceptionCaught")
         private suspend fun skipOnboarding() {
             try {
                 initialDataSeeder.seedIfNeeded(Instant.now())

@@ -25,6 +25,7 @@ val sentryDsn =
         ?: providers.environmentVariable("SENTRY_DSN").orNull
         ?: ""
 val releaseSigningProperties = localProperties
+
 fun Properties.propertyOrEnv(
     propertyName: String,
     environmentName: String,

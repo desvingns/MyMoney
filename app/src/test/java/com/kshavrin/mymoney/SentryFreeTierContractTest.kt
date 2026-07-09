@@ -79,11 +79,11 @@ class SentryFreeTierContractTest {
     }
 
     @Test
-    fun `workflow injects sentry secret into local properties and preserves blank secret fallback`() {
+    fun `workflow injects sentry secret into every ci job and preserves blank secret fallback`() {
         val text = workflowFile.readText()
 
         assertEquals(
-            2,
+            3,
             Regex("Materialize Sentry DSN only when the OQ-1 secret is supplied").findAll(text).count(),
         )
         assertContainsAll(

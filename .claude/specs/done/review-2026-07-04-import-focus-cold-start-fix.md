@@ -1,7 +1,7 @@
 # Fix the known red ImportFocusColdStartRegressionTest
 Epic: review-2026-07
 Order: 04 of 35
-Status: draft
+Status: done
 Depends-on: —
 Date: 2026-07-06
 
@@ -20,5 +20,9 @@ A permanently red test in the suite normalizes "red is fine" and hides regressio
 Source: project review 2026-07-06, item 7 (P1/S).
 
 ## Implementation links
-- commit: (pending)
-- files: (pending)
+- commit: 733b233b, fe5258c6, 42218b96, 0fa8f392
+- files:
+  - core/database/src/main/java/com/kshavrin/mymoney/core/database/repository/BackupRepositoryImpl.kt
+  - feature/dashboard/src/main/java/com/kshavrin/mymoney/feature/dashboard/DashboardViewModel.kt
+  - feature/dashboard/src/test/java/com/kshavrin/mymoney/feature/dashboard/DashboardViewModelTest.kt
+  - app/src/androidTest/java/com/kshavrin/mymoney/ImportFocusColdStartRegressionTest.kt

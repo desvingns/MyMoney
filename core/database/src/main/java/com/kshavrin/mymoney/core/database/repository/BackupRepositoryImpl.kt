@@ -53,6 +53,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -542,7 +543,7 @@ class BackupRepositoryImpl
                 toAmount?.let { amount ->
                     amount.toMoneyScale(checkNotNull(toCurrency))
                 },
-        ).toEntity()
+        ).toEntity().copy(uuid = UUID.randomUUID().toString())
 
         private suspend fun importMonefyCsv(
             records: List<List<String>>,
@@ -673,7 +674,10 @@ class BackupRepositoryImpl
                             updatedAt = now,
                             isArchived = false,
                         )
-                    return database.accountDao().upsert(account.toEntity()).also { accountsByNameCurrency[key] = it }
+                    return database
+                        .accountDao()
+                        .upsert(account.toEntity().copy(uuid = UUID.randomUUID().toString()))
+                        .also { accountsByNameCurrency[key] = it }
                 }
 
                 suspend fun resolveCategoryId(
@@ -695,7 +699,10 @@ class BackupRepositoryImpl
                             isArchived = false,
                             createdAt = now,
                         )
-                    return database.categoryDao().upsert(category.toEntity()).also { categoriesByNameKind[key] = it }
+                    return database
+                        .categoryDao()
+                        .upsert(category.toEntity().copy(uuid = UUID.randomUUID().toString()))
+                        .also { categoriesByNameKind[key] = it }
                 }
 
                 rows.forEach { row ->

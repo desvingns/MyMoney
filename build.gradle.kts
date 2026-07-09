@@ -57,6 +57,17 @@ subprojects {
             exclude { it.file.path.contains("/build/") }
         }
     }
+
+    val lintGate: com.android.build.api.dsl.Lint.() -> Unit = {
+        lintConfig = rootProject.file("lint.xml")
+        error += listOf("MissingTranslation", "ExtraTranslation")
+    }
+    plugins.withId("com.android.application") {
+        extensions.configure<com.android.build.api.dsl.ApplicationExtension> { lint(lintGate) }
+    }
+    plugins.withId("com.android.library") {
+        extensions.configure<com.android.build.api.dsl.LibraryExtension> { lint(lintGate) }
+    }
 }
 
 dependencies {

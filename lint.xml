@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Repo-wide Android lint config shared by every module via
+  `lint { lintConfig = rootProject.file("lint.xml") }` in the root
+  subprojects block. Russian localization completeness is a build gate:
+  a missing values-ru string (or a stray values-ru key with no EN source)
+  fails the build instead of shipping an English fallback.
+-->
+<lint>
+    <issue id="MissingTranslation" severity="error" />
+    <issue id="ExtraTranslation" severity="error" />
+</lint>

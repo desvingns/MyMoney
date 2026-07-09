@@ -1,12 +1,12 @@
 # AGENTS.md — MyMoney project cheatsheet
 
-Read first when joining this codebase. Project state lives in `docs/implementation_plan/PROGRESS.md` — open it before doing anything else.
+Read first when joining this codebase. Project state lives in the compact head of `docs/implementation_plan/PROGRESS.md` — open it before doing anything else, and open `docs/implementation_plan/log/*.md` only on demand.
 
 ## What this project is
 
 MyMoney is an Android money-tracking app, structurally a re-implementation of Monefy v1.0 with intentional improvements. **Authoritative spec**: `C:\Pet\MyMoney\TDD\MyMoney\MyMoney_TDD.md` (English prose + EN/RU string tables, 2409 lines). The spec is the source of truth — every design decision traces back to a TDD section.
 
-The implementation is broken into **15 sequential phases** under `docs/implementation_plan/phases/`. The current phase is recorded in `docs/implementation_plan/PROGRESS.md`. Every Codex session follows the **session protocol** documented in `docs/implementation_plan/README.md` §2 (read PROGRESS → open active phase → re-read TDD anchor lines → tick checkboxes → run verification → update PROGRESS → stop).
+The implementation is broken into **15 sequential phases** under `docs/implementation_plan/phases/`. The current phase is recorded in `docs/implementation_plan/PROGRESS.md`. Every Codex session follows the **session protocol** documented in `docs/implementation_plan/README.md` §2 (read compact PROGRESS head → open active phase → re-read TDD anchor lines → tick checkboxes → run verification → update PROGRESS/archive old entries → stop).
 
 ## Project glossary
 
@@ -261,7 +261,7 @@ Never delete files. When running the `/mp` / `$mp` skill (or any task), any file
 
 ## Project state files — important note
 
-This project now uses MP Dev's SPEC board (`.claude/specs/{backlog,active,done}/`) plus the implementation-plan phase model (PROGRESS). **PROGRESS.md is the sole writer of phase/release state.** The root `STATE.md`, `ROADMAP.md`, and `DOCUMENTATION.md` files are one-line stub redirects pointing at the implementation plan and the TDD.
+This project now uses MP Dev's SPEC board (`.claude/specs/{backlog,active,done}/`) plus the implementation-plan phase model (PROGRESS). **PROGRESS.md is the sole writer of phase/release state.** `PROGRESS.md` is now a compact head; full historical session entries live under `docs/implementation_plan/log/YYYY-MM.md` and are read on demand only. The root `STATE.md`, `ROADMAP.md`, and `DOCUMENTATION.md` files are one-line stub redirects pointing at the implementation plan and the TDD.
 
 The `mp-docs` agent is **inert** in this project via `.claude/mp/extras/mp-docs.md`; it must not rewrite `STATE.md`, `ROADMAP.md`, `DOCUMENTATION.md`, or `CLAUDE.md`. The old CMP docs behavior is legacy-only and must not be used for new Codex MP work.
 
@@ -269,12 +269,13 @@ The `mp-docs` agent is **inert** in this project via `.claude/mp/extras/mp-docs.
 
 | Need | Location |
 |---|---|
-| What to work on right now | `docs/implementation_plan/PROGRESS.md` (active row) |
+| What to work on right now | `docs/implementation_plan/PROGRESS.md` compact head (active row + last three entries) |
+| Historical progress entries | `docs/implementation_plan/log/YYYY-MM.md` (open on demand only) |
 | How to run a session | `docs/implementation_plan/README.md` §2 |
 | Phase task lists | `docs/implementation_plan/phases/PHASE_NN_*.md` |
 | Cross-phase reference table | `docs/implementation_plan/00_overview.md` |
 | Authoritative spec | `C:\Pet\MyMoney\TDD\MyMoney\MyMoney_TDD.md` (cite line ranges, never paraphrase) |
-| MyMoney-specific MP agent guidance | `.claude/mp/extras/*.md` (shared by Claude and Codex) |
+| MyMoney-specific MP agent guidance | `.claude/mp/extras/` (shared by Claude and Codex; read role-specific files on demand) |
 | Archived CMP fallback | `.claude/_archive_pre_mp/` (Claude `/cmp` + Codex `$cmp`, archived 2026-06-03) |
 | Cross-session memory | `C:\Users\desvi\.Codex\projects\C--Pet-MyMoney\memory\` (MEMORY.md is the index, auto-loaded) |
 
@@ -301,29 +302,38 @@ done
   `$mp --discuss <topic>`, `$mp --spec <description>`, `$mp --coverage`, `$mp --device <Sxx>`,
   `$mp --fit`, `$mp --plan`, `$mp --phase`, `$mp --check`, `$mp --improve`, or `$mp --reflect`.
 - `$mp` is the primary project-local Codex skill in `.agents/skills/mp-dev/SKILL.md`. It is a thin
-  Codex bridge over the canonical Claude `mp-dev` plugin at
-  `C:\Users\k.shavrin\.claude\plugins\cache\mobile-pipeline\mp-dev\1.8.1`.
+  Codex bridge over the installed personal `mp-dev` plugin at
+  `C:\Users\Admin\.codex\plugins\cache\personal\mp-dev\1.10.0+codex.20260701151538`.
 - Claude and Codex share the same project configuration and overrides:
-  `.claude/mp/config.json`, `.claude/mp/extras/*.md`, and `.claude/specs/{backlog,active,done}/`.
+  `.claude/mp/config.json`, `.claude/mp/extras/`, and `.claude/specs/{backlog,active,done}/`.
   Put project-specific skill/agent improvements in `.claude/mp/extras/*` first so both surfaces stay
   synchronized. Use `$mp --improve` / `$mp --reflect` only for plugin-level improvements.
+- Codex MP startup is token-budgeted: read `.claude/mp/RUNBOOK_SELECTED_MODE.md` and
+  `.claude/mp/extras/mp-token-budget.md`, then read only the role-specific extra being used. Do not
+  bulk-load `docs/implementation_plan/log/*.md` or every MP extra unless the task explicitly needs it.
+- Before spawning an MP subagent, build a compact context capsule: SPEC, task, files to read,
+  changed files, modified-existing list, failure evidence, commands to run, and rules in force.
+  Do not paste broad progress archives or unrelated logs into agent prompts.
 - Claude and Codex may both use the MP Dev board, but only one active SPEC should be implemented at a
   time unless the work is explicitly split into disjoint backlog SPECs. Before starting implementation,
   check `.claude/specs/active/` and avoid racing another agent on the same SPEC.
 - `$mp --device <Sxx>` runs one on-device instrumented-test slice for a single control: it reads
   `docs/DEVICE_VERIFICATION_PROGRESS.md` and `docs/DEVICE_VERIFICATION_PLAN_FOR_SONNET.md`, writes one
-  Compose-UI test, runs it on `Pixel_5_API_34` via `mp-runner-instrumented-android` +
-  `scripts/run_connected_test_on_host_avd.ps1`, then updates the tracker. One control per run; never
-  pushes.
+  Compose-UI test, runs it on `Pixel_5_API_34` via deterministic
+  `scripts/mp-runner-instrumented-android.ps1` (LLM runner fallback only when the wrapper needs
+  diagnosis), then updates the tracker. One control per run; never pushes.
 - `$mp --phase`, `$mp --feature`, `$mp --bugfix`, `$mp --device`, and `$mp --fit` must run the
   visual-change device gate above before any agent work when the task is explicitly visual and needs
   visual/device autotests.
-- Native specialists live in `.codex/agents/mp-*.toml`. They read the matching canonical Claude
-  `mp-dev` agent body and then `.claude/mp/extras/<agent>.md` if present. `mp-runner-instrumented-android`
-  is the only MP specialist allowed to invoke PowerShell, and only for the host-AVD helper.
-- Codex Bash compatibility: the current environment may not have `bash` in `PATH`. If Bash is absent,
-  do not require the Claude deterministic `.sh` scripts; use native Codex `mp-reviewer-android` and
-  `mp-runner-android` agent fallback paths instead.
+- Native specialists live in `.codex/agents/mp-*.toml`. They read the matching canonical `mp-dev`
+  agent body, `.claude/mp/extras/mp-token-budget.md`, and then `.claude/mp/extras/<agent>.md` if
+  present. Role-based extras keep subagent prompts small.
+- Deterministic reviewer/runner first: when Bash is available, use the plugin
+  `mp-reviewer-android.sh` / `mp-runner-android.sh` scripts before LLM fallback. A user request for
+  "subagents" does not force LLM reviewer/runner if a deterministic script can emit the required JSON.
+- Repair-loop economy: send direct test/reviewer failures back to the same developer/tester subagent
+  when it is still healthy and the failure is a continuation. Spawn a fresh agent only after a hang,
+  invalid architecture, or contaminated context.
 - Keep `docs/implementation_plan/PROGRESS.md` as the only phase/release state writer. The MP docs step
   remains inert via `.claude/mp/extras/mp-docs.md`.
 - `$cmp` is an archived fallback (`.claude/_archive_pre_mp/`, archived 2026-06-03 — not deleted). Do not

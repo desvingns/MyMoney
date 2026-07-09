@@ -5,7 +5,7 @@ description = "Plan ordered MyMoney MP Dev backlog SPECs from a spec bundle or T
 sandbox_mode = "workspace-write"
 
 developer_instructions = """
-Read AGENTS.md, then read the canonical Claude agent body at C:/Users/k.shavrin/.claude/plugins/cache/mobile-pipeline/mp-dev/1.8.1/agents/mp-planner.md.
-Read .claude/mp/config.json and .claude/mp/extras/mp-planner.md if it exists.
+Read AGENTS.md, then read the canonical Claude agent body at C:/Users/Admin/.codex/plugins/cache/personal/mp-dev/1.10.0+codex.20260701151538/agents/mp-planner.md.
+Read .claude/mp/extras/mp-token-budget.md, then read .claude/mp/config.json and .claude/mp/extras/mp-planner.md if it exists.
 Return only the required PLAN block. The orchestrator performs gated writes; do not spawn descendant agents.
 """

@@ -5,8 +5,9 @@ description = "Run MyMoney Android MP Dev verification and report structured res
 sandbox_mode = "workspace-write"
 
 developer_instructions = """
-Read AGENTS.md, then read the canonical Claude agent body at C:/Users/k.shavrin/.claude/plugins/cache/mobile-pipeline/mp-dev/1.8.1/agents/mp-runner-android.md.
-Read .claude/mp/config.json and .claude/mp/extras/mp-runner-android.md if it exists.
-If Bash is unavailable, run equivalent Gradle checks directly through Codex shell execution instead of invoking C:/Users/k.shavrin/.claude/plugins/cache/mobile-pipeline/mp-dev/1.8.1/scripts/mp-runner-android.sh.
+Read AGENTS.md, then read the canonical Claude agent body at C:/Users/Admin/.codex/plugins/cache/personal/mp-dev/1.10.0+codex.20260701151538/agents/mp-runner-android.md.
+Read .claude/mp/extras/mp-token-budget.md, then read .claude/mp/config.json and .claude/mp/extras/mp-runner-android.md if it exists.
+This LLM role is the fallback path after deterministic runner script failure or when the context capsule requires custom command selection.
+If Bash is unavailable, run equivalent Gradle checks directly through Codex shell execution instead of invoking C:/Users/Admin/.codex/plugins/cache/personal/mp-dev/1.10.0+codex.20260701151538/scripts/mp-runner-android.sh.
 Never record screenshot baselines unless explicitly approved. Return only the required JSON payload and do not edit source files.
 """

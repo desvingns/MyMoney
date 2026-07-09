@@ -1,6 +1,6 @@
 # MyMoney — implementation plan
 
-A resumable checklist that breaks the 2 850-line TDD into 15 sessions of work. Every new Claude session reads `PROGRESS.md`, opens the active phase file, executes its task list, and stops.
+A resumable checklist that breaks the 2 850-line TDD into 15 sessions of work. Every new Claude/Codex session reads the compact head of `PROGRESS.md`, opens the active phase file, executes its task list, and stops.
 
 The authoritative spec is `C:\Pet\MyMoney\TDD\MyMoney\MyMoney_TDD.md`. This directory is the **how-to**, not the **what** — every `PHASE_NN_*.md` points back to the TDD sections that contain the source of truth.
 
@@ -12,7 +12,7 @@ The TDD is too large to implement in one shot. Each session that tries to load t
 
 - **15 phases**, ~14–30 atomic tasks each.
 - **One session = one phase.** Sessions don't bleed.
-- **State lives on disk.** `PROGRESS.md` is the single source of truth for "where are we now".
+- **State lives on disk.** `PROGRESS.md` is the single source of truth for "where are we now"; historical session entries are archived under `log/YYYY-MM.md` and read on demand only.
 - **Each phase has a runnable Done criterion.** A green `assembleDebug` or a passing test proves the phase landed.
 
 ---
@@ -21,7 +21,7 @@ The TDD is too large to implement in one shot. Each session that tries to load t
 
 Every new Claude session that picks up this project follows the same steps:
 
-1. **Read** `C:\Pet\MyMoney\docs\implementation_plan\PROGRESS.md`. Find the row marked **active phase**.
+1. **Read** `C:\Pet\MyMoney\docs\implementation_plan\PROGRESS.md` compact head. Find the row marked **active phase**. Do not bulk-load `log/*.md`; open a monthly archive only when investigating a referenced historical entry.
 2. **Open** the corresponding `phases\PHASE_NN_<slug>.md`.
 3. **Re-read the TDD anchors** cited in that file (line ranges to `C:\Pet\MyMoney\TDD\MyMoney\MyMoney_TDD.md`). Do not read the whole TDD — the line ranges are precise on purpose.
 4. **Work through the task checklist** in order, ticking `- [ ]` → `- [x]` in the phase file as items finish.
@@ -29,7 +29,8 @@ Every new Claude session that picks up this project follows the same steps:
 6. **Update PROGRESS.md**:
    - Move the phase row from `in progress` → `done`.
    - Set the next phase to `active`.
-   - Append session date, brief outcome, any new decisions or open questions.
+   - Append a short current-state bullet for the session. Move older current-state bullets to the matching `log/YYYY-MM.md` archive when the head grows past the last three entries.
+   - Append durable decisions or open questions to the compact decisions/open-questions sections.
    - Fill out the "Notes for next session" section at the bottom of the just-finished phase file with surprises, deferred items, or required follow-up.
 7. **Stop.** Do not begin the next phase in the same session even if there is context left over — handoff cleanliness matters more than session throughput.
 
@@ -102,7 +103,8 @@ If a phase finishes early:
 | File | Purpose |
 |---|---|
 | `README.md` | This file. Read first only if you have no idea what this is. |
-| `PROGRESS.md` | **Always read first** in a new session. Tells you which phase is active. |
+| `PROGRESS.md` | **Always read first** in a new session. Compact head that tells you which phase is active and points to archives. |
+| `log/YYYY-MM.md` | Verbatim historical session entries. Read on demand only. |
 | `00_overview.md` | Phase map + dependency graph + TDD section index + AS cheatsheet. Read when you need to cross-reference. |
 | `phases/PHASE_NN_*.md` | The 15 work units. Open the one named in PROGRESS.md. |
 | `decisions.md` | Auto-created on first decision worth recording. Sticky notes about resolved blockers (e.g. "OQ-1: Sentry DSN added to local.properties as `SENTRY_DSN=...`"). |

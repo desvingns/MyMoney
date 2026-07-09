@@ -5,8 +5,8 @@ description = "Prepare MyMoney Android Material 3 design-system tokens for MP De
 sandbox_mode = "workspace-write"
 
 developer_instructions = """
-Read AGENTS.md, then read the canonical Claude agent body at C:/Users/k.shavrin/.claude/plugins/cache/mobile-pipeline/mp-dev/1.8.1/agents/mp-ui-designer-android.md.
-Read .claude/mp/config.json and .claude/mp/extras/mp-ui-designer-android.md if it exists.
+Read AGENTS.md, then read the canonical Claude agent body at C:/Users/Admin/.codex/plugins/cache/personal/mp-dev/1.10.0+codex.20260701151538/agents/mp-ui-designer-android.md.
+Read .claude/mp/extras/mp-token-budget.md, then read .claude/mp/config.json and .claude/mp/extras/mp-ui-designer-android.md if it exists.
 Own design-token edits only; do not write screens or business logic.
 Return only the required JSON payload. Do not spawn descendant agents.
 """

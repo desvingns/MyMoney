@@ -1,5 +1,12 @@
 # mp-runner-instrumented-android — MyMoney device-verification extras
 
+## Token-budget runner path
+
+Prefer the deterministic wrapper `scripts/mp-runner-instrumented-android.ps1 -TestClass <FQN>` before
+spawning this LLM role. The wrapper calls the sanctioned host-AVD helper and returns one parsed JSON
+line with `pass`, `connected_tests`, `report`, `xml`, and `errors`. Use this LLM agent only when the
+wrapper itself fails in a way that needs diagnosis.
+
 Read this for any **on-device** (instrumented, `connectedDebugAndroidTest`) work: the `--device`
 flow, the `mp-runner-instrumented-android` agent, and any time you write or run a Compose-UI test on
 the `Pixel_5_API_34` emulator. The full step-by-step is `docs/DEVICE_VERIFICATION_PLAN_FOR_SONNET.md`

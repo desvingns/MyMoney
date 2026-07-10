@@ -70,9 +70,9 @@ class GoalEditViewModel
                                 iconKey = existing.iconKey,
                                 variant = existing.variant,
                                 accountId = existing.accountId,
-                                startingCapital = formatInput(existing.startingCapital),
-                                monthlyContribution = formatInput(existing.monthlyContribution),
-                                targetAmount = formatInput(existing.targetAmount),
+                                startingCapital = formatMoneyInput(existing.startingCapital),
+                                monthlyContribution = formatMoneyInput(existing.monthlyContribution),
+                                targetAmount = formatMoneyInput(existing.targetAmount),
                                 annualRatePercent = existing.annualRatePercent?.let(::formatInput).orEmpty(),
                                 downPayment = existing.downPayment?.let(::formatInput).orEmpty(),
                                 termYears = existing.termMonths?.let { (it / 12).toString() }.orEmpty(),
@@ -452,6 +452,9 @@ private fun formatMoney(
 
 private fun formatInput(amount: BigDecimal): String =
     MoneyFormatter.formatInput(amount, Locale.getDefault())
+
+private fun formatMoneyInput(amount: BigDecimal): String =
+    MoneyFormatter.formatInput(amount, Locale.getDefault(), amount.scale().coerceAtLeast(0))
 
 data class GoalEditState(
     val id: Long = -1L,

@@ -16,6 +16,19 @@ object MoneyFormatter {
                 isGroupingUsed = false
             }.format(amount)
 
+    fun formatInput(
+        amount: BigDecimal,
+        locale: Locale,
+        fractionDigits: Int,
+    ): String =
+        DecimalFormat("0", DecimalFormatSymbols.getInstance(locale))
+            .apply {
+                isGroupingUsed = false
+                minimumFractionDigits = fractionDigits
+                maximumFractionDigits = fractionDigits
+                roundingMode = RoundingMode.HALF_UP
+            }.format(amount)
+
     fun format(
         amount: BigDecimal,
         currencySymbol: String,

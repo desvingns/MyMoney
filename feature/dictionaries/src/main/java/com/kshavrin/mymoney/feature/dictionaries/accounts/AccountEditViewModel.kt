@@ -21,8 +21,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.Instant
+import java.math.BigDecimal
 import java.util.Locale
 import javax.inject.Inject
+
+private fun formatMoneyInput(amount: BigDecimal): String =
+    MoneyFormatter.formatInput(amount, Locale.getDefault(), amount.scale().coerceAtLeast(0))
 
 @HiltViewModel
 class AccountEditViewModel
@@ -51,7 +55,7 @@ class AccountEditViewModel
                             _state.value.copy(
                                 name = existing.name,
                                 currencyId = existing.currencyId,
-                                initialBalanceText = MoneyFormatter.formatInput(existing.initialBalance, Locale.getDefault()),
+                                initialBalanceText = formatMoneyInput(existing.initialBalance),
                                 type = existing.type,
                                 colorHex = existing.colorHex,
                                 iconKey = existing.iconKey,

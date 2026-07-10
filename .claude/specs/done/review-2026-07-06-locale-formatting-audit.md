@@ -1,7 +1,7 @@
 # Audit and fix locale-bypassing number/date formatting
 Epic: review-2026-07
 Order: 06 of 35
-Status: draft
+Status: done
 Depends-on: —
 Date: 2026-07-06
 
@@ -20,5 +20,6 @@ At least one user-visible value bypasses MoneyFormatter; ru-RU users see wrong
 decimal separators. Source: project review 2026-07-06, item 38 (P2/S).
 
 ## Implementation links
-- commit: (pending)
-- files: (pending)
+- commits: 0f46565f, b71c7112, 16520338, 3c3805e8
+- files: core/common MoneyFormatter; display formatters in dashboard, dictionaries, settings,
+  transaction, and transactionslist; seven focused unit-test files

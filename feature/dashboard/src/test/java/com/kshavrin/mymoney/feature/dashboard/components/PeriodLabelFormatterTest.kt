@@ -8,20 +8,21 @@ import org.junit.Test
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import java.util.Locale
 
 class PeriodLabelFormatterTest {
     private val locale = Locale.US
     private val allLabel = "All"
-    private val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yy", locale)
+    private val dateFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT).withLocale(locale)
 
     // ── Day ──────────────────────────────────────────────────────────────────
 
     @Test
-    fun `day period formats as single-line dd dot MM dot yy`() {
+    fun `day period formats as a localized single-line date`() {
         val date = LocalDate.of(2026, 6, 25)
         val label = Period.Day(date).localizedLabel(locale, allLabel, currentYear = 2026)
-        assertEquals("25.06.26", label)
+        assertEquals(date.format(dateFormatter), label)
         assertFalse("day label must not contain a newline", label.contains('\n'))
     }
 
@@ -29,14 +30,14 @@ class PeriodLabelFormatterTest {
     fun `day period formats correctly for first day of year`() {
         val date = LocalDate.of(2025, 1, 1)
         val label = Period.Day(date).localizedLabel(locale, allLabel, currentYear = 2026)
-        assertEquals("01.01.25", label)
+        assertEquals(date.format(dateFormatter), label)
     }
 
     @Test
     fun `day period formats correctly for last day of year`() {
         val date = LocalDate.of(2024, 12, 31)
         val label = Period.Day(date).localizedLabel(locale, allLabel, currentYear = 2026)
-        assertEquals("31.12.24", label)
+        assertEquals(date.format(dateFormatter), label)
     }
 
     // ── Week ─────────────────────────────────────────────────────────────────
@@ -45,7 +46,7 @@ class PeriodLabelFormatterTest {
     fun `week period formats as two lines weekStart and weekStart plus 6 days`() {
         val weekStart = LocalDate.of(2026, 6, 15)
         val label = Period.Week(weekStart).localizedLabel(locale, allLabel, currentYear = 2026)
-        val expected = "15.06.26\n21.06.26"
+        val expected = "${weekStart.format(dateFormatter)}\n${weekStart.plusDays(6).format(dateFormatter)}"
         assertEquals(expected, label)
     }
 
@@ -60,14 +61,14 @@ class PeriodLabelFormatterTest {
     fun `week period spanning two months formats both dates correctly`() {
         val weekStart = LocalDate.of(2026, 5, 28)
         val label = Period.Week(weekStart).localizedLabel(locale, allLabel, currentYear = 2026)
-        assertEquals("28.05.26\n03.06.26", label)
+        assertEquals("${weekStart.format(dateFormatter)}\n${weekStart.plusDays(6).format(dateFormatter)}", label)
     }
 
     @Test
     fun `week period spanning two years formats both dates correctly`() {
         val weekStart = LocalDate.of(2025, 12, 29)
         val label = Period.Week(weekStart).localizedLabel(locale, allLabel, currentYear = 2026)
-        assertEquals("29.12.25\n04.01.26", label)
+        assertEquals("${weekStart.format(dateFormatter)}\n${weekStart.plusDays(6).format(dateFormatter)}", label)
     }
 
     // ── CustomRange ───────────────────────────────────────────────────────────
@@ -77,7 +78,7 @@ class PeriodLabelFormatterTest {
         val start = LocalDate.of(2026, 3, 1)
         val end = LocalDate.of(2026, 3, 31)
         val label = Period.CustomRange(start, end).localizedLabel(locale, allLabel, currentYear = 2026)
-        assertEquals("01.03.26\n31.03.26", label)
+        assertEquals("${start.format(dateFormatter)}\n${end.format(dateFormatter)}", label)
     }
 
     @Test
@@ -93,7 +94,7 @@ class PeriodLabelFormatterTest {
         val start = LocalDate.of(2025, 12, 15)
         val end = LocalDate.of(2026, 1, 14)
         val label = Period.CustomRange(start, end).localizedLabel(locale, allLabel, currentYear = 2026)
-        assertEquals("15.12.25\n14.01.26", label)
+        assertEquals("${start.format(dateFormatter)}\n${end.format(dateFormatter)}", label)
     }
 
     // ── Month — current year ──────────────────────────────────────────────────
@@ -243,10 +244,16 @@ class PeriodLabelFormatterTest {
     }
 
     @Test
-    fun `date formatter respects locale for dot-separated date in Russian locale`() {
-        val ruLocale = Locale("ru")
+    fun `date formatter uses locale-specific short dates`() {
+        val ruLocale = Locale.forLanguageTag("ru-RU")
         val date = LocalDate.of(2026, 6, 25)
-        val label = Period.Day(date).localizedLabel(ruLocale, "Всё", currentYear = 2026)
-        assertEquals("25.06.26", label)
+        val russianLabel = Period.Day(date).localizedLabel(ruLocale, "Всё", currentYear = 2026)
+        val usLabel = Period.Day(date).localizedLabel(Locale.US, "All", currentYear = 2026)
+
+        assertEquals(
+            date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT).withLocale(ruLocale)),
+            russianLabel,
+        )
+        assertFalse(russianLabel == usLabel)
     }
 }

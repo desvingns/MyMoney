@@ -8,6 +8,17 @@ import java.util.Locale
 
 class MoneyFormatterTest {
     @Test
+    fun `formats input without grouping using the requested Russian decimal separator`() {
+        val result =
+            MoneyFormatter.formatInput(
+                amount = BigDecimal("1234.56"),
+                locale = Locale.forLanguageTag("ru-RU"),
+            )
+
+        assertEquals("1234,56", result)
+    }
+
+    @Test
     fun formats_en_us_with_symbol_before() {
         val result =
             MoneyFormatter.format(

@@ -35,6 +35,7 @@ import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import java.util.Locale
 import java.util.TimeZone
 
 class TransactionDetailViewModelTest {
@@ -305,6 +306,26 @@ class TransactionDetailViewModelTest {
                 assertTrue("transfer kind -> isTransfer true", state.isTransfer)
                 assertTrue("USD->EUR -> isCrossCurrency true", state.isCrossCurrency)
                 cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `init displays a cross-currency transfer rate with the Russian decimal separator`() =
+        runTest {
+            val originalLocale = Locale.getDefault()
+            try {
+                Locale.setDefault(Locale.forLanguageTag("ru-RU"))
+                val tx = crossTransfer().copy(exchangeRate = 0.95)
+                transactionRepo.seed(tx)
+
+                val viewModel = buildViewModel(tx.id)
+
+                viewModel.state.test {
+                    assertEquals("0,95", expectMostRecentItem().rateInput)
+                    cancelAndIgnoreRemainingEvents()
+                }
+            } finally {
+                Locale.setDefault(originalLocale)
             }
         }
 

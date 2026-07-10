@@ -13,6 +13,10 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Instant
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
+import java.util.Locale
 
 /**
  * Contract-level pinning for [ImportWizardContent] (import-wizard step machine).
@@ -95,6 +99,14 @@ import java.time.Instant
  * ```
  */
 class ImportWizardContentTest {
+    private fun formatImportDateForTest(date: LocalDate): String {
+        val method =
+            Class
+                .forName("com.kshavrin.mymoney.feature.settings.importwizard.ImportWizardScreenKt")
+                .getDeclaredMethod("formatImportDate", LocalDate::class.java)
+        method.isAccessible = true
+        return method.invoke(null, date) as String
+    }
     // ------------------------------------------------------------------ state helpers
 
     private fun testCategory(
@@ -121,6 +133,23 @@ class ImportWizardContentTest {
             accounts = emptySet(),
             dateRange = null,
         )
+
+    @Test
+    fun `preview dates use the Russian medium localized format`() {
+        val originalLocale = Locale.getDefault()
+        try {
+            val locale = Locale.forLanguageTag("ru-RU")
+            Locale.setDefault(locale)
+            val date = LocalDate.of(2026, 6, 25)
+
+            assertEquals(
+                date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale)),
+                formatImportDateForTest(date),
+            )
+        } finally {
+            Locale.setDefault(originalLocale)
+        }
+    }
 
     /** Mirror of WizardNavButton's `enabled = !state.inProgress && state.preview != null`. */
     private fun nextButtonEnabled(state: ImportWizardState): Boolean =

@@ -20,6 +20,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import java.time.Instant
+import java.util.Locale
 
 class CurrencyRateViewModelTest {
     @get:Rule
@@ -93,33 +94,64 @@ class CurrencyRateViewModelTest {
     @Test
     fun `SaveClicked for an existing pair reuses the stored id and updates that rate`() =
         runTest {
-            currencyRateRepository.seed(
-                CurrencyRate(
-                    id = 7L,
-                    fromCurrencyId = usd.id,
-                    toCurrencyId = eur.id,
-                    rate = 0.9,
-                    updatedAt = Instant.parse("2026-06-11T10:00:00Z"),
-                ),
-            )
-            val viewModel = buildViewModel()
-            advanceUntilIdle()
+            val originalLocale = Locale.getDefault()
+            try {
+                Locale.setDefault(Locale.US)
+                currencyRateRepository.seed(
+                    CurrencyRate(
+                        id = 7L,
+                        fromCurrencyId = usd.id,
+                        toCurrencyId = eur.id,
+                        rate = 0.9,
+                        updatedAt = Instant.parse("2026-06-11T10:00:00Z"),
+                    ),
+                )
+                val viewModel = buildViewModel()
+                advanceUntilIdle()
 
-            assertEquals("0.9", viewModel.state.value.rateInput)
+                assertEquals("0.9", viewModel.state.value.rateInput)
 
-            viewModel.onEvent(CurrencyRateEvent.RateInputChanged("0.95"))
+                viewModel.onEvent(CurrencyRateEvent.RateInputChanged("0.95"))
 
-            viewModel.actions.test {
-                viewModel.onEvent(CurrencyRateEvent.SaveClicked)
+                viewModel.actions.test {
+                    viewModel.onEvent(CurrencyRateEvent.SaveClicked)
 
-                assertEquals(CurrencyRateAction.NavigateBackWithRate(0.95), awaitItem())
-                cancelAndIgnoreRemainingEvents()
+                    assertEquals(CurrencyRateAction.NavigateBackWithRate(0.95), awaitItem())
+                    cancelAndIgnoreRemainingEvents()
+                }
+
+                assertEquals(1, currencyRateRepository.upserts.size)
+                assertEquals(7L, currencyRateRepository.upserts.single().id)
+                assertEquals(1, currencyRateRepository.storedRates().size)
+                assertEquals(0.95, currencyRateRepository.requireStoredRate(usd.id, eur.id).rate, 0.0001)
+            } finally {
+                Locale.setDefault(originalLocale)
             }
+        }
 
-            assertEquals(1, currencyRateRepository.upserts.size)
-            assertEquals(7L, currencyRateRepository.upserts.single().id)
-            assertEquals(1, currencyRateRepository.storedRates().size)
-            assertEquals(0.95, currencyRateRepository.requireStoredRate(usd.id, eur.id).rate, 0.0001)
+    @Test
+    fun `existing rate is displayed with the Russian decimal separator`() =
+        runTest {
+            val originalLocale = Locale.getDefault()
+            try {
+                Locale.setDefault(Locale.forLanguageTag("ru-RU"))
+                currencyRateRepository.seed(
+                    CurrencyRate(
+                        id = 7L,
+                        fromCurrencyId = usd.id,
+                        toCurrencyId = eur.id,
+                        rate = 0.95,
+                        updatedAt = Instant.parse("2026-06-11T10:00:00Z"),
+                    ),
+                )
+
+                val viewModel = buildViewModel()
+                advanceUntilIdle()
+
+                assertEquals("0,95", viewModel.state.value.rateInput)
+            } finally {
+                Locale.setDefault(originalLocale)
+            }
         }
 
     @Test

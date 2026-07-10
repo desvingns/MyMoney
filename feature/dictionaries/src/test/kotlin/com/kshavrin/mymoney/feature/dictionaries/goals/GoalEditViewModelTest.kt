@@ -5,6 +5,7 @@ import app.cash.turbine.test
 import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.AccountType
 import com.kshavrin.mymoney.core.domain.model.ContributionBreakdown
+import com.kshavrin.mymoney.core.domain.model.ContributionItem
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Goal
 import com.kshavrin.mymoney.core.domain.model.GoalVariant
@@ -28,6 +29,7 @@ import org.junit.Rule
 import org.junit.Test
 import java.math.BigDecimal
 import java.time.Instant
+import java.util.Locale
 
 class GoalEditViewModelTest {
     @get:Rule
@@ -109,6 +111,69 @@ class GoalEditViewModelTest {
             isArchived = false,
             contributionBreakdown = ContributionBreakdown(),
         )
+
+    @Test
+    fun `edit mode displays existing goal amounts with Russian decimal separators`() =
+        runTest {
+            val originalLocale = Locale.getDefault()
+            try {
+                Locale.setDefault(Locale.forLanguageTag("ru-RU"))
+                goalRepo.seed(
+                    listOf(
+                        existingGoal().copy(
+                            targetAmount = BigDecimal("50000.50"),
+                            startingCapital = BigDecimal("1000.25"),
+                            monthlyContribution = BigDecimal("500.75"),
+                            annualRatePercent = BigDecimal("7.5"),
+                            downPayment = BigDecimal("200.20"),
+                        ),
+                    ),
+                )
+
+                val viewModel = buildViewModel(goalId = 10L)
+                advanceUntilIdle()
+
+                val state = viewModel.state.value
+                assertEquals("50000,50", state.targetAmount)
+                assertEquals("1000,25", state.startingCapital)
+                assertEquals("500,75", state.monthlyContribution)
+                assertEquals("7,5", state.annualRatePercent)
+                assertEquals("200,2", state.downPayment)
+            } finally {
+                Locale.setDefault(originalLocale)
+            }
+        }
+
+    @Test
+    fun `edit mode displays advanced contribution rows and derived monthly amount in Russian`() =
+        runTest {
+            val originalLocale = Locale.getDefault()
+            try {
+                Locale.setDefault(Locale.forLanguageTag("ru-RU"))
+                goalRepo.seed(
+                    listOf(
+                        existingGoal().copy(
+                            contributionBreakdown =
+                                ContributionBreakdown(
+                                    enabled = true,
+                                    incomes = listOf(ContributionItem("Salary", BigDecimal("123.45"))),
+                                    expenses = listOf(ContributionItem("Rent", BigDecimal("22.33"))),
+                                ),
+                        ),
+                    ),
+                )
+
+                val viewModel = buildViewModel(goalId = 10L)
+                advanceUntilIdle()
+
+                val state = viewModel.state.value
+                assertEquals("123,45", state.incomeRows.single().amount)
+                assertEquals("22,33", state.expenseRows.single().amount)
+                assertEquals("101,12", state.monthlyContribution)
+            } finally {
+                Locale.setDefault(originalLocale)
+            }
+        }
 
     // --- comma as decimal separator ---
 

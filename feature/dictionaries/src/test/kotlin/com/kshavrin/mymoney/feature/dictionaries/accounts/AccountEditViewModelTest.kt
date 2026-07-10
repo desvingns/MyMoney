@@ -25,6 +25,7 @@ import org.junit.Rule
 import org.junit.Test
 import java.math.BigDecimal
 import java.time.Instant
+import java.util.Locale
 
 class AccountEditViewModelTest {
     @get:Rule
@@ -155,6 +156,23 @@ class AccountEditViewModelTest {
             assertEquals("Savings", state.name)
             assertEquals("250.50", state.initialBalanceText)
             assertEquals(1L, state.currencyId)
+        }
+
+    @Test
+    fun `edit mode displays an existing balance with the Russian decimal separator`() =
+        runTest {
+            val originalLocale = Locale.getDefault()
+            try {
+                Locale.setDefault(Locale.forLanguageTag("ru-RU"))
+                accountRepo.seed(savedAccount(id = 7L, initialBalance = BigDecimal("250.50")))
+
+                val viewModel = buildViewModel(accountId = 7L)
+                advanceUntilIdle()
+
+                assertEquals("250,50", viewModel.state.value.initialBalanceText)
+            } finally {
+                Locale.setDefault(originalLocale)
+            }
         }
 
     // --- validation: empty name ---

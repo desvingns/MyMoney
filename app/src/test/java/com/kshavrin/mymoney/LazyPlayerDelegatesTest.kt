@@ -17,7 +17,6 @@ import org.junit.Test
  *   extra get() call on top of that)
  */
 class LazyPlayerDelegatesTest {
-
     // ---- test doubles ----
 
     /**
@@ -27,7 +26,9 @@ class LazyPlayerDelegatesTest {
      * (e.g. CountingLazy<SoundPlayer>(…)) because dagger.Lazy is a Java interface and therefore
      * invariant in Kotlin — CountingLazy<RecordingSoundPlayer> would not satisfy dagger.Lazy<SoundPlayer>.
      */
-    private class CountingLazy<T>(private val instance: T) : dagger.Lazy<T> {
+    private class CountingLazy<T>(
+        private val instance: T,
+    ) : dagger.Lazy<T> {
         var getCallCount = 0
             private set
 

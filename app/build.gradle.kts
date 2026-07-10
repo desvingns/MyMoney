@@ -126,6 +126,9 @@ android {
         }
         create("staging") {
             initWith(getByName("release"))
+            // Library modules (:core:*, :feature:*) publish only debug/release, so a
+            // staging consumer must fall back to their release variant to resolve.
+            matchingFallbacks += "release"
         }
     }
 

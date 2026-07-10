@@ -48,9 +48,27 @@ unzip -l app/build/outputs/apk/release/app-release.apk | grep dexopt
 ```
 
 Must show `assets/dexopt/baseline.prof`. If it is missing, the release APK ships without the
-profile and startup numbers are invalid. The `staging` build type now consumes the same committed
-release profile (`android.sourceSets.getByName("staging").baselineProfiles.srcDir(...)`), so a
-staging APK must show the same entry.
+profile and startup numbers are invalid.
+
+The `staging` build type now consumes the same committed release profile
+(`android.sourceSets.getByName("staging").baselineProfiles.srcDir(...)`), and its
+`matchingFallbacks = listOf("release")` lets the library modules resolve their release variant.
+Verify staging packages the profile too:
+
+```bash
+./gradlew :app:assembleStaging --console=plain
+unzip -l app/build/outputs/apk/staging/app-staging.apk | grep dexopt
+```
+
+Expected output (both entries present):
+
+```
+assets/dexopt/baseline.prof
+assets/dexopt/baseline.profm
+```
+
+If `baseline.prof` is absent from the staging APK, the staging baselineProfiles srcDir wiring is
+broken — fix the wiring in `app/build.gradle.kts`, not this checklist.
 
 ## 6. TDD §11 budget vs. emulator reality
 

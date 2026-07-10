@@ -213,7 +213,7 @@ class TransactionDetailViewModel
             _state.value =
                 _state.value.copy(
                     rateInput = text,
-                    exchangeRate = text.toDoubleOrNull(),
+                    exchangeRate = text.trim().replace(',', '.').toDoubleOrNull(),
                     errorBannerRes = null,
                 )
             recomputeDirty()

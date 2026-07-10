@@ -648,33 +648,41 @@ class TransactionDetailViewModelTest {
     // ---- AC5: transfer rate ------------------------------------------------------------------
 
     @Test
-    fun `editing the rate on a cross-currency transfer saves a single transfer row with toAmount = amount times rate`() =
+    fun `editing a localized comma rate accepts numeric state and saves a single transfer row`() =
         runTest {
-            val tx = crossTransfer()
-            transactionRepo.seed(tx)
-            rateRepo.seed(
-                CurrencyRate(
-                    id = 5L,
-                    fromCurrencyId = usd.id,
-                    toCurrencyId = eur.id,
-                    rate = 0.9,
-                    updatedAt = createdAt,
-                ),
-            )
-            val viewModel = buildViewModel(tx.id)
+            val originalLocale = Locale.getDefault()
+            try {
+                Locale.setDefault(Locale.forLanguageTag("ru-RU"))
+                val tx = crossTransfer()
+                transactionRepo.seed(tx)
+                rateRepo.seed(
+                    CurrencyRate(
+                        id = 5L,
+                        fromCurrencyId = usd.id,
+                        toCurrencyId = eur.id,
+                        rate = 0.9,
+                        updatedAt = createdAt,
+                    ),
+                )
+                val viewModel = buildViewModel(tx.id)
 
-            // change the rate from 0.9 to 0.8 and save
-            viewModel.onEvent(TransactionDetailEvent.RateChanged("0.8"))
-            viewModel.onEvent(TransactionDetailEvent.SaveClicked)
+                assertEquals("0,9", viewModel.state.value.rateInput)
+                viewModel.onEvent(TransactionDetailEvent.RateChanged("0,8"))
 
-            val saved = transactionRepo.findById(tx.id)
-            assertNotNull(saved)
-            assertEquals("transfer stays a single row under the same id", tx.id, saved!!.id)
-            assertEquals(TransactionKind.Transfer, saved.kind)
-            assertEquals(0.8, saved.exchangeRate!!, 0.0001)
-            assertEquals(localMidnight(originalDate), saved.occurredAt)
-            // AS-7: toAmount = amount (100) * rate (0.8) = 80
-            assertEquals(0, BigDecimal("80").compareTo(saved.toAmount))
+                assertEquals("0,8", viewModel.state.value.rateInput)
+                assertEquals(0.8, viewModel.state.value.exchangeRate!!, 0.0001)
+                viewModel.onEvent(TransactionDetailEvent.SaveClicked)
+
+                val saved = transactionRepo.findById(tx.id)
+                assertNotNull(saved)
+                assertEquals("transfer stays a single row under the same id", tx.id, saved!!.id)
+                assertEquals(TransactionKind.Transfer, saved.kind)
+                assertEquals(0.8, saved.exchangeRate!!, 0.0001)
+                assertEquals(localMidnight(originalDate), saved.occurredAt)
+                assertEquals(0, BigDecimal("80").compareTo(saved.toAmount))
+            } finally {
+                Locale.setDefault(originalLocale)
+            }
         }
 
     @Test

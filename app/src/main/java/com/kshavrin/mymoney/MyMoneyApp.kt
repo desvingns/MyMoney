@@ -9,6 +9,7 @@ import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
 import com.kshavrin.mymoney.core.domain.usecase.NormalizeLegacyUtcMidnightUseCase
 import com.kshavrin.mymoney.core.sync.JournalSync
 import com.kshavrin.mymoney.core.sync.WorkScheduler
+import dagger.Lazy
 import dagger.hilt.android.HiltAndroidApp
 import io.sentry.Sentry
 import io.sentry.android.core.SentryAndroid
@@ -24,19 +25,19 @@ class MyMoneyApp :
     Application(),
     Configuration.Provider {
     @Inject
-    lateinit var workerFactory: HiltWorkerFactory
+    lateinit var workerFactory: Lazy<HiltWorkerFactory>
 
     @Inject
-    lateinit var workScheduler: WorkScheduler
+    lateinit var workScheduler: Lazy<WorkScheduler>
 
     @Inject
-    lateinit var journalSync: JournalSync
+    lateinit var journalSync: Lazy<JournalSync>
 
     @Inject
-    lateinit var appSettingsRepository: AppSettingsRepository
+    lateinit var appSettingsRepository: Lazy<AppSettingsRepository>
 
     @Inject
-    lateinit var normalizeLegacyUtcMidnight: NormalizeLegacyUtcMidnightUseCase
+    lateinit var normalizeLegacyUtcMidnight: Lazy<NormalizeLegacyUtcMidnightUseCase>
 
     @Inject
     @ApplicationScope
@@ -50,13 +51,13 @@ class MyMoneyApp :
         get() =
             Configuration
                 .Builder()
-                .setWorkerFactory(workerFactory)
+                .setWorkerFactory(workerFactory.get())
                 .build()
 
     override fun onCreate() {
         super.onCreate()
         applicationScope.launch(ioDispatcher) {
-            workScheduler.scheduleDailyJobs()
+            workScheduler.get().scheduleDailyJobs()
         }
         triggerJournalSyncOnOpen()
         initSentry()
@@ -68,27 +69,29 @@ class MyMoneyApp :
         if (BuildConfig.SENTRY_DSN.isBlank()) {
             return
         }
-        SentryAndroid.init(this) { options ->
-            options.dsn = BuildConfig.SENTRY_DSN
-            options.tracesSampleRate = 0.0
-            options.setEnableTracing(false)
-            options.profilesSampleRate = 0.0
-            options.profilesSampler = null
-            options.isEnableAppStartProfiling = false
-            options.isEnableAutoActivityLifecycleTracing = false
-            options.isEnableActivityLifecycleTracingAutoFinish = false
-            options.isEnablePerformanceV2 = false
-            options.isEnableFramesTracking = false
-            options.isEnableAutoSessionTracking = false
-            options.isAttachStacktrace = true
-            options.isAttachScreenshot = false
-            options.isAttachViewHierarchy = false
+        applicationScope.launch(ioDispatcher) {
+            SentryAndroid.init(this@MyMoneyApp) { options ->
+                options.dsn = BuildConfig.SENTRY_DSN
+                options.tracesSampleRate = 0.0
+                options.setEnableTracing(false)
+                options.profilesSampleRate = 0.0
+                options.profilesSampler = null
+                options.isEnableAppStartProfiling = false
+                options.isEnableAutoActivityLifecycleTracing = false
+                options.isEnableActivityLifecycleTracingAutoFinish = false
+                options.isEnablePerformanceV2 = false
+                options.isEnableFramesTracking = false
+                options.isEnableAutoSessionTracking = false
+                options.isAttachStacktrace = true
+                options.isAttachScreenshot = false
+                options.isAttachViewHierarchy = false
+            }
         }
     }
 
     private fun triggerJournalSyncOnOpen() {
         applicationScope.launch(ioDispatcher) {
-            runCatching { journalSync.syncNow() }
+            runCatching { journalSync.get().syncNow() }
                 .onFailure { throwable -> Sentry.captureException(throwable) }
         }
     }
@@ -96,10 +99,11 @@ class MyMoneyApp :
     private fun normalizeLegacyUtcMidnightDates() {
         applicationScope.launch(ioDispatcher) {
             runCatching {
-                if (appSettingsRepository.settings.first().tzNormalizedAt == null) {
-                    normalizeLegacyUtcMidnight()
+                val settingsRepository = appSettingsRepository.get()
+                if (settingsRepository.settings.first().tzNormalizedAt == null) {
+                    normalizeLegacyUtcMidnight.get().invoke()
                     val normalizedAt = Clock.systemUTC().millis()
-                    appSettingsRepository.update { settings ->
+                    settingsRepository.update { settings ->
                         if (settings.tzNormalizedAt == null) {
                             settings.copy(tzNormalizedAt = normalizedAt)
                         } else {

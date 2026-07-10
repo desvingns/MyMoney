@@ -129,6 +129,13 @@ android {
         }
     }
 
+    // staging initWith(release) copies build config but not the release variant's
+    // generated baselineProfiles source set, so staging would otherwise ship no
+    // baseline profile. Reuse the committed release profile for staging packaging.
+    sourceSets.getByName("staging") {
+        baselineProfiles.srcDir("src/release/generated/baselineProfiles")
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17

@@ -15,13 +15,16 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import com.kshavrin.mymoney.core.ui.feedback.LocalHapticPlayer
 import com.kshavrin.mymoney.core.ui.feedback.LocalSoundPlayer
+import com.kshavrin.mymoney.core.ui.haptic.HapticKind
 import com.kshavrin.mymoney.core.ui.haptic.HapticPlayer
+import com.kshavrin.mymoney.core.ui.sound.SoundKey
 import com.kshavrin.mymoney.core.ui.sound.SoundPlayer
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import com.kshavrin.mymoney.feature.lockscreen.overlay.LockController
 import com.kshavrin.mymoney.feature.lockscreen.overlay.LockOverlay
 import com.kshavrin.mymoney.navigation.Destinations
 import com.kshavrin.mymoney.navigation.MyMoneyNavHost
+import dagger.Lazy
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -34,10 +37,13 @@ class MainActivity : AppCompatActivity() {
     lateinit var lockController: LockController
 
     @Inject
-    lateinit var soundPlayer: SoundPlayer
+    lateinit var soundPlayer: Lazy<SoundPlayer>
 
     @Inject
-    lateinit var hapticPlayer: HapticPlayer
+    lateinit var hapticPlayer: Lazy<HapticPlayer>
+
+    private val lazySoundPlayer: SoundPlayer by lazy { LazySoundPlayer(soundPlayer) }
+    private val lazyHapticPlayer: HapticPlayer by lazy { LazyHapticPlayer(hapticPlayer) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()
@@ -60,8 +66,8 @@ class MainActivity : AppCompatActivity() {
             val locked by lockController.shouldShowLock.collectAsStateWithLifecycle()
             MyMoneyTheme(themeMode = themeMode) {
                 CompositionLocalProvider(
-                    LocalSoundPlayer provides soundPlayer,
-                    LocalHapticPlayer provides hapticPlayer,
+                    LocalSoundPlayer provides lazySoundPlayer,
+                    LocalHapticPlayer provides lazyHapticPlayer,
                 ) {
                     Box {
                         MyMoneyNavHost(shortcutDestination = shortcutDestination)
@@ -88,4 +94,16 @@ class MainActivity : AppCompatActivity() {
         const val SHORTCUT_ADD_INCOME = "add_income"
         const val SHORTCUT_TRANSFER = "transfer"
     }
+}
+
+private class LazySoundPlayer(
+    private val delegate: Lazy<SoundPlayer>,
+) : SoundPlayer {
+    override fun play(key: SoundKey) = delegate.get().play(key)
+}
+
+private class LazyHapticPlayer(
+    private val delegate: Lazy<HapticPlayer>,
+) : HapticPlayer {
+    override fun fire(kind: HapticKind) = delegate.get().fire(kind)
 }

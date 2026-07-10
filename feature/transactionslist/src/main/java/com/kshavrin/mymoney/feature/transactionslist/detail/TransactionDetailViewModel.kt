@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kshavrin.mymoney.core.common.calculator.CalculatorEngine
 import com.kshavrin.mymoney.core.common.exception.reportToSentry
+import com.kshavrin.mymoney.core.common.money.MoneyFormatter
 import com.kshavrin.mymoney.core.designsystem.keypad.toCalculator
 import com.kshavrin.mymoney.core.designsystem.keypad.toDesignsystem
 import com.kshavrin.mymoney.core.domain.model.Account
@@ -35,6 +36,7 @@ import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import java.util.Locale
 import javax.inject.Inject
 
 @HiltViewModel
@@ -117,7 +119,10 @@ class TransactionDetailViewModel
                         targetAccount = targetAccount,
                         targetCurrency = targetCurrency,
                         exchangeRate = tx.exchangeRate,
-                        rateInput = tx.exchangeRate?.toString().orEmpty(),
+                        rateInput =
+                            tx.exchangeRate
+                                ?.let { MoneyFormatter.formatInput(BigDecimal.valueOf(it), Locale.getDefault()) }
+                                .orEmpty(),
                         accounts = accounts,
                         currencies = currencies,
                         isLoaded = true,

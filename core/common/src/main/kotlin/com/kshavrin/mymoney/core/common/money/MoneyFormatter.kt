@@ -7,6 +7,15 @@ import java.text.DecimalFormatSymbols
 import java.util.Locale
 
 object MoneyFormatter {
+    fun formatInput(
+        amount: BigDecimal,
+        locale: Locale,
+    ): String =
+        DecimalFormat("0.####################", DecimalFormatSymbols.getInstance(locale))
+            .apply {
+                isGroupingUsed = false
+            }.format(amount)
+
     fun format(
         amount: BigDecimal,
         currencySymbol: String,

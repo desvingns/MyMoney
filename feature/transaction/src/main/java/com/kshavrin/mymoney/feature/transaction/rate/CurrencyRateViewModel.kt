@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kshavrin.mymoney.core.common.exception.reportToSentry
+import com.kshavrin.mymoney.core.common.money.MoneyFormatter
 import com.kshavrin.mymoney.core.domain.model.CurrencyRate
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRateRepository
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
@@ -17,8 +18,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.Instant
+import java.util.Locale
 import javax.inject.Inject
 
 @HiltViewModel
@@ -57,7 +60,7 @@ class CurrencyRateViewModel
                         _state.value =
                             _state.value.copy(
                                 rate = existing.rate,
-                                rateInput = existing.rate.toString(),
+                                rateInput = MoneyFormatter.formatInput(BigDecimal.valueOf(existing.rate), Locale.getDefault()),
                                 isValid = true,
                             )
                     }

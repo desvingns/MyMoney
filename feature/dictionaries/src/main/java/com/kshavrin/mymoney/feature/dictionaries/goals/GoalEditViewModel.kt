@@ -70,11 +70,11 @@ class GoalEditViewModel
                                 iconKey = existing.iconKey,
                                 variant = existing.variant,
                                 accountId = existing.accountId,
-                                startingCapital = existing.startingCapital.toPlainString(),
-                                monthlyContribution = existing.monthlyContribution.toPlainString(),
-                                targetAmount = existing.targetAmount.toPlainString(),
-                                annualRatePercent = existing.annualRatePercent?.toPlainString().orEmpty(),
-                                downPayment = existing.downPayment?.toPlainString().orEmpty(),
+                                startingCapital = formatInput(existing.startingCapital),
+                                monthlyContribution = formatInput(existing.monthlyContribution),
+                                targetAmount = formatInput(existing.targetAmount),
+                                annualRatePercent = existing.annualRatePercent?.let(::formatInput).orEmpty(),
+                                downPayment = existing.downPayment?.let(::formatInput).orEmpty(),
                                 termYears = existing.termMonths?.let { (it / 12).toString() }.orEmpty(),
                                 isCreateMode = false,
                                 createdAt = existing.createdAt,
@@ -251,9 +251,9 @@ class GoalEditViewModel
                         ?.let { currency ->
                             contributionCalculator(s.toBreakdown(currency))
                                 .toMoneyScale(currency)
-                                .toPlainString()
+                                .let(::formatInput)
                         }
-                        ?: contributionCalculator(s.toBreakdown()).toPlainString()
+                        ?: formatInput(contributionCalculator(s.toBreakdown()))
                 s = s.copy(monthlyContribution = derived)
                 _state.value = s
             }
@@ -414,7 +414,7 @@ private fun String.parseMoneyField(currency: Currency? = null): MoneyField {
 }
 
 private fun ContributionItem.toRowUi(): ContributionRowUi =
-    ContributionRowUi(name = name, amount = amount.toPlainString())
+    ContributionRowUi(name = name, amount = formatInput(amount))
 
 private fun List<ContributionRowUi>.toItems(currency: Currency?): List<ContributionItem> =
     map {
@@ -449,6 +449,9 @@ private fun formatMoney(
         locale = Locale.getDefault(),
         symbolPosition = MoneyFormatter.SymbolPosition.AFTER,
     )
+
+private fun formatInput(amount: BigDecimal): String =
+    MoneyFormatter.formatInput(amount, Locale.getDefault())
 
 data class GoalEditState(
     val id: Long = -1L,

@@ -49,6 +49,7 @@ import com.kshavrin.mymoney.core.ui.theme.dashboardPeriodUnselectedText
 import com.kshavrin.mymoney.feature.dashboard.R
 import java.time.Year
 import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import java.util.Locale
 
 @Composable
@@ -272,7 +273,7 @@ internal fun Period.localizedLabel(
     allLabel: String,
     currentYear: Int,
 ): String {
-    val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yy", locale)
+    val dateFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT).withLocale(locale)
     return when (this) {
         is Period.Day -> date.format(dateFormatter)
         is Period.Week ->

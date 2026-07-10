@@ -49,6 +49,10 @@ import com.kshavrin.mymoney.core.ui.theme.wizardStrategyCardSelectedBorder
 import com.kshavrin.mymoney.core.ui.theme.wizardStrategyCardSelectedContainer
 import com.kshavrin.mymoney.core.ui.theme.wizardStrategyCardSelectedContent
 import com.kshavrin.mymoney.feature.settings.R
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
+import java.util.Locale
 
 @Composable
 fun ImportWizardRoute(
@@ -249,13 +253,16 @@ private fun PreviewStep(state: ImportWizardState) {
             text =
                 stringResource(
                     R.string.import_wizard_preview_date_range,
-                    range.start.toString(),
-                    range.end.toString(),
+                    formatImportDate(range.start),
+                    formatImportDate(range.end),
                 ),
             style = MaterialTheme.typography.bodyMedium,
         )
     }
 }
+
+private fun formatImportDate(date: LocalDate): String =
+    date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(Locale.getDefault()))
 
 @Composable
 private fun DataStrategyStep(

@@ -3,6 +3,7 @@ package com.kshavrin.mymoney.feature.dictionaries.accounts
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.kshavrin.mymoney.core.common.money.MoneyFormatter
 import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.AccountType
 import com.kshavrin.mymoney.core.domain.model.Currency
@@ -20,6 +21,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.Instant
+import java.util.Locale
 import javax.inject.Inject
 
 @HiltViewModel
@@ -49,7 +51,7 @@ class AccountEditViewModel
                             _state.value.copy(
                                 name = existing.name,
                                 currencyId = existing.currencyId,
-                                initialBalanceText = existing.initialBalance.toPlainString(),
+                                initialBalanceText = MoneyFormatter.formatInput(existing.initialBalance, Locale.getDefault()),
                                 type = existing.type,
                                 colorHex = existing.colorHex,
                                 iconKey = existing.iconKey,

@@ -96,13 +96,13 @@ class MainActivity : AppCompatActivity() {
     }
 }
 
-private class LazySoundPlayer(
+internal class LazySoundPlayer(
     private val delegate: Lazy<SoundPlayer>,
 ) : SoundPlayer {
     override fun play(key: SoundKey) = delegate.get().play(key)
 }
 
-private class LazyHapticPlayer(
+internal class LazyHapticPlayer(
     private val delegate: Lazy<HapticPlayer>,
 ) : HapticPlayer {
     override fun fire(kind: HapticKind) = delegate.get().fire(kind)

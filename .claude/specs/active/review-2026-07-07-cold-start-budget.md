@@ -1,7 +1,7 @@
 # Bring cold start back inside the TDD budget (~5.5s today)
 Epic: review-2026-07
 Order: 07 of 35
-Status: draft
+Status: active
 Depends-on: —
 Date: 2026-07-06
 

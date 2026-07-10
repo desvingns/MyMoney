@@ -60,7 +60,7 @@ class SentryFreeTierContractTest {
             text,
             listOf(
                 "if (BuildConfig.SENTRY_DSN.isBlank()) {",
-                "SentryAndroid.init(this) { options ->",
+                "SentryAndroid.init(this@MyMoneyApp) { options ->",
                 "options.dsn = BuildConfig.SENTRY_DSN",
                 "options.tracesSampleRate = 0.0",
                 "options.setEnableTracing(false)",
@@ -74,6 +74,16 @@ class SentryFreeTierContractTest {
                 "options.isEnableAutoSessionTracking = false",
                 "options.isAttachScreenshot = false",
                 "options.isAttachViewHierarchy = false",
+            ),
+        )
+        // Pin that Sentry init is deferred off the main-thread startup path: the call site
+        // must appear inside an applicationScope.launch(ioDispatcher) block within initSentry().
+        assertContainsInOrder(
+            text,
+            listOf(
+                "fun initSentry() {",
+                "applicationScope.launch(ioDispatcher) {",
+                "SentryAndroid.init(this@MyMoneyApp) { options ->",
             ),
         )
     }

@@ -1,7 +1,50 @@
 import io.gitlab.arturbosch.detekt.Detekt
 import io.gitlab.arturbosch.detekt.DetektCreateBaselineTask
+import kotlinx.kover.gradle.plugin.dsl.KoverProjectExtension
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
+private val koverGeneratedClasses = listOf(
+    "hilt_aggregated_deps.*",
+    "dagger.hilt.internal.aggregatedroot.codegen.*",
+    "dagger.hilt.internal.processedrootsentinel.codegen.*",
+    "*HiltComponents*",
+    "*HiltModules*",
+    "*HiltWrapper*",
+    "*Hilt_*",
+    "*_Factory",
+    "*MembersInjector*",
+    "*_Impl*",
+    "*.BuildConfig",
+    "*.R",
+    "*.R$*",
+)
+
+private val koverLineFloors = mapOf(
+    ":core:domain" to 90,
+    ":core:database" to 17,
+    ":core:datastore" to 68,
+    ":feature:cloudsync" to 41,
+    ":feature:dashboard" to 33,
+    ":feature:lockscreen" to 31,
+    ":feature:onboarding" to 13,
+    ":feature:settings" to 34,
+    ":feature:transaction" to 46,
+    ":feature:transactionslist" to 35,
+)
+
+private val koverVerificationTasks = listOf(
+    ":core:domain:koverVerifyJvm",
+    ":core:database:koverVerifyDebug",
+    ":core:datastore:koverVerifyDebug",
+    ":feature:cloudsync:koverVerifyDebug",
+    ":feature:dashboard:koverVerifyDebug",
+    ":feature:lockscreen:koverVerifyDebug",
+    ":feature:onboarding:koverVerifyDebug",
+    ":feature:settings:koverVerifyDebug",
+    ":feature:transaction:koverVerifyDebug",
+    ":feature:transactionslist:koverVerifyDebug",
+)
 
 plugins {
     alias(libs.plugins.android.application) apply false
@@ -68,16 +111,55 @@ subprojects {
     plugins.withId("com.android.library") {
         extensions.configure<com.android.build.api.dsl.LibraryExtension> { lint(lintGate) }
     }
+
+    pluginManager.withPlugin("org.jetbrains.kotlinx.kover") {
+        val lineFloor = koverLineFloors[path]
+        extensions.configure<KoverProjectExtension> {
+            reports {
+                filters {
+                    excludes {
+                        classes(koverGeneratedClasses)
+                    }
+                }
+                if (lineFloor != null) {
+                    verify {
+                        rule {
+                            bound {
+                                minValue = lineFloor
+                                coverageUnits = kotlinx.kover.gradle.plugin.dsl.CoverageUnit.LINE
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 dependencies {
     kover(project(":core:domain"))
     kover(project(":core:database"))
     kover(project(":core:datastore"))
+    kover(project(":feature:cloudsync"))
+    kover(project(":feature:dashboard"))
+    kover(project(":feature:lockscreen"))
+    kover(project(":feature:onboarding"))
+    kover(project(":feature:settings"))
+    kover(project(":feature:transaction"))
+    kover(project(":feature:transactionslist"))
+}
+
+tasks.named("koverVerify") {
+    dependsOn(koverVerificationTasks)
 }
 
 kover {
     reports {
+        filters {
+            excludes {
+                classes(koverGeneratedClasses)
+            }
+        }
         total {
             html { onCheck = false }
             xml { onCheck = false }

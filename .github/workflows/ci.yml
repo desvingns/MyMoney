@@ -60,8 +60,19 @@ jobs:
       - name: Run ktlint formatting check
         run: ./gradlew ktlintCheck --stacktrace
 
+      - name: Generate Kover HTML coverage report
+        run: ./gradlew koverHtmlReport --stacktrace
+
       - name: Verify Kover coverage thresholds
         run: ./gradlew koverVerify --stacktrace
+
+      - name: Upload Kover HTML coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kover-html-report
+          path: build/reports/kover/html/
+          if-no-files-found: warn
 
   release:
     name: Signed release APK and AAB

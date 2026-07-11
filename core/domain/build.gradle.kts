@@ -8,19 +8,6 @@ kotlin {
     jvmToolchain(17)
 }
 
-kover {
-    reports {
-        verify {
-            rule {
-                bound {
-                    minValue = 80
-                    coverageUnits = kotlinx.kover.gradle.plugin.dsl.CoverageUnit.LINE
-                }
-            }
-        }
-    }
-}
-
 dependencies {
     implementation(libs.kotlinx.coroutines.core)
     api(libs.androidx.paging.common)

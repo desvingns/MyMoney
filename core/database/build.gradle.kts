@@ -7,19 +7,6 @@ plugins {
     alias(libs.plugins.kover)
 }
 
-kover {
-    reports {
-        verify {
-            rule {
-                bound {
-                    minValue = 4
-                    coverageUnits = kotlinx.kover.gradle.plugin.dsl.CoverageUnit.LINE
-                }
-            }
-        }
-    }
-}
-
 android {
     namespace = "com.kshavrin.mymoney.core.database"
     compileSdk = 36

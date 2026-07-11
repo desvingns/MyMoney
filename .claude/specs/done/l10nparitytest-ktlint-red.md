@@ -1,6 +1,6 @@
 # Fix pre-existing ktlint red in L10nParityTest.kt
 Epic: —
-Status: draft
+Status: done
 Depends-on: —
 Date: 2026-07-10
 
@@ -25,5 +25,6 @@ Surfaced by `:app:ktlintTestSourceSetCheck --rerun-tasks` during
 sourceSet ktlint task, so this rode onto main unnoticed.
 
 ## Implementation links
-- commit: (pending)
-- files: (pending)
+- commit: a1dda732 (`style: reflow L10nParityTest to satisfy ktlint`)
+- files: app/src/test/java/com/kshavrin/mymoney/L10nParityTest.kt
+- verified: `:app:ktlintTestSourceSetCheck` green + `L10nParityTest` unit tests pass (BUILD SUCCESSFUL); pushed to main (515f5ca7..a1dda732)

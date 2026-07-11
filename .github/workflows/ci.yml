@@ -224,6 +224,9 @@ jobs:
             timeout 20m ./gradlew :core:designsystem:connectedDebugAndroidTest $FIREBASE_ARGS --stacktrace || status=$?
             timeout 20m ./gradlew :core:database:connectedDebugAndroidTest $FIREBASE_ARGS --stacktrace || status=$?
             timeout 20m ./gradlew :core:datastore:connectedDebugAndroidTest $FIREBASE_ARGS --stacktrace || status=$?
+            timeout 20m ./gradlew :core:sync:connectedDebugAndroidTest $FIREBASE_ARGS --stacktrace || status=$?
+            timeout 20m ./gradlew :core:network:connectedDebugAndroidTest $FIREBASE_ARGS --stacktrace || status=$?
+            timeout 20m ./gradlew :feature:lockscreen:connectedDebugAndroidTest $FIREBASE_ARGS --stacktrace || status=$?
             exit $status
 
       - name: Upload connected test reports

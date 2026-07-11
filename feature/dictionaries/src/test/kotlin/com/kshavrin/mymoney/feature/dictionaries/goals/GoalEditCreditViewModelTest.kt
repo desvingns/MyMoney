@@ -27,6 +27,7 @@ import org.junit.Rule
 import org.junit.Test
 import java.math.BigDecimal
 import java.time.Instant
+import java.util.Locale
 
 class GoalEditCreditViewModelTest {
     @get:Rule
@@ -631,38 +632,44 @@ class GoalEditCreditViewModelTest {
     @Test
     fun `editing an existing CREDIT goal pre-fills rate downPayment and termYears into state`() =
         runTest {
-            currencyRepo.seed(rubCurrency())
-            val existing =
-                Goal(
-                    id = 7L,
-                    name = "Car loan",
-                    iconKey = "ic_goal_car",
-                    colorHex = "#9C5BB8",
-                    accountId = 1L,
-                    variant = GoalVariant.CREDIT,
-                    targetAmount = BigDecimal("800000"),
-                    startingCapital = BigDecimal("200000"),
-                    monthlyContribution = BigDecimal("20000"),
-                    annualRatePercent = BigDecimal("8.5"),
-                    downPayment = BigDecimal("150000"),
-                    termMonths = 36,
-                    createdAt = now,
-                    updatedAt = now,
-                    isArchived = false,
-                )
-            goalRepo.seed(listOf(existing))
-            accountRepo.seed(account(id = 1L, currencyId = 1L, name = "Bank"))
+            val originalLocale = Locale.getDefault()
+            try {
+                Locale.setDefault(Locale.US)
+                currencyRepo.seed(rubCurrency())
+                val existing =
+                    Goal(
+                        id = 7L,
+                        name = "Car loan",
+                        iconKey = "ic_goal_car",
+                        colorHex = "#9C5BB8",
+                        accountId = 1L,
+                        variant = GoalVariant.CREDIT,
+                        targetAmount = BigDecimal("800000"),
+                        startingCapital = BigDecimal("200000"),
+                        monthlyContribution = BigDecimal("20000"),
+                        annualRatePercent = BigDecimal("8.5"),
+                        downPayment = BigDecimal("150000"),
+                        termMonths = 36,
+                        createdAt = now,
+                        updatedAt = now,
+                        isArchived = false,
+                    )
+                goalRepo.seed(listOf(existing))
+                accountRepo.seed(account(id = 1L, currencyId = 1L, name = "Bank"))
 
-            val viewModel = buildViewModel(goalId = 7L)
+                val viewModel = buildViewModel(goalId = 7L)
 
-            viewModel.state.test {
-                val state = expectMostRecentItem()
-                assertEquals(GoalVariant.CREDIT, state.variant)
-                assertEquals("8.5", state.annualRatePercent)
-                assertEquals("150000", state.downPayment)
-                assertEquals("3", state.termYears)
-                assertEquals(false, state.isCreateMode)
-                cancelAndIgnoreRemainingEvents()
+                viewModel.state.test {
+                    val state = expectMostRecentItem()
+                    assertEquals(GoalVariant.CREDIT, state.variant)
+                    assertEquals("8.5", state.annualRatePercent)
+                    assertEquals("150000", state.downPayment)
+                    assertEquals("3", state.termYears)
+                    assertEquals(false, state.isCreateMode)
+                    cancelAndIgnoreRemainingEvents()
+                }
+            } finally {
+                Locale.setDefault(originalLocale)
             }
         }
 }

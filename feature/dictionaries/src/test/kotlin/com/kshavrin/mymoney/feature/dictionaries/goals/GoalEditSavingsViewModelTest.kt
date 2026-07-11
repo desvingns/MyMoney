@@ -822,48 +822,54 @@ class GoalEditSavingsViewModelTest {
     @Test
     fun `advanced contribution rows round derived monthly contribution and persisted breakdown amounts to currency scale`() =
         runTest {
-            currencyRepo.seed(rubCurrency())
-            accountRepo.seed(account(id = 1L, currencyId = 1L, name = "Main"))
+            val originalLocale = Locale.getDefault()
+            try {
+                Locale.setDefault(Locale.US)
+                currencyRepo.seed(rubCurrency())
+                accountRepo.seed(account(id = 1L, currencyId = 1L, name = "Main"))
 
-            val viewModel = buildViewModel()
+                val viewModel = buildViewModel()
 
-            viewModel.onEvent(GoalEditEvent.AccountSelected(1L))
-            advanceUntilIdle()
-            viewModel.onEvent(GoalEditEvent.NameChanged("Vacation"))
-            viewModel.onEvent(GoalEditEvent.TargetChanged("200000"))
-            viewModel.onEvent(GoalEditEvent.StartingCapitalChanged("0"))
-            viewModel.onEvent(GoalEditEvent.AdvancedToggled(true))
-            viewModel.onEvent(GoalEditEvent.IncomeNameChanged(0, "Salary"))
-            viewModel.onEvent(GoalEditEvent.IncomeAmountChanged(0, "12.3456"))
-            viewModel.onEvent(GoalEditEvent.ExpenseNameChanged(0, "Fees"))
-            viewModel.onEvent(GoalEditEvent.ExpenseAmountChanged(0, "0"))
+                viewModel.onEvent(GoalEditEvent.AccountSelected(1L))
+                advanceUntilIdle()
+                viewModel.onEvent(GoalEditEvent.NameChanged("Vacation"))
+                viewModel.onEvent(GoalEditEvent.TargetChanged("200000"))
+                viewModel.onEvent(GoalEditEvent.StartingCapitalChanged("0"))
+                viewModel.onEvent(GoalEditEvent.AdvancedToggled(true))
+                viewModel.onEvent(GoalEditEvent.IncomeNameChanged(0, "Salary"))
+                viewModel.onEvent(GoalEditEvent.IncomeAmountChanged(0, "12.3456"))
+                viewModel.onEvent(GoalEditEvent.ExpenseNameChanged(0, "Fees"))
+                viewModel.onEvent(GoalEditEvent.ExpenseAmountChanged(0, "0"))
 
-            assertEquals("12.35", viewModel.state.value.monthlyContribution)
+                assertEquals("12.35", viewModel.state.value.monthlyContribution)
 
-            viewModel.actions.test {
-                viewModel.onEvent(GoalEditEvent.SaveClicked)
-                awaitItem()
+                viewModel.actions.test {
+                    viewModel.onEvent(GoalEditEvent.SaveClicked)
+                    awaitItem()
 
-                val upserted = goalRepo.lastUpserted
-                assertNotNull(upserted)
-                assertEquals(0, BigDecimal("12.35").compareTo(upserted!!.monthlyContribution))
-                assertEquals(
-                    0,
-                    BigDecimal("12.35").compareTo(
-                        upserted.contributionBreakdown.incomes
-                            .single()
-                            .amount,
-                    ),
-                )
-                assertEquals(
-                    0,
-                    BigDecimal.ZERO.compareTo(
-                        upserted.contributionBreakdown.expenses
-                            .single()
-                            .amount,
-                    ),
-                )
-                cancelAndIgnoreRemainingEvents()
+                    val upserted = goalRepo.lastUpserted
+                    assertNotNull(upserted)
+                    assertEquals(0, BigDecimal("12.35").compareTo(upserted!!.monthlyContribution))
+                    assertEquals(
+                        0,
+                        BigDecimal("12.35").compareTo(
+                            upserted.contributionBreakdown.incomes
+                                .single()
+                                .amount,
+                        ),
+                    )
+                    assertEquals(
+                        0,
+                        BigDecimal.ZERO.compareTo(
+                            upserted.contributionBreakdown.expenses
+                                .single()
+                                .amount,
+                        ),
+                    )
+                    cancelAndIgnoreRemainingEvents()
+                }
+            } finally {
+                Locale.setDefault(originalLocale)
             }
         }
 

@@ -147,15 +147,21 @@ class AccountEditViewModelTest {
     @Test
     fun `edit mode loads account fields into state`() =
         runTest {
-            accountRepo.seed(savedAccount(id = 7L, name = "Savings", initialBalance = BigDecimal("250.50")))
-            val viewModel = buildViewModel(accountId = 7L)
-            advanceUntilIdle()
+            val originalLocale = Locale.getDefault()
+            try {
+                Locale.setDefault(Locale.US)
+                accountRepo.seed(savedAccount(id = 7L, name = "Savings", initialBalance = BigDecimal("250.50")))
+                val viewModel = buildViewModel(accountId = 7L)
+                advanceUntilIdle()
 
-            val state = viewModel.state.value
-            assertEquals(false, state.isCreateMode)
-            assertEquals("Savings", state.name)
-            assertEquals("250.50", state.initialBalanceText)
-            assertEquals(1L, state.currencyId)
+                val state = viewModel.state.value
+                assertEquals(false, state.isCreateMode)
+                assertEquals("Savings", state.name)
+                assertEquals("250.50", state.initialBalanceText)
+                assertEquals(1L, state.currencyId)
+            } finally {
+                Locale.setDefault(originalLocale)
+            }
         }
 
     @Test

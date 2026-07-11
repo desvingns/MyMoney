@@ -1,17 +1,14 @@
 package com.kshavrin.mymoney
 
-import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 class KoverCoverageCiContractTest {
-    private val rootBuildFile = resolveFile("build.gradle.kts", "../build.gradle.kts")
-    private val workflowFile =
-        resolveFile(
-            ".github/workflows/ci.yml",
-            "../.github/workflows/ci.yml",
-        )
+    private val repositoryRoot = findRepositoryRoot()
+    private val rootBuildFile = File(repositoryRoot, "build.gradle.kts")
+    private val workflowFile = File(repositoryRoot, ".github/workflows/ci.yml")
 
     @Test
     fun `measured line floors configure the exact module ladder`() {
@@ -72,7 +69,7 @@ class KoverCoverageCiContractTest {
         )
 
         moduleBuildFiles.values.forEach { moduleBuildFile ->
-            assertContains(resolveFile(moduleBuildFile, "../$moduleBuildFile").readText(), "alias(libs.plugins.kover)")
+            assertContains(File(repositoryRoot, moduleBuildFile).readText(), "alias(libs.plugins.kover)")
         }
     }
 
@@ -171,11 +168,12 @@ class KoverCoverageCiContractTest {
                 ":feature:transactionslist" to "feature/transactionslist/build.gradle.kts",
             )
 
-        fun resolveFile(vararg candidates: String): File =
-            candidates
-                .asSequence()
-                .map(::File)
-                .firstOrNull(File::isFile)
-                ?: File(candidates.first()).absoluteFile
+        fun findRepositoryRoot(): File =
+            generateSequence(File(System.getProperty("user.dir")).absoluteFile) { it.parentFile }
+                .firstOrNull { candidate ->
+                    File(candidate, "settings.gradle.kts").isFile &&
+                        File(candidate, "app/build.gradle.kts").isFile
+                }
+                ?: error("Unable to locate the repository root from the test working directory")
     }
 }

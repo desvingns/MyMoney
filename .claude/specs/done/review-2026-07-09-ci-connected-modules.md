@@ -1,7 +1,7 @@
 # Run the missing androidTest modules in the CI emulator job
 Epic: review-2026-07
 Order: 09 of 35
-Status: draft
+Status: done
 Depends-on: review-2026-07-03
 Date: 2026-07-06
 
@@ -20,5 +20,9 @@ Three modules have instrumented tests that no CI run ever executes — device-on
 regressions land silently. Source: review item 8 (P2/S).
 
 ## Implementation links
-- commit: (pending)
-- files: (pending)
+- commits:
+  - e4dddce3 feat: run remaining connected test modules
+  - 2fc31437 test: cover connected CI module expansion
+- files:
+  - .github/workflows/ci.yml
+  - app/src/test/java/com/kshavrin/mymoney/ConnectedModulesCiContractTest.kt

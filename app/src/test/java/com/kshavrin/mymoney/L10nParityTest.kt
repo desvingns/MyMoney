@@ -29,7 +29,6 @@ import javax.xml.parsers.DocumentBuilderFactory
  * the working directory to the :app module folder (the AGP default for unit tests).
  */
 class L10nParityTest {
-
     @Test
     fun `every translatable EN string key has a matching RU key in every module`() {
         MODULES_WITH_STRINGS.forEach { module ->
@@ -91,23 +90,25 @@ class L10nParityTest {
     private companion object {
         val RUSSIAN_QUANTITIES = setOf("one", "few", "many", "other")
 
-        val MODULES_WITH_STRINGS = listOf(
-            "app",
-            "feature/dashboard",
-            "feature/transaction",
-            "feature/transactionslist",
-            "feature/settings",
-            "feature/lockscreen",
-            "feature/onboarding",
-            "feature/dictionaries",
-            "feature/cloudsync",
-            "core/designsystem",
-        )
+        val MODULES_WITH_STRINGS =
+            listOf(
+                "app",
+                "feature/dashboard",
+                "feature/transaction",
+                "feature/transactionslist",
+                "feature/settings",
+                "feature/lockscreen",
+                "feature/onboarding",
+                "feature/dictionaries",
+                "feature/cloudsync",
+                "core/designsystem",
+            )
 
-        val MODULES_WITH_PLURALS = listOf(
-            "app",
-            "feature/dictionaries",
-        )
+        val MODULES_WITH_PLURALS =
+            listOf(
+                "app",
+                "feature/dictionaries",
+            )
 
         /**
          * Tries two candidate paths:
@@ -115,21 +116,25 @@ class L10nParityTest {
          *   2. "../$module/src/main/res/$relativeWithinRes" — resolves when cwd is the :app
          *      module directory (the working directory AGP configures for :app unit tests).
          */
-        fun resolveResFile(module: String, relativeWithinRes: String): File {
-            val candidates = listOf(
-                File("$module/src/main/res/$relativeWithinRes"),
-                File("../$module/src/main/res/$relativeWithinRes"),
-            )
+        fun resolveResFile(
+            module: String,
+            relativeWithinRes: String,
+        ): File {
+            val candidates =
+                listOf(
+                    File("$module/src/main/res/$relativeWithinRes"),
+                    File("../$module/src/main/res/$relativeWithinRes"),
+                )
             return candidates.firstOrNull(File::isFile) ?: candidates.first().absoluteFile
         }
 
         fun newDocumentBuilder() =
-            DocumentBuilderFactory.newInstance()
+            DocumentBuilderFactory
+                .newInstance()
                 .apply {
                     isNamespaceAware = false
                     isExpandEntityReferences = false
-                }
-                .newDocumentBuilder()
+                }.newDocumentBuilder()
 
         /**
          * Returns the set of <string name="…"> keys that should be translated.

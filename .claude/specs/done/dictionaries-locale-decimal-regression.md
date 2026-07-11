@@ -1,6 +1,6 @@
 # Fix pre-existing locale decimal-separator red in :feature:dictionaries
 Epic: —
-Status: draft
+Status: done
 Depends-on: —
 Date: 2026-07-10
 
@@ -27,5 +27,8 @@ scopes to `:app`/changed modules, so this red is invisible to a normal run and r
 Likely fallout of the locale-formatting audit not covering the dictionaries edit ViewModels.
 
 ## Implementation links
-- commit: (pending)
-- files: (pending)
+- commit: c02b15cd (prod fix: preserve money-value prefill scale), 7c8a7b1d (revert out-of-scope version bump), 2123a6b3 (import order), + test-locale-pin commit below
+- files (prod): core/common/.../money/MoneyFormatter.kt (formatInput fractionDigits overload); feature/dictionaries/.../accounts/AccountEditViewModel.kt; feature/dictionaries/.../goals/GoalEditViewModel.kt
+- files (test): AccountEditViewModelTest.kt, GoalEditCreditViewModelTest.kt, GoalEditSavingsViewModelTest.kt — 3 locale-fragile tests pinned to Locale.US (no assertion weakening)
+- verification: :feature:dictionaries:testDebugUnitTest 283/0; full testDebugUnitTest 1668/0; ktlint main+test green
+- root cause: review-2026-07-06 locale audit prefill dropped trailing zeros under ru-RU default; money-value prefills now keep BigDecimal scale, rate/downPayment stay raw

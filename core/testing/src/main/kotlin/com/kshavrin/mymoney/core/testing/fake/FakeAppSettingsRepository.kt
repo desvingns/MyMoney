@@ -10,6 +10,9 @@ class FakeAppSettingsRepository(
 ) : AppSettingsRepository {
     private val mutableSettings = MutableStateFlow(initial)
     override val settings = mutableSettings.asStateFlow()
+    var resetCalls: Int = 0
+        private set
+    private var resetFailure: Throwable? = null
 
     override suspend fun update(transform: (AppSettings) -> AppSettings) {
         val current = mutableSettings.value
@@ -21,10 +24,18 @@ class FakeAppSettingsRepository(
     }
 
     override suspend fun reset() {
+        resetCalls += 1
+        resetFailure?.let { throw it }
         mutableSettings.value = AppSettings()
     }
 
     fun seed(settings: AppSettings) {
         mutableSettings.value = settings
+    }
+
+    fun current(): AppSettings = mutableSettings.value
+
+    fun simulateResetFailure(throwable: Throwable = RuntimeException("settings reset failed")) {
+        resetFailure = throwable
     }
 }

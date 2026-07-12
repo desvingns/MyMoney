@@ -3,7 +3,7 @@ package com.kshavrin.mymoney.core.sync
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
 import com.kshavrin.mymoney.core.datastore.JournalSyncConfigStore
 import com.kshavrin.mymoney.core.datastore.model.AppSettings
-import com.kshavrin.mymoney.core.sync.fake.FakeAppSettingsRepository
+import com.kshavrin.mymoney.core.testing.fake.FakeAppSettingsRepository
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals

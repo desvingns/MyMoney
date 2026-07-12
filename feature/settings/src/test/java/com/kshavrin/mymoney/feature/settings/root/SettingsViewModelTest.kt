@@ -3,7 +3,7 @@ package com.kshavrin.mymoney.feature.settings.root
 import app.cash.turbine.test
 import com.kshavrin.mymoney.core.datastore.model.AppSettings
 import com.kshavrin.mymoney.core.ui.theme.ThemeMode
-import com.kshavrin.mymoney.feature.settings.fake.FakeAppSettingsRepository
+import com.kshavrin.mymoney.core.testing.fake.FakeAppSettingsRepository
 import com.kshavrin.mymoney.feature.settings.language.AppLanguage
 import com.kshavrin.mymoney.feature.settings.util.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi

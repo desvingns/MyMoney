@@ -3,7 +3,7 @@ package com.kshavrin.mymoney.feature.settings.language
 import app.cash.turbine.test
 import com.kshavrin.mymoney.core.datastore.model.AppSettings
 import com.kshavrin.mymoney.feature.settings.fake.FakeAppLocaleController
-import com.kshavrin.mymoney.feature.settings.fake.FakeAppSettingsRepository
+import com.kshavrin.mymoney.core.testing.fake.FakeAppSettingsRepository
 import com.kshavrin.mymoney.feature.settings.util.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest

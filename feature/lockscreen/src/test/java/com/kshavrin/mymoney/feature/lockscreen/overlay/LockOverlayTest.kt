@@ -2,7 +2,7 @@ package com.kshavrin.mymoney.feature.lockscreen.overlay
 
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
 import com.kshavrin.mymoney.core.datastore.model.SecureSettings
-import com.kshavrin.mymoney.feature.lockscreen.fake.FakeAppSettingsRepository
+import com.kshavrin.mymoney.core.testing.fake.FakeAppSettingsRepository
 import com.kshavrin.mymoney.feature.lockscreen.fake.FakeSecureStorage
 import com.kshavrin.mymoney.feature.lockscreen.setup.PinHasher
 import com.kshavrin.mymoney.feature.lockscreen.util.MainDispatcherRule

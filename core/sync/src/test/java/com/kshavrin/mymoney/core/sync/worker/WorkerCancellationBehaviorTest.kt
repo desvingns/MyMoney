@@ -33,7 +33,7 @@ import com.kshavrin.mymoney.core.domain.usecase.GenerateDueRecurringUseCase
 import com.kshavrin.mymoney.core.domain.usecase.RecurringScheduler
 import com.kshavrin.mymoney.core.sync.JournalSync
 import com.kshavrin.mymoney.core.sync.SyncTarget
-import com.kshavrin.mymoney.core.sync.fake.FakeAppSettingsRepository
+import com.kshavrin.mymoney.core.testing.fake.FakeAppSettingsRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow

@@ -22,7 +22,7 @@ import com.kshavrin.mymoney.core.domain.sync.EntityKind
 import com.kshavrin.mymoney.core.domain.sync.OpType
 import com.kshavrin.mymoney.core.domain.sync.Operation
 import com.kshavrin.mymoney.core.domain.transaction.TransactionRunner
-import com.kshavrin.mymoney.core.sync.fake.FakeAppSettingsRepository
+import com.kshavrin.mymoney.core.testing.fake.FakeAppSettingsRepository
 import com.kshavrin.mymoney.core.sync.fake.FakeJournalBackend
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow

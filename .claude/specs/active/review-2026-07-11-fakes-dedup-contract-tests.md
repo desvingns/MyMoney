@@ -1,7 +1,7 @@
 # Repository contract tests + deduplicate fakes into :core:testing
 Epic: review-2026-07
 Order: 11 of 35
-Status: draft
+Status: active
 Depends-on: —
 Date: 2026-07-06
 

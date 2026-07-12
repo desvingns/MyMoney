@@ -19,7 +19,7 @@ import com.kshavrin.mymoney.core.domain.repository.BackupRepository
 import com.kshavrin.mymoney.core.domain.repository.CategoryRepository
 import com.kshavrin.mymoney.core.domain.repository.CsvImportFocus
 import com.kshavrin.mymoney.feature.settings.R
-import com.kshavrin.mymoney.feature.settings.fake.FakeAppSettingsRepository
+import com.kshavrin.mymoney.core.testing.fake.FakeAppSettingsRepository
 import com.kshavrin.mymoney.feature.settings.util.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow

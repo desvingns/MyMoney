@@ -5,7 +5,7 @@ import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
-import com.kshavrin.mymoney.feature.transactionslist.fake.FakeCurrencyRepository
+import com.kshavrin.mymoney.core.testing.fake.FakeCurrencyRepository
 import com.kshavrin.mymoney.feature.transactionslist.fake.FakeSearchHistoryRepository
 import com.kshavrin.mymoney.feature.transactionslist.fake.FakeTransactionRepository
 import com.kshavrin.mymoney.feature.transactionslist.util.MainDispatcherRule

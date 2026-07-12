@@ -7,7 +7,7 @@ import com.kshavrin.mymoney.core.domain.model.AccountType
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
 import com.kshavrin.mymoney.feature.dictionaries.currencies.fake.FakeAccountRepository
-import com.kshavrin.mymoney.feature.dictionaries.currencies.fake.FakeCurrencyRepository
+import com.kshavrin.mymoney.core.testing.fake.FakeCurrencyRepository
 import com.kshavrin.mymoney.feature.dictionaries.currencies.fake.FakeTransactionRepository
 import com.kshavrin.mymoney.feature.dictionaries.util.MainDispatcherRule
 import kotlinx.coroutines.CompletableDeferred

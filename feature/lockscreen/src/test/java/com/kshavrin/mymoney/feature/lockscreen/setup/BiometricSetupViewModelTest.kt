@@ -2,7 +2,7 @@ package com.kshavrin.mymoney.feature.lockscreen.setup
 
 import app.cash.turbine.test
 import com.kshavrin.mymoney.core.datastore.model.AppSettings
-import com.kshavrin.mymoney.feature.lockscreen.fake.FakeAppSettingsRepository
+import com.kshavrin.mymoney.core.testing.fake.FakeAppSettingsRepository
 import com.kshavrin.mymoney.feature.lockscreen.fake.FakeBiometricAvailabilityChecker
 import com.kshavrin.mymoney.feature.lockscreen.fake.FakeSecureStorage
 import com.kshavrin.mymoney.feature.lockscreen.util.MainDispatcherRule

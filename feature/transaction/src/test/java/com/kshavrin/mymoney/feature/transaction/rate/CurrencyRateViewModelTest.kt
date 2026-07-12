@@ -6,7 +6,7 @@ import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.CurrencyRate
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRateRepository
 import com.kshavrin.mymoney.feature.transaction.R
-import com.kshavrin.mymoney.feature.transaction.fake.FakeCurrencyRepository
+import com.kshavrin.mymoney.core.testing.fake.FakeCurrencyRepository
 import com.kshavrin.mymoney.feature.transaction.util.MainDispatcherRule
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow

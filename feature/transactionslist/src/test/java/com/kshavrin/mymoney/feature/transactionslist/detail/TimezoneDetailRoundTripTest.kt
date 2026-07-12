@@ -13,7 +13,7 @@ import com.kshavrin.mymoney.core.testing.FixedTimeZoneRule
 import com.kshavrin.mymoney.feature.transactionslist.fake.FakeAccountRepository
 import com.kshavrin.mymoney.feature.transactionslist.fake.FakeCategoryRepository
 import com.kshavrin.mymoney.feature.transactionslist.fake.FakeCurrencyRateRepository
-import com.kshavrin.mymoney.feature.transactionslist.fake.FakeCurrencyRepository
+import com.kshavrin.mymoney.core.testing.fake.FakeCurrencyRepository
 import com.kshavrin.mymoney.feature.transactionslist.fake.FakeTransactionRepository
 import com.kshavrin.mymoney.feature.transactionslist.util.MainDispatcherRule
 import kotlinx.coroutines.test.runTest

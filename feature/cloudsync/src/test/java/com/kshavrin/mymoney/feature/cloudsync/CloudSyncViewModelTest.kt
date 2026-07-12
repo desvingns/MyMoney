@@ -11,7 +11,7 @@ import com.kshavrin.mymoney.core.sync.JournalBackend
 import com.kshavrin.mymoney.core.sync.JournalSync
 import com.kshavrin.mymoney.core.sync.RemoteJournalFile
 import com.kshavrin.mymoney.core.sync.SyncTarget
-import com.kshavrin.mymoney.feature.cloudsync.fake.FakeAppSettingsRepository
+import com.kshavrin.mymoney.core.testing.fake.FakeAppSettingsRepository
 import com.kshavrin.mymoney.feature.cloudsync.fake.FakeJournalSync
 import com.kshavrin.mymoney.feature.cloudsync.fake.FakeRemoteConfigRepository
 import com.kshavrin.mymoney.feature.cloudsync.fake.FakeSnapshotSync

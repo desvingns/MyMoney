@@ -5,7 +5,7 @@ import android.content.ContextWrapper
 import com.kshavrin.mymoney.core.common.exception.SyncError
 import com.kshavrin.mymoney.core.common.exception.SyncException
 import com.kshavrin.mymoney.core.datastore.model.AppSettings
-import com.kshavrin.mymoney.core.sync.fake.FakeAppSettingsRepository
+import com.kshavrin.mymoney.core.testing.fake.FakeAppSettingsRepository
 import com.kshavrin.mymoney.core.sync.fake.FakeBackupRepository
 import com.kshavrin.mymoney.core.sync.fake.FakeCloudSyncBackend
 import com.kshavrin.mymoney.core.sync.fake.FakeSyncLogRepository

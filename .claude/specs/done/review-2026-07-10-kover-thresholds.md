@@ -1,7 +1,7 @@
 # Raise Kover coverage floors + publish HTML report from CI
 Epic: review-2026-07
 Order: 10 of 35
-Status: draft
+Status: done
 Depends-on: —
 Date: 2026-07-06
 
@@ -20,5 +20,5 @@ A 4% floor on three modules catches nothing; coverage can halve without CI notic
 Source: review items 9+19 (P2/M + P3/S).
 
 ## Implementation links
-- commit: (pending)
-- files: (pending)
+- commit: 986cb4b1, 59e55a68, ce181cc5
+- files: build.gradle.kts, .github/workflows/ci.yml, app/build.gradle.kts, core/domain/build.gradle.kts, core/database/build.gradle.kts, core/datastore/build.gradle.kts, feature/*/build.gradle.kts, docs/KOVER_COVERAGE_BASELINE.md, app/src/test/java/com/kshavrin/mymoney/KoverCoverageCiContractTest.kt

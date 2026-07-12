@@ -8,8 +8,10 @@ tool-local memories — tool-local copies remain historical snapshots.
   absolute paths differ host vs guest). Cite line ranges, never paraphrase.
 - Visual/instrumented device gate: accept local `emulator-5554` when AVD id is either
   `Pixel_5_API_34` or the current alias `Pixel_5`, SDK is 34, and boot is complete. Run local
-  discovery before guest NAT attach; never kill/reconnect healthy local ADB. Use
-  `scripts/run_connected_test_on_host_avd.ps1` for Gradle connected tests (verified 2026-07-12).
+  discovery and never kill/reconnect healthy local ADB. **VirtualBox is retired by user directive
+  (2026-07-12): never try `10.0.2.2:5555`, `ADB_SERVER_SOCKET`, or any guest/NAT attach unless the
+  user explicitly restores VirtualBox.** Use `scripts/run_connected_test_on_host_avd.ps1` for
+  Gradle connected tests.
 - File deletion: move to repo-root `archive/` (git-ignored) with a `.<reason>` suffix;
   user empties it manually (AGENTS.md).
 - Post-ship ordering: deliver the built APK to Telegram BEFORE asking the 1-5 feedback

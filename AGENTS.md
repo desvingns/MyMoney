@@ -114,19 +114,19 @@ MVVM + Unidirectional Data Flow.
 
 `JAVA_HOME` must point to a JDK 21 runtime. On Windows under Git Bash, prefer Android Studio's bundled JBR (see `~/.bashrc` snippet at end of this file).
 
-## Emulator access from Windows host or VirtualBox guest
+## Emulator access on the Windows host
 
-Codex may run either on the primary Windows host or from a Windows VirtualBox guest. Detect the
-current topology from `adb devices -l`; do not assume the guest path merely because this checkout
-was historically used from VirtualBox. Nested virtualization is unavailable in the guest, so the
-emulator itself always runs on the primary Windows host.
+**User directive, 2026-07-12:** VirtualBox is retired for this project. Use the primary Windows host
+and local ADB only. Never try `10.0.2.2:5555`, `ADB_SERVER_SOCKET`, a VirtualBox NAT proxy, or any
+other guest attach path by default. Treat the old guest instructions below as historical context
+only; use them again only if the user explicitly restores VirtualBox in a future session.
 
 **A connected test device is mandatory for any instrumented (`connectedDebugAndroidTest`) run — never
 run, or claim to run, on-device tests without one.** Use the connection recorded in this section (the
 verified default below). **Always inspect an already-listed local `device` serial before restarting
-ADB or attempting the guest NAT address.** Accept either AVD id `Pixel_5_API_34`, or its current
+ADB.** Accept either AVD id `Pixel_5_API_34`, or its current
 local alias `Pixel_5`, when SDK is `34` and boot is complete. Only if both local discovery and the
-guest attach fail, or the discovered device is
+documented local attach fail, or the discovered device is
 wrong/offline/unauthorized/lost, STOP and ask the user where/how the test device is connected now
 (address / serial / method), then update this section with their answer so it is not asked again while
 it keeps working. (Claude keeps the same fact in its `mymoney-device-connection` memory memo.)
@@ -138,13 +138,8 @@ Verified on 2026-07-12:
   are valid only with SDK `34` and `sys.boot_completed=1`.
 - On the Windows host, use the existing local serial directly. Do not run `adb kill-server` or
   `adb connect 10.0.2.2:5555` when `adb devices -l` already lists a healthy `emulator-5554`.
-- Only from the NAT-only guest, when no healthy local serial exists, reach the primary host through the
-  VirtualBox NAT gateway with `adb connect 10.0.2.2:5555`; the guest reports
-  that attachment under serial `10.0.2.2:5555`.
-- If `adb connect 10.0.2.2:5555` fails or hangs, but `adb devices -l` already lists a local serial,
-  inspect each `device` serial before stopping. A local `emulator-5554` that reports
-  `Pixel_5_API_34` or `Pixel_5`, SDK `34`, and `sys.boot_completed=1` is valid for this preflight; this happens
-  when Codex is running on the Windows host side rather than in the NAT-only guest.
+- Historical only: `10.0.2.2:5555` was the retired VirtualBox NAT route. Do not attempt it unless
+  the user explicitly restores VirtualBox.
 - For Gradle `connected*AndroidTest`, do not use the remote serial directly.
   AGP 8.7.3 UTP attempts to write a profile filename containing that serial and
   fails on Windows with `java.io.FileNotFoundException: Invalid file path`.
@@ -155,7 +150,7 @@ Verified on 2026-07-12:
 - Do not use `Pixel 10 Pro XL API 37` for current Compose instrumentation: the
   Espresso input path fails on API 37 with an `InputManager.getInstance` lookup error.
 
-From Codex / PowerShell in the NAT-only guest, and only when no local device is already listed:
+Historical VirtualBox guest sequence (retired; do not run without explicit user instruction):
 
 ```powershell
 $env:JAVA_HOME = 'C:\Program Files\Android\Android Studio\jbr'
@@ -174,7 +169,7 @@ $device = '10.0.2.2:5555'
 & $adb -s $device shell getprop sys.boot_completed       # 1
 ```
 
-Local-host discovery (run this first on the Windows host, or as fallback when the NAT attach is unavailable):
+Local-host discovery (the default and only active connection path):
 
 ```powershell
 & $adb devices -l
@@ -215,9 +210,8 @@ New-Item -ItemType Directory -Force -Path 'build\visual-check' | Out-Null
 ```
 
 For a visual review, load the pulled PNG with the local image viewer tool. If a manual ADB command
-has no device, run local-host discovery first. Only from a NAT-only guest with no local device should
-you use the guest `adb connect 10.0.2.2:5555` sequence. For Gradle instrumented tests, use the helper
-instead of the remote attachment.
+has no device, run local-host discovery. Do not fall back to the retired VirtualBox NAT sequence.
+For Gradle instrumented tests, use the local helper.
 
 ### Visual-change device gate
 

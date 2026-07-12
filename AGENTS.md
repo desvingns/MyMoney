@@ -114,42 +114,48 @@ MVVM + Unidirectional Data Flow.
 
 `JAVA_HOME` must point to a JDK 21 runtime. On Windows under Git Bash, prefer Android Studio's bundled JBR (see `~/.bashrc` snippet at end of this file).
 
-## Emulator access from the VirtualBox guest
+## Emulator access from Windows host or VirtualBox guest
 
-Codex runs against this checkout from a Windows VirtualBox guest. Nested virtualization
-is not available in that guest, so start the emulator in Android Studio on the primary
-Windows host, not inside the guest.
+Codex may run either on the primary Windows host or from a Windows VirtualBox guest. Detect the
+current topology from `adb devices -l`; do not assume the guest path merely because this checkout
+was historically used from VirtualBox. Nested virtualization is unavailable in the guest, so the
+emulator itself always runs on the primary Windows host.
 
 **A connected test device is mandatory for any instrumented (`connectedDebugAndroidTest`) run — never
 run, or claim to run, on-device tests without one.** Use the connection recorded in this section (the
-verified default below). If the documented attach is unavailable, first run the local discovery
-fallback below and accept any `device` serial that reports `Pixel_5_API_34`, SDK `34`, and boot
-complete. Only if both the documented attach and local discovery fail, or the discovered device is
+verified default below). **Always inspect an already-listed local `device` serial before restarting
+ADB or attempting the guest NAT address.** Accept either AVD id `Pixel_5_API_34`, or its current
+local alias `Pixel_5`, when SDK is `34` and boot is complete. Only if both local discovery and the
+guest attach fail, or the discovered device is
 wrong/offline/unauthorized/lost, STOP and ask the user where/how the test device is connected now
 (address / serial / method), then update this section with their answer so it is not asked again while
 it keeps working. (Claude keeps the same fact in its `mymoney-device-connection` memory memo.)
 
-Verified on 2026-05-27:
+Verified on 2026-07-12:
 
-- Use host AVD `Pixel_5_API_34` (`Pixel 5`, Android 14 / API 34).
-- For manual ADB/screenshot commands, reach the primary Windows host through the
+- The currently installed host AVD id is `Pixel_5` (`Pixel 5`, Android 14 / API 34), exposed locally
+  as `emulator-5554`. Historical environments may report the equivalent id `Pixel_5_API_34`; both
+  are valid only with SDK `34` and `sys.boot_completed=1`.
+- On the Windows host, use the existing local serial directly. Do not run `adb kill-server` or
+  `adb connect 10.0.2.2:5555` when `adb devices -l` already lists a healthy `emulator-5554`.
+- Only from the NAT-only guest, when no healthy local serial exists, reach the primary host through the
   VirtualBox NAT gateway with `adb connect 10.0.2.2:5555`; the guest reports
   that attachment under serial `10.0.2.2:5555`.
 - If `adb connect 10.0.2.2:5555` fails or hangs, but `adb devices -l` already lists a local serial,
   inspect each `device` serial before stopping. A local `emulator-5554` that reports
-  `Pixel_5_API_34`, SDK `34`, and `sys.boot_completed=1` is valid for this preflight; this happens
+  `Pixel_5_API_34` or `Pixel_5`, SDK `34`, and `sys.boot_completed=1` is valid for this preflight; this happens
   when Codex is running on the Windows host side rather than in the NAT-only guest.
 - For Gradle `connected*AndroidTest`, do not use the remote serial directly.
   AGP 8.7.3 UTP attempts to write a profile filename containing that serial and
   fails on Windows with `java.io.FileNotFoundException: Invalid file path`.
-  Use `scripts/run_connected_test_on_host_avd.ps1`, which proxies localhost ADB
-  to the host ADB server so UTP sees safe serial `emulator-5554`.
+  Use `scripts/run_connected_test_on_host_avd.ps1`, which validates and uses safe local serial
+  `emulator-5554`; the old VirtualBox ADB proxy was retired on 2026-05-29.
 - Setting `ADB_SERVER_SOCKET` alone is insufficient for Gradle: the CLI sees
   `emulator-5554`, but UTP/DDMLib still selects the guest ADB server.
 - Do not use `Pixel 10 Pro XL API 37` for current Compose instrumentation: the
   Espresso input path fails on API 37 with an `InputManager.getInstance` lookup error.
 
-From Codex / PowerShell in the guest:
+From Codex / PowerShell in the NAT-only guest, and only when no local device is already listed:
 
 ```powershell
 $env:JAVA_HOME = 'C:\Program Files\Android\Android Studio\jbr'
@@ -168,7 +174,7 @@ $device = '10.0.2.2:5555'
 & $adb -s $device shell getprop sys.boot_completed       # 1
 ```
 
-Local-host fallback when the NAT attach is unavailable or hangs:
+Local-host discovery (run this first on the Windows host, or as fallback when the NAT attach is unavailable):
 
 ```powershell
 & $adb devices -l
@@ -177,9 +183,10 @@ foreach ($serial in ((& $adb devices | Select-String "`tdevice$").Line | ForEach
   $avd = (& $adb -s $serial shell getprop ro.boot.qemu.avd_name).Trim()
   $sdk = (& $adb -s $serial shell getprop ro.build.version.sdk).Trim()
   $boot = (& $adb -s $serial shell getprop sys.boot_completed).Trim()
-  if ($avd -eq 'Pixel_5_API_34' -and $sdk -eq '34' -and $boot -eq '1') { $device = $serial; break }
+  $validAvd = $avd -eq 'Pixel_5_API_34' -or $avd -eq 'Pixel_5'
+  if ($validAvd -and $sdk -eq '34' -and $boot -eq '1') { $device = $serial; break }
 }
-if (-not $device) { throw 'Pixel_5_API_34 not connected or not boot-complete' }
+if (-not $device) { throw 'Pixel 5 API 34 AVD not connected or not boot-complete' }
 ```
 
 Connected verification:
@@ -207,12 +214,10 @@ New-Item -ItemType Directory -Force -Path 'build\visual-check' | Out-Null
 & $adb -s $device pull /sdcard/mymoney-check.png 'build\visual-check\mymoney-check.png'
 ```
 
-For a visual review, load the pulled PNG with the local image viewer tool. If a
-manual ADB command has no device, first confirm that `Pixel_5_API_34` is booted
-on the primary Windows host, then repeat the guest `adb kill-server` /
-`adb start-server` / `adb connect 10.0.2.2:5555` sequence and, if that attach is
-unavailable, run the local-host fallback discovery above. For Gradle instrumented
-tests, use the helper instead of that remote attachment.
+For a visual review, load the pulled PNG with the local image viewer tool. If a manual ADB command
+has no device, run local-host discovery first. Only from a NAT-only guest with no local device should
+you use the guest `adb connect 10.0.2.2:5555` sequence. For Gradle instrumented tests, use the helper
+instead of the remote attachment.
 
 ### Visual-change device gate
 
@@ -222,13 +227,13 @@ This applies only to explicitly visual work: UI fidelity, screenshot or
 reference comparison, Compose UI/instrumented coverage, screen layout, theme,
 animation, visual QA, or similar changes where a device-rendered result matters.
 
-Before starting agents or claiming verification for such work, confirm the
-documented `Pixel_5_API_34` connection and boot state (`ro.boot.qemu.avd_name`
-must be `Pixel_5_API_34`, SDK `34`, and `sys.boot_completed` must be `1`). If
+Before starting agents or claiming verification for such work, confirm the documented Pixel 5 API
+34 connection and boot state (`ro.boot.qemu.avd_name` may be `Pixel_5_API_34` or `Pixel_5`, SDK must
+be `34`, and `sys.boot_completed` must be `1`). If
 the documented attach fails or hangs, run the local-host fallback discovery above
 before declaring the device absent. If both paths fail, or the device is wrong,
 offline, unauthorized, or loses attachment, STOP and ask the user to start/connect
-`Pixel_5_API_34` first. Correct development cannot proceed without visual testing:
+the Pixel 5 API 34 AVD first. Correct development cannot proceed without visual testing:
 do not continue blind, do not replace the device visual gate with JVM-only checks,
 and do not claim visual tests passed.
 The archived `$cmp` fallback (`.claude/_archive_pre_mp/`) must follow this same gate only if

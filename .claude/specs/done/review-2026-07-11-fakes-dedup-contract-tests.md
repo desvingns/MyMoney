@@ -1,7 +1,7 @@
 # Repository contract tests + deduplicate fakes into :core:testing
 Epic: review-2026-07
 Order: 11 of 35
-Status: active
+Status: done
 Depends-on: —
 Date: 2026-07-06
 
@@ -20,5 +20,6 @@ Six copies of the same fake can silently drift from the real implementation; a
 contract suite pins them. Source: review items 10+11 (P2/M).
 
 ## Implementation links
-- commit: (pending)
-- files: (pending)
+- commits: `7d695e15`, `cc3cf28f`, `aaa752fa`, `178a75a0`
+- files: `core/testing` shared fakes/contracts; real contract fixtures in `core/datastore` and `core/database`; affected module test dependencies/imports
+- archived locally: `archive/fakes-dedup-contract-tests/` (10 superseded fake sources; git-ignored)

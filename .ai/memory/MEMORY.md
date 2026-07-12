@@ -6,9 +6,10 @@ tool-local memories — tool-local copies remain historical snapshots.
 
 - Authoritative spec is the TDD (`TDD/MyMoney/MyMoney_TDD.md` relative to the checkout;
   absolute paths differ host vs guest). Cite line ranges, never paraphrase.
-- Visual-change device gate: `Pixel_5_API_34` (SDK 34, boot-complete) is mandatory for
-  visual/instrumented work; never claim on-device verification without it (AGENTS.md
-  "Visual-change device gate").
+- Visual/instrumented device gate: accept local `emulator-5554` when AVD id is either
+  `Pixel_5_API_34` or the current alias `Pixel_5`, SDK is 34, and boot is complete. Run local
+  discovery before guest NAT attach; never kill/reconnect healthy local ADB. Use
+  `scripts/run_connected_test_on_host_avd.ps1` for Gradle connected tests (verified 2026-07-12).
 - File deletion: move to repo-root `archive/` (git-ignored) with a `.<reason>` suffix;
   user empties it manually (AGENTS.md).
 - Post-ship ordering: deliver the built APK to Telegram BEFORE asking the 1-5 feedback

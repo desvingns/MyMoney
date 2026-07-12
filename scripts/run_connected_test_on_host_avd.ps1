@@ -4,7 +4,7 @@ param(
 )
 
 # Single-machine on-device test runner (VirtualBox NAT proxy retired 2026-05-29).
-# The Pixel_5_API_34 AVD runs locally in Android Studio and appears as serial
+# The Pixel 5 API 34 AVD runs locally in Android Studio and appears as serial
 # `emulator-5554`. That serial has no `:` so the AGP 8.7.3 UTP profile-path bug
 # does not apply — we run Gradle directly, no proxy. See memo mymoney-device-connection.
 
@@ -32,15 +32,16 @@ $serial = 'emulator-5554'
 
 $devices = (& $adb devices -l | Out-String)
 if ($devices -notmatch "$serial\s+device") {
-    throw "AVD is not reachable. `adb devices` did not list `$serial`.`nStart the Pixel_5_API_34 emulator in Android Studio and retry.`n$devices"
+    throw "AVD is not reachable. `adb devices` did not list `$serial`.`nStart the Pixel 5 API 34 emulator in Android Studio and retry.`n$devices"
 }
 $avdName = (& $adb -s $serial shell getprop ro.boot.qemu.avd_name).Trim()
 $sdkVersion = (& $adb -s $serial shell getprop ro.build.version.sdk).Trim()
-if ($avdName -ne 'Pixel_5_API_34' -and -not ($avdName -eq 'Pixel_5' -and $sdkVersion -eq '34')) {
-    throw "Connected emulator is not Pixel_5_API_34 (avd=$avdName sdk=$sdkVersion)."
+$validAvdName = $avdName -eq 'Pixel_5_API_34' -or $avdName -eq 'Pixel_5'
+if (-not $validAvdName -or $sdkVersion -ne '34') {
+    throw "Connected emulator is not the Pixel 5 API 34 AVD (avd=$avdName sdk=$sdkVersion)."
 }
 if ((& $adb -s $serial shell getprop sys.boot_completed).Trim() -ne '1') {
-    throw 'Pixel_5_API_34 is not boot-complete.'
+    throw 'Pixel 5 API 34 AVD is not boot-complete.'
 }
 & $adb -s $serial shell input keyevent 82 | Out-Null   # dismiss keyguard
 

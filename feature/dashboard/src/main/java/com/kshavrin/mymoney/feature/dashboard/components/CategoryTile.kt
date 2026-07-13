@@ -22,6 +22,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.hideFromAccessibility
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import com.kshavrin.mymoney.core.common.money.MoneyFormatter
 import com.kshavrin.mymoney.core.designsystem.icon.NeonCategoryIcon
@@ -116,6 +118,9 @@ fun CategoryTile(
                 Modifier
                     .align(Alignment.BottomStart)
                     .testTag("category_tile_progress_${tile.categoryId}")
+                    // Purely decorative spend-fraction bar (the tile's amount text already conveys the
+                    // value); keep the testTag for tests but hide it from screen readers / ATF.
+                    .semantics { hideFromAccessibility() }
                     .height(Spacing.dashboardTileProgressBarHeight)
                     .width(maxWidth * tile.fraction.coerceIn(0f, 1f))
                     .background(categoryColor, MaterialTheme.shapes.extraLarge),

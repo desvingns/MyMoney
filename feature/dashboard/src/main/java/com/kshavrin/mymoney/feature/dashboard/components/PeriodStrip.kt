@@ -2,6 +2,7 @@ package com.kshavrin.mymoney.feature.dashboard.components
 
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.padding
@@ -21,8 +22,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.kshavrin.mymoney.core.domain.model.Period
 import com.kshavrin.mymoney.core.ui.theme.Spacing
@@ -113,7 +116,17 @@ private fun PeriodChip(
     FilterChip(
         selected = selected,
         onClick = onClick,
-        label = { Text(text, style = MaterialTheme.typography.labelLarge) },
+        // Material3 Chip lays its content at content-width and ignores the incoming minWidth, so
+        // defaultMinSize on the chip cannot reach the 48dp touch target for short labels. Grow the
+        // label content instead: a 34dp floor + 16dp label padding yields a >=48dp chip width.
+        label = {
+            Box(
+                modifier = Modifier.defaultMinSize(minWidth = 34.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(text, style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center)
+            }
+        },
         modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 48.dp),
     )
 }

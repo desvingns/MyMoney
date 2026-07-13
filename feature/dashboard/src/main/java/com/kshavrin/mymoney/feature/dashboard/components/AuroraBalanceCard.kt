@@ -19,6 +19,10 @@ import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -90,11 +94,16 @@ fun AuroraBalanceCard(
         )
         Spacer(modifier = Modifier.height(Spacing.dashboardAuroraPillBottomMargin))
         if (chartConfig.visible) {
+            val trendChartLabel = stringResource(R.string.dashboard_trend_chart)
             Box(
                 modifier =
                     Modifier
                         .fillMaxWidth()
                         .clickable(onClick = onChartClick)
+                        .semantics {
+                            contentDescription = trendChartLabel
+                            role = Role.Button
+                        }
                         .testTag(DASHBOARD_TREND_CHART_TAG),
             ) {
                 BalanceTrendChart(

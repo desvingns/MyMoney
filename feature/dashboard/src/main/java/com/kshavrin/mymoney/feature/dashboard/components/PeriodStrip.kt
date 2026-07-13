@@ -3,6 +3,7 @@ package com.kshavrin.mymoney.feature.dashboard.components
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.AssistChip
@@ -14,7 +15,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -23,6 +23,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import com.kshavrin.mymoney.core.domain.model.Period
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.feature.dashboard.R
@@ -70,7 +71,7 @@ fun PeriodStrip(
             onClick = { showRangePicker = true },
             label = { Text(stringResource(R.string.period_pick_a_date)) },
             colors = AssistChipDefaults.assistChipColors(),
-            modifier = Modifier.minimumInteractiveComponentSize(),
+            modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 48.dp),
         )
     }
 
@@ -113,6 +114,6 @@ private fun PeriodChip(
         selected = selected,
         onClick = onClick,
         label = { Text(text, style = MaterialTheme.typography.labelLarge) },
-        modifier = Modifier.minimumInteractiveComponentSize(),
+        modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 48.dp),
     )
 }

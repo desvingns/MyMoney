@@ -20,7 +20,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.IntOffset
+import com.kshavrin.mymoney.feature.dashboard.R
 import com.kshavrin.mymoney.core.ui.theme.LocalMotion
 import com.kshavrin.mymoney.core.ui.theme.dashboardDrawerPanelContainer
 import com.kshavrin.mymoney.core.ui.theme.dashboardDrawerPanelContent
@@ -40,6 +46,7 @@ fun DashboardDrawerOverlay(
     content: @Composable () -> Unit,
 ) {
     val motion = LocalMotion.current
+    val dismissLabel = stringResource(R.string.dashboard_drawer_dismiss)
     val animationSpec =
         tween<Float>(
             durationMillis = motion.drawerOverlayEnterExitDuration,
@@ -66,7 +73,10 @@ fun DashboardDrawerOverlay(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null,
                             onClick = onDismiss,
-                        ),
+                        ).semantics {
+                            contentDescription = dismissLabel
+                            role = Role.Button
+                        },
             )
         }
         AnimatedVisibility(

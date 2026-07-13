@@ -17,6 +17,7 @@
     <string name="dashboard_aurora_free_balance_label">Free balance</string>
     <string name="dashboard_aurora_income_label">Income</string>
     <string name="dashboard_aurora_expense_label">Expenses</string>
+    <string name="dashboard_trend_chart">Balance trend chart</string>
     <string name="dashboard_category_tiles_empty">No expenses this period</string>
     <string name="dashboard_inline_records_loading">Loading…</string>
     <string name="dashboard_inline_records_no_note">No comment</string>
@@ -56,6 +57,7 @@
     <string name="left_drawer_all_currencies">All currencies</string>
     <string name="left_drawer_separate_currencies">Separate currencies</string>
     <string name="left_drawer_manage_accounts">Manage accounts</string>
+    <string name="dashboard_drawer_dismiss">Close menu</string>
 
     <string name="all_accounts_mode_title">All accounts</string>
     <string name="all_accounts_mode_message">How would you like to combine balances across currencies?</string>

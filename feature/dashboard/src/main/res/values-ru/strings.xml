@@ -17,6 +17,7 @@
     <string name="dashboard_aurora_free_balance_label">Свободный баланс</string>
     <string name="dashboard_aurora_income_label">Доходы</string>
     <string name="dashboard_aurora_expense_label">Расходы</string>
+    <string name="dashboard_trend_chart">График динамики баланса</string>
     <string name="dashboard_category_tiles_empty">За период нет расходов</string>
     <string name="dashboard_inline_records_loading">Загрузка…</string>
     <string name="dashboard_inline_records_no_note">Без комментария</string>
@@ -56,6 +57,7 @@
     <string name="left_drawer_all_currencies">Все валюты</string>
     <string name="left_drawer_separate_currencies">Раздельно по валютам</string>
     <string name="left_drawer_manage_accounts">Управление счетами</string>
+    <string name="dashboard_drawer_dismiss">Закрыть меню</string>
 
     <string name="all_accounts_mode_title">Все счета</string>
     <string name="all_accounts_mode_message">Как объединить балансы по разным валютам?</string>

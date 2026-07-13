@@ -19,6 +19,7 @@
     <string name="dashboard_aurora_expense_label">Expenses</string>
     <string name="dashboard_trend_chart">Balance trend chart</string>
     <string name="dashboard_category_tiles_empty">No expenses this period</string>
+    <string name="category_tile_spend_share">Spending share: %1$d%%</string>
     <string name="dashboard_inline_records_loading">Loading…</string>
     <string name="dashboard_inline_records_no_note">No comment</string>
     <string name="operations_summary_title_all_operations">All operations</string>

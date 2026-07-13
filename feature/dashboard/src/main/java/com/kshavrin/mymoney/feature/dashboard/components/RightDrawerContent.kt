@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ShowChart
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
@@ -40,6 +42,10 @@ fun RightDrawerContent(onEvent: (DashboardEvent) -> Unit) {
         modifier =
             Modifier
                 .fillMaxWidth()
+                // The eight items overflow the drawer height on shorter screens; a scrollable
+                // ancestor keeps every row's full 48dp touch target reachable (and stops ATF
+                // flagging the bottom row, whose on-screen bounds would otherwise be clipped).
+                .verticalScroll(rememberScrollState())
                 .padding(Spacing.l),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Spacing.l),

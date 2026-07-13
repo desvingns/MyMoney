@@ -22,7 +22,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.hideFromAccessibility
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import com.kshavrin.mymoney.core.common.money.MoneyFormatter
@@ -34,7 +35,9 @@ import com.kshavrin.mymoney.core.ui.theme.dashboardCategoryTileAmount
 import com.kshavrin.mymoney.core.ui.theme.dashboardCategoryTileTitle
 import com.kshavrin.mymoney.core.ui.theme.textSecondary
 import com.kshavrin.mymoney.core.ui.theme.tileSurface
+import com.kshavrin.mymoney.feature.dashboard.R
 import com.kshavrin.mymoney.feature.dashboard.parseHexColor
+import kotlin.math.roundToInt
 
 data class CategoryTileItem(
     val categoryId: Long,
@@ -113,14 +116,20 @@ fun CategoryTile(
                 overflow = TextOverflow.Clip,
             )
         }
+        // enableAccessibilityChecks sets testTagsAsResourceId, which re-exports every testTag'd
+        // node to ATF regardless of hideFromAccessibility(); a real spend-share label is what
+        // actually clears SpeakableTextPresentCheck while keeping the testTag readable by tests.
+        val spendShareLabel =
+            stringResource(
+                R.string.category_tile_spend_share,
+                (tile.fraction.coerceIn(0f, 1f) * 100).roundToInt(),
+            )
         Box(
             modifier =
                 Modifier
                     .align(Alignment.BottomStart)
                     .testTag("category_tile_progress_${tile.categoryId}")
-                    // Purely decorative spend-fraction bar (the tile's amount text already conveys the
-                    // value); keep the testTag for tests but hide it from screen readers / ATF.
-                    .semantics { hideFromAccessibility() }
+                    .semantics { contentDescription = spendShareLabel }
                     .height(Spacing.dashboardTileProgressBarHeight)
                     .width(maxWidth * tile.fraction.coerceIn(0f, 1f))
                     .background(categoryColor, MaterialTheme.shapes.extraLarge),

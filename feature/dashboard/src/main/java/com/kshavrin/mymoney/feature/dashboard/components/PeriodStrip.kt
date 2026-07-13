@@ -14,6 +14,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -69,6 +70,7 @@ fun PeriodStrip(
             onClick = { showRangePicker = true },
             label = { Text(stringResource(R.string.period_pick_a_date)) },
             colors = AssistChipDefaults.assistChipColors(),
+            modifier = Modifier.minimumInteractiveComponentSize(),
         )
     }
 
@@ -111,5 +113,6 @@ private fun PeriodChip(
         selected = selected,
         onClick = onClick,
         label = { Text(text, style = MaterialTheme.typography.labelLarge) },
+        modifier = Modifier.minimumInteractiveComponentSize(),
     )
 }

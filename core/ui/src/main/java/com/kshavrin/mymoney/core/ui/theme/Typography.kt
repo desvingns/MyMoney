@@ -327,6 +327,13 @@ val Typography.dashboardAuroraBalanceValue: TextStyle
             lineHeight = 40.sp,
         )
 
+// Auto-shrink floor for the Aurora hero balance value.  Like the top-bar period title,
+// the value starts at dashboardAuroraBalanceValue.fontSize (36sp) and steps down 1sp at a
+// time when it would overflow the card width — a long value under a large accessibility
+// fontScale.  This floor keeps even a 9-digit value legible at fontScale 2.0 while staying
+// on a single line (no wrapping, no clipping).
+val dashboardAuroraBalanceValueMinSp = 16.sp
+
 val Typography.dashboardAuroraBalanceValueCompact: TextStyle
     get() =
         displayMedium.copy(

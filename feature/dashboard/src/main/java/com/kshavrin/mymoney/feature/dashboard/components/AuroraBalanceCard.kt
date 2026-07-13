@@ -8,6 +8,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -15,8 +19,11 @@ import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.kshavrin.mymoney.core.designsystem.chart.BalanceTrendChart
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.core.ui.theme.chartHiddenHint
@@ -24,6 +31,7 @@ import com.kshavrin.mymoney.core.ui.theme.dashboardAuroraAccent
 import com.kshavrin.mymoney.core.ui.theme.dashboardAuroraAccentForSign
 import com.kshavrin.mymoney.core.ui.theme.dashboardAuroraBalanceLabel
 import com.kshavrin.mymoney.core.ui.theme.dashboardAuroraBalanceValue
+import com.kshavrin.mymoney.core.ui.theme.dashboardAuroraBalanceValueMinSp
 import com.kshavrin.mymoney.core.ui.theme.dashboardBalancePanelContent
 import com.kshavrin.mymoney.feature.dashboard.ChartConfig
 import com.kshavrin.mymoney.feature.dashboard.DASHBOARD_CHART_HIDDEN_HINT_TAG
@@ -65,15 +73,12 @@ fun AuroraBalanceCard(
             textAlign = TextAlign.Center,
         )
         Spacer(modifier = Modifier.height(Spacing.dashboardAuroraValueBottomMargin))
-        Text(
+        AutoShrinkAuroraBalance(
             text = balance,
-            style =
+            baseStyle =
                 MaterialTheme.typography.dashboardAuroraBalanceValue.copy(
                     shadow = Shadow(color = accent.copy(alpha = 0.5f), blurRadius = balanceGlowBlur),
                 ),
-            color = Color.White,
-            maxLines = 1,
-            textAlign = TextAlign.Center,
             modifier = Modifier.testTag(DASHBOARD_AURORA_BALANCE_TAG),
         )
         Spacer(modifier = Modifier.height(Spacing.dashboardAuroraPillBottomMargin))
@@ -123,6 +128,40 @@ fun AuroraBalanceCard(
             }
         }
     }
+}
+
+// Manual auto-shrink for the Aurora hero balance, mirroring AutoShrinkPeriodTitle in
+// PeriodLabel.kt: Compose BoM 2024.11 (Foundation 1.7.5) has no BasicText(autoSize=...),
+// so we measure-and-shrink.  Start at dashboardAuroraBalanceValue.fontSize (36sp) and step
+// down 1sp while the laid-out value overflows the available width (didOverflowWidth), never
+// below dashboardAuroraBalanceValueMinSp.  This keeps the approved 36sp rendering at
+// fontScale 1.0 (no overflow → no shrink) yet a long value stays single-line and unclipped
+// under a large accessibility fontScale.
+@Composable
+private fun AutoShrinkAuroraBalance(
+    text: String,
+    baseStyle: TextStyle,
+    modifier: Modifier = Modifier,
+) {
+    val maxFontSize = baseStyle.fontSize
+    val minFontSize = dashboardAuroraBalanceValueMinSp
+    var fontSize by remember(text) { mutableStateOf(maxFontSize) }
+    Text(
+        text = text,
+        style = baseStyle.copy(fontSize = fontSize),
+        color = Color.White,
+        maxLines = 1,
+        softWrap = false,
+        overflow = TextOverflow.Clip,
+        textAlign = TextAlign.Center,
+        modifier = modifier,
+        onTextLayout = { result ->
+            if (result.didOverflowWidth && fontSize > minFontSize) {
+                val next = (fontSize.value - 1f).sp
+                fontSize = if (next.value < minFontSize.value) minFontSize else next
+            }
+        },
+    )
 }
 
 const val DASHBOARD_AURORA_CARD_TAG = "dashboard_aurora_card"

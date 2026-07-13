@@ -45,6 +45,8 @@ uiAutomator = "2.3.0"
 kover = "0.9.1"
 detekt = "1.23.7"
 ktlintGradle = "12.1.2"
+roborazzi = "1.32.2"
+robolectric = "4.14.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -123,6 +125,10 @@ turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine
 hilt-android-testing = { group = "com.google.dagger", name = "hilt-android-testing", version.ref = "hilt" }
 androidx-navigation-testing = { group = "androidx.navigation", name = "navigation-testing", version.ref = "navigationCompose" }
 androidx-work-testing = { group = "androidx.work", name = "work-testing", version.ref = "workRuntime" }
+robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
+roborazzi = { group = "io.github.takahirom.roborazzi", name = "roborazzi", version.ref = "roborazzi" }
+roborazzi-compose = { group = "io.github.takahirom.roborazzi", name = "roborazzi-compose", version.ref = "roborazzi" }
+roborazzi-junit-rule = { group = "io.github.takahirom.roborazzi", name = "roborazzi-junit-rule", version.ref = "roborazzi" }
 
 [bundles]
 compose = [
@@ -157,3 +163,4 @@ gms-oss-licenses = { id = "com.google.android.gms.oss-licenses-plugin", version.
 kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
 ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlintGradle" }
+roborazzi = { id = "io.github.takahirom.roborazzi", version.ref = "roborazzi" }

@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
     alias(libs.plugins.kover)
+    alias(libs.plugins.roborazzi)
 }
 
 android {
@@ -23,6 +24,14 @@ android {
     buildFeatures {
         compose = true
     }
+
+    // JVM Roborazzi + Robolectric screenshot tests render the dashboard screen states off-device;
+    // they need Android resources (theme, strings, drawables) on the unit-test classpath.
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+        }
+    }
 }
 
 dependencies {
@@ -40,4 +49,13 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.compose.ui.test.junit4)
+    testImplementation(libs.androidx.test.junit)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.roborazzi)
+    testImplementation(libs.roborazzi.compose)
+    testImplementation(libs.roborazzi.junit.rule)
+
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
 }

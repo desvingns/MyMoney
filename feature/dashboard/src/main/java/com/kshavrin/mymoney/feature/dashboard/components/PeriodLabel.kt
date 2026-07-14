@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -19,10 +21,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -36,7 +34,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 import com.kshavrin.mymoney.core.domain.model.Period
 import com.kshavrin.mymoney.core.ui.theme.Spacing
@@ -224,12 +221,9 @@ fun PeriodSwitcher(
     }
 }
 
-// Manual auto-shrink for the top-bar period title.  Compose BoM 2024.11
-// (Foundation 1.7.5) has no BasicText(autoSize=...), so we measure-and-shrink:
-// start at dashboardPeriodSelected.fontSize (22sp) and step down by 1sp while the
-// laid-out text either overflows the available width (didOverflowWidth) or exceeds
-// the allowed line count, never dropping below dashboardPeriodTitleMinSp (14sp).
-// The text is never visually truncated (no Ellipsis) — at the floor it simply
+// Auto-shrink for the top-bar period title. Compose Foundation 1.8 provides the
+// built-in auto-size path, which avoids a state mutation from onTextLayout while
+// measuring long titles. The text is never visually truncated (no Ellipsis) — at the floor it simply
 // renders at the smallest readable size.
 @Composable
 private fun AutoShrinkPeriodTitle(
@@ -238,25 +232,24 @@ private fun AutoShrinkPeriodTitle(
     modifier: Modifier = Modifier,
 ) {
     val baseStyle = MaterialTheme.typography.dashboardPeriodSelected
-    val maxFontSize = baseStyle.fontSize
-    val minFontSize = dashboardPeriodTitleMinSp
-    var fontSize by remember(text, allowedLines) { mutableStateOf(maxFontSize) }
-    Text(
+    BasicText(
         text = text,
-        style = baseStyle.copy(fontSize = fontSize),
-        color = MaterialTheme.colorScheme.dashboardPeriodSelectedText,
-        fontWeight = FontWeight.Bold,
-        textAlign = TextAlign.Center,
+        style =
+            baseStyle.copy(
+                color = MaterialTheme.colorScheme.dashboardPeriodSelectedText,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+            ),
+        autoSize =
+            TextAutoSize.StepBased(
+                minFontSize = dashboardPeriodTitleMinSp,
+                maxFontSize = baseStyle.fontSize,
+                stepSize = 1.sp,
+            ),
         maxLines = allowedLines,
         overflow = TextOverflow.Clip,
         softWrap = allowedLines > 1,
         modifier = modifier,
-        onTextLayout = { result ->
-            val overflows = result.didOverflowWidth || result.lineCount > allowedLines
-            if (overflows && fontSize > minFontSize) {
-                fontSize = shrinkOneStep(fontSize, minFontSize)
-            }
-        },
     )
 }
 

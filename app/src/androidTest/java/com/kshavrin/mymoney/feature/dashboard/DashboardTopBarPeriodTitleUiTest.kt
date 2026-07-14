@@ -4,16 +4,20 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.junit4.accessibility.enableAccessibilityChecks
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.domain.model.Period
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
+import com.kshavrin.mymoney.test.assertTouchHeightIsAtLeast
+import com.kshavrin.mymoney.test.assertTouchWidthIsAtLeast
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -44,7 +48,7 @@ import java.time.format.DateTimeFormatter
 @RunWith(AndroidJUnit4::class)
 class DashboardTopBarPeriodTitleUiTest {
     @get:Rule
-    val composeTestRule = createComposeRule()
+    val composeTestRule = createComposeRule().apply { enableAccessibilityChecks() }
 
     // ── single-row layout structural assertions ───────────────────────────────
 
@@ -86,9 +90,13 @@ class DashboardTopBarPeriodTitleUiTest {
         composeTestRule
             .onNodeWithContentDescription(ctx.getString(R.string.dashboard_menu))
             .assertIsDisplayed()
+            .assertTouchWidthIsAtLeast(48.dp)
+            .assertTouchHeightIsAtLeast(48.dp)
         composeTestRule
             .onNodeWithContentDescription(ctx.getString(R.string.dashboard_overflow_menu))
             .assertIsDisplayed()
+            .assertTouchWidthIsAtLeast(48.dp)
+            .assertTouchHeightIsAtLeast(48.dp)
 
         // Transfer moved from the toolbar to the middle FAB.  The FAB is the single node
         // that carries this content description — assert count == 1 (FAB only, not toolbar).
@@ -297,9 +305,13 @@ class DashboardTopBarPeriodTitleUiTest {
         composeTestRule
             .onNodeWithContentDescription(ctx.getString(R.string.period_previous))
             .assertIsDisplayed()
+            .assertTouchWidthIsAtLeast(48.dp)
+            .assertTouchHeightIsAtLeast(48.dp)
         composeTestRule
             .onNodeWithContentDescription(ctx.getString(R.string.period_next))
             .assertIsDisplayed()
+            .assertTouchWidthIsAtLeast(48.dp)
+            .assertTouchHeightIsAtLeast(48.dp)
     }
 
     @Test

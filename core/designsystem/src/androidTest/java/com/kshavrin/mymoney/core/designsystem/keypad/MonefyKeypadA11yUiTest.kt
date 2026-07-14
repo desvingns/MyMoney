@@ -2,8 +2,11 @@ package com.kshavrin.mymoney.core.designsystem.keypad
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.accessibility.enableAccessibilityChecks
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.designsystem.R
@@ -13,11 +16,39 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import com.kshavrin.mymoney.core.designsystem.test.assertTouchHeightIsAtLeast
+import com.kshavrin.mymoney.core.designsystem.test.assertTouchWidthIsAtLeast
 
 @RunWith(AndroidJUnit4::class)
 class MonefyKeypadA11yUiTest {
     @get:Rule
-    val composeTestRule = createComposeRule()
+    val composeTestRule = createComposeRule().apply { enableAccessibilityChecks() }
+
+    @Test
+    fun `every calculator key has a 48dp touch target`() {
+        composeTestRule.setContent {
+            MyMoneyTheme { MonefyKeypad(onEvent = {}) }
+        }
+
+        (('0'..'9').map(Char::toString) + ".").forEach { label ->
+            composeTestRule.onNodeWithText(label)
+                .assertTouchWidthIsAtLeast(48.dp)
+                .assertTouchHeightIsAtLeast(48.dp)
+        }
+
+        listOf(
+            R.string.keypad_op_plus_cd,
+            R.string.keypad_op_minus_cd,
+            R.string.keypad_op_multiply_cd,
+            R.string.keypad_op_divide_cd,
+            R.string.keypad_op_equals_cd,
+        ).forEach { resourceId ->
+            composeTestRule
+                .onNodeWithContentDescription(str(resourceId))
+                .assertTouchWidthIsAtLeast(48.dp)
+                .assertTouchHeightIsAtLeast(48.dp)
+        }
+    }
 
     @Test
     fun `minus operator key exposes content description from string resources`() {

@@ -1,5 +1,7 @@
 package com.kshavrin.mymoney.feature.transaction.expense
 
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -7,11 +9,14 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.accessibility.enableAccessibilityChecks
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.designsystem.form.CATEGORY_GRID_ADD_CELL_TAG
@@ -30,11 +35,13 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
+import com.kshavrin.mymoney.test.assertTouchHeightIsAtLeast
+import com.kshavrin.mymoney.test.assertTouchWidthIsAtLeast
 
 @RunWith(AndroidJUnit4::class)
 class AddExpenseScreenUiTest {
     @get:Rule
-    val composeTestRule = createComposeRule()
+    val composeTestRule = createComposeRule().apply { enableAccessibilityChecks() }
 
     @Test
     fun `default amount step shows keypad and hides category grid`() {
@@ -57,9 +64,24 @@ class AddExpenseScreenUiTest {
             .onNodeWithText(targetString(DesignSystemR.string.transaction_form_choose_category_button))
             .assertIsDisplayed()
             .assertIsNotEnabled()
+            .assertTouchWidthIsAtLeast(48.dp)
+            .assertTouchHeightIsAtLeast(48.dp)
         composeTestRule
             .onNodeWithTag(CATEGORY_GRID_ADD_CELL_TAG)
             .assertDoesNotExist()
+        composeTestRule.onNode(hasText("7") and hasClickAction())
+            .assertTouchWidthIsAtLeast(48.dp)
+            .assertTouchHeightIsAtLeast(48.dp)
+    }
+
+    @Test
+    fun `add expense form remains usable at font scale 1 point 5`() {
+        assertAddExpenseFormAtFontScale(1.5f)
+    }
+
+    @Test
+    fun `add expense form remains usable at font scale 2`() {
+        assertAddExpenseFormAtFontScale(2f)
     }
 
     @Test
@@ -78,6 +100,8 @@ class AddExpenseScreenUiTest {
         composeTestRule
             .onNodeWithText(targetString(DesignSystemR.string.transaction_form_choose_category_button))
             .assertIsEnabled()
+            .assertTouchWidthIsAtLeast(48.dp)
+            .assertTouchHeightIsAtLeast(48.dp)
             .performClick()
 
         composeTestRule.runOnIdle {
@@ -101,6 +125,8 @@ class AddExpenseScreenUiTest {
         listOf("1", "2", "+", "3", "=").forEach { label ->
             composeTestRule
                 .onNode(hasText(label) and hasClickAction())
+                .assertTouchWidthIsAtLeast(48.dp)
+                .assertTouchHeightIsAtLeast(48.dp)
                 .performClick()
         }
 
@@ -134,6 +160,8 @@ class AddExpenseScreenUiTest {
         listOf(".", "\u2212", "\u00D7", "\u00F7").forEach { label ->
             composeTestRule
                 .onNode(hasText(label) and hasClickAction())
+                .assertTouchWidthIsAtLeast(48.dp)
+                .assertTouchHeightIsAtLeast(48.dp)
                 .performClick()
         }
 
@@ -165,6 +193,8 @@ class AddExpenseScreenUiTest {
 
         composeTestRule
             .onNodeWithContentDescription(targetString(DesignSystemR.string.keypad_backspace_cd))
+            .assertTouchWidthIsAtLeast(48.dp)
+            .assertTouchHeightIsAtLeast(48.dp)
             .performClick()
 
         composeTestRule.runOnIdle {
@@ -195,9 +225,13 @@ class AddExpenseScreenUiTest {
         composeTestRule
             .onNodeWithContentDescription("Food")
             .assertIsDisplayed()
+            .assertTouchWidthIsAtLeast(48.dp)
+            .assertTouchHeightIsAtLeast(48.dp)
         composeTestRule
             .onNodeWithTag(CATEGORY_GRID_ADD_CELL_TAG)
             .assertIsDisplayed()
+            .assertTouchWidthIsAtLeast(48.dp)
+            .assertTouchHeightIsAtLeast(48.dp)
         composeTestRule
             .onNode(hasText("0") and hasClickAction())
             .performClick()
@@ -223,10 +257,14 @@ class AddExpenseScreenUiTest {
         composeTestRule
             .onNodeWithContentDescription(targetString(R.string.back))
             .assertIsEnabled()
+            .assertTouchWidthIsAtLeast(48.dp)
+            .assertTouchHeightIsAtLeast(48.dp)
             .performClick()
         composeTestRule
             .onNodeWithContentDescription(targetString(R.string.swap_mode))
             .assertIsEnabled()
+            .assertTouchWidthIsAtLeast(48.dp)
+            .assertTouchHeightIsAtLeast(48.dp)
             .performClick()
 
         composeTestRule.runOnIdle {
@@ -254,6 +292,8 @@ class AddExpenseScreenUiTest {
 
         composeTestRule
             .onNodeWithContentDescription(targetString(DesignSystemR.string.amountfield_pick_date_cd))
+            .assertTouchWidthIsAtLeast(48.dp)
+            .assertTouchHeightIsAtLeast(48.dp)
             .performClick()
         composeTestRule.onNodeWithText(dateLabel(selectedDate)).performClick()
         composeTestRule.onNodeWithText(targetString(R.string.apply)).performClick()
@@ -305,6 +345,8 @@ class AddExpenseScreenUiTest {
         composeTestRule
             .onNodeWithContentDescription("Food")
             .assertIsDisplayed()
+            .assertTouchWidthIsAtLeast(48.dp)
+            .assertTouchHeightIsAtLeast(48.dp)
             .performClick()
 
         composeTestRule.runOnIdle {
@@ -350,6 +392,8 @@ class AddExpenseScreenUiTest {
         composeTestRule
             .onNodeWithTag(CATEGORY_GRID_ADD_CELL_TAG)
             .assertIsDisplayed()
+            .assertTouchWidthIsAtLeast(48.dp)
+            .assertTouchHeightIsAtLeast(48.dp)
             .performClick()
 
         composeTestRule.runOnIdle {
@@ -373,6 +417,43 @@ class AddExpenseScreenUiTest {
             isArchived = false,
             createdAt = Instant.parse("2026-05-27T00:00:00Z"),
         )
+
+    private fun assertAddExpenseFormAtFontScale(fontScale: Float) {
+        composeTestRule.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(1f, fontScale = fontScale)) {
+                MyMoneyTheme {
+                    AddExpenseScreen(
+                        state = AddExpenseState(amount = BigDecimal.ONE, amountInput = "1"),
+                        onEvent = {},
+                    )
+                }
+            }
+        }
+
+        composeTestRule
+            .onNodeWithText(targetString(DesignSystemR.string.amountfield_note_hint))
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText(targetString(DesignSystemR.string.transaction_form_choose_category_button))
+            .assertIsDisplayed()
+        composeTestRule
+            .onNode(hasText("7") and hasClickAction())
+            .assertTouchWidthIsAtLeast(48.dp)
+            .assertTouchHeightIsAtLeast(48.dp)
+        listOf(
+            R.string.back,
+            R.string.swap_mode,
+        ).forEach { resourceId ->
+            composeTestRule
+                .onNodeWithContentDescription(targetString(resourceId))
+                .assertTouchWidthIsAtLeast(48.dp)
+                .assertTouchHeightIsAtLeast(48.dp)
+        }
+        composeTestRule
+            .onNodeWithContentDescription(targetString(DesignSystemR.string.keypad_backspace_cd))
+            .assertTouchWidthIsAtLeast(48.dp)
+            .assertTouchHeightIsAtLeast(48.dp)
+    }
 
     private fun targetString(resourceId: Int): String =
         InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)

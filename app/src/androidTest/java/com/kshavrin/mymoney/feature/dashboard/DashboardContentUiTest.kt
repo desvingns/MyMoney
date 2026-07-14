@@ -1,9 +1,12 @@
 package com.kshavrin.mymoney.feature.dashboard
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
@@ -16,6 +19,7 @@ import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.accessibility.enableAccessibilityChecks
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -29,6 +33,8 @@ import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
 import androidx.compose.ui.test.swipeUp
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -63,6 +69,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import com.kshavrin.mymoney.test.assertTouchHeightIsAtLeast
+import com.kshavrin.mymoney.test.assertTouchWidthIsAtLeast
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.YearMonth
@@ -71,7 +79,7 @@ import java.time.format.DateTimeFormatter
 @RunWith(AndroidJUnit4::class)
 class DashboardContentUiTest {
     @get:Rule
-    val composeTestRule = createComposeRule()
+    val composeTestRule = createComposeRule().apply { enableAccessibilityChecks() }
 
     // ── Three-FAB layout (ThreeFabLayout) ─────────────────────────────────────
 
@@ -95,6 +103,25 @@ class DashboardContentUiTest {
         composeTestRule
             .onNodeWithContentDescription(targetString(R.string.fab_income_content_description))
             .assertIsDisplayed()
+        listOf(
+            R.string.fab_expense_content_description,
+            R.string.fab_transfer_content_description,
+            R.string.fab_income_content_description,
+        ).forEach { description ->
+            composeTestRule.onNodeWithContentDescription(targetString(description))
+                .assertTouchWidthIsAtLeast(48.dp)
+                .assertTouchHeightIsAtLeast(48.dp)
+        }
+    }
+
+    @Test
+    fun `dashboard balance panel remains readable at font scale 1 point 5`() {
+        assertDashboardBalanceReadableAtFontScale(1.5f)
+    }
+
+    @Test
+    fun `dashboard balance panel remains readable at font scale 2`() {
+        assertDashboardBalanceReadableAtFontScale(2f)
     }
 
     @Test
@@ -163,9 +190,13 @@ class DashboardContentUiTest {
         composeTestRule
             .onNodeWithContentDescription(targetString(R.string.period_previous))
             .assertIsDisplayed()
+            .assertTouchWidthIsAtLeast(48.dp)
+            .assertTouchHeightIsAtLeast(48.dp)
         composeTestRule
             .onNodeWithContentDescription(targetString(R.string.period_next))
             .assertIsDisplayed()
+            .assertTouchWidthIsAtLeast(48.dp)
+            .assertTouchHeightIsAtLeast(48.dp)
     }
 
     // ── Period label tap → date picker dialog ────────────────────────────────
@@ -442,11 +473,15 @@ class DashboardContentUiTest {
             .onNodeWithContentDescription(targetString(R.string.dashboard_menu))
             .assertIsDisplayed()
             .assertIsEnabled()
+            .assertTouchWidthIsAtLeast(48.dp)
+            .assertTouchHeightIsAtLeast(48.dp)
             .performClick()
         composeTestRule
             .onNodeWithContentDescription(targetString(R.string.dashboard_overflow_menu))
             .assertIsDisplayed()
             .assertIsEnabled()
+            .assertTouchWidthIsAtLeast(48.dp)
+            .assertTouchHeightIsAtLeast(48.dp)
             .performClick()
 
         composeTestRule.runOnIdle {
@@ -538,7 +573,12 @@ class DashboardContentUiTest {
             }
         }
 
-        composeTestRule.onNodeWithTag("category_tile_42").performScrollTo().performClick()
+        composeTestRule
+            .onNodeWithTag("category_tile_42")
+            .performScrollTo()
+            .assertTouchWidthIsAtLeast(48.dp)
+            .assertTouchHeightIsAtLeast(48.dp)
+            .performClick()
 
         composeTestRule.runOnIdle {
             assertEquals(listOf(DashboardEvent.SliceClicked(42L)), capturedEvents)
@@ -571,6 +611,10 @@ class DashboardContentUiTest {
                 .performTouchInput { swipeUp() }
         }
         composeTestRule.onNodeWithTag("category_tile_8").assertIsDisplayed()
+        composeTestRule
+            .onNodeWithTag("category_tile_8")
+            .assertTouchWidthIsAtLeast(48.dp)
+            .assertTouchHeightIsAtLeast(48.dp)
     }
 
     @Test
@@ -2054,6 +2098,8 @@ class DashboardContentUiTest {
         composeTestRule
             .onNodeWithTag("category_tile_42")
             .performScrollTo()
+            .assertTouchWidthIsAtLeast(48.dp)
+            .assertTouchHeightIsAtLeast(48.dp)
             .performClick()
 
         composeTestRule.runOnIdle {
@@ -2089,6 +2135,8 @@ class DashboardContentUiTest {
         composeTestRule
             .onNodeWithTag("category_tile_11")
             .performScrollTo()
+            .assertTouchWidthIsAtLeast(48.dp)
+            .assertTouchHeightIsAtLeast(48.dp)
             .performClick()
 
         composeTestRule.runOnIdle {
@@ -2131,6 +2179,43 @@ class DashboardContentUiTest {
         composeTestRule
             .onNodeWithText("Groceries")
             .assertIsDisplayed()
+    }
+
+    private fun assertDashboardBalanceReadableAtFontScale(fontScale: Float) {
+        val usd = usdCurrency()
+        val snapshot = balanceSnapshot(netAmount = "987654321", currency = usd)
+
+        composeTestRule.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(1f, fontScale = fontScale)) {
+                MyMoneyTheme {
+                    DashboardContent(
+                        state =
+                            dashboardState(
+                                currency = usd,
+                                balanceSnapshot = snapshot,
+                                periodNet = snapshot.net,
+                                isLoading = false,
+                            ),
+                        onEvent = {},
+                    )
+                }
+            }
+        }
+
+        val layoutResults = mutableListOf<TextLayoutResult>()
+        composeTestRule
+            .onNodeWithTag(DASHBOARD_AURORA_BALANCE_TAG)
+            .assertIsDisplayed()
+            .fetchSemanticsNode()
+            .config[SemanticsActions.GetTextLayoutResult]
+            .action
+            ?.invoke(layoutResults)
+
+        assertTrue("Aurora balance text layout must be available", layoutResults.isNotEmpty())
+        assertFalse(
+            "Aurora balance must not visually overflow at fontScale=$fontScale",
+            layoutResults.first().hasVisualOverflow,
+        )
     }
 
     private fun formatDashboardAmount(

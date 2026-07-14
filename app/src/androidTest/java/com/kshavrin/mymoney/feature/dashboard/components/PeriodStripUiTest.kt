@@ -1,8 +1,11 @@
 package com.kshavrin.mymoney.feature.dashboard.components
 
+import androidx.compose.ui.test.junit4.accessibility.enableAccessibilityChecks
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.domain.model.Period
@@ -17,11 +20,13 @@ import org.junit.runner.RunWith
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.TimeZone
+import com.kshavrin.mymoney.test.assertTouchHeightIsAtLeast
+import com.kshavrin.mymoney.test.assertTouchWidthIsAtLeast
 
 @RunWith(AndroidJUnit4::class)
 class PeriodStripUiTest {
     @get:Rule
-    val composeTestRule = createComposeRule()
+    val composeTestRule = createComposeRule().apply { enableAccessibilityChecks() }
 
     private lateinit var originalTimeZone: TimeZone
 
@@ -54,6 +59,7 @@ class PeriodStripUiTest {
 
         composeTestRule
             .onNodeWithText(targetString(R.string.period_pick_a_date))
+            .performScrollTo()
             .performClick()
         composeTestRule.onNodeWithText(dateLabel(startDate)).performClick()
         composeTestRule.onNodeWithText(dateLabel(endDate)).performClick()
@@ -61,6 +67,33 @@ class PeriodStripUiTest {
 
         composeTestRule.runOnIdle {
             assertEquals(Period.CustomRange(startDate, endDate), selectedPeriod)
+        }
+    }
+
+    @Test
+    fun `every period chip has a 48dp touch target`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                PeriodStrip(
+                    currentPeriod = Period.All,
+                    onPeriodChange = {},
+                )
+            }
+        }
+
+        listOf(
+            R.string.period_today,
+            R.string.period_week,
+            R.string.period_month,
+            R.string.period_year,
+            R.string.period_all,
+            R.string.period_pick_a_date,
+        ).forEach { resourceId ->
+            composeTestRule
+                .onNodeWithText(targetString(resourceId))
+                .performScrollTo()
+                .assertTouchWidthIsAtLeast(48.dp)
+                .assertTouchHeightIsAtLeast(48.dp)
         }
     }
 

@@ -6,6 +6,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.accessibility.enableAccessibilityChecks
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -22,11 +23,13 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.math.BigDecimal
+import com.kshavrin.mymoney.test.assertTouchHeightIsAtLeast
+import com.kshavrin.mymoney.test.assertTouchWidthIsAtLeast
 
 @RunWith(AndroidJUnit4::class)
 class CategoryTilesListUiTest {
     @get:Rule
-    val composeTestRule = createComposeRule()
+    val composeTestRule = createComposeRule().apply { enableAccessibilityChecks() }
 
     @Test
     fun `tile shows label whole amount progress and emits tap`() {
@@ -40,12 +43,18 @@ class CategoryTilesListUiTest {
                 colorHex = "#7AC794",
                 iconKey = "ic_cat_food",
             )
+        val secondTile =
+            tile.copy(
+                categoryId = 8L,
+                label = "Transport",
+                amount = Money(BigDecimal("9800.00"), usd),
+            )
 
         composeTestRule.setContent {
             MyMoneyTheme {
                 Box(modifier = Modifier.width(320.dp)) {
                     CategoryTilesList(
-                        expenseTiles = listOf(tile),
+                        expenseTiles = listOf(tile, secondTile),
                         onTileClick = { tappedCategoryIds += it },
                     )
                 }
@@ -63,6 +72,15 @@ class CategoryTilesListUiTest {
 
         composeTestRule.onNodeWithText(tile.label).assertIsDisplayed()
         composeTestRule.onNodeWithText(expectedAmount).assertIsDisplayed()
+
+        listOf(tile, secondTile).forEach { item ->
+            composeTestRule
+                .onNodeWithTag(tileTag(item.categoryId))
+                .assertIsDisplayed()
+                .assertHasClickAction()
+                .assertTouchWidthIsAtLeast(48.dp)
+                .assertTouchHeightIsAtLeast(48.dp)
+        }
 
         val tileBounds =
             composeTestRule

@@ -15,6 +15,14 @@
     <string name="keypad_op_equals_cd">Equals</string>
     <string name="balance_bar_open_records_action">Open records</string>
     <string name="donut_chart_open_category_action">Open category</string>
+    <string name="balance_trend_chart_cd">Balance trend. Metric: %1$s. Period: %2$s. Start: %3$s, end: %4$s. Direction: %5$s.</string>
+    <string name="balance_trend_chart_metric">Balance</string>
+    <string name="balance_trend_chart_period_selected">selected period</string>
+    <string name="balance_trend_chart_period_range">%1$s to %2$s</string>
+    <string name="balance_trend_chart_no_data">No data</string>
+    <string name="balance_trend_chart_direction_increasing">increasing</string>
+    <string name="balance_trend_chart_direction_decreasing">decreasing</string>
+    <string name="balance_trend_chart_direction_unchanged">unchanged</string>
     <string name="transaction_form_choose_category_button">CHOOSE CATEGORY</string>
     <string name="transaction_form_add_category_cta">+ ADD</string>
     <string name="transaction_form_delete_button">Delete</string>

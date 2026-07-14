@@ -23,8 +23,12 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
@@ -32,6 +36,7 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
+import com.kshavrin.mymoney.core.designsystem.R
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.core.ui.theme.dashboardAuroraAccent
 import com.kshavrin.mymoney.core.ui.theme.expenseAccent
@@ -39,6 +44,8 @@ import com.kshavrin.mymoney.core.ui.theme.incomeAccent
 import com.kshavrin.mymoney.core.ui.theme.trendChartGridLine
 import com.kshavrin.mymoney.core.ui.theme.trendChartMarkerGlow
 import com.kshavrin.mymoney.core.ui.theme.trendChartZeroLine
+import java.text.NumberFormat
+import java.util.Locale
 
 const val BALANCE_TREND_CHART_TAG = "balance_trend_chart"
 
@@ -130,6 +137,34 @@ internal fun calculateBalanceTrendChartGeometry(
     )
 }
 
+private fun describeBalanceTrendPeriod(
+    labels: List<String>,
+    selectedPeriodLabel: String,
+    periodRangeTemplate: String,
+): String {
+    val visibleLabels = labels.filter(String::isNotBlank)
+    return when {
+        visibleLabels.size >= 2 ->
+            String.format(
+                Locale.ROOT,
+                periodRangeTemplate,
+                visibleLabels.first(),
+                visibleLabels.last(),
+            )
+        visibleLabels.size == 1 -> visibleLabels.single()
+        else -> selectedPeriodLabel
+    }
+}
+
+private fun formatBalanceTrendValue(
+    value: Float,
+    locale: Locale,
+): String =
+    NumberFormat.getNumberInstance(locale).apply {
+        minimumFractionDigits = 0
+        maximumFractionDigits = 6
+    }.format(value.toDouble())
+
 @Composable
 fun BalanceTrendChart(
     points: List<Float>,
@@ -179,6 +214,39 @@ fun BalanceTrendChart(
     val drawingCache = remember { BalanceTrendChartDrawingCache() }
     val zeroLineDash = remember { PathEffect.dashPathEffect(floatArrayOf(8f, 6f)) }
     val styleDash = remember { PathEffect.dashPathEffect(floatArrayOf(14f, 9f)) }
+    val locale = LocalConfiguration.current.locales[0]
+    val metricLabel = stringResource(R.string.balance_trend_chart_metric)
+    val selectedPeriodLabel = stringResource(R.string.balance_trend_chart_period_selected)
+    val periodRangeTemplate = stringResource(R.string.balance_trend_chart_period_range)
+    val noDataLabel = stringResource(R.string.balance_trend_chart_no_data)
+    val startPoint = points.firstOrNull()
+    val endPoint = points.lastOrNull()
+    val directionResource =
+        when {
+            startPoint == null || endPoint == null || endPoint == startPoint ->
+                R.string.balance_trend_chart_direction_unchanged
+            endPoint > startPoint -> R.string.balance_trend_chart_direction_increasing
+            else -> R.string.balance_trend_chart_direction_decreasing
+        }
+    val directionLabel =
+        stringResource(directionResource)
+    val periodLabel =
+        describeBalanceTrendPeriod(
+            labels = labels,
+            selectedPeriodLabel = selectedPeriodLabel,
+            periodRangeTemplate = periodRangeTemplate,
+        )
+    val startValue = startPoint?.let { formatBalanceTrendValue(it, locale) } ?: noDataLabel
+    val endValue = endPoint?.let { formatBalanceTrendValue(it, locale) } ?: noDataLabel
+    val chartDescription =
+        stringResource(
+            R.string.balance_trend_chart_cd,
+            metricLabel,
+            periodLabel,
+            startValue,
+            endValue,
+            directionLabel,
+        )
 
     val glowPaint =
         remember(density, glowColor, markerGlowRadius) {
@@ -198,6 +266,9 @@ fun BalanceTrendChart(
             modifier
                 .fillMaxWidth()
                 .height(totalHeight)
+                .semantics {
+                    contentDescription = chartDescription
+                }
                 .testTag(BALANCE_TREND_CHART_TAG),
     ) {
         val chartHeightPx = height.toPx()

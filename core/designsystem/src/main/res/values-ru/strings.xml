@@ -15,6 +15,14 @@
     <string name="keypad_op_equals_cd">Равно</string>
     <string name="balance_bar_open_records_action">Открыть записи</string>
     <string name="donut_chart_open_category_action">Открыть категорию</string>
+    <string name="balance_trend_chart_cd">Динамика баланса. Показатель: %1$s. Период: %2$s. Начало: %3$s, конец: %4$s. Направление: %5$s.</string>
+    <string name="balance_trend_chart_metric">Баланс</string>
+    <string name="balance_trend_chart_period_selected">выбранный период</string>
+    <string name="balance_trend_chart_period_range">с %1$s по %2$s</string>
+    <string name="balance_trend_chart_no_data">нет данных</string>
+    <string name="balance_trend_chart_direction_increasing">рост</string>
+    <string name="balance_trend_chart_direction_decreasing">снижение</string>
+    <string name="balance_trend_chart_direction_unchanged">без изменений</string>
     <string name="transaction_form_choose_category_button">ВЫБОР КАТЕГОРИИ</string>
     <string name="transaction_form_add_category_cta">+ ДОБАВИТЬ</string>
     <string name="transaction_form_delete_button">Удалить</string>

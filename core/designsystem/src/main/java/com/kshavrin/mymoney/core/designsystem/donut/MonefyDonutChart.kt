@@ -189,12 +189,16 @@ fun MonefyDonutChart(
     val sliceTemplate = stringResource(R.string.donut_chart_slice)
     val budgetAlertLabel = stringResource(R.string.donut_chart_budget_alert)
     val chartDescription =
-        remember(chartHeader, sliceTemplate, budgetAlertLabel, slices) {
+        remember(chartHeader, sliceTemplate, budgetAlertLabel, labelMinFraction, slices) {
             val sliceText =
-                slices.joinToString(separator = " ") { slice ->
-                    val description = String.format(sliceTemplate, slice.label, (slice.fraction * 100f).toInt())
-                    if (slice.hasBudgetAlert) "$description, $budgetAlertLabel" else description
-                }
+                slices
+                    .asSequence()
+                    .filter { it.fraction > 0f && it.fraction >= labelMinFraction }
+                    .joinToString(separator = " ") { slice ->
+                        val description =
+                            String.format(sliceTemplate, slice.label, (slice.fraction * 100f).roundToInt())
+                        if (slice.hasBudgetAlert) "$description, $budgetAlertLabel" else description
+                    }
             if (sliceText.isEmpty()) chartHeader else "$chartHeader $sliceText"
         }
 
@@ -367,7 +371,7 @@ fun MonefyDonutChart(
             }
         }
         slices.forEach { slice ->
-            if (slice.fraction <= 0f) return@forEach
+            if (slice.fraction <= 0f || slice.fraction < labelMinFraction) return@forEach
             val sliceDescription =
                 String.format(sliceTemplate, slice.label, (slice.fraction * 100f).roundToInt())
             Box(

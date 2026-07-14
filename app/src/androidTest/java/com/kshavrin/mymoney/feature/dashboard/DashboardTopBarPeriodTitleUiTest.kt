@@ -27,6 +27,7 @@ import org.junit.runner.RunWith
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 
 /**
  * Verifies that the single-row top bar renders the period label without overflow or truncation.
@@ -173,12 +174,14 @@ class DashboardTopBarPeriodTitleUiTest {
 
     @Test
     fun `day period renders on exactly one line without overflow`() {
+        val expectedLabel = formatDate(LocalDate.of(2026, 6, 25))
+
         setDashboard(Period.Day(LocalDate.of(2026, 6, 25)))
 
         composeTestRule.onNodeWithTag(DASHBOARD_TOP_BAR_PERIOD_TAG).assertIsDisplayed()
-        composeTestRule.onNodeWithText("25.06.26", useUnmergedTree = true).assertIsDisplayed()
+        composeTestRule.onNodeWithText(expectedLabel, useUnmergedTree = true).assertIsDisplayed()
 
-        val layout = composeTestRule.onNodeWithText("25.06.26", useUnmergedTree = true).textLayout()
+        val layout = composeTestRule.onNodeWithText(expectedLabel, useUnmergedTree = true).textLayout()
         assertEquals("day label must render on exactly one line", 1, layout.lineCount)
         assertFalse("day label must not overflow its width", layout.didOverflowWidth)
         assertFalse("day label must not overflow its height", layout.didOverflowHeight)
@@ -208,7 +211,7 @@ class DashboardTopBarPeriodTitleUiTest {
     @Test
     fun `week range renders both dates on two lines without overflow`() {
         val weekStart = LocalDate.of(2026, 6, 15)
-        val expectedLabel = "15.06.26\n21.06.26"
+        val expectedLabel = formatRange(weekStart, weekStart.plusDays(6))
 
         setDashboard(Period.Week(weekStart))
 
@@ -224,11 +227,12 @@ class DashboardTopBarPeriodTitleUiTest {
     @Test
     fun `week range shows both dates in the rendered text`() {
         val weekStart = LocalDate.of(2026, 6, 15)
+        val expectedLabel = formatRange(weekStart, weekStart.plusDays(6))
 
         setDashboard(Period.Week(weekStart))
 
         composeTestRule.onNodeWithTag(DASHBOARD_TOP_BAR_PERIOD_TAG).assertIsDisplayed()
-        composeTestRule.onNodeWithText("15.06.26\n21.06.26", useUnmergedTree = true).assertIsDisplayed()
+        composeTestRule.onNodeWithText(expectedLabel, useUnmergedTree = true).assertIsDisplayed()
     }
 
     @Test
@@ -256,7 +260,7 @@ class DashboardTopBarPeriodTitleUiTest {
     fun `custom range renders both dates on two lines without overflow`() {
         val start = LocalDate.of(2026, 3, 1)
         val end = LocalDate.of(2026, 5, 31)
-        val expectedLabel = "01.03.26\n31.05.26"
+        val expectedLabel = formatRange(start, end)
 
         setDashboard(Period.CustomRange(start, end))
 
@@ -273,7 +277,7 @@ class DashboardTopBarPeriodTitleUiTest {
     fun `custom range shows both boundary dates in rendered text`() {
         val start = LocalDate.of(2026, 1, 10)
         val end = LocalDate.of(2026, 12, 31)
-        val expectedLabel = "10.01.26\n31.12.26"
+        val expectedLabel = formatRange(start, end)
 
         setDashboard(Period.CustomRange(start, end))
 
@@ -427,4 +431,10 @@ class DashboardTopBarPeriodTitleUiTest {
         InstrumentationRegistry
             .getInstrumentation()
             .targetContext.resources.configuration.locales[0]
+
+    private fun formatDate(date: LocalDate) =
+        date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT).withLocale(deviceLocale()))
+
+    private fun formatRange(start: LocalDate, end: LocalDate) =
+        "${formatDate(start)}\n${formatDate(end)}"
 }

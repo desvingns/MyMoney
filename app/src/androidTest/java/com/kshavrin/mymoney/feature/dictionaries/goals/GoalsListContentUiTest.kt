@@ -87,7 +87,7 @@ class GoalsListContentUiTest {
 
         composeTestRule.onNodeWithText("Buy a house").assertIsDisplayed()
         composeTestRule
-            .onNodeWithText(targetString(R.string.goals_variant_savings))
+            .onNodeWithText(targetString(R.string.goals_variant_savings), useUnmergedTree = true)
             .assertIsDisplayed()
         val amountText =
             MoneyFormatter.format(
@@ -124,7 +124,24 @@ class GoalsListContentUiTest {
 
         composeTestRule.onNodeWithText("Mortgage").assertIsDisplayed()
         composeTestRule
-            .onNodeWithText(targetString(R.string.goals_variant_credit))
+            .onNodeWithText(targetString(R.string.goals_variant_credit), useUnmergedTree = true)
+            .assertIsDisplayed()
+        val amountText =
+            MoneyFormatter.format(
+                amount = BigDecimal("5000.00"),
+                currencySymbol = "",
+                decimalDigits = 2,
+                locale = Locale.getDefault(),
+            )
+        composeTestRule
+            .onNodeWithContentDescription(
+                targetString(
+                    R.string.dictionaries_goal_row_cd,
+                    "Mortgage",
+                    amountText,
+                    targetString(R.string.goals_variant_credit),
+                ),
+            )
             .assertIsDisplayed()
     }
 

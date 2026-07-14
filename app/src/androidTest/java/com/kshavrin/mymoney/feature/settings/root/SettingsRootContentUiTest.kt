@@ -99,16 +99,16 @@ class SettingsRootContentUiTest {
             .assertExists()
 
         composeTestRule
-            .onNodeWithText(targetString(R.string.settings_sound_toggle))
+            .onNodeWithContentDescription(targetString(R.string.settings_sound_toggle))
             .performScrollTo()
         composeTestRule
-            .onNodeWithText(targetString(R.string.settings_sound_toggle))
+            .onNodeWithContentDescription(targetString(R.string.settings_sound_toggle))
             .assertExists()
         composeTestRule
-            .onNodeWithText(targetString(R.string.settings_haptic_toggle))
+            .onNodeWithContentDescription(targetString(R.string.settings_haptic_toggle))
             .performScrollTo()
         composeTestRule
-            .onNodeWithText(targetString(R.string.settings_haptic_toggle))
+            .onNodeWithContentDescription(targetString(R.string.settings_haptic_toggle))
             .assertExists()
 
         composeTestRule

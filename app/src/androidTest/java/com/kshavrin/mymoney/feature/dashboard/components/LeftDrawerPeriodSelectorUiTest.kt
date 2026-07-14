@@ -13,6 +13,8 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
@@ -246,15 +248,13 @@ class LeftDrawerPeriodSelectorUiTest {
 
         periodRow(R.string.period_all).assertIsSelected()
         periodRow(R.string.period_day).performClick()
-        composeTestRule.runOnIdle {
-            periodRow(R.string.period_day).assertIsSelected()
-            periodRow(R.string.period_all).assertIsNotSelected()
-            periodRow(R.string.period_week).assertIsNotSelected()
-            periodRow(R.string.period_month).assertIsNotSelected()
-            periodRow(R.string.period_year).assertIsNotSelected()
-            periodRow(R.string.period_date_range).assertIsNotSelected()
-            periodRow(R.string.period_pick_a_date).assertIsNotSelected()
-        }
+        periodRow(R.string.period_day).assertIsSelected()
+        periodRow(R.string.period_all).assertIsNotSelected()
+        periodRow(R.string.period_week).assertIsNotSelected()
+        periodRow(R.string.period_month).assertIsNotSelected()
+        periodRow(R.string.period_year).assertIsNotSelected()
+        periodRow(R.string.period_date_range).assertIsNotSelected()
+        periodRow(R.string.period_pick_a_date).assertIsNotSelected()
     }
 
     @Test
@@ -394,7 +394,9 @@ class LeftDrawerPeriodSelectorUiTest {
     ) {
         composeTestRule.onNodeWithContentDescription(contentDescription).performClick()
         composeTestRule.onNodeWithText(datePickerLabel(date)).performClick()
-        composeTestRule.onNodeWithText(targetString(R.string.period_apply)).performClick()
+        composeTestRule
+            .onNode(hasText(targetString(R.string.period_apply)) and isEnabled())
+            .performClick()
     }
 
     private fun targetString(

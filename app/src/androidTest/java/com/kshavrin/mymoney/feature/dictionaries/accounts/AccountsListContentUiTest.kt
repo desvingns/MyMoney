@@ -49,10 +49,16 @@ class AccountsListContentUiTest {
             }
         }
 
-        composeTestRule.onNodeWithText("Cash").assertIsDisplayed()
-        composeTestRule.onNodeWithText(targetString(R.string.dictionaries_default_badge)).assertIsDisplayed()
+        composeTestRule.onNodeWithText("Cash", useUnmergedTree = true).assertIsDisplayed()
         composeTestRule
-            .onNodeWithText(targetString(R.string.dictionaries_balance_label), substring = true)
+            .onNodeWithText(targetString(R.string.dictionaries_default_badge), useUnmergedTree = true)
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText(
+                targetString(R.string.dictionaries_balance_label),
+                substring = true,
+                useUnmergedTree = true,
+            )
             .assertIsDisplayed()
         val balanceText =
             MoneyFormatter.format(

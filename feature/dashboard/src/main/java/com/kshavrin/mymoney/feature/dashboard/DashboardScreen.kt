@@ -430,6 +430,7 @@ private fun DashboardPage(
                 .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+        val chartMetricLabel = stringResource(chartMetricLabelRes(chartConfig.metric))
         if (pageState.isSeparateMode) {
             // "All accounts → show separately" (D6): the donut is dropped — several currencies would
             // overload it — and replaced by a stack of per-currency balance cards. No category tiles
@@ -438,6 +439,7 @@ private fun DashboardPage(
             CurrencyBalanceCardList(
                 cards = pageState.currencyCards,
                 chartConfig = chartConfig,
+                metricLabel = chartMetricLabel,
             )
         } else {
             val snapshot = pageState.balanceSnapshot
@@ -458,6 +460,7 @@ private fun DashboardPage(
                 points = pageState.trendPoints.map { it.value.amount.toFloat() },
                 labels = trendPointLabels(pageState.trendPoints, pageState.trendAxis, locale),
                 chartConfig = chartConfig,
+                metricLabel = chartMetricLabel,
                 onChartClick = { if (interactive) onEvent(DashboardEvent.ChartTapped) },
                 netPositive = pageState.periodNet.amount.signum() >= 0,
             )

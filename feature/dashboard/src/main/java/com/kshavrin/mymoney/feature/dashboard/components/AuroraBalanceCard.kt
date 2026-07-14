@@ -49,6 +49,7 @@ fun AuroraBalanceCard(
     expense: String,
     points: List<Float>,
     chartConfig: ChartConfig,
+    metricLabel: String? = null,
     onChartClick: () -> Unit,
     modifier: Modifier = Modifier,
     labels: List<String> = emptyList(),
@@ -109,6 +110,7 @@ fun AuroraBalanceCard(
                 BalanceTrendChart(
                     points = points,
                     labels = labels,
+                    metricLabel = metricLabel,
                     // SecAurora's wave has no gridlines; suppress them for the hero card regardless
                     // of the persisted AppSettings.chartShowGridlines (scoped to this card only).
                     showGridlines = false,

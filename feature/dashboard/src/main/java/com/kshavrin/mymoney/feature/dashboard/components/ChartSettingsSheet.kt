@@ -47,6 +47,7 @@ import com.kshavrin.mymoney.feature.dashboard.ChartConfig
 import com.kshavrin.mymoney.feature.dashboard.ChartPeriodType
 import com.kshavrin.mymoney.feature.dashboard.DashboardEvent
 import com.kshavrin.mymoney.feature.dashboard.R
+import com.kshavrin.mymoney.feature.dashboard.chartMetricLabelRes
 import com.kshavrin.mymoney.feature.dashboard.toId
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -85,7 +86,11 @@ fun ChartSettingsSheet(
             )
 
             SectionLabel(stringResource(R.string.chart_settings_section_style))
-            StyleRow(selected = config.style, onSelected = { onEvent(DashboardEvent.ChartStyleChanged(it)) })
+            StyleRow(
+                selected = config.style,
+                metricLabel = stringResource(chartMetricLabelRes(config.metric)),
+                onSelected = { onEvent(DashboardEvent.ChartStyleChanged(it)) },
+            )
 
             if (!config.autoMode) {
                 SectionLabel(stringResource(R.string.chart_settings_section_period))
@@ -151,6 +156,7 @@ private fun SectionLabel(text: String) {
 @Composable
 private fun StyleRow(
     selected: ChartStyle,
+    metricLabel: String,
     onSelected: (ChartStyle) -> Unit,
 ) {
     val optionDescription = stringResource(R.string.chart_settings_style_option)
@@ -184,6 +190,7 @@ private fun StyleRow(
             ) {
                 BalanceTrendChart(
                     points = STYLE_PREVIEW_POINTS,
+                    metricLabel = metricLabel,
                     showGridlines = false,
                     showLabels = false,
                     style = style,

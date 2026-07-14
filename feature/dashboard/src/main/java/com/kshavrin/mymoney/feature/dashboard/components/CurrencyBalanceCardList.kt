@@ -32,6 +32,7 @@ fun CurrencyBalanceCardList(
     cards: List<CurrencyBalanceCard>,
     modifier: Modifier = Modifier,
     chartConfig: ChartConfig = ChartConfig(),
+    metricLabel: String? = null,
 ) {
     Column(
         modifier =
@@ -42,7 +43,7 @@ fun CurrencyBalanceCardList(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         cards.forEach { card ->
-            CurrencyBalanceCardItem(card = card, chartConfig = chartConfig)
+            CurrencyBalanceCardItem(card = card, chartConfig = chartConfig, metricLabel = metricLabel)
         }
     }
 }
@@ -51,6 +52,7 @@ fun CurrencyBalanceCardList(
 private fun CurrencyBalanceCardItem(
     card: CurrencyBalanceCard,
     chartConfig: ChartConfig,
+    metricLabel: String?,
     modifier: Modifier = Modifier,
 ) {
     val locale = LocalConfiguration.current.locales[0]
@@ -86,6 +88,7 @@ private fun CurrencyBalanceCardItem(
             Spacer(modifier = Modifier.height(Spacing.dashboardAuroraPillBottomMarginCompact))
             BalanceTrendChart(
                 points = card.trendPoints.map { it.value.amount.toFloat() },
+                metricLabel = metricLabel,
                 showGridlines = false,
                 showLabels = false,
                 colorRule = chartConfig.colorRule,

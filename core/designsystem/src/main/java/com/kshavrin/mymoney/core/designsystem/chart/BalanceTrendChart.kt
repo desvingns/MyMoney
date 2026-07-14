@@ -170,6 +170,7 @@ fun BalanceTrendChart(
     points: List<Float>,
     modifier: Modifier = Modifier,
     labels: List<String> = emptyList(),
+    metricLabel: String? = null,
     showGridlines: Boolean = true,
     showLabels: Boolean = false,
     colorRule: ChartColorRule = ChartColorRule.Default,
@@ -215,7 +216,7 @@ fun BalanceTrendChart(
     val zeroLineDash = remember { PathEffect.dashPathEffect(floatArrayOf(8f, 6f)) }
     val styleDash = remember { PathEffect.dashPathEffect(floatArrayOf(14f, 9f)) }
     val locale = LocalConfiguration.current.locales[0]
-    val metricLabel = stringResource(R.string.balance_trend_chart_metric)
+    val metricDescriptionLabel = metricLabel ?: stringResource(R.string.balance_trend_chart_metric)
     val selectedPeriodLabel = stringResource(R.string.balance_trend_chart_period_selected)
     val periodRangeTemplate = stringResource(R.string.balance_trend_chart_period_range)
     val noDataLabel = stringResource(R.string.balance_trend_chart_no_data)
@@ -241,7 +242,7 @@ fun BalanceTrendChart(
     val chartDescription =
         stringResource(
             R.string.balance_trend_chart_cd,
-            metricLabel,
+            metricDescriptionLabel,
             periodLabel,
             startValue,
             endValue,

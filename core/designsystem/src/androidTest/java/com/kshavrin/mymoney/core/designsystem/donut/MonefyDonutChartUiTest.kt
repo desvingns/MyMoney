@@ -1339,14 +1339,13 @@ class MonefyDonutChartUiTest {
                 )
             }
         }
-        // Ghost slice has fraction=0 → (0*100).toInt()=0, included in semantics by the
-        // chart (it still calls joinToString over all slices); verify Food appears correctly
+        // Ghost slice has fraction=0 and is filtered out before the chart description is built.
         composeTestRule
             .onNodeWithContentDescription(
                 expectedDescription(
                     income = "100.00",
                     expense = "50.00",
-                    slices = listOf("Food" to 80, "Ghost" to 0),
+                    slices = listOf("Food" to 80),
                 ),
             ).assertExists()
     }

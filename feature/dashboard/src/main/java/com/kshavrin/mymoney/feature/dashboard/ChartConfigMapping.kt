@@ -67,6 +67,13 @@ fun chartMetricFromId(id: String): ChartMetric = metricIds[id] ?: ChartMetric.CU
 
 fun ChartMetric.toId(): String = metricToId.getValue(this)
 
+internal fun chartMetricLabelRes(metric: ChartMetric): Int =
+    when (metric) {
+        ChartMetric.CUMULATIVE -> R.string.chart_settings_metric_cumulative
+        ChartMetric.PERIOD_NET -> R.string.chart_settings_metric_period_net
+        ChartMetric.INCOME_EXPENSE -> R.string.chart_settings_metric_income_expense
+    }
+
 private val colorRuleIds: Map<String, ChartColorRule> =
     mapOf(
         "by_sign" to ChartColorRule.BySign,

@@ -16,11 +16,14 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+
+const val SPLASH_LOGO_TAG = "splash_logo"
 
 @Composable
 fun SplashScreen(
@@ -63,8 +66,11 @@ fun SplashContent(
         ) {
             Image(
                 painter = painterResource(id = R.drawable.onboarding_hero_1),
-                contentDescription = stringResource(id = R.string.splash_logo_content_description),
-                modifier = Modifier.size(120.dp),
+                contentDescription = null,
+                modifier =
+                    Modifier
+                        .size(120.dp)
+                        .testTag(SPLASH_LOGO_TAG),
             )
             if (seedFailed) {
                 Text(

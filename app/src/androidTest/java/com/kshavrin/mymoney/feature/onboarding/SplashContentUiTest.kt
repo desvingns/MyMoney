@@ -3,6 +3,7 @@ package com.kshavrin.mymoney.feature.onboarding
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
@@ -24,8 +25,11 @@ class SplashContentUiTest {
         }
 
         composeTestRule
-            .onNodeWithContentDescription(targetString(R.string.splash_logo_content_description))
+            .onNodeWithTag(SPLASH_LOGO_TAG)
             .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.splash_logo_content_description))
+            .assertDoesNotExist()
     }
 
     private fun targetString(resourceId: Int): String =

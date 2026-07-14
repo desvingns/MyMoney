@@ -2,6 +2,7 @@ package com.kshavrin.mymoney.feature.dashboard
 
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -242,6 +243,7 @@ class AuroraBalanceCardUiTest {
         composeTestRule
             .onNodeWithTag(DASHBOARD_CHART_HIDDEN_HINT_TAG)
             .assertExists()
+            .assertContentDescriptionEquals(targetString(R.string.chart_hidden_hint))
         composeTestRule
             .onNodeWithTag(DASHBOARD_TREND_CHART_TAG)
             .assertDoesNotExist()

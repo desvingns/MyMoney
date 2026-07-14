@@ -119,17 +119,22 @@ fun AuroraBalanceCard(
                 )
             }
         } else {
+            val hiddenHintLabel = stringResource(R.string.chart_hidden_hint)
             Box(
                 modifier =
                     Modifier
                         .fillMaxWidth()
                         .height(Spacing.chartHiddenHintHeight)
                         .clickable(onClick = onChartClick)
+                        .semantics {
+                            contentDescription = hiddenHintLabel
+                            role = Role.Button
+                        }
                         .testTag(DASHBOARD_CHART_HIDDEN_HINT_TAG),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = stringResource(R.string.chart_hidden_hint),
+                    text = hiddenHintLabel,
                     style = MaterialTheme.typography.chartHiddenHint,
                     color = MaterialTheme.colorScheme.dashboardBalancePanelContent,
                     maxLines = 1,

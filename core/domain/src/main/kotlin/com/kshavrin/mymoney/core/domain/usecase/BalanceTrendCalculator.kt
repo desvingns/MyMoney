@@ -160,13 +160,18 @@ class BalanceTrendCalculator
             val startDate = Instant.ofEpochMilli(safeStart).atZone(zone).toLocalDate()
             val endDate = Instant.ofEpochMilli(endMillis).atZone(zone).toLocalDate()
             val totalDays = ChronoUnit.DAYS.between(startDate, endDate) + 1
-            return (0 until count).map { i ->
-                val subStartOffset = totalDays * i / count
+            val effectiveCount = minOf(count.toLong(), totalDays).toInt()
+            return (0 until effectiveCount).map { i ->
+                val subStartOffset = totalDays * i / effectiveCount
                 val subEndOffset =
-                    if (i == count - 1) totalDays - 1 else (totalDays * (i + 1) / count) - 1
+                    if (i == effectiveCount - 1) {
+                        totalDays - 1
+                    } else {
+                        (totalDays * (i + 1) / effectiveCount) - 1
+                    }
                 val subStart = startDate.plusDays(subStartOffset)
                 val subEnd =
-                    if (i == count - 1) endDate else startDate.plusDays(subEndOffset)
+                    if (i == effectiveCount - 1) endDate else startDate.plusDays(subEndOffset)
                 when (anchor) {
                     is Period.Interval -> Period.Interval(subStart, subEnd)
                     else -> Period.CustomRange(subStart, subEnd)

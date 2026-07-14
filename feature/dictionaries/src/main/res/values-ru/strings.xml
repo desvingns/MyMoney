@@ -97,11 +97,12 @@
     <string name="goal_contribution_add_income">Добавить доход</string>
     <string name="goal_contribution_add_expense">Добавить расход</string>
     <string name="goal_contribution_remove">Удалить строку</string>
-    <string name="dictionaries_account_row_cd">Открыть счёт: %1$s</string>
+    <string name="dictionaries_account_row_cd">Открыть счёт: %1$s, баланс %2$s</string>
+    <string name="dictionaries_default_account_row_cd">Открыть счёт: %1$s, баланс %2$s, основной</string>
     <string name="dictionaries_category_row_cd">Открыть категорию: %1$s</string>
     <string name="dictionaries_currency_row_cd">Открыть валюту %1$s, %2$s</string>
     <string name="dictionaries_currency_active_cd">Активная валюта: %1$s</string>
-    <string name="dictionaries_goal_row_cd">Открыть цель: %1$s, %2$s</string>
+    <string name="dictionaries_goal_row_cd">Открыть цель: %1$s, %2$s, %3$s</string>
     <string name="dictionaries_color_option_cd">Цвет %1$s</string>
     <string name="goal_choose_icon">Выбрать значок цели</string>
 </resources>

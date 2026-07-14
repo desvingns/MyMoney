@@ -97,11 +97,12 @@
     <string name="goal_contribution_add_income">Add income</string>
     <string name="goal_contribution_add_expense">Add expense</string>
     <string name="goal_contribution_remove">Remove row</string>
-    <string name="dictionaries_account_row_cd">Open account: %1$s</string>
+    <string name="dictionaries_account_row_cd">Open account: %1$s, balance %2$s</string>
+    <string name="dictionaries_default_account_row_cd">Open account: %1$s, balance %2$s, default</string>
     <string name="dictionaries_category_row_cd">Open category: %1$s</string>
     <string name="dictionaries_currency_row_cd">Open currency %1$s, %2$s</string>
     <string name="dictionaries_currency_active_cd">Active currency: %1$s</string>
-    <string name="dictionaries_goal_row_cd">Open goal: %1$s, %2$s</string>
+    <string name="dictionaries_goal_row_cd">Open goal: %1$s, %2$s, %3$s</string>
     <string name="dictionaries_color_option_cd">Color %1$s</string>
     <string name="goal_choose_icon">Choose goal icon</string>
 </resources>

@@ -35,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -122,7 +123,16 @@ private fun AccountRowItem(
             decimalDigits = decimalDigits,
             locale = Locale.getDefault(),
         )
-    val rowDescription = stringResource(R.string.dictionaries_account_row_cd, row.account.name)
+    val rowDescription =
+        stringResource(
+            if (row.account.isDefault) {
+                R.string.dictionaries_default_account_row_cd
+            } else {
+                R.string.dictionaries_account_row_cd
+            },
+            row.account.name,
+            balanceText,
+        )
 
     Row(
         modifier =
@@ -163,6 +173,7 @@ private fun AccountRowItem(
                     AssistChip(
                         onClick = {},
                         label = { Text(stringResource(R.string.dictionaries_default_badge)) },
+                        modifier = Modifier.clearAndSetSemantics {},
                         colors = AssistChipDefaults.assistChipColors(),
                     )
                 }

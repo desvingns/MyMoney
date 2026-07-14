@@ -113,6 +113,7 @@
     <string name="chart_hidden_hint">График скрыт</string>
     <string name="dashboard_account_toggle_cd">Вид счетов: %1$s, %2$s</string>
     <string name="dashboard_account_option_cd">Счёт: %1$s</string>
+    <string name="dashboard_account_option_with_subtitle_cd">Счёт: %1$s, %2$s</string>
     <string name="dashboard_drawer_option_cd">Открыть: %1$s</string>
     <string name="dashboard_category_tile_cd">Открыть %1$s, %2$s</string>
     <string name="dashboard_inline_record_cd">Открыть запись: %1$s, %2$s, %3$s</string>

@@ -199,6 +199,7 @@ fun LeftDrawerContent(
                                     RangePickerSource.PickDate -> Period.CustomRange(start, end)
                                 }
                             changePeriod(period)
+                            onEvent(DashboardEvent.DrawerDismissed)
                             rangePickerSource = null
                         }
                     },
@@ -335,7 +336,12 @@ private fun AccountDropdownRow(
         } else {
             MaterialTheme.colorScheme.surface
         }
-    val rowDescription = stringResource(R.string.dashboard_account_option_cd, label)
+    val rowDescription =
+        if (subtitle.isNullOrBlank()) {
+            stringResource(R.string.dashboard_account_option_cd, label)
+        } else {
+            stringResource(R.string.dashboard_account_option_with_subtitle_cd, label, subtitle)
+        }
     Row(
         modifier =
             Modifier

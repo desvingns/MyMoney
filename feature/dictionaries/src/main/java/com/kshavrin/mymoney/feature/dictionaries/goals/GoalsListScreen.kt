@@ -36,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -156,7 +157,15 @@ private fun GoalRowItem(
             decimalDigits = 2,
             locale = Locale.getDefault(),
         )
-    val rowDescription = stringResource(R.string.dictionaries_goal_row_cd, goal.name, amountText)
+    val variantLabel =
+        stringResource(
+            when (goal.variant) {
+                GoalVariant.SAVINGS -> R.string.goals_variant_savings
+                GoalVariant.CREDIT -> R.string.goals_variant_credit
+            },
+        )
+    val rowDescription =
+        stringResource(R.string.dictionaries_goal_row_cd, goal.name, amountText, variantLabel)
     Row(
         modifier =
             Modifier
@@ -190,17 +199,15 @@ private fun GoalRowItem(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        GoalVariantChip(variant = goal.variant)
+        GoalVariantChip(variant = goal.variant, label = variantLabel)
     }
 }
 
 @Composable
-private fun GoalVariantChip(variant: GoalVariant) {
-    val labelRes =
-        when (variant) {
-            GoalVariant.SAVINGS -> R.string.goals_variant_savings
-            GoalVariant.CREDIT -> R.string.goals_variant_credit
-        }
+private fun GoalVariantChip(
+    variant: GoalVariant,
+    label: String,
+) {
     val containerColor =
         when (variant) {
             GoalVariant.SAVINGS -> MaterialTheme.colorScheme.goalSavingsChipContainer
@@ -213,7 +220,8 @@ private fun GoalVariantChip(variant: GoalVariant) {
         }
     AssistChip(
         onClick = {},
-        label = { Text(stringResource(labelRes)) },
+        label = { Text(label) },
+        modifier = Modifier.clearAndSetSemantics {},
         colors =
             AssistChipDefaults.assistChipColors(
                 containerColor = containerColor,

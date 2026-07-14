@@ -231,7 +231,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `confirming top bar single date picker emits Day, distinct from drawer custom range`() {
+    fun confirmingTopBarSingleDatePickerEmitsDayDistinctFromDrawerCustomRange() {
         val capturedEvents = mutableListOf<DashboardEvent>()
 
         composeTestRule.setContent {
@@ -278,7 +278,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `drawer Pick a date dismisses drawer and parent picker requires both dates before CustomRange`() {
+    fun drawerPickADateDismissesDrawerAndParentPickerRequiresBothDatesBeforeCustomRange() {
         val capturedEvents = mutableListOf<DashboardEvent>()
         val start = LocalDate.now().withDayOfMonth(1)
         val end = start.plusDays(1)

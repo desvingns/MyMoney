@@ -64,7 +64,7 @@ class LeftDrawerPeriodSelectorUiTest {
     }
 
     @Test
-    fun `interval row expands inline start and end controls with disabled apply`() {
+    fun intervalRowExpandsInlineStartAndEndControlsWithDisabledApply() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 LeftDrawerContent(
@@ -99,7 +99,7 @@ class LeftDrawerPeriodSelectorUiTest {
     }
 
     @Test
-    fun `interval date controls gate invalid range and emit valid interval without dismissing drawer`() {
+    fun intervalDateControlsGateInvalidRangeAndEmitValidIntervalWithoutDismissingDrawer() {
         val selectedEvents = mutableListOf<DashboardEvent>()
         val start = LocalDate.now().withDayOfMonth(20)
         val invalidEnd = LocalDate.now().withDayOfMonth(10)
@@ -163,7 +163,7 @@ class LeftDrawerPeriodSelectorUiTest {
     }
 
     @Test
-    fun `pick a date invokes parent callback without emitting a period event`() {
+    fun pickADateInvokesParentCallbackWithoutEmittingPeriodEvent() {
         val selectedEvents = mutableListOf<DashboardEvent>()
         var callbackCount = 0
 
@@ -227,7 +227,7 @@ class LeftDrawerPeriodSelectorUiTest {
     }
 
     @Test
-    fun `period row selection is mutually exclusive`() {
+    fun periodRowSelectionIsMutuallyExclusive() {
         var currentState by mutableStateOf(DashboardState(period = Period.All, isLoading = false))
 
         composeTestRule.setContent {
@@ -258,7 +258,7 @@ class LeftDrawerPeriodSelectorUiTest {
     }
 
     @Test
-    fun `period rows are ordered day week month year all interval pick a date`() {
+    fun periodRowsAreOrderedDayWeekMonthYearAllIntervalPickADate() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 LeftDrawerContent(

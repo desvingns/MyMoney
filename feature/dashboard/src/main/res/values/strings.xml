@@ -41,6 +41,13 @@
     <string name="period_pick_a_date">Pick a date</string>
     <string name="period_apply">Apply</string>
     <string name="period_cancel">Cancel</string>
+    <string name="period_interval_start">Start</string>
+    <string name="period_interval_end">End</string>
+    <string name="period_interval_not_selected">Not selected</string>
+    <string name="period_interval_value">%1$s: %2$s</string>
+    <string name="period_interval_start_cd">Select interval start date. Current value: %1$s</string>
+    <string name="period_interval_end_cd">Select interval end date. Current value: %1$s</string>
+    <string name="period_interval_invalid">Start date must not be after end date</string>
     <string name="period_previous">Previous period</string>
     <string name="period_next">Next period</string>
 

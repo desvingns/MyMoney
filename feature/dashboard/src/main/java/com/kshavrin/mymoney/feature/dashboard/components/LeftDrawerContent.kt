@@ -24,16 +24,17 @@ import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material.icons.outlined.Event
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
+import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.DateRangePicker
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberDateRangePickerState
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -44,6 +45,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
@@ -65,19 +67,27 @@ import com.kshavrin.mymoney.feature.dashboard.R
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LeftDrawerContent(
     state: DashboardState,
     onEvent: (DashboardEvent) -> Unit,
+    onPickDateRangeClick: () -> Unit,
 ) {
     var accountsExpanded by remember { mutableStateOf(false) }
-    var rangePickerSource by remember { mutableStateOf<RangePickerSource?>(null) }
+    val currentInterval = state.period as? Period.Interval
+    var intervalExpanded by remember { mutableStateOf(currentInterval != null) }
+    var intervalStart by remember { mutableStateOf(currentInterval?.start) }
+    var intervalEnd by remember { mutableStateOf(currentInterval?.end) }
+    var intervalEndpointPicker by remember { mutableStateOf<IntervalEndpoint?>(null) }
     val soundPlayer = LocalSoundPlayer.current
     val hapticPlayer = LocalHapticPlayer.current
 
     fun changePeriod(period: Period) {
+        if (period !is Period.Interval) intervalExpanded = false
         soundPlayer.play(SoundKey.SWIPE)
         hapticPlayer.fire(HapticKind.SOFT)
         onEvent(DashboardEvent.PeriodChanged(period))
@@ -132,13 +142,31 @@ fun LeftDrawerContent(
                     label = stringResource(R.string.period_date_range),
                     selected = state.period is Period.Interval,
                     leadingIcon = Icons.Outlined.CalendarToday,
-                    onClick = { rangePickerSource = RangePickerSource.Interval },
+                    onClick = { intervalExpanded = true },
                 )
+                if (intervalExpanded) {
+                    InlineIntervalEditor(
+                        start = intervalStart,
+                        end = intervalEnd,
+                        onStartClick = { intervalEndpointPicker = IntervalEndpoint.Start },
+                        onEndClick = { intervalEndpointPicker = IntervalEndpoint.End },
+                        onApply = {
+                            val start = intervalStart
+                            val end = intervalEnd
+                            if (start != null && end != null && !start.isAfter(end)) {
+                                changePeriod(Period.Interval(start, end))
+                            }
+                        },
+                    )
+                }
                 PeriodButton(
                     label = stringResource(R.string.period_pick_a_date),
                     selected = state.period is Period.CustomRange,
                     leadingIcon = Icons.Outlined.Event,
-                    onClick = { rangePickerSource = RangePickerSource.PickDate },
+                    onClick = {
+                        intervalExpanded = false
+                        onPickDateRangeClick()
+                    },
                 )
             }
             if (accountsExpanded) {
@@ -163,44 +191,30 @@ fun LeftDrawerContent(
         }
     }
 
-    val pickerSource = rangePickerSource
-    if (pickerSource != null) {
-        val selectedRange =
-            when (val period = state.period) {
-                is Period.Interval ->
-                    if (pickerSource == RangePickerSource.Interval) period.start to period.end else null
-                is Period.CustomRange ->
-                    if (pickerSource == RangePickerSource.PickDate) period.start to period.end else null
-                else -> null
+    val endpoint = intervalEndpointPicker
+    if (endpoint != null) {
+        val initialDate =
+            when (endpoint) {
+                IntervalEndpoint.Start -> intervalStart ?: intervalEnd ?: LocalDate.now()
+                IntervalEndpoint.End -> intervalEnd ?: intervalStart ?: LocalDate.now()
             }
         val pickerState =
-            rememberDateRangePickerState(
-                initialSelectedStartDateMillis =
-                    selectedRange?.first?.let(::localDateToMaterialPickerUtcMillis),
-                initialSelectedEndDateMillis =
-                    selectedRange?.second?.let(::localDateToMaterialPickerUtcMillis),
+            rememberDatePickerState(
+                initialSelectedDateMillis = localDateToMaterialPickerUtcMillis(initialDate),
             )
         DatePickerDialog(
-            onDismissRequest = { rangePickerSource = null },
+            onDismissRequest = { intervalEndpointPicker = null },
             confirmButton = {
                 TextButton(
-                    enabled =
-                        pickerState.selectedStartDateMillis != null &&
-                            pickerState.selectedEndDateMillis != null,
+                    enabled = pickerState.selectedDateMillis != null,
                     onClick = {
-                        val startMillis = pickerState.selectedStartDateMillis
-                        val endMillis = pickerState.selectedEndDateMillis
-                        if (startMillis != null && endMillis != null) {
-                            val start = materialPickerUtcMillisToLocalDate(startMillis)
-                            val end = materialPickerUtcMillisToLocalDate(endMillis)
-                            val period =
-                                when (pickerSource) {
-                                    RangePickerSource.Interval -> Period.Interval(start, end)
-                                    RangePickerSource.PickDate -> Period.CustomRange(start, end)
-                                }
-                            changePeriod(period)
-                            onEvent(DashboardEvent.DrawerDismissed)
-                            rangePickerSource = null
+                        pickerState.selectedDateMillis?.let { selectedMillis ->
+                            val selectedDate = materialPickerUtcMillisToLocalDate(selectedMillis)
+                            when (endpoint) {
+                                IntervalEndpoint.Start -> intervalStart = selectedDate
+                                IntervalEndpoint.End -> intervalEnd = selectedDate
+                            }
+                            intervalEndpointPicker = null
                         }
                     },
                 ) {
@@ -208,15 +222,87 @@ fun LeftDrawerContent(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { rangePickerSource = null }) {
+                TextButton(onClick = { intervalEndpointPicker = null }) {
                     Text(stringResource(R.string.period_cancel))
                 }
             },
         ) {
-            DateRangePicker(state = pickerState)
+            DatePicker(state = pickerState)
         }
     }
+}
 
+@Composable
+private fun InlineIntervalEditor(
+    start: LocalDate?,
+    end: LocalDate?,
+    onStartClick: () -> Unit,
+    onEndClick: () -> Unit,
+    onApply: () -> Unit,
+) {
+    val locale = LocalConfiguration.current.locales[0]
+    val formatter =
+        remember(locale) {
+            DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale)
+        }
+    val notSelected = stringResource(R.string.period_interval_not_selected)
+    val startValue = start?.format(formatter) ?: notSelected
+    val endValue = end?.format(formatter) ?: notSelected
+    val invalidRange = start != null && end != null && start.isAfter(end)
+
+    Column(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.m, vertical = Spacing.s),
+    ) {
+        IntervalEndpointButton(
+            label = stringResource(R.string.period_interval_start),
+            value = startValue,
+            contentDescription = stringResource(R.string.period_interval_start_cd, startValue),
+            onClick = onStartClick,
+        )
+        Spacer(modifier = Modifier.height(Spacing.s))
+        IntervalEndpointButton(
+            label = stringResource(R.string.period_interval_end),
+            value = endValue,
+            contentDescription = stringResource(R.string.period_interval_end_cd, endValue),
+            onClick = onEndClick,
+        )
+        if (invalidRange) {
+            Text(
+                text = stringResource(R.string.period_interval_invalid),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(top = Spacing.s),
+            )
+        }
+        TextButton(
+            enabled = start != null && end != null && !invalidRange,
+            onClick = onApply,
+            modifier = Modifier.align(Alignment.End),
+        ) {
+            Text(stringResource(R.string.period_apply))
+        }
+    }
+}
+
+@Composable
+private fun IntervalEndpointButton(
+    label: String,
+    value: String,
+    contentDescription: String,
+    onClick: () -> Unit,
+) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .semantics { this.contentDescription = contentDescription },
+    ) {
+        Text(stringResource(R.string.period_interval_value, label, value))
+    }
 }
 
 @Composable
@@ -523,7 +609,7 @@ private fun PeriodButton(
 
 private val drawerRowShape = RoundedCornerShape(6.dp)
 
-private enum class RangePickerSource {
-    Interval,
-    PickDate,
+private enum class IntervalEndpoint {
+    Start,
+    End,
 }

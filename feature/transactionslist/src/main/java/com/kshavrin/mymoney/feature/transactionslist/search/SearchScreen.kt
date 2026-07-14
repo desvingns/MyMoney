@@ -409,7 +409,7 @@ private fun SearchResultRow(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Box(
-            modifier = Modifier.size(48.dp),
+            modifier = Modifier.size(Spacing.minimumTouchTargetSize),
             contentAlignment = Alignment.Center,
         ) {
             Icon(

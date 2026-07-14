@@ -41,6 +41,13 @@
     <string name="period_pick_a_date">Выбор даты</string>
     <string name="period_apply">Применить</string>
     <string name="period_cancel">Отмена</string>
+    <string name="period_interval_start">Начало</string>
+    <string name="period_interval_end">Конец</string>
+    <string name="period_interval_not_selected">Не выбрано</string>
+    <string name="period_interval_value">%1$s: %2$s</string>
+    <string name="period_interval_start_cd">Выбрать дату начала интервала. Текущее значение: %1$s</string>
+    <string name="period_interval_end_cd">Выбрать дату окончания интервала. Текущее значение: %1$s</string>
+    <string name="period_interval_invalid">Дата начала не должна быть позже даты окончания</string>
     <string name="period_previous">Предыдущий период</string>
     <string name="period_next">Следующий период</string>
 

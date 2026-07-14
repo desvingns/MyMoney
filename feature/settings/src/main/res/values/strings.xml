@@ -103,7 +103,7 @@
     <string name="import_wizard_config_progress">%1$d / %2$d</string>
     <string name="import_wizard_config_field_name">Name</string>
     <string name="import_wizard_config_field_icon">Icon</string>
-    <string name="import_wizard_config_icon_option_cd">Icon option</string>
+    <string name="import_wizard_config_icon_option_cd">Choose this icon</string>
     <string name="import_wizard_config_field_color">Color</string>
     <string name="import_wizard_config_back">Back</string>
     <string name="import_wizard_config_next">Next</string>

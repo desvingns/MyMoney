@@ -26,4 +26,5 @@
     <string name="currency_rate_pattern">1 %1$s = %2$s %3$s</string>
     <string name="transfer_direction_cd">Transfer direction</string>
     <string name="transfer_open_keypad_cd">Open keypad</string>
+    <string name="transfer_account_selector_cd">Select %1$s account: %2$s</string>
 </resources>

@@ -47,4 +47,6 @@
     <string name="search_error">Something went wrong</string>
     <string name="search_voice_unavailable">Voice search unavailable on this device</string>
     <string name="search_voice_prompt">Speak to search</string>
+    <string name="transactions_list_record_cd">Open record: %1$s, %2$s, %3$s, %4$s</string>
+    <string name="transactions_list_search_record_cd">Open record: %1$s, %2$s, %3$s</string>
 </resources>

@@ -24,6 +24,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.android.gms.oss.licenses.OssLicensesMenuActivity
 import com.kshavrin.mymoney.core.ui.theme.Spacing
@@ -97,33 +99,53 @@ fun SettingsRootContent(
                     .verticalScroll(rememberScrollState()),
         ) {
             SectionHeader(stringResource(R.string.settings_section_appearance))
+            val themeLabel = stringResource(R.string.settings_theme)
             ListItem(
-                headlineContent = { Text(stringResource(R.string.settings_theme)) },
+                headlineContent = { Text(themeLabel) },
                 trailingContent = { Text(stringResource(state.themeMode.labelRes)) },
-                modifier = Modifier.clickable(onClick = onOpenTheme),
+                modifier =
+                    Modifier
+                        .clickable(onClick = onOpenTheme)
+                        .semantics { contentDescription = themeLabel },
             )
 
             SectionHeader(stringResource(R.string.settings_section_security))
+            val biometricLabel = stringResource(R.string.settings_biometric_lock)
             ListItem(
-                headlineContent = { Text(stringResource(R.string.settings_biometric_lock)) },
-                modifier = Modifier.clickable(onClick = onOpenBiometricLock),
+                headlineContent = { Text(biometricLabel) },
+                modifier =
+                    Modifier
+                        .clickable(onClick = onOpenBiometricLock)
+                        .semantics { contentDescription = biometricLabel },
             )
 
             SectionHeader(stringResource(R.string.settings_section_cloud))
+            val cloudSyncLabel = stringResource(R.string.settings_cloud_sync)
             ListItem(
-                headlineContent = { Text(stringResource(R.string.settings_cloud_sync)) },
-                modifier = Modifier.clickable(onClick = onOpenCloudSync),
+                headlineContent = { Text(cloudSyncLabel) },
+                modifier =
+                    Modifier
+                        .clickable(onClick = onOpenCloudSync)
+                        .semantics { contentDescription = cloudSyncLabel },
             )
+            val backupLabel = stringResource(R.string.settings_backup_restore)
             ListItem(
-                headlineContent = { Text(stringResource(R.string.settings_backup_restore)) },
-                modifier = Modifier.clickable(onClick = onOpenBackup),
+                headlineContent = { Text(backupLabel) },
+                modifier =
+                    Modifier
+                        .clickable(onClick = onOpenBackup)
+                        .semantics { contentDescription = backupLabel },
             )
 
             SectionHeader(stringResource(R.string.settings_section_general))
+            val languageLabel = stringResource(R.string.settings_language)
             ListItem(
-                headlineContent = { Text(stringResource(R.string.settings_language)) },
+                headlineContent = { Text(languageLabel) },
                 trailingContent = { Text(stringResource(state.language.labelRes)) },
-                modifier = Modifier.clickable(onClick = onOpenLanguage),
+                modifier =
+                    Modifier
+                        .clickable(onClick = onOpenLanguage)
+                        .semantics { contentDescription = languageLabel },
             )
             ListItem(
                 headlineContent = { Text(stringResource(R.string.settings_sound_toggle)) },
@@ -145,13 +167,21 @@ fun SettingsRootContent(
             )
 
             SectionHeader(stringResource(R.string.settings_section_about))
+            val aboutLabel = stringResource(R.string.settings_about_help)
             ListItem(
-                headlineContent = { Text(stringResource(R.string.settings_about_help)) },
-                modifier = Modifier.clickable(onClick = onOpenAbout),
+                headlineContent = { Text(aboutLabel) },
+                modifier =
+                    Modifier
+                        .clickable(onClick = onOpenAbout)
+                        .semantics { contentDescription = aboutLabel },
             )
+            val licencesLabel = stringResource(R.string.about_licences)
             ListItem(
-                headlineContent = { Text(stringResource(R.string.about_licences)) },
-                modifier = Modifier.clickable(onClick = onOpenLicences),
+                headlineContent = { Text(licencesLabel) },
+                modifier =
+                    Modifier
+                        .clickable(onClick = onOpenLicences)
+                        .semantics { contentDescription = licencesLabel },
             )
         }
     }

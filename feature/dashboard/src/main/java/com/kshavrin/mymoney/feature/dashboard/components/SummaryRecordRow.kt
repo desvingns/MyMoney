@@ -19,6 +19,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextOverflow
 import com.kshavrin.mymoney.core.common.money.MoneyFormatter
@@ -152,11 +154,20 @@ private fun SummaryRecordBaseRow(
     modifier: Modifier = Modifier,
 ) {
     val hasSecondary = !secondary.isNullOrBlank()
+    val recordDescription =
+        stringResource(
+            R.string.dashboard_summary_record_cd,
+            primary,
+            if (hasSecondary) secondary.orEmpty() else stringResource(R.string.dashboard_inline_records_no_note),
+            amount,
+            date,
+        )
     Row(
         modifier =
             modifier
                 .fillMaxWidth()
                 .clickable(onClick = onClick)
+                .semantics(mergeDescendants = true) { contentDescription = recordDescription }
                 .heightIn(min = Spacing.dashboardInlineRecordRowHeight)
                 .padding(horizontal = Spacing.l, vertical = Spacing.s),
         verticalAlignment = Alignment.CenterVertically,

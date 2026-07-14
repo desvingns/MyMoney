@@ -410,6 +410,12 @@ private fun AccountSelectorRow(
     var expanded by remember { mutableStateOf(false) }
     val selectorShape = MaterialTheme.shapes.extraSmall
     val accentColor = account?.colorHex?.let(::parseAccountColor) ?: MaterialTheme.colorScheme.primary
+    val selectorDescription =
+        stringResource(
+            R.string.transfer_account_selector_cd,
+            placeholder,
+            account?.name ?: placeholder,
+        )
     Box(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier =
@@ -420,7 +426,7 @@ private fun AccountSelectorRow(
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                         shape = selectorShape,
                     ).background(MaterialTheme.colorScheme.surface, selectorShape)
-                    .semantics { contentDescription = placeholder }
+                    .semantics { contentDescription = selectorDescription }
                     .clickable { expanded = true }
                     .padding(horizontal = Spacing.m, vertical = Spacing.xs),
             verticalAlignment = Alignment.CenterVertically,

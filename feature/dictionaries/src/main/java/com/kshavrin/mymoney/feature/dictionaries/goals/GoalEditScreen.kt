@@ -140,11 +140,12 @@ fun GoalEditContent(
                 text = stringResource(R.string.goal_icon),
                 style = MaterialTheme.typography.titleSmall,
             )
+            val iconDescription = stringResource(R.string.goal_choose_icon)
             Box(
                 modifier =
                     Modifier
                         .size(56.dp)
-                        .semantics { contentDescription = state.iconKey }
+                        .semantics { contentDescription = iconDescription }
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.surfaceVariant)
                         .clickable { iconPickerVisible = true },

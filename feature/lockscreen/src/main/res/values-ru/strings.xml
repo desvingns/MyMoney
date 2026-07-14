@@ -27,4 +27,6 @@
     <string name="lock_pin_unavailable">PIN ещё не задан. Повторите биометрическую разблокировку, затем задайте PIN в настройках блокировки.</string>
     <string name="lock_pin_backspace">Стереть</string>
     <string name="lock_retry_biometric">Повторить</string>
+    <string name="biometric_open_system_settings">Открыть настройки системы</string>
+    <string name="biometric_idle_timeout_cd">Блокировать после простоя: %1$s</string>
 </resources>

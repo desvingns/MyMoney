@@ -34,7 +34,7 @@ fun MonefyBalanceBar(
     val pillContent = MaterialTheme.colorScheme.onPrimary
     val flankTint = pillColor.copy(alpha = 0.7f)
     val openRecordsLabel = stringResource(R.string.balance_bar_open_records_action)
-    val rowDescription = "$label $amount"
+    val rowDescription = stringResource(R.string.balance_bar_cd, label, amount)
 
     Row(
         modifier =

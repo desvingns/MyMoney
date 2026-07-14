@@ -19,6 +19,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import com.google.android.gms.oss.licenses.OssLicensesMenuActivity
 import com.kshavrin.mymoney.feature.settings.R
 
@@ -68,6 +70,9 @@ fun AboutHelpContent(
             )
         },
     ) { innerPadding ->
+        val privacyLabel = stringResource(R.string.about_privacy)
+        val helpLabel = stringResource(R.string.about_help)
+        val licencesLabel = stringResource(R.string.about_licences)
         Column(
             modifier =
                 Modifier
@@ -82,16 +87,25 @@ fun AboutHelpContent(
             )
             HorizontalDivider()
             ListItem(
-                headlineContent = { Text(stringResource(R.string.about_privacy)) },
-                modifier = Modifier.clickable(onClick = onOpenPrivacy),
+                headlineContent = { Text(privacyLabel) },
+                modifier =
+                    Modifier
+                        .clickable(onClick = onOpenPrivacy)
+                        .semantics { contentDescription = privacyLabel },
             )
             ListItem(
-                headlineContent = { Text(stringResource(R.string.about_help)) },
-                modifier = Modifier.clickable(onClick = onOpenHelp),
+                headlineContent = { Text(helpLabel) },
+                modifier =
+                    Modifier
+                        .clickable(onClick = onOpenHelp)
+                        .semantics { contentDescription = helpLabel },
             )
             ListItem(
-                headlineContent = { Text(stringResource(R.string.about_licences)) },
-                modifier = Modifier.clickable(onClick = onOpenLicences),
+                headlineContent = { Text(licencesLabel) },
+                modifier =
+                    Modifier
+                        .clickable(onClick = onOpenLicences)
+                        .semantics { contentDescription = licencesLabel },
             )
         }
     }

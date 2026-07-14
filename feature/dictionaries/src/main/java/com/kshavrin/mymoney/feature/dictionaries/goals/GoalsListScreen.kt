@@ -36,6 +36,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kshavrin.mymoney.core.common.money.MoneyFormatter
 import com.kshavrin.mymoney.core.designsystem.icon.goalIcon
@@ -154,11 +156,13 @@ private fun GoalRowItem(
             decimalDigits = 2,
             locale = Locale.getDefault(),
         )
+    val rowDescription = stringResource(R.string.dictionaries_goal_row_cd, goal.name, amountText)
     Row(
         modifier =
             Modifier
                 .fillMaxWidth()
                 .clickable(onClick = onClick)
+                .semantics(mergeDescendants = true) { contentDescription = rowDescription }
                 .padding(Spacing.l),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.m),

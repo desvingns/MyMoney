@@ -21,6 +21,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -119,12 +121,20 @@ private fun CategoryRecordRow(
             .atZone(ZoneId.systemDefault())
             .toLocalDate()
             .format(RECORD_DATE_FORMAT)
+    val recordDescription =
+        stringResource(
+            R.string.dashboard_inline_record_cd,
+            if (hasNote) note.orEmpty() else stringResource(R.string.dashboard_inline_records_no_note),
+            formattedAmount,
+            formattedDate,
+        )
 
     Row(
         modifier =
             Modifier
                 .fillMaxWidth()
                 .clickable(onClick = onClick)
+                .semantics(mergeDescendants = true) { contentDescription = recordDescription }
                 .heightIn(min = Spacing.dashboardInlineRecordRowHeight)
                 .padding(horizontal = Spacing.l, vertical = Spacing.s),
         verticalAlignment = Alignment.CenterVertically,

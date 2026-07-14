@@ -35,6 +35,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kshavrin.mymoney.core.common.money.MoneyFormatter
@@ -120,12 +122,14 @@ private fun AccountRowItem(
             decimalDigits = decimalDigits,
             locale = Locale.getDefault(),
         )
+    val rowDescription = stringResource(R.string.dictionaries_account_row_cd, row.account.name)
 
     Row(
         modifier =
             Modifier
                 .fillMaxWidth()
                 .clickable(onClick = onClick)
+                .semantics(mergeDescendants = true) { contentDescription = rowDescription }
                 .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),

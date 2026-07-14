@@ -25,6 +25,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.feature.settings.R
@@ -84,18 +86,20 @@ private fun LanguageRow(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
+    val languageLabel = stringResource(language.labelRes)
     Row(
         modifier =
             Modifier
                 .fillMaxWidth()
                 .selectable(selected = selected, onClick = onClick, role = Role.RadioButton)
+                .semantics { contentDescription = languageLabel }
                 .padding(horizontal = Spacing.l, vertical = Spacing.m),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.m),
     ) {
         RadioButton(selected = selected, onClick = null)
         Text(
-            text = stringResource(language.labelRes),
+            text = languageLabel,
             style = MaterialTheme.typography.bodyLarge,
             modifier = Modifier.weight(1f),
         )

@@ -16,6 +16,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import com.kshavrin.mymoney.core.designsystem.R
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import java.time.LocalDate
@@ -29,22 +31,25 @@ fun DateHeader(
 ) {
     val locale = LocalConfiguration.current.locales[0]
     val formatter = remember(locale) { DateTimeFormatter.ofPattern("EEEE, d MMMM", locale) }
+    val formattedDate = date.format(formatter)
+    val dateDescription = stringResource(R.string.amountfield_date_cd, formattedDate)
     Row(
         modifier =
             modifier
                 .fillMaxWidth()
                 .clickable(onClick = onClick)
+                .semantics(mergeDescendants = true) { contentDescription = dateDescription }
                 .padding(vertical = Spacing.m, horizontal = Spacing.l),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
             imageVector = Icons.Filled.CalendarToday,
-            contentDescription = stringResource(R.string.amountfield_pick_date_cd),
+            contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurface,
         )
         Text(
-            text = date.format(formatter),
+            text = formattedDate,
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.padding(start = Spacing.s),

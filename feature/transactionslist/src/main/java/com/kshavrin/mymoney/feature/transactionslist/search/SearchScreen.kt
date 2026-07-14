@@ -55,6 +55,8 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -353,11 +355,21 @@ private fun SearchResultRow(
             TransactionKind.Transfer -> Icons.AutoMirrored.Filled.CompareArrows
             else -> Icons.Filled.Category
         }
+    val formattedAmount = formatSignedAmount(row.kind, row.amount, currency)
+    val formattedDate = formatDate(row.occurredAt)
+    val recordDescription =
+        stringResource(
+            R.string.transactions_list_search_record_cd,
+            formattedAmount,
+            row.note ?: stringResource(R.string.transactions_list_no_note),
+            formattedDate,
+        )
     Row(
         modifier =
             modifier
                 .fillMaxWidth()
                 .clickable(onClick = onClick)
+                .semantics { contentDescription = recordDescription }
                 .padding(horizontal = Spacing.l, vertical = Spacing.m),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.m),
@@ -372,7 +384,7 @@ private fun SearchResultRow(
             verticalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
             Text(
-                text = formatSignedAmount(row.kind, row.amount, currency),
+                text = formattedAmount,
                 style = MaterialTheme.typography.titleMedium,
                 color = amountColor,
             )
@@ -388,7 +400,7 @@ private fun SearchResultRow(
             }
         }
         Text(
-            text = formatDate(row.occurredAt),
+            text = formattedDate,
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

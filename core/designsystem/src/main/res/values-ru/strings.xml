@@ -30,4 +30,8 @@
     <string name="rate_manual_input_label">Курс вручную</string>
     <string name="rate_missing_hint">Курс отсутствует</string>
     <string name="rate_stale_hint">Курс устарел</string>
+    <string name="balance_bar_cd">%1$s: %2$s</string>
+    <string name="amountfield_date_cd">Дата: %1$s</string>
+    <string name="color_picker_option_cd">Цвет %1$s</string>
+    <string name="transaction_form_category_cd">Открыть категорию: %1$s</string>
 </resources>

@@ -17,10 +17,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
+import com.kshavrin.mymoney.core.designsystem.R
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 
 @Composable
@@ -60,10 +62,12 @@ fun MonefyAmountInput(
                     BasicText(text = display, style = style)
                 }
                 if (onClear != null) {
+                    val clearDescription =
+                        clearContentDescription ?: stringResource(R.string.keypad_backspace_cd)
                     IconButton(onClick = onClear) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.Backspace,
-                            contentDescription = clearContentDescription,
+                            contentDescription = clearDescription,
                             tint = MaterialTheme.colorScheme.onPrimary,
                         )
                     }

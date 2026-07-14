@@ -31,6 +31,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kshavrin.mymoney.core.ui.theme.DarkColors
@@ -94,18 +96,20 @@ private fun ThemeRow(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
+    val modeLabel = stringResource(mode.labelRes)
     Row(
         modifier =
             Modifier
                 .fillMaxWidth()
                 .selectable(selected = selected, onClick = onClick, role = Role.RadioButton)
+                .semantics { contentDescription = modeLabel }
                 .padding(horizontal = Spacing.l, vertical = Spacing.m),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.m),
     ) {
         RadioButton(selected = selected, onClick = null)
         Text(
-            text = stringResource(mode.labelRes),
+            text = modeLabel,
             style = MaterialTheme.typography.bodyLarge,
             modifier = Modifier.weight(1f),
         )

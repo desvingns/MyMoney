@@ -47,6 +47,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -277,11 +278,13 @@ private fun AccountToggleHeaderRow(
     expanded: Boolean,
     onClick: () -> Unit,
 ) {
+    val rowDescription = stringResource(R.string.dashboard_account_toggle_cd, name, code)
     Surface(
         modifier =
             Modifier
                 .fillMaxWidth()
                 .clip(drawerRowShape)
+                .semantics(mergeDescendants = true) { contentDescription = rowDescription }
                 .clickable(onClick = onClick),
         shape = drawerRowShape,
         color = MaterialTheme.colorScheme.surface,
@@ -334,13 +337,17 @@ private fun AccountDropdownRow(
         } else {
             MaterialTheme.colorScheme.surface
         }
+    val rowDescription = stringResource(R.string.dashboard_account_option_cd, label)
     Row(
         modifier =
             Modifier
                 .fillMaxWidth()
                 .background(backgroundColor)
                 .clickable(onClick = onClick)
-                .semantics(mergeDescendants = true) { this.selected = selected }
+                .semantics(mergeDescendants = true) {
+                    contentDescription = rowDescription
+                    this.selected = selected
+                }
                 .padding(horizontal = Spacing.m, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -396,6 +403,7 @@ private fun DrawerOutlinedRow(
         } else {
             MaterialTheme.colorScheme.onSurface
         }
+    val rowDescription = stringResource(R.string.dashboard_drawer_option_cd, label)
     Row(
         modifier =
             Modifier
@@ -405,7 +413,10 @@ private fun DrawerOutlinedRow(
                 .background(backgroundColor)
                 .border(1.dp, MaterialTheme.colorScheme.outline, drawerRowShape)
                 .clickable(enabled = enabled, onClick = onClick)
-                .semantics(mergeDescendants = true) { this.selected = selected }
+                .semantics(mergeDescendants = true) {
+                    contentDescription = rowDescription
+                    this.selected = selected
+                }
                 .padding(horizontal = Spacing.m, vertical = Spacing.m),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Start,
@@ -471,6 +482,7 @@ private fun PeriodButton(
         } else {
             MaterialTheme.colorScheme.onSurface
         }
+    val rowDescription = stringResource(R.string.dashboard_drawer_option_cd, label)
     Row(
         modifier =
             Modifier
@@ -481,7 +493,10 @@ private fun PeriodButton(
                 .background(backgroundColor)
                 .border(1.dp, MaterialTheme.colorScheme.outline, drawerRowShape)
                 .clickable(onClick = onClick)
-                .semantics(mergeDescendants = true) { this.selected = selected }
+                .semantics(mergeDescendants = true) {
+                    contentDescription = rowDescription
+                    this.selected = selected
+                }
                 .padding(horizontal = Spacing.m),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,

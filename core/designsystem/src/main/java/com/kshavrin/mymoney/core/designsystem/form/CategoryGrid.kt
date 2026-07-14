@@ -88,7 +88,7 @@ private fun CategoryCell(
             fallback = tint,
         )
     GridCard(
-        contentDescription = category.name,
+        contentDescription = stringResource(R.string.transaction_form_category_cd, category.name),
         categoryIconKey = category.iconKey,
         icon = null,
         iconTint = tint,

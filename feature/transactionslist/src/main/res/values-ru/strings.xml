@@ -47,4 +47,6 @@
     <string name="search_error">Что-то пошло не так</string>
     <string name="search_voice_unavailable">Голосовой поиск недоступен на этом устройстве</string>
     <string name="search_voice_prompt">Произнесите запрос для поиска</string>
+    <string name="transactions_list_record_cd">Открыть запись: %1$s, %2$s, %3$s, %4$s</string>
+    <string name="transactions_list_search_record_cd">Открыть запись: %1$s, %2$s, %3$s</string>
 </resources>

@@ -18,9 +18,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.kshavrin.mymoney.core.designsystem.R
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.core.ui.theme.wizardColorPickerSelectedBorder
 
@@ -50,11 +53,15 @@ fun ColorPickerGrid(
         items(palette) { hex ->
             val color = parseHexColor(hex)
             val selected = hex.equals(selectedHex, ignoreCase = true)
+            val colorDescription = stringResource(R.string.color_picker_option_cd, hex)
             Box(
                 modifier =
                     Modifier
                         .size(Spacing.wizardColorSwatchSize)
-                        .semantics { contentDescription = hex }
+                        .semantics {
+                            contentDescription = colorDescription
+                            this.selected = selected
+                        }
                         .clip(CircleShape)
                         .background(color)
                         .then(

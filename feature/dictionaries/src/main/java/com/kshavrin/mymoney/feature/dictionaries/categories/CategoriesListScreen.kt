@@ -42,6 +42,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -252,6 +254,7 @@ private fun CategoryCard(
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
+    val categoryDescription = stringResource(R.string.dictionaries_category_row_cd, category.name)
     val cardModifier =
         modifier
             .then(
@@ -266,6 +269,7 @@ private fun CategoryCard(
                     Modifier
                 },
             ).clickable(enabled = !isDragged, onClick = onClick)
+            .semantics(mergeDescendants = true) { contentDescription = categoryDescription }
             .padding(8.dp)
 
     Column(

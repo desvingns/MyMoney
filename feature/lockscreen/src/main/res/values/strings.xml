@@ -26,4 +26,6 @@
     <string name="lock_pin_unavailable">PIN is not set yet. Retry biometric unlock, then set a PIN in App lock settings.</string>
     <string name="lock_pin_backspace">Backspace</string>
     <string name="lock_retry_biometric">Retry</string>
+    <string name="biometric_open_system_settings">Open system settings</string>
+    <string name="biometric_idle_timeout_cd">Lock after inactivity: %1$s</string>
 </resources>

@@ -29,6 +29,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kshavrin.mymoney.core.domain.model.Currency
@@ -106,11 +108,18 @@ private fun CurrencyRowItem(
     onClick: () -> Unit,
     onActiveChange: (Boolean) -> Unit,
 ) {
+    val rowDescription =
+        stringResource(
+            R.string.dictionaries_currency_row_cd,
+            currency.code,
+            currency.name,
+        )
     Row(
         modifier =
             Modifier
                 .fillMaxWidth()
                 .clickable(onClick = onClick)
+                .semantics { contentDescription = rowDescription }
                 .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),

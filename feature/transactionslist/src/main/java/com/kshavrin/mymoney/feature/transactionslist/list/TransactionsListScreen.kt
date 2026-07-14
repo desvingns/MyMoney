@@ -35,6 +35,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -320,11 +322,20 @@ private fun BaseRecordRow(
     modifier: Modifier = Modifier,
 ) {
     val hasSecondary = !secondary.isNullOrBlank()
+    val recordDescription =
+        stringResource(
+            R.string.transactions_list_record_cd,
+            primary,
+            if (hasSecondary) secondary.orEmpty() else stringResource(R.string.transactions_list_no_note),
+            amount,
+            date,
+        )
     Row(
         modifier =
             modifier
                 .fillMaxWidth()
                 .clickable(onClick = onClick)
+                .semantics(mergeDescendants = true) { contentDescription = recordDescription }
                 .heightIn(min = Spacing.dashboardInlineRecordRowHeight)
                 .padding(horizontal = Spacing.l, vertical = Spacing.s),
         verticalAlignment = Alignment.CenterVertically,

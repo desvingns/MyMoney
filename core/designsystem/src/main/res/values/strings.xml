@@ -30,4 +30,8 @@
     <string name="rate_manual_input_label">Manual rate</string>
     <string name="rate_missing_hint">Missing rate</string>
     <string name="rate_stale_hint">Stale rate</string>
+    <string name="balance_bar_cd">%1$s: %2$s</string>
+    <string name="amountfield_date_cd">Date: %1$s</string>
+    <string name="color_picker_option_cd">Color %1$s</string>
+    <string name="transaction_form_category_cd">Open category: %1$s</string>
 </resources>

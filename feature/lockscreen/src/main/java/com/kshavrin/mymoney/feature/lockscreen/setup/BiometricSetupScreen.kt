@@ -44,6 +44,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
@@ -174,7 +176,8 @@ private fun UnavailabilityNotice(
                 modifier = Modifier.padding(horizontal = Spacing.l, vertical = Spacing.s),
             )
 
-        BiometricAvailability.NotEnrolled ->
+        BiometricAvailability.NotEnrolled -> {
+            val openSettingsDescription = stringResource(R.string.biometric_open_system_settings)
             Text(
                 text = stringResource(R.string.biometric_enrol_required),
                 color = BIOMETRIC_ERROR_COLOR,
@@ -182,8 +185,10 @@ private fun UnavailabilityNotice(
                 modifier =
                     Modifier
                         .clickable(onClick = onOpenSystemSettings)
+                        .semantics { contentDescription = openSettingsDescription }
                         .padding(horizontal = Spacing.l, vertical = Spacing.s),
             )
+        }
     }
 }
 
@@ -194,19 +199,22 @@ private fun IdleTimeoutRow(
     onSelect: (Int) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
+    val selectedTimeoutLabel = stringResource(idleTimeoutLabelRes(selectedSeconds))
+    val timeoutDescription = stringResource(R.string.biometric_idle_timeout_cd, selectedTimeoutLabel)
     Box {
         ListItem(
             headlineContent = { Text(stringResource(R.string.biometric_idle_timeout_label)) },
             trailingContent = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(idleTimeoutLabelRes(selectedSeconds)))
+                    Text(selectedTimeoutLabel)
                     Icon(Icons.Filled.ArrowDropDown, contentDescription = null)
                 }
             },
             modifier =
                 Modifier
                     .testTag(LOCK_SETUP_IDLE_TIMEOUT_TAG)
-                    .clickable { expanded = true },
+                    .clickable { expanded = true }
+                    .semantics { contentDescription = timeoutDescription },
         )
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             IDLE_TIMEOUT_OPTIONS.forEach { seconds ->

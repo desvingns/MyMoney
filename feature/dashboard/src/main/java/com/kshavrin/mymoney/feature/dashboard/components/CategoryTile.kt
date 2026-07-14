@@ -70,6 +70,8 @@ fun CategoryTile(
             )
         }
     val tileShape = RoundedCornerShape(Spacing.dashboardTileCornerRadius)
+    val tileDescription =
+        stringResource(R.string.dashboard_category_tile_cd, tile.label, formattedAmount)
 
     BoxWithConstraints(
         modifier =
@@ -79,6 +81,7 @@ fun CategoryTile(
                 .height(Spacing.dashboardTileHeight)
                 .clip(tileShape)
                 .background(MaterialTheme.colorScheme.tileSurface)
+                .semantics(mergeDescendants = true) { contentDescription = tileDescription }
                 .clickable { onTileClick(tile.categoryId) },
     ) {
         Row(

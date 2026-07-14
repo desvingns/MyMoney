@@ -5,11 +5,13 @@ import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.accessibility.enableAccessibilityChecks
+import androidx.compose.ui.test.junit4.accessibility.tryPerformAccessibilityChecks
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -49,7 +51,15 @@ import java.time.format.FormatStyle
 @RunWith(AndroidJUnit4::class)
 class DashboardTopBarPeriodTitleUiTest {
     @get:Rule
-    val composeTestRule = createComposeRule().apply { enableAccessibilityChecks() }
+    val composeTestRule = createComposeRule()
+
+    @Test
+    fun `dashboard top bar passes accessibility framework checks`() {
+        setDashboard(Period.Week(LocalDate.of(2026, 6, 15)))
+
+        composeTestRule.enableAccessibilityChecks()
+        composeTestRule.onRoot().tryPerformAccessibilityChecks()
+    }
 
     // ── single-row layout structural assertions ───────────────────────────────
 
@@ -90,14 +100,10 @@ class DashboardTopBarPeriodTitleUiTest {
         // Menu and More must exist in the single-row toolbar.
         composeTestRule
             .onNodeWithContentDescription(ctx.getString(R.string.dashboard_menu))
-            .assertIsDisplayed()
-            .assertTouchWidthIsAtLeast(48.dp)
-            .assertTouchHeightIsAtLeast(48.dp)
+            .assertAccessibleTouchTarget()
         composeTestRule
             .onNodeWithContentDescription(ctx.getString(R.string.dashboard_overflow_menu))
-            .assertIsDisplayed()
-            .assertTouchWidthIsAtLeast(48.dp)
-            .assertTouchHeightIsAtLeast(48.dp)
+            .assertAccessibleTouchTarget()
 
         // Transfer moved from the toolbar to the middle FAB.  The FAB is the single node
         // that carries this content description — assert count == 1 (FAB only, not toolbar).
@@ -295,10 +301,10 @@ class DashboardTopBarPeriodTitleUiTest {
         // Menu and more remain in the single-row toolbar even with a two-line period title.
         composeTestRule
             .onNodeWithContentDescription(ctx.getString(R.string.dashboard_menu))
-            .assertIsDisplayed()
+            .assertAccessibleTouchTarget()
         composeTestRule
             .onNodeWithContentDescription(ctx.getString(R.string.dashboard_overflow_menu))
-            .assertIsDisplayed()
+            .assertAccessibleTouchTarget()
 
         // Search moved to the right drawer; drawer is closed by default → still 0.
         composeTestRule
@@ -308,14 +314,10 @@ class DashboardTopBarPeriodTitleUiTest {
         // Chevrons inside PeriodSwitcher must still be present.
         composeTestRule
             .onNodeWithContentDescription(ctx.getString(R.string.period_previous))
-            .assertIsDisplayed()
-            .assertTouchWidthIsAtLeast(48.dp)
-            .assertTouchHeightIsAtLeast(48.dp)
+            .assertAccessibleTouchTarget()
         composeTestRule
             .onNodeWithContentDescription(ctx.getString(R.string.period_next))
-            .assertIsDisplayed()
-            .assertTouchWidthIsAtLeast(48.dp)
-            .assertTouchHeightIsAtLeast(48.dp)
+            .assertAccessibleTouchTarget()
     }
 
     @Test
@@ -399,11 +401,16 @@ class DashboardTopBarPeriodTitleUiTest {
             .assertIsDisplayed()
         composeTestRule
             .onNodeWithContentDescription(ctx.getString(R.string.period_previous))
-            .assertIsDisplayed()
+            .assertAccessibleTouchTarget()
         composeTestRule
             .onNodeWithContentDescription(ctx.getString(R.string.period_next))
-            .assertIsDisplayed()
+            .assertAccessibleTouchTarget()
     }
+
+    private fun SemanticsNodeInteraction.assertAccessibleTouchTarget(): SemanticsNodeInteraction =
+        assertIsDisplayed()
+            .assertTouchWidthIsAtLeast(48.dp)
+            .assertTouchHeightIsAtLeast(48.dp)
 
     // ── helpers ───────────────────────────────────────────────────────────────
 

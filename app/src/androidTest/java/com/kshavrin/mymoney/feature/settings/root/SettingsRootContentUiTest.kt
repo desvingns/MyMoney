@@ -2,7 +2,6 @@ package com.kshavrin.mymoney.feature.settings.root
 
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
-import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -113,11 +112,11 @@ class SettingsRootContentUiTest {
             .assertExists()
 
         composeTestRule
-            .onAllNodes(isToggleable())[0]
+            .onNodeWithContentDescription(targetString(R.string.settings_sound_toggle))
             .assertIsOn()
             .performClick()
         composeTestRule
-            .onAllNodes(isToggleable())[1]
+            .onNodeWithContentDescription(targetString(R.string.settings_haptic_toggle))
             .assertIsOff()
             .performClick()
 

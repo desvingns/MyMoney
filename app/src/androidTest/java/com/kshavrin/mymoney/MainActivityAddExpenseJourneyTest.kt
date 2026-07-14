@@ -26,6 +26,7 @@ import org.junit.runner.RunWith
 import com.kshavrin.mymoney.feature.dashboard.R as DashboardR
 import com.kshavrin.mymoney.feature.onboarding.R as OnboardingR
 import com.kshavrin.mymoney.feature.transaction.R as TransactionR
+import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
 
 /**
  * J1 — the highest-value end-to-end journey (AS-2, AS-4, TDD §4.6 AC6).
@@ -69,8 +70,13 @@ class MainActivityAddExpenseJourneyTest {
         composeRule.onNodeWithText(targetString(TransactionR.string.choose_category_button)).performClick()
         composeRule
             .onNodeWithTag(CATEGORY_GRID_TAG)
-            .performScrollToNode(hasContentDescription("Food"))
-        composeRule.onNodeWithContentDescription("Food").performClick()
+            .performScrollToNode(
+                hasContentDescription(targetString(DesignSystemR.string.transaction_form_category_cd, "Food")),
+            )
+        composeRule
+            .onNodeWithContentDescription(
+                targetString(DesignSystemR.string.transaction_form_category_cd, "Food"),
+            ).performClick()
 
         // Returning to the dashboard proves embedded category selection auto-saved and popped.
         composeRule.waitUntil(TIMEOUT) {
@@ -100,8 +106,14 @@ class MainActivityAddExpenseJourneyTest {
         }
     }
 
-    private fun targetString(resourceId: Int): String =
-        InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)
+    private fun targetString(
+        resourceId: Int,
+        vararg formatArgs: Any,
+    ): String =
+        InstrumentationRegistry
+            .getInstrumentation()
+            .targetContext
+            .getString(resourceId, *formatArgs)
 
     private companion object {
         const val TIMEOUT = 20_000L

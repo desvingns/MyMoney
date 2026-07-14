@@ -139,7 +139,9 @@ class AddIncomeScreenUiTest {
             .onNodeWithTag(CATEGORY_GRID_TAG)
             .assertIsDisplayed()
         composeTestRule
-            .onNodeWithContentDescription("Salary")
+            .onNodeWithContentDescription(
+                targetString(DesignSystemR.string.transaction_form_category_cd, "Salary"),
+            )
             .assertIsDisplayed()
         composeTestRule
             .onNodeWithTag(CATEGORY_GRID_ADD_CELL_TAG)
@@ -253,7 +255,9 @@ class AddIncomeScreenUiTest {
         }
 
         composeTestRule
-            .onNodeWithContentDescription(targetString(DesignSystemR.string.amountfield_pick_date_cd))
+            .onNodeWithContentDescription(
+                targetString(DesignSystemR.string.amountfield_date_cd, dateLabel(selectedDate)),
+            )
             .performClick()
         composeTestRule.onNodeWithText(dateLabel(selectedDate)).performClick()
         composeTestRule.onNodeWithText(targetString(R.string.apply)).performClick()
@@ -303,7 +307,9 @@ class AddIncomeScreenUiTest {
         }
 
         composeTestRule
-            .onNodeWithContentDescription("Salary")
+            .onNodeWithContentDescription(
+                targetString(DesignSystemR.string.transaction_form_category_cd, "Salary"),
+            )
             .assertIsDisplayed()
             .performClick()
 
@@ -374,8 +380,14 @@ class AddIncomeScreenUiTest {
             createdAt = Instant.parse("2026-05-27T00:00:00Z"),
         )
 
-    private fun targetString(resourceId: Int): String =
-        InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)
+    private fun targetString(
+        resourceId: Int,
+        vararg formatArgs: Any,
+    ): String =
+        InstrumentationRegistry
+            .getInstrumentation()
+            .targetContext
+            .getString(resourceId, *formatArgs)
 
     private fun dateLabel(date: LocalDate): String {
         val locale =

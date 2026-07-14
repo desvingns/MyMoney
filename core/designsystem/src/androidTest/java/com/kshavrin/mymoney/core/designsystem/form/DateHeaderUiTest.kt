@@ -35,7 +35,9 @@ class DateHeaderUiTest {
             .onNodeWithText(dateLabel(date))
             .assertIsDisplayed()
         composeTestRule
-            .onNodeWithContentDescription(targetString(R.string.amountfield_pick_date_cd))
+            .onNodeWithContentDescription(
+                targetString(R.string.amountfield_date_cd, dateLabel(date)),
+            )
             .assertIsDisplayed()
     }
 
@@ -62,8 +64,14 @@ class DateHeaderUiTest {
         }
     }
 
-    private fun targetString(resourceId: Int): String =
-        InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)
+    private fun targetString(
+        resourceId: Int,
+        vararg formatArgs: Any,
+    ): String =
+        InstrumentationRegistry
+            .getInstrumentation()
+            .targetContext
+            .getString(resourceId, *formatArgs)
 
     private fun dateLabel(date: LocalDate): String {
         val locale =

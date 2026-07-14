@@ -223,7 +223,9 @@ class AddExpenseScreenUiTest {
             .onNodeWithTag(CATEGORY_GRID_TAG)
             .assertIsDisplayed()
         composeTestRule
-            .onNodeWithContentDescription("Food")
+            .onNodeWithContentDescription(
+                targetString(DesignSystemR.string.transaction_form_category_cd, "Food"),
+            )
             .assertIsDisplayed()
             .assertTouchWidthIsAtLeast(48.dp)
             .assertTouchHeightIsAtLeast(48.dp)
@@ -291,7 +293,9 @@ class AddExpenseScreenUiTest {
         }
 
         composeTestRule
-            .onNodeWithContentDescription(targetString(DesignSystemR.string.amountfield_pick_date_cd))
+            .onNodeWithContentDescription(
+                targetString(DesignSystemR.string.amountfield_date_cd, dateLabel(selectedDate)),
+            )
             .assertTouchWidthIsAtLeast(48.dp)
             .assertTouchHeightIsAtLeast(48.dp)
             .performClick()
@@ -343,7 +347,9 @@ class AddExpenseScreenUiTest {
         }
 
         composeTestRule
-            .onNodeWithContentDescription("Food")
+            .onNodeWithContentDescription(
+                targetString(DesignSystemR.string.transaction_form_category_cd, "Food"),
+            )
             .assertIsDisplayed()
             .assertTouchWidthIsAtLeast(48.dp)
             .assertTouchHeightIsAtLeast(48.dp)
@@ -455,8 +461,14 @@ class AddExpenseScreenUiTest {
             .assertTouchHeightIsAtLeast(48.dp)
     }
 
-    private fun targetString(resourceId: Int): String =
-        InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)
+    private fun targetString(
+        resourceId: Int,
+        vararg formatArgs: Any,
+    ): String =
+        InstrumentationRegistry
+            .getInstrumentation()
+            .targetContext
+            .getString(resourceId, *formatArgs)
 
     private fun dateLabel(date: LocalDate): String {
         val locale =

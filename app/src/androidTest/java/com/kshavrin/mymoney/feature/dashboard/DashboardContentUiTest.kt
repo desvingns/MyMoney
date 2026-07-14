@@ -13,6 +13,7 @@ import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.click
@@ -74,6 +75,7 @@ import com.kshavrin.mymoney.test.assertTouchWidthIsAtLeast
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.YearMonth
+import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 @RunWith(AndroidJUnit4::class)
@@ -229,7 +231,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `confirming date picker emits PeriodChanged with a Day period`() {
+    fun `confirming top bar single date picker emits Day, distinct from drawer custom range`() {
         val capturedEvents = mutableListOf<DashboardEvent>()
 
         composeTestRule.setContent {
@@ -268,6 +270,44 @@ class DashboardContentUiTest {
                 "expected PeriodChanged to carry a Period.Day but got $period",
                 period is Period.Day,
             )
+            assertTrue(
+                "the top-bar picker is single-date; drawer Pick a date owns CustomRange",
+                period !is Period.CustomRange,
+            )
+        }
+    }
+
+    @Test
+    fun `drawer Pick a date dismisses drawer and parent picker requires both dates before CustomRange`() {
+        val capturedEvents = mutableListOf<DashboardEvent>()
+        val start = LocalDate.now().withDayOfMonth(1)
+        val end = start.plusDays(1)
+
+        setStatefulDashboardContent(
+            initialState = DashboardState(isLoading = false, leftDrawerOpen = true),
+            onCapturedEvent = { capturedEvents += it },
+        )
+        composeTestRule.waitForIdle()
+
+        composeTestRule
+            .onNodeWithText(targetString(R.string.period_pick_a_date))
+            .performClick()
+        composeTestRule.waitForIdle()
+
+        composeTestRule
+            .onNodeWithText(targetString(R.string.period_apply))
+            .assertIsNotEnabled()
+        composeTestRule.onNodeWithText(dateLabel(start)).performClick()
+        composeTestRule.onNodeWithText(dateLabel(end)).performClick()
+        composeTestRule
+            .onNodeWithText(targetString(R.string.period_apply))
+            .assertIsEnabled()
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(DashboardEvent.DrawerDismissed), capturedEvents.take(1))
+            val periodChanged = capturedEvents.filterIsInstance<DashboardEvent.PeriodChanged>().single()
+            assertEquals(Period.CustomRange(start, end), periodChanged.period)
         }
     }
 
@@ -1926,6 +1966,9 @@ class DashboardContentUiTest {
         InstrumentationRegistry
             .getInstrumentation()
             .targetContext.resources.configuration.locales[0]
+
+    private fun dateLabel(date: LocalDate): String =
+        date.format(DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy", targetLocale()))
 
     private fun dashboardState(
         currency: Currency,

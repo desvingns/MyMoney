@@ -9,6 +9,7 @@ import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -84,12 +85,18 @@ class DashboardDrawerContentUiTest {
                             isLoading = false,
                         ),
                     onEvent = { event -> capturedEvents += event },
+                    onPickDateRangeClick = {},
                 )
             }
         }
 
         composeTestRule.onNode(hasText(currency.name) and hasClickAction()).assertIsDisplayed()
         composeTestRule.onNodeWithText(currency.code).assertIsDisplayed()
+        composeTestRule
+            .onNodeWithContentDescription(
+                targetString(R.string.dashboard_account_toggle_cd, currency.name, currency.code),
+            )
+            .assertIsDisplayed()
         composeTestRule.onAllNodesWithText(cash.name).assertCountEquals(0)
 
         composeTestRule.onNode(hasText(currency.name) and hasClickAction()).performClick()
@@ -100,10 +107,24 @@ class DashboardDrawerContentUiTest {
             .assertIsEnabled()
             .assertIsNotSelected()
         composeTestRule
+            .onNodeWithContentDescription(
+                targetString(
+                    R.string.dashboard_account_option_with_subtitle_cd,
+                    targetString(R.string.left_drawer_all_accounts),
+                    targetString(R.string.left_drawer_all_currencies),
+                ),
+            )
+            .assertIsDisplayed()
+        composeTestRule
             .onAllNodesWithText(targetString(R.string.left_drawer_manage_accounts))
             .assertCountEquals(0)
         accountRow(cash.name)
             .assertIsDisplayed()
+            .assertIsSelected()
+        composeTestRule
+            .onNodeWithContentDescription(
+                targetString(R.string.dashboard_account_option_with_subtitle_cd, cash.name, currency.code),
+            )
             .assertIsSelected()
         accountRow(card.name)
             .assertIsDisplayed()
@@ -137,6 +158,7 @@ class DashboardDrawerContentUiTest {
                             isLoading = false,
                         ),
                     onEvent = { event -> capturedEvents += event },
+                    onPickDateRangeClick = {},
                 )
             }
         }
@@ -146,6 +168,15 @@ class DashboardDrawerContentUiTest {
         composeTestRule
             .onNodeWithText(targetString(R.string.left_drawer_all_accounts))
             .assertIsDisplayed()
+            .assertIsSelected()
+        composeTestRule
+            .onNodeWithContentDescription(
+                targetString(
+                    R.string.dashboard_account_option_with_subtitle_cd,
+                    targetString(R.string.left_drawer_all_accounts),
+                    targetString(R.string.left_drawer_all_currencies),
+                ),
+            )
             .assertIsSelected()
         accountRow(cash.name).assertIsNotSelected()
         accountRow(card.name).assertIsNotSelected()
@@ -165,8 +196,14 @@ class DashboardDrawerContentUiTest {
     private fun accountRow(name: String) =
         composeTestRule.onNode(hasText(name) and hasClickAction())
 
-    private fun targetString(resourceId: Int): String =
-        InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)
+    private fun targetString(
+        resourceId: Int,
+        vararg formatArgs: Any,
+    ): String =
+        InstrumentationRegistry
+            .getInstrumentation()
+            .targetContext
+            .getString(resourceId, *formatArgs)
 
     private fun currency() =
         Currency(

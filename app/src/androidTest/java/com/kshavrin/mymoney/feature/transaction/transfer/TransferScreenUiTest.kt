@@ -297,7 +297,9 @@ class TransferScreenUiTest {
         }
 
         composeTestRule
-            .onNodeWithContentDescription(targetString(DesignSystemR.string.amountfield_pick_date_cd))
+            .onNodeWithContentDescription(
+                targetString(DesignSystemR.string.amountfield_date_cd, dateLabel(chosenDate)),
+            )
             .performClick()
         composeTestRule.onNodeWithText(dateLabel(chosenDate)).performClick()
         composeTestRule.onNodeWithText(targetString(R.string.pick_date)).performClick()
@@ -562,8 +564,14 @@ class TransferScreenUiTest {
         }
     }
 
-    private fun targetString(resourceId: Int): String =
-        InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)
+    private fun targetString(
+        resourceId: Int,
+        vararg formatArgs: Any,
+    ): String =
+        InstrumentationRegistry
+            .getInstrumentation()
+            .targetContext
+            .getString(resourceId, *formatArgs)
 
     private fun dateLabel(date: LocalDate): String {
         val locale =

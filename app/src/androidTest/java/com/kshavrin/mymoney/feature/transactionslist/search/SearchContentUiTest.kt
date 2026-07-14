@@ -4,14 +4,18 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.kshavrin.mymoney.core.common.money.MoneyFormatter
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
@@ -23,6 +27,10 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import java.math.BigDecimal
 import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
+import java.util.Locale
 
 @RunWith(AndroidJUnit4::class)
 class SearchContentUiTest {
@@ -177,9 +185,15 @@ class SearchContentUiTest {
             onEvent = { event -> capturedEvents += event },
         )
 
+        val row = searchRow(id = 42L, note = "Coffee")
+        val rowDescription = searchRowDescription(row, currency(id = 1L))
         composeTestRule
-            .onNodeWithText("Coffee")
+            .onAllNodesWithContentDescription(rowDescription)
+            .assertCountEquals(1)
+        composeTestRule
+            .onNodeWithContentDescription(rowDescription)
             .assertIsDisplayed()
+            .assertHasClickAction()
             .performClick()
 
         composeTestRule.runOnIdle {
@@ -264,6 +278,37 @@ class SearchContentUiTest {
             sortOrder = 0,
         )
 
-    private fun targetString(resourceId: Int): String =
-        InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)
+    private fun searchRowDescription(
+        row: SearchRow,
+        currency: Currency,
+    ): String {
+        val formattedAmount =
+            "-" +
+                MoneyFormatter.format(
+                    amount = row.amount,
+                    currencySymbol = currency.symbol,
+                    decimalDigits = currency.decimalDigits,
+                    locale = Locale.getDefault(),
+                )
+        val formattedDate =
+            DateTimeFormatter
+                .ofLocalizedDate(FormatStyle.MEDIUM)
+                .withLocale(Locale.getDefault())
+                .format(row.occurredAt.atZone(ZoneId.systemDefault()))
+        return targetString(
+            R.string.transactions_list_search_record_cd,
+            formattedAmount,
+            row.note.orEmpty(),
+            formattedDate,
+        )
+    }
+
+    private fun targetString(
+        resourceId: Int,
+        vararg formatArgs: Any,
+    ): String =
+        InstrumentationRegistry
+            .getInstrumentation()
+            .targetContext
+            .getString(resourceId, *formatArgs)
 }

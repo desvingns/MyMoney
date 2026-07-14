@@ -8,6 +8,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.kshavrin.mymoney.core.common.money.MoneyFormatter
 import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.AccountType
 import com.kshavrin.mymoney.core.domain.model.Currency
@@ -19,6 +20,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import java.math.BigDecimal
 import java.time.Instant
+import java.util.Locale
 
 @RunWith(AndroidJUnit4::class)
 class AccountsListContentUiTest {
@@ -51,6 +53,18 @@ class AccountsListContentUiTest {
         composeTestRule.onNodeWithText(targetString(R.string.dictionaries_default_badge)).assertIsDisplayed()
         composeTestRule
             .onNodeWithText(targetString(R.string.dictionaries_balance_label), substring = true)
+            .assertIsDisplayed()
+        val balanceText =
+            MoneyFormatter.format(
+                amount = BigDecimal("100.00"),
+                currencySymbol = "$",
+                decimalDigits = 2,
+                locale = Locale.getDefault(),
+            )
+        composeTestRule
+            .onNodeWithContentDescription(
+                targetString(R.string.dictionaries_default_account_row_cd, "Cash", balanceText),
+            )
             .assertIsDisplayed()
 
         composeTestRule
@@ -122,6 +136,12 @@ class AccountsListContentUiTest {
             sortOrder = 0,
         )
 
-    private fun targetString(resourceId: Int): String =
-        InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)
+    private fun targetString(
+        resourceId: Int,
+        vararg formatArgs: Any,
+    ): String =
+        InstrumentationRegistry
+            .getInstrumentation()
+            .targetContext
+            .getString(resourceId, *formatArgs)
 }

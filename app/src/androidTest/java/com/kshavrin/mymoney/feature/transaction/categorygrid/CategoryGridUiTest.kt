@@ -37,7 +37,9 @@ class CategoryGridUiTest {
         )
 
         composeTestRule
-            .onNodeWithContentDescription("Bills")
+            .onNodeWithContentDescription(
+                targetString(DesignSystemR.string.transaction_form_category_cd, "Bills"),
+            )
             .assertIsDisplayed()
             .performClick()
 
@@ -123,6 +125,12 @@ class CategoryGridUiTest {
             colorHex = "#7AC794",
         )
 
-    private fun targetString(resourceId: Int): String =
-        InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)
+    private fun targetString(
+        resourceId: Int,
+        vararg formatArgs: Any,
+    ): String =
+        InstrumentationRegistry
+            .getInstrumentation()
+            .targetContext
+            .getString(resourceId, *formatArgs)
 }

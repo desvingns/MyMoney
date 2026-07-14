@@ -8,6 +8,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.kshavrin.mymoney.core.common.money.MoneyFormatter
 import com.kshavrin.mymoney.core.domain.model.Goal
 import com.kshavrin.mymoney.core.domain.model.GoalVariant
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
@@ -18,6 +19,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import java.math.BigDecimal
 import java.time.Instant
+import java.util.Locale
 
 @RunWith(AndroidJUnit4::class)
 class GoalsListContentUiTest {
@@ -86,6 +88,23 @@ class GoalsListContentUiTest {
         composeTestRule.onNodeWithText("Buy a house").assertIsDisplayed()
         composeTestRule
             .onNodeWithText(targetString(R.string.goals_variant_savings))
+            .assertIsDisplayed()
+        val amountText =
+            MoneyFormatter.format(
+                amount = BigDecimal("5000.00"),
+                currencySymbol = "",
+                decimalDigits = 2,
+                locale = Locale.getDefault(),
+            )
+        composeTestRule
+            .onNodeWithContentDescription(
+                targetString(
+                    R.string.dictionaries_goal_row_cd,
+                    "Buy a house",
+                    amountText,
+                    targetString(R.string.goals_variant_savings),
+                ),
+            )
             .assertIsDisplayed()
     }
 
@@ -212,6 +231,12 @@ class GoalsListContentUiTest {
         }
     }
 
-    private fun targetString(resourceId: Int): String =
-        InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)
+    private fun targetString(
+        resourceId: Int,
+        vararg formatArgs: Any,
+    ): String =
+        InstrumentationRegistry
+            .getInstrumentation()
+            .targetContext
+            .getString(resourceId, *formatArgs)
 }

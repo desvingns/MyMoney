@@ -147,6 +147,26 @@ class PeriodArithmeticTest {
     }
 
     @Test
+    fun `Interval single day matches a Day range`() {
+        val date = LocalDate.of(2026, 5, 18)
+        val interval = PeriodArithmetic.toEpochMillisRange(Period.Interval(date, date), zone)
+        val day = PeriodArithmetic.toEpochMillisRange(Period.Day(date), zone)
+
+        assertEquals(day, interval)
+    }
+
+    @Test
+    fun `Interval spans start of first day to end of last day`() {
+        val start = LocalDate.of(2026, 3, 15)
+        val end = LocalDate.of(2026, 7, 2)
+        val range = PeriodArithmetic.toEpochMillisRange(Period.Interval(start, end), zone)
+
+        assertEquals(startMillis(start), range.first)
+        assertEquals(endMillis(end), range.last)
+        assertTrue(range.first <= range.last)
+    }
+
+    @Test
     fun `CustomRange spans start of first day to end of last day`() {
         val start = LocalDate.of(2026, 3, 15)
         val end = LocalDate.of(2026, 7, 2)

@@ -118,6 +118,38 @@ class BalanceTrendCalculatorTest {
     }
 
     @Test
+    fun `buildWindow for one day Interval caps count and never creates inverted buckets`() {
+        val date = LocalDate.of(2026, 6, 22)
+
+        val window = calculator.buildWindow(Period.Interval(date, date), count = 5, zone = fixedZone)
+
+        assertEquals(listOf(Period.Interval(date, date)), window)
+        assertTrue(window.all { (it as Period.Interval).start <= it.end })
+    }
+
+    @Test
+    fun `buildAutoWindow for one day Interval returns one daily bucket`() {
+        val date = LocalDate.of(2026, 6, 22)
+
+        val window = calculator.buildAutoWindow(Period.Interval(date, date), today = fixedToday, zone = fixedZone)
+
+        assertEquals(listOf(Period.Day(date)), window)
+    }
+
+    @Test
+    fun `trend for one day Interval keeps the Interval bucket and net value`() =
+        runTest {
+            val date = LocalDate.of(2026, 6, 22)
+            val window = calculator.buildWindow(Period.Interval(date, date), count = 5, zone = fixedZone)
+
+            val result = calculator(window, ChartMetric.PERIOD_NET) { snapshot("5", "0") }
+
+            assertEquals(1, result.size)
+            assertEquals(Period.Interval(date, date), result.single().period)
+            assertAmount(result.single().value, "5.00")
+        }
+
+    @Test
     fun `buildWindow for All returns exactly count sub-intervals`() {
         val window = calculator.buildWindow(Period.All, count = 5, zone = fixedZone)
         assertEquals(5, window.size)

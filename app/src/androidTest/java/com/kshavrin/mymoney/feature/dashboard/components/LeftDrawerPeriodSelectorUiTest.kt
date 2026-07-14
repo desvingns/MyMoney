@@ -3,10 +3,18 @@ package com.kshavrin.mymoney.feature.dashboard.components
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -34,6 +42,7 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import java.util.TimeZone
 
 @RunWith(AndroidJUnit4::class)
@@ -55,66 +64,124 @@ class LeftDrawerPeriodSelectorUiTest {
     }
 
     @Test
-    fun `date range emits a custom range after selecting two dates`() {
-        var selectedEvent: DashboardEvent? = null
-        val firstDay = LocalDate.now().withDayOfMonth(1)
-        val secondDay = firstDay.plusDays(1)
-
+    fun `interval row expands inline start and end controls with disabled apply`() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 LeftDrawerContent(
                     state = DashboardState(period = Period.All, isLoading = false),
-                    onEvent = { selectedEvent = it },
+                    onEvent = {},
+                    onPickDateRangeClick = {},
                 )
             }
         }
 
-        composeTestRule
-            .onNodeWithText(targetString(R.string.period_date_range))
-            .performClick()
-        composeTestRule.onNodeWithText(dateLabel(firstDay)).performClick()
-        composeTestRule.onNodeWithText(dateLabel(secondDay)).performClick()
-        composeTestRule.onNodeWithText(targetString(R.string.period_apply)).performClick()
+        periodRow(R.string.period_date_range).performClick()
 
-        composeTestRule.runOnIdle {
-            assertTrue(selectedEvent is DashboardEvent.PeriodChanged)
-            val range = (selectedEvent as DashboardEvent.PeriodChanged).period as Period.CustomRange
-            assertEquals(firstDay, range.start)
-            assertEquals(secondDay, range.end)
-        }
+        composeTestRule
+            .onNodeWithText(
+                targetString(
+                    R.string.period_interval_value,
+                    targetString(R.string.period_interval_start),
+                    targetString(R.string.period_interval_not_selected),
+                ),
+            ).assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText(
+                targetString(
+                    R.string.period_interval_value,
+                    targetString(R.string.period_interval_end),
+                    targetString(R.string.period_interval_not_selected),
+                ),
+            ).assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText(targetString(R.string.period_apply))
+            .assertIsNotEnabled()
     }
 
     @Test
-    fun `pick a date emits a day period after confirming a single date`() {
-        var selectedEvent: DashboardEvent? = null
-        val currentDate = LocalDate.now()
-        val pickedDate =
-            if (currentDate.dayOfMonth == 1) {
-                currentDate.plusDays(1)
-            } else {
-                currentDate.minusDays(1)
-            }
+    fun `interval date controls gate invalid range and emit valid interval without dismissing drawer`() {
+        val selectedEvents = mutableListOf<DashboardEvent>()
+        val start = LocalDate.now().withDayOfMonth(20)
+        val invalidEnd = LocalDate.now().withDayOfMonth(10)
+        val validEnd = LocalDate.now().withDayOfMonth(25)
 
         composeTestRule.setContent {
             MyMoneyTheme {
                 LeftDrawerContent(
                     state = DashboardState(period = Period.All, isLoading = false),
-                    onEvent = { selectedEvent = it },
+                    onEvent = { selectedEvents += it },
+                    onPickDateRangeClick = {},
                 )
             }
         }
 
+        periodRow(R.string.period_date_range).performClick()
+        selectIntervalEndpoint(
+            contentDescription =
+                targetString(
+                    R.string.period_interval_start_cd,
+                    targetString(R.string.period_interval_not_selected),
+                ),
+            date = start,
+        )
+        selectIntervalEndpoint(
+            contentDescription =
+                targetString(
+                    R.string.period_interval_end_cd,
+                    targetString(R.string.period_interval_not_selected),
+                ),
+            date = invalidEnd,
+        )
+
         composeTestRule
-            .onNodeWithText(targetString(R.string.period_pick_a_date))
+            .onNodeWithText(targetString(R.string.period_interval_invalid))
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText(targetString(R.string.period_apply))
+            .assertIsNotEnabled()
+
+        selectIntervalEndpoint(
+            contentDescription = targetString(R.string.period_interval_end_cd, mediumDateLabel(invalidEnd)),
+            date = validEnd,
+        )
+        composeTestRule
+            .onNodeWithText(targetString(R.string.period_apply))
+            .assertIsEnabled()
             .performClick()
-        composeTestRule.onNodeWithText(dateLabel(pickedDate)).performClick()
-        composeTestRule.onNodeWithText(targetString(R.string.period_apply)).performClick()
 
         composeTestRule.runOnIdle {
             assertEquals(
-                DashboardEvent.PeriodChanged(Period.Day(pickedDate)),
-                selectedEvent,
+                listOf(DashboardEvent.PeriodChanged(Period.Interval(start, validEnd))),
+                selectedEvents,
             )
+        }
+        periodRow(R.string.period_date_range).assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText(
+                targetString(R.string.period_interval_value, targetString(R.string.period_interval_start), mediumDateLabel(start)),
+            ).assertIsDisplayed()
+    }
+
+    @Test
+    fun `pick a date invokes parent callback without emitting a period event`() {
+        val selectedEvents = mutableListOf<DashboardEvent>()
+        var callbackCount = 0
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                LeftDrawerContent(
+                    state = DashboardState(period = Period.All, isLoading = false),
+                    onEvent = { selectedEvents += it },
+                    onPickDateRangeClick = { callbackCount += 1 },
+                )
+            }
+        }
+
+        periodRow(R.string.period_pick_a_date).performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(1, callbackCount)
+            assertTrue(selectedEvents.isEmpty())
         }
     }
 
@@ -136,6 +203,7 @@ class LeftDrawerPeriodSelectorUiTest {
                 LeftDrawerContent(
                     state = DashboardState(period = Period.All, isLoading = false),
                     onEvent = { selectedEvents += it },
+                    onPickDateRangeClick = {},
                 )
             }
         }
@@ -159,28 +227,60 @@ class LeftDrawerPeriodSelectorUiTest {
     }
 
     @Test
-    fun `single date row appears before date range row`() {
+    fun `period row selection is mutually exclusive`() {
+        var currentState by mutableStateOf(DashboardState(period = Period.All, isLoading = false))
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                LeftDrawerContent(
+                    state = currentState,
+                    onEvent = { event ->
+                        if (event is DashboardEvent.PeriodChanged) {
+                            currentState = currentState.copy(period = event.period)
+                        }
+                    },
+                    onPickDateRangeClick = {},
+                )
+            }
+        }
+
+        periodRow(R.string.period_all).assertIsSelected()
+        periodRow(R.string.period_day).performClick()
+        composeTestRule.runOnIdle {
+            periodRow(R.string.period_day).assertIsSelected()
+            periodRow(R.string.period_all).assertIsNotSelected()
+            periodRow(R.string.period_week).assertIsNotSelected()
+            periodRow(R.string.period_month).assertIsNotSelected()
+            periodRow(R.string.period_year).assertIsNotSelected()
+            periodRow(R.string.period_date_range).assertIsNotSelected()
+            periodRow(R.string.period_pick_a_date).assertIsNotSelected()
+        }
+    }
+
+    @Test
+    fun `period rows are ordered day week month year all interval pick a date`() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 LeftDrawerContent(
                     state = DashboardState(period = Period.All, isLoading = false),
                     onEvent = {},
+                    onPickDateRangeClick = {},
                 )
             }
         }
 
-        val pickDateTop =
-            composeTestRule
-                .onNodeWithText(targetString(R.string.period_pick_a_date))
-                .fetchSemanticsNode()
-                .boundsInRoot.top
-        val dateRangeTop =
-            composeTestRule
-                .onNodeWithText(targetString(R.string.period_date_range))
-                .fetchSemanticsNode()
-                .boundsInRoot.top
+        val rows =
+            listOf(
+                R.string.period_day,
+                R.string.period_week,
+                R.string.period_month,
+                R.string.period_year,
+                R.string.period_all,
+                R.string.period_date_range,
+                R.string.period_pick_a_date,
+            ).map { periodRow(it).fetchSemanticsNode().boundsInRoot.top }
 
-        assertTrue(pickDateTop < dateRangeTop)
+        assertTrue(rows.zipWithNext().all { (current, next) -> current < next })
     }
 
     @Test
@@ -207,8 +307,9 @@ class LeftDrawerPeriodSelectorUiTest {
                                 currencies = listOf(serbianDinar),
                                 dashboardSelection = DashboardSelection.AllAccounts(AllAccountsFoldMode.ConvertTo(serbianDinar)),
                                 isLoading = false,
-                            ),
+                        ),
                         onEvent = {},
+                        onPickDateRangeClick = {},
                     )
                 }
             }
@@ -242,7 +343,8 @@ class LeftDrawerPeriodSelectorUiTest {
                             dashboardSelection = DashboardSelection.AllAccounts(AllAccountsFoldMode.Separate),
                             isLoading = false,
                         ),
-                    onEvent = { selectedEvent = it },
+                        onEvent = { selectedEvent = it },
+                        onPickDateRangeClick = {},
                 )
             }
         }
@@ -281,8 +383,44 @@ class LeftDrawerPeriodSelectorUiTest {
         isArchived = false,
     )
 
-    private fun targetString(resourceId: Int): String =
-        InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)
+    private fun periodRow(resourceId: Int) =
+        composeTestRule.onNodeWithContentDescription(
+            targetString(R.string.dashboard_drawer_option_cd, targetString(resourceId)),
+        )
+
+    private fun selectIntervalEndpoint(
+        contentDescription: String,
+        date: LocalDate,
+    ) {
+        composeTestRule.onNodeWithContentDescription(contentDescription).performClick()
+        composeTestRule.onNodeWithText(datePickerLabel(date)).performClick()
+        composeTestRule.onNodeWithText(targetString(R.string.period_apply)).performClick()
+    }
+
+    private fun targetString(
+        resourceId: Int,
+        vararg formatArgs: Any,
+    ): String =
+        InstrumentationRegistry
+            .getInstrumentation()
+            .targetContext
+            .getString(resourceId, *formatArgs)
+
+    private fun mediumDateLabel(date: LocalDate): String {
+        val locale =
+            InstrumentationRegistry
+                .getInstrumentation()
+                .targetContext.resources.configuration.locales[0]
+        return date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale))
+    }
+
+    private fun datePickerLabel(date: LocalDate): String {
+        val locale =
+            InstrumentationRegistry
+                .getInstrumentation()
+                .targetContext.resources.configuration.locales[0]
+        return date.format(DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy", locale))
+    }
 
     private fun currency(
         code: String,
@@ -297,14 +435,6 @@ class LeftDrawerPeriodSelectorUiTest {
         isActive = true,
         sortOrder = 0,
     )
-
-    private fun dateLabel(date: LocalDate): String {
-        val locale =
-            InstrumentationRegistry
-                .getInstrumentation()
-                .targetContext.resources.configuration.locales[0]
-        return date.format(DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy", locale))
-    }
 
     companion object {
         private const val TEST_TIME_ZONE_ID = "America/New_York"

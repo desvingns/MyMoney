@@ -235,7 +235,9 @@ class TransactionFormContentUiTest {
             .onNodeWithTag(CATEGORY_GRID_TAG)
             .assertIsDisplayed()
         composeTestRule
-            .onNodeWithContentDescription("Food")
+            .onNodeWithContentDescription(
+                targetString(R.string.transaction_form_category_cd, "Food"),
+            )
             .assertIsDisplayed()
         composeTestRule
             .onNodeWithTag(CATEGORY_GRID_ADD_CELL_TAG)
@@ -273,7 +275,9 @@ class TransactionFormContentUiTest {
             .onNode(hasText("12") and hasClickAction())
             .performClick()
         composeTestRule
-            .onNodeWithContentDescription("Food")
+            .onNodeWithContentDescription(
+                targetString(R.string.transaction_form_category_cd, "Food"),
+            )
             .performClick()
         composeTestRule
             .onNodeWithTag(CATEGORY_GRID_ADD_CELL_TAG)
@@ -321,8 +325,14 @@ class TransactionFormContentUiTest {
             iconKey = "ic_cat_food",
         )
 
-    private fun targetString(resourceId: Int): String =
-        InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)
+    private fun targetString(
+        resourceId: Int,
+        vararg formatArgs: Any,
+    ): String =
+        InstrumentationRegistry
+            .getInstrumentation()
+            .targetContext
+            .getString(resourceId, *formatArgs)
 
     private fun dateLabel(date: LocalDate): String {
         val locale =

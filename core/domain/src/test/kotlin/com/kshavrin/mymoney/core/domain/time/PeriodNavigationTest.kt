@@ -89,6 +89,33 @@ class PeriodNavigationTest {
     }
 
     @Test
+    fun `Interval next shifts by the inclusive interval length`() {
+        val period = Period.Interval(LocalDate.of(2026, 4, 10), LocalDate.of(2026, 4, 12))
+
+        assertEquals(
+            Period.Interval(LocalDate.of(2026, 4, 13), LocalDate.of(2026, 4, 15)),
+            period.next(),
+        )
+    }
+
+    @Test
+    fun `Interval previous shifts by the inclusive interval length`() {
+        val period = Period.Interval(LocalDate.of(2026, 4, 10), LocalDate.of(2026, 4, 12))
+
+        assertEquals(
+            Period.Interval(LocalDate.of(2026, 4, 7), LocalDate.of(2026, 4, 9)),
+            period.previous(),
+        )
+    }
+
+    @Test
+    fun `Interval next then previous returns to the original interval`() {
+        val period = Period.Interval(LocalDate.of(2026, 4, 10), LocalDate.of(2026, 4, 17))
+
+        assertEquals(period, period.next().previous())
+    }
+
+    @Test
     fun `CustomRange next shifts by the inclusive range length preserving the length`() {
         // 10..12 April is a 3-day inclusive range, so next() jumps forward 3 days to 13..15 April.
         val period =

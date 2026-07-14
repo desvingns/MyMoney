@@ -172,10 +172,10 @@ class TransactionDetailContentUiTest {
 
         composeTestRule
             .onNodeWithContentDescription(
-                targetString(DesignSystemR.string.amountfield_date_cd, dateLabel(chosenDate)),
+                targetString(DesignSystemR.string.amountfield_date_cd, headerDateLabel(initialDate)),
             )
             .performClick()
-        composeTestRule.onNodeWithText(dateLabel(chosenDate)).performClick()
+        composeTestRule.onNodeWithText(datePickerLabel(chosenDate)).performClick()
         composeTestRule.onNodeWithText(targetString(R.string.detail_pick_date)).performClick()
 
         composeTestRule.runOnIdle {
@@ -489,7 +489,15 @@ class TransactionDetailContentUiTest {
             sortOrder = 0,
         )
 
-    private fun dateLabel(date: LocalDate): String {
+    private fun headerDateLabel(date: LocalDate): String {
+        val locale =
+            InstrumentationRegistry
+                .getInstrumentation()
+                .targetContext.resources.configuration.locales[0]
+        return date.format(DateTimeFormatter.ofPattern("EEEE, d MMMM", locale))
+    }
+
+    private fun datePickerLabel(date: LocalDate): String {
         val locale =
             InstrumentationRegistry
                 .getInstrumentation()

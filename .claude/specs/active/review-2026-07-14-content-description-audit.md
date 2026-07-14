@@ -23,7 +23,7 @@ TalkBack. Source: review item 30 (P2/M).
 
 | Screen / shared surface | Result |
 | --- | --- |
-| Dashboard: top bar, period controls, FAB, and drawer | Pass — actionable controls have localized descriptions; decorative icons remain hidden. |
+| Dashboard: top bar, period controls, FAB, and drawer | Pass — the seven period rows are mutually exclusive; Date range emits `Interval`, Pick a date emits `CustomRange`, and actionable controls have localized descriptions. |
 | Dashboard: balance, trend, category tiles, and inline records | Pass for non-chart actions — trend-chart accessibility remains deferred to SPEC 15. |
 | Add expense and add income forms | Pass — shared date, category, amount, and keypad controls are covered. |
 | Transfer form | Pass — source and destination account selectors are localized. |

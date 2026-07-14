@@ -38,6 +38,7 @@ fun trendPointLabels(
         ChartTrendAxis.RangeBuckets ->
             points.map { point ->
                 when (val period = point.period) {
+                    is Period.Interval -> period.start.dayOfMonth.toString()
                     is Period.CustomRange -> period.start.dayOfMonth.toString()
                     is Period.Day -> period.date.dayOfMonth.toString()
                     else -> ""

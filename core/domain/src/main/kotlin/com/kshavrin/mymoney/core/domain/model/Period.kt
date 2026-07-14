@@ -23,6 +23,11 @@ sealed class Period {
 
     data object All : Period()
 
+    data class Interval(
+        val start: LocalDate,
+        val end: LocalDate,
+    ) : Period()
+
     data class CustomRange(
         val start: LocalDate,
         val end: LocalDate,
@@ -39,6 +44,11 @@ sealed class Period {
             is Month -> Month(yearMonth.plusMonths(direction.toLong()))
             is Year -> Year(year + direction)
             All -> All
+            is Interval -> {
+                val length = ChronoUnit.DAYS.between(start, end) + 1
+                val offset = length * direction
+                Interval(start.plusDays(offset), end.plusDays(offset))
+            }
             is CustomRange -> {
                 val length = ChronoUnit.DAYS.between(start, end) + 1
                 val offset = length * direction

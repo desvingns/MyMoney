@@ -73,7 +73,7 @@ fun LeftDrawerContent(
     onEvent: (DashboardEvent) -> Unit,
 ) {
     var accountsExpanded by remember { mutableStateOf(false) }
-    var showRangePicker by remember { mutableStateOf(false) }
+    var rangePickerSource by remember { mutableStateOf<RangePickerSource?>(null) }
     val soundPlayer = LocalSoundPlayer.current
     val hapticPlayer = LocalHapticPlayer.current
 
@@ -129,16 +129,16 @@ fun LeftDrawerContent(
                     onClick = { changePeriod(Period.All) },
                 )
                 PeriodButton(
+                    label = stringResource(R.string.period_date_range),
+                    selected = state.period is Period.Interval,
+                    leadingIcon = Icons.Outlined.CalendarToday,
+                    onClick = { rangePickerSource = RangePickerSource.Interval },
+                )
+                PeriodButton(
                     label = stringResource(R.string.period_pick_a_date),
                     selected = state.period is Period.CustomRange,
                     leadingIcon = Icons.Outlined.Event,
-                    onClick = { showRangePicker = true },
-                )
-                PeriodButton(
-                    label = stringResource(R.string.period_date_range),
-                    selected = false,
-                    leadingIcon = Icons.Outlined.CalendarToday,
-                    onClick = { showRangePicker = true },
+                    onClick = { rangePickerSource = RangePickerSource.PickDate },
                 )
             }
             if (accountsExpanded) {
@@ -163,10 +163,25 @@ fun LeftDrawerContent(
         }
     }
 
-    if (showRangePicker) {
-        val pickerState = rememberDateRangePickerState()
+    val pickerSource = rangePickerSource
+    if (pickerSource != null) {
+        val selectedRange =
+            when (val period = state.period) {
+                is Period.Interval ->
+                    if (pickerSource == RangePickerSource.Interval) period.start to period.end else null
+                is Period.CustomRange ->
+                    if (pickerSource == RangePickerSource.PickDate) period.start to period.end else null
+                else -> null
+            }
+        val pickerState =
+            rememberDateRangePickerState(
+                initialSelectedStartDateMillis =
+                    selectedRange?.first?.let(::localDateToMaterialPickerUtcMillis),
+                initialSelectedEndDateMillis =
+                    selectedRange?.second?.let(::localDateToMaterialPickerUtcMillis),
+            )
         DatePickerDialog(
-            onDismissRequest = { showRangePicker = false },
+            onDismissRequest = { rangePickerSource = null },
             confirmButton = {
                 TextButton(
                     enabled =
@@ -178,8 +193,13 @@ fun LeftDrawerContent(
                         if (startMillis != null && endMillis != null) {
                             val start = materialPickerUtcMillisToLocalDate(startMillis)
                             val end = materialPickerUtcMillisToLocalDate(endMillis)
-                            changePeriod(Period.CustomRange(start, end))
-                            showRangePicker = false
+                            val period =
+                                when (pickerSource) {
+                                    RangePickerSource.Interval -> Period.Interval(start, end)
+                                    RangePickerSource.PickDate -> Period.CustomRange(start, end)
+                                }
+                            changePeriod(period)
+                            rangePickerSource = null
                         }
                     },
                 ) {
@@ -187,7 +207,7 @@ fun LeftDrawerContent(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showRangePicker = false }) {
+                TextButton(onClick = { rangePickerSource = null }) {
                     Text(stringResource(R.string.period_cancel))
                 }
             },
@@ -496,3 +516,8 @@ private fun PeriodButton(
 }
 
 private val drawerRowShape = RoundedCornerShape(6.dp)
+
+private enum class RangePickerSource {
+    Interval,
+    PickDate,
+}

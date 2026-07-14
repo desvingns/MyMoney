@@ -286,6 +286,8 @@ internal fun Period.localizedLabel(
         }
         is Period.Year -> year.toString()
         Period.All -> allLabel
+        is Period.Interval ->
+            "${start.format(dateFormatter)}\n${end.format(dateFormatter)}"
         is Period.CustomRange ->
             "${start.format(dateFormatter)}\n${end.format(dateFormatter)}"
     }

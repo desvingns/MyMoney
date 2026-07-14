@@ -44,6 +44,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
@@ -129,7 +130,12 @@ fun BiometricSetupContent(
         ) {
             val biometricToggleLabel = stringResource(R.string.biometric_enable_toggle)
             ListItem(
-                headlineContent = { Text(biometricToggleLabel) },
+                headlineContent = {
+                    Text(
+                        text = biometricToggleLabel,
+                        modifier = Modifier.clearAndSetSemantics {},
+                    )
+                },
                 trailingContent = {
                     Switch(
                         modifier =

@@ -964,7 +964,7 @@ class DashboardViewModel
         private fun autoAxisFor(period: Period): ChartTrendAxis =
             when (period) {
                 is Period.Year -> ChartTrendAxis.Months
-                is Period.All, is Period.CustomRange -> ChartTrendAxis.RangeBuckets
+                is Period.All, is Period.Interval, is Period.CustomRange -> ChartTrendAxis.RangeBuckets
                 else -> ChartTrendAxis.Days
             }
 

@@ -24,6 +24,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -149,7 +150,12 @@ fun SettingsRootContent(
             )
             val soundLabel = stringResource(R.string.settings_sound_toggle)
             ListItem(
-                headlineContent = { Text(soundLabel) },
+                headlineContent = {
+                    Text(
+                        text = soundLabel,
+                        modifier = Modifier.clearAndSetSemantics {},
+                    )
+                },
                 trailingContent = {
                     Switch(
                         modifier = Modifier.semantics { contentDescription = soundLabel },
@@ -160,7 +166,12 @@ fun SettingsRootContent(
             )
             val hapticLabel = stringResource(R.string.settings_haptic_toggle)
             ListItem(
-                headlineContent = { Text(hapticLabel) },
+                headlineContent = {
+                    Text(
+                        text = hapticLabel,
+                        modifier = Modifier.clearAndSetSemantics {},
+                    )
+                },
                 trailingContent = {
                     Switch(
                         modifier = Modifier.semantics { contentDescription = hapticLabel },

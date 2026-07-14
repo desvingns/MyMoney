@@ -27,7 +27,7 @@ class BalanceTrendCalculator
         ): List<Period> {
             require(count > 0) { "count must be positive" }
             return when (anchor) {
-                is Period.All, is Period.CustomRange -> splitRange(anchor, count, zone)
+                is Period.All, is Period.Interval, is Period.CustomRange -> splitRange(anchor, count, zone)
                 else ->
                     generateSequence(anchor) { it.previous() }
                         .take(count)
@@ -60,16 +60,10 @@ class BalanceTrendCalculator
                     earliestDate?.let { start ->
                         splitRange(Period.CustomRange(start, today), count = 30, zone = zone)
                     } ?: emptyList()
-                is Period.CustomRange -> {
-                    val days = ChronoUnit.DAYS.between(anchor.start, anchor.end) + 1
-                    if (days <= 30) {
-                        (0L until days).map { offset ->
-                            Period.Day(anchor.start.plusDays(offset))
-                        }
-                    } else {
-                        splitRange(anchor, count = 30, zone = zone)
-                    }
-                }
+                is Period.Interval ->
+                    buildAutoRangeWindow(anchor.start, anchor.end, anchor, zone)
+                is Period.CustomRange ->
+                    buildAutoRangeWindow(anchor.start, anchor.end, anchor, zone)
             }
 
         suspend fun buildAutoSeries(
@@ -173,7 +167,24 @@ class BalanceTrendCalculator
                 val subStart = startDate.plusDays(subStartOffset)
                 val subEnd =
                     if (i == count - 1) endDate else startDate.plusDays(subEndOffset)
-                Period.CustomRange(subStart, subEnd)
+                when (anchor) {
+                    is Period.Interval -> Period.Interval(subStart, subEnd)
+                    else -> Period.CustomRange(subStart, subEnd)
+                }
+            }
+        }
+
+        private fun buildAutoRangeWindow(
+            start: LocalDate,
+            end: LocalDate,
+            anchor: Period,
+            zone: ZoneId,
+        ): List<Period> {
+            val days = ChronoUnit.DAYS.between(start, end) + 1
+            return if (days <= 30) {
+                (0L until days).map { offset -> Period.Day(start.plusDays(offset)) }
+            } else {
+                splitRange(anchor, count = 30, zone = zone)
             }
         }
     }

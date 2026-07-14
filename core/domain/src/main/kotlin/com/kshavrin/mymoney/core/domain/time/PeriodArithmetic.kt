@@ -16,6 +16,7 @@ object PeriodArithmetic {
             is Period.Month -> period.yearMonth.let { ym -> ym.atDay(1) to ym.atEndOfMonth() }.toRange(zone)
             is Period.Year -> LocalDate.of(period.year, 1, 1).let { start -> start to LocalDate.of(period.year, 12, 31) }.toRange(zone)
             is Period.All -> 0L..Long.MAX_VALUE
+            is Period.Interval -> (period.start to period.end).toRange(zone)
             is Period.CustomRange -> (period.start to period.end).toRange(zone)
         }
 

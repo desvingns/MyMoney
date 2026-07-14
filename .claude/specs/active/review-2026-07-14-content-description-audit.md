@@ -24,7 +24,7 @@ TalkBack. Source: review item 30 (P2/M).
 | Screen / shared surface | Result |
 | --- | --- |
 | Dashboard: top bar, period controls, FAB, and drawer | Pass — actionable controls have localized descriptions; decorative icons remain hidden. |
-| Dashboard: balance, trend, category tiles, and inline records | Pass — chart and record actions are described without adding labels to decorative chart art. |
+| Dashboard: balance, trend, category tiles, and inline records | Pass for non-chart actions — trend-chart accessibility remains deferred to SPEC 15. |
 | Add expense and add income forms | Pass — shared date, category, amount, and keypad controls are covered. |
 | Transfer form | Pass — source and destination account selectors are localized. |
 | Transactions list | Pass — transaction rows expose localized record summaries. |
@@ -47,8 +47,8 @@ TalkBack. Source: review item 30 (P2/M).
 | Shared amount input and keypad | Pass — clear/backspace actions use localized resources. |
 | Shared date header | Pass — date action is described once at the row level. |
 | Shared balance bar and category grid | Pass — actionable categories and summary rows are localized. |
-| Shared color picker and donut chart | Pass — color choices and chart semantics are localized; decorative visuals remain hidden. |
+| Shared color picker and donut chart | Pass for the color picker — donut-chart accessibility remains deferred to SPEC 15. |
 
 ## Implementation links
 - commit: scoped audit implementation
-- files: 40 scoped source, resource, build, and audit-report files
+- files: scoped source, resource, and audit-report files across the implementation and repair commits

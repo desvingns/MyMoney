@@ -114,6 +114,8 @@ private fun CurrencyRowItem(
             currency.code,
             currency.name,
         )
+    val activeDescription =
+        stringResource(R.string.dictionaries_currency_active_cd, currency.code)
     Row(
         modifier =
             Modifier
@@ -135,6 +137,7 @@ private fun CurrencyRowItem(
             )
         }
         Switch(
+            modifier = Modifier.semantics { contentDescription = activeDescription },
             checked = currency.isActive,
             onCheckedChange = onActiveChange,
         )

@@ -125,10 +125,6 @@ fun AuroraBalanceCard(
                         .fillMaxWidth()
                         .height(Spacing.chartHiddenHintHeight)
                         .clickable(onClick = onChartClick)
-                        .semantics {
-                            contentDescription = stringResource(R.string.dashboard_trend_chart)
-                            role = Role.Button
-                        }
                         .testTag(DASHBOARD_CHART_HIDDEN_HINT_TAG),
                 contentAlignment = Alignment.Center,
             ) {

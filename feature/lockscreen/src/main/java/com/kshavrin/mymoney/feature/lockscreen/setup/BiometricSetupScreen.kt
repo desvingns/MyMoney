@@ -127,11 +127,15 @@ fun BiometricSetupContent(
                     .fillMaxSize()
                     .padding(innerPadding),
         ) {
+            val biometricToggleLabel = stringResource(R.string.biometric_enable_toggle)
             ListItem(
-                headlineContent = { Text(stringResource(R.string.biometric_enable_toggle)) },
+                headlineContent = { Text(biometricToggleLabel) },
                 trailingContent = {
                     Switch(
-                        modifier = Modifier.testTag(LOCK_SETUP_ENABLE_TAG),
+                        modifier =
+                            Modifier
+                                .testTag(LOCK_SETUP_ENABLE_TAG)
+                                .semantics { contentDescription = biometricToggleLabel },
                         checked = state.enabled,
                         enabled = state.toggleEnabled,
                         onCheckedChange = { onEvent(BiometricSetupEvent.ToggleChanged(it)) },

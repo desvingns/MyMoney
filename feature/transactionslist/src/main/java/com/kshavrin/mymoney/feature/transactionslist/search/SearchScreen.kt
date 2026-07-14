@@ -357,11 +357,14 @@ private fun SearchResultRow(
         }
     val formattedAmount = formatSignedAmount(row.kind, row.amount, currency)
     val formattedDate = formatDate(row.occurredAt)
+    val noteDescription =
+        row.note?.takeIf { it.isNotBlank() }
+            ?: stringResource(R.string.transactions_list_no_note)
     val recordDescription =
         stringResource(
             R.string.transactions_list_search_record_cd,
             formattedAmount,
-            row.note ?: stringResource(R.string.transactions_list_no_note),
+            noteDescription,
             formattedDate,
         )
     Row(

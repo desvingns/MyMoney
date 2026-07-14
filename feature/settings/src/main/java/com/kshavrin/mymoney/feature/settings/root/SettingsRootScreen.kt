@@ -147,19 +147,23 @@ fun SettingsRootContent(
                         .clickable(onClick = onOpenLanguage)
                         .semantics { contentDescription = languageLabel },
             )
+            val soundLabel = stringResource(R.string.settings_sound_toggle)
             ListItem(
-                headlineContent = { Text(stringResource(R.string.settings_sound_toggle)) },
+                headlineContent = { Text(soundLabel) },
                 trailingContent = {
                     Switch(
+                        modifier = Modifier.semantics { contentDescription = soundLabel },
                         checked = state.soundEnabled,
                         onCheckedChange = { onEvent(SettingsEvent.SoundToggled(it)) },
                     )
                 },
             )
+            val hapticLabel = stringResource(R.string.settings_haptic_toggle)
             ListItem(
-                headlineContent = { Text(stringResource(R.string.settings_haptic_toggle)) },
+                headlineContent = { Text(hapticLabel) },
                 trailingContent = {
                     Switch(
+                        modifier = Modifier.semantics { contentDescription = hapticLabel },
                         checked = state.hapticEnabled,
                         onCheckedChange = { onEvent(SettingsEvent.HapticToggled(it)) },
                     )

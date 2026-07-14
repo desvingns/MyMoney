@@ -1,7 +1,7 @@
 # contentDescription sweep across all actionable UI
 Epic: review-2026-07
 Order: 14 of 35
-Status: active
+Status: done
 Depends-on: —
 Date: 2026-07-06
 
@@ -50,5 +50,7 @@ TalkBack. Source: review item 30 (P2/M).
 | Shared color picker and donut chart | Pass for the color picker — donut-chart accessibility remains deferred to SPEC 15. |
 
 ## Implementation links
-- commit: scoped audit implementation
-- files: scoped source, resource, and audit-report files across the implementation and repair commits
+- commits: `f502f701`, `506f2a20`, `a1281e7e`, `49e0217b`, `4713350c`, `abb05f3c`, `7e39ff35`, `5d5e1eae`, `0986614e`, `f3c0d219`
+- process guard: `190e9694`
+- verification: compile and unit/build checks passed; 49 targeted connected tests passed on Pixel_5 API 34; semantic review and lite verifier passed
+- note: the full 421-test connected suite was not a release gate for this SPEC and remains incomplete because of unrelated baseline failures and an API 34 process crash in the earlier broad run

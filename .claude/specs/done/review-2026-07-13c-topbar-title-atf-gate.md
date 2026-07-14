@@ -1,7 +1,7 @@
 # Restore top-bar period-title accessibility gate (Compose 1.8 test artifact)
 Epic: review-2026-07
 Order: 13c of 35
-Status: backlog
+Status: done
 Depends-on: review-2026-07-13
 Date: 2026-07-14
 
@@ -31,5 +31,12 @@ scope `enableAccessibilityChecks` to the interaction tests only, or a known 1.8
 test-framework display-bounds quirk).
 
 ## Implementation links
-- commit: (pending)
-- files: (pending)
+- commit: f7cee65c, fcae16c2
+- files: app/src/androidTest/java/com/kshavrin/mymoney/feature/dashboard/DashboardTopBarPeriodTitleUiTest.kt
+
+## Resolution
+`enableAccessibilityChecks()` only installs the Compose 1.8 ATF validator; an action or
+`onRoot().tryPerformAccessibilityChecks()` must trigger it. The rule-wide validator was dormant
+as a gate while perturbing every layout test in the 22-test class. The fix isolates one explicit
+Week-state ATF check and leaves the title-layout tests on a plain rule. Pixel 5 API 34 completed
+23/23 tests with zero failures, errors, or skips.

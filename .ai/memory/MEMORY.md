@@ -25,3 +25,6 @@ tool-local memories — tool-local copies remain historical snapshots.
   (run heavy emulator jobs nightly/`workflow_dispatch` if the repo is private),
   Firebase Spark plan, personal Dropbox/Google Drive quotas. Never propose or wire
   paid tiers or features that exceed free limits.
+- `--feature --next` / `--feature --backlog` consume an already-approved SPEC; do not
+  ask for an extra pre-agent confirmation gate. (User correction, 2026-07-14.)
+- Compose 1.8 accessibility tests need an explicit `onRoot().tryPerformAccessibilityChecks()` trigger; keep the ATF check isolated and retain manual touch-target assertions, with 23/23 device evidence.

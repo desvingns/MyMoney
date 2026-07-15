@@ -61,7 +61,6 @@ import com.kshavrin.mymoney.core.ui.theme.dashboardDonutCenterDivider
 import com.kshavrin.mymoney.core.ui.theme.dashboardDonutCenterTotal
 import com.kshavrin.mymoney.core.ui.theme.dashboardDonutLeaderLine
 import java.math.BigDecimal
-import java.util.Locale
 import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.max
@@ -190,19 +189,14 @@ fun MonefyDonutChart(
     val sliceTemplate = stringResource(R.string.donut_chart_slice)
     val budgetAlertLabel = stringResource(R.string.donut_chart_budget_alert)
     val chartDescription =
-        remember(chartHeader, sliceTemplate, budgetAlertLabel, labelMinFraction, locale, slices) {
+        remember(chartHeader, sliceTemplate, budgetAlertLabel, labelMinFraction, slices) {
             val sliceText =
                 slices
                     .asSequence()
                     .filter { it.fraction > 0f && it.fraction >= labelMinFraction }
                     .joinToString(separator = " ") { slice ->
                         val description =
-                            String.format(
-                                locale,
-                                sliceTemplate,
-                                slice.label,
-                                (slice.fraction * 100f).roundToInt(),
-                            )
+                            String.format(sliceTemplate, slice.label, (slice.fraction * 100f).roundToInt())
                         if (slice.hasBudgetAlert) "$description, $budgetAlertLabel" else description
                     }
             if (sliceText.isEmpty()) chartHeader else "$chartHeader $sliceText"
@@ -379,12 +373,7 @@ fun MonefyDonutChart(
         slices.forEach { slice ->
             if (slice.fraction <= 0f || slice.fraction < labelMinFraction) return@forEach
             val sliceDescription =
-                String.format(
-                    locale,
-                    sliceTemplate,
-                    slice.label,
-                    (slice.fraction * 100f).roundToInt(),
-                )
+                String.format(sliceTemplate, slice.label, (slice.fraction * 100f).roundToInt())
             Box(
                 modifier =
                     Modifier

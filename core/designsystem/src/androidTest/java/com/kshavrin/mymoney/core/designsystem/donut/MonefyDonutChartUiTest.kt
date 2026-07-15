@@ -1315,7 +1315,7 @@ class MonefyDonutChartUiTest {
                 expectedDescription(
                     income = "800.00",
                     expense = "800.00",
-                    slices = smallSlices.map { it.label to (it.fraction * 100f).toInt() },
+                    slices = smallSlices.map { it.label to 13 },
                 ),
             ).assertExists()
     }

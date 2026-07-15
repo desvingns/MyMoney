@@ -10,15 +10,19 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import com.kshavrin.mymoney.core.designsystem.R
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.text.NumberFormat
 
 @RunWith(AndroidJUnit4::class)
 class BalanceTrendChartUiTest {
@@ -34,6 +38,7 @@ class BalanceTrendChartUiTest {
         showGridlines: Boolean = true,
         showLabels: Boolean = false,
         labels: List<String> = emptyList(),
+        metricLabel: String? = null,
         colorRule: ChartColorRule = ChartColorRule.Default,
         style: ChartStyle = ChartStyle.Default,
     ) {
@@ -43,6 +48,7 @@ class BalanceTrendChartUiTest {
                     points = points,
                     modifier = Modifier.fillMaxWidth(),
                     labels = labels,
+                    metricLabel = metricLabel,
                     showGridlines = showGridlines,
                     showLabels = showLabels,
                     colorRule = colorRule,
@@ -131,6 +137,68 @@ class BalanceTrendChartUiTest {
         composeTestRule
             .onNodeWithTag(BALANCE_TREND_CHART_TAG)
             .assertExists()
+    }
+
+    @Test
+    fun summaryUsesSuppliedMetricIntradayPeriodLocalizedValuesAndIncreasingDirection() {
+        val labels = listOf("0", "2", "4")
+        val metricLabel = "Income + expense"
+        val points = listOf(1234.5f, 1800f, 2500.75f)
+        setContent(
+            points = points,
+            labels = labels,
+            metricLabel = metricLabel,
+            showLabels = true,
+        )
+
+        val expectedPeriod = targetString(R.string.balance_trend_chart_period_range, labels.first(), labels.last())
+        val expectedDescription =
+            targetString(
+                R.string.balance_trend_chart_cd,
+                metricLabel,
+                expectedPeriod,
+                formatChartValue(points.first()),
+                formatChartValue(points.last()),
+                targetString(R.string.balance_trend_chart_direction_increasing),
+            )
+
+        composeTestRule.onNodeWithContentDescription(expectedDescription).assertExists()
+    }
+
+    @Test
+    fun summaryReportsDecreasingDirection() {
+        val points = listOf(9f, 4f)
+        setContent(points = points, labels = listOf("09:00", "11:00"))
+
+        val expectedPeriod = targetString(R.string.balance_trend_chart_period_range, "09:00", "11:00")
+        val expectedDescription =
+            targetString(
+                R.string.balance_trend_chart_cd,
+                targetString(R.string.balance_trend_chart_metric),
+                expectedPeriod,
+                formatChartValue(points.first()),
+                formatChartValue(points.last()),
+                targetString(R.string.balance_trend_chart_direction_decreasing),
+            )
+
+        composeTestRule.onNodeWithContentDescription(expectedDescription).assertExists()
+    }
+
+    @Test
+    fun emptySummaryReportsSelectedPeriodNoDataAndUnchangedDirection() {
+        setContent(emptyList())
+
+        val expectedDescription =
+            targetString(
+                R.string.balance_trend_chart_cd,
+                targetString(R.string.balance_trend_chart_metric),
+                targetString(R.string.balance_trend_chart_period_selected),
+                targetString(R.string.balance_trend_chart_no_data),
+                targetString(R.string.balance_trend_chart_no_data),
+                targetString(R.string.balance_trend_chart_direction_unchanged),
+            )
+
+        composeTestRule.onNodeWithContentDescription(expectedDescription).assertExists()
     }
 
     @Test
@@ -332,5 +400,22 @@ class BalanceTrendChartUiTest {
                 .boundsInRoot
         val expectedHeightPx = with(composeTestRule.density) { 96.dp.toPx() }
         assertEquals(expectedHeightPx, bounds.height, 2f)
+    }
+
+    private fun targetString(
+        resourceId: Int,
+        vararg formatArgs: Any,
+    ): String =
+        InstrumentationRegistry
+            .getInstrumentation()
+            .targetContext
+            .getString(resourceId, *formatArgs)
+
+    private fun formatChartValue(value: Float): String {
+        val locale = InstrumentationRegistry.getInstrumentation().targetContext.resources.configuration.locales[0]
+        return NumberFormat.getNumberInstance(locale).apply {
+            minimumFractionDigits = 0
+            maximumFractionDigits = 6
+        }.format(value.toDouble())
     }
 }

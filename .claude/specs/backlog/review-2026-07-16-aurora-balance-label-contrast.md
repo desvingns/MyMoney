@@ -19,6 +19,10 @@ CONSTRAINTS: do not change balance semantics, chart semantics, or AS-12/AS-14 be
 
 The manual pass captured `build/visual-check/a11y-2026-07-15-manual-pass/05-dashboard-first-launch.png` at 1080x2340. Dominant core text pixels for `FREE BALANCE` were `#98B4B3` over adjacent panel pixels `#1A5956`; WCAG ratio = **3.65:1**, below the normal-text AA threshold 4.5:1. Other sampled candidates passed. Full report: `docs/a11y/2026-07-15-manual-accessibility-pass.md`.
 
+## Runner evidence disposition
+
+The originating manual-a11y run completed Gradle with exit code 0 and lint/detekt green. This follow-up is a docs/evidence record; it has no authored test files and therefore does not require a test summary or JaCoCo output. The repository's coverage provider is Kover, not JaCoCo; the parser messages `no parseable output` and `jacoco report missing` are runner-contract mismatches and do not change this observed defect or its acceptance criteria.
+
 ## Acceptance
 
 ```gherkin

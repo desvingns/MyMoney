@@ -70,3 +70,10 @@ Therefore this report does not claim that focus order, announcements, or activat
 ## Files and scope
 
 No production Kotlin/Compose files and no tests were written for this SPEC. The only confirmed product defect is the Aurora label contrast failure; it is queued as a separate backlog SPEC.
+
+## Runner evidence disposition
+
+- Gradle completed with exit code 0; lint/detekt was green.
+- The repository's existing JVM test XML is parseable (104 tests, 0 failures, 0 errors, 0 skipped), but this manual-a11y SPEC added no tests and no test summary is expected from the scoped change.
+- Coverage is provided by Kover in this repository (`build/reports/kover/report.xml`); no JaCoCo report is expected for this docs-only/manual-evidence pass.
+- The runner messages `no parseable output` and `jacoco report missing` are parser/coverage-contract mismatches, not failed product checks. No production code, behavior, or tests were changed to mask them.

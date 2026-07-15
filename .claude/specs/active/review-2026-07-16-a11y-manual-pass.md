@@ -1,10 +1,9 @@
 # Manual accessibility pass: contrast check + TalkBack journeys
 Epic: review-2026-07
 Order: 16 of 35
-Status: done
+Status: active
 Depends-on: review-2026-07-15
 Date: 2026-07-06
-Completed: 2026-07-15
 
 ## SPEC
 === SPEC ===

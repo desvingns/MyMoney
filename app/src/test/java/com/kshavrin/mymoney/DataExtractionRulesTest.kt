@@ -12,25 +12,23 @@ class DataExtractionRulesTest {
     private val extractionRulesFile = resolveResFile("data_extraction_rules.xml")
 
     @Test
-    fun `cloud backup section includes the database and datastore payloads and excludes secure prefs`() {
+    fun `cloud backup section includes settings and nonsecure shared prefs only`() {
         val rules = parseSection("cloud-backup")
 
-        assertRules(rules)
+        assertEquals(
+            setOf(
+                RuleEntry(domain = "file", path = "datastore/app_settings.preferences_pb"),
+                RuleEntry(domain = "sharedpref", path = "."),
+            ),
+            rules.includes,
+        )
+        assertSecurePreferencesExcluded(rules)
     }
 
     @Test
     fun `device transfer section includes the database and datastore payloads and excludes secure prefs`() {
         val rules = parseSection("device-transfer")
 
-        assertRules(rules)
-    }
-
-    @Test
-    fun `data extraction rules no longer contain template todo text`() {
-        assertFalse(extractionRulesFile.readText().contains("TODO"))
-    }
-
-    private fun assertRules(rules: ParsedRules) {
         assertEquals(
             setOf(
                 RuleEntry(domain = "database", path = "monefy.db"),
@@ -41,6 +39,15 @@ class DataExtractionRulesTest {
             ),
             rules.includes,
         )
+        assertSecurePreferencesExcluded(rules)
+    }
+
+    @Test
+    fun `data extraction rules no longer contain template todo text`() {
+        assertFalse(extractionRulesFile.readText().contains("TODO"))
+    }
+
+    private fun assertSecurePreferencesExcluded(rules: ParsedRules) {
         assertEquals(
             setOf(RuleEntry(domain = "sharedpref", path = "com.kshavrin.mymoney_secure.xml")),
             rules.excludes,

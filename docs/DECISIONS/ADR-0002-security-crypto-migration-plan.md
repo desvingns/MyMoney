@@ -179,10 +179,13 @@ compare all five logical values before treating target as primary. The
 comparison includes each nullable field's absent/clear state, failed-attempt
 count, and both present and absent lockout-deadline states.
 
-1. For every mutation, the gate allocates monotonic generation `g + 1` and
-   first durably writes encrypted target `intent(g + 1)`. This marker records
-   the old committed generation and makes a crash detectable before either
-   format changes.
+1. For every mutation, the gate first takes a canonical, fully reconciled
+   five-value pre-intent snapshot and allocates monotonic generation `g + 1`.
+   It then durably writes encrypted target `intent(g + 1)` containing the
+   expected target generation `g`, observed legacy generation (including an
+   absent baseline), and an encrypted digest of that canonical snapshot. The
+   digest includes all absent/clear semantics. It makes a crash detectable
+   before either format changes, while generations remain diagnostic only.
 2. The gate writes the complete new secure snapshot **legacy first**, including
    a non-secret legacy generation field, and verifies its committed value.
    It then writes and verifies the matching encrypted target snapshot with
@@ -191,21 +194,26 @@ count, and both present and absent lockout-deadline states.
    marker with `complete(g + 1)` and report success to the caller. A mutation
    cannot be reported successful after only one format has changed.
 4. On the next first access, a new reader that sees `intent(g + 1)` must not
-   use the target as primary. It compares both generations **and** both
-   five-value snapshots. If the legacy snapshot is unchanged at `g`, it
-   discards the unstarted intent; if legacy contains the intended snapshot and
-   target is stale or staged, it copies and verifies the legacy snapshot into
-   target; if both snapshots are the intended values, it verifies and commits
-   the marker. Any other mismatch returns an explicit recoverable failure,
-   preserves both sources, and blocks all secure-storage operations until the
-   caller chooses recovery.
+   use the target as primary. It reads both five-value snapshots, computes
+   their canonical digests, and compares them with the encrypted expected
+   pre-intent digest before considering the stored generations. If both
+   snapshots match that digest, no source write completed and it discards the
+   intent even when legacy generation is stale or absent. If legacy differs but
+   target matches the expected digest, it adopts and verifies the legacy
+   snapshot into target; if both snapshots match the same non-expected values,
+   it verifies and commits them as the interrupted legacy-first mutation. A
+   target-only change, or unequal snapshots with no safe legacy-first lineage,
+   returns an explicit recoverable failure, preserves both sources, and blocks
+   all secure-storage operations until the caller chooses recovery.
 5. Even with `complete(g)`, a value mismatch is treated as a possible old-app
    write or clear, regardless of legacy-generation. During the rollback window
    legacy is the authoritative external snapshot: the gate first writes
    `intent(g + 1, legacy-adoption)`, copies and verifies all five legacy values
    into the encrypted target, then writes `complete(g + 1)`. Thus an old-app
    clear is safely adopted as five cleared values, rather than leaving a stale
-   target primary.
+   target primary. Legacy generation may remain stale or absent after this
+   adoption; the next mutation's expected pre-intent digest, not generation,
+   handles an interrupted write before the legacy update.
 6. If the target cannot be opened, the gate uses the non-mutating legacy reader
    as the fallback source and leaves all files intact. Removing the AndroidX
    compatibility reader, its dependency, or the legacy files requires a later
@@ -266,6 +274,10 @@ must require all of them:
   They must prove exact preservation of a connected Dropbox token, Drive
   email, PIN hash, failed-attempt count, and both present and absent lockout
   deadlines without asserting or logging their plaintext values.
+- Future unit and instrumentation tests that, after target `complete`, run an
+  old-app fixture to change each of the five legacy fields separately and to
+  call `clearAll()`. On reopening, the new reader must adopt each legacy value
+  or absence before serving target data, regardless of legacy-generation.
 - Failure-injection tests for a legacy open error, target write error,
   verification mismatch, process death after the target intent marker, after
   the legacy-first write, after the target snapshot write, and before the
@@ -273,6 +285,11 @@ must require all of them:
   prove the generation-and-value protocol reconciles before any target is
   primary, the legacy XML and `.bak` were not deleted, and no automatic
   re-login, PIN reset, or biometric-lock disable occurred.
+- A fresh-process crash test for this exact sequence: adopt legacy values into
+  `complete(g + 1)` while legacy generation remains stale or absent, begin the
+  next mutation and persist `intent(g + 2)`, then die before the legacy write.
+  Both prior snapshots must match the encrypted expected pre-intent digest, so
+  recovery discards the unstarted intent and preserves `complete(g + 1)`.
 - Concurrency tests that start reads and each mutation type together. They must
   prove one process-wide gate serializes migration, reconciliation, and all
   `SecureStorage` read/write/clear operations; no caller observes a pending or

@@ -39,6 +39,14 @@ booted test device. Before every device run:
 discovery both fail, it returns `pass:false` with a "no device connected" error; the
 orchestrator/main session does the asking and memo update.)
 
+## User-approved debug reinstall policy
+
+When installing or replacing the current debug build on the documented local Pixel 5 API 34 emulator
+requires removing its existing `com.kshavrin.mymoney` debug package (including
+`INSTALL_FAILED_UPDATE_INCOMPATIBLE`), automatically uninstall the package and retry the same
+instrumented command once. Do not prompt for this emulator-only debug reinstall. Never apply this
+policy to a physical device, a non-debug target, or any other package.
+
 ## The loop (non-negotiable)
 
 Write **one** test → run it on `Pixel_5_API_34` → read the parsed report → if green, update the

@@ -53,7 +53,7 @@ Legend: `Observed (ADB app path)` means the app state or action was reached with
 | Calculator amount entry | UNVERIFIED (TalkBack) | UNVERIFIED | Visible digit keys are exposed as text on clickable parent nodes. `Backspace`, `Plus`, `Minus`, `Multiply`, `Divide`, `Equals`, `Back`, and `Swap` content descriptions are exposed. Direct taps produced visible `12.5`. | `07-calculator-12-5.png`, `07-calculator-12-5.xml` |
 | Choose category | UNVERIFIED (TalkBack) | UNVERIFIED | `Open category: Food` and the other category labels are exposed. Direct ADB tap on Food selected the category and returned to dashboard. | `08-category-picker.png`, `08-category-picker.xml` |
 | Saved expense appears | UNVERIFIED (TalkBack) | UNVERIFIED | Dashboard exposes `Open Food, 13 $` and `Spending share: 100%`; trend exposes a full summary including `Start: 0, end: -12.5, Direction: decreasing.` | `09-dashboard-after-expense.png`, `09-dashboard-after-expense.xml` |
-| Keyboard side probe | Not a TalkBack focus result. `KEYCODE_TAB` focused the disabled `CHOOSE CATEGORY` node; `KEYCODE_ENTER` returned to dashboard. | No spoken text observed | This was not treated as a successful TalkBack calculator activation. | `17-calculator-after-tab.xml`, `18-calculator-after-enter.xml` |
+| Keyboard side probe | Not a TalkBack focus result. The XML shows the `Back` control focused; `KEYCODE_ENTER` returned to dashboard. | No spoken text observed | This was not treated as a successful TalkBack calculator activation. | `17-calculator-after-tab.xml`, `18-calculator-after-enter.xml` |
 
 ### Journey 3 — dashboard reading (trend and donut scope)
 

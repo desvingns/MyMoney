@@ -1,7 +1,7 @@
 # ADR + plan: migrating off deprecated androidx security-crypto
 Epic: review-2026-07
 Order: 18 of 35
-Status: draft
+Status: done
 Depends-on: —
 Date: 2026-07-06
 
@@ -20,5 +20,5 @@ The secrets layer sits on an abandoned alpha library; unplanned, this becomes an
 emergency later. Source: review item 43 (P2/M).
 
 ## Implementation links
-- commit: (pending)
-- files: (pending)
+- commit: 3647e230 (ADR implementation commits: 44bc0aad, ace0b8fb, 890487dc, 3647e230)
+- files: docs/DECISIONS/ADR-0002-security-crypto-migration-plan.md

@@ -21,5 +21,5 @@ Automated checks can't judge focus order or real TalkBack UX; one recorded manua
 pass closes the loop. Source: review items 34+35 (P3/S + P3/M).
 
 ## Implementation links
-- commit: pending
+- commit: `7c1849e3`
 - files: `docs/a11y/2026-07-15-manual-accessibility-pass.md`; follow-up backlog `review-2026-07-16-aurora-balance-label-contrast.md`; fresh device evidence under `build/visual-check/a11y-2026-07-16-manual-pass/`

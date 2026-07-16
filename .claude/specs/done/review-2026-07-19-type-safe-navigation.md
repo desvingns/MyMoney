@@ -1,7 +1,7 @@
 # Migrate to type-safe navigation routes (@Serializable)
 Epic: review-2026-07
 Order: 19 of 35
-Status: draft
+Status: done
 Depends-on: —
 Date: 2026-07-06
 
@@ -20,5 +20,5 @@ Stringly routes defer argument mistakes to runtime; the library already supports
 compile-time-safe routes at the pinned version. Source: review item 47 (P2/M).
 
 ## Implementation links
-- commit: (pending)
-- files: (pending)
+- commit: f7956d4c, b8ca1ab4, 3dde2778, 58d2b1fb, 3b35a36a, 59ebf5a, 49c3b368
+- files: app navigation, core/ui navigation contract, eight typed-argument ViewModels, navigation unit tests, and TypedNavigationDeviceTest

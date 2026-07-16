@@ -1,7 +1,7 @@
 # Manual accessibility pass: contrast check + TalkBack journeys
 Epic: review-2026-07
 Order: 16 of 35
-Status: active
+Status: done
 Depends-on: review-2026-07-15
 Date: 2026-07-06
 
@@ -22,4 +22,4 @@ pass closes the loop. Source: review items 34+35 (P3/S + P3/M).
 
 ## Implementation links
 - commit: pending
-- files: `docs/a11y/2026-07-15-manual-accessibility-pass.md`; follow-up backlog `review-2026-07-16-aurora-balance-label-contrast.md`; device evidence under `build/visual-check/a11y-2026-07-15-manual-pass/`
+- files: `docs/a11y/2026-07-15-manual-accessibility-pass.md`; follow-up backlog `review-2026-07-16-aurora-balance-label-contrast.md`; fresh device evidence under `build/visual-check/a11y-2026-07-16-manual-pass/`

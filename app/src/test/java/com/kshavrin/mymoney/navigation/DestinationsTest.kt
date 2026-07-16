@@ -135,6 +135,12 @@ class DestinationsTest {
 
     @Test
     fun `argument owning view models decode typed routes and navigation preserves replace semantics`() {
+        assertTrue(
+            readProjectSource(
+                "feature", "transaction", "src", "main", "java", "com", "kshavrin", "mymoney",
+                "feature", "transaction", "rate", "CurrencyRateViewModel.kt",
+            ).contains("savedStateHandle.toRoute<Destinations.CurrencyRate>()"),
+        )
         listOf(
             "CurrencyRate" to
                 arrayOf(
@@ -215,6 +221,7 @@ class DestinationsTest {
                 "expense",
                 "AddExpenseScreen.kt",
             )
+        assertTrue(expenseSource.contains("onNavigateToCreateCategory: () -> Unit"))
         val incomeSource =
             readProjectSource(
                 "feature",
@@ -260,8 +267,6 @@ class DestinationsTest {
                 "detail",
                 "TransactionDetailScreen.kt",
             )
-
-        assertTrue(expenseSource.contains("onNavigateToCreateCategory: () -> Unit"))
         assertTrue(expenseSource.contains("onNavigateToIncome: () -> Unit"))
         assertTrue(incomeSource.contains("onNavigateToCreateCategory: () -> Unit"))
         assertTrue(incomeSource.contains("onNavigateToExpense: () -> Unit"))

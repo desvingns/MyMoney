@@ -49,7 +49,10 @@ class DataExtractionRulesTest {
 
     private fun assertSecurePreferencesExcluded(rules: ParsedRules) {
         assertEquals(
-            setOf(RuleEntry(domain = "sharedpref", path = "com.kshavrin.mymoney_secure.xml")),
+            setOf(
+                RuleEntry(domain = "sharedpref", path = "com.kshavrin.mymoney_secure.xml"),
+                RuleEntry(domain = "sharedpref", path = "com.kshavrin.mymoney_secure.xml.bak"),
+            ),
             rules.excludes,
         )
     }

@@ -29,7 +29,10 @@ class BackupRulesTest {
         val rules = parseRules(backupRulesFile)
 
         assertEquals(
-            setOf(RuleEntry(domain = "sharedpref", path = "com.kshavrin.mymoney_secure.xml")),
+            setOf(
+                RuleEntry(domain = "sharedpref", path = "com.kshavrin.mymoney_secure.xml"),
+                RuleEntry(domain = "sharedpref", path = "com.kshavrin.mymoney_secure.xml.bak"),
+            ),
             rules.excludes,
         )
         assertFalse(rules.includes.contains(RuleEntry(domain = "sharedpref", path = "com.kshavrin.mymoney_secure.xml")))

@@ -73,7 +73,7 @@ fun AuroraBalanceCard(
         Text(
             text = stringResource(R.string.dashboard_aurora_free_balance_label).uppercase(),
             style = MaterialTheme.typography.dashboardAuroraBalanceLabel,
-            color = Color.White.copy(alpha = 0.55f),
+            color = MaterialTheme.colorScheme.dashboardBalancePanelContent,
             maxLines = 1,
             textAlign = TextAlign.Center,
         )

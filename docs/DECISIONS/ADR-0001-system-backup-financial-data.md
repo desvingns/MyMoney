@@ -20,8 +20,8 @@ Choose option 2: exclude `monefy.db`, `monefy.db-shm`, and `monefy.db-wal` from
 system cloud backup. Keep those files in the Android 12+ `device-transfer` rule.
 
 Keep `app_settings.preferences_pb` and non-secure shared preferences in their
-current backup allowlists. Exclude
-`com.kshavrin.mymoney_secure.xml` from every backup mode; this is an invariant.
+current backup allowlists. Exclude `com.kshavrin.mymoney_secure.xml` and its
+`.bak` sidecar from every backup mode; this is an invariant.
 
 This decision does not add encryption before backup and does not change the
 separate opt-in Dropbox or Google Drive sync feature.

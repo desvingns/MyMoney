@@ -4,6 +4,7 @@
         <include domain="file" path="datastore/app_settings.preferences_pb"/>
         <include domain="sharedpref" path="."/>
         <exclude domain="sharedpref" path="com.kshavrin.mymoney_secure.xml"/>
+        <exclude domain="sharedpref" path="com.kshavrin.mymoney_secure.xml.bak"/>
     </cloud-backup>
     <device-transfer>
         <include domain="database" path="monefy.db"/>
@@ -12,5 +13,6 @@
         <include domain="file" path="datastore/app_settings.preferences_pb"/>
         <include domain="sharedpref" path="."/>
         <exclude domain="sharedpref" path="com.kshavrin.mymoney_secure.xml"/>
+        <exclude domain="sharedpref" path="com.kshavrin.mymoney_secure.xml.bak"/>
     </device-transfer>
 </data-extraction-rules>

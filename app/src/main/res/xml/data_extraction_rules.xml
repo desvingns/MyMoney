@@ -1,9 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <data-extraction-rules>
     <cloud-backup>
-        <include domain="database" path="monefy.db"/>
-        <include domain="database" path="monefy.db-shm"/>
-        <include domain="database" path="monefy.db-wal"/>
         <include domain="file" path="datastore/app_settings.preferences_pb"/>
         <include domain="sharedpref" path="."/>
         <exclude domain="sharedpref" path="com.kshavrin.mymoney_secure.xml"/>

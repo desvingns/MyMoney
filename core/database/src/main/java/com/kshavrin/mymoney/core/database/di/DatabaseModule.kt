@@ -46,7 +46,9 @@ object DatabaseModule {
                 MIGRATION_5_6,
                 MIGRATION_6_7,
                 MIGRATION_7_8,
-            ).fallbackToDestructiveMigrationFrom(99)
+            )
+            // 99 is an unreachable dev/QA sentinel; release schemas 1..8 require explicit migrations.
+            .fallbackToDestructiveMigrationFrom(99)
             .build()
 
     @Provides

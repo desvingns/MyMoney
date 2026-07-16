@@ -133,24 +133,56 @@ class DestinationsTest {
     }
 
     @Test
-    fun `navigation graph extracts every typed route argument and preserves replace semantics`() {
-        val source = readProjectSource("app", "src", "main", "java", "com", "kshavrin", "mymoney", "navigation", "MyMoneyNavHost.kt")
-
+    fun `argument owning view models decode typed routes and navigation preserves replace semantics`() {
         listOf(
-            "CurrencyRate",
-            "TransactionsList",
-            "TransactionDetail",
-            "ImportWizard",
-            "CategoryEdit",
-            "AccountEdit",
-            "FinancialGoalEdit",
-            "CurrencyEdit",
-        ).forEach { destination ->
+            "CurrencyRate" to
+                arrayOf(
+                    "feature", "transaction", "src", "main", "java", "com", "kshavrin", "mymoney",
+                    "feature", "transaction", "rate", "CurrencyRateViewModel.kt",
+                ),
+            "TransactionsList" to
+                arrayOf(
+                    "feature", "transactionslist", "src", "main", "java", "com", "kshavrin", "mymoney",
+                    "feature", "transactionslist", "list", "TransactionsListViewModel.kt",
+                ),
+            "TransactionDetail" to
+                arrayOf(
+                    "feature", "transactionslist", "src", "main", "java", "com", "kshavrin", "mymoney",
+                    "feature", "transactionslist", "detail", "TransactionDetailViewModel.kt",
+                ),
+            "ImportWizard" to
+                arrayOf(
+                    "feature", "settings", "src", "main", "java", "com", "kshavrin", "mymoney",
+                    "feature", "settings", "importwizard", "ImportWizardViewModel.kt",
+                ),
+            "CategoryEdit" to
+                arrayOf(
+                    "feature", "dictionaries", "src", "main", "java", "com", "kshavrin", "mymoney",
+                    "feature", "dictionaries", "categories", "CategoryEditViewModel.kt",
+                ),
+            "AccountEdit" to
+                arrayOf(
+                    "feature", "dictionaries", "src", "main", "java", "com", "kshavrin", "mymoney",
+                    "feature", "dictionaries", "accounts", "AccountEditViewModel.kt",
+                ),
+            "FinancialGoalEdit" to
+                arrayOf(
+                    "feature", "dictionaries", "src", "main", "java", "com", "kshavrin", "mymoney",
+                    "feature", "dictionaries", "goals", "GoalEditViewModel.kt",
+                ),
+            "CurrencyEdit" to
+                arrayOf(
+                    "feature", "dictionaries", "src", "main", "java", "com", "kshavrin", "mymoney",
+                    "feature", "dictionaries", "currencies", "CurrencyEditViewModel.kt",
+                ),
+        ).forEach { (destination, viewModelPath) ->
+            val viewModelSource = readProjectSource(*viewModelPath)
             assertTrue(
-                "MyMoneyNavHost must decode $destination with toRoute",
-                source.contains("entry.toRoute<Destinations.$destination>()"),
+                "The $destination owner must decode its typed route from SavedStateHandle",
+                viewModelSource.contains("savedStateHandle.toRoute<Destinations.$destination>()"),
             )
         }
+        val source = readProjectSource("app", "src", "main", "java", "com", "kshavrin", "mymoney", "navigation", "MyMoneyNavHost.kt")
         listOf(
             "popUpTo<Destinations.Splash> { inclusive = true }",
             "popUpTo<Destinations.Onboarding> { inclusive = true }",

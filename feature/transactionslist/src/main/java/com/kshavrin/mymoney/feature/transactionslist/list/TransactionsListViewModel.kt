@@ -3,6 +3,7 @@ package com.kshavrin.mymoney.feature.transactionslist.list
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.toRoute
 import com.kshavrin.mymoney.core.common.exception.reportToSentry
 import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.Currency
@@ -12,6 +13,7 @@ import com.kshavrin.mymoney.core.domain.repository.CategoryRepository
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
 import com.kshavrin.mymoney.core.domain.usecase.GetOperationsSummaryUseCase
+import com.kshavrin.mymoney.core.ui.navigation.Destinations
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -39,11 +41,12 @@ class TransactionsListViewModel
         private val transactionRepository: TransactionRepository,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
-        private val accountId: Long? = savedStateHandle.get<Long>(KEY_ACCOUNT_ID)?.takeIf { it >= 0 }
-        private val currencyId: Long? = savedStateHandle.get<Long>(KEY_CURRENCY_ID)?.takeIf { it >= 0 }
-        private val initialCategoryId: Long? = savedStateHandle.get<Long>(KEY_CATEGORY_ID)?.takeIf { it >= 0 }
-        private val fromMillis: Long? = savedStateHandle.get<Long>(KEY_FROM)?.takeIf { it >= 0 }
-        private val toMillis: Long? = savedStateHandle.get<Long>(KEY_TO)?.takeIf { it >= 0 }
+        private val route = savedStateHandle.toRoute<Destinations.TransactionsList>()
+        private val accountId: Long? = route.accountId.takeIf { it >= 0 }
+        private val currencyId: Long? = route.currencyId.takeIf { it >= 0 }
+        private val initialCategoryId: Long? = route.categoryId.takeIf { it >= 0 }
+        private val fromMillis: Long? = route.from.takeIf { it >= 0 }
+        private val toMillis: Long? = route.to.takeIf { it >= 0 }
         private val period: Period = resolvePeriod()
 
         private val _state =

@@ -3,6 +3,7 @@ package com.kshavrin.mymoney.feature.dictionaries.goals
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.toRoute
 import com.kshavrin.mymoney.core.common.money.MoneyFormatter
 import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.ContributionBreakdown
@@ -22,6 +23,7 @@ import com.kshavrin.mymoney.core.domain.usecase.ContributionCalculator
 import com.kshavrin.mymoney.core.domain.usecase.GoalLoanCalculator
 import com.kshavrin.mymoney.core.domain.usecase.GoalSavingsProjector
 import com.kshavrin.mymoney.core.domain.usecase.capitalVsBalanceDelta
+import com.kshavrin.mymoney.core.ui.navigation.Destinations
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -49,7 +51,7 @@ class GoalEditViewModel
         private val contributionCalculator: ContributionCalculator,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
-        private val goalId: Long = savedStateHandle.get<Long>("id") ?: -1L
+        private val goalId: Long = savedStateHandle.toRoute<Destinations.FinancialGoalEdit>().id
 
         private val _state = MutableStateFlow(GoalEditState(id = goalId, isCreateMode = goalId == -1L))
         val state: StateFlow<GoalEditState> = _state.asStateFlow()

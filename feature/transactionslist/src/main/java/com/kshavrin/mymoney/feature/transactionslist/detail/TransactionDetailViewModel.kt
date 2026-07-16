@@ -3,6 +3,7 @@ package com.kshavrin.mymoney.feature.transactionslist.detail
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.toRoute
 import com.kshavrin.mymoney.core.common.calculator.CalculatorEngine
 import com.kshavrin.mymoney.core.common.exception.reportToSentry
 import com.kshavrin.mymoney.core.common.money.MoneyFormatter
@@ -20,6 +21,7 @@ import com.kshavrin.mymoney.core.domain.repository.CategoryRepository
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRateRepository
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
+import com.kshavrin.mymoney.core.ui.navigation.Destinations
 import com.kshavrin.mymoney.feature.transactionslist.R
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
@@ -50,7 +52,8 @@ class TransactionDetailViewModel
         private val currencyRateRepository: CurrencyRateRepository,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
-        private val transactionId: Long = savedStateHandle.get<Long>(KEY_TRANSACTION_ID) ?: -1L
+        private val transactionId: Long =
+            savedStateHandle.toRoute<Destinations.TransactionDetail>().transactionId
 
         private val engine = CalculatorEngine()
 

@@ -3,6 +3,7 @@ package com.kshavrin.mymoney.feature.dictionaries.accounts
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.toRoute
 import com.kshavrin.mymoney.core.common.money.MoneyFormatter
 import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.AccountType
@@ -11,6 +12,7 @@ import com.kshavrin.mymoney.core.domain.model.toMoneyScale
 import com.kshavrin.mymoney.core.domain.repository.AccountRepository
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
+import com.kshavrin.mymoney.core.ui.navigation.Destinations
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,7 +39,7 @@ class AccountEditViewModel
         private val transactionRepository: TransactionRepository,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
-        private val accountId: Long = savedStateHandle.get<Long>("id") ?: -1L
+        private val accountId: Long = savedStateHandle.toRoute<Destinations.AccountEdit>().id
 
         private val _state = MutableStateFlow(AccountEditState(isCreateMode = accountId == -1L))
         val state: StateFlow<AccountEditState> = _state.asStateFlow()

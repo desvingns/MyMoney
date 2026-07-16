@@ -3,12 +3,14 @@ package com.kshavrin.mymoney.feature.dictionaries.categories
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.toRoute
 import com.kshavrin.mymoney.core.common.category.categoryIconDominantHex
 import com.kshavrin.mymoney.core.common.category.categoryTextColorHex
 import com.kshavrin.mymoney.core.domain.model.Category
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.core.domain.repository.CategoryRepository
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
+import com.kshavrin.mymoney.core.ui.navigation.Destinations
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,12 +30,11 @@ class CategoryEditViewModel
         private val transactionRepository: TransactionRepository,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
-        private val categoryId: Long = savedStateHandle.get<Long>("id") ?: -1L
-        private val fromPicker: Boolean = savedStateHandle.get<Boolean>("fromPicker") ?: false
+        private val route = savedStateHandle.toRoute<Destinations.CategoryEdit>()
+        private val categoryId: Long = route.id
+        private val fromPicker: Boolean = route.fromPicker
         private val initialKind: CategoryKind? =
-            savedStateHandle
-                .get<String>("kind")
-                ?.let { runCatching { CategoryKind.fromString(it) }.getOrNull() }
+            route.kind?.let { runCatching { CategoryKind.fromString(it) }.getOrNull() }
 
         private val _state =
             MutableStateFlow(

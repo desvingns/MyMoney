@@ -3,10 +3,12 @@ package com.kshavrin.mymoney.feature.dictionaries.currencies
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.toRoute
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.repository.AccountRepository
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
+import com.kshavrin.mymoney.core.ui.navigation.Destinations
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,7 +28,7 @@ class CurrencyEditViewModel
         private val accountRepository: AccountRepository,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
-        private val currencyId: Long = savedStateHandle.get<Long>("id") ?: -1L
+        private val currencyId: Long = savedStateHandle.toRoute<Destinations.CurrencyEdit>().id
 
         private val _state = MutableStateFlow(CurrencyEditState(isCreateMode = currencyId == -1L))
         val state: StateFlow<CurrencyEditState> = _state.asStateFlow()

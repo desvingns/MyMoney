@@ -3,6 +3,7 @@ package com.kshavrin.mymoney.feature.settings.importwizard
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.toRoute
 import com.kshavrin.mymoney.core.common.exception.reportToSentry
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
 import com.kshavrin.mymoney.core.domain.csv.CategoryMergeMapping
@@ -19,6 +20,7 @@ import com.kshavrin.mymoney.core.domain.model.Category
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.core.domain.repository.BackupRepository
 import com.kshavrin.mymoney.core.domain.repository.CategoryRepository
+import com.kshavrin.mymoney.core.ui.navigation.Destinations
 import com.kshavrin.mymoney.feature.settings.R
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.BufferOverflow
@@ -41,7 +43,7 @@ class ImportWizardViewModel
         private val categoryRepository: CategoryRepository = NoOpCategoryRepository,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
-        private val uri: String = savedStateHandle.get<String>(KEY_URI).orEmpty()
+        private val uri: String = savedStateHandle.toRoute<Destinations.ImportWizard>().uri
 
         private val _state = MutableStateFlow(ImportWizardState())
         val state: StateFlow<ImportWizardState> = _state.asStateFlow()

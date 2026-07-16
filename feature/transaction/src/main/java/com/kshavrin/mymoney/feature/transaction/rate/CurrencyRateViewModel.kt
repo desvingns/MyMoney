@@ -3,11 +3,13 @@ package com.kshavrin.mymoney.feature.transaction.rate
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.toRoute
 import com.kshavrin.mymoney.core.common.exception.reportToSentry
 import com.kshavrin.mymoney.core.common.money.MoneyFormatter
 import com.kshavrin.mymoney.core.domain.model.CurrencyRate
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRateRepository
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
+import com.kshavrin.mymoney.core.ui.navigation.Destinations
 import com.kshavrin.mymoney.feature.transaction.R
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.BufferOverflow
@@ -32,8 +34,9 @@ class CurrencyRateViewModel
         private val currencyRateRepository: CurrencyRateRepository,
         private val savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
-        private val fromId: Long = savedStateHandle.get<Long>(KEY_FROM_ID) ?: -1L
-        private val toId: Long = savedStateHandle.get<Long>(KEY_TO_ID) ?: -1L
+        private val route = savedStateHandle.toRoute<Destinations.CurrencyRate>()
+        private val fromId: Long = route.fromId
+        private val toId: Long = route.toId
 
         private val _state = MutableStateFlow(CurrencyRateState())
         val state: StateFlow<CurrencyRateState> = _state.asStateFlow()

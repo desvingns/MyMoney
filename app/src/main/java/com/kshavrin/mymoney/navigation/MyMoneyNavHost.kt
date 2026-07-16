@@ -15,7 +15,6 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.toRoute
 
 @Composable
 fun MyMoneyNavHost(
@@ -108,8 +107,7 @@ fun MyMoneyNavHost(
                 onBack = { navController.popBackStack() },
             )
         }
-        composable<Destinations.TransactionsList> { entry ->
-            entry.toRoute<Destinations.TransactionsList>()
+        composable<Destinations.TransactionsList> {
             com.kshavrin.mymoney.feature.transactionslist.list.TransactionsListRoute(
                 onOpenDetail = { id -> navController.navigate(Destinations.TransactionDetail(id)) },
                 onSearch = { navController.navigate(Destinations.Search) },
@@ -117,7 +115,6 @@ fun MyMoneyNavHost(
             )
         }
         composable<Destinations.TransactionDetail> { entry ->
-            entry.toRoute<Destinations.TransactionDetail>()
             com.kshavrin.mymoney.feature.transactionslist.detail.TransactionDetailRoute(
                 onBack = { navController.popBackStack() },
                 navController = navController,
@@ -179,8 +176,7 @@ fun MyMoneyNavHost(
                 },
             )
         }
-        composable<Destinations.CurrencyRate> { entry ->
-            entry.toRoute<Destinations.CurrencyRate>()
+        composable<Destinations.CurrencyRate> {
             com.kshavrin.mymoney.feature.transaction.rate
                 .CurrencyRateRoute(navController = navController)
         }
@@ -191,8 +187,7 @@ fun MyMoneyNavHost(
                 onBack = { navController.popBackStack() },
             )
         }
-        composable<Destinations.CategoryEdit> { entry ->
-            entry.toRoute<Destinations.CategoryEdit>()
+        composable<Destinations.CategoryEdit> {
             com.kshavrin.mymoney.feature.dictionaries.categories.CategoryEditRoute(
                 navController = navController,
             )
@@ -204,8 +199,7 @@ fun MyMoneyNavHost(
                 onBack = { navController.popBackStack() },
             )
         }
-        composable<Destinations.AccountEdit> { entry ->
-            entry.toRoute<Destinations.AccountEdit>()
+        composable<Destinations.AccountEdit> {
             com.kshavrin.mymoney.feature.dictionaries.accounts.AccountEditRoute(
                 onBack = { navController.popBackStack() },
             )
@@ -217,8 +211,7 @@ fun MyMoneyNavHost(
                 onBack = { navController.popBackStack() },
             )
         }
-        composable<Destinations.FinancialGoalEdit> { entry ->
-            entry.toRoute<Destinations.FinancialGoalEdit>()
+        composable<Destinations.FinancialGoalEdit> {
             com.kshavrin.mymoney.feature.dictionaries.goals.GoalEditRoute(
                 onBack = { navController.popBackStack() },
             )
@@ -230,8 +223,7 @@ fun MyMoneyNavHost(
                 onBack = { navController.popBackStack() },
             )
         }
-        composable<Destinations.CurrencyEdit> { entry ->
-            entry.toRoute<Destinations.CurrencyEdit>()
+        composable<Destinations.CurrencyEdit> {
             com.kshavrin.mymoney.feature.dictionaries.currencies.CurrencyEditRoute(
                 onBack = { navController.popBackStack() },
             )
@@ -294,8 +286,7 @@ fun MyMoneyNavHost(
                 },
             )
         }
-        composable<Destinations.ImportWizard> { entry ->
-            entry.toRoute<Destinations.ImportWizard>()
+        composable<Destinations.ImportWizard> {
             com.kshavrin.mymoney.feature.settings.importwizard.ImportWizardRoute(
                 navController = navController,
             )

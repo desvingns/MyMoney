@@ -1,6 +1,7 @@
 package com.kshavrin.mymoney.navigation
 
 import com.kshavrin.mymoney.feature.dashboard.DashboardAction
+import com.kshavrin.mymoney.core.ui.navigation.Destinations
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

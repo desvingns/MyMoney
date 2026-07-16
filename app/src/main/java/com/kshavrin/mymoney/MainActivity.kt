@@ -22,8 +22,8 @@ import com.kshavrin.mymoney.core.ui.sound.SoundPlayer
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import com.kshavrin.mymoney.feature.lockscreen.overlay.LockController
 import com.kshavrin.mymoney.feature.lockscreen.overlay.LockOverlay
-import com.kshavrin.mymoney.navigation.Destinations
 import com.kshavrin.mymoney.navigation.MyMoneyNavHost
+import com.kshavrin.mymoney.navigation.ShortcutDestination
 import dagger.Lazy
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -80,11 +80,11 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun resolveShortcutDestination(intent: Intent?): String? =
+    private fun resolveShortcutDestination(intent: Intent?): ShortcutDestination? =
         when (intent?.getStringExtra(EXTRA_SHORTCUT_ID)) {
-            SHORTCUT_ADD_EXPENSE -> Destinations.ADD_EXPENSE
-            SHORTCUT_ADD_INCOME -> Destinations.ADD_INCOME
-            SHORTCUT_TRANSFER -> Destinations.TRANSFER
+            SHORTCUT_ADD_EXPENSE -> ShortcutDestination.AddExpense
+            SHORTCUT_ADD_INCOME -> ShortcutDestination.AddIncome
+            SHORTCUT_TRANSFER -> ShortcutDestination.Transfer
             else -> null
         }
 

@@ -84,6 +84,7 @@ import java.time.ZoneOffset
 fun TransferRoute(
     navController: NavController,
     backStackEntry: NavBackStackEntry,
+    onNavigateToRateSetup: (fromId: Long, toId: Long) -> Unit,
     viewModel: TransferViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -106,9 +107,7 @@ fun TransferRoute(
         when (action) {
             TransferAction.NavigateBack -> navController.popBackStack()
             is TransferAction.NavigateToRateSetup ->
-                navController.navigate(
-                    "transaction/currency_rate?fromId=${action.fromCurrencyId}&toId=${action.toCurrencyId}",
-                )
+                onNavigateToRateSetup(action.fromCurrencyId, action.toCurrencyId)
             // Dialog visibility is driven from state.rateDialogRow; this one-shot action marks the
             // moment the resolved rate is ready (G13).
             TransferAction.ShowRateDialog,

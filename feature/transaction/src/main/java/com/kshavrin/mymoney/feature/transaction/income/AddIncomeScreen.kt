@@ -33,7 +33,6 @@ import com.kshavrin.mymoney.core.designsystem.form.TransactionFormEvent
 import com.kshavrin.mymoney.core.designsystem.form.TransactionFormState
 import com.kshavrin.mymoney.core.designsystem.keypad.KeypadEvent
 import com.kshavrin.mymoney.core.domain.model.Category
-import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.core.ui.feedback.LocalHapticPlayer
 import com.kshavrin.mymoney.core.ui.feedback.LocalSoundPlayer
 import com.kshavrin.mymoney.core.ui.haptic.HapticKind
@@ -46,6 +45,8 @@ import java.math.BigDecimal
 fun AddIncomeRoute(
     navController: NavController,
     backStackEntry: NavBackStackEntry,
+    onNavigateToCreateCategory: () -> Unit,
+    onNavigateToExpense: () -> Unit,
     viewModel: AddIncomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -64,15 +65,8 @@ fun AddIncomeRoute(
         viewModel.actions.collect { action ->
             when (action) {
                 AddIncomeAction.NavigateBack -> navController.popBackStack()
-                AddIncomeAction.NavigateToCreateCategory ->
-                    navController.navigate(
-                        "dictionaries/categories/edit/-1?kind=${CategoryKind.Income.name}&fromPicker=true",
-                    )
-                AddIncomeAction.NavigateToExpenseForm -> {
-                    navController.navigate("transaction/expense") {
-                        popUpTo("transaction/income") { inclusive = true }
-                    }
-                }
+                AddIncomeAction.NavigateToCreateCategory -> onNavigateToCreateCategory()
+                AddIncomeAction.NavigateToExpenseForm -> onNavigateToExpense()
                 AddIncomeAction.ShowSavedConfetti,
                 is AddIncomeAction.FireHaptic,
                 is AddIncomeAction.PlaySound,

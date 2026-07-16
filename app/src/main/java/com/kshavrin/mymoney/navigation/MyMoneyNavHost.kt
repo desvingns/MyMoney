@@ -12,83 +12,80 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
-import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
+import androidx.navigation.toRoute
 
 @Composable
 fun MyMoneyNavHost(
     navController: NavHostController = rememberNavController(),
-    shortcutDestination: String? = null,
+    shortcutDestination: ShortcutDestination? = null,
 ) {
     NavHost(
         navController = navController,
-        startDestination = Destinations.DECISION,
+        startDestination = Destinations.Decision,
     ) {
-        composable(Destinations.DECISION) {
+        composable<Destinations.Decision> {
             DecisionRouter(
                 navController = navController,
                 shortcutDestination = shortcutDestination,
             )
         }
-        composable(Destinations.SPLASH) {
+        composable<Destinations.Splash> {
             com.kshavrin.mymoney.feature.onboarding.SplashScreen(
                 onNavigateToOnboarding = {
                     if (com.kshavrin.mymoney.BuildConfig.SHOW_ONBOARDING) {
-                        navController.navigate(Destinations.ONBOARDING) {
-                            popUpTo(Destinations.SPLASH) { inclusive = true }
+                        navController.navigate(Destinations.Onboarding) {
+                            popUpTo<Destinations.Splash> { inclusive = true }
                         }
                     } else {
-                        navController.navigate(Destinations.DASHBOARD) {
-                            popUpTo(Destinations.SPLASH) { inclusive = true }
+                        navController.navigate(Destinations.Dashboard) {
+                            popUpTo<Destinations.Splash> { inclusive = true }
                         }
                     }
                 },
             )
         }
-        composable(Destinations.ONBOARDING) {
+        composable<Destinations.Onboarding> {
             com.kshavrin.mymoney.feature.onboarding.OnboardingScreen(
                 onComplete = {
-                    navController.navigate(Destinations.DASHBOARD) {
-                        popUpTo(Destinations.ONBOARDING) { inclusive = true }
+                    navController.navigate(Destinations.Dashboard) {
+                        popUpTo<Destinations.Onboarding> { inclusive = true }
                     }
                 },
             )
         }
-        composable(Destinations.DASHBOARD) {
+        composable<Destinations.Dashboard> {
             var searchOverlayOpen by rememberSaveable { mutableStateOf(false) }
             Box(modifier = Modifier.fillMaxSize()) {
                 com.kshavrin.mymoney.feature.dashboard.DashboardRoute(
                     onAction = { action ->
                         when (action) {
                             com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateAddExpense ->
-                                navController.navigate(Destinations.ADD_EXPENSE)
+                                navController.navigate(Destinations.AddExpense)
                             com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateAddIncome ->
-                                navController.navigate(Destinations.ADD_INCOME)
+                                navController.navigate(Destinations.AddIncome)
                             com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateTransfer ->
-                                navController.navigate(Destinations.TRANSFER)
+                                navController.navigate(Destinations.Transfer)
                             com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateSearch ->
                                 searchOverlayOpen = true
                             com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateSettings ->
-                                navController.navigate(Destinations.SETTINGS)
+                                navController.navigate(Destinations.Settings)
                             com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateCategories ->
-                                navController.navigate(Destinations.CATEGORIES_LIST)
+                                navController.navigate(Destinations.CategoriesList)
                             com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateAccounts ->
-                                navController.navigate(Destinations.ACCOUNTS_LIST)
+                                navController.navigate(Destinations.AccountsList)
                             com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateFinancialGoals ->
-                                navController.navigate(Destinations.FINANCIAL_GOALS)
+                                navController.navigate(Destinations.FinancialGoals)
                             com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateCurrencies ->
-                                navController.navigate(Destinations.CURRENCIES_LIST)
+                                navController.navigate(Destinations.CurrenciesList)
                             com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateAbout ->
-                                navController.navigate(Destinations.SETTINGS)
+                                navController.navigate(Destinations.Settings)
                             is com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateToTransactionDetail ->
-                                navController.navigate("${Destinations.TRANSACTION_DETAIL}/${action.transactionId}")
+                                navController.navigate(Destinations.TransactionDetail(action.transactionId))
                             is com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateToTransactionsList ->
-                                navController.navigate(transactionsListRoute(action))
-                            // The "All accounts" conversion dialogs are handled inside DashboardRoute
-                            // and never reach navigation.
+                                navController.navigate(transactionsListDestination(action))
                             else -> Unit
                         }
                     },
@@ -97,7 +94,7 @@ fun MyMoneyNavHost(
                     com.kshavrin.mymoney.feature.transactionslist.search.SearchRoute(
                         onOpenDetail = { id ->
                             searchOverlayOpen = false
-                            navController.navigate("${Destinations.TRANSACTION_DETAIL}/$id")
+                            navController.navigate(Destinations.TransactionDetail(id))
                         },
                         onBack = { searchOverlayOpen = false },
                         contextualOverlay = true,
@@ -105,254 +102,200 @@ fun MyMoneyNavHost(
                 }
             }
         }
-        composable(Destinations.SEARCH) {
+        composable<Destinations.Search> {
             com.kshavrin.mymoney.feature.transactionslist.search.SearchRoute(
-                onOpenDetail = { id -> navController.navigate("${Destinations.TRANSACTION_DETAIL}/$id") },
+                onOpenDetail = { id -> navController.navigate(Destinations.TransactionDetail(id)) },
                 onBack = { navController.popBackStack() },
             )
         }
-        composable(
-            route = "${Destinations.TRANSACTIONS_LIST}?accountId={accountId}&currencyId={currencyId}&categoryId={categoryId}&from={from}&to={to}",
-            arguments =
-                listOf(
-                    navArgument("accountId") {
-                        type = NavType.LongType
-                        defaultValue = -1L
-                    },
-                    navArgument("currencyId") {
-                        type = NavType.LongType
-                        defaultValue = -1L
-                    },
-                    navArgument("categoryId") {
-                        type = NavType.LongType
-                        defaultValue = -1L
-                    },
-                    navArgument("from") {
-                        type = NavType.LongType
-                        defaultValue = -1L
-                    },
-                    navArgument("to") {
-                        type = NavType.LongType
-                        defaultValue = -1L
-                    },
-                ),
-        ) {
+        composable<Destinations.TransactionsList> { entry ->
+            entry.toRoute<Destinations.TransactionsList>()
             com.kshavrin.mymoney.feature.transactionslist.list.TransactionsListRoute(
-                onOpenDetail = { id -> navController.navigate("${Destinations.TRANSACTION_DETAIL}/$id") },
-                onSearch = { navController.navigate(Destinations.SEARCH) },
+                onOpenDetail = { id -> navController.navigate(Destinations.TransactionDetail(id)) },
+                onSearch = { navController.navigate(Destinations.Search) },
                 onBack = { navController.popBackStack() },
             )
         }
-        composable(
-            route = "${Destinations.TRANSACTION_DETAIL}/{transactionId}",
-            arguments =
-                listOf(
-                    navArgument("transactionId") { type = NavType.LongType },
-                ),
-        ) { entry ->
+        composable<Destinations.TransactionDetail> { entry ->
+            entry.toRoute<Destinations.TransactionDetail>()
             com.kshavrin.mymoney.feature.transactionslist.detail.TransactionDetailRoute(
                 onBack = { navController.popBackStack() },
                 navController = navController,
                 backStackEntry = entry,
+                onNavigateToCreateCategory = { kind ->
+                    navController.navigate(
+                        Destinations.CategoryEdit(
+                            kind = kind,
+                            fromPicker = true,
+                        ),
+                    )
+                },
             )
         }
-        composable(Destinations.ADD_EXPENSE) { entry ->
+        composable<Destinations.AddExpense> { entry ->
             com.kshavrin.mymoney.feature.transaction.expense.AddExpenseRoute(
                 navController = navController,
                 backStackEntry = entry,
+                onNavigateToCreateCategory = {
+                    navController.navigate(
+                        Destinations.CategoryEdit(
+                            kind = com.kshavrin.mymoney.core.domain.model.CategoryKind.Expense.name,
+                            fromPicker = true,
+                        ),
+                    )
+                },
+                onNavigateToIncome = {
+                    navController.navigate(Destinations.AddIncome) {
+                        popUpTo<Destinations.AddExpense> { inclusive = true }
+                    }
+                },
             )
         }
-        composable(Destinations.ADD_INCOME) { entry ->
+        composable<Destinations.AddIncome> { entry ->
             com.kshavrin.mymoney.feature.transaction.income.AddIncomeRoute(
                 navController = navController,
                 backStackEntry = entry,
+                onNavigateToCreateCategory = {
+                    navController.navigate(
+                        Destinations.CategoryEdit(
+                            kind = com.kshavrin.mymoney.core.domain.model.CategoryKind.Income.name,
+                            fromPicker = true,
+                        ),
+                    )
+                },
+                onNavigateToExpense = {
+                    navController.navigate(Destinations.AddExpense) {
+                        popUpTo<Destinations.AddIncome> { inclusive = true }
+                    }
+                },
             )
         }
-        composable(Destinations.TRANSFER) { entry ->
+        composable<Destinations.Transfer> { entry ->
             com.kshavrin.mymoney.feature.transaction.transfer.TransferRoute(
                 navController = navController,
                 backStackEntry = entry,
+                onNavigateToRateSetup = { fromId, toId ->
+                    navController.navigate(Destinations.CurrencyRate(fromId, toId))
+                },
             )
         }
-        composable(
-            route = "${Destinations.CURRENCY_RATE}?fromId={fromId}&toId={toId}",
-            arguments =
-                listOf(
-                    navArgument("fromId") {
-                        type = NavType.LongType
-                        defaultValue = -1L
-                    },
-                    navArgument("toId") {
-                        type = NavType.LongType
-                        defaultValue = -1L
-                    },
-                ),
-        ) {
+        composable<Destinations.CurrencyRate> { entry ->
+            entry.toRoute<Destinations.CurrencyRate>()
             com.kshavrin.mymoney.feature.transaction.rate
                 .CurrencyRateRoute(navController = navController)
         }
-        composable(Destinations.CATEGORIES_LIST) {
+        composable<Destinations.CategoriesList> {
             com.kshavrin.mymoney.feature.dictionaries.categories.CategoriesListRoute(
-                onAdd = { navController.navigate("${Destinations.CATEGORY_EDIT}/-1") },
-                onEdit = { id -> navController.navigate("${Destinations.CATEGORY_EDIT}/$id") },
+                onAdd = { navController.navigate(Destinations.CategoryEdit()) },
+                onEdit = { id -> navController.navigate(Destinations.CategoryEdit(id)) },
                 onBack = { navController.popBackStack() },
             )
         }
-        composable(
-            route = "${Destinations.CATEGORY_EDIT}/{id}?kind={kind}&fromPicker={fromPicker}",
-            arguments =
-                listOf(
-                    navArgument("id") {
-                        type = NavType.LongType
-                        defaultValue = -1L
-                    },
-                    navArgument("kind") {
-                        type = NavType.StringType
-                        nullable = true
-                        defaultValue = null
-                    },
-                    navArgument("fromPicker") {
-                        type = NavType.BoolType
-                        defaultValue = false
-                    },
-                ),
-        ) {
+        composable<Destinations.CategoryEdit> { entry ->
+            entry.toRoute<Destinations.CategoryEdit>()
             com.kshavrin.mymoney.feature.dictionaries.categories.CategoryEditRoute(
                 navController = navController,
             )
         }
-        composable(Destinations.ACCOUNTS_LIST) {
+        composable<Destinations.AccountsList> {
             com.kshavrin.mymoney.feature.dictionaries.accounts.AccountsListRoute(
-                onAdd = { navController.navigate("${Destinations.ACCOUNT_EDIT}/-1") },
-                onEdit = { id -> navController.navigate("${Destinations.ACCOUNT_EDIT}/$id") },
+                onAdd = { navController.navigate(Destinations.AccountEdit()) },
+                onEdit = { id -> navController.navigate(Destinations.AccountEdit(id)) },
                 onBack = { navController.popBackStack() },
             )
         }
-        composable(
-            route = "${Destinations.ACCOUNT_EDIT}/{id}",
-            arguments =
-                listOf(
-                    navArgument("id") {
-                        type = NavType.LongType
-                        defaultValue = -1L
-                    },
-                ),
-        ) {
+        composable<Destinations.AccountEdit> { entry ->
+            entry.toRoute<Destinations.AccountEdit>()
             com.kshavrin.mymoney.feature.dictionaries.accounts.AccountEditRoute(
                 onBack = { navController.popBackStack() },
             )
         }
-        composable(Destinations.FINANCIAL_GOALS) {
+        composable<Destinations.FinancialGoals> {
             com.kshavrin.mymoney.feature.dictionaries.goals.GoalsListRoute(
-                onAdd = { navController.navigate("${Destinations.FINANCIAL_GOAL_EDIT}/-1") },
-                onEdit = { id -> navController.navigate("${Destinations.FINANCIAL_GOAL_EDIT}/$id") },
+                onAdd = { navController.navigate(Destinations.FinancialGoalEdit()) },
+                onEdit = { id -> navController.navigate(Destinations.FinancialGoalEdit(id)) },
                 onBack = { navController.popBackStack() },
             )
         }
-        composable(
-            route = "${Destinations.FINANCIAL_GOAL_EDIT}/{id}",
-            arguments =
-                listOf(
-                    navArgument("id") {
-                        type = NavType.LongType
-                        defaultValue = -1L
-                    },
-                ),
-        ) {
+        composable<Destinations.FinancialGoalEdit> { entry ->
+            entry.toRoute<Destinations.FinancialGoalEdit>()
             com.kshavrin.mymoney.feature.dictionaries.goals.GoalEditRoute(
                 onBack = { navController.popBackStack() },
             )
         }
-        composable(Destinations.CURRENCIES_LIST) {
+        composable<Destinations.CurrenciesList> {
             com.kshavrin.mymoney.feature.dictionaries.currencies.CurrenciesListRoute(
-                onAdd = { navController.navigate("${Destinations.CURRENCY_EDIT}/-1") },
-                onEdit = { id -> navController.navigate("${Destinations.CURRENCY_EDIT}/$id") },
+                onAdd = { navController.navigate(Destinations.CurrencyEdit()) },
+                onEdit = { id -> navController.navigate(Destinations.CurrencyEdit(id)) },
                 onBack = { navController.popBackStack() },
             )
         }
-        composable(
-            route = "${Destinations.CURRENCY_EDIT}/{id}",
-            arguments =
-                listOf(
-                    navArgument("id") {
-                        type = NavType.LongType
-                        defaultValue = -1L
-                    },
-                ),
-        ) {
+        composable<Destinations.CurrencyEdit> { entry ->
+            entry.toRoute<Destinations.CurrencyEdit>()
             com.kshavrin.mymoney.feature.dictionaries.currencies.CurrencyEditRoute(
                 onBack = { navController.popBackStack() },
             )
         }
-        composable(Destinations.SETTINGS) {
+        composable<Destinations.Settings> {
             com.kshavrin.mymoney.feature.settings.root.SettingsRootRoute(
-                onOpenTheme = { navController.navigate(Destinations.SETTINGS_THEME) },
-                onOpenLanguage = { navController.navigate(Destinations.SETTINGS_LANGUAGE) },
-                onOpenBackup = { navController.navigate(Destinations.SETTINGS_BACKUP) },
-                onOpenCloudSync = { navController.navigate(Destinations.CLOUD_SYNC) },
-                onOpenBiometricLock = { navController.navigate(Destinations.LOCK_SCREEN) },
-                onOpenAbout = { navController.navigate(Destinations.SETTINGS_ABOUT) },
+                onOpenTheme = { navController.navigate(Destinations.SettingsTheme) },
+                onOpenLanguage = { navController.navigate(Destinations.SettingsLanguage) },
+                onOpenBackup = { navController.navigate(Destinations.SettingsBackup) },
+                onOpenCloudSync = { navController.navigate(Destinations.CloudSync) },
+                onOpenBiometricLock = { navController.navigate(Destinations.LockScreen) },
+                onOpenAbout = { navController.navigate(Destinations.SettingsAbout) },
                 onBack = { navController.popBackStack() },
             )
         }
-        composable(Destinations.CLOUD_SYNC) {
+        composable<Destinations.CloudSync> {
             com.kshavrin.mymoney.feature.cloudsync.CloudSyncRoute(
                 onBack = { navController.popBackStack() },
             )
         }
-        composable(Destinations.LOCK_SCREEN) {
+        composable<Destinations.LockScreen> {
             com.kshavrin.mymoney.feature.lockscreen.setup.BiometricSetupRoute(
                 onBack = { navController.popBackStack() },
             )
         }
-        composable(Destinations.SETTINGS_THEME) {
+        composable<Destinations.SettingsTheme> {
             com.kshavrin.mymoney.feature.settings.theme.ThemeSettingsRoute(
                 onBack = { navController.popBackStack() },
             )
         }
-        composable(Destinations.SETTINGS_LANGUAGE) {
+        composable<Destinations.SettingsLanguage> {
             com.kshavrin.mymoney.feature.settings.language.LanguageRoute(
                 onBack = { navController.popBackStack() },
             )
         }
-        composable(Destinations.SETTINGS_ABOUT) {
+        composable<Destinations.SettingsAbout> {
             com.kshavrin.mymoney.feature.settings.about.AboutHelpRoute(
                 versionName = com.kshavrin.mymoney.BuildConfig.VERSION_NAME,
                 versionCode = com.kshavrin.mymoney.BuildConfig.VERSION_CODE,
-                onOpenPrivacy = { navController.navigate(Destinations.SETTINGS_ABOUT_PRIVACY) },
-                onOpenHelp = { navController.navigate(Destinations.SETTINGS_ABOUT_HELP) },
+                onOpenPrivacy = { navController.navigate(Destinations.SettingsAboutPrivacy) },
+                onOpenHelp = { navController.navigate(Destinations.SettingsAboutHelp) },
                 onBack = { navController.popBackStack() },
             )
         }
-        composable(Destinations.SETTINGS_ABOUT_PRIVACY) {
+        composable<Destinations.SettingsAboutPrivacy> {
             com.kshavrin.mymoney.feature.settings.about.PrivacyPolicyScreen(
                 onBack = { navController.popBackStack() },
             )
         }
-        composable(Destinations.SETTINGS_ABOUT_HELP) {
+        composable<Destinations.SettingsAboutHelp> {
             com.kshavrin.mymoney.feature.settings.about.HelpScreen(
                 onBack = { navController.popBackStack() },
             )
         }
-        composable(Destinations.SETTINGS_BACKUP) {
+        composable<Destinations.SettingsBackup> {
             com.kshavrin.mymoney.feature.settings.backup.BackupRestoreRoute(
                 onBack = { navController.popBackStack() },
                 onNavigateToImportWizard = { uri ->
-                    val encoded = android.net.Uri.encode(uri)
-                    navController.navigate("${Destinations.IMPORT_WIZARD}?uri=$encoded")
+                    navController.navigate(Destinations.ImportWizard(uri))
                 },
             )
         }
-        composable(
-            route = "${Destinations.IMPORT_WIZARD}?uri={uri}",
-            arguments =
-                listOf(
-                    navArgument("uri") {
-                        type = NavType.StringType
-                        defaultValue = ""
-                    },
-                ),
-        ) {
+        composable<Destinations.ImportWizard> { entry ->
+            entry.toRoute<Destinations.ImportWizard>()
             com.kshavrin.mymoney.feature.settings.importwizard.ImportWizardRoute(
                 navController = navController,
             )
@@ -363,7 +306,7 @@ fun MyMoneyNavHost(
 @Composable
 private fun DecisionRouter(
     navController: NavHostController,
-    shortcutDestination: String? = null,
+    shortcutDestination: ShortcutDestination? = null,
 ) {
     val viewModel: DecisionRouterViewModel = hiltViewModel()
     val state by viewModel.state.collectAsState()
@@ -371,15 +314,18 @@ private fun DecisionRouter(
         when (state) {
             DecisionDestination.Pending -> Unit
             DecisionDestination.Splash ->
-                navController.navigate(Destinations.SPLASH) {
-                    popUpTo(Destinations.DECISION) { inclusive = true }
+                navController.navigate(Destinations.Splash) {
+                    popUpTo<Destinations.Decision> { inclusive = true }
                 }
             DecisionDestination.Dashboard -> {
-                navController.navigate(Destinations.DASHBOARD) {
-                    popUpTo(Destinations.DECISION) { inclusive = true }
+                navController.navigate(Destinations.Dashboard) {
+                    popUpTo<Destinations.Decision> { inclusive = true }
                 }
-                if (shortcutDestination != null) {
-                    navController.navigate(shortcutDestination)
+                when (shortcutDestination) {
+                    ShortcutDestination.AddExpense -> navController.navigate(Destinations.AddExpense)
+                    ShortcutDestination.AddIncome -> navController.navigate(Destinations.AddIncome)
+                    ShortcutDestination.Transfer -> navController.navigate(Destinations.Transfer)
+                    null -> Unit
                 }
             }
         }
@@ -387,12 +333,13 @@ private fun DecisionRouter(
     Box(modifier = Modifier.fillMaxSize())
 }
 
-private fun transactionsListRoute(
+private fun transactionsListDestination(
     action: com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateToTransactionsList,
-): String =
-    "${Destinations.TRANSACTIONS_LIST}?" +
-        "accountId=${action.accountId ?: -1L}" +
-        "&currencyId=${action.currencyId ?: -1L}" +
-        "&categoryId=${action.categoryId ?: -1L}" +
-        "&from=${action.fromMillis}" +
-        "&to=${action.toMillis}"
+): Destinations.TransactionsList =
+    Destinations.TransactionsList(
+        accountId = action.accountId ?: -1L,
+        currencyId = action.currencyId ?: -1L,
+        categoryId = action.categoryId ?: -1L,
+        from = action.fromMillis,
+        to = action.toMillis,
+    )

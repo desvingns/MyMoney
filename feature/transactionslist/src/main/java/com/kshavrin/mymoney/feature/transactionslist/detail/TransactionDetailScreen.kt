@@ -73,6 +73,7 @@ fun TransactionDetailRoute(
     onBack: () -> Unit,
     navController: NavController,
     backStackEntry: NavBackStackEntry,
+    onNavigateToCreateCategory: (String) -> Unit,
     viewModel: TransactionDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -95,9 +96,7 @@ fun TransactionDetailRoute(
             when (action) {
                 TransactionDetailAction.NavigateBack -> onBack()
                 is TransactionDetailAction.NavigateToCreateCategory ->
-                    navController.navigate(
-                        "dictionaries/categories/edit/-1?kind=${action.kind}&fromPicker=true",
-                    )
+                    onNavigateToCreateCategory(action.kind)
                 is TransactionDetailAction.ShowUndoSnackbar -> {
                     // AS-9: same 5s window as S12. Indefinite duration defers dismissal to the
                     // timeout so the soft-delete becomes final exactly after 5 seconds. We pop

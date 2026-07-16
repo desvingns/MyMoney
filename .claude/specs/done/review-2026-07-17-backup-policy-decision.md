@@ -1,7 +1,7 @@
 # ADR: unencrypted DB in cloud backup + destructive-migration invariant
 Epic: review-2026-07
 Order: 17 of 35
-Status: draft
+Status: done
 Depends-on: —
 Date: 2026-07-06
 
@@ -21,5 +21,5 @@ choice; the migration fallback constant reads like a bomb without a comment.
 Source: review items 44+46 (P2/S + P3/S).
 
 ## Implementation links
-- commit: (pending)
-- files: (pending)
+- commits: f1a12bfd, fd12462c, a9282036, 2bc83921, cb6c7fc5
+- files: app/src/main/res/xml/backup_rules.xml, app/src/main/res/xml/data_extraction_rules.xml, core/database/src/main/java/com/kshavrin/mymoney/core/database/di/DatabaseModule.kt, docs/DECISIONS/ADR-0001-system-backup-financial-data.md, app/src/test/java/com/kshavrin/mymoney/BackupRulesTest.kt, app/src/test/java/com/kshavrin/mymoney/DataExtractionRulesTest.kt

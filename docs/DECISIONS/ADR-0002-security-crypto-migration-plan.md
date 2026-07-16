@@ -77,7 +77,11 @@ All five values, including the zero-or-absent and nullable semantics in the
 table, are one secure record set. A versioned encrypted migration-state record
 will distinguish `staged` from `complete`. DataStore's serialized update is
 the commit point for a record set; it is not being treated as encryption by
-itself.
+itself. The future implementation will also put every `SecureStorage`
+read, write, clear, migration, and reconciliation behind one process-wide
+serialized gate. No caller may observe a primary store, or run a
+connect/disconnect/PIN/lockout/clear mutation, until that gate has completed
+migration or returned an explicit recoverable failure outcome.
 
 This is the selected target architecture, not an authorization to implement
 it now. Before implementation, the TDD must be amended and approved to replace
@@ -128,45 +132,69 @@ review does not execute migration work.
 ## Future migration and rollback contract
 
 The migration release must be a dual-format release. It must not use the
-legacy `createPrefs` recovery factory to import data.
+legacy `createPrefs` recovery factory to import data. One process-wide
+serialized gate owns the following protocol; every `SecureStorage` read,
+write, and clear waits for its outcome. In particular, no
+connect/disconnect/PIN/lockout/clear mutation may start while first-access
+migration or reconciliation is pending.
 
-1. On first secure-storage access, open the new Keystore-backed store. If its
-   state is `complete`, read it as the primary source and do not overwrite it.
-2. Otherwise, open the legacy preferences through a non-mutating compatibility
-   reader. Read all five fields as one snapshot, preserving the distinctions in
-   the inventory table. If this read throws, retain both legacy files, write no
-   `complete` marker, report only a non-sensitive failure classification, and
-   use a user-confirmed recovery path rather than clearing credentials or PIN
-   state automatically.
-3. Encrypt the complete snapshot and write it with state `staged` in one
-   serialized DataStore update. Reopen it, decrypt every field, and compare it
+### First access
+
+1. Inside the gate, open the new Keystore-backed store and inspect its durable
+   encrypted migration marker. A `complete(generation)` marker is primary only
+   after the reconciliation rules below confirm that no newer legacy generation
+   exists.
+2. If no complete target exists, open legacy preferences through a
+   non-mutating compatibility reader and take one snapshot of all five fields.
+   If this read throws, retain both legacy files, write no `complete` marker,
+   report only a non-sensitive failure classification, and return an explicit
+   recoverable failure outcome. It must not clear credentials, PIN state, or
+   the biometric-lock setting.
+3. Write an encrypted target `intent(generation = 0)` marker, then persist the
+   snapshot as `staged(0)`. Reopen it, decrypt every field, and compare it
    field-for-field with the legacy snapshot, including a missing deadline,
-   failed-attempt count, and nullable values.
-4. Mark the target `complete` only after that verification. A process death at
-   any earlier point leaves either the legacy source intact or a `staged`
-   target that the next launch verifies or replaces from the intact source.
-   Repeating these steps is therefore idempotent and never clears a source.
-5. Keep the legacy preference XML and `.bak` untouched throughout the
-   migration release and its rollback window. The new implementation must fall
-   back to the non-mutating legacy reader if a completed target cannot be
-   opened. Removing the AndroidX compatibility reader, its dependency, or the
-   legacy files requires a later explicit TDD amendment and release decision;
-   it is not part of this migration release.
+   failed-attempt count, and nullable values. Only then write
+   `complete(0)`. A process death leaves the gate to resume this same protocol
+   on the next process start; it never invokes the deletion recovery path.
 
-During that rollback window, regular secure-storage mutations must be
-dual-written and verified in both formats. A mutation is reported successful
-only after both writes have completed; if the second write fails, persist only
-non-sensitive retry state, keep both last-known-valid sources, and do not
-silently report a successful connect, disconnect, PIN change, or lockout
-update. This keeps a supported downgrade from reading stale credentials or PIN
-state while retaining a recoverable source for the next launch.
+### Rollback-window mutations and reconciliation
 
-This contract protects a downgrade to the immediately previous app version,
-an interrupted update, and a target-store defect. If neither format can be
-read because the device's key material is irrecoverable, the app must fail
-closed and preserve the files for diagnosis. Re-authentication, PIN reset, or
-secure-storage clear may be offered only as an explicit user-confirmed
-recovery action; it must not be the automatic result of a migration failure.
+The legacy XML and `.bak` remain untouched throughout the migration release
+and its rollback window. An older application ignores the following additional
+legacy metadata and therefore continues to read its current values.
+
+1. For every mutation, the gate allocates monotonic generation `g + 1` and
+   first durably writes encrypted target `intent(g + 1)`. This marker records
+   the old committed generation and makes a crash detectable before either
+   format changes.
+2. The gate writes the complete new secure snapshot **legacy first**, including
+   a non-secret legacy generation field, and verifies its committed value.
+   It then writes and verifies the matching encrypted target snapshot with
+   generation `g + 1`.
+3. Only after both snapshots match does the gate atomically replace the target
+   marker with `complete(g + 1)` and report success to the caller. A mutation
+   cannot be reported successful after only one format has changed.
+4. On the next first access, a new reader that sees `intent(g + 1)` must not
+   use the target as primary. It compares the durable target and legacy
+   generations: if legacy is still `g`, it discards the unstarted intent; if
+   legacy is `g + 1` and target is stale or staged, it copies and verifies the
+   legacy snapshot into target; if both snapshots are `g + 1`, it verifies and
+   commits the marker. Any other mismatch returns an explicit recoverable
+   failure, preserves both sources, and blocks all secure-storage operations
+   until the caller chooses recovery.
+5. If the target cannot be opened, the gate uses the non-mutating legacy reader
+   as the fallback source and leaves all files intact. Removing the AndroidX
+   compatibility reader, its dependency, or the legacy files requires a later
+   explicit TDD amendment and release decision; it is not part of this
+   migration release.
+
+This protocol protects a downgrade to the immediately previous app version,
+an interrupted update, and a target-store defect without letting a new reader
+serve a stale target. If neither format can be read because the device's key
+material is irrecoverable, the app must fail closed and preserve the files for
+diagnosis. Re-authentication, PIN reset, or secure-storage clear may be offered
+only as an explicit user-confirmed recovery action; it must not be the
+automatic result of a migration failure.
 
 ## Backup consequences
 
@@ -201,9 +229,16 @@ must require all of them:
   email, PIN hash, failed-attempt count, and both present and absent lockout
   deadlines without asserting or logging their plaintext values.
 - Failure-injection tests for a legacy open error, target write error,
-  verification mismatch, process death before `complete`, and target-open
-  failure. Each must prove that the legacy XML and `.bak` were not deleted and
-  that no automatic re-login, PIN reset, or biometric-lock disable occurred.
+  verification mismatch, process death after the target intent marker, after
+  the legacy-first write, after the target snapshot write, and before the
+  `complete` marker, plus target-open failure. Fresh-process recovery must
+  prove the generation protocol reconciles before any target is primary, the
+  legacy XML and `.bak` were not deleted, and no automatic re-login, PIN reset,
+  or biometric-lock disable occurred.
+- Concurrency tests that start reads and each mutation type together. They must
+  prove one process-wide gate serializes migration, reconciliation, and all
+  `SecureStorage` read/write/clear operations; no caller observes a pending or
+  stale target, and no mutation starts before an explicit migration outcome.
 - Backup-rule tests or XML assertions proving both legacy and target stores are
   excluded from pre-Android-12 backup, cloud backup, and device transfer.
 - A release upgrade/downgrade smoke test on a real API-31+ device, followed by

@@ -1,7 +1,7 @@
 # Backfill docs/DECISIONS/ with retrospective ADRs
 Epic: review-2026-07
 Order: 20 of 35
-Status: draft
+Status: done
 Depends-on: —
 Date: 2026-07-06
 
@@ -20,5 +20,6 @@ The project's own glossary defines the ADR convention, yet zero ADR files exist 
 decisions live in a 263KB log. Source: review item 52 (P2/S).
 
 ## Implementation links
-- commit: (pending)
-- files: (pending)
+- commit: c7f897cf (backfill ADR-0003..0007 + TEMPLATE), efe8043b (ADR-0005 TDD AC1 clarification)
+- files: docs/DECISIONS/TEMPLATE.md, docs/DECISIONS/ADR-0003-biometric-dependency-pinned-1.1.0.md, docs/DECISIONS/ADR-0004-sentry-core-not-umbrella.md, docs/DECISIONS/ADR-0005-backup-saf-opendocumenttree-rotation.md, docs/DECISIONS/ADR-0006-mainactivity-appcompat-theme-reparent.md, docs/DECISIONS/ADR-0007-search-debounce-200ms-tdd-wins.md
+- note: 5 substantive ADRs (0003–0007); the AppCompatActivity migration + theme reparenting were folded into ADR-0006 as facets of one commit (815d4b7), so no ADR-0008 — within the SPEC's "5–6" range.

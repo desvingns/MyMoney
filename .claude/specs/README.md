@@ -35,7 +35,8 @@ between folders is how its status changes — there is no separate state store.
   (`Status: draft`, no approval gate). The way to fill the backlog without implementing.
 - `/mp --feature --next` (or `--backlog <slug>`) — **implement a SPEC already in the backlog**:
   it is treated as already created + approved, so Phase 0/1 are skipped — the file moves
-  `backlog/ → active/` and goes straight to implementation, then to `done/`.
+  `backlog/ → active/` and goes straight to implementation, then to `done/`. The activation
+  announcement is informational: do not ask for another `y/N` before Phase 2 or before agents.
 - A single-SPEC feature skips the board — the SPEC is shown inline in chat as before.
 - `/mp --discuss <topic>` — still writes a single `<slug>.md` brainstorm artifact at the root
   (format at the bottom). When a brainstorm graduates into a multi-SPEC plan, those SPECs go to
@@ -83,11 +84,13 @@ Date: YYYY-MM-DD
 |------|--------|
 | `--spec <desc>` | write SPEC file(s) to `backlog/` with `Status: draft` — no approval gate (grooming) |
 | `--feature <desc>` splits into ≥2 SPECs | write SPEC files into `backlog/` (+ overview) behind one y/N gate, promote the first |
-| `--feature --next` / `--backlog <slug>` | take a backlog SPEC (already approved) → move `backlog/ → active/`, `Status: active`, run Phase 2 — Phase 0/1 skipped |
+| `--feature --next` / `--backlog <slug>` | take a backlog SPEC (already approved) → move `backlog/ → active/`, `Status: active`, immediately run Phase 2 — Phase 0/1 and the pre-agent confirmation gate are skipped |
 | SPEC shipped (Verifier pass / push) | move `active/ → done/`, fill `commit` + `files`, set `Status: done` |
 
-Moving a SPEC to `active/` never bypasses the human SPEC-approval gate — Phase 2 still waits for
-your `y` before any agent runs.
+Invoking `--feature --next` or `--backlog <slug>` is the user's authorization to consume the
+already-approved SPEC and start Phase 2. Never pause for a second SPEC/pre-agent confirmation after
+activation. Human approval is required only when a new free-text feature first creates or splits
+SPECs; safety prerequisites such as the visual device gate remain checks, not launch questions.
 
 ## `--discuss` brainstorm artifact format (root-level `<slug>.md`)
 

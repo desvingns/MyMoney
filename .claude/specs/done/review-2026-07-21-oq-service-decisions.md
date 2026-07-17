@@ -1,7 +1,7 @@
 # ADR: crash reporting (OQ-10) + Remote Config (OQ-5) on free tiers
 Epic: review-2026-07
 Order: 21 of 35
-Status: draft
+Status: done
 Depends-on: —
 Date: 2026-07-06
 
@@ -20,5 +20,6 @@ OQ-5/OQ-10 deferred-to-v1.1 markers keep ambiguity alive in every planning pass.
 Source: review item 5 (P2/S).
 
 ## Implementation links
-- commit: (pending)
-- files: (pending)
+- commit: ff307d5e
+- files: docs/DECISIONS/ADR-0008-crash-reporting-and-remote-config-scope.md
+- decisions: OQ-10 = Sentry-only (errors-only, free Developer plan; Crashlytics/Spark documented as the fallback if the 5k errors/mo cap becomes tight); OQ-5 = keep Firebase Remote Config gated-OFF scaffolding, deferred to v1.1 (feature flags + min_supported_version_code=1). No SDK wiring changes.

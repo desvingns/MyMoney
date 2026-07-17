@@ -90,9 +90,9 @@ These need real external accounts. They block PHASE_13 (cloud sync) but do NOT b
 - [ ] **OQ-1** — Sentry: project created for the re-impl; fresh DSN collected. **DO NOT reuse Monefy's DSN.** Deferred to release/v1.1; blank local DSN remains supported.
 - [ ] **OQ-2** — Dropbox: app registered (Scoped access — App folder); app key + debug/release SHA-1 fingerprints collected. Deferred to release/v1.1; cloud sync remains gated off.
 - [ ] **OQ-3** — Google Cloud: project + Drive API + OAuth consent screen (`drive.appdata` scope), SHA-1 fingerprints, package name `com.kshavrin.mymoney`. Deferred to release/v1.1; Google Drive sync remains gated off.
-- [ ] **OQ-5** — Firebase Remote Config: initial `min_supported_version_code` value chosen (suggest `1`). Deferred to release/v1.1; defaults keep remote-gated features off.
+- [x] **OQ-5** — Firebase Remote Config: **RESOLVED 2026-07-17 (ADR-0008)** — kept in scope, deferred to v1.1. Gated-OFF scaffolding in `:core:sync` (PHASE_13) stays as-is; v1.1 scope = feature flags + initial `min_supported_version_code` = `1`. No SDK wiring change now; defaults keep remote-gated features off.
 - [ ] **OQ-9** — CI: secret-injection path for `google-services.json` decided. Workflow scaffold exists in `.github/workflows/ci.yml`; secret policy and hosted green run remain open. Deferred to release/v1.1.
-- [ ] **OQ-10** — Crash reporting: Sentry-only (recommended) vs Sentry + Crashlytics — picked. Deferred to release/v1.1; current implementation uses Sentry-only APIs.
+- [x] **OQ-10** — Crash reporting: **RESOLVED 2026-07-17 (ADR-0008)** — committed to **Sentry-only** (errors-only, free Developer plan, 5k errors/mo). Firebase Crashlytics (Spark, unlimited free) documented as the fallback if that cap is ever consistently saturated (requires a new ADR before migration). Current implementation already uses Sentry-only APIs (ADR-0004); no wiring change. OQ-1 (fresh DSN) remains the only open Sentry prerequisite.
 
 OQ-4 (Privacy Policy) was resolved as AS-15 → bundled HTML. OQ-6 (live FX provider) deferred to v1.1, not blocking. OQ-7 (auto-sync interval) and OQ-8 (backup rotation N) resolved in §14.1.
 

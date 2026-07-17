@@ -14,9 +14,13 @@ most recent backups, deleting the oldest excess file automatically (lines 1019�
 operates on the SAF tree (TDD line 1991). OQ-8 is resolved in §14.1 at line 2749 as
 fixed N = 3, not user-settable.
 
-The phase file specified `CreateDocument` as the SAF intent for export. `CreateDocument`
-returns a single-file URI; it cannot enumerate sibling files in the same directory. There
-is no way to implement keep-newest-3 rotation using only a `CreateDocument` URI.
+The phase file specified `CreateDocument` as the SAF intent for export, and TDD §4.17 AC1
+(line 1021) does the same: "Export .db opens `CreateDocument` SAF intent". However, the
+rotation clause at TDD §4.17 line 1019 simultaneously requires enumerating siblings via
+`DocumentFile.fromTreeUri(...)`, which is only possible with a tree URI obtained from
+`OpenDocumentTree` — an internal TDD conflict. `CreateDocument` returns a single-file URI;
+it cannot enumerate sibling files in the same directory, so there is no way to implement
+keep-newest-3 rotation using only a `CreateDocument` URI.
 
 A separate architectural question arose: the `BackupRepository` interface contains
 `ContentResolver` usage and direct access to the Room database file; placing its interface
@@ -37,9 +41,11 @@ classes in `:core:database`.
 
 ## Rejected alternatives
 
-- `CreateDocument` (phase file's stated SAF intent): rejected because the returned
-  single-file URI cannot enumerate directory siblings, making keep-newest-3 rotation
-  impossible without a separate tree grant.
+- `CreateDocument` (TDD §4.17 AC1 line 1021 and the phase file): rejected because the
+  returned single-file URI cannot enumerate directory siblings, making keep-newest-3
+  rotation impossible without a separate tree grant. The `OpenDocumentTree` choice
+  reconciles AC1 with the §4.17 line 1019 rotation clause by favouring the rotation
+  requirement.
 - `BackupRepository` interface in `:feature:settings`: rejected because a feature module
   must not hold or close the Room database or use `ContentResolver` directly.
 

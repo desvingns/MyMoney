@@ -24,6 +24,14 @@ android {
             providers.gradleProperty("dropbox.appKey").orNull ?: "PLACEHOLDER_DROPBOX_APP_KEY"
         manifestPlaceholders["dropboxAppKey"] = dropboxAppKey
         buildConfigField("String", "DROPBOX_APP_KEY", "\"$dropboxAppKey\"")
+
+        // Debug-only override to exercise cloud sync without Firebase Remote Config.
+        // Honoured only when BuildConfig.DEBUG is also true (see RemoteConfigRepositoryImpl).
+        buildConfigField(
+            "boolean",
+            "SYNC_FORCE_ENABLED",
+            (providers.gradleProperty("sync.forceEnabled").orNull == "true").toString(),
+        )
     }
 
     compileOptions {

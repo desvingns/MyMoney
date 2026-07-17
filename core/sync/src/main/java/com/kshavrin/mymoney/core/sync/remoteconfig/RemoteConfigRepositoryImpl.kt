@@ -47,10 +47,13 @@ class RemoteConfigRepositoryImpl
             config?.getBoolean(KEY_BUDGET_MODE) ?: DEFAULT_BUDGET_MODE
 
         override fun dropboxSyncEnabled(): Boolean =
-            config?.getBoolean(KEY_DROPBOX_SYNC) ?: DEFAULT_DROPBOX_SYNC
+            syncForced() || (config?.getBoolean(KEY_DROPBOX_SYNC) ?: DEFAULT_DROPBOX_SYNC)
 
         override fun gdriveSyncEnabled(): Boolean =
-            config?.getBoolean(KEY_GDRIVE_SYNC) ?: DEFAULT_GDRIVE_SYNC
+            syncForced() || (config?.getBoolean(KEY_GDRIVE_SYNC) ?: DEFAULT_GDRIVE_SYNC)
+
+        // Debug builds may force sync on via -Psync.forceEnabled=true; release ignores it (DEBUG=false).
+        private fun syncForced(): Boolean = BuildConfig.DEBUG && BuildConfig.SYNC_FORCE_ENABLED
 
         override fun minSupportedVersionCode(): Long =
             config?.getLong(KEY_MIN_SUPPORTED_VERSION_CODE) ?: DEFAULT_MIN_SUPPORTED_VERSION_CODE

@@ -38,6 +38,17 @@ jobs:
             echo "OQ-1 unresolved or no CI secret supplied: Sentry remains disabled."
           fi
 
+      - name: Materialize Dropbox app key only when the secret is supplied
+        shell: bash
+        env:
+          DROPBOX_APP_KEY: ${{ secrets.DROPBOX_APP_KEY }}
+        run: |
+          if [[ -n "$DROPBOX_APP_KEY" ]]; then
+            printf '%s\n' "dropbox.appKey=$DROPBOX_APP_KEY" >> local.properties
+          else
+            echo "No CI secret supplied: Dropbox app key stays on the placeholder."
+          fi
+
       - name: Materialize Firebase config only when the OQ-9 secret is supplied
         shell: bash
         env:
@@ -102,6 +113,17 @@ jobs:
             printf '%s\n' "sentry.dsn=$SENTRY_DSN" >> local.properties
           else
             echo "OQ-1 unresolved or no CI secret supplied: Sentry remains disabled."
+          fi
+
+      - name: Materialize Dropbox app key only when the secret is supplied
+        shell: bash
+        env:
+          DROPBOX_APP_KEY: ${{ secrets.DROPBOX_APP_KEY }}
+        run: |
+          if [[ -n "$DROPBOX_APP_KEY" ]]; then
+            printf '%s\n' "dropbox.appKey=$DROPBOX_APP_KEY" >> local.properties
+          else
+            echo "No CI secret supplied: Dropbox app key stays on the placeholder."
           fi
 
       - name: Materialize Firebase config only when the OQ-9 secret is supplied
@@ -189,6 +211,17 @@ jobs:
             printf '%s\n' "sentry.dsn=$SENTRY_DSN" >> local.properties
           else
             echo "OQ-1 unresolved or no CI secret supplied: Sentry remains disabled."
+          fi
+
+      - name: Materialize Dropbox app key only when the secret is supplied
+        shell: bash
+        env:
+          DROPBOX_APP_KEY: ${{ secrets.DROPBOX_APP_KEY }}
+        run: |
+          if [[ -n "$DROPBOX_APP_KEY" ]]; then
+            printf '%s\n' "dropbox.appKey=$DROPBOX_APP_KEY" >> local.properties
+          else
+            echo "No CI secret supplied: Dropbox app key stays on the placeholder."
           fi
 
       - name: Materialize Firebase config only when the OQ-9 secret is supplied

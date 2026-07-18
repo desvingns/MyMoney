@@ -228,6 +228,8 @@ class TransactionRepositoryImplTest {
             override suspend fun existsByOpId(opId: String): Boolean = false
 
             override suspend fun opsForEntity(entityUuid: String): List<OperationEntity> = emptyList()
+
+            override suspend fun deleteAll() = Unit
         }
     private val deviceIdProvider =
         object : DeviceIdProvider {

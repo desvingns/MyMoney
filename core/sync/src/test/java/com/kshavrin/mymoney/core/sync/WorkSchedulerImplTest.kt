@@ -61,6 +61,8 @@ class WorkSchedulerImplTest {
         override suspend fun isBootstrapDone(): Boolean = false
 
         override suspend fun markBootstrapDone() = Unit
+
+        override suspend fun clear() = Unit
     }
 
     /**

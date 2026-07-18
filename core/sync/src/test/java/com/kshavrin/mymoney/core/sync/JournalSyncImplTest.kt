@@ -425,6 +425,11 @@ class JournalSyncImplTest {
         override suspend fun existsByOpId(opId: String): Boolean = false
 
         override suspend fun opsForEntity(entityUuid: String): List<OperationEntity> = emptyList()
+
+        override suspend fun deleteAll() {
+            unsynced = emptyList()
+            syncedIds.clear()
+        }
     }
 
     private class FakeJournalSyncConfigStore : JournalSyncConfigStore {
@@ -452,6 +457,12 @@ class JournalSyncImplTest {
 
         override suspend fun markBootstrapDone() {
             bootstrapDone = true
+        }
+
+        override suspend fun clear() {
+            folderId = ""
+            bootstrapDone = false
+            peerHighWater.clear()
         }
     }
 
@@ -488,6 +499,8 @@ class JournalSyncImplTest {
         override suspend fun existsByOpId(opId: String): Boolean = false
 
         override suspend fun opsForEntity(entityUuid: String): List<OperationEntity> = emptyList()
+
+        override suspend fun deleteAll() = Unit
     }
 
     private class BootstrapRecordingOperationDao : OperationDao {
@@ -512,6 +525,8 @@ class JournalSyncImplTest {
         override suspend fun existsByOpId(opId: String): Boolean = false
 
         override suspend fun opsForEntity(entityUuid: String): List<OperationEntity> = emptyList()
+
+        override suspend fun deleteAll() = Unit
     }
 }
 

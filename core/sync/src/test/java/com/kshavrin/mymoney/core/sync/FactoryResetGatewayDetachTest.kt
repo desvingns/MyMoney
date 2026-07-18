@@ -33,14 +33,17 @@ import org.junit.Test
 class FactoryResetGatewayDetachTest {
 
     private val dispatcher = UnconfinedTestDispatcher()
+    private val callOrder = mutableListOf<String>()
     private lateinit var operationDao: TrackingOperationDao
     private lateinit var configStore: TrackingJournalSyncConfigStore
+    private lateinit var syncScheduler: FakeSyncScheduler
     private lateinit var gateway: FactoryResetGatewayImpl
 
     @Before
     fun setUp() {
-        operationDao = TrackingOperationDao()
+        operationDao = TrackingOperationDao(callOrder)
         configStore = TrackingJournalSyncConfigStore()
+        syncScheduler = FakeSyncScheduler(callOrder)
         gateway =
             FactoryResetGatewayImpl(
                 backupRepository = FakeBackupRepository(),
@@ -48,6 +51,7 @@ class FactoryResetGatewayDetachTest {
                 secureStorage = NoOpSecureStorage,
                 journalSyncConfigStore = configStore,
                 operationDao = operationDao,
+                syncScheduler = syncScheduler,
                 ioDispatcher = dispatcher,
             )
     }
@@ -61,6 +65,23 @@ class FactoryResetGatewayDetachTest {
 
             assertTrue("deleteAll must be called on the operation DAO", operationDao.deleteAllCalled)
             assertTrue("op_journal must be empty after detach", operationDao.knownOpIds().isEmpty())
+        }
+
+    @Test
+    fun `detachCloudSync disables periodic sync before wiping op_journal`() =
+        runTest {
+            operationDao.seed(operationEntity("op-order-check"))
+
+            gateway.detachCloudSync()
+
+            val disableIdx = callOrder.indexOf("disablePeriodicSync")
+            val deleteAllIdx = callOrder.indexOf("deleteAll")
+            assertTrue("disablePeriodicSync must be called during detach", syncScheduler.disablePeriodicSyncCalled)
+            assertTrue("deleteAll must be called during detach", operationDao.deleteAllCalled)
+            assertTrue(
+                "disablePeriodicSync must precede deleteAll (cancel-first invariant)",
+                disableIdx < deleteAllIdx,
+            )
         }
 
     @Test
@@ -133,7 +154,9 @@ class FactoryResetGatewayDetachTest {
 
     // ─── inner fakes ──────────────────────────────────────────────────────────
 
-    private class TrackingOperationDao : OperationDao {
+    private class TrackingOperationDao(
+        private val callOrder: MutableList<String>,
+    ) : OperationDao {
         var deleteAllCalled = false
         private val ops: MutableList<OperationEntity> = mutableListOf()
 
@@ -169,6 +192,7 @@ class FactoryResetGatewayDetachTest {
             ops.filter { it.entityUuid == entityUuid }
 
         override suspend fun deleteAll() {
+            callOrder += "deleteAll"
             deleteAllCalled = true
             ops.clear()
         }
@@ -218,5 +242,20 @@ class FactoryResetGatewayDetachTest {
         override fun writePinHash(hash: String?) = Unit
 
         override fun clearAll() = Unit
+    }
+
+    private class FakeSyncScheduler(
+        private val callOrder: MutableList<String>,
+    ) : SyncScheduler {
+        var disablePeriodicSyncCalled = false
+
+        override fun enablePeriodicSync() = Unit
+
+        override fun disablePeriodicSync() {
+            callOrder += "disablePeriodicSync"
+            disablePeriodicSyncCalled = true
+        }
+
+        override fun syncNow(target: SyncTarget?) = Unit
     }
 }

@@ -331,6 +331,31 @@ class JournalSyncImplTest {
             assertEquals("applier must not be called on list failure", callsBefore, applierOperationDao.insertAppliedCalls)
         }
 
+    @Test
+    fun `pull stops applying further peers when folderId is cleared mid-loop`() =
+        runTest {
+            // folderId() returns "folder-1" for the first 2 calls (initial guard + loop iter 1),
+            // then blank on the 3rd call (loop iter 2 re-check) — triggers early return before
+            // the second peer is applied.
+            configStore.clearAfterFolderIdCallN = 3
+            configStore.setFolderId("folder-1")
+
+            val peerBytesA = buildPeerJournal(peerDeviceId = "device-mid-A", opId = "mid-op-a")
+            val peerBytesB = buildPeerJournal(peerDeviceId = "device-mid-B", opId = "mid-op-b")
+            backend.uploadJournal(folderId = "folder-1", deviceId = "device-mid-A", bytes = peerBytesA)
+            backend.uploadJournal(folderId = "folder-1", deviceId = "device-mid-B", bytes = peerBytesB)
+
+            val callsBefore = applierOperationDao.insertAppliedCalls
+
+            journalSync.pull()
+
+            assertEquals(
+                "only the first peer must be applied; folderId cleared mid-loop stops the second",
+                callsBefore + 1,
+                applierOperationDao.insertAppliedCalls,
+            )
+        }
+
     // ─── syncNow ordering ─────────────────────────────────────────────────────
 
     @Test
@@ -436,8 +461,18 @@ class JournalSyncImplTest {
         private var folderId: String = ""
         private val peerHighWater: MutableMap<String, Long> = mutableMapOf()
         private var bootstrapDone: Boolean = false
+        // When set, folderId() returns blank starting from the N-th call (1-based).
+        // Defaults to MAX_VALUE so existing tests are unaffected.
+        var clearAfterFolderIdCallN: Int = Int.MAX_VALUE
+        private var folderIdCallCount = 0
 
-        override suspend fun folderId(): String = folderId
+        override suspend fun folderId(): String {
+            folderIdCallCount++
+            if (folderIdCallCount >= clearAfterFolderIdCallN) {
+                folderId = ""
+            }
+            return folderId
+        }
 
         override suspend fun setFolderId(folderId: String) {
             this.folderId = folderId

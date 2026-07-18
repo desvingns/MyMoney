@@ -21,6 +21,7 @@ class FactoryResetGatewayImpl
         private val secureStorage: SecureStorage,
         private val journalSyncConfigStore: JournalSyncConfigStore,
         private val operationDao: OperationDao,
+        private val syncScheduler: SyncScheduler,
         @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     ) : FactoryResetGateway {
         override suspend fun wipeLocalData() {
@@ -36,6 +37,7 @@ class FactoryResetGatewayImpl
         }
 
         override suspend fun detachCloudSync() {
+            syncScheduler.disablePeriodicSync()
             operationDao.deleteAll()
             journalSyncConfigStore.clear()
         }

@@ -2,7 +2,6 @@ package com.kshavrin.mymoney.feature.settings.root
 
 import android.content.Intent
 import android.os.Process
-import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -39,6 +38,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.android.gms.oss.licenses.OssLicensesMenuActivity
 import com.kshavrin.mymoney.core.ui.flow.CollectActions
+import com.kshavrin.mymoney.core.ui.restart.EXTRA_RESET_HAD_FAILURES
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.core.ui.theme.ThemeMode
 import com.kshavrin.mymoney.feature.settings.R
@@ -60,15 +60,10 @@ fun SettingsRootRoute(
 ) {
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
-    val resetMessage = stringResource(R.string.factory_reset_success)
-    val resetErrorMessage = stringResource(R.string.factory_reset_error)
     CollectActions(flow = viewModel.actions, key = viewModel) { action ->
         when (action) {
-            is SettingsAction.RestartToOnboardingAfterReset -> {
-                val message = if (action.hadFailures) resetErrorMessage else resetMessage
-                Toast.makeText(context, message, Toast.LENGTH_LONG).show()
-                relaunchApplication(context)
-            }
+            is SettingsAction.RestartToOnboardingAfterReset ->
+                relaunchApplication(context, hadFailures = action.hadFailures)
         }
     }
     SettingsRootContent(
@@ -325,12 +320,19 @@ private fun FactoryResetDialogs(
     }
 }
 
-private fun relaunchApplication(context: android.content.Context) {
+private fun relaunchApplication(
+    context: android.content.Context,
+    hadFailures: Boolean = false,
+) {
     val component =
         checkNotNull(
             context.packageManager.getLaunchIntentForPackage(context.packageName)?.component,
         )
-    context.startActivity(Intent.makeRestartActivityTask(component))
+    val intent =
+        Intent.makeRestartActivityTask(component).apply {
+            if (hadFailures) putExtra(EXTRA_RESET_HAD_FAILURES, true)
+        }
+    context.startActivity(intent)
     Process.killProcess(Process.myPid())
 }
 

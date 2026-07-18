@@ -65,6 +65,7 @@ class JournalSyncImpl
                         ?: return@withContext
                 var applied = false
                 for (peer in peers) {
+                    if (configStore.folderId().isBlank()) return@withContext
                     if (peer.modifiedAtEpochMs <= configStore.peerHighWaterMs(peer.fileId)) continue
                     val bytes = backend.downloadJournal(peer.fileId).getOrNull() ?: continue
                     applier.apply(serializer.decode(bytes))

@@ -3,6 +3,7 @@ package com.kshavrin.mymoney
 import android.content.Intent
 import android.os.Bundle
 import android.view.WindowManager
+import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
@@ -17,6 +18,7 @@ import com.kshavrin.mymoney.core.ui.feedback.LocalHapticPlayer
 import com.kshavrin.mymoney.core.ui.feedback.LocalSoundPlayer
 import com.kshavrin.mymoney.core.ui.haptic.HapticKind
 import com.kshavrin.mymoney.core.ui.haptic.HapticPlayer
+import com.kshavrin.mymoney.core.ui.restart.EXTRA_RESET_HAD_FAILURES
 import com.kshavrin.mymoney.core.ui.sound.SoundKey
 import com.kshavrin.mymoney.core.ui.sound.SoundPlayer
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
@@ -60,6 +62,9 @@ class MainActivity : AppCompatActivity() {
             }
         }
         enableEdgeToEdge()
+        if (savedInstanceState == null) {
+            showFactoryResetFailureIfNeeded()
+        }
         val shortcutDestination = resolveShortcutDestination(intent)
         setContent {
             val themeMode by themeViewModel.themeMode.collectAsStateWithLifecycle()
@@ -78,6 +83,17 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    private fun showFactoryResetFailureIfNeeded() {
+        if (!intent.getBooleanExtra(EXTRA_RESET_HAD_FAILURES, false)) return
+        intent.removeExtra(EXTRA_RESET_HAD_FAILURES)
+        Toast
+            .makeText(
+                this,
+                com.kshavrin.mymoney.feature.settings.R.string.factory_reset_error,
+                Toast.LENGTH_LONG,
+            ).show()
     }
 
     private fun resolveShortcutDestination(intent: Intent?): ShortcutDestination? =

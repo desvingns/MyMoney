@@ -37,6 +37,9 @@ dependencies {
     implementation(project(":core:datastore"))
     implementation(project(":core:sync"))
     implementation(libs.androidx.core.ktx)
+    implementation(libs.dropbox.android.sdk)
+    implementation(libs.google.api.services.drive)
+    implementation(libs.play.services.auth)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

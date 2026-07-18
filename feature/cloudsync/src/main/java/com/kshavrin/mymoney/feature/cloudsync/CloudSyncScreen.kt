@@ -1,5 +1,11 @@
 package com.kshavrin.mymoney.feature.cloudsync
 
+import android.app.Activity
+import android.content.Context
+import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.ActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -26,15 +32,31 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.dropbox.core.DbxRequestConfig
+import com.dropbox.core.android.Auth
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.Scope
+import com.google.api.services.drive.DriveScopes
+import com.kshavrin.mymoney.core.sync.BuildConfig as SyncBuildConfig
 import com.kshavrin.mymoney.core.sync.SyncTarget
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import java.time.Instant
@@ -49,13 +71,67 @@ fun CloudSyncRoute(
     viewModel: CloudSyncViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var dropboxAuthenticationPending by rememberSaveable { mutableStateOf(false) }
+    val googleSignInLauncher =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.StartActivityForResult(),
+        ) { result ->
+            googleAccountEmail(result)
+                ?.let { email ->
+                    viewModel.onEvent(
+                        CloudSyncEvent.AuthenticationCompleted(SyncTarget.GoogleDrive, email),
+                    )
+                }
+                ?: viewModel.onEvent(CloudSyncEvent.AuthenticationFailed)
+        }
+
+    DisposableEffect(lifecycleOwner, dropboxAuthenticationPending) {
+        val observer =
+            LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME && dropboxAuthenticationPending) {
+                    dropboxAuthenticationPending = false
+                    val credential = runCatching { Auth.getDbxCredential() }.getOrNull()
+                    if (credential == null) {
+                        viewModel.onEvent(CloudSyncEvent.AuthenticationFailed)
+                    } else {
+                        viewModel.onEvent(
+                            CloudSyncEvent.AuthenticationCompleted(
+                                target = SyncTarget.Dropbox,
+                                payload = credential.toString(),
+                            ),
+                        )
+                    }
+                }
+            }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     LaunchedEffect(viewModel) {
         viewModel.actions.collect { action ->
             when (action) {
                 CloudSyncAction.NavigateBack -> onBack()
-                CloudSyncAction.LaunchDropboxAuth -> Unit
-                CloudSyncAction.LaunchGoogleSignIn -> Unit
+                CloudSyncAction.LaunchDropboxAuth -> {
+                    if (SyncBuildConfig.DROPBOX_APP_KEY == DROPBOX_APP_KEY_PLACEHOLDER) {
+                        viewModel.onEvent(CloudSyncEvent.AuthenticationFailed)
+                    } else {
+                        dropboxAuthenticationPending = true
+                        runCatching {
+                            Auth.startOAuth2PKCE(
+                                context,
+                                SyncBuildConfig.DROPBOX_APP_KEY,
+                                DbxRequestConfig.newBuilder(DROPBOX_CLIENT_IDENTIFIER).build(),
+                            )
+                        }.onFailure {
+                            dropboxAuthenticationPending = false
+                            viewModel.onEvent(CloudSyncEvent.AuthenticationFailed)
+                        }
+                    }
+                }
+                CloudSyncAction.LaunchGoogleSignIn ->
+                    googleSignInLauncher.launch(googleSignInIntent(context))
             }
         }
     }
@@ -337,9 +413,34 @@ private val TIMESTAMP_FORMAT: DateTimeFormatter =
 private fun formatTimestamp(epochMillis: Long): String =
     TIMESTAMP_FORMAT.format(Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()))
 
+private fun googleAccountEmail(result: ActivityResult): String? {
+    if (result.resultCode != Activity.RESULT_OK) return null
+    return runCatching {
+        GoogleSignIn
+            .getSignedInAccountFromIntent(result.data)
+            .getResult(ApiException::class.java)
+            .email
+    }.getOrNull()
+        ?.takeIf { it.isNotBlank() }
+}
+
+private fun googleSignInIntent(context: Context): Intent {
+    val options =
+        GoogleSignInOptions
+            .Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestEmail()
+            .requestScopes(
+                Scope(DriveScopes.DRIVE_APPDATA),
+                Scope(DriveScopes.DRIVE_FILE),
+            ).build()
+    return GoogleSignIn.getClient(context, options).signInIntent
+}
+
 private const val CLOUD_SYNC_AUTO_SYNC_TAG = "cloud_sync_auto_sync"
 private const val CLOUD_SYNC_FOLDER_ID_TAG = "cloud_sync_folder_id"
 private const val CLOUD_SYNC_SYNC_NOW_TAG = "cloud_sync_sync_now"
+private const val DROPBOX_APP_KEY_PLACEHOLDER = "PLACEHOLDER_DROPBOX_APP_KEY"
+private const val DROPBOX_CLIENT_IDENTIFIER = "MyMoney/1.0"
 
 private fun SyncTarget.controlTag(control: String): String =
     when (this) {

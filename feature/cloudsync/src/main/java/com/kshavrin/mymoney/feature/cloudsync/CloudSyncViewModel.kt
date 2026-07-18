@@ -77,6 +77,8 @@ class CloudSyncViewModel
         fun onEvent(event: CloudSyncEvent) {
             when (event) {
                 is CloudSyncEvent.ConnectClicked -> connect(event.target)
+                is CloudSyncEvent.AuthenticationCompleted -> completeAuthentication(event)
+                CloudSyncEvent.AuthenticationFailed -> showAuthenticationError()
                 is CloudSyncEvent.DisconnectClicked -> disconnect(event.target)
                 is CloudSyncEvent.SyncNowClicked -> syncNow()
                 is CloudSyncEvent.FolderIdChanged -> setFolderId(event.folderId)
@@ -108,6 +110,25 @@ class CloudSyncViewModel
         private fun disconnect(target: SyncTarget) {
             snapshotSync.disconnect(target)
             refresh(target)
+        }
+
+        private fun completeAuthentication(event: CloudSyncEvent.AuthenticationCompleted) {
+            if (event.payload.isBlank()) {
+                showAuthenticationError()
+                return
+            }
+            try {
+                snapshotSync.connect(event.target, event.payload)
+                refresh(event.target)
+            } catch (t: Throwable) {
+                if (t is CancellationException) throw t
+                t.reportToSentry()
+                showAuthenticationError()
+            }
+        }
+
+        private fun showAuthenticationError() {
+            _state.value = _state.value.copy(errorBannerRes = R.string.sync_err_auth)
         }
 
         private fun syncNow() {

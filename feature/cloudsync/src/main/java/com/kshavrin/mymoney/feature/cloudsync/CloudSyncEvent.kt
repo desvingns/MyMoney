@@ -7,6 +7,13 @@ sealed interface CloudSyncEvent {
         val target: SyncTarget,
     ) : CloudSyncEvent
 
+    data class AuthenticationCompleted(
+        val target: SyncTarget,
+        val payload: String,
+    ) : CloudSyncEvent
+
+    data object AuthenticationFailed : CloudSyncEvent
+
     data class DisconnectClicked(
         val target: SyncTarget,
     ) : CloudSyncEvent

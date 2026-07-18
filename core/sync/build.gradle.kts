@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
@@ -20,8 +22,17 @@ android {
             (providers.gradleProperty("firebase.enabled").orNull == "true").toString(),
         )
 
+        val localProperties =
+            Properties().apply {
+                val localPropertiesFile = rootProject.file("local.properties")
+                if (localPropertiesFile.isFile) {
+                    localPropertiesFile.inputStream().use(::load)
+                }
+            }
         val dropboxAppKey =
-            providers.gradleProperty("dropbox.appKey").orNull ?: "PLACEHOLDER_DROPBOX_APP_KEY"
+            providers.gradleProperty("dropbox.appKey").orNull
+                ?: localProperties.getProperty("dropbox.appKey")?.takeUnless { it.isBlank() }
+                ?: "PLACEHOLDER_DROPBOX_APP_KEY"
         manifestPlaceholders["dropboxAppKey"] = dropboxAppKey
         buildConfigField("String", "DROPBOX_APP_KEY", "\"$dropboxAppKey\"")
 
@@ -72,7 +83,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.play.services)
     implementation(libs.kotlinx.serialization.json)
 
-    implementation(libs.dropbox.core.sdk)
+    implementation(libs.dropbox.android.sdk)
     implementation(libs.google.api.client.android)
     implementation(libs.google.api.services.drive)
     implementation(libs.play.services.auth)

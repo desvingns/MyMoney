@@ -83,8 +83,8 @@ android {
         applicationId = "com.kshavrin.mymoney"
         minSdk = 31
         targetSdk = 36
-        versionCode = 16
-        versionName = "1.0.15"
+        versionCode = 17
+        versionName = "1.0.16"
 
         testInstrumentationRunner = "com.kshavrin.mymoney.HiltTestRunner"
 

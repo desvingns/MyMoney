@@ -10,10 +10,10 @@ class FactoryResetUseCase
     ) {
         suspend operator fun invoke(): Result<Unit> {
             val failures = mutableListOf<Throwable>()
+            runCatching { gateway.detachCloudSync() }.exceptionOrNull()?.let(failures::add)
             runCatching { gateway.wipeLocalData() }.exceptionOrNull()?.let(failures::add)
             runCatching { gateway.resetSettings() }.exceptionOrNull()?.let(failures::add)
             runCatching { gateway.clearSecrets() }.exceptionOrNull()?.let(failures::add)
-            runCatching { gateway.detachCloudSync() }.exceptionOrNull()?.let(failures::add)
             return if (failures.isEmpty()) {
                 Result.success(Unit)
             } else {

@@ -83,6 +83,7 @@ class SettingsViewModel
 
         private fun confirmFactoryReset() {
             if (_state.value.factoryResetStep != FactoryResetStep.TypeWord) return
+            if (_state.value.factoryResetConfirmText != FACTORY_RESET_CONFIRM_WORD) return
             if (_state.value.factoryResetInProgress) return
             viewModelScope.launch {
                 _state.value = _state.value.copy(factoryResetInProgress = true)
@@ -98,6 +99,8 @@ class SettingsViewModel
             }
         }
     }
+
+const val FACTORY_RESET_CONFIRM_WORD = "RESET"
 
 enum class FactoryResetStep { Idle, Confirm, TypeWord }
 

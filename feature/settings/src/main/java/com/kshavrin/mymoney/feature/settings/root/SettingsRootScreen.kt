@@ -281,7 +281,7 @@ private fun FactoryResetDialogs(
                 },
             )
         FactoryResetStep.TypeWord -> {
-            val confirmWord = stringResource(R.string.factory_reset_confirm_word)
+            val confirmWord = FACTORY_RESET_CONFIRM_WORD
             AlertDialog(
                 onDismissRequest = { onEvent(SettingsEvent.FactoryResetDismissed) },
                 title = { Text(stringResource(R.string.factory_reset_type_title)) },

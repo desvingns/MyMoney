@@ -34,4 +34,7 @@ interface OperationDao {
 
     @Query("SELECT * FROM op_journal WHERE entity_uuid = :entityUuid ORDER BY updated_at ASC")
     suspend fun opsForEntity(entityUuid: String): List<OperationEntity>
+
+    @Query("DELETE FROM op_journal")
+    suspend fun deleteAll()
 }

@@ -24,4 +24,11 @@ interface JournalSyncConfigStore {
     suspend fun isBootstrapDone(): Boolean
 
     suspend fun markBootstrapDone()
+
+    /**
+     * Explicit cloud detach: remove [folderId], the bootstrap flag and every per-peer high-water
+     * key so a factory reset fully unlinks journal sync (no implicit reliance on a shared DataStore
+     * wipe elsewhere).
+     */
+    suspend fun clear()
 }

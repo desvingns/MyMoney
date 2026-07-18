@@ -41,9 +41,21 @@ class JournalSyncConfigStoreImpl
             dataStore.edit { prefs -> prefs[BOOTSTRAP_DONE] = true }
         }
 
-        private fun peerKey(fileId: String) = longPreferencesKey("journal_peer_hw_$fileId")
+        override suspend fun clear() {
+            dataStore.edit { prefs ->
+                prefs
+                    .asMap()
+                    .keys
+                    .filter { it.name.startsWith(KEY_PREFIX) }
+                    .forEach { prefs -= it }
+            }
+        }
+
+        private fun peerKey(fileId: String) = longPreferencesKey("$PEER_KEY_PREFIX$fileId")
 
         private companion object {
+            const val KEY_PREFIX = "journal_"
+            const val PEER_KEY_PREFIX = "journal_peer_hw_"
             val FOLDER_ID = stringPreferencesKey("journal_folder_id")
             val BOOTSTRAP_DONE = booleanPreferencesKey("journal_bootstrap_done")
         }

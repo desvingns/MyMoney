@@ -1,7 +1,9 @@
 package com.kshavrin.mymoney.core.sync.di
 
 import com.kshavrin.mymoney.core.domain.repository.RemoteConfigRepository
+import com.kshavrin.mymoney.core.domain.reset.FactoryResetGateway
 import com.kshavrin.mymoney.core.sync.CloudSyncBackend
+import com.kshavrin.mymoney.core.sync.FactoryResetGatewayImpl
 import com.kshavrin.mymoney.core.sync.JournalBackend
 import com.kshavrin.mymoney.core.sync.JournalSync
 import com.kshavrin.mymoney.core.sync.JournalSyncImpl
@@ -56,4 +58,8 @@ abstract class SyncModule {
     @Binds
     @Singleton
     abstract fun bindJournalBackend(impl: GoogleDriveJournalBackend): JournalBackend
+
+    @Binds
+    @Singleton
+    abstract fun bindFactoryResetGateway(impl: FactoryResetGatewayImpl): FactoryResetGateway
 }

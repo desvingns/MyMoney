@@ -25,6 +25,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
@@ -37,6 +40,10 @@ import java.util.TimeZone
  * auto-save; it returns to the amount step so the user confirms via the
  * Save FAB).
  */
+// Robolectric supplies a real android.os.Bundle so savedStateHandle.toRoute<Destinations.TransactionDetail>()
+// can decode its route args; the android.jar stub throws "not mocked" at VM construction (SPEC-19 type-safe nav).
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34], application = android.app.Application::class)
 class TransactionDetailFormMappingTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()

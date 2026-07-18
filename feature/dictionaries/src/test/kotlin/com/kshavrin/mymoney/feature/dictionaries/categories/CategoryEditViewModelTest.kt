@@ -20,9 +20,20 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import java.math.BigDecimal
 import java.time.Instant
 
+/**
+ * Runs under Robolectric because [CategoryEditViewModel] decodes its non-null `kind` route arg via
+ * `savedStateHandle.toRoute<Destinations.CategoryEdit>()`. Type-safe navigation deserializes String
+ * args through a real `android.os.Bundle`; the stubbed android.jar `Bundle.putCharSequence` throws
+ * "not mocked" without a Robolectric runtime, failing at VM construction.
+ */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34], application = android.app.Application::class)
 class CategoryEditViewModelTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()

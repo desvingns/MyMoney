@@ -32,9 +32,21 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import java.time.Instant
 
+/**
+ * Runs under Robolectric because [ImportWizardViewModel]'s constructor decodes its `uri` route arg
+ * via `savedStateHandle.toRoute<Destinations.ImportWizard>()`. The type-safe navigation
+ * `RouteDecoder` deserializes String args through a real `android.os.Bundle`; the stubbed android.jar
+ * `Bundle.putCharSequence` throws "not mocked" without a Robolectric runtime, failing every test at
+ * VM construction. Long-only routes (e.g. `CurrencyRate`, `TransactionsList`) do not hit this path.
+ */
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34], application = android.app.Application::class)
 class ImportWizardViewModelTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()

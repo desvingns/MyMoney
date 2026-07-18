@@ -29,7 +29,7 @@ import org.junit.Test
  * Compose-UI tests land in PHASE_15 once those dependencies are wired in.
  *
  * Until then, the user-visible decisions [SettingsRootContent] makes are driven by pure, JVM-visible
- * inputs ([SettingsState] and the static row layout). This file pins those — the five section
+ * inputs ([SettingsState] and the static row layout). This file pins those — the six section
  * headers, the Theme/Language trailing-label resolution, which rows are disabled placeholders, that
  * the Sound/Haptic switches mirror state and emit the right toggle event, and which callback each
  * clickable navigation row routes to — and documents the exact Compose test that replaces it.
@@ -201,9 +201,9 @@ import org.junit.Test
  * ```
  */
 class SettingsRootContentTest {
-    private enum class Section { Appearance, Security, Cloud, General, About }
+    private enum class Section { Appearance, Security, Cloud, General, About, Danger }
 
-    /** Mirror of the five [SectionHeader]s in [SettingsRootContent], top to bottom. */
+    /** Mirror of the six [SectionHeader]s in [SettingsRootContent], top to bottom. */
     private val sections: List<Section> =
         listOf(
             Section.Appearance,
@@ -211,6 +211,7 @@ class SettingsRootContentTest {
             Section.Cloud,
             Section.General,
             Section.About,
+            Section.Danger,
         )
 
     /** Mirror of the `stringResource` passed to each [SectionHeader]. */
@@ -221,6 +222,7 @@ class SettingsRootContentTest {
             Section.Cloud -> R.string.settings_section_cloud
             Section.General -> R.string.settings_section_general
             Section.About -> R.string.settings_section_about
+            Section.Danger -> R.string.settings_section_danger
         }
 
     private enum class Row {
@@ -233,6 +235,7 @@ class SettingsRootContentTest {
         Haptic,
         About,
         Licences,
+        FactoryReset,
     }
 
     /** Mirror of the [ListItem]s in [SettingsRootContent], top to bottom, in their sections. */
@@ -247,6 +250,7 @@ class SettingsRootContentTest {
             Row.Haptic,
             Row.About,
             Row.Licences,
+            Row.FactoryReset,
         )
 
     /** Mirror of the headline `stringResource` for each row. */
@@ -261,6 +265,7 @@ class SettingsRootContentTest {
             Row.Haptic -> R.string.settings_haptic_toggle
             Row.About -> R.string.settings_about_help
             Row.Licences -> R.string.about_licences
+            Row.FactoryReset -> R.string.settings_factory_reset
         }
 
     /**
@@ -271,11 +276,17 @@ class SettingsRootContentTest {
     private fun isDisabled(row: Row): Boolean =
         when (row) {
             Row.Theme, Row.AppLock, Row.Sync, Row.Backup, Row.Language,
-            Row.Sound, Row.Haptic, Row.About, Row.Licences,
+            Row.Sound, Row.Haptic, Row.About, Row.Licences, Row.FactoryReset,
             -> false
         }
 
-    /** Mirror of the per-row `Modifier.clickable(onClick = …)` wiring. */
+    /**
+     * Mirror of the per-row `Modifier.clickable` wiring.
+     * Navigation rows return the name of their `onOpen*` parameter.
+     * [Row.FactoryReset] routes to `onEvent(SettingsEvent.FactoryResetRequested)` (not a separate
+     * navigation lambda), so it returns the distinguishing key `"onEvent:FactoryResetRequested"`.
+     * The two toggle rows ([Row.Sound], [Row.Haptic]) return null.
+     */
     private fun callbackKeyForRowClick(row: Row): String? =
         when (row) {
             Row.Theme -> "onOpenTheme"
@@ -285,6 +296,7 @@ class SettingsRootContentTest {
             Row.Backup -> "onOpenBackup"
             Row.About -> "onOpenAbout"
             Row.Licences -> "onOpenLicences"
+            Row.FactoryReset -> "onEvent:FactoryResetRequested"
             Row.Sound, Row.Haptic -> null
         }
 
@@ -305,8 +317,8 @@ class SettingsRootContentTest {
         }
 
     @Test
-    fun `content renders exactly five section headers in declaration order`() {
-        assertEquals(5, sections.size)
+    fun `content renders exactly six section headers in declaration order`() {
+        assertEquals(6, sections.size)
         assertEquals(
             listOf(
                 Section.Appearance,
@@ -314,6 +326,7 @@ class SettingsRootContentTest {
                 Section.Cloud,
                 Section.General,
                 Section.About,
+                Section.Danger,
             ),
             sections,
         )
@@ -323,7 +336,7 @@ class SettingsRootContentTest {
     fun `each section header resolves to a distinct string resource`() {
         val headers = sections.map { headerRes(it) }
         assertEquals(
-            "the five section headers must not collapse onto the same label",
+            "the six section headers must not collapse onto the same label",
             headers.size,
             headers.toSet().size,
         )
@@ -424,8 +437,8 @@ class SettingsRootContentTest {
     }
 
     @Test
-    fun `the seven navigation rows each route to a distinct callback`() {
-        val navRows = rows.filter { callbackKeyForRowClick(it) != null }
+    fun `the eight clickable rows each route to a distinct handler`() {
+        val clickableRows = rows.filter { callbackKeyForRowClick(it) != null }
         assertEquals(
             listOf(
                 Row.Theme,
@@ -435,16 +448,23 @@ class SettingsRootContentTest {
                 Row.Language,
                 Row.About,
                 Row.Licences,
+                Row.FactoryReset,
             ),
-            navRows,
+            clickableRows,
         )
-        val keys = navRows.map { callbackKeyForRowClick(it) }
-        assertFalse("no navigation row may be left unwired", keys.contains(null))
+        val keys = clickableRows.map { callbackKeyForRowClick(it) }
+        assertFalse("no clickable row may be left unwired", keys.contains(null))
         assertEquals(
-            "the navigation rows must not share a callback",
+            "the clickable rows must not share a handler key",
             keys.size,
             keys.toSet().size,
         )
+    }
+
+    @Test
+    fun `factory reset row is wired to onEvent FactoryResetRequested`() {
+        assertEquals("onEvent:FactoryResetRequested", callbackKeyForRowClick(Row.FactoryReset))
+        assertFalse(isDisabled(Row.FactoryReset))
     }
 
     @Test

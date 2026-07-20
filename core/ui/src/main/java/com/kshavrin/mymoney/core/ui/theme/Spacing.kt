@@ -166,6 +166,13 @@ object Spacing {
     val dashboardAuroraCardPaddingTopCompact = 16.dp
     val dashboardAuroraCardPaddingBottomCompact = 12.dp
 
+    // "Без подложки" (reference Dashboard.dc.html, variant isV1): the framed substrate is gone,
+    // so the content no longer insets from a border and uses a tighter, near-full-width padding
+    // (reference isV1 padding 12/2/6) instead of the bordered card's 18/18/14.
+    val dashboardAuroraPlainPaddingTop = 12.dp
+    val dashboardAuroraPlainPaddingHorizontal = 10.dp
+    val dashboardAuroraPlainPaddingBottom = 6.dp
+
     val dashboardAuroraChartHeight = 116.dp
     val dashboardAuroraChartHeightCompact = 110.dp
 

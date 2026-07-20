@@ -16,7 +16,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -28,7 +27,6 @@ import androidx.compose.ui.unit.sp
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.core.ui.theme.dashboardAuroraAccent
 import com.kshavrin.mymoney.core.ui.theme.dashboardAuroraBalanceLabel
-import com.kshavrin.mymoney.core.ui.theme.dashboardAuroraCard
 import com.kshavrin.mymoney.core.ui.theme.dashboardAuroraPill
 import com.kshavrin.mymoney.core.ui.theme.dashboardExpensePill
 import com.kshavrin.mymoney.core.ui.theme.dashboardIncomePill
@@ -41,43 +39,36 @@ internal fun AuroraCardSurface(
     accent: Color = MaterialTheme.colorScheme.dashboardAuroraAccent,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val shape = MaterialTheme.shapes.dashboardAuroraCard
-
+    // "Без подложки" (reference Dashboard.dc.html, variant "1 · Без подложки"): the framed
+    // substrate — the 1dp accent border + outer accent glow — is dropped so the content floats
+    // on the dashboard background. Only a soft top radial glow remains, mirroring isV1's
+    // radial-gradient(70% 62% at 50% 12%, accent@0.15, accent@0 72%) with no box-shadow.
+    // The host horizontal padding stays outside the test tag so the card still spans the host
+    // width with the same side insets.
     Column(
         modifier =
             modifier
                 .fillMaxWidth()
                 .padding(horizontal = Spacing.dashboardAuroraHostHorizontalPaddingWide)
                 .testTag(cardTestTag)
-                .shadow(
-                    elevation = Spacing.s,
-                    shape = shape,
-                    ambientColor = accent,
-                    spotColor = accent,
-                ).clip(shape)
                 .drawBehind {
                     drawRect(
                         brush =
                             Brush.radialGradient(
                                 colorStops =
                                     arrayOf(
-                                        0f to accent.copy(alpha = 0.2f),
-                                        0.7f to Color.White.copy(alpha = 0.02f),
-                                        1f to Color.White.copy(alpha = 0.02f),
+                                        0f to accent.copy(alpha = 0.15f),
+                                        0.72f to accent.copy(alpha = 0f),
                                     ),
-                                center = Offset(size.width / 2f, 0f),
-                                radius = size.width * 0.9f,
+                                center = Offset(size.width / 2f, size.height * 0.12f),
+                                radius = size.width * 0.7f,
                             ),
                     )
-                }.border(
-                    width = Spacing.dashboardBalancePanelBorderWidth,
-                    color = accent.copy(alpha = 0.28f),
-                    shape = shape,
-                ).padding(
-                    start = Spacing.dashboardAuroraCardPaddingHorizontal,
-                    end = Spacing.dashboardAuroraCardPaddingHorizontal,
-                    top = Spacing.dashboardAuroraCardPaddingTop,
-                    bottom = Spacing.dashboardAuroraCardPaddingBottom,
+                }.padding(
+                    start = Spacing.dashboardAuroraPlainPaddingHorizontal,
+                    end = Spacing.dashboardAuroraPlainPaddingHorizontal,
+                    top = Spacing.dashboardAuroraPlainPaddingTop,
+                    bottom = Spacing.dashboardAuroraPlainPaddingBottom,
                 ),
         horizontalAlignment = Alignment.CenterHorizontally,
         content = content,

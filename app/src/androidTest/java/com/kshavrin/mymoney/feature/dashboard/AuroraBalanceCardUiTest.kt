@@ -313,6 +313,29 @@ class AuroraBalanceCardUiTest {
     }
 
     @Test
+    fun `aurora card uses the borderless plain horizontal padding after substrate removal`() {
+        // "Без подложки" (reference isV1): the framed substrate is gone, so the content is inset by
+        // the tighter plain padding, not the old bordered 18dp. Locks the substrate stays removed.
+        setCard(chartConfig = defaultConfig(visible = true))
+
+        val cardBounds =
+            composeTestRule
+                .onNodeWithTag(DASHBOARD_AURORA_CARD_TAG)
+                .fetchSemanticsNode()
+                .boundsInRoot
+        val chartBounds =
+            composeTestRule
+                .onNodeWithTag(DASHBOARD_TREND_CHART_TAG)
+                .fetchSemanticsNode()
+                .boundsInRoot
+        val expectedInsetPx =
+            with(composeTestRule.density) { Spacing.dashboardAuroraPlainPaddingHorizontal.toPx() }
+
+        assertCloseTo(expectedInsetPx, chartBounds.left - cardBounds.left, "chart left plain inset")
+        assertCloseTo(expectedInsetPx, cardBounds.right - chartBounds.right, "chart right plain inset")
+    }
+
+    @Test
     fun `embedded BalanceTrendChart node exists inside aurora card when chart is visible`() {
         setCard(chartConfig = defaultConfig(visible = true))
         composeTestRule

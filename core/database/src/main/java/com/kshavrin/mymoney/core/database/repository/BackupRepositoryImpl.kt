@@ -84,7 +84,7 @@ class BackupRepositoryImpl
         ) : this(
             context = context,
             database = database,
-            payloadCodec = OperationPayloadCodec(),
+            payloadCodec = OperationPayloadCodec(database.currencyDao()),
             deviceIdProvider =
                 object : DeviceIdProvider {
                     override suspend fun deviceId(): String = TEST_DEVICE_ID

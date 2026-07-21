@@ -71,7 +71,7 @@ class JournalBootstrap
             configStore.markBootstrapDone()
         }
 
-        private fun AccountEntity.toBootstrapOp(deviceId: String): OperationEntity =
+        private suspend fun AccountEntity.toBootstrapOp(deviceId: String): OperationEntity =
             OperationEntity(
                 opId = UUID.randomUUID().toString(),
                 deviceId = deviceId,

@@ -1,5 +1,6 @@
 package com.kshavrin.mymoney.core.database.journal
 
+import com.kshavrin.mymoney.core.database.dao.CurrencyDao
 import com.kshavrin.mymoney.core.database.entity.AccountEntity
 import com.kshavrin.mymoney.core.database.entity.CategoryEntity
 import com.kshavrin.mymoney.core.database.entity.TransactionEntity
@@ -14,14 +15,23 @@ import javax.inject.Singleton
 @Singleton
 class OperationPayloadCodec
     @Inject
-    constructor() {
+    constructor(
+        private val currencyDao: CurrencyDao,
+    ) {
         private val json =
             Json {
                 encodeDefaults = true
                 ignoreUnknownKeys = true
             }
 
-        fun encodeTransaction(
+        // Currency rows are local autoincrement ids that are NOT stable across devices/installs;
+        // the wire format carries the portable ISO code instead, resolved back to a local id on apply.
+        private suspend fun currencyCodeOf(currencyId: Long): String =
+            requireNotNull(currencyDao.findById(currencyId)?.code) {
+                "currency $currencyId referenced by a local entity must exist locally"
+            }
+
+        suspend fun encodeTransaction(
             entity: TransactionEntity,
             accountUuid: String,
             categoryUuid: String?,
@@ -33,7 +43,7 @@ class OperationPayloadCodec
                     deviceId = entity.deviceId,
                     kind = entity.kind,
                     amount = decimal(entity.amount),
-                    currencyId = entity.currencyId,
+                    currencyCode = currencyCodeOf(entity.currencyId),
                     accountUuid = accountUuid,
                     categoryUuid = categoryUuid,
                     note = entity.note,
@@ -69,13 +79,13 @@ class OperationPayloadCodec
 
         fun decodeCategory(payload: String): CategorySnapshot = json.decodeFromString(payload)
 
-        fun encodeAccount(entity: AccountEntity): String =
+        suspend fun encodeAccount(entity: AccountEntity): String =
             json.encodeToString(
                 AccountSnapshot(
                     uuid = entity.uuid,
                     deviceId = entity.deviceId,
                     name = entity.name,
-                    currencyId = entity.currencyId,
+                    currencyCode = currencyCodeOf(entity.currencyId),
                     initialBalance = decimal(entity.initialBalance),
                     type = entity.type,
                     colorHex = entity.colorHex,
@@ -99,7 +109,9 @@ data class TransactionSnapshot(
     val deviceId: String,
     val kind: String,
     val amount: String,
-    val currencyId: Long,
+    // Blank/absent when decoding a pre-migration peer file that still carries the old raw
+    // currencyId; findByCode("") never matches, so the op is skipped (retried) rather than crashed.
+    val currencyCode: String = "",
     val accountUuid: String,
     val categoryUuid: String?,
     val note: String?,
@@ -133,7 +145,9 @@ data class AccountSnapshot(
     val uuid: String,
     val deviceId: String,
     val name: String,
-    val currencyId: Long,
+    // Blank/absent when decoding a pre-migration peer file that still carries the old raw
+    // currencyId; findByCode("") never matches, so the op is skipped (retried) rather than crashed.
+    val currencyCode: String = "",
     val initialBalance: String,
     val type: String,
     val colorHex: String,

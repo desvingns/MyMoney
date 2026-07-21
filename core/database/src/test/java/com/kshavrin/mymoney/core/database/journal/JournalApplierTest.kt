@@ -31,7 +31,7 @@ class JournalApplierTest {
 
     private lateinit var db: MoneyDatabase
     private lateinit var applier: JournalApplier
-    private val codec = OperationPayloadCodec()
+    private lateinit var codec: OperationPayloadCodec
 
     @Before
     fun setUp() {
@@ -42,6 +42,7 @@ class JournalApplierTest {
                     MoneyDatabase::class.java,
                 ).allowMainThreadQueries()
                 .build()
+        codec = OperationPayloadCodec(db.currencyDao())
 
         // Insert a minimal currency row so AccountEntity/TransactionEntity have a resolvable
         // currencyId (id=1) even if FK enforcement is active in the test SQLite driver.
@@ -68,6 +69,7 @@ class JournalApplierTest {
                 transactionDao = db.transactionDao(),
                 categoryDao = db.categoryDao(),
                 accountDao = db.accountDao(),
+                currencyDao = db.currencyDao(),
                 operationDao = db.operationDao(),
                 payloadCodec = codec,
                 transactionRunner = noOpRunner,
@@ -254,6 +256,126 @@ class JournalApplierTest {
             )
         }
 
+    // ─── cross-device currency id portability (regression) ──────────────────
+    // Reproduces the on-device crash: a peer's local currency row id is NOT stable across
+    // installs. Two devices can both have "EUR" but at different autoincrement ids. Before this
+    // fix, the wire payload carried the raw id, so applying a peer's account/transaction op threw
+    // SQLiteConstraintException (FK on currency_id) instead of resolving by the portable ISO code.
+
+    @Test
+    fun `account op from a peer whose EUR has a different local row id still resolves by currency code`() =
+        runTest {
+            // Local db already seeded with USD=1 in setUp(); add EUR at a DIFFERENT id than the peer will use.
+            db.currencyDao().upsert(
+                CurrencyEntity(code = "EUR", symbol = "€", name = "Euro", decimalDigits = 2, isActive = true, sortOrder = 2),
+            )
+            val localEurId = requireNotNull(db.currencyDao().findByCode("EUR")).id
+
+            // Simulate the peer device: its OWN db has EUR at a completely different row id.
+            val peerDb =
+                androidx.room.Room
+                    .inMemoryDatabaseBuilder(
+                        androidx.test.core.app.ApplicationProvider.getApplicationContext(),
+                        MoneyDatabase::class.java,
+                    ).allowMainThreadQueries()
+                    .build()
+            repeat(10) { peerDb.currencyDao().upsert(CurrencyEntity(code = "PLACEHOLDER-$it", symbol = "?", name = "?", decimalDigits = 2, isActive = false, sortOrder = it)) }
+            peerDb.currencyDao().upsert(CurrencyEntity(code = "EUR", symbol = "€", name = "Euro", decimalDigits = 2, isActive = true, sortOrder = 99))
+            val peerEurId = requireNotNull(peerDb.currencyDao().findByCode("EUR")).id
+            assertTrue("test setup must actually diverge the two ids", localEurId != peerEurId)
+            val peerCodec = OperationPayloadCodec(peerDb.currencyDao())
+
+            val accountUuid = "acc-cross-currency"
+            val payload =
+                peerCodec.encodeAccount(
+                    AccountEntity(
+                        uuid = accountUuid,
+                        deviceId = "device-peer",
+                        name = "Peer EUR Account",
+                        currencyId = peerEurId,
+                        initialBalance = 0.0,
+                        type = "cash",
+                        colorHex = "#FFFFFF",
+                        iconKey = "ic_account_cash",
+                        isDefault = false,
+                        sortOrder = 1,
+                        createdAt = 1_000L,
+                        updatedAt = 1_000L,
+                        isArchived = false,
+                    ),
+                )
+            peerDb.close()
+
+            val result = applier.apply(listOf(accountOp(opId = "op-cross-currency", entityUuid = accountUuid, payload = payload)))
+
+            assertEquals("must apply, not crash or silently skip", 1, result.appliedCount)
+            assertFalse(result.hadSkips)
+            val stored = db.accountDao().findByUuid(accountUuid)
+            assertNotNull(stored)
+            assertEquals("account must be linked to THIS device's EUR row, not the peer's numeric id", localEurId, stored?.currencyId)
+        }
+
+    @Test
+    fun `account op referencing a currency code unknown locally is skipped, not crashed`() =
+        runTest {
+            val accountUuid = "acc-unknown-currency"
+            val currencyDao = db.currencyDao()
+            val codecWithForeignCurrency =
+                object : Any() {
+                    suspend fun encode(): String {
+                        // Build the payload directly: no local currency row for "XYZ" exists, so
+                        // encoding via the normal path (which requires a valid local id) isn't
+                        // representative of the wire format a peer would actually send.
+                        val entity =
+                            AccountEntity(
+                                uuid = accountUuid,
+                                deviceId = "device-peer",
+                                name = "Foreign Currency Account",
+                                currencyId = 1L,
+                                initialBalance = 0.0,
+                                type = "cash",
+                                colorHex = "#FFFFFF",
+                                iconKey = "ic_account_cash",
+                                isDefault = false,
+                                sortOrder = 1,
+                                createdAt = 1_000L,
+                                updatedAt = 1_000L,
+                                isArchived = false,
+                            )
+                        val encoded = codec.encodeAccount(entity)
+                        // Rewrite the encoded USD code to a code that exists on NO device locally.
+                        return encoded.replace("\"currencyCode\":\"USD\"", "\"currencyCode\":\"XYZ\"")
+                    }
+                }
+            assertNull("XYZ must not exist locally for this test to be meaningful", currencyDao.findByCode("XYZ"))
+            val payload = codecWithForeignCurrency.encode()
+
+            val result = applier.apply(listOf(accountOp(opId = "op-unknown-currency", entityUuid = accountUuid, payload = payload)))
+
+            assertEquals(0, result.appliedCount)
+            assertTrue("hadSkips must be true so this op is retried once the currency is known", result.hadSkips)
+            assertNull("account must NOT be upserted with an unresolved currency", db.accountDao().findByUuid(accountUuid))
+        }
+
+    @Test
+    fun `pre-migration payload without currencyCode is skipped, not a deserialize crash`() =
+        runTest {
+            // A peer file written by the build BEFORE this fix carries the old raw "currencyId"
+            // field; the new AccountSnapshot no longer has that field, so it must decode fine
+            // (currencyCode defaults to blank) and then skip cleanly instead of throwing.
+            val accountUuid = "acc-pre-migration"
+            val legacyPayload =
+                """{"uuid":"$accountUuid","deviceId":"device-peer","name":"Legacy Account","currencyId":1,""" +
+                    """"initialBalance":"0","type":"cash","colorHex":"#FFFFFF","iconKey":"ic_account_cash",""" +
+                    """"isDefault":false,"sortOrder":1,"createdAt":1000,"updatedAt":1000,"isArchived":false}"""
+
+            val result = applier.apply(listOf(accountOp(opId = "op-legacy", entityUuid = accountUuid, payload = legacyPayload)))
+
+            assertEquals(0, result.appliedCount)
+            assertTrue("legacy payload must be skipped (retried later), not crash the whole pull", result.hadSkips)
+            assertNull(db.accountDao().findByUuid(accountUuid))
+        }
+
     // ─── empty and all-known edge cases ──────────────────────────────────────
 
     @Test
@@ -316,7 +438,7 @@ class JournalApplierTest {
         updatedAt = Instant.ofEpochMilli(1_000L),
     )
 
-    private fun encodeAccount(uuid: String): String =
+    private suspend fun encodeAccount(uuid: String): String =
         codec.encodeAccount(
             AccountEntity(
                 uuid = uuid,
@@ -335,7 +457,7 @@ class JournalApplierTest {
             ),
         )
 
-    private fun encodeTransaction(
+    private suspend fun encodeTransaction(
         uuid: String,
         accountUuid: String,
     ): String =

@@ -3,10 +3,12 @@ package com.kshavrin.mymoney.core.database.repository
 import androidx.paging.PagingSource
 import com.kshavrin.mymoney.core.database.dao.AccountDao
 import com.kshavrin.mymoney.core.database.dao.CategoryDao
+import com.kshavrin.mymoney.core.database.dao.CurrencyDao
 import com.kshavrin.mymoney.core.database.dao.OperationDao
 import com.kshavrin.mymoney.core.database.dao.TransactionDao
 import com.kshavrin.mymoney.core.database.entity.AccountEntity
 import com.kshavrin.mymoney.core.database.entity.CategoryEntity
+import com.kshavrin.mymoney.core.database.entity.CurrencyEntity
 import com.kshavrin.mymoney.core.database.entity.OperationEntity
 import com.kshavrin.mymoney.core.database.entity.TransactionEntity
 import com.kshavrin.mymoney.core.database.journal.OperationPayloadCodec
@@ -209,6 +211,29 @@ class TransactionRepositoryImplTest {
 
             override suspend fun deleteByIds(ids: List<Long>) = Unit
         }
+    private val currencyDao =
+        object : CurrencyDao {
+            private val fixed = CurrencyEntity(id = 8L, code = "USD", symbol = "$", name = "US Dollar", decimalDigits = 2, isActive = true, sortOrder = 1)
+
+            override fun observeActive(): Flow<List<CurrencyEntity>> = flowOf(listOf(fixed))
+
+            override fun observeAll(): Flow<List<CurrencyEntity>> = flowOf(listOf(fixed))
+
+            override suspend fun findById(id: Long): CurrencyEntity? = fixed.copy(id = id)
+
+            override suspend fun findByCode(code: String): CurrencyEntity? = fixed.takeIf { it.code.equals(code, ignoreCase = true) }
+
+            override suspend fun upsert(item: CurrencyEntity): Long = item.id
+
+            override suspend fun upsertAll(items: List<CurrencyEntity>) = Unit
+
+            override suspend fun setActive(
+                id: Long,
+                active: Boolean,
+            ) = Unit
+
+            override suspend fun activateCurrenciesWithLiveTransactions(): Int = 0
+        }
     private val operationDao =
         object : OperationDao {
             override suspend fun insert(op: OperationEntity) = Unit
@@ -253,7 +278,7 @@ class TransactionRepositoryImplTest {
                 accountDao = accountDao,
                 categoryDao = categoryDao,
                 operationDao = operationDao,
-                payloadCodec = OperationPayloadCodec(),
+                payloadCodec = OperationPayloadCodec(currencyDao),
                 deviceIdProvider = deviceIdProvider,
                 clock = Clock.systemUTC(),
                 transactionRunner = transactionRunner,

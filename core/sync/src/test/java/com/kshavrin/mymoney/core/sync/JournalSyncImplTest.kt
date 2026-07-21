@@ -44,7 +44,7 @@ class JournalSyncImplTest {
     private val dispatcher = UnconfinedTestDispatcher()
     private val clock: Clock = Clock.fixed(Instant.ofEpochMilli(1_700_000_000_000L), ZoneOffset.UTC)
     private val deviceId = "device-local"
-    private val codec = OperationPayloadCodec()
+    private val codec = OperationPayloadCodec(NoOpCurrencyDao())
 
     private lateinit var backend: FakeJournalBackend
     private lateinit var operationDao: FakeOperationDao
@@ -63,7 +63,7 @@ class JournalSyncImplTest {
         applierOperationDao = ApplierRecordingOperationDao()
         bootstrapOperationDao = BootstrapRecordingOperationDao()
 
-        val codec = OperationPayloadCodec()
+        val codec = OperationPayloadCodec(NoOpCurrencyDao())
         val noOpRunner =
             object : TransactionRunner {
                 override suspend fun <T> runInTransaction(block: suspend () -> T): T = block()
@@ -77,6 +77,7 @@ class JournalSyncImplTest {
                 transactionDao = noOpTransactionDao,
                 categoryDao = noOpCategoryDao,
                 accountDao = noOpAccountDao,
+                currencyDao = NoOpCurrencyDao(),
                 operationDao = applierOperationDao,
                 payloadCodec = codec,
                 transactionRunner = noOpRunner,
@@ -506,7 +507,7 @@ class JournalSyncImplTest {
             //   applyAccount deposits the account and the follow-on applyTransaction can resolve it
             //   within the same apply() call — hadSkips=false → high water advances.
             val storingAccountDao = StoringAccountDao()
-            val localCodec = OperationPayloadCodec()
+            val localCodec = OperationPayloadCodec(NoOpCurrencyDao())
             val localNoOpRunner =
                 object : TransactionRunner {
                     override suspend fun <T> runInTransaction(block: suspend () -> T): T = block()
@@ -517,6 +518,7 @@ class JournalSyncImplTest {
                     transactionDao = NoOpTransactionDao(),
                     categoryDao = NoOpCategoryDao(),
                     accountDao = storingAccountDao,
+                    currencyDao = NoOpCurrencyDao(),
                     operationDao = convergenceApplierOpDao,
                     payloadCodec = localCodec,
                     transactionRunner = localNoOpRunner,
@@ -631,7 +633,7 @@ class JournalSyncImplTest {
      * [ApplyResult.hadSkips] is false and [JournalSyncImpl.pull] correctly advances the
      * peer high-water mark — the intended behaviour for a clean remote file.
      */
-    private fun buildPeerJournal(
+    private suspend fun buildPeerJournal(
         peerDeviceId: String,
         opId: String,
     ): ByteArray {
@@ -694,7 +696,7 @@ class JournalSyncImplTest {
      * [referencedAccountUuid]. Because no Account Upsert is included, [JournalApplier.applyTransaction]
      * will call [AccountDao.findByUuid] and get null → return false → [ApplyResult.hadSkips] = true.
      */
-    private fun buildTxOnlyPeerJournal(
+    private suspend fun buildTxOnlyPeerJournal(
         peerDeviceId: String,
         txOpId: String,
         txEntityUuid: String,
@@ -743,7 +745,7 @@ class JournalSyncImplTest {
      * via [AccountDao.upsert], and the transaction op then resolves its FK — [ApplyResult.hadSkips]
      * is false and the peer high-water mark advances.
      */
-    private fun buildCumulativePeerJournal(
+    private suspend fun buildCumulativePeerJournal(
         peerDeviceId: String,
         accountOpId: String,
         accountEntityUuid: String,
@@ -1086,6 +1088,39 @@ private class NoOpCategoryDao : CategoryDao {
     override suspend fun deleteAll() = Unit
 
     override suspend fun deleteByIds(ids: List<Long>) = Unit
+}
+
+private class NoOpCurrencyDao : com.kshavrin.mymoney.core.database.dao.CurrencyDao {
+    private val fixed =
+        com.kshavrin.mymoney.core.database.entity.CurrencyEntity(
+            id = 1L,
+            code = "USD",
+            symbol = "$",
+            name = "US Dollar",
+            decimalDigits = 2,
+            isActive = true,
+            sortOrder = 1,
+        )
+
+    override fun observeActive(): Flow<List<com.kshavrin.mymoney.core.database.entity.CurrencyEntity>> = flowOf(listOf(fixed))
+
+    override fun observeAll(): Flow<List<com.kshavrin.mymoney.core.database.entity.CurrencyEntity>> = flowOf(listOf(fixed))
+
+    override suspend fun findById(id: Long): com.kshavrin.mymoney.core.database.entity.CurrencyEntity? = fixed.copy(id = id)
+
+    override suspend fun findByCode(code: String): com.kshavrin.mymoney.core.database.entity.CurrencyEntity? =
+        fixed.takeIf { it.code.equals(code, ignoreCase = true) }
+
+    override suspend fun upsert(item: com.kshavrin.mymoney.core.database.entity.CurrencyEntity): Long = item.id
+
+    override suspend fun upsertAll(items: List<com.kshavrin.mymoney.core.database.entity.CurrencyEntity>) = Unit
+
+    override suspend fun setActive(
+        id: Long,
+        active: Boolean,
+    ) = Unit
+
+    override suspend fun activateCurrenciesWithLiveTransactions(): Int = 0
 }
 
 private class NoOpTransactionDao : TransactionDao {

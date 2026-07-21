@@ -2,6 +2,7 @@ package com.kshavrin.mymoney.core.database.journal
 
 import com.kshavrin.mymoney.core.database.dao.AccountDao
 import com.kshavrin.mymoney.core.database.dao.CategoryDao
+import com.kshavrin.mymoney.core.database.dao.CurrencyDao
 import com.kshavrin.mymoney.core.database.dao.OperationDao
 import com.kshavrin.mymoney.core.database.dao.TransactionDao
 import com.kshavrin.mymoney.core.database.entity.AccountEntity
@@ -31,6 +32,7 @@ class JournalApplier
         private val transactionDao: TransactionDao,
         private val categoryDao: CategoryDao,
         private val accountDao: AccountDao,
+        private val currencyDao: CurrencyDao,
         private val operationDao: OperationDao,
         private val payloadCodec: OperationPayloadCodec,
         private val transactionRunner: TransactionRunner,
@@ -69,7 +71,8 @@ class JournalApplier
                 is MergeResult.Resolved -> {
                     val payload = result.op.payload ?: return false
                     val snapshot = payloadCodec.decodeAccount(payload)
-                    accountDao.upsert(snapshot.toEntity(local?.id ?: 0L))
+                    val currencyId = currencyDao.findByCode(snapshot.currencyCode)?.id ?: return false
+                    accountDao.upsert(snapshot.toEntity(local?.id ?: 0L, currencyId))
                     true
                 }
                 is MergeResult.Tombstone -> {
@@ -109,10 +112,11 @@ class JournalApplier
                 is MergeResult.Resolved -> {
                     val payload = result.op.payload ?: return false
                     val snapshot = payloadCodec.decodeTransaction(payload)
+                    val currencyId = currencyDao.findByCode(snapshot.currencyCode)?.id ?: return false
                     val accountId = accountDao.findByUuid(snapshot.accountUuid)?.id ?: return false
                     val categoryId = snapshot.categoryUuid?.let { categoryDao.findByUuid(it)?.id ?: return false }
                     val toAccountId = snapshot.toAccountUuid?.let { accountDao.findByUuid(it)?.id ?: return false }
-                    transactionDao.upsert(snapshot.toEntity(local?.id ?: 0L, accountId, categoryId, toAccountId))
+                    transactionDao.upsert(snapshot.toEntity(local?.id ?: 0L, accountId, categoryId, toAccountId, currencyId))
                     true
                 }
                 is MergeResult.Tombstone -> {
@@ -136,7 +140,7 @@ class JournalApplier
                 appliedFromRemote = true,
             )
 
-        private fun AccountEntity.toLocalOp(): Operation =
+        private suspend fun AccountEntity.toLocalOp(): Operation =
             Operation(
                 opId = LOCAL_OP_PREFIX + uuid,
                 deviceId = deviceId,
@@ -169,7 +173,10 @@ class JournalApplier
                 updatedAt = Instant.ofEpochMilli(updatedAt),
             )
 
-        private fun AccountSnapshot.toEntity(localId: Long): AccountEntity =
+        private fun AccountSnapshot.toEntity(
+            localId: Long,
+            currencyId: Long,
+        ): AccountEntity =
             AccountEntity(
                 id = localId,
                 uuid = uuid,
@@ -209,6 +216,7 @@ class JournalApplier
             accountId: Long,
             categoryId: Long?,
             toAccountId: Long?,
+            currencyId: Long,
         ): TransactionEntity =
             TransactionEntity(
                 id = localId,

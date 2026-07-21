@@ -21,6 +21,16 @@ ROOT CAUSE IS NOT YET CONFIRMED. This SPEC captures the evidence and hypotheses 
 the next session MUST diagnose before implementing (see "Investigation plan" below) — do not jump
 straight to a fix from assumption.
 
+**UPDATE 2026-07-21 (same day, after real on-device investigation): hypothesis 1 (folder-id
+mismatch) is RULED OUT.** All three real Google accounts involved (`desvingns` the owner,
+`desving123456`, `shavrinaveronikans`) were confirmed to reference the IDENTICAL Drive folder id,
+and journal files from multiple different accounts were directly observed landing inside that one
+physical folder (Drive web UI, owner's view). Despite this, cross-account convergence still does
+NOT happen — devices under different Google accounts still don't see each other as sync peers. The
+leading hypothesis is now hypothesis 2 (drive.file scope / `files.list` query semantics), with a
+NEW, more specific and concrete candidate added below (hypothesis 4, the `corpora` parameter) that
+does NOT require any OAuth scope change and should be tried FIRST.
+
 LAYERS: [data] [presentation] (UX/onboarding flow may need to change too, not just data-layer logic)
 CHANGED_HINT: feature/cloudsync/.../CloudSyncScreen.kt (Picker request + account-picker flow),
 feature/cloudsync/.../CloudSyncViewModel.kt (connect / folder-selection), core/sync/.../gdrive/
@@ -77,51 +87,94 @@ connected to the same shared folder should behave like one account — shared/un
   falls back to `storedEmail()`). The query itself has no owner/account filter — if the Drive API
   returns cross-owner files for a shared folder under this scope, this query should find them.
 
-### Hypotheses (unconfirmed — this is the actual work of the next session)
+### Hypotheses
 
-1. **Folder-id mismatch, not a Drive-scope limitation.** The in-app folder Picker only shows folders
-   the CURRENTLY authenticated account already has access to. If the user never explicitly shared
-   the Drive folder with the second Google account BEFORE connecting it in the app (via Drive's own
-   native sharing UI, outside this app), account B's Picker cannot select "the same folder" at all —
-   it would create or pick a DIFFERENT folder (possibly same name, different Drive file id), so the
-   two devices end up with two genuinely different `folderId` values in their `JournalSyncConfigStore`
-   and are structurally isolated by design, not by a code bug. This is the most likely candidate and
-   would point to a UX/onboarding gap (the app never surfaces "share this folder with the other
-   account first" instructions or verifies the folder is actually multi-account-accessible), not a
-   data-layer bug.
+1. ~~**Folder-id mismatch, not a Drive-scope limitation.**~~ **RULED OUT 2026-07-21.** Real-world
+   test: `desvingns` (owner) shared the "Sync" folder with `desving123456` and `shavrinaveronikans`
+   as Editors from the very start (confirmed via the Share dialog — both listed as "Редактор"
+   before any of this investigation began). `shavrinaveronikans` and `desving123456` already
+   resolved to the identical folder id from the start; only `desvingns` (the owner) initially
+   showed a different id when compared by URL — explained by the owner viewing the folder via its
+   canonical "My Drive" path while the finding/comparison for the other two accounts may have gone
+   through a Drive **shortcut** object (a shortcut has its own distinct file id, separate from its
+   target — a Drive UI/object-model quirk, not a real folder difference). After adding a shortcut
+   for `desvingns` too, all three accounts showed the identical id. Journal files from multiple
+   different accounts (`desving123456`, and the owner `desvingns`/"я") were directly observed
+   landing inside this one physical folder (Drive web UI). **Despite all ids matching and multiple
+   accounts successfully writing into the SAME physical folder, cross-account convergence still
+   does not happen.** This decisively rules out "wrong folder" as the (sole) explanation.
 2. **`drive.file` scope may not grant cross-owner file visibility even for a genuinely shared
-   folder.** Even if account B was properly granted Drive-level access to the EXACT SAME folder
-   (same file id) before connecting, it is not confirmed whether a `drive.file`-scoped OAuth token
-   for account B can see files inside that folder that were CREATED by account A (a different
-   Google identity) via `files.list`. This needs a real, controlled experiment (see below) — do not
-   assume either way without testing.
+   folder.** Now the LEADING hypothesis given (1) is ruled out. It is not confirmed whether a
+   `drive.file`-scoped OAuth token for account B can see files inside a shared folder that were
+   CREATED by account A (a different Google identity) via `files.list`, even when the folder
+   access is unquestionably correct. Needs a real, controlled experiment (see below).
 3. **Something else** — e.g. `isFolder(accountEmail, folderId)` (line 163) succeeding does not by
    itself prove the SAME Drive resource is being referenced across two different accounts if the
    two accounts have different mount/alias views of a resource (unlikely for Drive's canonical file
-   ids, but not yet ruled out).
+   ids, and now largely superseded by finding 1 above, but kept for completeness).
+4. **NEW — `files.list` `corpora` parameter, NOT a scope issue at all.** `listPeerJournals`
+   (`GoogleDriveJournalBackend.kt:90-117`) builds its Drive query with `setIncludeItemsFromAllDrives(true)`
+   and `setSupportsAllDrives(true)` (lines 102-103) but never calls `.setCorpora(...)`. Per the Drive
+   API v3 reference, `corpora` defaults to `"user"` when unset, and the `"user"` corpus is
+   documented as "files created by, opened by, or **shared directly with** the user" — a file
+   created by a DIFFERENT account inside a folder whose ACCESS was granted at the FOLDER level
+   (not the individual file), and that this device's account never individually "opened" via its
+   own Picker, may simply fall outside that corpus even though `'<folderId>' in parents` matches
+   the query filter. `includeItemsFromAllDrives`/`supportsAllDrives` are Shared-Drive-specific flags
+   and likely have NO effect for a plain "My Drive" folder shared via normal ACL sharing (which is
+   exactly this scenario, not a Shared Drive/Team Drive). **This is the cheapest, lowest-risk thing
+   to try first** — it requires NO OAuth scope change (respects the CONSTRAINTS below), just adding
+   `.setCorpora("allDrives")` (or trying `"domain"`/experimenting with values) to the `files().list()`
+   builder chain in both `listPeerJournals` (line 96-104) and `findOwnFileId` (line 127-141, same
+   `.list()` pattern, same missing parameter). Should be tried and on-device verified BEFORE
+   concluding the desired behaviour needs a scope change per hypothesis 2.
+
+### Secondary finding (separate from the main bug, worth checking)
+
+While inspecting the shared folder's contents directly (Drive web UI) during this investigation,
+TWO files were observed with the **exact same name** —
+`ops-4043ba55-5116-43de-92bb-7b13b2be46fd.jsonl` — both owned by `desving123456`, uploaded ~2
+minutes apart (13:32 and 13:34). Per `GoogleDriveJournalBackend.uploadJournal` (lines 59-88), a
+push should always resolve to the SAME file via `findOwnFileId` (exact-name lookup within the
+folder) and either `files.update` it or `files.create` only if truly absent — two Drive files
+sharing one device's expected filename suggests `findOwnFileId`'s lookup returned nothing on (at
+least) one push despite the file already existing, causing a duplicate `create` instead of an
+`update`. Not yet investigated further; may be a separate, real bug (e.g. Drive query eventual
+consistency between rapid successive test syncs, or a genuine flaw in `findOwnFileId`/`ownFileQuery`)
+or may turn out to be explained by the same `corpora` issue above (the second push's `findOwnFileId`
+query silently missing the file it itself created moments earlier, under the same default-corpus
+restriction). Worth a dedicated look once the main cross-account issue is resolved.
 
 ### Investigation plan (for the next session, before writing any fix)
 
-1. Take two REAL Google accounts (not the same one). From account A, create a folder in Drive and
-   explicitly share it (Drive's native "Share" UI) with account B's email, granting Editor access.
-2. Connect account A in the app (device/emulator 1), picking that shared folder. Note the exact
-   folder id `journalSyncConfig.folderId()` ends up storing.
-3. Connect account B in the app (device/emulator 2), attempting to pick the SAME shared folder via
-   its own Picker. Confirm (a) the folder is even visible/selectable in account B's Picker, and (b)
-   the folder id stored on device 2 is IDENTICAL to device 1's.
-4. If the folder ids match: create data on device 1, push, then pull on device 2 with logging
-   (mirror the temporary `Log.d`/`runCatching` instrumentation technique used to diagnose the
-   currency-id bug — see `journal-sync-noncumulative-bug.md` in Claude's project memory for the
-   exact pattern and the gotcha it hit: `android.util.Log` calls in `JournalSyncImpl`/`JournalApplier`
-   crash `core:sync`'s plain-JUnit `JournalSyncImplTest`, which is NOT Robolectric-based — always
-   `git checkout` such instrumentation before the next full test run). Confirm whether
-   `listPeerJournals` on device 2 actually returns device 1's `ops-<deviceId>.jsonl` file at all.
-5. Branch on the result: if the folder ids diverge at step 3, the fix is UX/onboarding (guide the
-   user through properly sharing the folder BEFORE each account connects, and/or verify + warn in
-   `completeGoogleDriveFolderSelection` when a folder appears to have only one Drive-authorized
-   account). If the folder ids match but step 4 still shows no cross-account visibility, the fix
-   requires a scope change (STOP — surface to the user as an open question per the CONSTRAINTS above,
-   do not silently widen scope) or a different sharing/transport mechanism entirely.
+**Already done (2026-07-21, real accounts, real folder — do NOT redo):** folder properly shared
+(Editor) with 2 accounts from the start; all 3 accounts confirmed on the identical folder id;
+multi-account writes into the same physical folder directly observed; cross-account convergence
+still fails. Hypothesis 1 is closed. Start from step 1 below.
+
+1. **Try hypothesis 4 first (cheapest, no scope change, no human gate needed for a code experiment):**
+   add `.setCorpora("allDrives")` to the `files().list()` calls in `listPeerJournals`
+   (`GoogleDriveJournalBackend.kt:96-104`) and `findOwnFileId` (lines 127-141). Rebuild, install on
+   the Pixel 9 emulator (account `desving123456`) and re-test against the real shared folder that
+   already has `shavrinaveronikans`'s / the owner's files in it. Confirm via `adb logcat` +
+   `listPeerJournals`'s return value (reuse the temporary `Log.d`/`runCatching` instrumentation
+   technique from the currency-id bug diagnosis — see `journal-sync-noncumulative-bug.md` in
+   Claude's project memory for the exact pattern and its gotcha: those `Log.d` calls, added to
+   `JournalSyncImpl`/`JournalApplier`, crash `core:sync`'s plain-JUnit — non-Robolectric —
+   `JournalSyncImplTest` the instant it exercises a real `JournalApplier`; always `git checkout`
+   the instrumentation before the next full test run, never leave it in a commit) whether OTHER
+   accounts' `ops-<deviceId>.jsonl` files now appear.
+2. If step 1 fixes it: this is a small, low-risk, no-scope-change bugfix — implement properly
+   (SPEC → `/mp --bugfix`, full gate chain given the "high risk" precedent from the journal-cumfix
+   SPEC), and ALSO investigate whether it explains/fixes the duplicate-filename finding above (a
+   `findOwnFileId` query missing its own just-created file could be the exact same `corpora` gap).
+3. If step 1 does NOT fix it: run a raw, app-independent Drive API experiment (e.g. a short Python
+   script or `curl` with an OAuth token scoped to `drive.file` for account B) against the same real
+   shared folder, to isolate whether the limitation is in this app's Kotlin code/query construction
+   or a genuine, unavoidable property of the `drive.file` scope itself. If it's the latter — STOP,
+   this is exactly the scope-change fork the CONSTRAINTS section warns about: surface it to the
+   user as an explicit go/no-go (full `drive` scope vs. a different sharing/transport design
+   entirely) rather than silently implementing either path.
 
 ## Implementation links
 - commit: (pending)

@@ -6,25 +6,17 @@ import com.dropbox.core.RetryException
 import com.dropbox.core.ServerException
 import com.dropbox.core.oauth.DbxCredential
 import com.dropbox.core.v2.DbxClientV2
-import com.dropbox.core.v2.files.FileMetadata
-import com.dropbox.core.v2.files.UploadErrorException
-import com.dropbox.core.v2.files.WriteMode
 import com.kshavrin.mymoney.core.common.di.IoDispatcher
 import com.kshavrin.mymoney.core.common.exception.SyncError
 import com.kshavrin.mymoney.core.common.exception.SyncException
 import com.kshavrin.mymoney.core.datastore.SecureStorage
 import com.kshavrin.mymoney.core.sync.CloudSyncBackend
-import com.kshavrin.mymoney.core.sync.RemoteSnapshot
 import com.kshavrin.mymoney.core.sync.SyncTarget
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
-import java.io.File
 import java.io.IOException
-import java.time.Instant
-import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -49,10 +41,6 @@ class DropboxRepository
             return DbxClientV2(config, credential)
         }
 
-        fun persistCredential(serialized: String) {
-            secureStorage.writeDropboxRefreshToken(serialized)
-        }
-
         override fun connect(payload: String) {
             secureStorage.writeDropboxRefreshToken(payload)
         }
@@ -69,67 +57,6 @@ class DropboxRepository
                     .users()
                     .currentAccount.name.displayName
             }
-
-        override suspend fun upload(
-            localFile: File,
-            remoteName: String,
-        ): Result<Unit> =
-            runOnIo {
-                try {
-                    localFile.inputStream().use { input ->
-                        client()
-                            .files()
-                            .uploadBuilder(STORAGE_PATH + remoteName)
-                            .withMode(WriteMode.OVERWRITE)
-                            .uploadAndFinish(input)
-                    }
-                    Unit
-                } catch (e: UploadErrorException) {
-                    if (e.isInsufficientSpace()) throw DropboxQuotaException(e) else throw e
-                }
-            }
-
-        override suspend fun listSnapshots(): Result<List<RemoteSnapshot>> =
-            runOnIo {
-                val files = client().files()
-                val entries = mutableListOf<FileMetadata>()
-                var result = files.listFolder(STORAGE_PATH)
-                while (true) {
-                    result.entries.filterIsInstanceTo(entries, FileMetadata::class.java)
-                    if (!result.hasMore) break
-                    result = files.listFolderContinue(result.cursor)
-                }
-                entries
-                    .map {
-                        RemoteSnapshot(
-                            id = it.pathLower ?: (STORAGE_PATH + it.name),
-                            name = it.name,
-                            modifiedAtEpochMs = it.serverModified.time,
-                        )
-                    }.sortedByDescending { it.modifiedAtEpochMs }
-            }
-
-        override suspend fun downloadNewest(destFile: File): Result<RemoteSnapshot?> {
-            val snapshots = listSnapshots().getOrElse { return Result.failure(it) }
-            val newest = snapshots.firstOrNull() ?: return Result.success(null)
-            return runOnIo {
-                destFile.outputStream().use { output ->
-                    client().files().download(newest.id).download(output)
-                }
-                newest
-            }
-        }
-
-        override suspend fun prune(keep: Int): Result<Unit> {
-            val snapshots = listSnapshots().getOrElse { return Result.failure(it) }
-            val toDelete = snapshotsToDelete(snapshots, keep)
-            if (toDelete.isEmpty()) return Result.success(Unit)
-            return runOnIo {
-                val files = client().files()
-                toDelete.forEach { files.deleteV2(it.id) }
-                Unit
-            }
-        }
 
         private suspend fun <T> runOnIo(block: () -> T): Result<T> =
             withContext(ioDispatcher) {
@@ -166,22 +93,10 @@ class DropboxRepository
 
         private companion object {
             const val CLIENT_IDENTIFIER = "MyMoney/1.0"
-            const val STORAGE_PATH = "/Apps/MyMoney/"
             const val MAX_RETRIES = 3
             const val BASE_BACKOFF_MILLIS = 1_000L
         }
     }
-
-private fun UploadErrorException.isInsufficientSpace(): Boolean =
-    errorValue
-        ?.takeIf { it.isPath }
-        ?.pathValue
-        ?.reason
-        ?.isInsufficientSpace == true
-
-internal class DropboxQuotaException(
-    cause: Throwable,
-) : Exception(cause)
 
 internal fun mapDropboxError(t: Throwable): SyncError =
     when {
@@ -190,24 +105,10 @@ internal fun mapDropboxError(t: Throwable): SyncError =
         else ->
             when (t::class.simpleName) {
                 "InvalidAccessTokenException" -> SyncError.Auth
-                "DropboxQuotaException", "SpaceError" -> SyncError.Quota
+                "SpaceError" -> SyncError.Quota
                 "NetworkIOException" -> SyncError.Network
                 "RateLimitException", "RetryException", "ServerException", "DbxException" ->
                     SyncError.Server
                 else -> SyncError.Unknown
             }
     }
-
-internal fun snapshotsToDelete(
-    all: List<RemoteSnapshot>,
-    keep: Int,
-): List<RemoteSnapshot> {
-    if (keep < 0) return all
-    return all.sortedByDescending { it.modifiedAtEpochMs }.drop(keep)
-}
-
-internal fun snapshotFileName(now: Instant): String =
-    "monefy_backup_" + SNAPSHOT_FORMATTER.format(now) + ".db"
-
-private val SNAPSHOT_FORMATTER: DateTimeFormatter =
-    DateTimeFormatter.ofPattern("yyyyMMddHHmm").withZone(ZoneOffset.UTC)

@@ -122,12 +122,68 @@ class OperationDaoTest {
             assertTrue(dao.knownOpIds().isEmpty())
         }
 
+    // ─── localOps ─────────────────────────────────────────────────────────────
+
+    @Test
+    fun `localOps returns all local-origin ops regardless of synced_to_remote, ordered by updated_at ASC`() =
+        runTest {
+            // op-synced has syncedToRemote=true (already pushed) but applied_from_remote=0 so it IS local
+            val opSynced = operationEntity("op-synced", syncedToRemote = true, appliedFromRemote = false, updatedAt = 1_000L)
+            val opUnsyncedLater = operationEntity("op-unsynced-later", syncedToRemote = false, appliedFromRemote = false, updatedAt = 3_000L)
+            val opUnsyncedMid = operationEntity("op-unsynced-mid", syncedToRemote = false, appliedFromRemote = false, updatedAt = 2_000L)
+            dao.insertAll(listOf(opSynced, opUnsyncedLater, opUnsyncedMid))
+
+            val local = dao.localOps()
+
+            assertEquals("localOps must return all three local ops", 3, local.size)
+            assertEquals("first by updated_at ASC must be op-synced (1000)", "op-synced", local[0].opId)
+            assertEquals("second must be op-unsynced-mid (2000)", "op-unsynced-mid", local[1].opId)
+            assertEquals("third must be op-unsynced-later (3000)", "op-unsynced-later", local[2].opId)
+        }
+
+    @Test
+    fun `localOps excludes ops where applied_from_remote is true`() =
+        runTest {
+            val localOp = operationEntity("op-local-origin", syncedToRemote = false, appliedFromRemote = false)
+            val remoteOp = operationEntity("op-remote-origin", syncedToRemote = false, appliedFromRemote = true)
+            dao.insertAll(listOf(localOp, remoteOp))
+
+            val local = dao.localOps()
+
+            assertEquals(1, local.size)
+            assertEquals("op-local-origin", local.first().opId)
+            assertTrue(
+                "op-remote-origin (applied_from_remote=1) must be excluded from localOps",
+                local.none { it.opId == "op-remote-origin" },
+            )
+        }
+
+    @Test
+    fun `after markSynced unsyncedLocal shrinks to empty but localOps returns the full history`() =
+        runTest {
+            val op1 = operationEntity("op-hist-1", syncedToRemote = false, appliedFromRemote = false, updatedAt = 1_000L)
+            val op2 = operationEntity("op-hist-2", syncedToRemote = false, appliedFromRemote = false, updatedAt = 2_000L)
+            dao.insertAll(listOf(op1, op2))
+
+            dao.markSynced(listOf("op-hist-1", "op-hist-2"))
+
+            val unsynced = dao.unsyncedLocal()
+            assertTrue("unsyncedLocal must be empty after markSynced for all ids", unsynced.isEmpty())
+
+            val local = dao.localOps()
+            assertEquals("localOps must still return both ops (cumulative history)", 2, local.size)
+            val ids = local.map { it.opId }.toSet()
+            assertTrue(ids.contains("op-hist-1"))
+            assertTrue(ids.contains("op-hist-2"))
+        }
+
     // ─── helpers ──────────────────────────────────────────────────────────────
 
     private fun operationEntity(
         opId: String,
         syncedToRemote: Boolean = false,
         appliedFromRemote: Boolean = false,
+        updatedAt: Long = System.currentTimeMillis(),
     ) = OperationEntity(
         opId = opId,
         deviceId = "device-test",
@@ -135,7 +191,7 @@ class OperationDaoTest {
         entityUuid = "uuid-${opId.hashCode()}",
         opType = "Upsert",
         payload = null,
-        updatedAt = System.currentTimeMillis(),
+        updatedAt = updatedAt,
         syncedToRemote = syncedToRemote,
         appliedFromRemote = appliedFromRemote,
     )

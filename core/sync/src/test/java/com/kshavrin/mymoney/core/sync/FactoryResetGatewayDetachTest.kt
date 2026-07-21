@@ -177,6 +177,9 @@ class FactoryResetGatewayDetachTest {
         override suspend fun unsyncedLocal(): List<OperationEntity> =
             ops.filter { !it.syncedToRemote && !it.appliedFromRemote }
 
+        override suspend fun localOps(): List<OperationEntity> =
+            ops.filter { !it.appliedFromRemote }.sortedBy { it.updatedAt }
+
         override suspend fun markSynced(opIds: List<String>) {
             val ids = opIds.toSet()
             ops.replaceAll { if (it.opId in ids) it.copy(syncedToRemote = true) else it }

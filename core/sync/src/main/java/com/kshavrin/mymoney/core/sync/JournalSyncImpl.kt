@@ -42,13 +42,12 @@ class JournalSyncImpl
                 val deviceId = deviceIdProvider.deviceId()
                 val unsynced = operationDao.unsyncedLocal()
                 if (unsynced.isEmpty()) return@withContext
-                val bytes = serializer.encode(unsynced.map { it.toDomain() })
+                val bytes = serializer.encode(operationDao.localOps().map { it.toDomain() })
                 backend
                     .uploadJournal(folderId = folderId, deviceId = deviceId, bytes = bytes)
-                    .onSuccess {
-                        operationDao.markSynced(unsynced.map { op -> op.opId })
-                        appSettings.update { it.copy(lastSyncAt = clock.millis()) }
-                    }
+                    .getOrThrow()
+                operationDao.markSynced(unsynced.map { op -> op.opId })
+                appSettings.update { it.copy(lastSyncAt = clock.millis()) }
             }
         }
 
@@ -60,16 +59,19 @@ class JournalSyncImpl
                 val peers =
                     backend
                         .listPeerJournals(folderId)
-                        .getOrNull()
-                        ?.filter { it.deviceId != deviceId }
-                        ?: return@withContext
+                        .getOrThrow()
+                        .filter { it.deviceId != deviceId }
                 var applied = false
                 for (peer in peers) {
                     if (configStore.folderId().isBlank()) return@withContext
                     if (peer.modifiedAtEpochMs <= configStore.peerHighWaterMs(peer.fileId)) continue
-                    val bytes = backend.downloadJournal(peer.fileId).getOrNull() ?: continue
-                    applier.apply(serializer.decode(bytes))
-                    configStore.setPeerHighWaterMs(peer.fileId, peer.modifiedAtEpochMs)
+                    val bytes = backend.downloadJournal(peer.fileId).getOrThrow()
+                    val result = applier.apply(serializer.decode(bytes))
+                    // Skipped ops carry unresolved cross-device FKs; leave the high-water so the next
+                    // pull retries this file once the dependency (another peer's file) is applied.
+                    if (!result.hadSkips) {
+                        configStore.setPeerHighWaterMs(peer.fileId, peer.modifiedAtEpochMs)
+                    }
                     applied = true
                 }
                 if (applied) {

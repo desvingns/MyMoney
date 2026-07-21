@@ -4,19 +4,19 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
-import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.sync.SyncTarget
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -91,18 +91,30 @@ class CloudSyncContentUiTest {
     }
 
     @Test
-    fun `folder id field and sync now button emit the new journal sync events`() {
+    fun `shared folder picker and sync now button emit the journal sync events`() {
         val events = mutableListOf<CloudSyncEvent>()
 
         setContent(
-            state = CloudSyncState(folderId = "shared-folder"),
+            state =
+                CloudSyncState(
+                    folderId = "shared-folder",
+                    drive = TargetCardState(SyncTarget.GoogleDrive, enabled = true),
+                ),
             onEvent = events::add,
         )
 
         composeTestRule
+            .onNodeWithText(targetString(R.string.sync_change_gdrive_folder))
+            .performScrollTo()
+            .assertIsDisplayed()
+        composeTestRule
+            .onAllNodes(hasSetTextAction())
+            .assertCountEquals(0)
+        composeTestRule
             .onNodeWithTag(FOLDER_ID_TAG)
             .performScrollTo()
-            .performTextInput("-next")
+            .assertIsEnabled()
+            .performClick()
         composeTestRule
             .onNodeWithTag(SYNC_NOW_TAG)
             .performScrollTo()
@@ -110,23 +122,45 @@ class CloudSyncContentUiTest {
             .performClick()
 
         composeTestRule.runOnIdle {
-            assertTrue(events.firstOrNull() is CloudSyncEvent.FolderIdChanged)
+            assertEquals(CloudSyncEvent.GoogleDriveFolderSelectionClicked, events.firstOrNull())
             assertEquals(CloudSyncEvent.SyncNowClicked(), events.lastOrNull())
         }
     }
 
     @Test
     fun `blank folder surface shows not configured status and disables sync now`() {
-        setContent(state = CloudSyncState(folderId = ""))
+        val events = mutableListOf<CloudSyncEvent>()
+
+        setContent(
+            state =
+                CloudSyncState(
+                    folderId = "",
+                    drive = TargetCardState(SyncTarget.GoogleDrive, enabled = true),
+                ),
+            onEvent = events::add,
+        )
 
         composeTestRule
             .onNodeWithText(targetString(R.string.sync_folder_not_configured))
             .performScrollTo()
             .assertIsDisplayed()
         composeTestRule
+            .onNodeWithText(targetString(R.string.sync_select_gdrive_folder))
+            .performScrollTo()
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithTag(FOLDER_ID_TAG)
+            .performScrollTo()
+            .assertIsEnabled()
+            .performClick()
+        composeTestRule
             .onNodeWithTag(SYNC_NOW_TAG)
             .performScrollTo()
             .assertIsNotEnabled()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(CloudSyncEvent.GoogleDriveFolderSelectionClicked), events)
+        }
     }
 
     @Test

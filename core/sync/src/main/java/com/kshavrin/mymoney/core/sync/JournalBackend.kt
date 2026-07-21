@@ -7,6 +7,11 @@ data class RemoteJournalFile(
 )
 
 interface JournalBackend {
+    suspend fun isFolder(
+        accountEmail: String,
+        folderId: String,
+    ): Result<Boolean> = Result.success(true)
+
     suspend fun uploadJournal(
         folderId: String,
         deviceId: String,

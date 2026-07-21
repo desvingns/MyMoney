@@ -19,6 +19,11 @@ import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
 
+data class ApplyResult(
+    val appliedCount: Int,
+    val hadSkips: Boolean,
+)
+
 @Singleton
 class JournalApplier
     @Inject
@@ -30,12 +35,12 @@ class JournalApplier
         private val payloadCodec: OperationPayloadCodec,
         private val transactionRunner: TransactionRunner,
     ) {
-        suspend fun apply(remoteOps: List<Operation>) {
-            if (remoteOps.isEmpty()) return
-            transactionRunner.runInTransaction {
+        suspend fun apply(remoteOps: List<Operation>): ApplyResult {
+            if (remoteOps.isEmpty()) return ApplyResult(appliedCount = 0, hadSkips = false)
+            return transactionRunner.runInTransaction {
                 val known = operationDao.knownOpIds().toHashSet()
                 val fresh = remoteOps.filterNot { known.contains(it.opId) }.distinctBy { it.opId }
-                if (fresh.isEmpty()) return@runInTransaction
+                if (fresh.isEmpty()) return@runInTransaction ApplyResult(appliedCount = 0, hadSkips = false)
 
                 val byEntity = fresh.groupBy { it.entityUuid }
                 // Targets of transaction FKs must exist first: accounts and categories before transactions.
@@ -43,62 +48,78 @@ class JournalApplier
                 val categoryGroups = byEntity.filterValues { ops -> ops.first().entityKind == EntityKind.Category }
                 val transactionGroups = byEntity.filterValues { ops -> ops.first().entityKind == EntityKind.Transaction }
 
-                accountGroups.forEach { (uuid, ops) -> applyAccount(uuid, ops) }
-                categoryGroups.forEach { (uuid, ops) -> applyCategory(uuid, ops) }
-                transactionGroups.forEach { (uuid, ops) -> applyTransaction(uuid, ops) }
+                val appliedUuids = HashSet<String>()
+                accountGroups.forEach { (uuid, ops) -> if (applyAccount(uuid, ops)) appliedUuids.add(uuid) }
+                categoryGroups.forEach { (uuid, ops) -> if (applyCategory(uuid, ops)) appliedUuids.add(uuid) }
+                transactionGroups.forEach { (uuid, ops) -> if (applyTransaction(uuid, ops)) appliedUuids.add(uuid) }
 
-                operationDao.insertApplied(fresh.map { it.toAppliedEntity() })
+                val appliedOps = fresh.filter { appliedUuids.contains(it.entityUuid) }
+                operationDao.insertApplied(appliedOps.map { it.toAppliedEntity() })
+
+                ApplyResult(appliedCount = appliedOps.size, hadSkips = appliedOps.size < fresh.size)
             }
         }
 
         private suspend fun applyAccount(
             uuid: String,
             remoteOps: List<Operation>,
-        ) {
+        ): Boolean {
             val local = accountDao.findByUuid(uuid)
-            when (val result = OperationMerger.resolve(remoteOps + listOfNotNull(local?.toLocalOp()))) {
+            return when (val result = OperationMerger.resolve(remoteOps + listOfNotNull(local?.toLocalOp()))) {
                 is MergeResult.Resolved -> {
-                    val payload = result.op.payload ?: return
+                    val payload = result.op.payload ?: return false
                     val snapshot = payloadCodec.decodeAccount(payload)
                     accountDao.upsert(snapshot.toEntity(local?.id ?: 0L))
+                    true
                 }
-                is MergeResult.Tombstone -> accountDao.archiveByUuid(uuid)
-                MergeResult.None -> Unit
+                is MergeResult.Tombstone -> {
+                    accountDao.archiveByUuid(uuid)
+                    true
+                }
+                MergeResult.None -> true
             }
         }
 
         private suspend fun applyCategory(
             uuid: String,
             remoteOps: List<Operation>,
-        ) {
+        ): Boolean {
             val local = categoryDao.findByUuid(uuid)
-            when (val result = OperationMerger.resolve(remoteOps + listOfNotNull(local?.toLocalOp()))) {
+            return when (val result = OperationMerger.resolve(remoteOps + listOfNotNull(local?.toLocalOp()))) {
                 is MergeResult.Resolved -> {
-                    val payload = result.op.payload ?: return
+                    val payload = result.op.payload ?: return false
                     val snapshot = payloadCodec.decodeCategory(payload)
                     categoryDao.upsert(snapshot.toEntity(local?.id ?: 0L))
+                    true
                 }
-                is MergeResult.Tombstone -> categoryDao.archiveByUuid(uuid)
-                MergeResult.None -> Unit
+                is MergeResult.Tombstone -> {
+                    categoryDao.archiveByUuid(uuid)
+                    true
+                }
+                MergeResult.None -> true
             }
         }
 
         private suspend fun applyTransaction(
             uuid: String,
             remoteOps: List<Operation>,
-        ) {
+        ): Boolean {
             val local = transactionDao.findByUuid(uuid)
-            when (val result = OperationMerger.resolve(remoteOps + listOfNotNull(local?.toLocalOp()))) {
+            return when (val result = OperationMerger.resolve(remoteOps + listOfNotNull(local?.toLocalOp()))) {
                 is MergeResult.Resolved -> {
-                    val payload = result.op.payload ?: return
+                    val payload = result.op.payload ?: return false
                     val snapshot = payloadCodec.decodeTransaction(payload)
-                    val accountId = accountDao.findByUuid(snapshot.accountUuid)?.id ?: return
-                    val categoryId = snapshot.categoryUuid?.let { categoryDao.findByUuid(it)?.id ?: return }
-                    val toAccountId = snapshot.toAccountUuid?.let { accountDao.findByUuid(it)?.id ?: return }
+                    val accountId = accountDao.findByUuid(snapshot.accountUuid)?.id ?: return false
+                    val categoryId = snapshot.categoryUuid?.let { categoryDao.findByUuid(it)?.id ?: return false }
+                    val toAccountId = snapshot.toAccountUuid?.let { accountDao.findByUuid(it)?.id ?: return false }
                     transactionDao.upsert(snapshot.toEntity(local?.id ?: 0L, accountId, categoryId, toAccountId))
+                    true
                 }
-                is MergeResult.Tombstone -> transactionDao.softDeleteByUuid(uuid, remoteOps.maxOf { it.updatedAt }.toEpochMilli())
-                MergeResult.None -> Unit
+                is MergeResult.Tombstone -> {
+                    transactionDao.softDeleteByUuid(uuid, remoteOps.maxOf { it.updatedAt }.toEpochMilli())
+                    true
+                }
+                MergeResult.None -> true
             }
         }
 

@@ -14,6 +14,8 @@ import com.kshavrin.mymoney.core.sync.SyncSchedulerImpl
 import com.kshavrin.mymoney.core.sync.WorkScheduler
 import com.kshavrin.mymoney.core.sync.WorkSchedulerImpl
 import com.kshavrin.mymoney.core.sync.dropbox.DropboxRepository
+import com.kshavrin.mymoney.core.sync.gdrive.AuthorizationClientDriveAuthorizer
+import com.kshavrin.mymoney.core.sync.gdrive.GoogleDriveAuthorizer
 import com.kshavrin.mymoney.core.sync.gdrive.GoogleDriveJournalBackend
 import com.kshavrin.mymoney.core.sync.gdrive.GoogleDriveRepository
 import com.kshavrin.mymoney.core.sync.remoteconfig.RemoteConfigRepositoryImpl
@@ -58,6 +60,10 @@ abstract class SyncModule {
     @Binds
     @Singleton
     abstract fun bindJournalBackend(impl: GoogleDriveJournalBackend): JournalBackend
+
+    @Binds
+    @Singleton
+    abstract fun bindGoogleDriveAuthorizer(impl: AuthorizationClientDriveAuthorizer): GoogleDriveAuthorizer
 
     @Binds
     @Singleton

@@ -17,6 +17,9 @@ interface OperationDao {
     @Query("SELECT * FROM op_journal WHERE synced_to_remote = 0 AND applied_from_remote = 0 ORDER BY updated_at ASC")
     suspend fun unsyncedLocal(): List<OperationEntity>
 
+    @Query("SELECT * FROM op_journal WHERE applied_from_remote = 0 ORDER BY updated_at ASC")
+    suspend fun localOps(): List<OperationEntity>
+
     @Query("UPDATE op_journal SET synced_to_remote = 1 WHERE op_id IN (:opIds)")
     suspend fun markSynced(opIds: List<String>)
 

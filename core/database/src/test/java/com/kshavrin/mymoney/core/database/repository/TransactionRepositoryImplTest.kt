@@ -219,6 +219,8 @@ class TransactionRepositoryImplTest {
 
             override suspend fun unsyncedLocal(): List<OperationEntity> = emptyList()
 
+            override suspend fun localOps(): List<OperationEntity> = emptyList()
+
             override suspend fun markSynced(opIds: List<String>) = Unit
 
             override suspend fun knownOpIds(): List<String> = emptyList()

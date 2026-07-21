@@ -1,20 +1,17 @@
 package com.kshavrin.mymoney.core.sync.gdrive
 
-import android.content.Context
-import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
 import com.google.api.client.http.ByteArrayContent
+import com.google.api.client.http.HttpRequestInitializer
 import com.google.api.client.http.HttpResponseException
 import com.google.api.client.http.javanet.NetHttpTransport
 import com.google.api.client.json.gson.GsonFactory
 import com.google.api.services.drive.Drive
-import com.google.api.services.drive.DriveScopes
 import com.kshavrin.mymoney.core.common.di.IoDispatcher
 import com.kshavrin.mymoney.core.common.exception.SyncError
 import com.kshavrin.mymoney.core.common.exception.SyncException
 import com.kshavrin.mymoney.core.datastore.SecureStorage
 import com.kshavrin.mymoney.core.sync.JournalBackend
 import com.kshavrin.mymoney.core.sync.RemoteJournalFile
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -28,24 +25,36 @@ import com.google.api.services.drive.model.File as DriveFile
 class GoogleDriveJournalBackend
     @Inject
     constructor(
-        @ApplicationContext private val context: Context,
         private val secureStorage: SecureStorage,
+        private val authorizer: GoogleDriveAuthorizer,
         @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     ) : JournalBackend {
         private fun storedEmail(): String? =
             secureStorage.read().gdriveAccountEmail?.takeIf { it.isNotBlank() }
 
-        private fun client(): Drive {
-            val email = storedEmail() ?: throw SyncException(SyncError.Auth)
-            val credential =
-                GoogleAccountCredential
-                    .usingOAuth2(context, listOf(DriveScopes.DRIVE_FILE))
-                    .setSelectedAccountName(email)
+        private suspend fun client(accountEmail: String? = null): Drive {
+            val email = accountEmail?.takeIf { it.isNotBlank() } ?: storedEmail() ?: throw SyncException(SyncError.Auth)
+            val token = authorizer.accessToken(email).getOrThrow()
+            val requestInitializer = HttpRequestInitializer { request -> request.headers.authorization = "Bearer $token" }
             return Drive
-                .Builder(NetHttpTransport(), GsonFactory.getDefaultInstance(), credential)
+                .Builder(NetHttpTransport(), GsonFactory.getDefaultInstance(), requestInitializer)
                 .setApplicationName(APPLICATION_NAME)
                 .build()
         }
+
+        override suspend fun isFolder(
+            accountEmail: String,
+            folderId: String,
+        ): Result<Boolean> =
+            runOnIo {
+                client(accountEmail)
+                    .files()
+                    .get(folderId)
+                    .setFields("mimeType")
+                    .setSupportsAllDrives(true)
+                    .execute()
+                    .mimeType == FOLDER_MIME_TYPE
+            }
 
         override suspend fun uploadJournal(
             folderId: String,
@@ -61,6 +70,7 @@ class GoogleDriveJournalBackend
                     files
                         .update(existingId, DriveFile(), content)
                         .setFields("id")
+                        .setSupportsAllDrives(true)
                         .execute()
                 } else {
                     val metadata =
@@ -71,6 +81,7 @@ class GoogleDriveJournalBackend
                     files
                         .create(metadata, content)
                         .setFields("id")
+                        .setSupportsAllDrives(true)
                         .execute()
                 }
                 Unit
@@ -85,9 +96,11 @@ class GoogleDriveJournalBackend
                     val page =
                         files
                             .list()
-                            .setQ("'$folderId' in parents and trashed = false and name contains '$JOURNAL_PREFIX'")
+                            .setQ(peerJournalsQuery(folderId))
                             .setFields("nextPageToken, files(id, name, modifiedTime)")
                             .setPageToken(pageToken)
+                            .setIncludeItemsFromAllDrives(true)
+                            .setSupportsAllDrives(true)
                             .execute()
                     page.files?.forEach { file ->
                         val deviceId = deviceIdFromName(file.name) ?: return@forEach
@@ -106,7 +119,7 @@ class GoogleDriveJournalBackend
         override suspend fun downloadJournal(fileId: String): Result<ByteArray> =
             runOnIo {
                 ByteArrayOutputStream().use { output ->
-                    client().files().get(fileId).executeMediaAndDownloadTo(output)
+                    client().files().get(fileId).setSupportsAllDrives(true).executeMediaAndDownloadTo(output)
                     output.toByteArray()
                 }
             }
@@ -119,8 +132,10 @@ class GoogleDriveJournalBackend
             val page =
                 files
                     .list()
-                    .setQ("'$folderId' in parents and trashed = false and name = '$fileName'")
+                    .setQ(ownFileQuery(folderId, fileName))
                     .setFields("files(id)")
+                    .setIncludeItemsFromAllDrives(true)
+                    .setSupportsAllDrives(true)
                     .execute()
             return page.files?.firstOrNull()?.id
         }
@@ -134,7 +149,15 @@ class GoogleDriveJournalBackend
 
         private fun journalFileName(deviceId: String): String = "$JOURNAL_PREFIX$deviceId$JOURNAL_SUFFIX"
 
-        private suspend fun <T> runOnIo(block: () -> T): Result<T> =
+        internal fun peerJournalsQuery(folderId: String): String =
+            "'$folderId' in parents and trashed = false and name contains '$JOURNAL_PREFIX'"
+
+        internal fun ownFileQuery(
+            folderId: String,
+            fileName: String,
+        ): String = "'$folderId' in parents and trashed = false and name = '$fileName'"
+
+        private suspend fun <T> runOnIo(block: suspend () -> T): Result<T> =
             withContext(ioDispatcher) {
                 var lastError: Throwable
                 var attempt = 0
@@ -180,6 +203,7 @@ class GoogleDriveJournalBackend
             const val JOURNAL_MIME_TYPE = "application/x-ndjson"
             const val JOURNAL_PREFIX = "ops-"
             const val JOURNAL_SUFFIX = ".jsonl"
+            const val FOLDER_MIME_TYPE = "application/vnd.google-apps.folder"
             const val MAX_RETRIES = 3
             const val BASE_BACKOFF_MILLIS = 1_000L
         }

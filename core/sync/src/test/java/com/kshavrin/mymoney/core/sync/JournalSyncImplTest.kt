@@ -1,6 +1,7 @@
 package com.kshavrin.mymoney.core.sync
 
 import com.kshavrin.mymoney.core.common.exception.SyncError
+import com.kshavrin.mymoney.core.common.exception.SyncException
 import com.kshavrin.mymoney.core.database.dao.AccountDao
 import com.kshavrin.mymoney.core.database.dao.CategoryDao
 import com.kshavrin.mymoney.core.database.dao.OperationDao
@@ -30,6 +31,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -42,6 +44,7 @@ class JournalSyncImplTest {
     private val dispatcher = UnconfinedTestDispatcher()
     private val clock: Clock = Clock.fixed(Instant.ofEpochMilli(1_700_000_000_000L), ZoneOffset.UTC)
     private val deviceId = "device-local"
+    private val codec = OperationPayloadCodec()
 
     private lateinit var backend: FakeJournalBackend
     private lateinit var operationDao: FakeOperationDao
@@ -157,14 +160,16 @@ class JournalSyncImplTest {
         }
 
     @Test
-    fun `push does not mark ops synced when upload fails`() =
+    fun `push propagates upload failure and does not mark ops synced`() =
         runTest {
             configStore.setFolderId("folder-1")
             operationDao.seed(listOf(localOp(opId = "op-fail")))
             backend.simulateUploadFailure(SyncError.Network)
 
-            journalSync.push()
+            val failure = runCatching { journalSync.push() }.exceptionOrNull()
 
+            assertTrue("upload failure must propagate to the caller", failure is SyncException)
+            assertEquals(SyncError.Network, (failure as SyncException).syncError)
             assertTrue("op must remain unsynced after upload failure", operationDao.syncedIds.isEmpty())
         }
 
@@ -319,16 +324,38 @@ class JournalSyncImplTest {
         }
 
     @Test
-    fun `pull survives list error and does not throw`() =
+    fun `pull propagates list error and does not apply journals`() =
         runTest {
             configStore.setFolderId("folder-1")
             backend.simulateListFailure(SyncError.Network)
 
             val callsBefore = applierOperationDao.insertAppliedCalls
 
-            journalSync.pull()
+            val failure = runCatching { journalSync.pull() }.exceptionOrNull()
 
+            assertTrue("list failure must propagate to the caller", failure is SyncException)
+            assertEquals(SyncError.Network, (failure as SyncException).syncError)
             assertEquals("applier must not be called on list failure", callsBefore, applierOperationDao.insertAppliedCalls)
+        }
+
+    @Test
+    fun `pull propagates download error without advancing the peer high water mark`() =
+        runTest {
+            configStore.setFolderId("folder-1")
+            val peerDeviceId = "device-download-failure"
+            backend.uploadJournal(
+                folderId = "folder-1",
+                deviceId = peerDeviceId,
+                bytes = buildPeerJournal(peerDeviceId = peerDeviceId, opId = "download-failure-op"),
+            )
+            val peerFile = backend.listPeerJournals("folder-1").getOrThrow().single()
+            backend.simulateDownloadFailure(SyncError.Network)
+
+            val failure = runCatching { journalSync.pull() }.exceptionOrNull()
+
+            assertTrue("download failure must propagate to the caller", failure is SyncException)
+            assertEquals(SyncError.Network, (failure as SyncException).syncError)
+            assertEquals(0L, configStore.peerHighWaterMs(peerFile.fileId))
         }
 
     @Test
@@ -353,6 +380,200 @@ class JournalSyncImplTest {
                 "only the first peer must be applied; folderId cleared mid-loop stops the second",
                 callsBefore + 1,
                 applierOperationDao.insertAppliedCalls,
+            )
+        }
+
+    // ─── push: cumulative journal (FIX 1) ────────────────────────────────────
+
+    @Test
+    fun `push uploads full cumulative local journal including previously-synced ops`() =
+        runTest {
+            // op-history was pushed in a prior session: syncedToRemote=true.
+            // op-new is fresh and has not been pushed yet.
+            configStore.setFolderId("folder-1")
+            operationDao.seed(
+                listOf(
+                    localOp(opId = "op-history", updatedAt = 1_000L, syncedToRemote = true),
+                    localOp(opId = "op-new", updatedAt = 2_000L, syncedToRemote = false),
+                ),
+            )
+
+            journalSync.push()
+
+            assertEquals("exactly one upload call expected", 1, backend.uploadCalls.size)
+            val uploadedOps = JournalSerializer().decode(backend.uploadCalls.single().bytes)
+            val uploadedIds = uploadedOps.map { it.opId }.toSet()
+            assertTrue(
+                "upload must contain the previously-synced op (cumulative journal, not delta)",
+                uploadedIds.contains("op-history"),
+            )
+            assertTrue(
+                "upload must contain the new unsynced op",
+                uploadedIds.contains("op-new"),
+            )
+            assertEquals("uploaded journal must carry exactly the two local ops", 2, uploadedOps.size)
+            // markSynced only targets the unsynced guard list — not the already-synced op
+            assertTrue("op-new must be marked synced", operationDao.syncedIds.contains("op-new"))
+            assertFalse("op-history must not be re-marked synced", operationDao.syncedIds.contains("op-history"))
+        }
+
+    @Test
+    fun `push is no-op when unsyncedLocal is empty even if localOps has previously-synced ops`() =
+        runTest {
+            configStore.setFolderId("folder-1")
+            // Only a previously-synced op: unsyncedLocal() returns empty → guard triggers early return.
+            operationDao.seed(
+                listOf(
+                    localOp(opId = "op-already-synced", syncedToRemote = true),
+                ),
+            )
+
+            journalSync.push()
+
+            assertTrue(
+                "no upload must occur when unsyncedLocal is empty, even if localOps is non-empty",
+                backend.uploadCalls.isEmpty(),
+            )
+            assertTrue("markSynced must not be called", operationDao.syncedIds.isEmpty())
+        }
+
+    // ─── pull: conditional high-water (FIX 2) ─────────────────────────────────
+
+    @Test
+    fun `pull does not advance high water when applier reports hadSkips for an unresolved op`() =
+        runTest {
+            configStore.setFolderId("folder-1")
+            val peerDeviceId = "device-peer-skips"
+            // Null payload forces applyAccount to return false → hadSkips=true → high-water stays.
+            val peerBytes = buildNullPayloadPeerJournal(peerDeviceId = peerDeviceId, opId = "skip-op")
+            backend.uploadJournal(folderId = "folder-1", deviceId = peerDeviceId, bytes = peerBytes)
+
+            val peerFile =
+                backend
+                    .listPeerJournals("folder-1")
+                    .getOrThrow()
+                    .single { it.deviceId == peerDeviceId }
+
+            journalSync.pull()
+
+            assertEquals(
+                "high-water must NOT advance when hadSkips=true (peer file must be re-pulled on next sync)",
+                0L,
+                configStore.peerHighWaterMs(peerFile.fileId),
+            )
+        }
+
+    @Test
+    fun `pull does not advance high water on transaction FK miss and advances after cumulative journal resolves the dependency`() =
+        runTest {
+            // ── Phase 1: peer journal contains ONLY a Transaction op whose account UUID is not
+            //   present in the local DB.  The applier returns hadSkips=true → high water stays 0.
+            val fkMissFolderId = "folder-fk-miss"
+            val fkConvergeFolderId = "folder-fk-convergence"
+            val peerDeviceId = "device-peer-fk"
+            val missingAccountUuid = "acc-fk-miss"
+            val txEntityUuid = "tx-fk-miss"
+
+            configStore.setFolderId(fkMissFolderId)
+
+            val txOnlyBytes =
+                buildTxOnlyPeerJournal(
+                    peerDeviceId = peerDeviceId,
+                    txOpId = "tx-op-fk-miss",
+                    txEntityUuid = txEntityUuid,
+                    referencedAccountUuid = missingAccountUuid,
+                )
+            backend.uploadJournal(
+                folderId = fkMissFolderId,
+                deviceId = peerDeviceId,
+                bytes = txOnlyBytes,
+            )
+            val fkMissPeerFile =
+                backend
+                    .listPeerJournals(fkMissFolderId)
+                    .getOrThrow()
+                    .single { it.deviceId == peerDeviceId }
+
+            journalSync.pull()
+
+            assertEquals(
+                "high water must NOT advance when applyTransaction returns false due to missing account FK",
+                0L,
+                configStore.peerHighWaterMs(fkMissPeerFile.fileId),
+            )
+
+            // ── Phase 2 (convergence): fresh JournalSyncImpl wired with StoringAccountDao so that
+            //   applyAccount deposits the account and the follow-on applyTransaction can resolve it
+            //   within the same apply() call — hadSkips=false → high water advances.
+            val storingAccountDao = StoringAccountDao()
+            val localCodec = OperationPayloadCodec()
+            val localNoOpRunner =
+                object : TransactionRunner {
+                    override suspend fun <T> runInTransaction(block: suspend () -> T): T = block()
+                }
+            val convergenceApplierOpDao = ApplierRecordingOperationDao()
+            val convergenceApplier =
+                JournalApplier(
+                    transactionDao = NoOpTransactionDao(),
+                    categoryDao = NoOpCategoryDao(),
+                    accountDao = storingAccountDao,
+                    operationDao = convergenceApplierOpDao,
+                    payloadCodec = localCodec,
+                    transactionRunner = localNoOpRunner,
+                )
+            val backend2 = FakeJournalBackend(ownDeviceId = deviceId)
+            val configStore2 = FakeJournalSyncConfigStore()
+            configStore2.setFolderId(fkConvergeFolderId)
+            val convergenceBootstrapOpDao = BootstrapRecordingOperationDao()
+            val convergenceSync =
+                JournalSyncImpl(
+                    operationDao = FakeOperationDao().also { it.seed(emptyList()) },
+                    serializer = JournalSerializer(),
+                    backend = backend2,
+                    applier = convergenceApplier,
+                    bootstrap =
+                        JournalBootstrap(
+                            accountDao = storingAccountDao,
+                            categoryDao = NoOpCategoryDao(),
+                            transactionDao = NoOpTransactionDao(),
+                            operationDao = convergenceBootstrapOpDao,
+                            payloadCodec = localCodec,
+                            deviceIdProvider = FakeDeviceIdProvider(deviceId),
+                            transactionRunner = localNoOpRunner,
+                            configStore = configStore2,
+                        ),
+                    configStore = configStore2,
+                    deviceIdProvider = FakeDeviceIdProvider(deviceId),
+                    appSettings = FakeAppSettingsRepository(),
+                    clock = clock,
+                    ioDispatcher = dispatcher,
+                )
+
+            val cumulativeBytes =
+                buildCumulativePeerJournal(
+                    peerDeviceId = peerDeviceId,
+                    accountOpId = "acc-op-fk-cumulative",
+                    accountEntityUuid = missingAccountUuid,
+                    txOpId = "tx-op-fk-cumulative",
+                    txEntityUuid = txEntityUuid,
+                    referencedAccountUuid = missingAccountUuid,
+                )
+            backend2.uploadJournal(
+                folderId = fkConvergeFolderId,
+                deviceId = peerDeviceId,
+                bytes = cumulativeBytes,
+            )
+            val convergencePeerFile =
+                backend2
+                    .listPeerJournals(fkConvergeFolderId)
+                    .getOrThrow()
+                    .single { it.deviceId == peerDeviceId }
+
+            convergenceSync.pull()
+
+            assertTrue(
+                "high water must advance after cumulative journal resolves the account FK dependency",
+                configStore2.peerHighWaterMs(convergencePeerFile.fileId) >= convergencePeerFile.modifiedAtEpochMs,
             )
         }
 
@@ -391,6 +612,7 @@ class JournalSyncImplTest {
         opId: String,
         entityUuid: String = "entity-uuid",
         updatedAt: Long = 1_000L,
+        syncedToRemote: Boolean = false,
     ) = OperationEntity(
         opId = opId,
         deviceId = deviceId,
@@ -399,11 +621,58 @@ class JournalSyncImplTest {
         opType = OpType.Upsert.name,
         payload = null,
         updatedAt = updatedAt,
-        syncedToRemote = false,
+        syncedToRemote = syncedToRemote,
         appliedFromRemote = false,
     )
 
+    /**
+     * Builds a serialised peer journal containing a single Account Upsert with a VALID payload.
+     * With a valid payload, [JournalApplier.applyAccount] returns true (no skip), so
+     * [ApplyResult.hadSkips] is false and [JournalSyncImpl.pull] correctly advances the
+     * peer high-water mark — the intended behaviour for a clean remote file.
+     */
     private fun buildPeerJournal(
+        peerDeviceId: String,
+        opId: String,
+    ): ByteArray {
+        val entityUuid = "peer-entity-uuid-${opId.hashCode()}"
+        val payload =
+            codec.encodeAccount(
+                AccountEntity(
+                    uuid = entityUuid,
+                    deviceId = peerDeviceId,
+                    name = "Peer Account",
+                    currencyId = 1L,
+                    initialBalance = 0.0,
+                    type = "cash",
+                    colorHex = "#FFFFFF",
+                    iconKey = "ic_account_cash",
+                    isDefault = false,
+                    sortOrder = 1,
+                    createdAt = 1_000L,
+                    updatedAt = 1_000L,
+                    isArchived = false,
+                ),
+            )
+        val op =
+            Operation(
+                opId = opId,
+                deviceId = peerDeviceId,
+                entityKind = EntityKind.Account,
+                entityUuid = entityUuid,
+                opType = OpType.Upsert,
+                payload = payload,
+                updatedAt = Instant.ofEpochMilli(1_000L),
+            )
+        return JournalSerializer().encode(listOf(op))
+    }
+
+    /**
+     * Builds a peer journal with a null-payload Account Upsert op. The applier's [applyAccount]
+     * hits the `payload ?: return false` guard → returns false → [ApplyResult.hadSkips] = true.
+     * Used to verify that pull does NOT advance the high-water mark when the applier skips ops.
+     */
+    private fun buildNullPayloadPeerJournal(
         peerDeviceId: String,
         opId: String,
     ): ByteArray {
@@ -420,14 +689,146 @@ class JournalSyncImplTest {
         return JournalSerializer().encode(listOf(op))
     }
 
+    /**
+     * Builds a serialised peer journal containing ONLY a Transaction Upsert that references
+     * [referencedAccountUuid]. Because no Account Upsert is included, [JournalApplier.applyTransaction]
+     * will call [AccountDao.findByUuid] and get null → return false → [ApplyResult.hadSkips] = true.
+     */
+    private fun buildTxOnlyPeerJournal(
+        peerDeviceId: String,
+        txOpId: String,
+        txEntityUuid: String,
+        referencedAccountUuid: String,
+    ): ByteArray {
+        val txPayload =
+            codec.encodeTransaction(
+                entity =
+                    TransactionEntity(
+                        uuid = txEntityUuid,
+                        deviceId = peerDeviceId,
+                        kind = "expense",
+                        amount = 5.0,
+                        currencyId = 1L,
+                        accountId = 0L,
+                        categoryId = null,
+                        note = null,
+                        occurredAt = 1_000L,
+                        createdAt = 1_000L,
+                        updatedAt = 1_000L,
+                        isDeleted = false,
+                        toAccountId = null,
+                        toAmount = null,
+                        exchangeRate = null,
+                    ),
+                accountUuid = referencedAccountUuid,
+                categoryUuid = null,
+                toAccountUuid = null,
+            )
+        val op =
+            Operation(
+                opId = txOpId,
+                deviceId = peerDeviceId,
+                entityKind = EntityKind.Transaction,
+                entityUuid = txEntityUuid,
+                opType = OpType.Upsert,
+                payload = txPayload,
+                updatedAt = Instant.ofEpochMilli(1_000L),
+            )
+        return JournalSerializer().encode(listOf(op))
+    }
+
+    /**
+     * Builds a serialised peer journal containing an Account Upsert followed by a Transaction Upsert
+     * that references the same account UUID.  The applier processes the account first, deposits it
+     * via [AccountDao.upsert], and the transaction op then resolves its FK — [ApplyResult.hadSkips]
+     * is false and the peer high-water mark advances.
+     */
+    private fun buildCumulativePeerJournal(
+        peerDeviceId: String,
+        accountOpId: String,
+        accountEntityUuid: String,
+        txOpId: String,
+        txEntityUuid: String,
+        referencedAccountUuid: String,
+    ): ByteArray {
+        val accountPayload =
+            codec.encodeAccount(
+                AccountEntity(
+                    uuid = accountEntityUuid,
+                    deviceId = peerDeviceId,
+                    name = "Peer Account Resolved",
+                    currencyId = 1L,
+                    initialBalance = 0.0,
+                    type = "cash",
+                    colorHex = "#FFFFFF",
+                    iconKey = "ic_account_cash",
+                    isDefault = false,
+                    sortOrder = 1,
+                    createdAt = 900L,
+                    updatedAt = 900L,
+                    isArchived = false,
+                ),
+            )
+        val txPayload =
+            codec.encodeTransaction(
+                entity =
+                    TransactionEntity(
+                        uuid = txEntityUuid,
+                        deviceId = peerDeviceId,
+                        kind = "expense",
+                        amount = 5.0,
+                        currencyId = 1L,
+                        accountId = 0L,
+                        categoryId = null,
+                        note = null,
+                        occurredAt = 1_000L,
+                        createdAt = 1_000L,
+                        updatedAt = 1_000L,
+                        isDeleted = false,
+                        toAccountId = null,
+                        toAmount = null,
+                        exchangeRate = null,
+                    ),
+                accountUuid = referencedAccountUuid,
+                categoryUuid = null,
+                toAccountUuid = null,
+            )
+        val ops =
+            listOf(
+                Operation(
+                    opId = accountOpId,
+                    deviceId = peerDeviceId,
+                    entityKind = EntityKind.Account,
+                    entityUuid = accountEntityUuid,
+                    opType = OpType.Upsert,
+                    payload = accountPayload,
+                    updatedAt = Instant.ofEpochMilli(900L),
+                ),
+                Operation(
+                    opId = txOpId,
+                    deviceId = peerDeviceId,
+                    entityKind = EntityKind.Transaction,
+                    entityUuid = txEntityUuid,
+                    opType = OpType.Upsert,
+                    payload = txPayload,
+                    updatedAt = Instant.ofEpochMilli(1_000L),
+                ),
+            )
+        return JournalSerializer().encode(ops)
+    }
+
     // ─── inner fakes ──────────────────────────────────────────────────────────
 
     private inner class FakeOperationDao : OperationDao {
-        private var unsynced: List<OperationEntity> = emptyList()
+        // Stores all local ops (including already-synced ones).  markSynced mutates the flag
+        // in-place; unsyncedLocal() filters the live list so the invariant is always maintained
+        // without a separate "unsynced" variable.
+        private val allOps: MutableList<OperationEntity> = mutableListOf()
         val syncedIds: MutableList<String> = mutableListOf()
 
         fun seed(ops: List<OperationEntity>) {
-            unsynced = ops
+            allOps.clear()
+            allOps.addAll(ops)
         }
 
         override suspend fun insert(op: OperationEntity) = Unit
@@ -436,11 +837,18 @@ class JournalSyncImplTest {
 
         override suspend fun insertApplied(ops: List<OperationEntity>) = Unit
 
-        override suspend fun unsyncedLocal(): List<OperationEntity> = unsynced
+        override suspend fun unsyncedLocal(): List<OperationEntity> =
+            allOps.filter { !it.syncedToRemote && !it.appliedFromRemote }
+
+        override suspend fun localOps(): List<OperationEntity> =
+            allOps.filter { !it.appliedFromRemote }.sortedBy { it.updatedAt }
 
         override suspend fun markSynced(opIds: List<String>) {
             syncedIds += opIds
-            unsynced = unsynced.filterNot { it.opId in opIds }
+            val idsSet = opIds.toHashSet()
+            val updated = allOps.map { if (it.opId in idsSet) it.copy(syncedToRemote = true) else it }
+            allOps.clear()
+            allOps.addAll(updated)
         }
 
         override suspend fun knownOpIds(): List<String> = emptyList()
@@ -452,7 +860,7 @@ class JournalSyncImplTest {
         override suspend fun opsForEntity(entityUuid: String): List<OperationEntity> = emptyList()
 
         override suspend fun deleteAll() {
-            unsynced = emptyList()
+            allOps.clear()
             syncedIds.clear()
         }
     }
@@ -525,6 +933,8 @@ class JournalSyncImplTest {
 
         override suspend fun unsyncedLocal(): List<OperationEntity> = emptyList()
 
+        override suspend fun localOps(): List<OperationEntity> = emptyList()
+
         override suspend fun markSynced(opIds: List<String>) = Unit
 
         override suspend fun knownOpIds(): List<String> = emptyList()
@@ -550,6 +960,8 @@ class JournalSyncImplTest {
         override suspend fun insertApplied(ops: List<OperationEntity>) = Unit
 
         override suspend fun unsyncedLocal(): List<OperationEntity> = emptyList()
+
+        override suspend fun localOps(): List<OperationEntity> = emptyList()
 
         override suspend fun markSynced(opIds: List<String>) = Unit
 
@@ -589,6 +1001,50 @@ private class NoOpAccountDao : AccountDao() {
     override suspend fun computeBalance(id: Long): Double = 0.0
 
     override suspend fun upsert(account: AccountEntity): Long = account.id
+
+    override suspend fun archive(id: Long) = Unit
+
+    override suspend fun countByCurrency(id: Long): Int = 0
+
+    override suspend fun deleteAll() = Unit
+
+    override suspend fun clearDefaults() = Unit
+
+    override suspend fun markDefault(id: Long) = Unit
+}
+
+/**
+ * AccountDao stub that actually stores accounts by UUID — required for the convergence half of the
+ * FK-miss integration test where [JournalApplier.applyAccount] must deposit an account so that a
+ * subsequent [JournalApplier.applyTransaction] can resolve its FK within the same [apply] call.
+ */
+private class StoringAccountDao : AccountDao() {
+    private val store = mutableMapOf<String, AccountEntity>()
+    private var nextId = 1L
+
+    override fun observeActive(): Flow<List<AccountEntity>> = flowOf(emptyList())
+
+    override suspend fun findById(id: Long): AccountEntity? = store.values.firstOrNull { it.id == id }
+
+    override suspend fun findByUuid(uuid: String): AccountEntity? = store[uuid]
+
+    override suspend fun listAll(): List<AccountEntity> = store.values.toList()
+
+    override suspend fun stampMissingDeviceId(deviceId: String) = Unit
+
+    override suspend fun archiveByUuid(uuid: String) = Unit
+
+    override suspend fun findDefault(): AccountEntity? = null
+
+    override suspend fun listDefaults(): List<AccountEntity> = emptyList()
+
+    override suspend fun computeBalance(id: Long): Double = 0.0
+
+    override suspend fun upsert(account: AccountEntity): Long {
+        val id = if (account.id == 0L) nextId++ else account.id
+        store[account.uuid] = account.copy(id = id)
+        return id
+    }
 
     override suspend fun archive(id: Long) = Unit
 

@@ -32,6 +32,7 @@ playServicesAuth = "21.2.0"
 firebaseBom = "33.5.1"
 sentryAndroid = "7.18.0"
 junit = "4.13.2"
+kotest = "5.9.1"
 androidxTestJunit = "1.2.1"
 androidxTestRunner = "1.6.2"
 androidxTestEspressoCore = "3.6.1"
@@ -121,6 +122,7 @@ sentry-android-core = { group = "io.sentry", name = "sentry-android-core", versi
 sentry-core = { group = "io.sentry", name = "sentry", version.ref = "sentryAndroid" }
 
 junit = { group = "junit", name = "junit", version.ref = "junit" }
+kotest-property = { group = "io.kotest", name = "kotest-property", version.ref = "kotest" }
 androidx-test-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxTestJunit" }
 androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "androidxTestRunner" }
 androidx-test-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "androidxTestEspressoCore" }

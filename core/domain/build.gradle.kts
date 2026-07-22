@@ -16,6 +16,7 @@ dependencies {
     implementation(project(":core:common"))
 
     testImplementation(libs.junit)
+    testImplementation(libs.kotest.property)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.turbine)
 }

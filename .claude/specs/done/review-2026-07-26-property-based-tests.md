@@ -1,7 +1,7 @@
 # Property-based tests for pure deterministic logic
 Epic: review-2026-07
 Order: 26 of 35
-Status: draft
+Status: done
 Depends-on: —
 Date: 2026-07-06
 
@@ -20,5 +20,5 @@ Deterministic merge/trend/rotation logic is exactly where property tests find th
 cases example tests never enumerate. Source: review item 13 (P3/M).
 
 ## Implementation links
-- commit: (pending)
-- files: (pending)
+- commit: `21d9ac19`, `efcdc029`, `be8897d9`, `0f697d18`
+- files: `core/domain/build.gradle.kts`, `gradle/libs.versions.toml`, `core/domain/src/test/kotlin/com/kshavrin/mymoney/core/domain/property/PropertyTestSupport.kt`, `core/domain/src/test/kotlin/com/kshavrin/mymoney/core/domain/repository/BackupRotationPropertyTest.kt`, `core/domain/src/test/kotlin/com/kshavrin/mymoney/core/domain/sync/OperationMergerPropertyTest.kt`, `core/domain/src/test/kotlin/com/kshavrin/mymoney/core/domain/usecase/BalanceTrendCalculatorPropertyTest.kt`

@@ -10,6 +10,15 @@
 
 > Last three session entries are repeated here for fast startup. Full history is archived below.
 
+- **2026-07-22 (Codex MP `--feature --next`, property-based tests):** Completed SPEC
+  `review-2026-07-26-property-based-tests` in commits `21d9ac19`, `efcdc029`, `be8897d9`,
+  and `0f697d18`. Added Kotest property coverage for operation merge ordering/tombstones,
+  balance-trend series invariants, and backup rotation monotonicity, with fixed seeds and
+  seed-on-failure reporting. `:core:domain:test` passed 398/0/0/0; feature-owned ktlint is
+  clean. One pre-existing `FactoryResetUseCaseTest.kt` ktlint violation remains in the module
+  baseline. Formal runner/verifier subagents were unavailable after the session usage limit;
+  local ownership/static checks passed. No push performed.
+
 - **2026-07-22 (Codex MP `--feature --next`, two-device journal merge E2E):** Completed SPEC
   `review-2026-07-25-two-device-merge-e2e` in commits `27fd43c5` and `1bb19fcf`. Added a
   deterministic Robolectric integration scenario with two in-memory Room databases, fixed device
@@ -30,8 +39,6 @@
   AGP selected every healthy emulator; no remote journal was deleted, both local datasets were
   restored from Dropbox and verified, and `run_connected_test_on_host_avd.ps1` now refuses runs
   while non-gate devices are attached. No commit or push was made.
-
-- **2026-07-16 (Codex MP `--feature --next`, type-safe navigation):** Completed SPEC `review-2026-07-19-type-safe-navigation`. Replaced string routes and `NavType` parsing with 29 `@Serializable` route types in `:core:ui`; `MyMoneyNavHost` uses typed `composable`/`navigate`/`popUpTo`, while all eight argument-owning ViewModels decode their shared route with `SavedStateHandle.toRoute<T>()`. Added `TypedNavigationDeviceTest`. Verification: deterministic reviewer, semantic review, independent critic, and full verifier passed; app JUnit XML 62/0/0/0 and targeted device XML 1/0/0/0 on local Pixel 5 / API 34. The generic JVM runner's no-summary/JaCoCo false negative was cleared by XML. Commits: `f7956d4c`, `b8ca1ab4`, `3dde2778`, `58d2b1fb`, `3b35a36a`, `59ebf5a`, `49c3b368`. Push is pending because noninteractive Git credentials are unavailable.
 
 ## Historical session log archives
 

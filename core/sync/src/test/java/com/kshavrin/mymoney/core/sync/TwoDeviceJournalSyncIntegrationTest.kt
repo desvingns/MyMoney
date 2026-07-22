@@ -88,10 +88,10 @@ class TwoDeviceJournalSyncIntegrationTest {
                     opId = "op-b-category-rename",
                 )
 
-                deviceA.sync.syncNow()
-                deviceB.sync.syncNow()
-                deviceA.sync.syncNow()
-                deviceB.sync.syncNow()
+                deviceA.sync.push()
+                deviceB.sync.pull()
+                deviceB.sync.push()
+                deviceA.sync.pull()
 
                 val stateA = deviceA.fullState()
                 val stateB = deviceB.fullState()
@@ -99,9 +99,17 @@ class TwoDeviceJournalSyncIntegrationTest {
                 assertEquals(stateA, stateB)
                 assertEquals("edited by device B", stateA.transactions.single { it.uuid == TRANSACTION_TIE_UUID }.note)
                 assertEquals(42.0, stateA.transactions.single { it.uuid == TRANSACTION_TIE_UUID }.amount, 0.0)
-                assertTrue(stateA.transactions.single { it.uuid == TRANSACTION_DELETE_UUID }.isDeleted)
-                assertEquals(T_DELETE, stateA.transactions.single { it.uuid == TRANSACTION_DELETE_UUID }.updatedAt)
+                assertTrue(stateA.deletedTransactions.any { it.uuid == TRANSACTION_DELETE_UUID })
+                assertEquals(T_DELETE, stateA.deletedTransactions.single { it.uuid == TRANSACTION_DELETE_UUID }.updatedAt)
                 assertEquals("Groceries B", stateA.categories.single { it.uuid == CATEGORY_UUID }.name)
+                assertEquals(
+                    folder.revisionFor(DEVICE_B),
+                    deviceA.configStore.peerHighWaterMs("$FILE_PREFIX$DEVICE_B"),
+                )
+                assertEquals(
+                    folder.revisionFor(DEVICE_A),
+                    deviceB.configStore.peerHighWaterMs("$FILE_PREFIX$DEVICE_A"),
+                )
             } finally {
                 deviceA.close()
                 deviceB.close()
@@ -159,7 +167,7 @@ class TwoDeviceJournalSyncIntegrationTest {
                 ioDispatcher = UnconfinedTestDispatcher(),
             )
 
-        return TestDevice(deviceId, database, payloadCodec, sync)
+        return TestDevice(deviceId, database, payloadCodec, configStore, sync)
     }
 
     private suspend fun TestDevice.seedBaseline() {
@@ -374,6 +382,9 @@ class TwoDeviceJournalSyncIntegrationTest {
         val accountsById = accounts.associateBy(AccountEntity::id)
         val categoriesById = categories.associateBy(CategoryEntity::id)
 
+        val liveTransactions = transactions.filterNot(TransactionEntity::isDeleted)
+        val deletedTransactions = transactions.filter(TransactionEntity::isDeleted)
+
         return FullEntityState(
             currencies =
                 currencies.map {
@@ -415,7 +426,7 @@ class TwoDeviceJournalSyncIntegrationTest {
                     )
                 },
             transactions =
-                transactions.map {
+                liveTransactions.map {
                     TransactionState(
                         uuid = it.uuid,
                         deviceId = it.deviceId,
@@ -428,11 +439,14 @@ class TwoDeviceJournalSyncIntegrationTest {
                         occurredAt = it.occurredAt,
                         createdAt = it.createdAt,
                         updatedAt = it.updatedAt,
-                        isDeleted = it.isDeleted,
                         toAccountUuid = it.toAccountId?.let(accountsById::get)?.uuid,
                         toAmount = it.toAmount?.let(::decimal),
                         exchangeRate = it.exchangeRate,
                     )
+                },
+            deletedTransactions =
+                deletedTransactions.map {
+                    DeletedTransactionState(it.uuid, it.updatedAt)
                 },
         )
     }
@@ -470,6 +484,7 @@ class TwoDeviceJournalSyncIntegrationTest {
         val deviceId: String,
         val database: MoneyDatabase,
         val payloadCodec: OperationPayloadCodec,
+        val configStore: InMemoryJournalSyncConfigStore,
         val sync: JournalSync,
     ) : AutoCloseable {
         override fun close() {
@@ -545,6 +560,8 @@ class TwoDeviceJournalSyncIntegrationTest {
         fun download(fileId: String): ByteArray? =
             files[fileId.removePrefix(FILE_PREFIX)]?.bytes?.copyOf()
 
+        fun revisionFor(deviceId: String): Long = requireNotNull(files[deviceId]).revision
+
         private fun fileId(deviceId: String): String = "$FILE_PREFIX$deviceId"
 
         private data class StoredJournal(
@@ -578,6 +595,7 @@ class TwoDeviceJournalSyncIntegrationTest {
         val accounts: List<AccountState>,
         val categories: List<CategoryState>,
         val transactions: List<TransactionState>,
+        val deletedTransactions: List<DeletedTransactionState>,
     )
 
     private data class CurrencyState(
@@ -632,10 +650,14 @@ class TwoDeviceJournalSyncIntegrationTest {
         val occurredAt: Long,
         val createdAt: Long,
         val updatedAt: Long,
-        val isDeleted: Boolean,
         val toAccountUuid: String?,
         val toAmount: String?,
         val exchangeRate: Double?,
+    )
+
+    private data class DeletedTransactionState(
+        val uuid: String,
+        val updatedAt: Long,
     )
 
     private companion object {

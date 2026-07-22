@@ -163,16 +163,25 @@ class JournalApplier
                 updatedAt = Instant.ofEpochMilli(updatedAt),
             )
 
-        private fun TransactionEntity.toLocalOp(): Operation =
-            Operation(
+        private suspend fun TransactionEntity.toLocalOp(): Operation {
+            val accountUuid = accountDao.findById(accountId)?.uuid
+            val categoryUuid = categoryId?.let { categoryDao.findById(it)?.uuid }
+            val toAccountUuid = toAccountId?.let { accountDao.findById(it)?.uuid }
+            return Operation(
                 opId = LOCAL_OP_PREFIX + uuid,
                 deviceId = deviceId,
                 entityKind = EntityKind.Transaction,
                 entityUuid = uuid,
                 opType = if (isDeleted) OpType.Delete else OpType.Upsert,
-                payload = null,
+                payload =
+                    if (isDeleted || accountUuid == null) {
+                        null
+                    } else {
+                        payloadCodec.encodeTransaction(this, accountUuid, categoryUuid, toAccountUuid)
+                    },
                 updatedAt = Instant.ofEpochMilli(updatedAt),
             )
+        }
 
         private fun AccountSnapshot.toEntity(
             localId: Long,

@@ -10,11 +10,28 @@
 
 > Last three session entries are repeated here for fast startup. Full history is archived below.
 
+- **2026-07-22 (Codex MP `--feature --next`, two-device journal merge E2E):** Completed SPEC
+  `review-2026-07-25-two-device-merge-e2e` in commits `27fd43c5` and `1bb19fcf`. Added a
+  deterministic Robolectric integration scenario with two in-memory Room databases, fixed device
+  IDs, a fake shared-folder `JournalBackend`, same-time LWW conflicts, delete-vs-edit tombstones,
+  category rename races, bidirectional exchange, full live-state comparison, and peer high-water
+  assertions. Scoped JUnit XML is green (1/0/0/0); lint/detekt and reviewer, semantic, critic, and
+  verifier gates passed. The generic JVM runner emitted its known no-summary/JaCoCo parser
+  false-negative, cleared by XML. Push was attempted twice but timed out; the SPEC and closeout
+  commits remain local ahead of `origin/main`.
+
+- **2026-07-22 (Codex MP `--backlog`, private cloud sync):** Completed SPEC
+  `review-2026-07-22-cloud-creds-setup`. Google Drive now uses only `drive.appdata` and app-owned
+  `appDataFolder`; Dropbox remains App Folder; one provider/account binding is active at a time.
+  Fresh real two-device Google and Dropbox round trips passed for `desving123456`, with persisted
+  identity after restart and remote peer records in `outputs/e2e/`. Scoped JVM XML is green
+  (sync 78/0/0, cloud-sync 4/0/0), the force-enabled debug APK built, and the Pixel 5/API 34
+  Compose class passed 3/0/0. A runner safety incident uninstalled the user APK on Pixel 8/9 after
+  AGP selected every healthy emulator; no remote journal was deleted, both local datasets were
+  restored from Dropbox and verified, and `run_connected_test_on_host_avd.ps1` now refuses runs
+  while non-gate devices are attached. No commit or push was made.
+
 - **2026-07-16 (Codex MP `--feature --next`, type-safe navigation):** Completed SPEC `review-2026-07-19-type-safe-navigation`. Replaced string routes and `NavType` parsing with 29 `@Serializable` route types in `:core:ui`; `MyMoneyNavHost` uses typed `composable`/`navigate`/`popUpTo`, while all eight argument-owning ViewModels decode their shared route with `SavedStateHandle.toRoute<T>()`. Added `TypedNavigationDeviceTest`. Verification: deterministic reviewer, semantic review, independent critic, and full verifier passed; app JUnit XML 62/0/0/0 and targeted device XML 1/0/0/0 on local Pixel 5 / API 34. The generic JVM runner's no-summary/JaCoCo false negative was cleared by XML. Commits: `f7956d4c`, `b8ca1ab4`, `3dde2778`, `58d2b1fb`, `3b35a36a`, `59ebf5a`, `49c3b368`. Push is pending because noninteractive Git credentials are unavailable.
-
-- **2026-07-16 (Codex MP `--feature --next`, backup privacy):** Completed SPEC `review-2026-07-17-backup-policy-decision`. Android system cloud backup now excludes the financial Room DB and its WAL sidecars, while Android 12+ device-to-device transfer preserves them; secure preferences and the `.bak` sidecar are excluded in every mode. Added ADR-0001 and the TDD-aligned sentinel-99 migration invariant. Targeted XML unit tests passed 5/5 with no failures/errors; Gradle exited 0 with lint/detekt green, while the generic runner's no-summary/JaCoCo parser false-negative was cleared by parsed JUnit XML. Deterministic reviewer, semantic review, independent critic, and full verifier passed. Commits: `f1a12bfd`, `fd12462c`, `a9282036`, `2bc83921`, `cb6c7fc5`.
-
-- **2026-07-16 (Codex MP `--feature --next`, Aurora label contrast):** Completed SPEC `review-2026-07-16-aurora-balance-label-contrast` in commit `32dc598b`. Replaced the translucent `FREE BALANCE` label color with the existing semantic panel-content token. Fresh local Pixel 5 / API 34 evidence measured **6.70:1** against the Aurora panel (AA threshold 4.5:1); layout and semantics remained unchanged. JVM/static checks passed; the scoped connected class retained three unrelated baseline size/type assertions (26 passed / 3 failed). MP runner memory now authorizes automatic uninstall/reinstall of an incompatible MyMoney debug package on the local emulator without prompting. Pushed to `origin/main`.
 
 ## Historical session log archives
 

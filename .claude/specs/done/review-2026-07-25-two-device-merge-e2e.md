@@ -1,7 +1,7 @@
 # Integration scenario: two-device journal merge with LWW conflicts
 Epic: review-2026-07
 Order: 25 of 35
-Status: draft
+Status: done
 Depends-on: —
 Date: 2026-07-06
 
@@ -20,5 +20,5 @@ Merge logic is unit-tested per class, but no test proves two devices actually
 converge end-to-end. Source: review item 14 (P2/M).
 
 ## Implementation links
-- commit: (pending)
-- files: (pending)
+- commit: 27fd43c5, 1bb19fcf
+- files: core/database/src/main/java/com/kshavrin/mymoney/core/database/journal/JournalApplier.kt; core/sync/build.gradle.kts; core/sync/src/test/java/com/kshavrin/mymoney/core/sync/TwoDeviceJournalSyncIntegrationTest.kt

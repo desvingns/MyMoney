@@ -31,7 +31,8 @@ class BalanceTrendCalculatorPropertyTest {
             sortOrder = 0,
         )
     private val firstDate =
-        Instant.parse("2026-01-01T00:00:00Z")
+        Instant
+            .parse("2026-01-01T00:00:00Z")
             .atZone(ZoneOffset.UTC)
             .toLocalDate()
 
@@ -45,9 +46,10 @@ class BalanceTrendCalculatorPropertyTest {
                 val window = dailyWindow(values.size)
                 val snapshots = values.map(::snapshotFrom)
                 val expectedSize =
-                    snapshots.indexOfLast { snapshot ->
-                        snapshot.income.amount.signum() > 0 || snapshot.expense.amount.signum() > 0
-                    }.let { lastActiveIndex -> if (lastActiveIndex < 0) 0 else lastActiveIndex + 1 }
+                    snapshots
+                        .indexOfLast { snapshot ->
+                            snapshot.income.amount.signum() > 0 || snapshot.expense.amount.signum() > 0
+                        }.let { lastActiveIndex -> if (lastActiveIndex < 0) 0 else lastActiveIndex + 1 }
                 val seriesByMetric =
                     ChartMetric.entries.associateWith { metric ->
                         calculator.buildAutoSeries(window, metric) { period ->
@@ -114,9 +116,10 @@ class BalanceTrendCalculatorPropertyTest {
                 val snapshots = normalized.map(::snapshotFrom)
 
                 ChartMetric.entries.forEach { metric ->
-                    val result = calculator.buildAutoSeries(window, metric) { period ->
-                        snapshots[window.indexOf(period)]
-                    }
+                    val result =
+                        calculator.buildAutoSeries(window, metric) { period ->
+                            snapshots[window.indexOf(period)]
+                        }
 
                     assertEquals(size, result.size)
                     assertEquals(window[middleIndex], result[middleIndex].period)

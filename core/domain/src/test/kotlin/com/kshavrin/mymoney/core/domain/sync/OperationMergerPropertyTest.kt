@@ -107,14 +107,16 @@ class OperationMergerPropertyTest {
                         payload = null,
                         updatedAt = timestamp.plusMillis(1L),
                     )
-                val equalTimestampLowerDevice = earlier.copy(
-                    opId = "equal-lower",
-                    deviceId = "device-a",
-                )
-                val equalTimestampHigherDevice = earlier.copy(
-                    opId = "equal-higher",
-                    deviceId = "device-z",
-                )
+                val equalTimestampLowerDevice =
+                    earlier.copy(
+                        opId = "equal-lower",
+                        deviceId = "device-a",
+                    )
+                val equalTimestampHigherDevice =
+                    earlier.copy(
+                        opId = "equal-higher",
+                        deviceId = "device-z",
+                    )
 
                 assertEquals(
                     MergeResult.Tombstone(entityUuid),

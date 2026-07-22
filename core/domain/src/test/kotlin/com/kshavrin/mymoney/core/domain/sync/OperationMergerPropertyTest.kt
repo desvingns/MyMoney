@@ -23,7 +23,7 @@ class OperationMergerPropertyTest {
             ) { values ->
                 val operations = operationsFrom(values)
                 val winner = winnerOf(operations)
-                val canonicalInput = winner?.let(::listOf) ?: emptyList()
+                val canonicalInput = winner?.let(::listOf).orEmpty()
                 val result = OperationMerger.resolve(operations)
 
                 assertEquals(result, OperationMerger.resolve(canonicalInput))

@@ -108,7 +108,8 @@ class JournalApplier
             remoteOps: List<Operation>,
         ): Boolean {
             val local = transactionDao.findByUuid(uuid)
-            return when (val result = OperationMerger.resolve(remoteOps + listOfNotNull(local?.toLocalOp()))) {
+            val candidates = remoteOps + listOfNotNull(local?.toLocalOp())
+            return when (val result = OperationMerger.resolve(candidates)) {
                 is MergeResult.Resolved -> {
                     val payload = result.op.payload ?: return false
                     val snapshot = payloadCodec.decodeTransaction(payload)
@@ -120,7 +121,7 @@ class JournalApplier
                     true
                 }
                 is MergeResult.Tombstone -> {
-                    transactionDao.softDeleteByUuid(uuid, remoteOps.maxOf { it.updatedAt }.toEpochMilli())
+                    transactionDao.softDeleteByUuid(uuid, candidates.maxOf { it.updatedAt }.toEpochMilli())
                     true
                 }
                 MergeResult.None -> true

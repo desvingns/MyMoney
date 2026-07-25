@@ -47,6 +47,12 @@ The project seed memory `dao-test-config-trap.md` explains why. Reinforcing it h
 - `createComposeRule()` for content composables (no Activity).
 - Use **test-tags** sparingly — prefer matching on `onNodeWithText(stringResource(R.string.…))` so localization issues surface. Test-tags only for things that have no semantic text (icons, decorative).
 - Don't use `Thread.sleep` — use `composeTestRule.waitUntil { … }` with a timeout.
+- **Adding a row/section to an existing list-rendering composable (Stale-Test Update Rule):** grep
+  the composable's own test file for exhaustive/count assertions on siblings (`assertCountEquals`,
+  `.size ==`, "exactly N", "distinct") — these go stale silently because the new row's OWN test
+  passes while a same-file total-count assertion elsewhere does not update itself. Confirmed gap:
+  `SettingsRootContentTest.kt` (review-2026-07-24-factory-reset), caught by Verifier Check 6 only
+  after two Tester passes missed it.
 
 ## Instrumented Compose UI on device (`--device` / the runbook)
 

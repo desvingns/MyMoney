@@ -22,8 +22,11 @@ or when a rule below conflicts with the plugin contract.
    `across modules`) and is expected to touch more than 3 modules or roughly 12 production files.
    Split it into independently testable child SPECs unless the user explicitly requests one atomic
    cross-cutting migration. Do not silently turn a backlog audit into a release-sized run.
-3. Move the SPEC `backlog/` to `active/`, set `Status: active`, and use its `=== SPEC ===` block as
-   the only feature contract.
+3. Move the SPEC `backlog/` to `active/`, set `Status: active`, announce the activation
+   informationally, and immediately use its `=== SPEC ===` block as the only feature contract.
+   The `--feature --next` / `--backlog` invocation is explicit authorization to start Phase 2:
+   never ask for a second SPEC approval or pre-agent `y/N`. Safety prerequisites such as the visual
+   device gate remain checks, not launch confirmations.
 4. Build a context capsule before every agent call: SPEC, relevant files, changed files, failing
    command/report, and the exact role task. Do not paste full progress archives or broad logs.
 5. Developer and tester are LLM roles. Reviewer and JVM runner are deterministic script roles when

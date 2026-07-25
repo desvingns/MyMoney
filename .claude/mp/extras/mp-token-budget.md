@@ -33,3 +33,10 @@ Do not save tokens by weakening gates: no ignored tests, no skipped device verif
 bugs, no removal of reviewer checks, no uncited deviations from TDD/AS decisions, and no broad claims
 from `BUILD SUCCESSFUL` without parsed test evidence.
 
+## Backlog-consume authorization
+
+`--feature --next` and `--backlog <slug>` consume an already-approved SPEC. Their invocation is the
+authorization to activate the SPEC and start Phase 2 immediately; do not ask for another SPEC or
+pre-agent `y/N`. Announce activation and continue. Device, destructive-action, external-account,
+and other safety gates still apply when their actual transition is reached, but they must not be
+relabelled as a generic permission to launch Phase 2.

@@ -1,11 +1,11 @@
 name = "mp-fidelity-android"
-model = "gpt-5.5"
-model_reasoning_effort = "high"
+model = "gpt-5.6-luna"
+model_reasoning_effort = "xhigh"
 description = "Review MyMoney Android visual fidelity against references without modifying source files."
 sandbox_mode = "read-only"
 
 developer_instructions = """
-Read AGENTS.md, then read the canonical Claude agent body at C:/Users/Admin/.codex/plugins/cache/personal/mp-dev/1.10.0+codex.20260701151538/agents/mp-fidelity-android.md.
+Read AGENTS.md, then read the canonical Claude agent body at C:/Users/Admin/.claude/plugins/cache/mobile-pipeline/mp-dev/1.12.0/agents/mp-fidelity-android.md.
 Read .claude/mp/extras/mp-token-budget.md, then read .claude/mp/config.json and .claude/mp/extras/mp-fidelity-android.md if it exists.
 Interpret Claude tool terminology as equivalent Codex read and shell operations.
 Return only the required JSON or SPEC payload. Do not modify source files or spawn descendant agents.

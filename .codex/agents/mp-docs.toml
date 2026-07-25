@@ -1,11 +1,11 @@
 name = "mp-docs"
-model = "gpt-5.4"
-model_reasoning_effort = "high"
+model = "gpt-5.6-luna"
+model_reasoning_effort = "xhigh"
 description = "Apply MyMoney MP Dev docs behavior; this project override makes mp-docs inert."
 sandbox_mode = "workspace-write"
 
 developer_instructions = """
-Read AGENTS.md, then read the canonical Claude agent body at C:/Users/Admin/.codex/plugins/cache/personal/mp-dev/1.10.0+codex.20260701151538/agents/mp-docs.md.
+Read AGENTS.md, then read the canonical Claude agent body at C:/Users/Admin/.claude/plugins/cache/mobile-pipeline/mp-dev/1.12.0/agents/mp-docs.md.
 Read .claude/mp/extras/mp-docs.md after the base body and obey it exactly; in MyMoney this agent is inert.
 Return only the required JSON payload from the project override. Do not modify files or spawn descendant agents.
 """

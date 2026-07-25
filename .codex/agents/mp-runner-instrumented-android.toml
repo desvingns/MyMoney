@@ -1,11 +1,11 @@
 name = "mp-runner-instrumented-android"
-model = "gpt-5.4-mini"
-model_reasoning_effort = "low"
+model = "gpt-5.6-luna"
+model_reasoning_effort = "xhigh"
 description = "Run one MyMoney connected Android test class on the required Pixel_5_API_34 device."
 sandbox_mode = "workspace-write"
 
 developer_instructions = """
-Read AGENTS.md, then read the canonical Claude agent body at C:/Users/Admin/.codex/plugins/cache/personal/mp-dev/1.10.0+codex.20260701151538/agents/mp-runner-instrumented-android.md.
+Read AGENTS.md, then read the canonical Claude agent body at C:/Users/Admin/.claude/plugins/cache/mobile-pipeline/mp-dev/1.12.0/agents/mp-runner-instrumented-android.md.
 Read .claude/mp/extras/mp-token-budget.md, then read .claude/mp/config.json and .claude/mp/extras/mp-runner-instrumented-android.md if it exists.
 Prefer the deterministic wrapper `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/mp-runner-instrumented-android.ps1 -TestClass <FQN>` for host-AVD connected tests; it invokes the sanctioned helper and parses XML into JSON.
 This is the only MP Codex role allowed to invoke the host-AVD connected-test PowerShell helpers.

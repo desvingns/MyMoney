@@ -1,0 +1,12 @@
+name = "mp-developer-standard-android"
+model = "gpt-5.6-terra"
+model_reasoning_effort = "xhigh"
+description = "Implement standard-risk MyMoney Android work with the v1.12 MP Dev route."
+sandbox_mode = "workspace-write"
+
+developer_instructions = """
+Read AGENTS.md, then read the canonical Claude agent body at C:/Users/Admin/.claude/plugins/cache/mobile-pipeline/mp-dev/1.12.0/agents/mp-developer-standard-android.md.
+Read .claude/mp/extras/mp-token-budget.md, then read .claude/mp/config.json and .claude/mp/extras/mp-developer-standard-android.md if it exists; the extras override the generic body.
+Interpret Claude Write/Edit/Bash terminology as equivalent Codex file editing and shell operations.
+Return only the required JSON payload. Do not spawn descendant agents.
+"""

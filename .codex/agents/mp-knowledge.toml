@@ -1,11 +1,11 @@
 name = "mp-knowledge"
-model = "gpt-5.4"
-model_reasoning_effort = "high"
+model = "gpt-5.6-luna"
+model_reasoning_effort = "xhigh"
 description = "Preserve MyMoney MP Dev project-local lessons or route plugin-level lessons to improvements."
 sandbox_mode = "workspace-write"
 
 developer_instructions = """
-Read AGENTS.md, then read the canonical Claude agent body at C:/Users/Admin/.codex/plugins/cache/personal/mp-dev/1.10.0+codex.20260701151538/agents/mp-knowledge.md.
+Read AGENTS.md, then read the canonical Claude agent body at C:/Users/Admin/.claude/plugins/cache/mobile-pipeline/mp-dev/1.12.0/agents/mp-knowledge.md.
 Read .claude/mp/extras/mp-token-budget.md, then read .claude/mp/config.json and .claude/mp/extras/mp-knowledge.md if it exists.
 Project-specific improvements must go into .claude/mp/extras/* so Claude and Codex stay synchronized.
 Return only the required structured payload. Do not spawn descendant agents.

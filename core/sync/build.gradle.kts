@@ -1,8 +1,7 @@
 import java.util.Properties
 
 plugins {
-    alias(libs.plugins.android.library)
-    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.mymoney.android.library)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
     alias(libs.plugins.kotlin.serialization)
@@ -10,10 +9,8 @@ plugins {
 
 android {
     namespace = "com.kshavrin.mymoney.core.sync"
-    compileSdk = 36
 
     defaultConfig {
-        minSdk = 31
         testInstrumentationRunner = "com.kshavrin.mymoney.core.sync.HiltTestRunner"
 
         buildConfigField(
@@ -43,11 +40,6 @@ android {
             "SYNC_FORCE_ENABLED",
             (providers.gradleProperty("sync.forceEnabled").orNull == "true").toString(),
         )
-    }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
     }
 
     buildFeatures {

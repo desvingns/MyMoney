@@ -1,11 +1,7 @@
 plugins {
-    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.mymoney.jvm.library)
     alias(libs.plugins.ksp)
     alias(libs.plugins.kover)
-}
-
-kotlin {
-    jvmToolchain(17)
 }
 
 dependencies {

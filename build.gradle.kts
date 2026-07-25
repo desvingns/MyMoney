@@ -2,7 +2,6 @@ import io.gitlab.arturbosch.detekt.Detekt
 import io.gitlab.arturbosch.detekt.DetektCreateBaselineTask
 import kotlinx.kover.gradle.plugin.dsl.KoverProjectExtension
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 private val koverGeneratedClasses = listOf(
     "hilt_aggregated_deps.*",
@@ -64,10 +63,6 @@ plugins {
 }
 
 subprojects {
-    tasks.withType<KotlinCompile>().configureEach {
-        compilerOptions.jvmTarget.set(JvmTarget.JVM_17)
-    }
-
     apply(plugin = rootProject.libs.plugins.detekt.get().pluginId)
     apply(plugin = rootProject.libs.plugins.ktlint.get().pluginId)
 

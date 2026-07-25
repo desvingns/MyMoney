@@ -1,8 +1,7 @@
 import java.util.Properties
 
 plugins {
-    alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.mymoney.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
@@ -77,14 +76,11 @@ if (providers.gradleProperty("firebase.enabled").orNull == "true") {
 
 android {
     namespace = "com.kshavrin.mymoney"
-    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.kshavrin.mymoney"
-        minSdk = 31
-        targetSdk = 36
-        versionCode = 17
-        versionName = "1.0.16"
+        versionCode = 18
+        versionName = "1.0.17"
 
         testInstrumentationRunner = "com.kshavrin.mymoney.HiltTestRunner"
 
@@ -137,11 +133,6 @@ android {
     // baseline profile. Reuse the committed release profile for staging packaging.
     sourceSets.getByName("staging") {
         baselineProfiles.srcDir("src/release/generated/baselineProfiles")
-    }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
     }
 
     buildFeatures {

@@ -1,5 +1,9 @@
 [versions]
 agp = "8.7.3"
+androidCompileSdk = "36"
+androidMinSdk = "31"
+androidTargetSdk = "36"
+jvmToolchain = "17"
 kotlin = "2.0.21"
 ksp = "2.0.21-1.0.28"
 coreKtx = "1.13.1"
@@ -51,6 +55,7 @@ roborazzi = "1.32.2"
 robolectric = "4.14.1"
 
 [libraries]
+android-gradle-plugin = { group = "com.android.tools.build", name = "gradle", version.ref = "agp" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-documentfile = { group = "androidx.documentfile", name = "documentfile", version.ref = "documentfile" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
@@ -73,6 +78,7 @@ androidx-compose-material3 = { group = "androidx.compose.material3", name = "mat
 androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
 
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
+hilt-gradle-plugin = { group = "com.google.dagger", name = "hilt-android-gradle-plugin", version.ref = "hilt" }
 hilt-core = { group = "com.google.dagger", name = "hilt-core", version.ref = "hilt" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
 androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
@@ -100,6 +106,7 @@ retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = 
 retrofit-kotlinx-serialization-converter = { group = "com.jakewharton.retrofit", name = "retrofit2-kotlinx-serialization-converter", version.ref = "retrofitKotlinxSerializationConverter" }
 
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
+kotlin-gradle-plugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
 kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "kotlinxCoroutines" }
 kotlinx-coroutines-play-services = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-play-services", version.ref = "kotlinxCoroutines" }
@@ -128,6 +135,7 @@ androidx-test-runner = { group = "androidx.test", name = "runner", version.ref =
 androidx-test-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "androidxTestEspressoCore" }
 turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
 hilt-android-testing = { group = "com.google.dagger", name = "hilt-android-testing", version.ref = "hilt" }
+ksp-gradle-plugin = { group = "com.google.devtools.ksp", name = "symbol-processing-gradle-plugin", version.ref = "ksp" }
 androidx-navigation-testing = { group = "androidx.navigation", name = "navigation-testing", version.ref = "navigationCompose" }
 androidx-work-testing = { group = "androidx.work", name = "work-testing", version.ref = "workRuntime" }
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
@@ -169,3 +177,8 @@ kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
 ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlintGradle" }
 roborazzi = { id = "io.github.takahirom.roborazzi", version.ref = "roborazzi" }
+mymoney-android-application = { id = "mymoney.android.application" }
+mymoney-android-feature = { id = "mymoney.android.feature" }
+mymoney-android-library = { id = "mymoney.android.library" }
+mymoney-android-test = { id = "mymoney.android.test" }
+mymoney-jvm-library = { id = "mymoney.jvm.library" }

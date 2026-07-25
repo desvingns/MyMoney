@@ -1,6 +1,5 @@
 plugins {
-    alias(libs.plugins.android.library)
-    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.mymoney.android.library)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
     alias(libs.plugins.kover)
@@ -8,16 +7,9 @@ plugins {
 
 android {
     namespace = "com.kshavrin.mymoney.core.datastore"
-    compileSdk = 36
 
     defaultConfig {
-        minSdk = 31
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-    }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
     }
 }
 

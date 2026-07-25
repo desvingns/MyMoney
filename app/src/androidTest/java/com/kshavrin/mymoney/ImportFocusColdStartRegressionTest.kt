@@ -107,12 +107,12 @@ class ImportFocusColdStartRegressionTest {
     }
 
     @Test
-    fun importedRowsSurviveColdStartAndShowOnDashboard() =
+    fun importedRowsSurviveColdStartAndShowOnDashboard() {
         runTest {
             val context = ApplicationProvider.getApplicationContext<Context>()
             val io = Dispatchers.IO
             val default = Dispatchers.Default
-            val payloadCodec = OperationPayloadCodec()
+            val payloadCodec = OperationPayloadCodec(db.currencyDao())
             val transactionRunner = RoomTransactionRunner(db)
             val deviceIdProvider = StaticDeviceIdProvider()
             val clock = java.time.Clock.systemUTC()
@@ -307,6 +307,7 @@ class ImportFocusColdStartRegressionTest {
                 Dispatchers.resetMain()
             }
         }
+    }
 }
 
 // Import focus restores in Separate mode, which never converts, so the rate repository is unused.

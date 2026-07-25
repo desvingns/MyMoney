@@ -13,4 +13,7 @@ interface SnapshotSync {
     fun disconnect(target: SyncTarget)
 
     suspend fun accountLabel(target: SyncTarget): Result<String>
+
+    suspend fun accountIdentity(target: SyncTarget): Result<CloudAccountIdentity> =
+        accountLabel(target).map { label -> CloudAccountIdentity(stableId = label, label = label) }
 }

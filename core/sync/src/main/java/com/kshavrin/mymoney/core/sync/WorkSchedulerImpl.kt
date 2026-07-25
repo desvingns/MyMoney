@@ -52,7 +52,7 @@ class WorkSchedulerImpl
             )
 
             val autoSyncEnabled = appSettings.settings.first().autoSyncEnabled
-            if (autoSyncEnabled && journalSyncConfig.folderId().isNotBlank()) {
+            if (autoSyncEnabled && journalSyncConfig.binding() != null) {
                 syncScheduler.enablePeriodicSync()
             } else {
                 syncScheduler.disablePeriodicSync()

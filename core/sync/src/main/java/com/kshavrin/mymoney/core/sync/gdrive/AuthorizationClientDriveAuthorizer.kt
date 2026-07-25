@@ -24,11 +24,11 @@ class AuthorizationClientDriveAuthorizer
                 val request =
                     AuthorizationRequest
                         .builder()
-                        .setRequestedScopes(listOf(Scope(DriveScopes.DRIVE_FILE)))
+                        .setRequestedScopes(listOf(Scope(DriveScopes.DRIVE_APPDATA)))
                         .setAccount(Account(accountEmail, GOOGLE_ACCOUNT_TYPE))
                         .build()
                 val result = Identity.getAuthorizationClient(context).authorize(request).await()
-                // hasResolution() here means consent was lost/revoked since the Picker grant;
+                // hasResolution() here means consent was lost/revoked for the app-data grant;
                 // there is no Activity to show the recovery UI from a background sync call.
                 if (result.hasResolution()) throw SyncException(SyncError.Auth)
                 result.accessToken ?: throw SyncException(SyncError.Auth)

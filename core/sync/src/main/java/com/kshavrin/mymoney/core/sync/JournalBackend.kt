@@ -7,18 +7,14 @@ data class RemoteJournalFile(
 )
 
 interface JournalBackend {
-    suspend fun isFolder(
-        accountEmail: String,
-        folderId: String,
-    ): Result<Boolean> = Result.success(true)
+    val target: SyncTarget
 
     suspend fun uploadJournal(
-        folderId: String,
         deviceId: String,
         bytes: ByteArray,
     ): Result<Unit>
 
-    suspend fun listPeerJournals(folderId: String): Result<List<RemoteJournalFile>>
+    suspend fun listPeerJournals(): Result<List<RemoteJournalFile>>
 
     suspend fun downloadJournal(fileId: String): Result<ByteArray>
 }

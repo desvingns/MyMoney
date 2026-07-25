@@ -6,32 +6,34 @@ import com.dropbox.core.RetryException
 import com.dropbox.core.ServerException
 import com.dropbox.core.oauth.DbxCredential
 import com.dropbox.core.v2.DbxClientV2
+import com.dropbox.core.v2.files.FileMetadata
+import com.dropbox.core.v2.files.WriteMode
 import com.kshavrin.mymoney.core.common.di.IoDispatcher
 import com.kshavrin.mymoney.core.common.exception.SyncError
 import com.kshavrin.mymoney.core.common.exception.SyncException
 import com.kshavrin.mymoney.core.datastore.SecureStorage
-import com.kshavrin.mymoney.core.sync.CloudSyncBackend
-import com.kshavrin.mymoney.core.sync.CloudAccountIdentity
+import com.kshavrin.mymoney.core.sync.JournalBackend
+import com.kshavrin.mymoney.core.sync.RemoteJournalFile
 import com.kshavrin.mymoney.core.sync.SyncTarget
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
 import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class DropboxRepository
+class DropboxJournalBackend
     @Inject
     constructor(
         private val secureStorage: SecureStorage,
         @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
-    ) : CloudSyncBackend {
+    ) : JournalBackend {
         override val target: SyncTarget = SyncTarget.Dropbox
 
-        // The serialized DbxCredential (refresh-token flow) is persisted in the Dropbox
-        // refresh-token slot of SecureStorage; a blank slot means "not connected".
         private fun storedCredential(): String? =
             secureStorage.read().dropboxRefreshToken?.takeIf { it.isNotBlank() }
 
@@ -42,32 +44,58 @@ class DropboxRepository
             return DbxClientV2(config, credential)
         }
 
-        override fun connect(payload: String) {
-            secureStorage.writeDropboxRefreshToken(payload)
-        }
-
-        override fun isConnected(): Boolean = storedCredential() != null
-
-        override fun disconnect() {
-            secureStorage.writeDropboxRefreshToken(null)
-        }
-
-        override suspend fun accountLabel(): Result<String> =
+        override suspend fun uploadJournal(
+            deviceId: String,
+            bytes: ByteArray,
+        ): Result<Unit> =
             runOnIo {
-                client()
-                    .users()
-                    .currentAccount.email
+                ByteArrayInputStream(bytes).use { input ->
+                    client()
+                        .files()
+                        .uploadBuilder("/$JOURNAL_PREFIX$deviceId$JOURNAL_SUFFIX")
+                        .withMode(WriteMode.OVERWRITE)
+                        .uploadAndFinish(input)
+                }
+                Unit
             }
 
-        override suspend fun accountIdentity(): Result<CloudAccountIdentity> =
+        override suspend fun listPeerJournals(): Result<List<RemoteJournalFile>> =
             runOnIo {
-                client().users().currentAccount.let { account ->
-                    CloudAccountIdentity(
-                        stableId = account.accountId,
-                        label = account.email,
-                    )
+                val files = mutableListOf<RemoteJournalFile>()
+                val requests = client().files()
+                var page = requests.listFolder(APP_FOLDER_ROOT)
+                while (true) {
+                    page.entries.forEach { entry ->
+                        val file = entry as? FileMetadata ?: return@forEach
+                        val deviceId = deviceIdFromName(file.name) ?: return@forEach
+                        files +=
+                            RemoteJournalFile(
+                                fileId = "$FILE_ID_PREFIX${file.id}",
+                                deviceId = deviceId,
+                                modifiedAtEpochMs = file.serverModified.time,
+                            )
+                    }
+                    if (!page.hasMore) break
+                    page = requests.listFolderContinue(page.cursor)
+                }
+                files.sortedByDescending { it.modifiedAtEpochMs }
+            }
+
+        override suspend fun downloadJournal(fileId: String): Result<ByteArray> =
+            runOnIo {
+                val remoteFileId = fileId.removePrefix(FILE_ID_PREFIX)
+                ByteArrayOutputStream().use { output ->
+                    client().files().download(remoteFileId).download(output)
+                    output.toByteArray()
                 }
             }
+
+        private fun deviceIdFromName(name: String): String? =
+            name
+                .takeIf { it.startsWith(JOURNAL_PREFIX) && it.endsWith(JOURNAL_SUFFIX) }
+                ?.removePrefix(JOURNAL_PREFIX)
+                ?.removeSuffix(JOURNAL_SUFFIX)
+                ?.takeIf { it.isNotBlank() }
 
         private suspend fun <T> runOnIo(block: () -> T): Result<T> =
             withContext(ioDispatcher) {
@@ -94,8 +122,7 @@ class DropboxRepository
             if (attempt >= MAX_RETRIES - 1) return null
             return when (t) {
                 is RetryException -> t.backoffMillis.coerceAtLeast(retryDelayMillis(attempt))
-                is NetworkIOException, is IOException -> retryDelayMillis(attempt)
-                is ServerException -> retryDelayMillis(attempt)
+                is NetworkIOException, is IOException, is ServerException -> retryDelayMillis(attempt)
                 else -> null
             }
         }
@@ -103,23 +130,12 @@ class DropboxRepository
         private fun retryDelayMillis(attempt: Int): Long = BASE_BACKOFF_MILLIS shl attempt
 
         private companion object {
+            const val APP_FOLDER_ROOT = ""
             const val CLIENT_IDENTIFIER = "MyMoney/1.0"
+            const val FILE_ID_PREFIX = "dropbox:"
+            const val JOURNAL_PREFIX = "ops-"
+            const val JOURNAL_SUFFIX = ".jsonl"
             const val MAX_RETRIES = 3
             const val BASE_BACKOFF_MILLIS = 1_000L
         }
-    }
-
-internal fun mapDropboxError(t: Throwable): SyncError =
-    when {
-        t is SyncException -> t.syncError
-        t is IOException -> SyncError.Network
-        else ->
-            when (t::class.simpleName) {
-                "InvalidAccessTokenException" -> SyncError.Auth
-                "SpaceError" -> SyncError.Quota
-                "NetworkIOException" -> SyncError.Network
-                "RateLimitException", "RetryException", "ServerException", "DbxException" ->
-                    SyncError.Server
-                else -> SyncError.Unknown
-            }
     }

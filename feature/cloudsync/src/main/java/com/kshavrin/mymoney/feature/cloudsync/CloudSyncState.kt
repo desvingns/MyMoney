@@ -1,18 +1,32 @@
 package com.kshavrin.mymoney.feature.cloudsync
 
 import androidx.annotation.StringRes
+import com.kshavrin.mymoney.core.datastore.CloudBinding
 import com.kshavrin.mymoney.core.sync.SyncTarget
 
 data class CloudSyncState(
+    val binding: CloudBinding? = null,
     val dropbox: TargetCardState = TargetCardState(SyncTarget.Dropbox),
     val drive: TargetCardState = TargetCardState(SyncTarget.GoogleDrive),
-    val autoSyncEnabled: Boolean = false,
-    val folderId: String = "",
     val lastSyncAtMs: Long? = null,
-    val peerStatuses: List<PeerJournalState> = emptyList(),
-    val isSyncing: Boolean = false,
+    val requiresProviderChoice: Boolean = false,
+    val migration: MigrationUiState? = null,
+    val isConnecting: Boolean = false,
     @StringRes val errorBannerRes: Int? = null,
 )
+
+sealed interface MigrationUiState {
+    val target: SyncTarget
+
+    data class AwaitingBackup(
+        override val target: SyncTarget,
+    ) : MigrationUiState
+
+    data class Reviewing(
+        override val target: SyncTarget,
+        val conflictCount: Int,
+    ) : MigrationUiState
+}
 
 data class TargetCardState(
     val target: SyncTarget,
@@ -20,12 +34,3 @@ data class TargetCardState(
     val connected: Boolean = false,
     val accountLabel: String? = null,
 )
-
-data class PeerJournalState(
-    val deviceId: String,
-    val modifiedAtMs: Long,
-    val pulledThroughMs: Long,
-) {
-    val upToDate: Boolean
-        get() = pulledThroughMs >= modifiedAtMs
-}

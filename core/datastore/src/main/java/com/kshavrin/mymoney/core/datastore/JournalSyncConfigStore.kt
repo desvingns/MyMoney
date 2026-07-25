@@ -1,18 +1,11 @@
 package com.kshavrin.mymoney.core.datastore
 
-/**
- * Configuration + bookkeeping for the append-only journal sync (operations-journal-sync epic).
- *
- * - [folderId] is the shared Drive folder where every device drops its `ops-<deviceId>.jsonl`
- *   journal (D10). When blank the journal sync is a no-op.
- * - [peerHighWaterMs] tracks, per peer journal file, the last `modifiedAt` we already pulled so we
- *   only re-download changed files.
- * - [bootstrapDone] is the one-shot flag guarding [com.kshavrin.mymoney] journal bootstrap (D11).
- */
 interface JournalSyncConfigStore {
-    suspend fun folderId(): String
+    suspend fun binding(): CloudBinding? = null
 
-    suspend fun setFolderId(folderId: String)
+    suspend fun setBinding(binding: CloudBinding) = Unit
+
+    suspend fun clearBinding() = Unit
 
     suspend fun peerHighWaterMs(fileId: String): Long
 
@@ -25,10 +18,5 @@ interface JournalSyncConfigStore {
 
     suspend fun markBootstrapDone()
 
-    /**
-     * Explicit cloud detach: remove [folderId], the bootstrap flag and every per-peer high-water
-     * key so a factory reset fully unlinks journal sync (no implicit reliance on a shared DataStore
-     * wipe elsewhere).
-     */
     suspend fun clear()
 }

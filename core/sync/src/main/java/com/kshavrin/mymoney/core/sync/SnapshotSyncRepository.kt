@@ -26,4 +26,7 @@ class SnapshotSyncRepository
 
         override suspend fun accountLabel(target: SyncTarget): Result<String> =
             backend(target).accountLabel()
+
+        override suspend fun accountIdentity(target: SyncTarget): Result<CloudAccountIdentity> =
+            backend(target).accountIdentity()
     }

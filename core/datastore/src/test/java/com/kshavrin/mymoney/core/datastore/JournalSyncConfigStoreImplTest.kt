@@ -1,11 +1,15 @@
 package com.kshavrin.mymoney.core.datastore
 
+import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -13,116 +17,68 @@ import java.io.File
 import java.nio.file.Files
 
 class JournalSyncConfigStoreImplTest {
-    private lateinit var tempFile: File
+    private lateinit var file: File
+    private lateinit var dataStore: DataStore<Preferences>
     private lateinit var store: JournalSyncConfigStoreImpl
 
     @Before
     fun setUp() {
-        tempFile = Files.createTempFile("test_journal_config", ".preferences_pb").toFile()
-        tempFile.delete()
-        val dataStore =
-            PreferenceDataStoreFactory.create(
-                produceFile = { tempFile },
-            )
+        file = Files.createTempFile("journal-config", ".preferences_pb").toFile().also { it.delete() }
+        dataStore = PreferenceDataStoreFactory.create(produceFile = { file })
         store = JournalSyncConfigStoreImpl(dataStore)
     }
 
     @After
     fun tearDown() {
-        tempFile.delete()
+        file.delete()
     }
 
-    // ─── folderId ─────────────────────────────────────────────────────────────
+    @Test
+    fun `binding round trips and one active provider account is retained`() = runTest {
+        val binding = CloudBinding(CloudProvider.GoogleDrive, "permission-123", "me@example.com")
+        store.setBinding(binding)
+        assertEquals(binding, store.binding())
+    }
 
     @Test
-    fun `folderId returns empty string when not set`() =
-        runTest(UnconfinedTestDispatcher()) {
-            assertEquals("", store.folderId())
-        }
+    fun `legacy folder key is ignored`() = runTest {
+        dataStore.edit { it[stringPreferencesKey("journal_folder_id")] = "old-folder" }
+        assertNull(store.binding())
+        assertEquals(0L, store.peerHighWaterMs("peer"))
+    }
 
     @Test
-    fun `folderId round-trips after setFolderId`() =
-        runTest(UnconfinedTestDispatcher()) {
-            store.setFolderId("drive-folder-abc123")
-            assertEquals("drive-folder-abc123", store.folderId())
-        }
+    fun `peer high water and bootstrap are scoped by provider and account`() = runTest {
+        store.setBinding(CloudBinding(CloudProvider.Dropbox, "acct-a", "A"))
+        store.setPeerHighWaterMs("peer", 42L)
+        store.markBootstrapDone()
+        store.setBinding(CloudBinding(CloudProvider.Dropbox, "acct-b", "B"))
+        assertEquals(0L, store.peerHighWaterMs("peer"))
+        assertFalse(store.isBootstrapDone())
+        store.setBinding(CloudBinding(CloudProvider.Dropbox, "acct-a", "A"))
+        assertEquals(42L, store.peerHighWaterMs("peer"))
+        assertTrue(store.isBootstrapDone())
+    }
 
     @Test
-    fun `folderId is overwritten by a second setFolderId call`() =
-        runTest(UnconfinedTestDispatcher()) {
-            store.setFolderId("folder-v1")
-            store.setFolderId("folder-v2")
-            assertEquals("folder-v2", store.folderId())
-        }
+    fun `clear binding clears active scoped state`() = runTest {
+        store.setBinding(CloudBinding(CloudProvider.GoogleDrive, "acct", "A"))
+        store.setPeerHighWaterMs("peer", 99L)
+        store.markBootstrapDone()
+        store.clearBinding()
+        assertNull(store.binding())
+        assertEquals(0L, store.peerHighWaterMs("peer"))
+        assertFalse(store.isBootstrapDone())
+    }
 
     @Test
-    fun `folderId blank after setFolderId with empty string`() =
-        runTest(UnconfinedTestDispatcher()) {
-            store.setFolderId("folder-set")
-            store.setFolderId("")
-            assertTrue("folderId must be blank after explicit empty-string write", store.folderId().isBlank())
-        }
-
-    // ─── peerHighWaterMs ──────────────────────────────────────────────────────
-
-    @Test
-    fun `peerHighWaterMs returns zero for unknown fileId`() =
-        runTest(UnconfinedTestDispatcher()) {
-            assertEquals(0L, store.peerHighWaterMs("ghost-file-id"))
-        }
-
-    @Test
-    fun `peerHighWaterMs round-trips after setPeerHighWaterMs`() =
-        runTest(UnconfinedTestDispatcher()) {
-            store.setPeerHighWaterMs("file-a", 1_700_000_100_000L)
-            assertEquals(1_700_000_100_000L, store.peerHighWaterMs("file-a"))
-        }
-
-    @Test
-    fun `setPeerHighWaterMs advances when new value is greater`() =
-        runTest(UnconfinedTestDispatcher()) {
-            store.setPeerHighWaterMs("file-b", 100L)
-            store.setPeerHighWaterMs("file-b", 200L)
-            assertEquals(200L, store.peerHighWaterMs("file-b"))
-        }
-
-    @Test
-    fun `setPeerHighWaterMs does not retreat when new value is smaller`() =
-        runTest(UnconfinedTestDispatcher()) {
-            store.setPeerHighWaterMs("file-c", 500L)
-            store.setPeerHighWaterMs("file-c", 100L)
-            assertEquals("high water must not retreat to a smaller value", 500L, store.peerHighWaterMs("file-c"))
-        }
-
-    @Test
-    fun `peerHighWaterMs tracks distinct fileIds independently`() =
-        runTest(UnconfinedTestDispatcher()) {
-            store.setPeerHighWaterMs("file-x", 111L)
-            store.setPeerHighWaterMs("file-y", 999L)
-            assertEquals(111L, store.peerHighWaterMs("file-x"))
-            assertEquals(999L, store.peerHighWaterMs("file-y"))
-        }
-
-    // ─── bootstrapDone ────────────────────────────────────────────────────────
-
-    @Test
-    fun `isBootstrapDone returns false when never marked`() =
-        runTest(UnconfinedTestDispatcher()) {
-            assertFalse(store.isBootstrapDone())
-        }
-
-    @Test
-    fun `isBootstrapDone returns true after markBootstrapDone`() =
-        runTest(UnconfinedTestDispatcher()) {
-            store.markBootstrapDone()
-            assertTrue(store.isBootstrapDone())
-        }
-
-    @Test
-    fun `markBootstrapDone is idempotent — calling twice does not throw`() =
-        runTest(UnconfinedTestDispatcher()) {
-            store.markBootstrapDone()
-            store.markBootstrapDone()
-            assertTrue(store.isBootstrapDone())
-        }
+    fun `clear removes all journal state`() = runTest {
+        store.setBinding(CloudBinding(CloudProvider.Dropbox, "acct", "A"))
+        store.setPeerHighWaterMs("peer", 7L)
+        store.markBootstrapDone()
+        store.clear()
+        assertNull(store.binding())
+        assertEquals(0L, store.peerHighWaterMs("peer"))
+        assertFalse(store.isBootstrapDone())
+    }
 }

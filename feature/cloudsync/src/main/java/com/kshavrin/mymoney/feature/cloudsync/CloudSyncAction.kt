@@ -5,5 +5,7 @@ sealed interface CloudSyncAction {
 
     data object LaunchDropboxAuth : CloudSyncAction
 
-    data object LaunchGoogleSignIn : CloudSyncAction
+    data object LaunchGoogleDriveAuth : CloudSyncAction
+
+    data object RequestMigrationBackupDirectory : CloudSyncAction
 }

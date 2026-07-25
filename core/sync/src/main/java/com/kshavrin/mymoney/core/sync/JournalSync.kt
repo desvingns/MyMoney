@@ -1,16 +1,12 @@
 package com.kshavrin.mymoney.core.sync
 
+import com.kshavrin.mymoney.core.domain.sync.Operation
+
 /**
- * Append-only journal sync (operations-journal-sync epic). Replaces [SnapshotSync] on the autosync
- * path (D6): instead of pushing/pulling whole-DB snapshots with a conflict prompt, every device
- * writes its own `ops-<deviceId>.jsonl` journal into a shared Drive folder and merges peers' journals
- * via last-writer-wins (LWW, D5) — no conflict dialog.
+ * Append-only operation journal synchronization in each provider's private application storage.
  *
- * - [push] uploads the local device's unsynced operations.
- * - [pull] downloads peers' journals and applies their operations locally.
- * - [syncNow] runs bootstrap (if needed), then [pull] followed by [push].
- *
- * When the shared folder is not configured (D10) every call is a no-op.
+ * [previewMigration] reads a target without changing the local database. [applyMigration] is only
+ * called after the user has created a local safety backup and explicitly selected a collision policy.
  */
 interface JournalSync {
     suspend fun push()
@@ -18,4 +14,23 @@ interface JournalSync {
     suspend fun pull()
 
     suspend fun syncNow()
+
+    suspend fun previewMigration(target: SyncTarget): Result<JournalMigrationPreview> =
+        Result.failure(UnsupportedOperationException("Migration preview is unavailable"))
+
+    suspend fun applyMigration(
+        preview: JournalMigrationPreview,
+        resolution: MigrationResolution,
+    ): Result<Unit> = Result.failure(UnsupportedOperationException("Migration is unavailable"))
+}
+
+data class JournalMigrationPreview(
+    val target: SyncTarget,
+    val remoteOperations: List<Operation>,
+    val conflictingEntityUuids: Set<String>,
+)
+
+enum class MigrationResolution {
+    KeepLocal,
+    UseTarget,
 }

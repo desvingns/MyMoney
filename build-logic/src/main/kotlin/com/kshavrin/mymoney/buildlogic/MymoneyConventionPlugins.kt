@@ -38,6 +38,12 @@ class MymoneyAndroidFeaturePlugin : Plugin<Project> {
         pluginManager.apply("com.google.dagger.hilt.android")
         pluginManager.apply("com.google.devtools.ksp")
 
+        extensions.configure<LibraryExtension> {
+            buildFeatures {
+                compose = true
+            }
+        }
+
         dependencies.run {
             add("implementation", platform(libs.findLibrary("androidx-compose-bom").get()))
             add("implementation", libs.findBundle("compose").get())

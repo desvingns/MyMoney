@@ -1,7 +1,7 @@
 # Enable Gradle configuration cache + right-size build heap
 Epic: review-2026-07
 Order: 27 of 35
-Status: draft
+Status: active
 Depends-on: —
 Date: 2026-07-06
 

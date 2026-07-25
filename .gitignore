@@ -70,3 +70,9 @@ selfimprove/runs/*.jsonl
 
 # Manual-review archive (stale/redundant files to delete by hand)
 archive/
+
+# MP operational scratch (current-run SPEC context, never application source)
+.ai/local/
+
+# Manual/E2E verification evidence (screenshots, device dumps) — local only
+outputs/

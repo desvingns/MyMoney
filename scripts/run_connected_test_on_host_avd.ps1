@@ -4,9 +4,9 @@ param(
 )
 
 # Single-machine on-device test runner (VirtualBox NAT proxy retired 2026-05-29).
-# The Pixel 5 API 34 AVD runs locally in Android Studio and appears as serial
-# `emulator-5554`. That serial has no `:` so the AGP 8.7.3 UTP profile-path bug
-# does not apply — we run Gradle directly, no proxy. See memo mymoney-device-connection.
+# The Pixel 5 API 34 AVD runs locally in Android Studio. Discover its current local serial so
+# another booted emulator cannot be selected by position. Local emulator serials have no `:`, so
+# the AGP 8.7.3 UTP profile-path bug does not apply — we run Gradle directly, no proxy.
 
 $ErrorActionPreference = 'Stop'
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
@@ -28,20 +28,27 @@ $env:PATH = "$env:JAVA_HOME\bin;$env:ANDROID_SDK_ROOT\platform-tools;$env:PATH"
 Remove-Item Env:ADB_SERVER_SOCKET -ErrorAction SilentlyContinue
 
 $adb = Join-Path $env:ANDROID_SDK_ROOT 'platform-tools\adb.exe'
-$serial = 'emulator-5554'
-
+$serial = $null
+$connectedSerials = @()
 $devices = (& $adb devices -l | Out-String)
-if ($devices -notmatch "$serial\s+device") {
-    throw "AVD is not reachable. `adb devices` did not list `$serial`.`nStart the Pixel 5 API 34 emulator in Android Studio and retry.`n$devices"
+foreach ($line in (& $adb devices)) {
+    if ($line -notmatch '^(?<serial>\S+)\tdevice$') { continue }
+    $candidate = $Matches.serial
+    $connectedSerials += $candidate
+    $avdName = (& $adb -s $candidate shell getprop ro.boot.qemu.avd_name).Trim()
+    $sdkVersion = (& $adb -s $candidate shell getprop ro.build.version.sdk).Trim()
+    $bootCompleted = (& $adb -s $candidate shell getprop sys.boot_completed).Trim()
+    $validAvdName = $avdName -eq 'Pixel_5_API_34' -or $avdName -eq 'Pixel_5'
+    if ($null -eq $serial -and $validAvdName -and $sdkVersion -eq '34' -and $bootCompleted -eq '1') {
+        $serial = $candidate
+    }
 }
-$avdName = (& $adb -s $serial shell getprop ro.boot.qemu.avd_name).Trim()
-$sdkVersion = (& $adb -s $serial shell getprop ro.build.version.sdk).Trim()
-$validAvdName = $avdName -eq 'Pixel_5_API_34' -or $avdName -eq 'Pixel_5'
-if (-not $validAvdName -or $sdkVersion -ne '34') {
-    throw "Connected emulator is not the Pixel 5 API 34 AVD (avd=$avdName sdk=$sdkVersion)."
+if ($null -eq $serial) {
+    throw "Pixel 5 API 34 AVD is not connected or boot-complete. Start it in Android Studio and retry.`n$devices"
 }
-if ((& $adb -s $serial shell getprop sys.boot_completed).Trim() -ne '1') {
-    throw 'Pixel 5 API 34 AVD is not boot-complete.'
+$otherConnectedDevices = @($connectedSerials | Where-Object { $_ -ne $serial })
+if ($otherConnectedDevices.Count -gt 0) {
+    throw "Refusing to run connected tests because AGP may select every healthy ADB device. Stop or disconnect the non-gate devices first: $($otherConnectedDevices -join ', '). The only permitted device for this helper is $serial (Pixel 5 API 34)."
 }
 & $adb -s $serial shell input keyevent 82 | Out-Null   # dismiss keyguard
 

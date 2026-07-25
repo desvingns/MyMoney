@@ -1,114 +1,69 @@
 # Cloud sync setup (free tier only)
 
-This guide takes MyMoney cloud sync from gated-off to testable on a **debug** build. It covers
-registering the two providers, wiring their credentials through the existing BuildConfig seams,
-and running one manual round-trip. Everything here is **debug-only** — release builds keep sync
-gated OFF regardless of these settings.
+Cloud sync is available only in a debug build with its feature gate enabled. It stores the
+append-only financial journal privately for the selected provider account. Only one provider is
+active at a time. A provider switch creates a local safety backup, reads the target privately,
+and requires an explicit collision decision before the active binding changes. No paid service or
+storage plan is required.
 
-Prerequisites: free tiers only. No paid plans are required or expected.
+## Dropbox App Folder
 
----
+1. Open the [Dropbox App Console](https://www.dropbox.com/developers/apps) and create an app.
+2. Choose **Scoped access** and **App folder** access.
+3. Enable `account_info.read`, `files.metadata.read`, `files.content.read`, and
+   `files.content.write`.
+4. Put the app key in the ignored root `local.properties` file:
 
-## 1. Dropbox
+   ```properties
+   dropbox.appKey=YOUR_DROPBOX_APP_KEY
+   ```
 
-The Dropbox app key is **public** (it is embedded in the app manifest), but it must still never be
-committed — keep it in `local.properties` (gitignored).
+The app writes device journals such as `ops-<deviceId>.jsonl` only inside its Dropbox App Folder.
 
-1. Go to the Dropbox **App Console**: <https://www.dropbox.com/developers/apps>.
-2. Click **Create app**.
-3. Choose API: **Scoped access**.
-4. Choose access type: **App folder** (the app only ever sees its own folder — least privilege).
-5. Name the app (e.g. `MyMoney-dev`) and create it.
-6. On the app's **Settings** tab, copy the **App key**.
-7. If the SDK OAuth flow you use requires an explicit redirect URI, add it under **OAuth 2 →
-   Redirect URIs** on the same tab. (The app-folder token flow used by the bundled Dropbox SDK
-   generally does not need one; add it only if the sign-in flow reports a redirect mismatch.)
-8. Note the free **development-mode limit**: up to **500 linked users** before you would need to
-   apply for production. That is far beyond what a personal dev/test round-trip needs.
+## Google Drive app data
 
-Put the key in `local.properties` at the repo root (this file is gitignored):
+1. In [Google Cloud Console](https://console.cloud.google.com/), create or select a project and
+   enable the Google Drive API.
+2. Configure an External OAuth consent screen in Testing and add every test account as a test user.
+3. Add only `https://www.googleapis.com/auth/drive.appdata` to the requested Drive scopes.
+4. Create an Android OAuth client for package `com.kshavrin.mymoney` and the debug signing SHA-1.
 
-```properties
-dropbox.appKey=YOUR_DROPBOX_APP_KEY
-```
+Google journals are created with the `appDataFolder` parent and listed only in the
+`appDataFolder` space. They are private to the selected Google account and are intentionally not
+visible in the Drive UI. Do not add the broad `drive` scope or any user-visible Drive storage
+selection to this setup.
 
-Never commit this value. The build reads it into `manifestPlaceholders["dropboxAppKey"]` and
-`BuildConfig.DROPBOX_APP_KEY`; when the property is absent the build falls back to
-`PLACEHOLDER_DROPBOX_APP_KEY` and Dropbox sign-in cannot complete.
+## Same-account two-device round trip
 
----
-
-## 2. Google Drive
-
-Drive uses OAuth by **package name + SHA-1** — there is **no client secret embedded in the app**,
-and therefore **no Drive BuildConfig field**. The device just needs a signed-in Google account that
-is registered as a test user.
-
-1. Open the **Google Cloud Console**: <https://console.cloud.google.com/>.
-2. Create or select a project.
-3. **APIs & Services → Library** → search **Google Drive API** → **Enable**.
-4. **APIs & Services → OAuth consent screen**:
-   - User type: **External**.
-   - Publishing status: leave in **Testing**.
-   - Add **your Google account** under **Test users**.
-   - Add the scope **`.../auth/drive.appdata`** (the app data folder scope — least privilege).
-5. **APIs & Services → Credentials → Create credentials → OAuth client ID**:
-   - Application type: **Android**.
-   - Package name: `com.kshavrin.mymoney`.
-   - SHA-1: the **debug** signing certificate fingerprint (add the release SHA-1 later, when you
-     register the production build).
-
-### Getting the debug SHA-1
-
-Either use the Gradle signing report:
-
-```bash
-./gradlew signingReport
-```
-
-and read the `SHA1` under the `debug` variant, or run keytool directly against the default debug
-keystore:
-
-```bash
-keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey \
-  -storepass android -keypass android
-```
-
-No client secret is stored in the app. On device, sign in with the Google account you added as a
-test user; Drive access is granted for the `drive.appdata` scope only.
-
----
-
-## 3. Run a debug round-trip (once registered)
-
-This is **debug-only** and never affects release (the gate is `BuildConfig.DEBUG &&
-BuildConfig.SYNC_FORCE_ENABLED`).
-
-1. Build/install a debug variant with the force flag (and the Dropbox key, if not already in
-   `local.properties`):
+1. Install the same debug build on both devices without clearing existing app data:
 
    ```bash
    ./gradlew :app:installDebug -Psync.forceEnabled=true -Pdropbox.appKey=YOUR_DROPBOX_APP_KEY
    ```
 
-   (If `dropbox.appKey` is already in `local.properties`, you can drop the `-Pdropbox.appKey`.)
-2. Launch the app, open cloud sync settings, and enable the provider you want to test
-   (Dropbox or Google Drive). Complete the provider sign-in.
-3. Trigger a sync and verify the data lands remotely (Dropbox app folder / Drive app-data), then
-   verify a pull restores it.
+2. Connect one provider on both devices with the same account, grant fresh consent, and restart
+   both apps to confirm the provider label persists.
+3. Create a recognizable transaction, account, or category marker on device A and wait for a
+   successful pull/push on device B. Create a different marker on device B and confirm it reaches
+   device A.
+4. Repeat the two-way exercise for Dropbox App Folder and Google Drive app data separately. Record
+   the account label, remote upload/list/download evidence, and both peer records.
 
-Because the gate requires `BuildConfig.DEBUG`, a **release** build with the same properties keeps
-sync gated OFF — `SYNC_FORCE_ENABLED` is ignored when `DEBUG` is false.
+Do not call an OAuth integration verified merely because its consent UI appeared. A connection is
+verified only after fresh consent, persisted identity, and the real two-device push/pull round trip.
 
-### CI note
+## Security and lifecycle
 
-CI materializes `dropbox.appKey` into `local.properties` only when the `DROPBOX_APP_KEY` repository
-secret is supplied; otherwise the build stays on the placeholder. Drive needs no CI secret.
+Disconnect removes local provider credentials, the active binding, provider-scoped sync cursors,
+and scheduled synchronization. It never deletes financial data on the device or the remote
+journal. Legacy remote content is not read, changed, or deleted.
 
----
+## Provider migration
 
-## Deferred
-
-The real, recorded round-trip on the `Pixel_5_API_34` emulator is the **follow-up** step. It is
-pending the user's provider registrations (Dropbox app + Google Cloud OAuth client). This slice
-only wires the debug gate-flip, the CI secret seam, and this guide.
+Switching providers never replaces active credentials in place. MyMoney first asks for a Storage
+Access Framework destination and exports a local database backup. It then reads the target provider
+without mutating local financial data and identifies records already present locally. The user must
+choose whether those colliding records keep current data or use target data; only after that
+decision, a complete staged merge, and a target pull/push does MyMoney commit the new active
+binding. If any step fails, the original binding remains active and the safety backup is available
+for recovery.

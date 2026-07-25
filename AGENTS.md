@@ -300,9 +300,11 @@ done
 - Invoke `$mp --feature <description>`, `$mp --feature --next`, `$mp --bugfix <description>`,
   `$mp --discuss <topic>`, `$mp --spec <description>`, `$mp --coverage`, `$mp --device <Sxx>`,
   `$mp --fit`, `$mp --plan`, `$mp --phase`, `$mp --check`, `$mp --improve`, or `$mp --reflect`.
-- `$mp` is the primary project-local Codex skill in `.agents/skills/mp-dev/SKILL.md`. It is a thin
-  Codex bridge over the installed personal `mp-dev` plugin at
-  `C:\Users\Admin\.codex\plugins\cache\personal\mp-dev\1.10.0+codex.20260701151538`.
+- `$mp --feature --next` and `$mp --backlog <slug>` are execution authorization for an
+  already-approved SPEC: activate it and start Phase 2 without another SPEC/pre-agent `y/N`.
+  Announce activation informationally; keep real safety gates at the transition they protect.
+- `$mp` is provided only by the official `mp-dev@mobile-pipeline` marketplace plugin. The companion
+  `mp-spec@mobile-pipeline` plugin is used for full mobile specification bundles.
 - Claude and Codex share the same project configuration and overrides:
   `.claude/mp/config.json`, `.claude/mp/extras/`, and `.claude/specs/{backlog,active,done}/`.
   Put project-specific skill/agent improvements in `.claude/mp/extras/*` first so both surfaces stay

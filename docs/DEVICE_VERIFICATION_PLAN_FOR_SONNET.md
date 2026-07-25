@@ -2,7 +2,7 @@
 
 > **What this is.** A step-by-step runbook for finishing the on-device (instrumented) test coverage
 > of MyMoney, written so a less-powerful model can execute it mechanically. It **supersedes
-> `docs/DEVICE_VERIFICATION_PLAN_FOR_CODEX.md`** for execution (that doc was written for Codex GPT-5.5
+> `docs/DEVICE_VERIFICATION_PLAN_FOR_CODEX.md`** for execution (that doc was written for Codex GPT-5.6
 > and its coverage numbers are stale). The **single source of progress truth is
 > `docs/DEVICE_VERIFICATION_PROGRESS.md`** — read it first, update it after every green test.
 >

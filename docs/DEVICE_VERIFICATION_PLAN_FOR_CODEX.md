@@ -1,4 +1,4 @@
-# MyMoney — On-Device Test Coverage Remediation — Execution Plan for Codex (GPT-5.5)
+# MyMoney — On-Device Test Coverage Remediation — Execution Plan for Codex (GPT-5.6)
 
 > **SUPERSEDED for execution (2026-05-28).** Active execution now follows
 > `docs/DEVICE_VERIFICATION_PLAN_FOR_SONNET.md` (a step-by-step runbook for Claude Sonnet 4.6). The
@@ -12,7 +12,7 @@
 > tests**, and **24 of 27 screens have zero on-device UI coverage**. TDD **§12.4 + §12.7** required
 > happy/empty/error Compose UI tests for every screen, run on an emulator via
 > `connectedDebugAndroidTest`; **§12.6** required a manual TalkBack/contrast/font pass. This plan closes
-> that gap. **You (Codex, GPT-5.5) run the `Pixel_5_API_34` emulator yourself** and do the full
+> that gap. **You (Codex, GPT-5.6) run the `Pixel_5_API_34` emulator yourself** and do the full
 > write→run→green loop.
 
 You are completing the **device-verification** work that PHASE_15 left open. The app is feature-complete

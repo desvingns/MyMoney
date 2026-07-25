@@ -28,3 +28,17 @@ tool-local memories — tool-local copies remain historical snapshots.
 - `--feature --next` / `--feature --backlog` consume an already-approved SPEC; do not
   ask for an extra pre-agent confirmation gate. (User correction, 2026-07-14.)
 - Compose 1.8 accessibility tests need an explicit `onRoot().tryPerformAccessibilityChecks()` trigger; keep the ATF check isolated and retain manual touch-target assertions, with 23/23 device evidence.
+- Cloud OAuth regression retrospective (2026-07-22): the working Google `drive.appdata` design was
+  replaced without compatibility evidence by Picker/shared-folder storage and then restricted full
+  `drive`; the first repair removed Picker but retained the failing authorization path. Build/unit
+  success was incorrectly treated as OAuth proof and the result was handed to the user unverified.
+  For every external OAuth/sync change, require fresh consent on a real target device, persisted
+  account identity after restart, and an observed remote push/pull before reporting it fixed.
+- Personal cloud product decision (2026-07-22): Dropbox App Folder or Google `appDataFolder`, exactly
+  one active provider/account binding, no user-selected folder, and sync only Transaction/Account/
+  Category. Different provider accounts remain isolated; multi-user collaboration belongs to the
+  separate Supabase Shared-mode backlog epic.
+- Connected-device safety incident (2026-07-22): selecting a Pixel 5 serial in a PowerShell helper
+  does not constrain AGP/UTP; `connectedDebugAndroidTest` can run on every healthy local emulator.
+  Never run the task while user-owned devices are attached. The helper must abort before Gradle when
+  any non-gate device is present, and only a parsed Pixel 5 result may be called device verification.

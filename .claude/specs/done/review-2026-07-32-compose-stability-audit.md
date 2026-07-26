@@ -20,8 +20,8 @@ Stability rests on compiler inference today; one metrics pass either proves it f
 or pinpoints the recomposition leaks. Source: review items 41+50 (P3/S).
 
 ## Implementation links
-- commit: see repository commit for this completed SPEC
-- files: `gradle/libs.versions.toml`, `feature/dashboard`, `feature/transactionslist`
+- commit: `fb8efd62`, `73dad3d2`, `6cb25af9`
+- files: `gradle/libs.versions.toml`, `feature/dashboard`, `feature/transactionslist`, `.claude/specs/done/review-2026-07-32-compose-stability-audit.md`
 
 ## Compose stability audit report
 

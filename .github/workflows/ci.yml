@@ -28,6 +28,9 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Materialize Sentry DSN only when the OQ-1 secret is supplied
+        if: >-
+          github.event_name != 'pull_request' ||
+          !contains(github.event.pull_request.labels.*.name, 'dependency-radar')
         shell: bash
         env:
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
@@ -39,6 +42,9 @@ jobs:
           fi
 
       - name: Materialize Dropbox app key only when the secret is supplied
+        if: >-
+          github.event_name != 'pull_request' ||
+          !contains(github.event.pull_request.labels.*.name, 'dependency-radar')
         shell: bash
         env:
           DROPBOX_APP_KEY: ${{ secrets.DROPBOX_APP_KEY }}
@@ -50,6 +56,9 @@ jobs:
           fi
 
       - name: Materialize Firebase config only when the OQ-9 secret is supplied
+        if: >-
+          github.event_name != 'pull_request' ||
+          !contains(github.event.pull_request.labels.*.name, 'dependency-radar')
         shell: bash
         env:
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
@@ -190,8 +199,7 @@ jobs:
     runs-on: ubuntu-latest
     if: >-
       github.event_name != 'pull_request' ||
-      (!startsWith(github.head_ref, 'renovate/') &&
-      !contains(github.event.pull_request.labels.*.name, 'dependency-radar'))
+      !contains(github.event.pull_request.labels.*.name, 'dependency-radar')
     steps:
       - name: Check out source
         uses: actions/checkout@v4

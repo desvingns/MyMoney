@@ -5,9 +5,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -137,6 +139,66 @@ class BalanceTrendChartUiTest {
         composeTestRule
             .onNodeWithTag(BALANCE_TREND_CHART_TAG)
             .assertExists()
+    }
+
+    @Test
+    fun `scrubbing to a new series redraws the chart and updates its summary`() {
+        val points = mutableStateOf(listOf(10f, 20f, 30f))
+        val initialLabels = listOf("Jan", "Mar")
+        val updatedLabels = listOf("Apr", "Jun")
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                BalanceTrendChart(
+                    points = points.value,
+                    modifier = Modifier.fillMaxWidth(),
+                    labels = if (points.value.first() > 0f) initialLabels else updatedLabels,
+                    metricLabel = "Balance",
+                    showLabels = true,
+                )
+            }
+        }
+        composeTestRule.waitForIdle()
+
+        val initialPeriod = targetString(R.string.balance_trend_chart_period_range, "Jan", "Mar")
+        val initialDescription =
+            targetString(
+                R.string.balance_trend_chart_cd,
+                "Balance",
+                initialPeriod,
+                formatChartValue(10f),
+                formatChartValue(30f),
+                targetString(R.string.balance_trend_chart_direction_increasing),
+            )
+        val initialImage = composeTestRule.onNodeWithTag(BALANCE_TREND_CHART_TAG).captureToImage()
+        val initialPixels = IntArray(initialImage.width * initialImage.height)
+        initialImage.readPixels(initialPixels)
+        composeTestRule.onNodeWithContentDescription(initialDescription).assertExists()
+
+        composeTestRule.runOnIdle {
+            points.value = listOf(-10f, -20f, -30f)
+        }
+        composeTestRule.waitForIdle()
+
+        val updatedPeriod = targetString(R.string.balance_trend_chart_period_range, "Apr", "Jun")
+        val updatedDescription =
+            targetString(
+                R.string.balance_trend_chart_cd,
+                "Balance",
+                updatedPeriod,
+                formatChartValue(-10f),
+                formatChartValue(-30f),
+                targetString(R.string.balance_trend_chart_direction_decreasing),
+            )
+        val updatedImage = composeTestRule.onNodeWithTag(BALANCE_TREND_CHART_TAG).captureToImage()
+        val updatedPixels = IntArray(updatedImage.width * updatedImage.height)
+        updatedImage.readPixels(updatedPixels)
+
+        composeTestRule.onNodeWithContentDescription(updatedDescription).assertExists()
+        assertFalse(
+            "chart pixels must change when the scrubbed series changes",
+            initialPixels.contentEquals(updatedPixels),
+        )
     }
 
     @Test

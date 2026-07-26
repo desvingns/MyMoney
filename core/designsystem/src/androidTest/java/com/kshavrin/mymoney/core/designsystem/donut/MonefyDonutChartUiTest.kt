@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -152,6 +153,61 @@ class MonefyDonutChartUiTest {
                     slices = listOf("Food" to 100),
                 ),
             ).assertExists()
+    }
+
+    @Test
+    fun `updated totals invalidate cached center text after recomposition`() {
+        val income = mutableStateOf(BigDecimal("100.00"))
+        val expense = BigDecimal("50.00")
+        val slices = listOf(slice(label = "Food", fraction = 1.0f))
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                MonefyDonutChart(
+                    income = income.value,
+                    expense = expense,
+                    slices = slices,
+                    modifier = Modifier.size(240.dp),
+                    currencySymbol = "$",
+                    animationSpec = snap(),
+                )
+            }
+        }
+        composeTestRule.waitForIdle()
+
+        val initialImage =
+            composeTestRule
+                .onNodeWithContentDescription(
+                    expectedDescription(
+                        income = "100.00",
+                        expense = "50.00",
+                        slices = listOf("Food" to 100),
+                    ),
+                ).captureToImage()
+        val initialPixels = IntArray(initialImage.width * initialImage.height)
+        initialImage.readPixels(initialPixels)
+
+        composeTestRule.runOnIdle {
+            income.value = BigDecimal("200.00")
+        }
+        composeTestRule.waitForIdle()
+
+        val updatedImage =
+            composeTestRule
+                .onNodeWithContentDescription(
+                    expectedDescription(
+                        income = "200.00",
+                        expense = "50.00",
+                        slices = listOf("Food" to 100),
+                    ),
+                ).captureToImage()
+        val updatedPixels = IntArray(updatedImage.width * updatedImage.height)
+        updatedImage.readPixels(updatedPixels)
+
+        assertFalse(
+            "center totals must be redrawn when the formatted income changes",
+            initialPixels.contentEquals(updatedPixels),
+        )
     }
 
     @Test

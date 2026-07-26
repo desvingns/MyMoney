@@ -1,3 +1,4 @@
+import java.math.BigInteger
 import java.util.Properties
 
 plugins {
@@ -65,12 +66,13 @@ fun String.asBuildConfigString(): String =
 
 /*
  * Release versioning is derived from the checked-out Git history:
- * - versionName is the nearest reachable tag with its optional `v` prefix removed.
- * - versionCode is 1,000,000 plus `git rev-list --count HEAD`. It is reproducible for
- *   a commit and increases along the release branch's history.
- * - CI fetches the full history, so local and CI release builds calculate the same code.
- *   Release tasks fail without complete Git metadata; the fixed fallback is debug-only
- *   for offline IDE builds from exported or shallow sources and cannot reach Play.
+ * - Stable release tags are exactly vMAJOR.MINOR.PATCH. Other tags never affect a release.
+ * - versionName is the highest valid release tag; release packaging requires exactly one
+ *   valid release tag at HEAD.
+ * - versionCode is the migration floor plus the count of valid release tags. Release tags
+ *   are an append-only global counter: never delete or retarget one. CI and local release
+ *   builds use full history, so the counter is identical in both sources.
+ * - A fixed name/code fallback is available only to debug IDE builds without Git metadata.
  */
 fun gitOutput(vararg arguments: String): String? =
     runCatching {
@@ -88,36 +90,70 @@ fun gitOutput(vararg arguments: String): String? =
     }.getOrNull()
 
 val hasCompleteGitHistory = gitOutput("rev-parse", "--is-shallow-repository") == "false"
-val gitCommitCount =
-    if (hasCompleteGitHistory) {
-        gitOutput("rev-list", "--count", "HEAD")?.toIntOrNull()
-    } else {
-        null
-    }
-val usesLocalVersionFallback = gitCommitCount == null
-val versionCodeBase = 1_000_000
-val appVersionCode =
-    gitCommitCount?.let { commitCount ->
-        require(commitCount <= Int.MAX_VALUE - versionCodeBase) {
-            "Git commit count exceeds the Android versionCode range."
-        }
-        versionCodeBase + commitCount
-    } ?: versionCodeBase
-val appVersionName =
-    gitOutput("describe", "--tags", "--abbrev=0")
-        ?.removePrefix("v")
-        ?.takeIf { it.isNotEmpty() }
-        ?: "1.0.0"
-val releaseArtifactRequested =
-    gradle.startParameter.taskNames.any { taskName ->
-        taskName.contains("release", ignoreCase = true) &&
-            (taskName.contains("assemble", ignoreCase = true) ||
-                taskName.contains("bundle", ignoreCase = true) ||
-                taskName.contains("package", ignoreCase = true))
-    }
+val releaseTagPattern = Regex("""^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$""")
+fun validReleaseTags(rawTags: String?): List<String> =
+    rawTags
+        .orEmpty()
+        .lineSequence()
+        .map(String::trim)
+        .filter { it.matches(releaseTagPattern) }
+        .toList()
 
-check(!releaseArtifactRequested || !usesLocalVersionFallback) {
-    "Release artifacts require complete Git history for a monotonic versionCode."
+val allValidReleaseTags =
+    if (hasCompleteGitHistory) {
+        validReleaseTags(gitOutput("tag", "--list"))
+    } else {
+        emptyList()
+    }
+val validReleaseTagsAtHead =
+    if (hasCompleteGitHistory) {
+        validReleaseTags(gitOutput("tag", "--points-at", "HEAD"))
+    } else {
+        emptyList()
+    }
+fun releaseVersionPart(tag: String, group: Int): BigInteger =
+    BigInteger(releaseTagPattern.matchEntire(tag)!!.groupValues[group])
+
+val latestReleaseTag =
+    allValidReleaseTags.maxWithOrNull(
+        compareBy<String> { releaseVersionPart(it, 1) }
+            .thenBy { releaseVersionPart(it, 2) }
+            .thenBy { releaseVersionPart(it, 3) },
+    )
+val versionCodeBase = 1_001_077
+val appVersionCode =
+    if (hasCompleteGitHistory) {
+        require(allValidReleaseTags.size <= Int.MAX_VALUE - versionCodeBase) {
+            "Release tag count exceeds the Android versionCode range."
+        }
+        versionCodeBase + allValidReleaseTags.size
+    } else {
+        versionCodeBase
+    }
+val appVersionName = latestReleaseTag?.removePrefix("v") ?: "0.0.0-dev"
+val packagingTasksRequested =
+    gradle.startParameter.taskNames.map { it.substringAfterLast(':').lowercase() }.filter {
+        it == "assemble" ||
+            it == "bundle" ||
+            it == "package" ||
+            it == "build" ||
+            it.startsWith("assemble") ||
+            it.startsWith("bundle") ||
+            it.startsWith("package")
+    }
+val nonDebugPackagingRequested =
+    packagingTasksRequested.any { taskName ->
+        taskName == "assemble" ||
+            taskName == "bundle" ||
+            taskName == "package" ||
+            taskName == "build" ||
+            !taskName.contains("debug")
+    }
+val releaseVersioningReady =
+    hasCompleteGitHistory && validReleaseTagsAtHead.size == 1
+
+check(!nonDebugPackagingRequested || releaseVersioningReady) {
+    "Non-debug packaging requires a complete checkout at exactly one valid vMAJOR.MINOR.PATCH release tag."
 }
 
 // google-services is applied only when a google-services.json is present

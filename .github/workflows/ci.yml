@@ -3,6 +3,7 @@ name: Android CI
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   pull_request:
   workflow_dispatch:
 
@@ -94,7 +95,7 @@ jobs:
     name: Signed release APK and AAB
     runs-on: ubuntu-latest
     needs: jvm
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref_name, 'v')
     steps:
       - name: Check out source
         uses: actions/checkout@v4

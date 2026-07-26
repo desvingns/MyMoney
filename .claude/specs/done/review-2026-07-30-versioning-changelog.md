@@ -1,7 +1,7 @@
 # Tag-based versioning + CHANGELOG.md
 Epic: review-2026-07
 Order: 30 of 35
-Status: draft
+Status: done
 Depends-on: —
 Date: 2026-07-06
 
@@ -20,5 +20,5 @@ First public release needs reproducible versions and a human-readable history th
 isn't a 263KB log. Source: review items 20+55 (P3/S).
 
 ## Implementation links
-- commit: (pending)
-- files: (pending)
+- commit: 309230bb
+- files: app/build.gradle.kts, .github/workflows/ci.yml, CHANGELOG.md

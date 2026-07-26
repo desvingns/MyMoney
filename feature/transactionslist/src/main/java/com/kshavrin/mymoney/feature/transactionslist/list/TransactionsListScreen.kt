@@ -27,9 +27,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
@@ -194,7 +196,8 @@ private fun TransactionsListRows(
     onEvent: (TransactionsListEvent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val locale = LocalConfiguration.current.locales[0]
+    val localeTag = LocalConfiguration.current.locales[0].toLanguageTag()
+    val locale = remember(localeTag) { TransactionsListLocale(Locale.forLanguageTag(localeTag)) }
     LazyColumn(
         modifier =
             modifier
@@ -203,17 +206,12 @@ private fun TransactionsListRows(
     ) {
         items(
             items = state.records,
-            key = ::transactionsListItemKey,
-        ) { record ->
+            key = { row -> transactionsListItemKey(row.record) },
+        ) { row ->
             TransactionListRow(
-                record = record,
-                currency = (record as? SummaryRecord.Operation)?.let { state.currencies[it.currencyId] },
-                categoryDisplay =
-                    (record as? SummaryRecord.Operation)
-                        ?.categoryId
-                        ?.let(state.categoryDisplays::get),
+                row = row,
                 locale = locale,
-                onClick = { onEvent(TransactionsListEvent.RowClicked(record.id)) },
+                onClick = { onEvent(TransactionsListEvent.RowClicked(row.record.id)) },
             )
         }
     }
@@ -221,93 +219,58 @@ private fun TransactionsListRows(
 
 @Composable
 private fun TransactionListRow(
-    record: SummaryRecord,
-    currency: Currency?,
-    categoryDisplay: TransactionCategoryDisplay?,
-    locale: Locale,
+    row: TransactionsListRecord,
+    locale: TransactionsListLocale,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    when (record) {
+    when (val record = row.record) {
         is SummaryRecord.Operation ->
-            OperationRow(
-                record = record,
-                currency = currency,
-                categoryDisplay = categoryDisplay,
-                locale = locale,
-                onClick = onClick,
+            BaseRecordRow(
                 modifier = modifier.testTag(RecordsTestTags.transaction(record.id)),
-            )
-        is SummaryRecord.Transfer ->
-            TransferRow(
-                record = record,
-                locale = locale,
                 onClick = onClick,
+                leading = {
+                    NeonCategoryIcon(
+                        iconKey = row.categoryDisplay?.iconKey ?: SUMMARY_RECORD_FALLBACK_ICON_KEY,
+                        containerSize = NeonCategoryIconDefaults.CompactContainerSize,
+                        iconSize = NeonCategoryIconDefaults.CompactIconSize,
+                    )
+                },
+                primary = row.categoryDisplay?.name ?: stringResource(R.string.transactions_list_category_other),
+                secondary = record.note,
+                amount = formatOperationAmount(record.amount, row.currency, locale.value),
+                amountColor =
+                    when (record.kind) {
+                        TransactionKind.Income -> MaterialTheme.colorScheme.incomeAccent
+                        TransactionKind.Expense -> MaterialTheme.colorScheme.expenseAccent
+                        TransactionKind.Transfer -> MaterialTheme.colorScheme.transferRowAmount
+                    },
+                date = formatDate(record.timestamp, locale.value),
+            )
+
+        is SummaryRecord.Transfer ->
+            BaseRecordRow(
                 modifier = modifier.testTag(RecordsTestTags.transfer(record.id)),
+                onClick = onClick,
+                leading = {
+                    Icon(
+                        imageVector = Icons.Filled.SwapHoriz,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.transferArrowTint,
+                    )
+                },
+                primary =
+                    stringResource(
+                        R.string.transactions_list_transfer_route,
+                        record.fromAccountName,
+                        record.toAccountName,
+                    ),
+                secondary = record.note,
+                amount = formatMoney(record.amount, locale.value),
+                amountColor = MaterialTheme.colorScheme.transferRowAmount,
+                date = formatDate(record.timestamp, locale.value),
             )
     }
-}
-
-@Composable
-private fun OperationRow(
-    record: SummaryRecord.Operation,
-    currency: Currency?,
-    categoryDisplay: TransactionCategoryDisplay?,
-    locale: Locale,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    BaseRecordRow(
-        modifier = modifier,
-        onClick = onClick,
-        leading = {
-            NeonCategoryIcon(
-                iconKey = categoryDisplay?.iconKey ?: SUMMARY_RECORD_FALLBACK_ICON_KEY,
-                containerSize = NeonCategoryIconDefaults.CompactContainerSize,
-                iconSize = NeonCategoryIconDefaults.CompactIconSize,
-            )
-        },
-        primary = categoryDisplay?.name ?: stringResource(R.string.transactions_list_category_other),
-        secondary = record.note,
-        amount = formatOperationAmount(record.amount, currency, locale),
-        amountColor =
-            when (record.kind) {
-                TransactionKind.Income -> MaterialTheme.colorScheme.incomeAccent
-                TransactionKind.Expense -> MaterialTheme.colorScheme.expenseAccent
-                TransactionKind.Transfer -> MaterialTheme.colorScheme.transferRowAmount
-            },
-        date = formatDate(record.timestamp, locale),
-    )
-}
-
-@Composable
-private fun TransferRow(
-    record: SummaryRecord.Transfer,
-    locale: Locale,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    BaseRecordRow(
-        modifier = modifier,
-        onClick = onClick,
-        leading = {
-            Icon(
-                imageVector = Icons.Filled.SwapHoriz,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.transferArrowTint,
-            )
-        },
-        primary =
-            stringResource(
-                R.string.transactions_list_transfer_route,
-                record.fromAccountName,
-                record.toAccountName,
-            ),
-        secondary = record.note,
-        amount = formatMoney(record.amount, locale),
-        amountColor = MaterialTheme.colorScheme.transferRowAmount,
-        date = formatDate(record.timestamp, locale),
-    )
 }
 
 @Composable
@@ -421,3 +384,8 @@ private fun formatDate(
 
 private const val DEFAULT_OPERATION_DECIMAL_DIGITS = 2
 private const val SUMMARY_RECORD_FALLBACK_ICON_KEY = "ic_cat_other"
+
+@Immutable
+private data class TransactionsListLocale(
+    val value: Locale,
+)

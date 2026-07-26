@@ -1,5 +1,6 @@
 package com.kshavrin.mymoney.feature.dashboard
 
+import androidx.compose.runtime.Immutable
 import com.kshavrin.mymoney.core.designsystem.chart.ChartColorRule
 import com.kshavrin.mymoney.core.designsystem.chart.ChartStyle
 import com.kshavrin.mymoney.core.designsystem.donut.CategorySlice
@@ -15,6 +16,7 @@ import com.kshavrin.mymoney.feature.dashboard.components.CategoryTileItem
 import com.kshavrin.mymoney.feature.dashboard.components.SummaryRecordCategoryDisplay
 import java.time.YearMonth
 
+@Immutable
 data class DashboardState(
     val period: Period = Period.Month(YearMonth.now()),
     val accounts: List<Account> = emptyList(),
@@ -81,6 +83,7 @@ data class DashboardState(
 // operations" (income + expense + transfers); a non-null id filters to that one category (transfers
 // excluded). [categoryName] is the resolved display name used as the sheet title when filtered;
 // null falls back to the localized "all operations" title in the host composable.
+@Immutable
 data class OperationsSummaryState(
     val categoryFilter: Long? = null,
     val categoryName: String? = null,
@@ -93,6 +96,7 @@ data class OperationsSummaryState(
 // only the fields DashboardContent needs to draw a neighbor page and — by design — no neighbor
 // caches of its own, so the precompute never recurses (only the committed center period precomputes
 // neighbors). [isLoading] stays true until the best-effort background job lands.
+@Immutable
 data class PeriodPageState(
     val period: Period,
     val balanceSnapshot: BalanceSnapshot? = null,
@@ -112,6 +116,7 @@ data class PeriodPageState(
 // computed by BalanceCalculator.forAccounts over the accounts in this one currency, so every
 // figure is already in [currency] — no conversion is involved. [trendPoints] is the cumulative
 // balance series for that same currency group (G17); empty when the chart is hidden in settings.
+@Immutable
 data class CurrencyBalanceCard(
     val currency: Currency,
     val snapshot: BalanceSnapshot,

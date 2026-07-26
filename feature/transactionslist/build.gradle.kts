@@ -22,6 +22,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.paging.runtime.ktx)
     implementation(libs.androidx.paging.compose)
+    implementation(libs.kotlinx.collections.immutable)
 
     testImplementation(libs.turbine)
     testImplementation(project(":core:testing"))

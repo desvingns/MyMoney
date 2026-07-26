@@ -8,6 +8,7 @@ import com.kshavrin.mymoney.core.common.exception.reportToSentry
 import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Period
+import com.kshavrin.mymoney.core.domain.model.SummaryRecord
 import com.kshavrin.mymoney.core.domain.repository.AccountRepository
 import com.kshavrin.mymoney.core.domain.repository.CategoryRepository
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
@@ -15,6 +16,7 @@ import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
 import com.kshavrin.mymoney.core.domain.usecase.GetOperationsSummaryUseCase
 import com.kshavrin.mymoney.core.ui.navigation.Destinations
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -109,14 +111,34 @@ class TransactionsListViewModel
             val categories = categoryRepository.observeAll().first()
             val currencies = currencyRepository.observeAll().first()
             val categoryId = _state.value.categoryId
+            val currenciesById = currencies.associateBy { it.id }
+            val categoryDisplays =
+                categories.associate { category ->
+                    category.id to
+                        TransactionCategoryDisplay(
+                            name = category.name,
+                            iconKey = category.iconKey,
+                        )
+                }
             val selection = resolveSelection(currencies)
-            val records =
-                when (selection) {
+            val records = when (selection) {
                     is TransactionsSelection.SpecificAccount ->
                         getOperationsSummary(selection.account.id, period, categoryId)
                     is TransactionsSelection.AllAccounts ->
                         getOperationsSummary.forAccounts(selection.accounts, selection.currency, period, categoryId)
                 }
+                .map { record ->
+                    TransactionsListRecord(
+                        record = record,
+                        currency =
+                            (record as? SummaryRecord.Operation)
+                                ?.let { currenciesById[it.currencyId] },
+                        categoryDisplay =
+                            (record as? SummaryRecord.Operation)
+                                ?.categoryId
+                                ?.let(categoryDisplays::get),
+                    )
+                }.toImmutableList()
 
             _state.value =
                 _state.value.copy(
@@ -124,15 +146,6 @@ class TransactionsListViewModel
                     categoryId = categoryId,
                     categoryName = categoryId?.let { id -> categories.firstOrNull { it.id == id }?.name },
                     records = records,
-                    currencies = currencies.associateBy { it.id },
-                    categoryDisplays =
-                        categories.associate { category ->
-                            category.id to
-                                TransactionCategoryDisplay(
-                                    name = category.name,
-                                    iconKey = category.iconKey,
-                                )
-                        },
                     isLoading = false,
                 )
         }

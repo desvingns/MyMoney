@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,6 +40,7 @@ import com.kshavrin.mymoney.feature.dashboard.R
 import com.kshavrin.mymoney.feature.dashboard.parseHexColor
 import kotlin.math.roundToInt
 
+@Immutable
 data class CategoryTileItem(
     val categoryId: Long,
     val label: String,

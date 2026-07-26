@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -22,7 +23,20 @@ fun CategoryTilesList(
     onTileClick: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    if (expenseTiles.isEmpty()) {
+    CategoryTilesContent(
+        tiles = CategoryTiles(expenseTiles),
+        onTileClick = onTileClick,
+        modifier = modifier,
+    )
+}
+
+@Composable
+private fun CategoryTilesContent(
+    tiles: CategoryTiles,
+    onTileClick: (Long) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (tiles.values.isEmpty()) {
         Box(
             modifier =
                 modifier
@@ -45,7 +59,7 @@ fun CategoryTilesList(
                     .padding(vertical = Spacing.s),
             verticalArrangement = Arrangement.spacedBy(Spacing.s),
         ) {
-            expenseTiles.forEach { tile ->
+            tiles.values.forEach { tile ->
                 CategoryTile(
                     tile = tile,
                     onTileClick = onTileClick,
@@ -54,3 +68,8 @@ fun CategoryTilesList(
         }
     }
 }
+
+@Immutable
+private data class CategoryTiles(
+    val values: List<CategoryTileItem>,
+)

@@ -10,6 +10,14 @@
 
 > Last three session entries are repeated here for fast startup. Full history is archived below.
 
+- **2026-07-26 (Codex MP `--feature --next`, Compose stability audit):** Completed SPEC
+  `review-2026-07-32-compose-stability-audit` in commits `fb8efd62`, `73dad3d2`,
+  `6cb25af9`, and `db7944b6`, with Compose compiler metrics across 11 modules and
+  targeted immutable-state fixes for dashboard/transactions-list hot paths. Changed-module
+  evidence was 356 tests, 0 failures/errors/skips; scoped ktlint and detekt passed; Kover
+  remained blocked by the existing tag-at-HEAD release guard. Pushed to `origin/main` at
+  `db7944b6`; no device run was required.
+
 - **2026-07-26 (Codex MP `--feature --next`, tag-based versioning + CHANGELOG):** Completed SPEC
   `review-2026-07-30-versioning-changelog` in production commits `309230bb`, `965f6c8d`,
   `ff220440`, and `93035933`, with contract tests in `cf7336a2`. Git-derived stable SemVer
@@ -28,15 +36,6 @@
   enabled. Feature contract tests passed 8/8; full parsed JVM evidence was 2912 passed with
   15 pre-existing Robolectric/Kover baseline failures; lint and ktlint were clean. Pushed to
   `origin/main` at `00f49b8a`.
-
-- **2026-07-22 (Codex MP `--feature --next`, property-based tests):** Completed SPEC
-  `review-2026-07-26-property-based-tests` in commits `21d9ac19`, `efcdc029`, `be8897d9`,
-  and `0f697d18`. Added Kotest property coverage for operation merge ordering/tombstones,
-  balance-trend series invariants, and backup rotation monotonicity, with fixed seeds and
-  seed-on-failure reporting. `:core:domain:test` passed 398/0/0/0; feature-owned ktlint is
-  clean. One pre-existing `FactoryResetUseCaseTest.kt` ktlint violation remains in the module
-  baseline. Formal runner/verifier subagents were unavailable after the session usage limit;
-  local ownership/static checks passed. No push performed.
 
 ## Historical session log archives
 

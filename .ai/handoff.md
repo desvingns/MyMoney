@@ -3,6 +3,16 @@
 Phase/release state authority: `docs/implementation_plan/PROGRESS.md` (do not restate it here).
 
 ## DONE
+- 2026-07-26: SPEC `review-2026-07-28-convention-plugins` CLOSED (pushed, 748a8efa). Codex had
+  stopped it after its 2 runner attempts; the migration itself was already complete and correct.
+  Equivalence proven against a `git worktree` at the pre-migration commit `a4e41e06`: dependency
+  graphs identical for all 19 modules (2636 configurations, 32878 coordinates, 0 diffs), 1631 unit
+  tests green, Kover coverage equal to 4 decimals, detekt/ktlint failure sets unchanged. One real
+  regression found and fixed: a stray blank line in `macrobenchmark/build.gradle.kts`.
+  **Why Codex could not finish:** `scripts/mp-runner-android.sh` is structurally incapable of
+  returning `pass:true` in this repo — it runs `:app:jacocoUnitTestReport` (this project uses Kover)
+  and greps for `N tests completed`, a line Gradle prints only on FAILURE. Both are model-independent.
+  The protocol to use instead is now in `.claude/mp/extras/mp-runner-android.md`.
 - 2026-07-10: Codex default model and all five active native `gpt-5.5` specialists
   (`mp-developer-android`, `mp-fidelity-android`, `spec-evaluator`, and both screenshot
   analyzers) were promoted to `gpt-5.6`; existing reasoning effort and sandbox modes remain

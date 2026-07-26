@@ -10,6 +10,15 @@
 
 > Last three session entries are repeated here for fast startup. Full history is archived below.
 
+- **2026-07-26 (Codex MP `--feature --next`, tag-based versioning + CHANGELOG):** Completed SPEC
+  `review-2026-07-30-versioning-changelog` in production commits `309230bb`, `965f6c8d`,
+  `ff220440`, and `93035933`, with contract tests in `cf7336a2`. Git-derived stable SemVer
+  versioning now uses a monotonic numeric scheme with offline fallback and release-task guards;
+  CI validates full-history canonical tags; `CHANGELOG.md` is seeded at summary level. Local
+  immutable tags are `v1.0.0`, `v1.0.1`, `v1.0.2`, and final `v1.0.3`. Reviewer and verifier
+  passed; full `:app:testDebugUnitTest` passed after the final test-only repair. Deterministic
+  runner's stale pre-repair 69/1 result is retained as a limitation; no push performed.
+
 - **2026-07-26 (Codex MP `--feature --next`, dependency-update radar):** Completed SPEC
   `review-2026-07-29-renovate-radar` in commits `1d2490e4`, `7c63a479`, `3f58cff2`,
   `30607c8f`, and `00f49b8a`. Added a monthly, grouped, report-only Renovate radar with
@@ -28,16 +37,6 @@
   clean. One pre-existing `FactoryResetUseCaseTest.kt` ktlint violation remains in the module
   baseline. Formal runner/verifier subagents were unavailable after the session usage limit;
   local ownership/static checks passed. No push performed.
-
-- **2026-07-22 (Codex MP `--feature --next`, two-device journal merge E2E):** Completed SPEC
-  `review-2026-07-25-two-device-merge-e2e` in commits `27fd43c5` and `1bb19fcf`. Added a
-  deterministic Robolectric integration scenario with two in-memory Room databases, fixed device
-  IDs, a fake shared-folder `JournalBackend`, same-time LWW conflicts, delete-vs-edit tombstones,
-  category rename races, bidirectional exchange, full live-state comparison, and peer high-water
-  assertions. Scoped JUnit XML is green (1/0/0/0); lint/detekt and reviewer, semantic, critic, and
-  verifier gates passed. The generic JVM runner emitted its known no-summary/JaCoCo parser
-  false-negative, cleared by XML. Push was attempted twice but timed out; the SPEC and closeout
-  commits remain local ahead of `origin/main`.
 
 ## Historical session log archives
 

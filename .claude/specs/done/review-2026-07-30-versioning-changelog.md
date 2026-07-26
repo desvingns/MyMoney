@@ -20,5 +20,11 @@ First public release needs reproducible versions and a human-readable history th
 isn't a 263KB log. Source: review items 20+55 (P3/S).
 
 ## Implementation links
-- commit: 309230bb
-- files: app/build.gradle.kts, .github/workflows/ci.yml, CHANGELOG.md
+- commits: 309230bb, 965f6c8d, ff220440, 93035933, cf7336a2
+- files: app/build.gradle.kts, .github/workflows/ci.yml, CHANGELOG.md,
+  app/src/test/java/com/kshavrin/mymoney/ReleaseSigningCiContractTest.kt,
+  build-logic/src/test/kotlin/com/kshavrin/mymoney/buildlogic/MymoneyBuildConfigurationContractTest.kt
+- local tags: v1.0.0, v1.0.1, v1.0.2, v1.0.3 (append-only; not pushed)
+- verification: reviewer and verifier passed; full :app:testDebugUnitTest passed after the final
+  test-only repair. The deterministic runner's pre-repair 69/1 result remains documented in
+  PROGRESS; no runner pass is claimed for the final test tree.

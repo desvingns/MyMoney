@@ -10,6 +10,13 @@
 
 > Last three session entries are repeated here for fast startup. Full history is archived below.
 
+- **2026-07-26 (Codex MP `--feature --next`, Monefy decoupling):** Completed SPEC
+  `monefy-decoupling-01-ui-component-rename` in commit `3c3ce219`. Renamed the design-system
+  `Monefy*` UI components and all scoped consumers/tests/baselines without behavior or layout
+  changes. Evidence: 1655 JVM tests and 147 connected design-system tests passed; reviewer,
+  runner, and full verifier passed. SPEC moved to `.claude/specs/done/`; database rename remains
+  the next independent epic slice.
+
 - **2026-07-26 (Codex MP `--feature --next`, Compose stability audit):** Completed SPEC
   `review-2026-07-32-compose-stability-audit` in commits `fb8efd62`, `73dad3d2`,
   `6cb25af9`, and `db7944b6`, with Compose compiler metrics across 11 modules and
@@ -27,15 +34,6 @@
   passed; full `:app:testDebugUnitTest` passed after the final test-only repair. Deterministic
   runner's stale pre-repair 69/1 result is retained as a limitation; no push performed.
 
-- **2026-07-26 (Codex MP `--feature --next`, dependency-update radar):** Completed SPEC
-  `review-2026-07-29-renovate-radar` in commits `1d2490e4`, `7c63a479`, `3f58cff2`,
-  `30607c8f`, and `00f49b8a`. Added a monthly, grouped, report-only Renovate radar with
-  Dependency Dashboard approval, labels, automerge disabled, and TDD-major-bump guidance.
-  CI now keeps secrets out of every pull-request job, skips connected emulator tests only for
-  authenticated `renovate[bot]` or the trusted `dependency-radar` label, and keeps JVM checks
-  enabled. Feature contract tests passed 8/8; full parsed JVM evidence was 2912 passed with
-  15 pre-existing Robolectric/Kover baseline failures; lint and ktlint were clean. Pushed to
-  `origin/main` at `00f49b8a`.
 
 ## Historical session log archives
 

@@ -3,6 +3,11 @@
 Phase/release state authority: `docs/implementation_plan/PROGRESS.md` (do not restate it here).
 
 ## DONE
+- 2026-07-26: SPEC `monefy-decoupling-01-ui-component-rename` CLOSED locally in commit
+  `3c3ce219`. Renamed the design-system Monefy-prefixed UI components, consumers, tests,
+  detekt baseline, and screenshot baselines. Evidence: 1655 JVM tests + 147 connected
+  design-system tests green; reviewer, runner, and verifier passed. Push is the remaining
+  close-out action for this session.
 - 2026-07-26: SPEC `review-2026-07-28-convention-plugins` CLOSED (pushed, 748a8efa). Codex had
   stopped it after its 2 runner attempts; the migration itself was already complete and correct.
   Equivalence proven against a `git worktree` at the pre-migration commit `a4e41e06`: dependency
@@ -28,7 +33,8 @@ Phase/release state authority: `docs/implementation_plan/PROGRESS.md` (do not re
   memories are mirrors.
 
 ## NEXT
-- (owner of the next session) Read PROGRESS.md for the active phase as usual.
+- (owner of the next session) Read PROGRESS.md for the active phase as usual. The next runnable
+  backlog SPEC is `monefy-decoupling-02-database-rename-migration.md` after this session's push.
 
 ## OWNER
 - none (idle)

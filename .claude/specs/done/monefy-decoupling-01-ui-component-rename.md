@@ -1,7 +1,7 @@
 # Rename Monefy* UI components to neutral names
 Epic: monefy-decoupling
 Order: 01 of 02
-Status: draft
+Status: done
 Depends-on: —
 Date: 2026-07-26
 
@@ -24,5 +24,13 @@ Risk is low but not zero — the screenshot tests and the detekt baseline both k
 so a rename that ignores them turns green gates red for unrelated reasons.
 
 ## Implementation links
-- commit: (pending)
-- files: (pending)
+- commit: 3c3ce219 (`feat: rename design system components`)
+- files:
+  - `core/designsystem/src/main/java/.../{amountinput, balancebar, confetti, donut, keypad, pill}/` component and preview renames
+  - `core/designsystem/src/{test,androidTest}/` component tests and screenshot baselines
+  - `core/designsystem/detekt-baseline.xml`
+  - `core/designsystem/src/main/java/.../{amountfield,form}/` consumers
+  - `core/ui/src/test/.../` haptic/sound consumers
+  - `feature/dashboard/.../DashboardScreen.kt`
+  - `feature/transaction/.../transfer/TransferScreen.kt` and related contract test
+  - `feature/transactionslist/.../SearchScreen.kt` and related content test

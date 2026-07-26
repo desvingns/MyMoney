@@ -1,5 +1,6 @@
 import java.math.BigInteger
 import java.util.Properties
+import org.gradle.api.Action
 
 plugins {
     alias(libs.plugins.mymoney.android.application)
@@ -67,11 +68,12 @@ fun String.asBuildConfigString(): String =
 /*
  * Release versioning is derived from the checked-out Git history:
  * - Stable release tags are exactly vMAJOR.MINOR.PATCH. Other tags never affect a release.
- * - versionName is the highest valid release tag; release packaging requires exactly one
- *   valid release tag at HEAD.
- * - versionCode is the migration floor plus the count of valid release tags. Release tags
- *   are an append-only global counter: never delete or retarget one. CI and local release
- *   builds use full history, so the counter is identical in both sources.
+ * - versionName is the highest valid release tag reachable from HEAD; release packaging
+ *   requires exactly one valid release tag at HEAD, also highest among all visible tags.
+ * - versionCode is major * 1_000_000 + minor * 1_000 + patch plus the migration offset.
+ *   Components have explicit Android Int-range limits, and immutable release tags must be
+ *   appended in strictly increasing SemVer order: never delete or retarget a release tag.
+ *   Full Git history makes local and CI release builds use the same value.
  * - A fixed name/code fallback is available only to debug IDE builds without Git metadata.
  */
 fun gitOutput(vararg arguments: String): String? =
@@ -90,7 +92,7 @@ fun gitOutput(vararg arguments: String): String? =
     }.getOrNull()
 
 val hasCompleteGitHistory = gitOutput("rev-parse", "--is-shallow-repository") == "false"
-val releaseTagPattern = Regex("""^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$""")
+val releaseTagPattern = Regex("""^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$""")
 fun validReleaseTags(rawTags: String?): List<String> =
     rawTags
         .orEmpty()
@@ -105,6 +107,12 @@ val allValidReleaseTags =
     } else {
         emptyList()
     }
+val reachableValidReleaseTags =
+    if (hasCompleteGitHistory) {
+        validReleaseTags(gitOutput("tag", "--merged", "HEAD"))
+    } else {
+        emptyList()
+    }
 val validReleaseTagsAtHead =
     if (hasCompleteGitHistory) {
         validReleaseTags(gitOutput("tag", "--points-at", "HEAD"))
@@ -114,47 +122,88 @@ val validReleaseTagsAtHead =
 fun releaseVersionPart(tag: String, group: Int): BigInteger =
     BigInteger(releaseTagPattern.matchEntire(tag)!!.groupValues[group])
 
-val latestReleaseTag =
-    allValidReleaseTags.maxWithOrNull(
+fun latestReleaseTag(tags: List<String>): String? =
+    tags.maxWithOrNull(
         compareBy<String> { releaseVersionPart(it, 1) }
             .thenBy { releaseVersionPart(it, 2) }
             .thenBy { releaseVersionPart(it, 3) },
     )
-val versionCodeBase = 1_001_077
-val appVersionCode =
-    if (hasCompleteGitHistory) {
-        require(allValidReleaseTags.size <= Int.MAX_VALUE - versionCodeBase) {
-            "Release tag count exceeds the Android versionCode range."
-        }
-        versionCodeBase + allValidReleaseTags.size
-    } else {
-        versionCodeBase
-    }
-val appVersionName = latestReleaseTag?.removePrefix("v") ?: "0.0.0-dev"
-val packagingTasksRequested =
-    gradle.startParameter.taskNames.map { it.substringAfterLast(':').lowercase() }.filter {
-        it == "assemble" ||
-            it == "bundle" ||
-            it == "package" ||
-            it == "build" ||
-            it.startsWith("assemble") ||
-            it.startsWith("bundle") ||
-            it.startsWith("package")
-    }
-val nonDebugPackagingRequested =
-    packagingTasksRequested.any { taskName ->
-        taskName == "assemble" ||
-            taskName == "bundle" ||
-            taskName == "package" ||
-            taskName == "build" ||
-            !taskName.contains("debug")
-    }
-val releaseVersioningReady =
-    hasCompleteGitHistory && validReleaseTagsAtHead.size == 1
+val latestGlobalReleaseTag = latestReleaseTag(allValidReleaseTags)
+val latestReachableReleaseTag = latestReleaseTag(reachableValidReleaseTags)
+val maxReleaseMajor = BigInteger.valueOf(2_146L)
+val maxReleaseMinor = BigInteger.valueOf(999L)
+val maxReleasePatch = BigInteger.valueOf(999L)
+val releaseCodeMajorMultiplier = BigInteger.valueOf(1_000_000L)
+val releaseCodeMinorMultiplier = BigInteger.valueOf(1_000L)
+val releaseCodeMigrationOffset = BigInteger.valueOf(1_077L)
 
-check(!nonDebugPackagingRequested || releaseVersioningReady) {
-    "Non-debug packaging requires a complete checkout at exactly one valid vMAJOR.MINOR.PATCH release tag."
+fun releaseVersionCode(tag: String): Int {
+    val match = requireNotNull(releaseTagPattern.matchEntire(tag))
+    val major = BigInteger(match.groupValues[1])
+    val minor = BigInteger(match.groupValues[2])
+    val patch = BigInteger(match.groupValues[3])
+    require(major <= maxReleaseMajor) { "SemVer major exceeds Android versionCode range." }
+    require(minor <= maxReleaseMinor) { "SemVer minor exceeds Android versionCode range." }
+    require(patch <= maxReleasePatch) { "SemVer patch exceeds Android versionCode range." }
+    val versionCode =
+        major
+            .multiply(releaseCodeMajorMultiplier)
+            .add(minor.multiply(releaseCodeMinorMultiplier))
+            .add(patch)
+            .add(releaseCodeMigrationOffset)
+    require(versionCode <= BigInteger.valueOf(Int.MAX_VALUE.toLong())) {
+        "SemVer exceeds Android versionCode Int range."
+    }
+    return versionCode.toInt()
 }
+
+val debugVersionCodeFallback = 1_001_077
+val appVersionCode =
+    latestReachableReleaseTag
+        ?.let { tag -> runCatching { releaseVersionCode(tag) }.getOrNull() }
+        ?: debugVersionCodeFallback
+val appVersionName = latestReachableReleaseTag?.removePrefix("v") ?: "0.0.0-dev"
+val releaseTagAtHead = validReleaseTagsAtHead.singleOrNull()
+val releaseTriggerTag =
+    providers.environmentVariable("GITHUB_REF_NAME").orNull?.takeIf { it.isNotBlank() }
+val releaseVersioningReady =
+    hasCompleteGitHistory &&
+        releaseTagAtHead != null &&
+        releaseTagAtHead == latestReachableReleaseTag &&
+        releaseTagAtHead == latestGlobalReleaseTag &&
+        releaseTagAtHead?.let { tag -> runCatching { releaseVersionCode(tag) }.isSuccess } == true &&
+        (releaseTriggerTag == null || releaseTriggerTag == releaseTagAtHead)
+
+fun isNonDebugPackagingTask(taskPath: String): Boolean {
+    val taskName = taskPath.substringAfterLast(':').lowercase()
+    val isPackagingTask =
+        taskName == "build" ||
+            taskName.startsWith("build") ||
+            taskName == "assemble" ||
+            taskName.startsWith("assemble") ||
+            taskName == "bundle" ||
+            taskName.startsWith("bundle") ||
+            taskName == "package" ||
+            taskName.startsWith("package")
+    return isPackagingTask && !taskName.contains("debug")
+}
+
+fun requireReleaseVersioning() {
+    check(releaseVersioningReady) {
+        "Non-debug packaging requires the highest valid vMAJOR.MINOR.PATCH tag at HEAD in complete Git history."
+    }
+}
+
+if (gradle.startParameter.taskNames.any(::isNonDebugPackagingTask)) {
+    requireReleaseVersioning()
+}
+gradle.taskGraph.whenReady(
+    Action { taskGraph ->
+        if (taskGraph.allTasks.any { isNonDebugPackagingTask(it.path) }) {
+            requireReleaseVersioning()
+        }
+    },
+)
 
 // google-services is applied only when a google-services.json is present
 // (firebase.enabled=true); the default build ships without Firebase.

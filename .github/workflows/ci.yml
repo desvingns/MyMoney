@@ -96,6 +96,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: jvm
     if: github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref_name, 'v')
+    concurrency:
+      group: mymoney-release
+      cancel-in-progress: false
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -111,6 +114,36 @@ jobs:
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
+
+      - name: Validate canonical release tag
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          semver_regex='^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
+          if [[ ! "$RELEASE_TAG" =~ $semver_regex ]]; then
+            echo "::error::Release ref must be an exact stable SemVer tag: vMAJOR.MINOR.PATCH."
+            exit 1
+          fi
+
+          if [[ "$(git rev-parse HEAD)" != "$(git rev-parse "$RELEASE_TAG^{commit}")" ]]; then
+            echo "::error::The release tag must point at the checked-out commit."
+            exit 1
+          fi
+
+          valid_tags="$(git tag --list | grep -E "$semver_regex" | sort -V || true)"
+          head_valid_tags="$(git tag --points-at HEAD | grep -E "$semver_regex" || true)"
+          head_valid_tag_count="$(printf '%s\n' "$head_valid_tags" | sed '/^$/d' | wc -l)"
+          highest_valid_tag="$(printf '%s\n' "$valid_tags" | sed '/^$/d' | tail -n 1)"
+
+          if [[ "$head_valid_tag_count" -ne 1 || "$head_valid_tags" != "$RELEASE_TAG" ]]; then
+            echo "::error::The trigger must be the sole valid stable tag at HEAD."
+            exit 1
+          fi
+          if [[ -z "$highest_valid_tag" || "$highest_valid_tag" != "$RELEASE_TAG" ]]; then
+            echo "::error::The trigger must be the highest valid stable tag visible to the checkout."
+            exit 1
+          fi
 
       - name: Materialize Sentry DSN only when the OQ-1 secret is supplied
         shell: bash

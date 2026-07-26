@@ -66,7 +66,7 @@ class ReleaseSigningCiContractTest {
 
     @Test
     fun `workflow materializes signing secrets into gradle env contract without writing passwords to local properties`() {
-        val text = workflowFile.readText()
+        val text = releaseJobText(workflowFile.readText())
 
         assertContainsAll(
             text,
@@ -97,19 +97,55 @@ class ReleaseSigningCiContractTest {
 
     @Test
     fun `workflow builds and uploads signed apk and aab artifacts`() {
-        val text = workflowFile.readText()
+        val text = releaseJobText(workflowFile.readText())
 
         assertContainsAll(
             text,
             listOf(
                 "name: Signed release APK and AAB",
                 "needs: jvm",
-                "if: github.event_name != 'pull_request'",
+                "if: github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref_name, 'v')",
+                "concurrency:",
+                "group: mymoney-release",
+                "cancel-in-progress: false",
                 "run: ./gradlew :app:assembleRelease :app:bundleRelease \$FIREBASE_ARGS --stacktrace",
                 "name: app-release.apk",
                 "path: app/build/outputs/apk/release/*.apk",
                 "name: app-release.aab",
                 "path: app/build/outputs/bundle/release/*.aab",
+            ),
+        )
+    }
+
+    @Test
+    fun `release job validates exact canonical tag provenance`() {
+        val workflow = workflowFile.readText()
+        val text = releaseJobText(workflow)
+
+        assertContainsInOrder(
+            text,
+            listOf(
+                "if: github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref_name, 'v')",
+                "fetch-depth: 0",
+                "semver_regex='^v(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\$'",
+                "if [[ ! \"\$RELEASE_TAG\" =~ \$semver_regex ]]; then",
+                "git rev-parse HEAD",
+                "git rev-parse \"\$RELEASE_TAG^{commit}\"",
+                "git tag --list",
+                "git tag --points-at HEAD",
+                "sort -V",
+                "head_valid_tag_count",
+                "highest_valid_tag",
+            ),
+        )
+        assertFalse(text.contains("github.event_name != 'pull_request'"))
+        assertContainsInOrder(
+            workflow,
+            listOf(
+                "    branches: [main]",
+                "    tags: [\"v*\"]",
+                "  pull_request:",
+                "  workflow_dispatch:",
             ),
         )
     }
@@ -160,6 +196,14 @@ class ReleaseSigningCiContractTest {
             assertTrue("Expected to find '$fragment' after index $startIndex", index >= 0)
             startIndex = index + fragment.length
         }
+    }
+
+    private fun releaseJobText(workflow: String): String {
+        val releaseStart = workflow.indexOf("\n  release:")
+        assertTrue("Expected a release job in the workflow", releaseStart >= 0)
+        val nextJob = workflow.indexOf("\n  connected:", startIndex = releaseStart)
+        assertTrue("Expected a job after the release job", nextJob > releaseStart)
+        return workflow.substring(releaseStart, nextJob)
     }
 
     private companion object {

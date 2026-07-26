@@ -71,8 +71,9 @@ class GoogleDriveRepository
                         label = user.emailAddress?.takeIf { it.isNotBlank() } ?: email,
                     )
                 }.let(Result.Companion::success)
+            } catch (t: CancellationException) {
+                throw t
             } catch (t: Throwable) {
-                if (t is CancellationException) throw t
                 Result.failure(SyncException(mapGdriveError(t)))
             }
 

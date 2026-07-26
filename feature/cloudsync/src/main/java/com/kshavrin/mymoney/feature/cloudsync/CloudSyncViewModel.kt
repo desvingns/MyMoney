@@ -359,7 +359,9 @@ class CloudSyncViewModel
             showError(mapError((t as? SyncException)?.syncError ?: SyncError.Unknown))
         }
 
-        private fun showError(@StringRes error: Int) {
+        private fun showError(
+            @StringRes error: Int,
+        ) {
             _state.value = _state.value.copy(errorBannerRes = error)
         }
 

@@ -37,11 +37,6 @@ class ChartLabelsTest {
         yearMonth: YearMonth,
     ) = TrendPoint(index = index, period = Period.Month(yearMonth), value = money())
 
-    private fun hourSlotPoint(
-        index: Int,
-        dayDate: LocalDate = LocalDate.of(2026, 6, 1),
-    ) = TrendPoint(index = index, period = Period.Day(dayDate), value = money())
-
     private fun rangePoint(
         index: Int,
         start: LocalDate,

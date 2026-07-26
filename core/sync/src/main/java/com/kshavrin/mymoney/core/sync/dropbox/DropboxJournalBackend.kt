@@ -104,8 +104,9 @@ class DropboxJournalBackend
                 do {
                     try {
                         return@withContext Result.success(block())
+                    } catch (t: CancellationException) {
+                        throw t
                     } catch (t: Throwable) {
-                        if (t is CancellationException) throw t
                         lastError = t
                         val backoff = transientBackoffMillis(t, attempt) ?: break
                         delay(backoff)

@@ -237,8 +237,7 @@ class TransactionFormContentUiTest {
         composeTestRule
             .onNodeWithContentDescription(
                 targetString(R.string.transaction_form_category_cd, "Food"),
-            )
-            .assertIsDisplayed()
+            ).assertIsDisplayed()
         composeTestRule
             .onNodeWithTag(CATEGORY_GRID_ADD_CELL_TAG)
             .assertIsDisplayed()
@@ -277,8 +276,7 @@ class TransactionFormContentUiTest {
         composeTestRule
             .onNodeWithContentDescription(
                 targetString(R.string.transaction_form_category_cd, "Food"),
-            )
-            .performClick()
+            ).performClick()
         composeTestRule
             .onNodeWithTag(CATEGORY_GRID_ADD_CELL_TAG)
             .performClick()

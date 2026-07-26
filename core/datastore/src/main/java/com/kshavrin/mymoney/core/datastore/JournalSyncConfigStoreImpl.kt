@@ -41,7 +41,9 @@ class JournalSyncConfigStoreImpl
             dataStore.edit { prefs ->
                 val current = prefs.toBindingOrNull()
                 if (current != null) {
-                    prefs.asMap().keys
+                    prefs
+                        .asMap()
+                        .keys
                         .filter { it.name.startsWith(scopePrefix(current)) }
                         .forEach { prefs -= it }
                 }

@@ -22,7 +22,6 @@ import org.robolectric.annotation.GraphicsMode
 @Config(sdk = [34], application = android.app.Application::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class FactoryResetDialogContentTest {
-
     @get:Rule
     val composeTestRule = createComposeRule()
 
@@ -102,28 +101,28 @@ class FactoryResetDialogContentTest {
     fun `TypeWord step shows the typed-word confirm field`() {
         setContent(SettingsState(factoryResetStep = FactoryResetStep.TypeWord, factoryResetConfirmText = ""))
 
-        composeTestRule.onNodeWithTag(FactoryResetConfirmFieldTag).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(FACTORY_RESET_CONFIRM_FIELD_TAG).assertIsDisplayed()
     }
 
     @Test
     fun `destructive button is disabled when confirm text is empty`() {
         setContent(SettingsState(factoryResetStep = FactoryResetStep.TypeWord, factoryResetConfirmText = ""))
 
-        composeTestRule.onNodeWithTag(FactoryResetConfirmButtonTag).assertIsNotEnabled()
+        composeTestRule.onNodeWithTag(FACTORY_RESET_CONFIRM_BUTTON_TAG).assertIsNotEnabled()
     }
 
     @Test
     fun `destructive button is disabled when confirm text is partial match`() {
         setContent(SettingsState(factoryResetStep = FactoryResetStep.TypeWord, factoryResetConfirmText = "RES"))
 
-        composeTestRule.onNodeWithTag(FactoryResetConfirmButtonTag).assertIsNotEnabled()
+        composeTestRule.onNodeWithTag(FACTORY_RESET_CONFIRM_BUTTON_TAG).assertIsNotEnabled()
     }
 
     @Test
     fun `destructive button is disabled when confirm text is lowercase reset`() {
         setContent(SettingsState(factoryResetStep = FactoryResetStep.TypeWord, factoryResetConfirmText = "reset"))
 
-        composeTestRule.onNodeWithTag(FactoryResetConfirmButtonTag).assertIsNotEnabled()
+        composeTestRule.onNodeWithTag(FACTORY_RESET_CONFIRM_BUTTON_TAG).assertIsNotEnabled()
     }
 
     @Test
@@ -135,7 +134,7 @@ class FactoryResetDialogContentTest {
             ),
         )
 
-        composeTestRule.onNodeWithTag(FactoryResetConfirmButtonTag).assertIsEnabled()
+        composeTestRule.onNodeWithTag(FACTORY_RESET_CONFIRM_BUTTON_TAG).assertIsEnabled()
     }
 
     @Test
@@ -149,7 +148,7 @@ class FactoryResetDialogContentTest {
             onEvent = { lastEvent = it },
         )
 
-        composeTestRule.onNodeWithTag(FactoryResetConfirmButtonTag).performClick()
+        composeTestRule.onNodeWithTag(FACTORY_RESET_CONFIRM_BUTTON_TAG).performClick()
 
         assertEquals(SettingsEvent.FactoryResetConfirmed, lastEvent)
     }
@@ -177,6 +176,6 @@ class FactoryResetDialogContentTest {
             ),
         )
 
-        composeTestRule.onNodeWithTag(FactoryResetConfirmButtonTag).assertIsNotEnabled()
+        composeTestRule.onNodeWithTag(FACTORY_RESET_CONFIRM_BUTTON_TAG).assertIsNotEnabled()
     }
 }

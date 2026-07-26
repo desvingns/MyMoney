@@ -1,7 +1,7 @@
 package com.kshavrin.mymoney.navigation
 
-import com.kshavrin.mymoney.feature.dashboard.DashboardAction
 import com.kshavrin.mymoney.core.ui.navigation.Destinations
+import com.kshavrin.mymoney.feature.dashboard.DashboardAction
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -137,50 +137,140 @@ class DestinationsTest {
     fun `argument owning view models decode typed routes and navigation preserves replace semantics`() {
         assertTrue(
             readProjectSource(
-                "feature", "transaction", "src", "main", "java", "com", "kshavrin", "mymoney",
-                "feature", "transaction", "rate", "CurrencyRateViewModel.kt",
+                "feature",
+                "transaction",
+                "src",
+                "main",
+                "java",
+                "com",
+                "kshavrin",
+                "mymoney",
+                "feature",
+                "transaction",
+                "rate",
+                "CurrencyRateViewModel.kt",
             ).contains("savedStateHandle.toRoute<Destinations.CurrencyRate>()"),
         )
         listOf(
             "CurrencyRate" to
                 arrayOf(
-                    "feature", "transaction", "src", "main", "java", "com", "kshavrin", "mymoney",
-                    "feature", "transaction", "rate", "CurrencyRateViewModel.kt",
+                    "feature",
+                    "transaction",
+                    "src",
+                    "main",
+                    "java",
+                    "com",
+                    "kshavrin",
+                    "mymoney",
+                    "feature",
+                    "transaction",
+                    "rate",
+                    "CurrencyRateViewModel.kt",
                 ),
             "TransactionsList" to
                 arrayOf(
-                    "feature", "transactionslist", "src", "main", "java", "com", "kshavrin", "mymoney",
-                    "feature", "transactionslist", "list", "TransactionsListViewModel.kt",
+                    "feature",
+                    "transactionslist",
+                    "src",
+                    "main",
+                    "java",
+                    "com",
+                    "kshavrin",
+                    "mymoney",
+                    "feature",
+                    "transactionslist",
+                    "list",
+                    "TransactionsListViewModel.kt",
                 ),
             "TransactionDetail" to
                 arrayOf(
-                    "feature", "transactionslist", "src", "main", "java", "com", "kshavrin", "mymoney",
-                    "feature", "transactionslist", "detail", "TransactionDetailViewModel.kt",
+                    "feature",
+                    "transactionslist",
+                    "src",
+                    "main",
+                    "java",
+                    "com",
+                    "kshavrin",
+                    "mymoney",
+                    "feature",
+                    "transactionslist",
+                    "detail",
+                    "TransactionDetailViewModel.kt",
                 ),
             "ImportWizard" to
                 arrayOf(
-                    "feature", "settings", "src", "main", "java", "com", "kshavrin", "mymoney",
-                    "feature", "settings", "importwizard", "ImportWizardViewModel.kt",
+                    "feature",
+                    "settings",
+                    "src",
+                    "main",
+                    "java",
+                    "com",
+                    "kshavrin",
+                    "mymoney",
+                    "feature",
+                    "settings",
+                    "importwizard",
+                    "ImportWizardViewModel.kt",
                 ),
             "CategoryEdit" to
                 arrayOf(
-                    "feature", "dictionaries", "src", "main", "java", "com", "kshavrin", "mymoney",
-                    "feature", "dictionaries", "categories", "CategoryEditViewModel.kt",
+                    "feature",
+                    "dictionaries",
+                    "src",
+                    "main",
+                    "java",
+                    "com",
+                    "kshavrin",
+                    "mymoney",
+                    "feature",
+                    "dictionaries",
+                    "categories",
+                    "CategoryEditViewModel.kt",
                 ),
             "AccountEdit" to
                 arrayOf(
-                    "feature", "dictionaries", "src", "main", "java", "com", "kshavrin", "mymoney",
-                    "feature", "dictionaries", "accounts", "AccountEditViewModel.kt",
+                    "feature",
+                    "dictionaries",
+                    "src",
+                    "main",
+                    "java",
+                    "com",
+                    "kshavrin",
+                    "mymoney",
+                    "feature",
+                    "dictionaries",
+                    "accounts",
+                    "AccountEditViewModel.kt",
                 ),
             "FinancialGoalEdit" to
                 arrayOf(
-                    "feature", "dictionaries", "src", "main", "java", "com", "kshavrin", "mymoney",
-                    "feature", "dictionaries", "goals", "GoalEditViewModel.kt",
+                    "feature",
+                    "dictionaries",
+                    "src",
+                    "main",
+                    "java",
+                    "com",
+                    "kshavrin",
+                    "mymoney",
+                    "feature",
+                    "dictionaries",
+                    "goals",
+                    "GoalEditViewModel.kt",
                 ),
             "CurrencyEdit" to
                 arrayOf(
-                    "feature", "dictionaries", "src", "main", "java", "com", "kshavrin", "mymoney",
-                    "feature", "dictionaries", "currencies", "CurrencyEditViewModel.kt",
+                    "feature",
+                    "dictionaries",
+                    "src",
+                    "main",
+                    "java",
+                    "com",
+                    "kshavrin",
+                    "mymoney",
+                    "feature",
+                    "dictionaries",
+                    "currencies",
+                    "CurrencyEditViewModel.kt",
                 ),
         ).forEach { (destination, viewModelPath) ->
             val viewModelSource = readProjectSource(*viewModelPath)

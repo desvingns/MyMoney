@@ -7,7 +7,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class FactoryResetUseCaseTest {
-
     private class FakeFactoryResetGateway : FactoryResetGateway {
         val callOrder: MutableList<String> = mutableListOf()
         private val failures = mutableMapOf<String, Throwable>()

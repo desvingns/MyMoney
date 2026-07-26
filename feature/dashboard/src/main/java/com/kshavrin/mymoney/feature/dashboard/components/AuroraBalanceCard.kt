@@ -104,8 +104,7 @@ fun AuroraBalanceCard(
                         .semantics {
                             contentDescription = trendChartLabel
                             role = Role.Button
-                        }
-                        .testTag(DASHBOARD_TREND_CHART_TAG),
+                        }.testTag(DASHBOARD_TREND_CHART_TAG),
             ) {
                 BalanceTrendChart(
                     points = points,
@@ -131,8 +130,7 @@ fun AuroraBalanceCard(
                         .semantics {
                             contentDescription = hiddenHintLabel
                             role = Role.Button
-                        }
-                        .testTag(DASHBOARD_CHART_HIDDEN_HINT_TAG),
+                        }.testTag(DASHBOARD_CHART_HIDDEN_HINT_TAG),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(

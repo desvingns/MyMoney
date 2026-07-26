@@ -26,11 +26,11 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.IntOffset
-import com.kshavrin.mymoney.feature.dashboard.R
 import com.kshavrin.mymoney.core.ui.theme.LocalMotion
 import com.kshavrin.mymoney.core.ui.theme.dashboardDrawerPanelContainer
 import com.kshavrin.mymoney.core.ui.theme.dashboardDrawerPanelContent
 import com.kshavrin.mymoney.core.ui.theme.dashboardDrawerScrim
+import com.kshavrin.mymoney.feature.dashboard.R
 
 enum class DrawerSide {
     Left,

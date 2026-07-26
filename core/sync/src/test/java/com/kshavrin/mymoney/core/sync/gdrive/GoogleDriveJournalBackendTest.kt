@@ -22,11 +22,12 @@ class GoogleDriveJournalBackendTest {
     }
 
     @Test
-    fun `journal operations require a stored account`() = runTest {
-        val result = backend().uploadJournal("device", byteArrayOf())
-        assertTrue(result.isFailure)
-        assertEquals(SyncError.Auth, (result.exceptionOrNull() as SyncException).syncError)
-    }
+    fun `journal operations require a stored account`() =
+        runTest {
+            val result = backend().uploadJournal("device", byteArrayOf())
+            assertTrue(result.isFailure)
+            assertEquals(SyncError.Auth, (result.exceptionOrNull() as SyncException).syncError)
+        }
 
     private fun backend(
         authorizer: GoogleDriveAuthorizer = FailingAuthorizer,
@@ -37,11 +38,25 @@ class GoogleDriveJournalBackendTest {
         override suspend fun accessToken(accountEmail: String): Result<String> = Result.failure(SyncException(SyncError.Auth))
     }
 
-    private class FakeSecureStorage(private var settings: SecureSettings = SecureSettings()) : SecureStorage {
+    private class FakeSecureStorage(
+        private var settings: SecureSettings = SecureSettings(),
+    ) : SecureStorage {
         override fun read() = settings
-        override fun writeDropboxRefreshToken(token: String?) { settings = settings.copy(dropboxRefreshToken = token) }
-        override fun writeGdriveAccountEmail(email: String?) { settings = settings.copy(gdriveAccountEmail = email) }
-        override fun writePinHash(hash: String?) { settings = settings.copy(pinHash = hash) }
-        override fun clearAll() { settings = SecureSettings() }
+
+        override fun writeDropboxRefreshToken(token: String?) {
+            settings = settings.copy(dropboxRefreshToken = token)
+        }
+
+        override fun writeGdriveAccountEmail(email: String?) {
+            settings = settings.copy(gdriveAccountEmail = email)
+        }
+
+        override fun writePinHash(hash: String?) {
+            settings = settings.copy(pinHash = hash)
+        }
+
+        override fun clearAll() {
+            settings = SecureSettings()
+        }
     }
 }

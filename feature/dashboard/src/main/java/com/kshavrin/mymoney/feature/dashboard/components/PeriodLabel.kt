@@ -38,7 +38,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 import com.kshavrin.mymoney.core.domain.model.Period
 import com.kshavrin.mymoney.core.ui.theme.Spacing
@@ -256,14 +255,6 @@ private fun AutoShrinkPeriodTitle(
         softWrap = allowedLines > 1,
         modifier = modifier,
     )
-}
-
-private fun shrinkOneStep(
-    current: TextUnit,
-    floor: TextUnit,
-): TextUnit {
-    val next = (current.value - 1f).sp
-    return if (next.value < floor.value) floor else next
 }
 
 internal fun Period.localizedLabel(

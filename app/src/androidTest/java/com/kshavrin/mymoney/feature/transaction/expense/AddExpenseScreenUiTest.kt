@@ -8,8 +8,8 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.junit4.accessibility.enableAccessibilityChecks
+import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -26,6 +26,8 @@ import com.kshavrin.mymoney.core.domain.model.Category
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import com.kshavrin.mymoney.feature.transaction.R
+import com.kshavrin.mymoney.test.assertTouchHeightIsAtLeast
+import com.kshavrin.mymoney.test.assertTouchWidthIsAtLeast
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -35,8 +37,6 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
-import com.kshavrin.mymoney.test.assertTouchHeightIsAtLeast
-import com.kshavrin.mymoney.test.assertTouchWidthIsAtLeast
 
 @RunWith(AndroidJUnit4::class)
 class AddExpenseScreenUiTest {
@@ -69,7 +69,8 @@ class AddExpenseScreenUiTest {
         composeTestRule
             .onNodeWithTag(CATEGORY_GRID_ADD_CELL_TAG)
             .assertDoesNotExist()
-        composeTestRule.onNode(hasText("7") and hasClickAction())
+        composeTestRule
+            .onNode(hasText("7") and hasClickAction())
             .assertTouchWidthIsAtLeast(48.dp)
             .assertTouchHeightIsAtLeast(48.dp)
     }
@@ -225,8 +226,7 @@ class AddExpenseScreenUiTest {
         composeTestRule
             .onNodeWithContentDescription(
                 targetString(DesignSystemR.string.transaction_form_category_cd, "Food"),
-            )
-            .assertIsDisplayed()
+            ).assertIsDisplayed()
             .assertTouchWidthIsAtLeast(48.dp)
             .assertTouchHeightIsAtLeast(48.dp)
         composeTestRule
@@ -295,8 +295,7 @@ class AddExpenseScreenUiTest {
         composeTestRule
             .onNodeWithContentDescription(
                 targetString(DesignSystemR.string.amountfield_date_cd, dateLabel(selectedDate)),
-            )
-            .assertTouchWidthIsAtLeast(48.dp)
+            ).assertTouchWidthIsAtLeast(48.dp)
             .assertTouchHeightIsAtLeast(48.dp)
             .performClick()
         composeTestRule.onNodeWithText(dateLabel(selectedDate)).performClick()
@@ -349,8 +348,7 @@ class AddExpenseScreenUiTest {
         composeTestRule
             .onNodeWithContentDescription(
                 targetString(DesignSystemR.string.transaction_form_category_cd, "Food"),
-            )
-            .assertIsDisplayed()
+            ).assertIsDisplayed()
             .assertTouchWidthIsAtLeast(48.dp)
             .assertTouchHeightIsAtLeast(48.dp)
             .performClick()

@@ -48,7 +48,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavBackStackEntry
-import androidx.navigation.NavController
 import com.kshavrin.mymoney.core.designsystem.amountfield.AmountFieldEvent
 import com.kshavrin.mymoney.core.designsystem.amountfield.AmountFieldSection
 import com.kshavrin.mymoney.core.designsystem.amountfield.AmountFieldState
@@ -71,7 +70,6 @@ import java.time.ZoneOffset
 @Composable
 fun TransactionDetailRoute(
     onBack: () -> Unit,
-    navController: NavController,
     backStackEntry: NavBackStackEntry,
     onNavigateToCreateCategory: (String) -> Unit,
     viewModel: TransactionDetailViewModel = hiltViewModel(),

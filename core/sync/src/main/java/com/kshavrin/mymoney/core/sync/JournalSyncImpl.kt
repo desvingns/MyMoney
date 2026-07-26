@@ -192,8 +192,9 @@ class JournalSyncImpl
         private suspend fun <T> runMigrationStep(block: suspend () -> T): Result<T> =
             try {
                 Result.success(block())
+            } catch (t: CancellationException) {
+                throw t
             } catch (t: Throwable) {
-                if (t is CancellationException) throw t
                 Result.failure(t)
             }
 

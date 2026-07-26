@@ -11,6 +11,8 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.domain.model.Period
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import com.kshavrin.mymoney.feature.dashboard.R
+import com.kshavrin.mymoney.test.assertTouchHeightIsAtLeast
+import com.kshavrin.mymoney.test.assertTouchWidthIsAtLeast
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -20,8 +22,6 @@ import org.junit.runner.RunWith
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.TimeZone
-import com.kshavrin.mymoney.test.assertTouchHeightIsAtLeast
-import com.kshavrin.mymoney.test.assertTouchWidthIsAtLeast
 
 @RunWith(AndroidJUnit4::class)
 class PeriodStripUiTest {

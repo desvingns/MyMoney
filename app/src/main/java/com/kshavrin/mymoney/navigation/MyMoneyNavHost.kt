@@ -118,7 +118,6 @@ fun MyMoneyNavHost(
         composable<Destinations.TransactionDetail> { entry ->
             com.kshavrin.mymoney.feature.transactionslist.detail.TransactionDetailRoute(
                 onBack = { navController.popBackStack() },
-                navController = navController,
                 backStackEntry = entry,
                 onNavigateToCreateCategory = { kind ->
                     navController.navigate(

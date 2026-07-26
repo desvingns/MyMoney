@@ -104,8 +104,7 @@ class GoalsListContentUiTest {
                     amountText,
                     targetString(R.string.goals_variant_savings),
                 ),
-            )
-            .assertIsDisplayed()
+            ).assertIsDisplayed()
     }
 
     @Test
@@ -141,8 +140,7 @@ class GoalsListContentUiTest {
                     amountText,
                     targetString(R.string.goals_variant_credit),
                 ),
-            )
-            .assertIsDisplayed()
+            ).assertIsDisplayed()
     }
 
     @Test

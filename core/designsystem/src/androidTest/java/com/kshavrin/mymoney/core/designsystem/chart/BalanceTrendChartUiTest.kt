@@ -412,10 +412,15 @@ class BalanceTrendChartUiTest {
             .getString(resourceId, *formatArgs)
 
     private fun formatChartValue(value: Float): String {
-        val locale = InstrumentationRegistry.getInstrumentation().targetContext.resources.configuration.locales[0]
-        return NumberFormat.getNumberInstance(locale).apply {
-            minimumFractionDigits = 0
-            maximumFractionDigits = 6
-        }.format(value.toDouble())
+        val locale =
+            InstrumentationRegistry
+                .getInstrumentation()
+                .targetContext.resources.configuration.locales[0]
+        return NumberFormat
+            .getNumberInstance(locale)
+            .apply {
+                minimumFractionDigits = 0
+                maximumFractionDigits = 6
+            }.format(value.toDouble())
     }
 }

@@ -10,7 +10,10 @@ class FakeJournalBackend(
     private val ownDeviceId: String? = null,
     override val target: SyncTarget = SyncTarget.Dropbox,
 ) : JournalBackend {
-    data class Upload(val deviceId: String, val bytes: ByteArray)
+    data class Upload(
+        val deviceId: String,
+        val bytes: ByteArray,
+    )
 
     private val files = linkedMapOf<String, Pair<ByteArray, Long>>()
     private var version = 1L
@@ -20,7 +23,10 @@ class FakeJournalBackend(
     val uploadCalls = mutableListOf<Upload>()
     val listCalls = mutableListOf<Unit>()
 
-    override suspend fun uploadJournal(deviceId: String, bytes: ByteArray): Result<Unit> {
+    override suspend fun uploadJournal(
+        deviceId: String,
+        bytes: ByteArray,
+    ): Result<Unit> {
         uploadError?.let { return Result.failure(SyncException(it)) }
         uploadCalls += Upload(deviceId, bytes)
         files[deviceId] = bytes to version++

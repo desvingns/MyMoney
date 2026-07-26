@@ -160,7 +160,7 @@ class BalanceTrendCalculatorTest {
         var threw = false
         try {
             calculator.buildWindow(Period.Month(YearMonth.of(2026, 5)), count = 0, zone = fixedZone)
-        } catch (e: IllegalArgumentException) {
+        } catch (expected: IllegalArgumentException) {
             threw = true
         }
         assertTrue(threw)
@@ -281,7 +281,7 @@ class BalanceTrendCalculatorTest {
                 today = fixedToday,
                 zone = fixedZone,
             )
-        } catch (e: IllegalArgumentException) {
+        } catch (expected: IllegalArgumentException) {
             threw = true
         }
 

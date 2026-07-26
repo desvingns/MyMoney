@@ -44,8 +44,8 @@ import com.kshavrin.mymoney.core.ui.theme.ThemeMode
 import com.kshavrin.mymoney.feature.settings.R
 import com.kshavrin.mymoney.feature.settings.language.AppLanguage
 
-const val FactoryResetConfirmFieldTag = "factory_reset_confirm_field"
-const val FactoryResetConfirmButtonTag = "factory_reset_confirm_button"
+const val FACTORY_RESET_CONFIRM_FIELD_TAG = "factory_reset_confirm_field"
+const val FACTORY_RESET_CONFIRM_BUTTON_TAG = "factory_reset_confirm_button"
 
 @Composable
 fun SettingsRootRoute(
@@ -292,7 +292,7 @@ private fun FactoryResetDialogs(
                                 Modifier
                                     .fillMaxWidth()
                                     .padding(top = Spacing.s)
-                                    .testTag(FactoryResetConfirmFieldTag),
+                                    .testTag(FACTORY_RESET_CONFIRM_FIELD_TAG),
                         )
                     }
                 },
@@ -305,7 +305,7 @@ private fun FactoryResetDialogs(
                                 containerColor = MaterialTheme.colorScheme.error,
                                 contentColor = MaterialTheme.colorScheme.onError,
                             ),
-                        modifier = Modifier.testTag(FactoryResetConfirmButtonTag),
+                        modifier = Modifier.testTag(FACTORY_RESET_CONFIRM_BUTTON_TAG),
                     ) {
                         Text(stringResource(R.string.factory_reset_cta))
                     }

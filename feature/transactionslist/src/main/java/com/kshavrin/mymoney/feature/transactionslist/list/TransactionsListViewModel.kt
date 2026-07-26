@@ -121,13 +121,13 @@ class TransactionsListViewModel
                         )
                 }
             val selection = resolveSelection(currencies)
-            val records = when (selection) {
+            val records =
+                when (selection) {
                     is TransactionsSelection.SpecificAccount ->
                         getOperationsSummary(selection.account.id, period, categoryId)
                     is TransactionsSelection.AllAccounts ->
                         getOperationsSummary.forAccounts(selection.accounts, selection.currency, period, categoryId)
-                }
-                .map { record ->
+                }.map { record ->
                     TransactionsListRecord(
                         record = record,
                         currency =

@@ -8,6 +8,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.CacheDrawScope
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -67,6 +69,53 @@ private data class BalanceTrendChartPalette(
     val accent: Color,
     // True when no explicit Income/Expense colour was chosen, so the wave should use [accent].
     val accentLine: Boolean,
+)
+
+private data class BalanceTrendChartLabelDrawCache(
+    val layout: TextLayoutResult,
+    val topLeft: Offset,
+)
+
+private data class BalanceTrendChartStyleDrawCache(
+    val baseline: Float,
+    val lineStroke: Float,
+    val pointRadius: Float,
+    val markerRadius: Float,
+    val barWidth: Float,
+    val linePath: Path,
+    val areaPath: Path,
+    val primaryPathStroke: Stroke?,
+    val secondaryPathStroke: Stroke?,
+    val tertiaryPathStroke: Stroke?,
+    val gradientBrush: Brush?,
+    val fillBrush: Brush?,
+    val waveColor: Color,
+    val waveGlowColor: Color,
+    val waveLastDotColor: Color,
+    val neonAreaColor: Color,
+    val steppedAreaColor: Color,
+    val baselineAreaColor: Color,
+    val baselineLineColor: Color,
+    val barColor: Color,
+    val dualGlowOuterColor: Color,
+    val dualGlowInnerColor: Color,
+    val ribbonColor: Color,
+)
+
+private data class BalanceTrendChartDrawCache(
+    val values: List<Float>,
+    val geometry: BalanceTrendChartGeometry,
+    val chartWidth: Float,
+    val chartHeight: Float,
+    val showGridlines: Boolean,
+    val gridColor: Color,
+    val zeroLineColor: Color,
+    val gridStroke: Float,
+    val style: ChartStyle,
+    val palette: BalanceTrendChartPalette,
+    val styleCache: BalanceTrendChartStyleDrawCache,
+    val labels: List<BalanceTrendChartLabelDrawCache>,
+    val labelColor: Color,
 )
 
 data class BalanceTrendChartGeometry(
@@ -214,7 +263,6 @@ fun BalanceTrendChart(
     val density = LocalDensity.current
     val markerGlowRadius = Spacing.trendChartMarkerGlowRadius
     val textMeasurer = rememberTextMeasurer()
-    val drawingCache = remember { BalanceTrendChartDrawingCache() }
     val zeroLineDash = remember { PathEffect.dashPathEffect(floatArrayOf(8f, 6f)) }
     val styleDash = remember { PathEffect.dashPathEffect(floatArrayOf(14f, 9f)) }
     val locale = LocalConfiguration.current.locales[0]
@@ -271,62 +319,600 @@ fun BalanceTrendChart(
                 .height(totalHeight)
                 .semantics {
                     contentDescription = chartDescription
-                }.testTag(BALANCE_TREND_CHART_TAG),
-    ) {
-        val chartHeightPx = height.toPx()
-        val geometry =
-            calculateBalanceTrendChartGeometry(
-                values = points,
-                width = size.width,
-                height = chartHeightPx,
-                horizontalPadding = Spacing.trendChartHorizontalPadding.toPx(),
-                verticalPadding = Spacing.trendChartVerticalPadding.toPx(),
-            )
+                }.testTag(BALANCE_TREND_CHART_TAG)
+                .drawWithCache {
+                    val cache =
+                        buildBalanceTrendChartDrawCache(
+                            values = points,
+                            labels = labels,
+                            chartHeight = height,
+                            showGridlines = showGridlines,
+                            showLabels = showLabels,
+                            style = style,
+                            palette = palette,
+                            gridColor = gridColor,
+                            zeroLineColor = zeroLineColor,
+                            labelStyle = labelStyle,
+                            textMeasurer = textMeasurer,
+                            styleDash = styleDash,
+                        )
+                    onDrawBehind {
+                        drawBalanceTrendChart(
+                            cache = cache,
+                            zeroLineDash = zeroLineDash,
+                            glowPaint = glowPaint,
+                        )
+                    }
+                },
+    ) {}
+}
 
-        if (showGridlines) {
-            val gridStroke = Spacing.trendChartGridLineStrokeWidth.toPx()
-            geometry.gridLineXs.forEach { x ->
-                drawLine(
-                    color = gridColor,
-                    start = Offset(x, 0f),
-                    end = Offset(x, chartHeightPx),
-                    strokeWidth = gridStroke,
-                )
-            }
-        }
-
-        geometry.zeroLineY?.let { y ->
-            drawLine(
-                color = zeroLineColor,
-                start = Offset(0f, y),
-                end = Offset(size.width, y),
-                strokeWidth = Spacing.trendChartGridLineStrokeWidth.toPx(),
-                pathEffect = zeroLineDash,
-            )
-        }
-
-        drawBalanceTrendChartStyle(
-            style = style,
-            values = points,
-            geometry = geometry,
-            chartHeight = chartHeightPx,
+private fun CacheDrawScope.buildBalanceTrendChartDrawCache(
+    values: List<Float>,
+    labels: List<String>,
+    chartHeight: Dp,
+    showGridlines: Boolean,
+    showLabels: Boolean,
+    style: ChartStyle,
+    palette: BalanceTrendChartPalette,
+    gridColor: Color,
+    zeroLineColor: Color,
+    labelStyle: TextStyle,
+    textMeasurer: TextMeasurer,
+    styleDash: PathEffect,
+): BalanceTrendChartDrawCache {
+    val chartHeightPx = chartHeight.toPx()
+    val geometry =
+        calculateBalanceTrendChartGeometry(
+            values = values,
+            width = size.width,
+            height = chartHeightPx,
+            horizontalPadding = Spacing.trendChartHorizontalPadding.toPx(),
             verticalPadding = Spacing.trendChartVerticalPadding.toPx(),
-            palette = palette,
-            cache = drawingCache,
-            glowPaint = glowPaint,
-            styleDash = styleDash,
         )
-
+    val labelCache =
         if (showLabels && labels.isNotEmpty()) {
-            drawLabels(
-                labels = labels,
-                points = geometry.points,
-                top = chartHeightPx,
-                textMeasurer = textMeasurer,
-                style = labelStyle,
+            val labelCount = minOf(labels.size, geometry.points.size)
+            ArrayList<BalanceTrendChartLabelDrawCache>(labelCount).apply {
+                for (index in 0 until labelCount) {
+                    val layout =
+                        textMeasurer.measure(
+                            text = labels[index],
+                            style = labelStyle.copy(textAlign = TextAlign.Center),
+                            maxLines = 1,
+                        )
+                    add(
+                        BalanceTrendChartLabelDrawCache(
+                            layout = layout,
+                            topLeft = Offset(geometry.points[index].x - layout.size.width / 2f, chartHeightPx),
+                        ),
+                    )
+                }
+            }
+        } else {
+            emptyList()
+        }
+
+    return BalanceTrendChartDrawCache(
+        values = values,
+        geometry = geometry,
+        chartWidth = size.width,
+        chartHeight = chartHeightPx,
+        showGridlines = showGridlines,
+        gridColor = gridColor,
+        zeroLineColor = zeroLineColor,
+        gridStroke = Spacing.trendChartGridLineStrokeWidth.toPx(),
+        style = style,
+        palette = palette,
+        styleCache =
+            buildBalanceTrendChartStyleDrawCache(
+                values = values,
+                geometry = geometry,
+                chartHeight = chartHeightPx,
+                verticalPadding = Spacing.trendChartVerticalPadding.toPx(),
+                chartWidth = size.width,
+                style = style,
+                palette = palette,
+                styleDash = styleDash,
+            ),
+        labels = labelCache,
+        labelColor = labelStyle.color,
+    )
+}
+
+private fun CacheDrawScope.buildBalanceTrendChartStyleDrawCache(
+    values: List<Float>,
+    geometry: BalanceTrendChartGeometry,
+    chartHeight: Float,
+    verticalPadding: Float,
+    chartWidth: Float,
+    style: ChartStyle,
+    palette: BalanceTrendChartPalette,
+    styleDash: PathEffect,
+): BalanceTrendChartStyleDrawCache {
+    val chartPoints = geometry.points
+    val baseline = baselineY(values, geometry, chartHeight, verticalPadding)
+    val lineStroke = Spacing.trendChartLineStrokeWidth.toPx()
+    val pointRadius = Spacing.trendChartPointRadius.toPx()
+    val markerRadius = Spacing.trendChartMarkerRadius.toPx()
+    val waveColor = if (palette.accentLine) palette.accent else palette.line
+    val baselineColor = if ((values.lastOrNull() ?: 0f) >= 0f) palette.income else palette.expense
+    val linePath = Path()
+    val areaPath = Path()
+
+    when (style) {
+        ChartStyle.NeonArea,
+        ChartStyle.BaselineFill,
+        ChartStyle.VerticalGradientArea ->
+            areaPath.buildArea(chartPoints, baseline, smooth = false, stepped = false)
+
+        ChartStyle.SmoothLine,
+        ChartStyle.Ribbon -> linePath.buildSmooth(chartPoints)
+
+        ChartStyle.SmoothArea -> {
+            areaPath.buildArea(chartPoints, baseline, smooth = true, stepped = false)
+            linePath.buildSmooth(chartPoints)
+        }
+
+        ChartStyle.SteppedLine -> linePath.buildStepped(chartPoints)
+
+        ChartStyle.SteppedArea -> {
+            areaPath.buildArea(chartPoints, baseline, smooth = false, stepped = true)
+            linePath.buildStepped(chartPoints)
+        }
+
+        ChartStyle.GradientStroke,
+        ChartStyle.DualGlow,
+        ChartStyle.DashedLine,
+        ChartStyle.ThinMinimal,
+        ChartStyle.ThickBold -> linePath.buildPolyline(chartPoints)
+
+        ChartStyle.Mountain -> {
+            areaPath.buildArea(chartPoints, baseline, smooth = true, stepped = false)
+            linePath.buildSmooth(chartPoints)
+        }
+
+        ChartStyle.NeonLine,
+        ChartStyle.Bars,
+        ChartStyle.RoundedBars,
+        ChartStyle.DotsLine,
+        ChartStyle.DotsOnly,
+        ChartStyle.CandySegments -> Unit
+    }
+
+    val roundedPathStroke =
+        Stroke(width = lineStroke, cap = StrokeCap.Round, join = StrokeJoin.Round)
+    val primaryPathStroke =
+        when (style) {
+            ChartStyle.SmoothLine,
+            ChartStyle.SteppedLine,
+            ChartStyle.SteppedArea,
+            ChartStyle.VerticalGradientArea -> roundedPathStroke
+
+            ChartStyle.SmoothArea ->
+                Stroke(width = lineStroke * 3.2f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+
+            ChartStyle.GradientStroke ->
+                Stroke(width = lineStroke * 1.4f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+
+            ChartStyle.DualGlow ->
+                Stroke(width = lineStroke * 6f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+
+            ChartStyle.DashedLine ->
+                Stroke(
+                    width = lineStroke,
+                    cap = StrokeCap.Round,
+                    join = StrokeJoin.Round,
+                    pathEffect = styleDash,
+                )
+
+            ChartStyle.ThinMinimal ->
+                Stroke(width = lineStroke * 0.6f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+
+            ChartStyle.ThickBold ->
+                Stroke(width = lineStroke * 2.2f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+
+            ChartStyle.Mountain ->
+                Stroke(width = lineStroke * 1.6f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+
+            ChartStyle.Ribbon ->
+                Stroke(width = lineStroke * 5f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+
+            else -> null
+        }
+    val secondaryPathStroke =
+        when (style) {
+            ChartStyle.SmoothArea ->
+                Stroke(width = lineStroke * 1.2f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+
+            ChartStyle.DualGlow ->
+                Stroke(width = lineStroke * 3f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+
+            ChartStyle.Ribbon -> roundedPathStroke
+            else -> null
+        }
+    val tertiaryPathStroke = if (style == ChartStyle.DualGlow) roundedPathStroke else null
+    val gradientBrush =
+        if (style == ChartStyle.GradientStroke) {
+            Brush.horizontalGradient(
+                colors = listOf(palette.income, palette.line, palette.expense),
+                startX = 0f,
+                endX = chartWidth,
+            )
+        } else {
+            null
+        }
+    val fillBrush =
+        when (style) {
+            ChartStyle.SmoothArea ->
+                Brush.verticalGradient(
+                    colors = listOf(waveColor.copy(alpha = 0.4f), waveColor.copy(alpha = 0f)),
+                    startY = 0f,
+                    endY = baseline,
+                )
+
+            ChartStyle.VerticalGradientArea,
+            ChartStyle.Mountain ->
+                Brush.verticalGradient(
+                    colors = listOf(palette.line.copy(alpha = 0.36f), palette.line.copy(alpha = 0.04f)),
+                    startY = 0f,
+                    endY = baseline,
+                )
+
+            else -> null
+        }
+
+    return BalanceTrendChartStyleDrawCache(
+        baseline = baseline,
+        lineStroke = lineStroke,
+        pointRadius = pointRadius,
+        markerRadius = markerRadius,
+        barWidth = calculateBalanceTrendChartBarWidth(chartPoints, chartWidth),
+        linePath = linePath,
+        areaPath = areaPath,
+        primaryPathStroke = primaryPathStroke,
+        secondaryPathStroke = secondaryPathStroke,
+        tertiaryPathStroke = tertiaryPathStroke,
+        gradientBrush = gradientBrush,
+        fillBrush = fillBrush,
+        waveColor = waveColor,
+        waveGlowColor = waveColor.copy(alpha = 0.22f),
+        waveLastDotColor = lightenColor(waveColor, 1.4f),
+        neonAreaColor = palette.line.copy(alpha = 0.16f),
+        steppedAreaColor = palette.line.copy(alpha = 0.15f),
+        baselineAreaColor = baselineColor.copy(alpha = 0.18f),
+        baselineLineColor = baselineColor.copy(alpha = 0.42f),
+        barColor = palette.line.copy(alpha = 0.86f),
+        dualGlowOuterColor = palette.line.copy(alpha = 0.12f),
+        dualGlowInnerColor = palette.glow.copy(alpha = 0.26f),
+        ribbonColor = palette.line.copy(alpha = 0.2f),
+    )
+}
+
+private fun DrawScope.drawBalanceTrendChart(
+    cache: BalanceTrendChartDrawCache,
+    zeroLineDash: PathEffect,
+    glowPaint: Paint,
+) {
+    val geometry = cache.geometry
+    if (cache.showGridlines) {
+        for (index in geometry.gridLineXs.indices) {
+            val x = geometry.gridLineXs[index]
+            drawLine(
+                color = cache.gridColor,
+                start = Offset(x, 0f),
+                end = Offset(x, cache.chartHeight),
+                strokeWidth = cache.gridStroke,
             )
         }
     }
+    geometry.zeroLineY?.let { y ->
+        drawLine(
+            color = cache.zeroLineColor,
+            start = Offset(0f, y),
+            end = Offset(cache.chartWidth, y),
+            strokeWidth = cache.gridStroke,
+            pathEffect = zeroLineDash,
+        )
+    }
+    drawCachedBalanceTrendChartStyle(cache, glowPaint)
+    for (index in cache.labels.indices) {
+        val label = cache.labels[index]
+        drawText(textLayoutResult = label.layout, color = cache.labelColor, topLeft = label.topLeft)
+    }
+}
+
+private fun DrawScope.drawCachedBalanceTrendChartStyle(
+    cache: BalanceTrendChartDrawCache,
+    glowPaint: Paint,
+) {
+    val chartPoints = cache.geometry.points
+    if (chartPoints.isEmpty()) return
+
+    val styleCache = cache.styleCache
+    val palette = cache.palette
+    val marker = cache.geometry.marker
+    when (cache.style) {
+        ChartStyle.NeonLine -> {
+            drawSegmentLine(chartPoints, palette.line, styleCache.lineStroke)
+            drawCachedDots(chartPoints, palette.line, styleCache.pointRadius)
+            drawCachedMarker(marker, palette.glow, glowPaint, styleCache.markerRadius)
+        }
+
+        ChartStyle.NeonArea -> {
+            drawPath(path = styleCache.areaPath, color = styleCache.neonAreaColor)
+            drawSegmentLine(chartPoints, palette.line, styleCache.lineStroke)
+            drawCachedDots(chartPoints, palette.line, styleCache.pointRadius)
+            drawCachedMarker(marker, palette.glow, glowPaint, styleCache.markerRadius)
+        }
+
+        ChartStyle.SmoothLine -> {
+            drawCachedPath(styleCache.linePath, palette.line, styleCache.primaryPathStroke!!)
+            drawCachedDots(chartPoints, palette.line, styleCache.pointRadius)
+            drawCachedMarker(marker, palette.glow, glowPaint, styleCache.markerRadius)
+        }
+
+        ChartStyle.SmoothArea -> {
+            drawCachedFill(styleCache.areaPath, styleCache.fillBrush!!)
+            drawCachedPath(styleCache.linePath, styleCache.waveGlowColor, styleCache.primaryPathStroke!!)
+            drawCachedPath(styleCache.linePath, styleCache.waveColor, styleCache.secondaryPathStroke!!)
+            drawCachedWaveDots(
+                chartPoints,
+                styleCache.waveColor,
+                styleCache.waveLastDotColor,
+                styleCache.pointRadius,
+            )
+            drawCachedMarker(marker, palette.glow, glowPaint, styleCache.markerRadius)
+        }
+
+        ChartStyle.SteppedLine -> {
+            drawCachedPath(styleCache.linePath, palette.line, styleCache.primaryPathStroke!!)
+            drawCachedDots(chartPoints, palette.line, styleCache.pointRadius)
+            drawCachedMarker(marker, palette.glow, glowPaint, styleCache.markerRadius)
+        }
+
+        ChartStyle.SteppedArea -> {
+            drawPath(path = styleCache.areaPath, color = styleCache.steppedAreaColor)
+            drawCachedPath(styleCache.linePath, palette.line, styleCache.primaryPathStroke!!)
+            drawCachedDots(chartPoints, palette.line, styleCache.pointRadius)
+            drawCachedMarker(marker, palette.glow, glowPaint, styleCache.markerRadius)
+        }
+
+        ChartStyle.Bars -> {
+            drawCachedBars(
+                points = chartPoints,
+                baseline = styleCache.baseline,
+                color = styleCache.barColor,
+                rounded = false,
+                barWidth = styleCache.barWidth,
+            )
+            drawCachedMarker(marker, palette.glow, glowPaint, styleCache.markerRadius)
+        }
+
+        ChartStyle.RoundedBars -> {
+            drawCachedBars(
+                points = chartPoints,
+                baseline = styleCache.baseline,
+                color = styleCache.barColor,
+                rounded = true,
+                barWidth = styleCache.barWidth,
+            )
+            drawCachedMarker(marker, palette.glow, glowPaint, styleCache.markerRadius)
+        }
+
+        ChartStyle.DotsLine -> {
+            drawSegmentLine(chartPoints, palette.line, styleCache.lineStroke)
+            drawCachedDots(chartPoints, palette.line, styleCache.pointRadius * 1.35f)
+            drawCachedMarker(marker, palette.glow, glowPaint, styleCache.markerRadius)
+        }
+
+        ChartStyle.DotsOnly -> {
+            drawCachedDots(chartPoints, palette.line, styleCache.pointRadius * 1.55f)
+            drawCachedMarker(marker, palette.glow, glowPaint, styleCache.markerRadius)
+        }
+
+        ChartStyle.GradientStroke -> {
+            drawCachedPath(styleCache.linePath, styleCache.gradientBrush!!, styleCache.primaryPathStroke!!)
+            drawCachedDots(chartPoints, palette.line, styleCache.pointRadius)
+            drawCachedMarker(marker, palette.glow, glowPaint, styleCache.markerRadius)
+        }
+
+        ChartStyle.DualGlow -> {
+            drawCachedPath(styleCache.linePath, styleCache.dualGlowOuterColor, styleCache.primaryPathStroke!!)
+            drawCachedPath(styleCache.linePath, styleCache.dualGlowInnerColor, styleCache.secondaryPathStroke!!)
+            drawCachedPath(styleCache.linePath, palette.line, styleCache.tertiaryPathStroke!!)
+            drawCachedDots(chartPoints, palette.line, styleCache.pointRadius)
+            drawCachedMarker(marker, palette.glow, glowPaint, styleCache.markerRadius)
+        }
+
+        ChartStyle.DashedLine -> {
+            drawCachedPath(styleCache.linePath, palette.line, styleCache.primaryPathStroke!!)
+            drawCachedDots(chartPoints, palette.line, styleCache.pointRadius)
+            drawCachedMarker(marker, palette.glow, glowPaint, styleCache.markerRadius)
+        }
+
+        ChartStyle.ThinMinimal -> {
+            drawCachedPath(styleCache.linePath, palette.line, styleCache.primaryPathStroke!!)
+            drawCachedMarker(marker, palette.glow, glowPaint, styleCache.markerRadius)
+        }
+
+        ChartStyle.ThickBold -> {
+            drawCachedPath(styleCache.linePath, palette.line, styleCache.primaryPathStroke!!)
+            drawCachedDots(chartPoints, palette.line, styleCache.pointRadius * 1.25f)
+            drawCachedMarker(marker, palette.glow, glowPaint, styleCache.markerRadius)
+        }
+
+        ChartStyle.BaselineFill -> {
+            drawPath(path = styleCache.areaPath, color = styleCache.baselineAreaColor)
+            drawLine(
+                color = styleCache.baselineLineColor,
+                start = Offset(0f, styleCache.baseline),
+                end = Offset(cache.chartWidth, styleCache.baseline),
+                strokeWidth = cache.gridStroke,
+            )
+            drawSegmentLine(chartPoints, palette.line, styleCache.lineStroke, cap = StrokeCap.Butt)
+            drawCachedDots(chartPoints, palette.line, styleCache.pointRadius)
+            drawCachedMarker(marker, palette.glow, glowPaint, styleCache.markerRadius)
+        }
+
+        ChartStyle.VerticalGradientArea -> {
+            drawCachedFill(styleCache.areaPath, styleCache.fillBrush!!)
+            drawCachedPath(styleCache.linePath, palette.line, styleCache.primaryPathStroke!!)
+            drawCachedDots(chartPoints, palette.line, styleCache.pointRadius)
+            drawCachedMarker(marker, palette.glow, glowPaint, styleCache.markerRadius)
+        }
+
+        ChartStyle.CandySegments -> {
+            drawCachedCandySegments(cache.values, chartPoints, palette, styleCache.lineStroke * 1.25f)
+            drawCachedSignDots(cache.values, chartPoints, palette, styleCache.pointRadius * 1.15f)
+            drawCachedMarker(marker, palette.glow, glowPaint, styleCache.markerRadius)
+        }
+
+        ChartStyle.Mountain -> {
+            drawCachedFill(styleCache.areaPath, styleCache.fillBrush!!)
+            drawCachedPath(styleCache.linePath, palette.line, styleCache.primaryPathStroke!!)
+            drawCachedMarker(marker, palette.glow, glowPaint, styleCache.markerRadius)
+        }
+
+        ChartStyle.Ribbon -> {
+            drawCachedPath(styleCache.linePath, styleCache.ribbonColor, styleCache.primaryPathStroke!!)
+            drawCachedPath(styleCache.linePath, palette.line, styleCache.secondaryPathStroke!!)
+            drawCachedDots(chartPoints, palette.line, styleCache.pointRadius)
+            drawCachedMarker(marker, palette.glow, glowPaint, styleCache.markerRadius)
+        }
+    }
+}
+
+private fun DrawScope.drawCachedPath(
+    path: Path,
+    color: Color,
+    stroke: Stroke,
+) {
+    drawPath(path = path, color = color, style = stroke)
+}
+
+private fun DrawScope.drawCachedFill(
+    path: Path,
+    brush: Brush,
+) {
+    drawPath(path = path, brush = brush)
+}
+
+private fun DrawScope.drawCachedPath(
+    path: Path,
+    brush: Brush,
+    stroke: Stroke,
+) {
+    drawPath(path = path, brush = brush, style = stroke)
+}
+
+private fun DrawScope.drawCachedDots(
+    points: List<Offset>,
+    color: Color,
+    radius: Float,
+) {
+    for (index in points.indices) {
+        drawCircle(color = color, radius = radius, center = points[index])
+    }
+}
+
+private fun DrawScope.drawCachedWaveDots(
+    points: List<Offset>,
+    color: Color,
+    lastDotColor: Color,
+    pointRadius: Float,
+) {
+    for (index in points.indices) {
+        val isLast = index == points.lastIndex
+        drawCircle(
+            color = if (isLast) lastDotColor else color,
+            radius = if (isLast) pointRadius * 1.33f else pointRadius * 0.87f,
+            center = points[index],
+        )
+    }
+}
+
+private fun DrawScope.drawCachedBars(
+    points: List<Offset>,
+    baseline: Float,
+    color: Color,
+    rounded: Boolean,
+    barWidth: Float,
+) {
+    val radius = if (rounded) barWidth / 2f else 0f
+    for (index in points.indices) {
+        val point = points[index]
+        val left = (point.x - barWidth / 2f).coerceIn(0f, (size.width - barWidth).coerceAtLeast(0f))
+        val top = minOf(point.y, baseline)
+        val height = maxOf(kotlin.math.abs(point.y - baseline), 1f)
+        drawRoundRect(
+            color = color,
+            topLeft = Offset(left, top),
+            size = Size(barWidth, height),
+            cornerRadius = CornerRadius(radius, radius),
+        )
+    }
+}
+
+private fun DrawScope.drawCachedCandySegments(
+    values: List<Float>,
+    points: List<Offset>,
+    palette: BalanceTrendChartPalette,
+    strokeWidth: Float,
+) {
+    for (index in 0 until points.lastIndex) {
+        val value = values.getOrNull(index + 1) ?: values.getOrElse(index) { 0f }
+        drawLine(
+            color = if (value >= 0f) palette.income else palette.expense,
+            start = points[index],
+            end = points[index + 1],
+            strokeWidth = strokeWidth,
+            cap = StrokeCap.Round,
+        )
+    }
+}
+
+private fun DrawScope.drawCachedSignDots(
+    values: List<Float>,
+    points: List<Offset>,
+    palette: BalanceTrendChartPalette,
+    radius: Float,
+) {
+    for (index in points.indices) {
+        val color = if ((values.getOrNull(index) ?: 0f) >= 0f) palette.income else palette.expense
+        drawCircle(color = color, radius = radius, center = points[index])
+    }
+}
+
+private fun DrawScope.drawCachedMarker(
+    marker: Offset?,
+    color: Color,
+    glowPaint: Paint,
+    radius: Float,
+) {
+    marker ?: return
+    drawIntoCanvas { canvas ->
+        canvas.nativeCanvas.drawCircle(
+            marker.x,
+            marker.y,
+            radius,
+            glowPaint.asFrameworkPaint(),
+        )
+    }
+    drawCircle(color = color, radius = radius, center = marker)
+}
+
+private fun calculateBalanceTrendChartBarWidth(
+    points: List<Offset>,
+    chartWidth: Float,
+): Float {
+    if (points.isEmpty()) return 0f
+    if (points.size == 1) return chartWidth * 0.18f
+    var minimumStep = Float.MAX_VALUE
+    for (index in 0 until points.lastIndex) {
+        minimumStep = minOf(minimumStep, kotlin.math.abs(points[index + 1].x - points[index].x))
+    }
+    return (minimumStep * 0.52f).coerceAtLeast(1f)
 }
 
 private fun DrawScope.drawBalanceTrendChartStyle(

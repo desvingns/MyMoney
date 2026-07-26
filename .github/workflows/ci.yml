@@ -71,6 +71,9 @@ jobs:
       - name: Run lint and all JVM unit tests
         run: ./gradlew lintDebug testDebugUnitTest $FIREBASE_ARGS --stacktrace
 
+      - name: Run build-logic convention plugin tests
+        run: ./gradlew --project-dir build-logic test --stacktrace
+
       - name: Run detekt static analysis
         run: ./gradlew detekt --stacktrace
 

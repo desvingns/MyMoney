@@ -129,16 +129,32 @@ class ReleaseSigningCiContractTest {
                 "fetch-depth: 0",
                 "semver_regex='^v(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\$'",
                 "if [[ ! \"\$RELEASE_TAG\" =~ \$semver_regex ]]; then",
-                "git rev-parse HEAD",
-                "git rev-parse \"\$RELEASE_TAG^{commit}\"",
+                "echo \"::error::Release ref must be an exact stable SemVer tag: vMAJOR.MINOR.PATCH.\"",
+                "exit 1",
+                "if [[ \"\$(git rev-parse HEAD)\" != \"\$(git rev-parse \"\$RELEASE_TAG^{commit}\")\" ]]; then",
+                "echo \"::error::The release tag must point at the checked-out commit.\"",
+                "exit 1",
                 "git tag --list",
-                "git tag --points-at HEAD",
                 "sort -V",
+                "git tag --points-at HEAD",
                 "head_valid_tag_count",
-                "highest_valid_tag",
+                "if [[ \"\$head_valid_tag_count\" -ne 1 || \"\$head_valid_tags\" != \"\$RELEASE_TAG\" ]]; then",
+                "echo \"::error::The trigger must be the sole valid stable tag at HEAD.\"",
+                "exit 1",
+                "if [[ -z \"\$highest_valid_tag\" || \"\$highest_valid_tag\" != \"\$RELEASE_TAG\" ]]; then",
+                "echo \"::error::The trigger must be the highest valid stable tag visible to the checkout.\"",
+                "exit 1",
             ),
         )
         assertFalse(text.contains("github.event_name != 'pull_request'"))
+        assertContainsInOrder(
+            text,
+            listOf(
+                "- name: Validate canonical release tag",
+                "- name: Materialize release signing config",
+                "- name: Build signed release APK and AAB",
+            ),
+        )
         assertContainsInOrder(
             workflow,
             listOf(
@@ -148,6 +164,19 @@ class ReleaseSigningCiContractTest {
                 "  workflow_dispatch:",
             ),
         )
+    }
+
+    @Test
+    fun `release job remains isolated from neighboring jobs`() {
+        val workflow = workflowFile.readText()
+        val text = releaseJobText(workflow)
+
+        assertTrue(text.startsWith("\n  release:"))
+        assertFalse(text.contains("\n  jvm:"))
+        assertFalse(text.contains("\n  connected:"))
+        assertFalse(text.contains("Run lint and all JVM unit tests"))
+        assertFalse(text.contains("Run connected tests on API 34 emulator"))
+        assertTrue(text.contains("needs: jvm"))
     }
 
     @Test
@@ -201,7 +230,12 @@ class ReleaseSigningCiContractTest {
     private fun releaseJobText(workflow: String): String {
         val releaseStart = workflow.indexOf("\n  release:")
         assertTrue("Expected a release job in the workflow", releaseStart >= 0)
-        val nextJob = workflow.indexOf("\n  connected:", startIndex = releaseStart)
+        val nextJob =
+            Regex("""\n  [A-Za-z][A-Za-z0-9_-]*:""")
+                .find(workflow, startIndex = releaseStart + 1)
+                ?.range
+                ?.first
+                ?: -1
         assertTrue("Expected a job after the release job", nextJob > releaseStart)
         return workflow.substring(releaseStart, nextJob)
     }

@@ -1,6 +1,7 @@
 package com.kshavrin.mymoney.buildlogic
 
 import java.io.File
+import java.math.BigInteger
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -71,20 +72,31 @@ class MymoneyBuildConfigurationContractTest {
     }
 
     @Test
-    fun `application-specific identity and semver versioning remain in the app module`() {
+    fun `application-specific identity and git-derived semver versioning remain in the app module`() {
         val app = file("app/build.gradle.kts").readText()
+        val defaultConfig = section(app, "defaultConfig {")
 
         assertTrue(app.contains("applicationId = \"com.kshavrin.mymoney\""))
         assertContainsInOrder(
             app,
             listOf(
+                "Release versioning is derived from the checked-out Git history:",
+                "val hasCompleteGitHistory = gitOutput(\"rev-parse\", \"--is-shallow-repository\") == \"false\"",
                 "val releaseTagPattern = Regex(\"\"\"^v(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\$\"\"\")",
+                ".filter { it.matches(releaseTagPattern) }",
                 "val allValidReleaseTags =",
                 "gitOutput(\"tag\", \"--list\")",
                 "val reachableValidReleaseTags =",
                 "gitOutput(\"tag\", \"--merged\", \"HEAD\")",
                 "val validReleaseTagsAtHead =",
                 "gitOutput(\"tag\", \"--points-at\", \"HEAD\")",
+                "fun releaseVersionPart(tag: String, group: Int): BigInteger",
+                "BigInteger(releaseTagPattern.matchEntire(tag)!!.groupValues[group])",
+                "fun latestReleaseTag(tags: List<String>): String?",
+                "tags.maxWithOrNull(",
+                "compareBy<String> { releaseVersionPart(it, 1) }",
+                ".thenBy { releaseVersionPart(it, 2) }",
+                ".thenBy { releaseVersionPart(it, 3) }",
                 "val latestGlobalReleaseTag = latestReleaseTag(allValidReleaseTags)",
                 "val latestReachableReleaseTag = latestReleaseTag(reachableValidReleaseTags)",
                 "fun releaseVersionCode(tag: String): Int",
@@ -94,7 +106,17 @@ class MymoneyBuildConfigurationContractTest {
                 "val releaseCodeMajorMultiplier = BigInteger.valueOf(1_000_000L)",
                 "val releaseCodeMinorMultiplier = BigInteger.valueOf(1_000L)",
                 "val releaseCodeMigrationOffset = BigInteger.valueOf(1_077L)",
+                "val versionCode =",
+                ".multiply(releaseCodeMajorMultiplier)",
+                ".add(minor.multiply(releaseCodeMinorMultiplier))",
+                ".add(patch)",
+                ".add(releaseCodeMigrationOffset)",
+                "require(versionCode <= BigInteger.valueOf(Int.MAX_VALUE.toLong()))",
+                "return versionCode.toInt()",
                 "val debugVersionCodeFallback = 1_001_077",
+                "val appVersionCode =",
+                "?: debugVersionCodeFallback",
+                "val appVersionName = latestReachableReleaseTag?.removePrefix(\"v\") ?: \"0.0.0-dev\"",
                 "val releaseVersioningReady =",
                 "releaseTagAtHead == latestReachableReleaseTag",
                 "releaseTagAtHead == latestGlobalReleaseTag",
@@ -104,11 +126,12 @@ class MymoneyBuildConfigurationContractTest {
                 "taskGraph.allTasks.any { isNonDebugPackagingTask(it.path) }",
             ),
         )
-        assertTrue(app.contains("versionCode = appVersionCode"))
-        assertTrue(app.contains("versionName = appVersionName"))
-        assertTrue(app.contains("\"0.0.0-dev\""))
-        assertFalse(app.contains("versionCode = 17"))
-        assertFalse(app.contains("versionName = \"1.0.16\""))
+        assertEquals(1, defaultConfig.lines().count { it.trimStart().startsWith("versionCode =") })
+        assertEquals(1, defaultConfig.lines().count { it.trimStart().startsWith("versionName =") })
+        assertTrue(defaultConfig.contains("versionCode = appVersionCode"))
+        assertTrue(defaultConfig.contains("versionName = appVersionName"))
+        assertFalse(defaultConfig.contains("versionCode = 1"))
+        assertFalse(defaultConfig.contains("versionName = \"1.0\""))
         assertFalse(app.contains("gitOutput(\"rev-list\""))
         assertFalse(app.contains("gitOutput(\"describe\""))
         assertFalse(app.contains("compileSdk = 36"))
@@ -117,45 +140,97 @@ class MymoneyBuildConfigurationContractTest {
 
         val releaseCodes =
             listOf(
-                encodeReleaseSemVer(1, 0, 0),
-                encodeReleaseSemVer(1, 0, 1),
-                encodeReleaseSemVer(1, 1, 0),
-                encodeReleaseSemVer(2, 0, 0),
+                sourceVersionCode(app, 1, 0, 0),
+                sourceVersionCode(app, 1, 0, 1),
+                sourceVersionCode(app, 1, 1, 0),
+                sourceVersionCode(app, 2, 0, 0),
             )
         assertTrue(releaseCodes.zipWithNext().all { (lower, higher) -> lower < higher })
         assertEquals(1_001_077, releaseCodes.first())
         assertEquals(2_001_077, releaseCodes.last())
-        assertTrue(encodeReleaseSemVer(2_146, 999, 999) <= Int.MAX_VALUE)
-        assertEncodingRejected(major = 2_147, minor = 0, patch = 0)
-        assertEncodingRejected(major = 0, minor = 1_000, patch = 0)
-        assertEncodingRejected(major = 0, minor = 0, patch = 1_000)
-    }
-
-    private fun assertEncodingRejected(
-        major: Int,
-        minor: Int,
-        patch: Int,
-    ) {
-        var rejected = false
-        try {
-            encodeReleaseSemVer(major, minor, patch)
-        } catch (_: IllegalArgumentException) {
-            rejected = true
+        assertTrue(sourceVersionCode(app, 2_146, 999, 999) <= Int.MAX_VALUE)
+        listOf(
+            listOf(2_147, 0, 0),
+            listOf(0, 1_000, 0),
+            listOf(0, 0, 1_000),
+        ).forEach { (major, minor, patch) ->
+            assertTrue(
+                "Expected out-of-range SemVer component to be rejected",
+                runCatching { sourceVersionCode(app, major, minor, patch) }.isFailure,
+            )
         }
-        assertTrue("Expected SemVer component to be rejected", rejected)
+        assertContainsInOrder(
+            app,
+            listOf(
+                "val match = requireNotNull(releaseTagPattern.matchEntire(tag))",
+                "require(major <= maxReleaseMajor)",
+                "require(minor <= maxReleaseMinor)",
+                "require(patch <= maxReleasePatch)",
+            ),
+        )
+
+        val changelog = file("CHANGELOG.md").readText()
+        assertContainsInOrder(
+            changelog,
+            listOf(
+                "# Changelog",
+                "The format is based on [Keep a Changelog]",
+                "## [Unreleased]",
+                "## [1.0.0] - ",
+                "### Added",
+                "v1.0 baseline:",
+                "Journal sync:",
+                "Dashboard summary:",
+                "Aurora:",
+            ),
+        )
     }
 
-    private fun encodeReleaseSemVer(
+    private fun sourceVersionCode(
+        app: String,
         major: Int,
         minor: Int,
         patch: Int,
     ): Int {
-        require(major in 0..2_146)
-        require(minor in 0..999)
-        require(patch in 0..999)
-        val versionCode = major * 1_000_000 + minor * 1_000 + patch + 1_077
-        require(versionCode <= Int.MAX_VALUE)
-        return versionCode
+        val majorMultiplier = declaredBigInteger(app, "releaseCodeMajorMultiplier")
+        val minorMultiplier = declaredBigInteger(app, "releaseCodeMinorMultiplier")
+        val migrationOffset = declaredBigInteger(app, "releaseCodeMigrationOffset")
+        val maxMajor = declaredBigInteger(app, "maxReleaseMajor")
+        val maxMinor = declaredBigInteger(app, "maxReleaseMinor")
+        val maxPatch = declaredBigInteger(app, "maxReleasePatch")
+
+        require(BigInteger.valueOf(major.toLong()) <= maxMajor)
+        require(BigInteger.valueOf(minor.toLong()) <= maxMinor)
+        require(BigInteger.valueOf(patch.toLong()) <= maxPatch)
+        return BigInteger.valueOf(major.toLong())
+            .multiply(majorMultiplier)
+            .add(BigInteger.valueOf(minor.toLong()).multiply(minorMultiplier))
+            .add(BigInteger.valueOf(patch.toLong()))
+            .add(migrationOffset)
+            .intValueExact()
+    }
+
+    private fun declaredBigInteger(
+        text: String,
+        name: String,
+    ): BigInteger =
+        Regex("""val $name = BigInteger\.valueOf\(([0-9_]+)L\)""")
+            .find(text)
+            ?.groupValues
+            ?.get(1)
+            ?.replace("_", "")
+            ?.let { BigInteger(it) }
+            ?: error("Expected $name to be declared as a BigInteger constant")
+
+    private fun section(
+        text: String,
+        header: String,
+    ): String {
+        val start = text.indexOf(header)
+        assertTrue("Expected section '$header'", start >= 0)
+        val end = text.indexOf("\n    }", startIndex = start)
+        assertTrue("Expected section '$header' to close", end > start)
+        return text.substring(start, end)
     }
 
     private fun assertContainsInOrder(

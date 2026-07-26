@@ -19,6 +19,11 @@
       "matchManagers": ["gradle"],
       "groupName": "Gradle version catalog",
       "groupSlug": "gradle-version-catalog"
+    },
+    {
+      "matchManagers": ["gradle"],
+      "matchUpdateTypes": ["major"],
+      "addLabels": ["tdd-revision-required"]
     }
   ]
 }

@@ -24,7 +24,12 @@ dependencies {
     implementation(libs.androidx.paging.compose)
     implementation(libs.kotlinx.collections.immutable)
 
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.compose.ui.test.junit4)
+    testImplementation(libs.androidx.test.junit)
     testImplementation(libs.turbine)
     testImplementation(project(":core:testing"))
     testImplementation(libs.robolectric)
+
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
 }

@@ -39,7 +39,7 @@ import kotlin.math.hypot
 import kotlin.math.sin
 
 @RunWith(AndroidJUnit4::class)
-class MonefyDonutChartUiTest {
+class DonutChartUiTest {
     @get:Rule
     val composeTestRule = createComposeRule()
 
@@ -102,7 +102,7 @@ class MonefyDonutChartUiTest {
     fun `category label and low percent callout options preserve accessibility semantics`() {
         composeTestRule.setContent {
             MyMoneyTheme {
-                MonefyDonutChart(
+                DonutChart(
                     income = BigDecimal.ZERO,
                     expense = BigDecimal("100.00"),
                     slices =
@@ -133,7 +133,7 @@ class MonefyDonutChartUiTest {
     fun `center totals expose both income and expense figures when a currency symbol is supplied`() {
         composeTestRule.setContent {
             MyMoneyTheme {
-                MonefyDonutChart(
+                DonutChart(
                     income = BigDecimal("500.00"),
                     expense = BigDecimal("124.00"),
                     slices = listOf(slice(label = "Food", fraction = 1.0f)),
@@ -163,7 +163,7 @@ class MonefyDonutChartUiTest {
 
         composeTestRule.setContent {
             MyMoneyTheme {
-                MonefyDonutChart(
+                DonutChart(
                     income = income.value,
                     expense = expense,
                     slices = slices,
@@ -214,7 +214,7 @@ class MonefyDonutChartUiTest {
     fun `empty period with placeholder icons still announces zero totals`() {
         composeTestRule.setContent {
             MyMoneyTheme {
-                MonefyDonutChart(
+                DonutChart(
                     income = BigDecimal.ZERO,
                     expense = BigDecimal.ZERO,
                     slices = emptyList(),
@@ -244,7 +244,7 @@ class MonefyDonutChartUiTest {
             MyMoneyTheme {
                 incomeTint = MaterialTheme.colorScheme.secondary.toArgb()
                 expenseTint = MaterialTheme.colorScheme.tertiary.toArgb()
-                MonefyDonutChart(
+                DonutChart(
                     income = BigDecimal("321.45"),
                     expense = BigDecimal("67.89"),
                     slices = emptyList(),
@@ -308,7 +308,7 @@ class MonefyDonutChartUiTest {
     fun `empty state icons do not add slice descriptions to semantics`() {
         composeTestRule.setContent {
             MyMoneyTheme {
-                MonefyDonutChart(
+                DonutChart(
                     income = BigDecimal.ZERO,
                     expense = BigDecimal.ZERO,
                     slices = emptyList(),
@@ -340,7 +340,7 @@ class MonefyDonutChartUiTest {
 
         composeTestRule.setContent {
             MyMoneyTheme {
-                MonefyDonutChart(
+                DonutChart(
                     income = BigDecimal.ZERO,
                     expense = BigDecimal.ZERO,
                     slices = emptyList(),
@@ -377,7 +377,7 @@ class MonefyDonutChartUiTest {
 
         setChartInContainer(size = 520.dp, containerColor = Color.Black) {
             outlineArgb = MaterialTheme.colorScheme.outline.toArgb()
-            MonefyDonutChart(
+            DonutChart(
                 income = BigDecimal.ZERO,
                 expense = BigDecimal.ZERO,
                 slices = emptyList(),
@@ -421,7 +421,7 @@ class MonefyDonutChartUiTest {
 
         setChartInContainer(size = 520.dp, containerColor = Color.Black) {
             outlineArgb = MaterialTheme.colorScheme.outline.toArgb()
-            MonefyDonutChart(
+            DonutChart(
                 income = BigDecimal.ZERO,
                 expense = BigDecimal.ZERO,
                 slices = emptyList(),
@@ -467,7 +467,7 @@ class MonefyDonutChartUiTest {
         val chartSize = 520.dp
 
         setChartInContainer(size = chartSize, containerColor = Color.White) {
-            MonefyDonutChart(
+            DonutChart(
                 income = BigDecimal.ZERO,
                 expense = BigDecimal.ZERO,
                 slices = emptyList(),
@@ -516,7 +516,7 @@ class MonefyDonutChartUiTest {
         val chartSize = 520.dp
 
         setChartInContainer(size = chartSize, containerColor = Color.Black) {
-            MonefyDonutChart(
+            DonutChart(
                 income = BigDecimal.ZERO,
                 expense = BigDecimal.ZERO,
                 slices = emptyList(),
@@ -598,7 +598,7 @@ class MonefyDonutChartUiTest {
             )
 
         setChartInContainer(size = 520.dp, containerColor = Color.White) {
-            MonefyDonutChart(
+            DonutChart(
                 income = BigDecimal.ZERO,
                 expense = BigDecimal.ZERO,
                 slices = emptyList(),
@@ -636,7 +636,7 @@ class MonefyDonutChartUiTest {
         val chartSize = 520.dp
 
         setChartInContainer(size = chartSize, containerColor = Color.White) {
-            MonefyDonutChart(
+            DonutChart(
                 income = BigDecimal.ZERO,
                 expense = BigDecimal.ZERO,
                 slices = emptyList(),
@@ -686,7 +686,7 @@ class MonefyDonutChartUiTest {
     fun `empty state with no empty icons still renders ring and center totals without crash`() {
         composeTestRule.setContent {
             MyMoneyTheme {
-                MonefyDonutChart(
+                DonutChart(
                     income = BigDecimal("100.00"),
                     expense = BigDecimal("50.00"),
                     slices = emptyList(),
@@ -707,7 +707,7 @@ class MonefyDonutChartUiTest {
     fun `populated chart ignores empty state icons and keeps slice semantics`() {
         composeTestRule.setContent {
             MyMoneyTheme {
-                MonefyDonutChart(
+                DonutChart(
                     income = BigDecimal("450.00"),
                     expense = BigDecimal("124.00"),
                     slices =
@@ -741,7 +741,7 @@ class MonefyDonutChartUiTest {
 
         composeTestRule.setContent {
             MyMoneyTheme {
-                MonefyDonutChart(
+                DonutChart(
                     income = BigDecimal("450.00"),
                     expense = BigDecimal("124.00"),
                     slices = slices,
@@ -786,7 +786,7 @@ class MonefyDonutChartUiTest {
 
         composeTestRule.setContent {
             MyMoneyTheme {
-                MonefyDonutChart(
+                DonutChart(
                     income = BigDecimal("450.00"),
                     expense = BigDecimal("124.00"),
                     slices = slices,
@@ -829,7 +829,7 @@ class MonefyDonutChartUiTest {
         val explodedOffset = 16.dp
 
         setChartInContainer(size = chartSize, containerColor = Color.White) {
-            MonefyDonutChart(
+            DonutChart(
                 income = BigDecimal("450.00"),
                 expense = BigDecimal("124.00"),
                 slices = slices,
@@ -896,7 +896,7 @@ class MonefyDonutChartUiTest {
         val explodedOffset = 16.dp
 
         setChartInContainer(size = chartSize, containerColor = Color.Black) {
-            MonefyDonutChart(
+            DonutChart(
                 income = BigDecimal("450.00"),
                 expense = BigDecimal("124.00"),
                 slices = slices,
@@ -1003,7 +1003,7 @@ class MonefyDonutChartUiTest {
         val leaderLineOverrideColor = Color.Magenta
 
         setChartInContainer(size = 520.dp, containerColor = Color.White) {
-            MonefyDonutChart(
+            DonutChart(
                 income = BigDecimal("450.00"),
                 expense = BigDecimal("124.00"),
                 slices = contourSlices(),
@@ -1032,7 +1032,7 @@ class MonefyDonutChartUiTest {
     fun `centerDecimalDigits zero hides decimal portion from semantics income string`() {
         composeTestRule.setContent {
             MyMoneyTheme {
-                MonefyDonutChart(
+                DonutChart(
                     income = BigDecimal("500.75"),
                     expense = BigDecimal("124.30"),
                     slices = listOf(slice(label = "Food", fraction = 1.0f)),
@@ -1061,7 +1061,7 @@ class MonefyDonutChartUiTest {
     fun `centerDecimalDigits two produces same semantics as default decimalDigits`() {
         composeTestRule.setContent {
             MyMoneyTheme {
-                MonefyDonutChart(
+                DonutChart(
                     income = BigDecimal("200.00"),
                     expense = BigDecimal("50.00"),
                     slices = listOf(slice(label = "Bills", fraction = 1.0f)),
@@ -1088,7 +1088,7 @@ class MonefyDonutChartUiTest {
     fun `DonutStyle Flat renders chart and preserves slice semantics`() {
         composeTestRule.setContent {
             MyMoneyTheme {
-                MonefyDonutChart(
+                DonutChart(
                     income = BigDecimal("300.00"),
                     expense = BigDecimal("100.00"),
                     slices =
@@ -1116,7 +1116,7 @@ class MonefyDonutChartUiTest {
     fun `DonutStyle Extrude renders chart and preserves slice semantics`() {
         composeTestRule.setContent {
             MyMoneyTheme {
-                MonefyDonutChart(
+                DonutChart(
                     income = BigDecimal("300.00"),
                     expense = BigDecimal("100.00"),
                     slices = listOf(slice(label = "Home", fraction = 1.0f)),
@@ -1142,7 +1142,7 @@ class MonefyDonutChartUiTest {
     fun `custom ringThicknessFraction 0 39 preserves full semantics description`() {
         composeTestRule.setContent {
             MyMoneyTheme {
-                MonefyDonutChart(
+                DonutChart(
                     income = BigDecimal("400.00"),
                     expense = BigDecimal("200.00"),
                     slices =
@@ -1171,7 +1171,7 @@ class MonefyDonutChartUiTest {
     fun `sliceGapDegrees zero renders without crash and keeps semantics intact`() {
         composeTestRule.setContent {
             MyMoneyTheme {
-                MonefyDonutChart(
+                DonutChart(
                     income = BigDecimal("100.00"),
                     expense = BigDecimal("100.00"),
                     slices = listOf(slice(label = "Sport", fraction = 1.0f)),
@@ -1205,7 +1205,7 @@ class MonefyDonutChartUiTest {
             )
         composeTestRule.setContent {
             MyMoneyTheme {
-                MonefyDonutChart(
+                DonutChart(
                     income = BigDecimal.ZERO,
                     expense = BigDecimal("250.00"),
                     slices = listOf(alertSlice),
@@ -1230,7 +1230,7 @@ class MonefyDonutChartUiTest {
         val longName = "Очень длинное название категории расходов"
         composeTestRule.setContent {
             MyMoneyTheme {
-                MonefyDonutChart(
+                DonutChart(
                     income = BigDecimal.ZERO,
                     expense = BigDecimal("200.00"),
                     slices = listOf(slice(label = longName, fraction = 1.0f)),
@@ -1256,7 +1256,7 @@ class MonefyDonutChartUiTest {
     fun `compact callout renders without crash for a normal category name and preserves semantics`() {
         composeTestRule.setContent {
             MyMoneyTheme {
-                MonefyDonutChart(
+                DonutChart(
                     income = BigDecimal.ZERO,
                     expense = BigDecimal("150.00"),
                     slices =
@@ -1288,7 +1288,7 @@ class MonefyDonutChartUiTest {
     fun `custom iconScale 1 7 renders without crash and preserves semantics`() {
         composeTestRule.setContent {
             MyMoneyTheme {
-                MonefyDonutChart(
+                DonutChart(
                     income = BigDecimal("150.00"),
                     expense = BigDecimal("50.00"),
                     slices = listOf(slice(label = "Coffee", fraction = 1.0f)),
@@ -1316,7 +1316,7 @@ class MonefyDonutChartUiTest {
         // throw or produce NaN icon coordinates that crash Canvas drawing.
         composeTestRule.setContent {
             MyMoneyTheme {
-                MonefyDonutChart(
+                DonutChart(
                     income = BigDecimal("100.00"),
                     expense = BigDecimal("100.00"),
                     slices =
@@ -1355,7 +1355,7 @@ class MonefyDonutChartUiTest {
             }
         composeTestRule.setContent {
             MyMoneyTheme {
-                MonefyDonutChart(
+                DonutChart(
                     income = BigDecimal("800.00"),
                     expense = BigDecimal("800.00"),
                     slices = smallSlices,
@@ -1382,7 +1382,7 @@ class MonefyDonutChartUiTest {
     fun `slices with fraction zero are excluded from semantics description`() {
         composeTestRule.setContent {
             MyMoneyTheme {
-                MonefyDonutChart(
+                DonutChart(
                     income = BigDecimal("100.00"),
                     expense = BigDecimal("50.00"),
                     slices =
@@ -1412,7 +1412,7 @@ class MonefyDonutChartUiTest {
     fun `each populated slice has its own semantics node with category name and percentage`() {
         composeTestRule.setContent {
             MyMoneyTheme {
-                MonefyDonutChart(
+                DonutChart(
                     income = BigDecimal("450.00"),
                     expense = BigDecimal("124.00"),
                     slices =
@@ -1438,7 +1438,7 @@ class MonefyDonutChartUiTest {
     fun `per-slice semantics node content description matches slice label and rounded percent`() {
         composeTestRule.setContent {
             MyMoneyTheme {
-                MonefyDonutChart(
+                DonutChart(
                     income = BigDecimal("100.00"),
                     expense = BigDecimal("200.00"),
                     slices = listOf(slice(label = "Home", fraction = 1.0f)),
@@ -1458,7 +1458,7 @@ class MonefyDonutChartUiTest {
     fun `per-slice semantics node for slice with fraction zero is absent`() {
         composeTestRule.setContent {
             MyMoneyTheme {
-                MonefyDonutChart(
+                DonutChart(
                     income = BigDecimal("100.00"),
                     expense = BigDecimal("50.00"),
                     slices =
@@ -1484,7 +1484,7 @@ class MonefyDonutChartUiTest {
 
         composeTestRule.setContent {
             MyMoneyTheme {
-                MonefyDonutChart(
+                DonutChart(
                     income = BigDecimal("450.00"),
                     expense = BigDecimal("124.00"),
                     slices = listOf(slice(label = "Food", fraction = 1.0f)),
@@ -1519,7 +1519,7 @@ class MonefyDonutChartUiTest {
 
         composeTestRule.setContent {
             MyMoneyTheme {
-                MonefyDonutChart(
+                DonutChart(
                     income = BigDecimal("450.00"),
                     expense = BigDecimal("124.00"),
                     slices = listOf(foodSlice),
@@ -1547,7 +1547,7 @@ class MonefyDonutChartUiTest {
     fun `per-slice semantics nodes are absent when onSliceClick is null`() {
         composeTestRule.setContent {
             MyMoneyTheme {
-                MonefyDonutChart(
+                DonutChart(
                     income = BigDecimal("200.00"),
                     expense = BigDecimal("100.00"),
                     slices = listOf(slice(label = "Food", fraction = 1.0f)),
@@ -1578,7 +1578,7 @@ class MonefyDonutChartUiTest {
     fun `multiple slice nodes are individually reachable by their own content descriptions`() {
         composeTestRule.setContent {
             MyMoneyTheme {
-                MonefyDonutChart(
+                DonutChart(
                     income = BigDecimal("300.00"),
                     expense = BigDecimal("300.00"),
                     slices =
@@ -1607,7 +1607,7 @@ class MonefyDonutChartUiTest {
     ) {
         composeTestRule.setContent {
             MyMoneyTheme {
-                MonefyDonutChart(
+                DonutChart(
                     income = income,
                     expense = expense,
                     slices = slices,
@@ -1673,7 +1673,7 @@ class MonefyDonutChartUiTest {
     }
 
     /**
-     * Mirrors the frame-projection logic used by the empty-state branch in MonefyDonutChart:
+     * Mirrors the frame-projection logic used by the empty-state branch in DonutChart:
      * evenAngles → projectAngleToFrame → clampCalloutAnchor (canvas-edge clamping).
      * Icons are placed on the inset rectangle perimeter, not radially.
      */
@@ -1768,7 +1768,7 @@ class MonefyDonutChartUiTest {
         val mid = DonutGeometry.midAngleRadians(arc)
         val explodedDx = explodedOffsetPx * cos(mid)
         val explodedDy = explodedOffsetPx * sin(mid)
-        // Mirror the frame-projection logic from PlacedSlice.frameIconCenter in MonefyDonutChart.
+        // Mirror the frame-projection logic from PlacedSlice.frameIconCenter in DonutChart.
         val inset = iconSize / 2f + iconMargin
         val insetHalfWidth = (canvasWidth / 2f - inset).coerceAtLeast(0f)
         val insetHalfHeightTop = (center.y - inset).coerceAtLeast(0f)

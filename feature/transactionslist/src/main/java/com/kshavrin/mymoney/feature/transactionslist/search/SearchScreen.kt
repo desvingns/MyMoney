@@ -152,7 +152,7 @@ fun SearchContent(
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
-            MonefySearchTopBar(
+            SearchTopBar(
                 query = state.query,
                 voiceAvailable = voiceAvailable,
                 focusRequester = focusRequester,
@@ -185,7 +185,7 @@ fun SearchContent(
 }
 
 @Composable
-private fun MonefySearchTopBar(
+private fun SearchTopBar(
     query: String,
     voiceAvailable: Boolean,
     focusRequester: FocusRequester,

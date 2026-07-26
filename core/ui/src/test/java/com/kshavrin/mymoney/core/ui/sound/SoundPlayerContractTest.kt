@@ -12,7 +12,7 @@ import org.junit.Test
  * call sites wired across the keypad, dashboard, transaction and
  * swipe-to-delete screens. This test pins the *full membership* of the
  * enum so an accidental addition or removal fails loudly — same style as
- * the legacy `MonefyKeypadContractTest` in :core:designsystem.
+ * the legacy `KeypadContractTest` in :core:designsystem.
  *
  * NOTE — this is a SEPARATE type from the legacy
  * `com.kshavrin.mymoney.core.designsystem.sound.SoundKey` ({KEYPAD_TAP, SAVED}).

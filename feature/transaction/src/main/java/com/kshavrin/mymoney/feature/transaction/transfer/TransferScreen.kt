@@ -66,7 +66,7 @@ import com.kshavrin.mymoney.core.designsystem.dialog.RateConfirmDialog
 import com.kshavrin.mymoney.core.designsystem.form.DateHeader
 import com.kshavrin.mymoney.core.designsystem.icon.accountIcon
 import com.kshavrin.mymoney.core.designsystem.keypad.KeypadEvent
-import com.kshavrin.mymoney.core.designsystem.keypad.MonefyKeypad
+import com.kshavrin.mymoney.core.designsystem.keypad.Keypad
 import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.ui.feedback.LocalHapticPlayer
@@ -293,7 +293,7 @@ fun TransferScreen(
             onDismissRequest = { keypadVisible = false },
             sheetState = keypadSheetState,
         ) {
-            MonefyKeypad(
+            Keypad(
                 onEvent = { e ->
                     dispatchAmountEvent(AmountFieldEvent.Keypad(e), onEvent) { datePickerVisible = true }
                 },

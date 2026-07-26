@@ -25,7 +25,7 @@ private const val CONFETTI_DURATION_MS = 1500
 private const val PARTICLE_COUNT = 80
 
 @Composable
-fun MonefyConfetti(
+fun Confetti(
     show: Boolean,
     modifier: Modifier = Modifier,
     onFinished: () -> Unit = {},

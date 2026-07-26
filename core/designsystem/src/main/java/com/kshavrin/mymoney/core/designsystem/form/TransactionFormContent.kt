@@ -21,9 +21,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import com.kshavrin.mymoney.core.designsystem.R
-import com.kshavrin.mymoney.core.designsystem.amountinput.MonefyAmountInput
+import com.kshavrin.mymoney.core.designsystem.amountinput.AmountInput
 import com.kshavrin.mymoney.core.designsystem.keypad.KeypadEvent
-import com.kshavrin.mymoney.core.designsystem.keypad.MonefyKeypad
+import com.kshavrin.mymoney.core.designsystem.keypad.Keypad
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.core.ui.theme.transactionFormDeleteContainer
 import com.kshavrin.mymoney.core.ui.theme.transactionFormDeleteContent
@@ -72,7 +72,7 @@ fun TransactionFormContent(
             Column(
                 modifier = Modifier.weight(1f),
             ) {
-                MonefyKeypad(
+                Keypad(
                     onEvent = { onEvent(TransactionFormEvent.Keypad(it)) },
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -142,7 +142,7 @@ private fun AmountEntrySection(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(Spacing.m),
     ) {
-        MonefyAmountInput(
+        AmountInput(
             display = state.amountInput,
             expression = state.expression,
             currencyCode = state.currencyCode,

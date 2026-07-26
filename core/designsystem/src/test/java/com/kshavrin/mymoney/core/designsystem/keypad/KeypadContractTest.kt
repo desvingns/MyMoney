@@ -12,12 +12,12 @@ import org.junit.Assert.fail
 import org.junit.Test
 
 /**
- * JVM-level contract tests for the MonefyKeypad subsystem.
+ * JVM-level contract tests for the Keypad subsystem.
  *
  * The :core:designsystem module does NOT yet have Robolectric or
  * compose-ui-test-junit4 on the test classpath (see build.gradle.kts).
  * The full button-press Compose-UI test is captured as a documented
- * placeholder in `MonefyKeypadTest.kt` and will be activated in PHASE_15
+ * placeholder in `KeypadTest.kt` and will be activated in PHASE_15
  * when the test wiring is added.
  *
  * What we CAN pin at the JVM level right now:
@@ -27,7 +27,7 @@ import org.junit.Test
  *      `Backspace` stays part of the sealed contract even though the
  *      ⌫ key was removed from the keypad grid (form-chrome restyle):
  *      the amount box's trailing ✕ clear affordance now emits it via
- *      `MonefyAmountInput.onClear` → `KeypadEvent.Backspace`.
+ *      `AmountInput.onClear` → `KeypadEvent.Backspace`.
  *   2. Operator enum coverage — the four operators that appear on the
  *      keypad map to four distinct enum entries.
  *   3. SoundKey enum coverage — KEYPAD_TAP and SAVED must exist; the
@@ -36,7 +36,7 @@ import org.junit.Test
  *      every play() call in order; this fake is the exact one the
  *      Compose-UI test will use once Robolectric is wired.
  */
-class MonefyKeypadContractTest {
+class KeypadContractTest {
     // ---- KeypadEvent: sealed-interface hierarchy ----
 
     @Test
@@ -182,7 +182,7 @@ class MonefyKeypadContractTest {
     }
 
     // ---- Pressing simulator: pure-function level pinning of the mapping ----
-    // (No Compose. We mirror what MonefyKeypad does: build a KeypadEvent
+    // (No Compose. We mirror what Keypad does: build a KeypadEvent
     // from a label, then verify type + payload. This protects against
     // accidental wiring changes between label and event.)
 
@@ -245,7 +245,7 @@ class MonefyKeypadContractTest {
     @Test
     fun `Backspace event stays in the sealed contract despite the key removal`() {
         // Even though no keypad key emits it, the type must remain constructible:
-        // MonefyAmountInput.onClear emits KeypadEvent.Backspace from the amount box.
+        // AmountInput.onClear emits KeypadEvent.Backspace from the amount box.
         val event: KeypadEvent = KeypadEvent.Backspace
         assertTrue("Backspace must remain a KeypadEvent variant", event is KeypadEvent.Backspace)
     }
@@ -285,9 +285,9 @@ class MonefyKeypadContractTest {
     }
 
     /**
-     * Pure-function mirror of MonefyKeypad's label → event mapping.
+     * Pure-function mirror of Keypad's label → event mapping.
      *
-     * Keep this in lock-step with MonefyKeypad.kt. If the production
+     * Keep this in lock-step with Keypad.kt. If the production
      * wiring changes (e.g. a label string is altered or a button is
      * added/removed) and this function is not updated, the
      * "sixteen visible keypad labels are exhaustively covered" or
@@ -296,7 +296,7 @@ class MonefyKeypadContractTest {
      * NOTE: there is intentionally no "⌫" branch — the backspace key was
      * removed from the keypad grid in the form-chrome restyle. The amount
      * box owns backspace now (its ✕ clear affordance emits
-     * KeypadEvent.Backspace via MonefyAmountInput.onClear).
+     * KeypadEvent.Backspace via AmountInput.onClear).
      */
     private fun simulatePress(label: String): KeypadEvent? =
         when (label) {

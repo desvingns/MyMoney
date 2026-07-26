@@ -22,9 +22,9 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.kshavrin.mymoney.core.designsystem.R
-import com.kshavrin.mymoney.core.designsystem.amountinput.MonefyAmountInput
+import com.kshavrin.mymoney.core.designsystem.amountinput.AmountInput
 import com.kshavrin.mymoney.core.designsystem.keypad.KeypadEvent
-import com.kshavrin.mymoney.core.designsystem.keypad.MonefyKeypad
+import com.kshavrin.mymoney.core.designsystem.keypad.Keypad
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -77,7 +77,7 @@ fun AmountFieldSection(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(Spacing.m),
     ) {
-        MonefyAmountInput(
+        AmountInput(
             display = state.display,
             expression = state.expression,
             currencyCode = state.currencyCode,
@@ -125,7 +125,7 @@ fun AmountFieldSection(
             modifier = Modifier.fillMaxWidth(),
         )
         if (showKeypad) {
-            MonefyKeypad(
+            Keypad(
                 onEvent = { keypadEvent -> onEvent(AmountFieldEvent.Keypad(keypadEvent)) },
                 modifier = Modifier.fillMaxWidth(),
             )

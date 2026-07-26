@@ -24,7 +24,7 @@ import java.util.Locale
  * test would not compile here. This mirrors the deliberate deferral
  * already documented across the codebase (e.g.
  * `:feature:transactionslist`'s `TransactionDetailContentTest` and
- * `:core:designsystem`'s `MonefyKeypadTest`). The executable Compose
+ * `:core:designsystem`'s `KeypadTest`). The executable Compose
  * test lands in PHASE_15 once those deps are wired in.
  *
  * What IS JVM-visible — and what this file pins — is the exact date

@@ -3,7 +3,7 @@ package com.kshavrin.mymoney.core.designsystem.confetti
 import org.junit.Test
 
 /**
- * Placeholder for the Compose-UI / Roborazzi test of [MonefyConfetti].
+ * Placeholder for the Compose-UI / Roborazzi test of [Confetti].
  *
  * # Why this file is a placeholder
  *
@@ -14,10 +14,10 @@ import org.junit.Test
  *
  * It does NOT have Robolectric, `androidx.compose.ui:ui-test-junit4`,
  * `ui-test-manifest`, or `androidx.test.ext:junit` — the same gap the
- * sibling [com.kshavrin.mymoney.core.designsystem.keypad.MonefyKeypadTest]
+ * sibling [com.kshavrin.mymoney.core.designsystem.keypad.KeypadTest]
  * documents. Wiring those in is PHASE_15 (polish / tests / release) work.
  *
- * [MonefyConfetti] is a pure Compose Canvas animation. Its internals —
+ * [Confetti] is a pure Compose Canvas animation. Its internals —
  * `ConfettiParticle`, the `CONFETTI_COLORS` palette, the gravity / spin /
  * drift maths, and the `tween(CONFETTI_DURATION_MS)` driver — are all
  * `private`, with no JVM-visible seam to pin without driving a real
@@ -27,7 +27,7 @@ import org.junit.Test
  *
  * # What the real test must cover
  *
- * The observable contract of MonefyConfetti is its *lifecycle*, not its
+ * The observable contract of Confetti is its *lifecycle*, not its
  * pixels:
  *
  *   1. `show = false` from the start renders nothing (early `return` when
@@ -41,11 +41,11 @@ import org.junit.Test
  * @RunWith(RobolectricTestRunner::class)
  * @Config(sdk = [34], application = android.app.Application::class)
  * @GraphicsMode(GraphicsMode.Mode.NATIVE)
- * class MonefyConfettiTest {
+ * class ConfettiTest {
  *     @get:Rule val composeTestRule = createComposeRule()
  *
  *     @Test fun `renders nothing while show is false`() {
- *         composeTestRule.setContent { MonefyConfetti(show = false) }
+ *         composeTestRule.setContent { Confetti(show = false) }
  *         // assert no Canvas / empty root content
  *     }
  *
@@ -53,7 +53,7 @@ import org.junit.Test
  *         var finished = 0
  *         composeTestRule.mainClock.autoAdvance = false
  *         composeTestRule.setContent {
- *             MonefyConfetti(show = true, onFinished = { finished++ })
+ *             Confetti(show = true, onFinished = { finished++ })
  *         }
  *         composeTestRule.mainClock.advanceTimeBy(CONFETTI_DURATION_MS.toLong() + 100)
  *         composeTestRule.runOnIdle { assertEquals(1, finished) }
@@ -67,7 +67,7 @@ import org.junit.Test
  * ```
  *
  * If a Roborazzi snapshot is later desired (light / dark palette over a
- * fixed progress), it belongs in a separate `MonefyConfettiScreenshotTest`
+ * fixed progress), it belongs in a separate `ConfettiScreenshotTest`
  * guarded by `screenshot_record_needed = true` — out of scope for this
  * unit-only SPEC.
  *
@@ -77,7 +77,7 @@ import org.junit.Test
  *     and randomised per-composition via `Random.nextFloat()`.
  *   - Frame-by-frame motion: belongs to manual / screenshot QA.
  */
-class MonefyConfettiTest {
+class ConfettiTest {
     /**
      * Single placeholder method so the class shows up as one pending entry
      * per CI run and keeps the production symbol referenced. The body is a
@@ -88,14 +88,14 @@ class MonefyConfettiTest {
     fun pendingComposeUiTest_seePhase15() {
         // Reference the public entry point's name so a rename of the
         // composable surfaces here rather than silently rotting the doc.
-        val composableName = ::referenceMonefyConfettiExists.name
+        val composableName = ::referenceConfettiExists.name
         check(composableName.isNotEmpty()) { "placeholder self-check" }
     }
 
     @Suppress("unused")
-    private fun referenceMonefyConfettiExists() {
+    private fun referenceConfettiExists() {
         // Intentionally never invoked. Exists only so the file names the
-        // production composable it stands in for; if MonefyConfetti is
+        // production composable it stands in for; if Confetti is
         // renamed/removed, update this placeholder and the template above.
     }
 }

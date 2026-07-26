@@ -8,9 +8,9 @@ import org.junit.Test
 
 /**
  * JVM-level tests for `computeDisplayFontSize`, the auto-shrink helper
- * used inside `MonefyAmountInput`.
+ * used inside `AmountInput`.
  *
- * Mapping pinned by SPEC and verified against MonefyAmountInput.kt:
+ * Mapping pinned by SPEC and verified against AmountInput.kt:
  *
  *   length ≤  6 -> 36.sp
  *   length 7..8 -> 32.sp
@@ -26,7 +26,7 @@ import org.junit.Test
  * a guard on `.type == TextUnitType.Sp` so a future change to em or
  * unspecified would fail the test loudly.
  */
-class MonefyAmountInputTest {
+class AmountInputTest {
     private fun assertSp(
         expectedSp: Float,
         actual: TextUnit,

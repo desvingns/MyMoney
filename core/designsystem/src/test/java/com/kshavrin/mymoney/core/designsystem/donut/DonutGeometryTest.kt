@@ -388,7 +388,7 @@ class DonutGeometryTest {
         }
     }
 
-    // ---- gap-split contract (applied in MonefyDonutChart, derived from sweep) ----
+    // ---- gap-split contract (applied in DonutChart, derived from sweep) ----
 
     @Test
     fun `gap split is bounded by min of sliceGapDegrees and 0 6 times sweep`() {

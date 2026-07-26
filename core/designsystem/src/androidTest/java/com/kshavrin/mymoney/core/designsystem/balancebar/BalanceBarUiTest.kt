@@ -25,7 +25,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
-class MonefyBalanceBarUiTest {
+class BalanceBarUiTest {
     @get:Rule
     val composeTestRule = createComposeRule()
 
@@ -33,7 +33,7 @@ class MonefyBalanceBarUiTest {
     fun `renders the localized balance label next to the formatted amount`() {
         composeTestRule.setContent {
             MyMoneyTheme {
-                MonefyBalanceBar(amount = "12 345,67 RUB", isPositive = true)
+                BalanceBar(amount = "12 345,67 RUB", isPositive = true)
             }
         }
 
@@ -48,7 +48,7 @@ class MonefyBalanceBarUiTest {
 
         composeTestRule.setContent {
             MyMoneyTheme {
-                MonefyBalanceBar(
+                BalanceBar(
                     amount = "100,00 RUB",
                     isPositive = true,
                     onClick = { clicks++ },
@@ -66,7 +66,7 @@ class MonefyBalanceBarUiTest {
     fun `places a glyph on both the left and the right of the centered amount`() {
         composeTestRule.setContent {
             MyMoneyTheme {
-                MonefyBalanceBar(
+                BalanceBar(
                     amount = "100,00 RUB",
                     isPositive = true,
                     modifier = Modifier.testTag(BALANCE_BAR_TAG),
@@ -101,7 +101,7 @@ class MonefyBalanceBarUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 expectedTint = MaterialTheme.colorScheme.primary.toArgb()
-                MonefyBalanceBar(amount = "100,00 RUB", isPositive = true)
+                BalanceBar(amount = "100,00 RUB", isPositive = true)
             }
         }
         composeTestRule.waitForIdle()
@@ -120,7 +120,7 @@ class MonefyBalanceBarUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 primaryTint = MaterialTheme.colorScheme.primary.toArgb()
-                MonefyBalanceBar(amount = "-100,00 RUB", isPositive = false)
+                BalanceBar(amount = "-100,00 RUB", isPositive = false)
             }
         }
         composeTestRule.waitForIdle()
@@ -137,7 +137,7 @@ class MonefyBalanceBarUiTest {
 
         composeTestRule.setContent {
             MyMoneyTheme {
-                MonefyBalanceBar(
+                BalanceBar(
                     amount = "100,00 RUB",
                     isPositive = true,
                     onClick = {},
@@ -163,7 +163,7 @@ class MonefyBalanceBarUiTest {
     fun `bar row exposes a merged content description combining label and amount`() {
         composeTestRule.setContent {
             MyMoneyTheme {
-                MonefyBalanceBar(
+                BalanceBar(
                     amount = "99,00 RUB",
                     isPositive = true,
                     modifier = Modifier.testTag(BALANCE_BAR_TAG),
@@ -189,7 +189,7 @@ class MonefyBalanceBarUiTest {
     fun `flank icons are marked decorative and do not appear as separate a11y nodes`() {
         composeTestRule.setContent {
             MyMoneyTheme {
-                MonefyBalanceBar(
+                BalanceBar(
                     amount = "100,00 RUB",
                     isPositive = true,
                     modifier = Modifier.testTag(BALANCE_BAR_TAG),

@@ -24,7 +24,7 @@ import org.junit.Test
  * split) is `private` and is expressed entirely in terms of Android types
  * (Vibrator, VibrationEffect, Build.VERSION.SDK_INT), so there is no
  * JVM-visible seam to pin without Robolectric — hence this placeholder,
- * mirroring the `MonefyKeypadTest` convention in :core:designsystem.
+ * mirroring the `KeypadTest` convention in :core:designsystem.
  *
  * # What the real test must cover (SPEC §6.9 + CONSTRAINTS)
  *

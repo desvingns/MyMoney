@@ -49,8 +49,8 @@ internal val monefyDonutChartSampleSlices: List<CategorySlice> =
     )
 
 @Composable
-internal fun MonefyDonutChartSample(modifier: Modifier = Modifier) {
-    MonefyDonutChart(
+internal fun DonutChartSample(modifier: Modifier = Modifier) {
+    DonutChart(
         income = BigDecimal("2500"),
         expense = BigDecimal("1840"),
         slices = monefyDonutChartSampleSlices,
@@ -71,13 +71,13 @@ internal fun MonefyDonutChartSample(modifier: Modifier = Modifier) {
     heightDp = DONUT_PREVIEW_SIZE_DP,
 )
 @Composable
-private fun MonefyDonutChartPreview() {
+private fun DonutChartPreview() {
     MyMoneyTheme {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background,
         ) {
-            MonefyDonutChartSample(modifier = Modifier.fillMaxSize())
+            DonutChartSample(modifier = Modifier.fillMaxSize())
         }
     }
 }

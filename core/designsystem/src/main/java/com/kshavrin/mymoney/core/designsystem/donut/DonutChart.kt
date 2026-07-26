@@ -108,7 +108,7 @@ private class ExtrudedRingPaints(
 }
 
 @Composable
-fun MonefyDonutChart(
+fun DonutChart(
     income: BigDecimal,
     expense: BigDecimal,
     slices: List<CategorySlice>,

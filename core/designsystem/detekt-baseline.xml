@@ -2,6 +2,6 @@
 <SmellBaseline>
   <ManuallySuppressedIssues></ManuallySuppressedIssues>
   <CurrentIssues>
-    <ID>UnusedParameter:MonefyDonutChart.kt$leaderLineColor: Color = MaterialTheme.colorScheme.dashboardDonutLeaderLine</ID>
+    <ID>UnusedParameter:DonutChart.kt$leaderLineColor: Color = MaterialTheme.colorScheme.dashboardDonutLeaderLine</ID>
   </CurrentIssues>
 </SmellBaseline>

@@ -6,14 +6,14 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Contract-level pinning for the form-chrome restyle of [MonefyAmountInput] /
+ * Contract-level pinning for the form-chrome restyle of [AmountInput] /
  * [AmountFieldSection].
  *
  * # What changed (form-chrome restyle)
  *
  *   1. The ⌫ backspace key was removed from the keypad grid; the amount box
  *      grew a trailing ✕ clear affordance instead.
- *   2. That affordance fires `MonefyAmountInput.onClear`, which
+ *   2. That affordance fires `AmountInput.onClear`, which
  *      `AmountFieldSection` wires to `AmountFieldEvent.Keypad(KeypadEvent.Backspace)`.
  *   3. The currency code/symbol moved to the LEFT of the amount.
  *
@@ -24,8 +24,8 @@ import org.junit.Test
  * no `androidx.compose.ui:ui-test-junit4`, no `ui-test-manifest`
  * (see build.gradle.kts). A `createComposeRule()` test would not compile.
  * This is the same deliberate deferral documented in the sibling
- * [com.kshavrin.mymoney.core.designsystem.keypad.MonefyKeypadTest] and
- * [com.kshavrin.mymoney.core.designsystem.confetti.MonefyConfettiTest];
+ * [com.kshavrin.mymoney.core.designsystem.keypad.KeypadTest] and
+ * [com.kshavrin.mymoney.core.designsystem.confetti.ConfettiTest];
  * the executable Compose test lands in PHASE_15 once those deps are wired.
  *
  * Until then we pin the one piece of this contract that IS JVM-visible:
@@ -39,13 +39,13 @@ import org.junit.Test
  * @RunWith(RobolectricTestRunner::class)
  * @Config(sdk = [34], application = android.app.Application::class)
  * @GraphicsMode(GraphicsMode.Mode.NATIVE)
- * class MonefyAmountInputContentTest {
+ * class AmountInputContentTest {
  *     @get:Rule val composeTestRule = createComposeRule()
  *
  *     @Test fun `currency code renders to the LEFT of the amount`() {
  *         composeTestRule.setContent {
  *             MyMoneyTheme {
- *                 MonefyAmountInput(
+ *                 AmountInput(
  *                     display = "12.00", expression = "", currencyCode = "USD",
  *                     currencySymbol = "$", onClear = {},
  *                 )
@@ -61,7 +61,7 @@ import org.junit.Test
  *         var cleared = false
  *         composeTestRule.setContent {
  *             MyMoneyTheme {
- *                 MonefyAmountInput(
+ *                 AmountInput(
  *                     display = "9", expression = "", currencyCode = "USD",
  *                     onClear = { cleared = true },
  *                     clearContentDescription = "Backspace",
@@ -75,7 +75,7 @@ import org.junit.Test
  *     @Test fun `clear affordance is absent when onClear is null`() {
  *         composeTestRule.setContent {
  *             MyMoneyTheme {
- *                 MonefyAmountInput(display = "9", expression = "", currencyCode = "USD")
+ *                 AmountInput(display = "9", expression = "", currencyCode = "USD")
  *             }
  *         }
  *         composeTestRule.onNodeWithContentDescription("Backspace").assertDoesNotExist()
@@ -84,7 +84,7 @@ import org.junit.Test
  *     @Test fun `expression line renders when expression is non-blank`() {
  *         composeTestRule.setContent {
  *             MyMoneyTheme {
- *                 MonefyAmountInput(display = "5", expression = "2 + 3", currencyCode = "USD")
+ *                 AmountInput(display = "5", expression = "2 + 3", currencyCode = "USD")
  *             }
  *         }
  *         composeTestRule.onNodeWithText("2 + 3").assertIsDisplayed()
@@ -93,7 +93,7 @@ import org.junit.Test
  *     @Test fun `expression line is hidden when expression is blank`() {
  *         composeTestRule.setContent {
  *             MyMoneyTheme {
- *                 MonefyAmountInput(display = "5", expression = "", currencyCode = "USD")
+ *                 AmountInput(display = "5", expression = "", currencyCode = "USD")
  *             }
  *         }
  *         composeTestRule.onNodeWithText("2 + 3").assertDoesNotExist()
@@ -103,7 +103,7 @@ import org.junit.Test
  *
  * The autoscale behaviour of the display text is covered separately and
  * stays green in
- * [com.kshavrin.mymoney.core.designsystem.amountinput.MonefyAmountInputTest].
+ * [com.kshavrin.mymoney.core.designsystem.amountinput.AmountInputTest].
  */
 class AmountFieldClearContractTest {
     /**

@@ -32,7 +32,7 @@ import kotlinx.coroutines.launch
 import com.kshavrin.mymoney.core.ui.sound.SoundKey as UiSoundKey
 
 @Composable
-fun MonefyKeypad(
+fun Keypad(
     onEvent: (KeypadEvent) -> Unit,
     modifier: Modifier = Modifier,
 ) {

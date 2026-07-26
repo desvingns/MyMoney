@@ -21,7 +21,7 @@ import java.math.BigDecimal
  *
  * (neither artifact is present in the Gradle cache, so a `createComposeRule()` test would fail
  * to resolve at compile time). This mirrors the deliberate deferral already documented in this
- * module's slice-1 `TransactionsListContentTest` and `:core:designsystem`'s `MonefyKeypadTest` —
+ * module's slice-1 `TransactionsListContentTest` and `:core:designsystem`'s `KeypadTest` —
  * full Compose-UI tests land in PHASE_15 once those dependencies are wired in.
  *
  * Until then, the user-visible decisions that the composable makes are driven by pure,

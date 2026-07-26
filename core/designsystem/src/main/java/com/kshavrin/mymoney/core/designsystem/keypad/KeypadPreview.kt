@@ -14,17 +14,17 @@ import com.kshavrin.mymoney.core.ui.theme.Spacing
 internal const val KEYPAD_PREVIEW_WIDTH_DP = 320
 
 @Composable
-internal fun MonefyKeypadSample(modifier: Modifier = Modifier) {
-    MonefyKeypad(onEvent = {}, modifier = modifier)
+internal fun KeypadSample(modifier: Modifier = Modifier) {
+    Keypad(onEvent = {}, modifier = modifier)
 }
 
 @Preview(name = "Keypad · Light", showBackground = true, widthDp = KEYPAD_PREVIEW_WIDTH_DP)
 @Preview(name = "Keypad · Dark", showBackground = true, uiMode = UI_MODE_NIGHT_YES, widthDp = KEYPAD_PREVIEW_WIDTH_DP)
 @Composable
-private fun MonefyKeypadPreview() {
+private fun KeypadPreview() {
     MyMoneyTheme {
         Surface(color = MaterialTheme.colorScheme.background) {
-            MonefyKeypadSample(
+            KeypadSample(
                 modifier =
                     Modifier
                         .fillMaxWidth()

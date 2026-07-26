@@ -20,14 +20,14 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
-class MonefyKeypadA11yUiTest {
+class KeypadA11yUiTest {
     @get:Rule
     val composeTestRule = createComposeRule().apply { enableAccessibilityChecks() }
 
     @Test
     fun `every calculator key has a 48dp touch target`() {
         composeTestRule.setContent {
-            MyMoneyTheme { MonefyKeypad(onEvent = {}) }
+            MyMoneyTheme { Keypad(onEvent = {}) }
         }
 
         (('0'..'9').map(Char::toString) + ".").forEach { label ->
@@ -58,7 +58,7 @@ class MonefyKeypadA11yUiTest {
 
         composeTestRule.setContent {
             MyMoneyTheme {
-                MonefyKeypad(onEvent = { events += it })
+                Keypad(onEvent = { events += it })
             }
         }
 
@@ -73,7 +73,7 @@ class MonefyKeypadA11yUiTest {
 
         composeTestRule.setContent {
             MyMoneyTheme {
-                MonefyKeypad(onEvent = {})
+                Keypad(onEvent = {})
             }
         }
 
@@ -88,7 +88,7 @@ class MonefyKeypadA11yUiTest {
 
         composeTestRule.setContent {
             MyMoneyTheme {
-                MonefyKeypad(onEvent = {})
+                Keypad(onEvent = {})
             }
         }
 
@@ -103,7 +103,7 @@ class MonefyKeypadA11yUiTest {
 
         composeTestRule.setContent {
             MyMoneyTheme {
-                MonefyKeypad(onEvent = {})
+                Keypad(onEvent = {})
             }
         }
 
@@ -118,7 +118,7 @@ class MonefyKeypadA11yUiTest {
 
         composeTestRule.setContent {
             MyMoneyTheme {
-                MonefyKeypad(onEvent = {})
+                Keypad(onEvent = {})
             }
         }
 
@@ -134,7 +134,7 @@ class MonefyKeypadA11yUiTest {
 
         composeTestRule.setContent {
             MyMoneyTheme {
-                MonefyKeypad(onEvent = { events += it })
+                Keypad(onEvent = { events += it })
             }
         }
 
@@ -155,7 +155,7 @@ class MonefyKeypadA11yUiTest {
 
         composeTestRule.setContent {
             MyMoneyTheme {
-                MonefyKeypad(onEvent = { events += it })
+                Keypad(onEvent = { events += it })
             }
         }
 
@@ -176,7 +176,7 @@ class MonefyKeypadA11yUiTest {
 
         composeTestRule.setContent {
             MyMoneyTheme {
-                MonefyKeypad(onEvent = { events += it })
+                Keypad(onEvent = { events += it })
             }
         }
 
@@ -197,7 +197,7 @@ class MonefyKeypadA11yUiTest {
 
         composeTestRule.setContent {
             MyMoneyTheme {
-                MonefyKeypad(onEvent = { events += it })
+                Keypad(onEvent = { events += it })
             }
         }
 
@@ -220,7 +220,7 @@ class MonefyKeypadA11yUiTest {
 
         composeTestRule.setContent {
             MyMoneyTheme {
-                MonefyKeypad(onEvent = {})
+                Keypad(onEvent = {})
             }
         }
 

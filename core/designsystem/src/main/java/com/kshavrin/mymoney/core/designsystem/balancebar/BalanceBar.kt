@@ -23,7 +23,7 @@ import com.kshavrin.mymoney.core.designsystem.R
 
 @Suppress("UNUSED_PARAMETER")
 @Composable
-fun MonefyBalanceBar(
+fun BalanceBar(
     amount: String,
     isPositive: Boolean,
     modifier: Modifier = Modifier,

@@ -52,7 +52,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kshavrin.mymoney.core.common.money.MoneyFormatter
-import com.kshavrin.mymoney.core.designsystem.confetti.MonefyConfetti
+import com.kshavrin.mymoney.core.designsystem.confetti.Confetti
 import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.domain.model.Period
 import com.kshavrin.mymoney.core.ui.feedback.LocalHapticPlayer
@@ -248,7 +248,7 @@ fun DashboardContent(
                     )
                 }
 
-                MonefyConfetti(
+                Confetti(
                     show = state.showConfetti,
                     onFinished = { onEvent(DashboardEvent.ConfettiAcknowledged) },
                 )

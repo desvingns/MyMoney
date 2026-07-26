@@ -26,7 +26,7 @@ import com.kshavrin.mymoney.core.designsystem.R
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 
 @Composable
-fun MonefyAmountInput(
+fun AmountInput(
     display: String,
     expression: String,
     currencyCode: String?,

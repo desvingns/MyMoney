@@ -12,7 +12,7 @@ import org.junit.Test
  * call sites wired across the keypad, dashboard, transaction and
  * swipe-to-delete screens. This test pins the *full membership* of the
  * enum so an accidental addition or removal fails loudly — same style as
- * the legacy `MonefyKeypadContractTest` SoundKey pinning.
+ * the legacy `KeypadContractTest` SoundKey pinning.
  *
  * The Android-bound behaviour of `HapticPlayerImpl` (Vibrator,
  * VibrationEffect.Composition, hapticEnabled gating, and the

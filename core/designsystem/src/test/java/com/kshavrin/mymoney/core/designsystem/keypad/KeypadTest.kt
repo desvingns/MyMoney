@@ -5,7 +5,7 @@ import com.kshavrin.mymoney.core.designsystem.sound.SoundPlayer
 import org.junit.Test
 
 /**
- * Placeholder for the full Compose-UI test of [MonefyKeypad].
+ * Placeholder for the full Compose-UI test of [Keypad].
  *
  * # Why this file is a placeholder
  *
@@ -23,10 +23,10 @@ import org.junit.Test
  *
  * Wiring those in is scheduled for PHASE_15 (polish / tests / release).
  * Until then, the contract-level pinning lives in
- * [MonefyKeypadContractTest], which exercises the JVM-visible parts:
+ * [KeypadContractTest], which exercises the JVM-visible parts:
  * `KeypadEvent` sealed-interface, `Operator` enum, `SoundKey` enum,
  * `SoundPlayer` interface, and a pure-function mirror of the label
- * to event mapping inside MonefyKeypad.
+ * to event mapping inside Keypad.
  *
  * When PHASE_15 lands, replace the body of [pendingComposeUiTest_seePhase15]
  * with the real assertions described below. No other change required.
@@ -39,7 +39,7 @@ import org.junit.Test
  *   - Operators +, −, ×, ÷                          ->  4
  *   - Dot ".", Equals "="                           ->  2
  *
- * Layout (from MonefyKeypad.kt — a 4×4 grid):
+ * Layout (from Keypad.kt — a 4×4 grid):
  *   - Row 1 (4 cells): "1" "2" "3" "+"
  *   - Row 2 (4 cells): "4" "5" "6" "−"
  *   - Row 3 (4 cells): "7" "8" "9" "×"
@@ -54,7 +54,7 @@ import org.junit.Test
  * @RunWith(RobolectricTestRunner::class)
  * @Config(sdk = [34], application = android.app.Application::class)
  * @GraphicsMode(GraphicsMode.Mode.NATIVE)
- * class MonefyKeypadTest {
+ * class KeypadTest {
  *     @get:Rule val composeTestRule = createComposeRule()
  *
  *     private lateinit var events: MutableList<KeypadEvent>
@@ -66,7 +66,7 @@ import org.junit.Test
  *         fakeSoundPlayer = FakeSoundPlayer()
  *         composeTestRule.setContent {
  *             MyMoneyTheme {
- *                 MonefyKeypad(
+ *                 Keypad(
  *                     onEvent = events::add,
  *                     soundPlayer = fakeSoundPlayer,
  *                 )
@@ -152,7 +152,7 @@ import org.junit.Test
  *     explicitly notes "haptic happens but is hard to assert headlessly".
  *   - Per-press scale animation: visual polish, not a contract.
  */
-class MonefyKeypadTest {
+class KeypadTest {
     /**
      * Single placeholder method so the test class is non-empty and shows
      * up in the test report as a single skipped/pending entry per CI run.

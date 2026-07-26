@@ -2,11 +2,11 @@ package com.kshavrin.mymoney.core.designsystem.screenshot
 
 import androidx.compose.ui.test.junit4.createComposeRule
 import com.kshavrin.mymoney.core.designsystem.chart.BalanceTrendChartSample
-import com.kshavrin.mymoney.core.designsystem.donut.MonefyDonutChartSample
+import com.kshavrin.mymoney.core.designsystem.donut.DonutChartSample
 import com.kshavrin.mymoney.core.designsystem.form.TransactionFormSample
 import com.kshavrin.mymoney.core.designsystem.form.transactionFormAmountStepSampleState
 import com.kshavrin.mymoney.core.designsystem.form.transactionFormCategoryStepSampleState
-import com.kshavrin.mymoney.core.designsystem.keypad.MonefyKeypadSample
+import com.kshavrin.mymoney.core.designsystem.keypad.KeypadSample
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -23,7 +23,7 @@ import org.robolectric.annotation.GraphicsMode
 // relative to the module directory). The PNGs are committed to VCS as golden baselines.
 //
 // All rendering is deterministic: fixed screen metrics (Pixel-5-class, 411dp × 914dp xxhdpi),
-// snap() animations in MonefyDonutChartSample (no mid-animation frame), and seeded sample data
+// snap() animations in DonutChartSample (no mid-animation frame), and seeded sample data
 // shared with the @Preview composables in the same module.
 @RunWith(RobolectricTestRunner::class)
 @Config(
@@ -36,19 +36,19 @@ class DesignSystemScreenshotTest {
     @get:Rule
     val composeTestRule = createComposeRule()
 
-    // ---- MonefyDonutChart -----------------------------------------------------------------------
+    // ---- DonutChart -----------------------------------------------------------------------
 
     @Test
     fun `donut chart light`() {
         composeTestRule.captureThemed("donut_light", darkTheme = false) {
-            MonefyDonutChartSample()
+            DonutChartSample()
         }
     }
 
     @Test
     fun `donut chart dark`() {
         composeTestRule.captureThemed("donut_dark", darkTheme = true) {
-            MonefyDonutChartSample()
+            DonutChartSample()
         }
     }
 
@@ -68,19 +68,19 @@ class DesignSystemScreenshotTest {
         }
     }
 
-    // ---- MonefyKeypad ---------------------------------------------------------------------------
+    // ---- Keypad ---------------------------------------------------------------------------
 
     @Test
     fun `keypad light`() {
         composeTestRule.captureThemed("keypad_light", darkTheme = false) {
-            MonefyKeypadSample()
+            KeypadSample()
         }
     }
 
     @Test
     fun `keypad dark`() {
         composeTestRule.captureThemed("keypad_dark", darkTheme = true) {
-            MonefyKeypadSample()
+            KeypadSample()
         }
     }
 

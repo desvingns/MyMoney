@@ -16,8 +16,8 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -307,7 +307,7 @@ class LeftDrawerPeriodSelectorUiTest {
                                 currencies = listOf(serbianDinar),
                                 dashboardSelection = DashboardSelection.AllAccounts(AllAccountsFoldMode.ConvertTo(serbianDinar)),
                                 isLoading = false,
-                        ),
+                            ),
                         onEvent = {},
                         onPickDateRangeClick = {},
                     )
@@ -343,8 +343,8 @@ class LeftDrawerPeriodSelectorUiTest {
                             dashboardSelection = DashboardSelection.AllAccounts(AllAccountsFoldMode.Separate),
                             isLoading = false,
                         ),
-                        onEvent = { selectedEvent = it },
-                        onPickDateRangeClick = {},
+                    onEvent = { selectedEvent = it },
+                    onPickDateRangeClick = {},
                 )
             }
         }

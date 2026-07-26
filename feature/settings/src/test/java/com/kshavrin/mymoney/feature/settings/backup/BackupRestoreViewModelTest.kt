@@ -7,8 +7,8 @@ import com.kshavrin.mymoney.core.datastore.SecureStorage
 import com.kshavrin.mymoney.core.datastore.model.AppSettings
 import com.kshavrin.mymoney.core.datastore.model.SecureSettings
 import com.kshavrin.mymoney.core.domain.repository.BackupSchemaTooNewException
-import com.kshavrin.mymoney.feature.settings.R
 import com.kshavrin.mymoney.core.testing.fake.FakeAppSettingsRepository
+import com.kshavrin.mymoney.feature.settings.R
 import com.kshavrin.mymoney.feature.settings.fake.FakeBackupRepository
 import com.kshavrin.mymoney.feature.settings.util.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi

@@ -61,8 +61,7 @@ fun ColorPickerGrid(
                         .semantics {
                             contentDescription = colorDescription
                             this.selected = selected
-                        }
-                        .clip(CircleShape)
+                        }.clip(CircleShape)
                         .background(color)
                         .then(
                             if (selected) {

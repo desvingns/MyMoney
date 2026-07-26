@@ -50,6 +50,7 @@ fun MyMoneyTheme(
 }
 
 @Composable
+@Suppress("UnusedParameter") // TODO: light theme is not implemented yet; colorScheme is forced to DarkColors below.
 fun MyMoneyTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = false,

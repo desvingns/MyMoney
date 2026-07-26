@@ -49,7 +49,7 @@ naming:
   active: true
   FunctionNaming:
     active: true
-    ignoreAnnotated: [ 'Composable' ]
+    ignoreAnnotated: [ 'Composable', 'Test' ]
   TopLevelPropertyNaming:
     active: false
   MatchingDeclarationName:
@@ -82,4 +82,11 @@ style:
 performance:
   active: true
   SpreadOperator:
+    active: false
+
+exceptions:
+  active: true
+  TooGenericExceptionCaught:
+    active: false
+  InstanceOfCheckForException:
     active: false

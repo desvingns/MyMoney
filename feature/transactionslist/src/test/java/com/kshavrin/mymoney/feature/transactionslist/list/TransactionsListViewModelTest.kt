@@ -5,9 +5,9 @@ import com.kshavrin.mymoney.core.domain.model.Period
 import com.kshavrin.mymoney.core.domain.usecase.GetCategoryRecordsUseCase
 import com.kshavrin.mymoney.core.domain.usecase.GetOperationsSummaryUseCase
 import com.kshavrin.mymoney.core.domain.usecase.GetTransferRecordsUseCase
+import com.kshavrin.mymoney.core.testing.fake.FakeCurrencyRepository
 import com.kshavrin.mymoney.feature.transactionslist.fake.FakeAccountRepository
 import com.kshavrin.mymoney.feature.transactionslist.fake.FakeCategoryRepository
-import com.kshavrin.mymoney.core.testing.fake.FakeCurrencyRepository
 import com.kshavrin.mymoney.feature.transactionslist.fake.FakeTransactionRepository
 import com.kshavrin.mymoney.feature.transactionslist.util.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi

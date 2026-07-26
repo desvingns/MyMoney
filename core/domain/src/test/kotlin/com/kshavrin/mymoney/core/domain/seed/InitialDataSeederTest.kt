@@ -727,7 +727,7 @@ class InitialDataSeederTest {
 
         override suspend fun upsertAll(categories: List<Category>) {
             if (failOnUpsertAll) {
-                throw IllegalStateException("boom")
+                error("boom")
             }
             categories.forEach { upsert(it) }
         }

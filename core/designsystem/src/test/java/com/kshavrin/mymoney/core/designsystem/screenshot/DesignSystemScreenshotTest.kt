@@ -33,7 +33,6 @@ import org.robolectric.annotation.GraphicsMode
 )
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class DesignSystemScreenshotTest {
-
     @get:Rule
     val composeTestRule = createComposeRule()
 

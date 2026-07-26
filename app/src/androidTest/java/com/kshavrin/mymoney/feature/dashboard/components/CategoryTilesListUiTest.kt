@@ -5,8 +5,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.junit4.accessibility.enableAccessibilityChecks
+import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -18,13 +18,13 @@ import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import com.kshavrin.mymoney.feature.dashboard.R
+import com.kshavrin.mymoney.test.assertTouchHeightIsAtLeast
+import com.kshavrin.mymoney.test.assertTouchWidthIsAtLeast
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.math.BigDecimal
-import com.kshavrin.mymoney.test.assertTouchHeightIsAtLeast
-import com.kshavrin.mymoney.test.assertTouchWidthIsAtLeast
 
 @RunWith(AndroidJUnit4::class)
 class CategoryTilesListUiTest {

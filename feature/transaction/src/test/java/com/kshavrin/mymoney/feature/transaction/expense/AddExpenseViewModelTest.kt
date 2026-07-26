@@ -13,11 +13,11 @@ import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
 import com.kshavrin.mymoney.core.domain.repository.CategoryRepository
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
+import com.kshavrin.mymoney.core.testing.fake.FakeAppSettingsRepository
+import com.kshavrin.mymoney.core.testing.fake.FakeCurrencyRepository
 import com.kshavrin.mymoney.feature.transaction.R
 import com.kshavrin.mymoney.feature.transaction.fake.FakeAccountRepository
-import com.kshavrin.mymoney.core.testing.fake.FakeAppSettingsRepository
 import com.kshavrin.mymoney.feature.transaction.fake.FakeCategoryRepository
-import com.kshavrin.mymoney.core.testing.fake.FakeCurrencyRepository
 import com.kshavrin.mymoney.feature.transaction.fake.FakeTransactionRepository
 import com.kshavrin.mymoney.feature.transaction.util.MainDispatcherRule
 import kotlinx.coroutines.CompletableDeferred

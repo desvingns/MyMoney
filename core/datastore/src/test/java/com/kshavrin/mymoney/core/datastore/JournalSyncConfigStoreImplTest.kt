@@ -34,51 +34,56 @@ class JournalSyncConfigStoreImplTest {
     }
 
     @Test
-    fun `binding round trips and one active provider account is retained`() = runTest {
-        val binding = CloudBinding(CloudProvider.GoogleDrive, "permission-123", "me@example.com")
-        store.setBinding(binding)
-        assertEquals(binding, store.binding())
-    }
+    fun `binding round trips and one active provider account is retained`() =
+        runTest {
+            val binding = CloudBinding(CloudProvider.GoogleDrive, "permission-123", "me@example.com")
+            store.setBinding(binding)
+            assertEquals(binding, store.binding())
+        }
 
     @Test
-    fun `legacy folder key is ignored`() = runTest {
-        dataStore.edit { it[stringPreferencesKey("journal_folder_id")] = "old-folder" }
-        assertNull(store.binding())
-        assertEquals(0L, store.peerHighWaterMs("peer"))
-    }
+    fun `legacy folder key is ignored`() =
+        runTest {
+            dataStore.edit { it[stringPreferencesKey("journal_folder_id")] = "old-folder" }
+            assertNull(store.binding())
+            assertEquals(0L, store.peerHighWaterMs("peer"))
+        }
 
     @Test
-    fun `peer high water and bootstrap are scoped by provider and account`() = runTest {
-        store.setBinding(CloudBinding(CloudProvider.Dropbox, "acct-a", "A"))
-        store.setPeerHighWaterMs("peer", 42L)
-        store.markBootstrapDone()
-        store.setBinding(CloudBinding(CloudProvider.Dropbox, "acct-b", "B"))
-        assertEquals(0L, store.peerHighWaterMs("peer"))
-        assertFalse(store.isBootstrapDone())
-        store.setBinding(CloudBinding(CloudProvider.Dropbox, "acct-a", "A"))
-        assertEquals(42L, store.peerHighWaterMs("peer"))
-        assertTrue(store.isBootstrapDone())
-    }
+    fun `peer high water and bootstrap are scoped by provider and account`() =
+        runTest {
+            store.setBinding(CloudBinding(CloudProvider.Dropbox, "acct-a", "A"))
+            store.setPeerHighWaterMs("peer", 42L)
+            store.markBootstrapDone()
+            store.setBinding(CloudBinding(CloudProvider.Dropbox, "acct-b", "B"))
+            assertEquals(0L, store.peerHighWaterMs("peer"))
+            assertFalse(store.isBootstrapDone())
+            store.setBinding(CloudBinding(CloudProvider.Dropbox, "acct-a", "A"))
+            assertEquals(42L, store.peerHighWaterMs("peer"))
+            assertTrue(store.isBootstrapDone())
+        }
 
     @Test
-    fun `clear binding clears active scoped state`() = runTest {
-        store.setBinding(CloudBinding(CloudProvider.GoogleDrive, "acct", "A"))
-        store.setPeerHighWaterMs("peer", 99L)
-        store.markBootstrapDone()
-        store.clearBinding()
-        assertNull(store.binding())
-        assertEquals(0L, store.peerHighWaterMs("peer"))
-        assertFalse(store.isBootstrapDone())
-    }
+    fun `clear binding clears active scoped state`() =
+        runTest {
+            store.setBinding(CloudBinding(CloudProvider.GoogleDrive, "acct", "A"))
+            store.setPeerHighWaterMs("peer", 99L)
+            store.markBootstrapDone()
+            store.clearBinding()
+            assertNull(store.binding())
+            assertEquals(0L, store.peerHighWaterMs("peer"))
+            assertFalse(store.isBootstrapDone())
+        }
 
     @Test
-    fun `clear removes all journal state`() = runTest {
-        store.setBinding(CloudBinding(CloudProvider.Dropbox, "acct", "A"))
-        store.setPeerHighWaterMs("peer", 7L)
-        store.markBootstrapDone()
-        store.clear()
-        assertNull(store.binding())
-        assertEquals(0L, store.peerHighWaterMs("peer"))
-        assertFalse(store.isBootstrapDone())
-    }
+    fun `clear removes all journal state`() =
+        runTest {
+            store.setBinding(CloudBinding(CloudProvider.Dropbox, "acct", "A"))
+            store.setPeerHighWaterMs("peer", 7L)
+            store.markBootstrapDone()
+            store.clear()
+            assertNull(store.binding())
+            assertEquals(0L, store.peerHighWaterMs("peer"))
+            assertFalse(store.isBootstrapDone())
+        }
 }

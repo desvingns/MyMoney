@@ -299,8 +299,7 @@ class TransferScreenUiTest {
         composeTestRule
             .onNodeWithContentDescription(
                 targetString(DesignSystemR.string.amountfield_date_cd, headerDateLabel(initialDate)),
-            )
-            .performClick()
+            ).performClick()
         composeTestRule.onNodeWithText(datePickerLabel(chosenDate)).performClick()
         composeTestRule.onNodeWithText(targetString(R.string.pick_date)).performClick()
 

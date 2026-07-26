@@ -23,10 +23,10 @@ import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
 import com.kshavrin.mymoney.feature.dashboard.R as DashboardR
 import com.kshavrin.mymoney.feature.onboarding.R as OnboardingR
 import com.kshavrin.mymoney.feature.transaction.R as TransactionR
-import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
 
 /**
  * J1 — the highest-value end-to-end journey (AS-2, AS-4, TDD §4.6 AC6).

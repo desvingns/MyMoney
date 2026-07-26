@@ -39,8 +39,7 @@ class CategoryGridUiTest {
         composeTestRule
             .onNodeWithContentDescription(
                 targetString(DesignSystemR.string.transaction_form_category_cd, "Bills"),
-            )
-            .assertIsDisplayed()
+            ).assertIsDisplayed()
             .performClick()
 
         composeTestRule.runOnIdle {

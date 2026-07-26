@@ -34,7 +34,11 @@ class CloudSyncContentUiTest {
             ),
             events::add,
         )
-        composeTestRule.onNodeWithTag("cloud_sync_google_drive_disconnect").performScrollTo().assertIsEnabled().performClick()
+        composeTestRule
+            .onNodeWithTag("cloud_sync_google_drive_disconnect")
+            .performScrollTo()
+            .assertIsEnabled()
+            .performClick()
         composeTestRule.runOnIdle { assertEquals(listOf(CloudSyncEvent.DisconnectClicked(SyncTarget.GoogleDrive)), events) }
     }
 
@@ -71,7 +75,10 @@ class CloudSyncContentUiTest {
         }
     }
 
-    private fun setContent(state: CloudSyncState = CloudSyncState(), onEvent: (CloudSyncEvent) -> Unit = {}) {
+    private fun setContent(
+        state: CloudSyncState = CloudSyncState(),
+        onEvent: (CloudSyncEvent) -> Unit = {},
+    ) {
         composeTestRule.setContent { MyMoneyTheme { CloudSyncContent(state = state, onEvent = onEvent) } }
     }
 

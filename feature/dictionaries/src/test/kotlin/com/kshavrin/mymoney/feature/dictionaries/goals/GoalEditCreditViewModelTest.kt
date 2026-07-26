@@ -12,8 +12,8 @@ import com.kshavrin.mymoney.core.domain.model.LoanGoalInput
 import com.kshavrin.mymoney.core.domain.usecase.ContributionCalculator
 import com.kshavrin.mymoney.core.domain.usecase.GoalLoanCalculator
 import com.kshavrin.mymoney.core.domain.usecase.GoalSavingsProjector
-import com.kshavrin.mymoney.feature.dictionaries.goals.fake.FakeAccountRepository
 import com.kshavrin.mymoney.core.testing.fake.FakeCurrencyRepository
+import com.kshavrin.mymoney.feature.dictionaries.goals.fake.FakeAccountRepository
 import com.kshavrin.mymoney.feature.dictionaries.goals.fake.FakeGoalRepository
 import com.kshavrin.mymoney.feature.dictionaries.util.MainDispatcherRule
 import kotlinx.coroutines.test.runTest

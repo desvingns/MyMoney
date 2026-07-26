@@ -4,9 +4,9 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
@@ -19,8 +19,8 @@ import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.junit4.accessibility.enableAccessibilityChecks
+import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -34,7 +34,7 @@ import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
 import androidx.compose.ui.test.swipeUp
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -64,18 +64,18 @@ import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_CURRENCIES
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_FINANCIAL_GOALS_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_SEARCH_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_SETTINGS_TAG
+import com.kshavrin.mymoney.test.assertTouchHeightIsAtLeast
+import com.kshavrin.mymoney.test.assertTouchWidthIsAtLeast
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import com.kshavrin.mymoney.test.assertTouchHeightIsAtLeast
-import com.kshavrin.mymoney.test.assertTouchWidthIsAtLeast
 import java.math.BigDecimal
 import java.math.RoundingMode
-import java.time.YearMonth
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 
 @RunWith(AndroidJUnit4::class)
@@ -110,7 +110,8 @@ class DashboardContentUiTest {
             R.string.fab_transfer_content_description,
             R.string.fab_income_content_description,
         ).forEach { description ->
-            composeTestRule.onNodeWithContentDescription(targetString(description))
+            composeTestRule
+                .onNodeWithContentDescription(targetString(description))
                 .assertTouchWidthIsAtLeast(48.dp)
                 .assertTouchHeightIsAtLeast(48.dp)
         }

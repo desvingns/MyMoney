@@ -437,8 +437,7 @@ private fun AccountDropdownRow(
                 .semantics(mergeDescendants = true) {
                     contentDescription = rowDescription
                     this.selected = selected
-                }
-                .padding(horizontal = Spacing.m, vertical = 10.dp),
+                }.padding(horizontal = Spacing.m, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Surface(
@@ -506,8 +505,7 @@ private fun DrawerOutlinedRow(
                 .semantics(mergeDescendants = true) {
                     contentDescription = rowDescription
                     this.selected = selected
-                }
-                .padding(horizontal = Spacing.m, vertical = Spacing.m),
+                }.padding(horizontal = Spacing.m, vertical = Spacing.m),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Start,
     ) {
@@ -586,8 +584,7 @@ private fun PeriodButton(
                 .semantics(mergeDescendants = true) {
                     contentDescription = rowDescription
                     this.selected = selected
-                }
-                .padding(horizontal = Spacing.m),
+                }.padding(horizontal = Spacing.m),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,
     ) {

@@ -4,7 +4,6 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.tryPerformAccessibilityChecks
 import androidx.compose.ui.test.junit4.accessibility.enableAccessibilityChecks
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
@@ -12,6 +11,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.tryPerformAccessibilityChecks
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -442,6 +442,9 @@ class DashboardTopBarPeriodTitleUiTest {
     private fun formatDate(date: LocalDate) =
         date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT).withLocale(deviceLocale()))
 
-    private fun formatRange(start: LocalDate, end: LocalDate) =
+    private fun formatRange(
+        start: LocalDate,
+        end: LocalDate,
+    ) =
         "${formatDate(start)}\n${formatDate(end)}"
 }

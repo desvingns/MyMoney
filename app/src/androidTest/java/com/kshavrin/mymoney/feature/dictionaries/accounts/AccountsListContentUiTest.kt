@@ -58,8 +58,7 @@ class AccountsListContentUiTest {
                 targetString(R.string.dictionaries_balance_label),
                 substring = true,
                 useUnmergedTree = true,
-            )
-            .assertIsDisplayed()
+            ).assertIsDisplayed()
         val balanceText =
             MoneyFormatter.format(
                 amount = BigDecimal("100.00"),
@@ -70,8 +69,7 @@ class AccountsListContentUiTest {
         composeTestRule
             .onNodeWithContentDescription(
                 targetString(R.string.dictionaries_default_account_row_cd, "Cash", balanceText),
-            )
-            .assertIsDisplayed()
+            ).assertIsDisplayed()
 
         composeTestRule
             .onNodeWithContentDescription(targetString(R.string.dictionaries_add))

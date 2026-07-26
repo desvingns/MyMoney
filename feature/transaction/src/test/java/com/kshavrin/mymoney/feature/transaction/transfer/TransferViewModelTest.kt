@@ -14,9 +14,9 @@ import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
 import com.kshavrin.mymoney.core.domain.usecase.ConvertMoneyUseCase
 import com.kshavrin.mymoney.core.domain.usecase.ResolveRateUseCase
 import com.kshavrin.mymoney.core.domain.usecase.TransferExecutor
-import com.kshavrin.mymoney.feature.transaction.fake.FakeAccountRepository
 import com.kshavrin.mymoney.core.testing.fake.FakeAppSettingsRepository
 import com.kshavrin.mymoney.core.testing.fake.FakeCurrencyRepository
+import com.kshavrin.mymoney.feature.transaction.fake.FakeAccountRepository
 import com.kshavrin.mymoney.feature.transaction.fake.FakeTransactionRepository
 import com.kshavrin.mymoney.feature.transaction.util.MainDispatcherRule
 import kotlinx.coroutines.CompletableDeferred
@@ -679,9 +679,9 @@ class TransferViewModelTest {
 
         override suspend fun upsert(rate: CurrencyRate): Long = throw UnsupportedOperationException()
 
-        override suspend fun deleteById(id: Long) {}
+        override suspend fun deleteById(id: Long) = Unit
 
-        override suspend fun refreshRatesFromNetwork(): Result<Int> = throw IllegalStateException("rate service unavailable")
+        override suspend fun refreshRatesFromNetwork(): Result<Int> = error("rate service unavailable")
     }
 
     private class FakeCurrencyRateRepository : CurrencyRateRepository {

@@ -131,7 +131,6 @@ fun MonefyDonutChart(
     calloutIconSize: Dp = Spacing.dashboardDonutCalloutIconSize,
     calloutLabelStyle: TextStyle = MaterialTheme.typography.dashboardCalloutLabel,
     calloutPercentageStyle: TextStyle = MaterialTheme.typography.dashboardCalloutPercentage,
-    calloutLabelColor: Color = MaterialTheme.colorScheme.dashboardCalloutLabel,
     leaderLineColor: Color = MaterialTheme.colorScheme.dashboardDonutLeaderLine,
     leaderLineThickness: Dp = Spacing.dashboardDonutLeaderLineThickness,
     labelMinFraction: Float = DEFAULT_LABEL_MIN_FRACTION,

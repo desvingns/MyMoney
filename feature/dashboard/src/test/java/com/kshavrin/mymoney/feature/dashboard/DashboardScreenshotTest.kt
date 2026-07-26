@@ -43,7 +43,6 @@ import java.time.LocalDate
 )
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class DashboardScreenshotTest {
-
     @get:Rule
     val composeTestRule = createComposeRule()
 
@@ -61,7 +60,10 @@ class DashboardScreenshotTest {
     // The pattern mirrors ScreenshotTestHarness.captureThemed in :core:designsystem; it is
     // inlined here because the harness lives in a test source set and is not exposed to
     // downstream modules.
-    private fun captureState(name: String, darkTheme: Boolean) {
+    private fun captureState(
+        name: String,
+        darkTheme: Boolean,
+    ) {
         val state = dashboardDayState()
         composeTestRule.setContent {
             MyMoneyTheme(darkTheme = darkTheme) {

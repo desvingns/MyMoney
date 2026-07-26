@@ -10,10 +10,10 @@ import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
+import com.kshavrin.mymoney.core.testing.fake.FakeCurrencyRepository
 import com.kshavrin.mymoney.feature.transactionslist.fake.FakeAccountRepository
 import com.kshavrin.mymoney.feature.transactionslist.fake.FakeCategoryRepository
 import com.kshavrin.mymoney.feature.transactionslist.fake.FakeCurrencyRateRepository
-import com.kshavrin.mymoney.core.testing.fake.FakeCurrencyRepository
 import com.kshavrin.mymoney.feature.transactionslist.fake.FakeTransactionRepository
 import com.kshavrin.mymoney.feature.transactionslist.util.MainDispatcherRule
 import kotlinx.coroutines.test.runTest
@@ -34,14 +34,15 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.util.TimeZone
 
+// Robolectric supplies a real android.os.Bundle so savedStateHandle.toRoute<Destinations.TransactionDetail>()
+// can decode its route args; the android.jar stub throws "not mocked" at VM construction (SPEC-19 type-safe nav).
+
 /**
  * Tests for the state→TransactionFormState mapping (Edit mode) and for
  * category re-selection behaviour in Edit mode (category pick does NOT
  * auto-save; it returns to the amount step so the user confirms via the
  * Save FAB).
  */
-// Robolectric supplies a real android.os.Bundle so savedStateHandle.toRoute<Destinations.TransactionDetail>()
-// can decode its route args; the android.jar stub throws "not mocked" at VM construction (SPEC-19 type-safe nav).
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = android.app.Application::class)
 class TransactionDetailFormMappingTest {

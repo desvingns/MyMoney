@@ -28,7 +28,6 @@ import java.time.Instant
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = android.app.Application::class)
 class JournalApplierTest {
-
     private lateinit var db: MoneyDatabase
     private lateinit var applier: JournalApplier
     private lateinit var codec: OperationPayloadCodec
@@ -275,7 +274,8 @@ class JournalApplierTest {
             val peerDb =
                 androidx.room.Room
                     .inMemoryDatabaseBuilder(
-                        androidx.test.core.app.ApplicationProvider.getApplicationContext(),
+                        androidx.test.core.app.ApplicationProvider
+                            .getApplicationContext(),
                         MoneyDatabase::class.java,
                     ).allowMainThreadQueries()
                     .build()

@@ -374,7 +374,12 @@ class TwoDeviceJournalSyncIntegrationTest {
     }
 
     private suspend fun TestDevice.fullState(): FullEntityState {
-        val currencies = database.currencyDao().observeAll().first().sortedBy(CurrencyEntity::code)
+        val currencies =
+            database
+                .currencyDao()
+                .observeAll()
+                .first()
+                .sortedBy(CurrencyEntity::code)
         val accounts = database.accountDao().listAll().sortedBy(AccountEntity::uuid)
         val categories = database.categoryDao().listAll().sortedBy(CategoryEntity::uuid)
         val transactions = database.transactionDao().listAll().sortedBy(TransactionEntity::uuid)

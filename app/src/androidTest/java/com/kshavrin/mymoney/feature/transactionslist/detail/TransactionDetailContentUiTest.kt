@@ -173,8 +173,7 @@ class TransactionDetailContentUiTest {
         composeTestRule
             .onNodeWithContentDescription(
                 targetString(DesignSystemR.string.amountfield_date_cd, headerDateLabel(initialDate)),
-            )
-            .performClick()
+            ).performClick()
         composeTestRule.onNodeWithText(datePickerLabel(chosenDate)).performClick()
         composeTestRule.onNodeWithText(targetString(R.string.detail_pick_date)).performClick()
 
@@ -340,8 +339,7 @@ class TransactionDetailContentUiTest {
         composeTestRule
             .onNodeWithContentDescription(
                 targetString(DesignSystemR.string.transaction_form_category_cd, "Food"),
-            )
-            .assertIsDisplayed()
+            ).assertIsDisplayed()
     }
 
     @Test
@@ -361,8 +359,7 @@ class TransactionDetailContentUiTest {
         composeTestRule
             .onNodeWithContentDescription(
                 targetString(DesignSystemR.string.transaction_form_category_cd, "Food"),
-            )
-            .performClick()
+            ).performClick()
 
         composeTestRule.runOnIdle {
             assertTrue(

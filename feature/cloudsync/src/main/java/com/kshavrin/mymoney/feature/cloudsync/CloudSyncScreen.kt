@@ -57,7 +57,6 @@ import com.google.android.gms.common.api.Scope
 import com.google.api.services.drive.DriveScopes
 import com.kshavrin.mymoney.core.common.exception.reportToSentry
 import com.kshavrin.mymoney.core.datastore.CloudProvider
-import com.kshavrin.mymoney.core.sync.BuildConfig as SyncBuildConfig
 import com.kshavrin.mymoney.core.sync.MigrationResolution
 import com.kshavrin.mymoney.core.sync.SyncTarget
 import com.kshavrin.mymoney.core.sync.toCloudProvider
@@ -67,6 +66,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale
+import com.kshavrin.mymoney.core.sync.BuildConfig as SyncBuildConfig
 
 @Composable
 fun CloudSyncRoute(
@@ -243,7 +243,7 @@ fun CloudSyncContent(
                     TextButton(onClick = { onEvent(CloudSyncEvent.CancelMigration) }) {
                         Text(stringResource(R.string.sync_migration_cancel))
                     }
-                }
+                },
             )
         is MigrationUiState.Reviewing ->
             AlertDialog(
@@ -459,10 +459,10 @@ private fun googleDriveAuthorizationRequest(accountEmail: String): Authorization
     val policy = googleDriveAuthorizationPolicy(accountEmail)
     val builder =
         AuthorizationRequest
-        .builder()
-        .setRequestedScopes(policy.scopeUris.map(::Scope))
-        .setAccount(Account(policy.accountName, policy.accountType))
-        .setOptOutIncludingGrantedScopes(true)
+            .builder()
+            .setRequestedScopes(policy.scopeUris.map(::Scope))
+            .setAccount(Account(policy.accountName, policy.accountType))
+            .setOptOutIncludingGrantedScopes(true)
     if (policy.requestsConsentPrompt) {
         builder.setPrompt(AuthorizationRequest.Prompt.CONSENT)
     }

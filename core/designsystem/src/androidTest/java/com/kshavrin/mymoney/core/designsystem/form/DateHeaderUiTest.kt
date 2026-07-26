@@ -37,8 +37,7 @@ class DateHeaderUiTest {
         composeTestRule
             .onNodeWithContentDescription(
                 targetString(R.string.amountfield_date_cd, dateLabel(date)),
-            )
-            .assertIsDisplayed()
+            ).assertIsDisplayed()
     }
 
     @Test

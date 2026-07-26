@@ -17,7 +17,6 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = android.app.Application::class)
 class OperationDaoTest {
-
     private lateinit var db: MoneyDatabase
     private lateinit var dao: OperationDao
 

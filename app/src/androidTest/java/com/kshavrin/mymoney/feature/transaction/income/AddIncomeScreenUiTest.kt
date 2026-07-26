@@ -141,8 +141,7 @@ class AddIncomeScreenUiTest {
         composeTestRule
             .onNodeWithContentDescription(
                 targetString(DesignSystemR.string.transaction_form_category_cd, "Salary"),
-            )
-            .assertIsDisplayed()
+            ).assertIsDisplayed()
         composeTestRule
             .onNodeWithTag(CATEGORY_GRID_ADD_CELL_TAG)
             .assertIsDisplayed()
@@ -257,8 +256,7 @@ class AddIncomeScreenUiTest {
         composeTestRule
             .onNodeWithContentDescription(
                 targetString(DesignSystemR.string.amountfield_date_cd, dateLabel(selectedDate)),
-            )
-            .performClick()
+            ).performClick()
         composeTestRule.onNodeWithText(dateLabel(selectedDate)).performClick()
         composeTestRule.onNodeWithText(targetString(R.string.apply)).performClick()
 
@@ -309,8 +307,7 @@ class AddIncomeScreenUiTest {
         composeTestRule
             .onNodeWithContentDescription(
                 targetString(DesignSystemR.string.transaction_form_category_cd, "Salary"),
-            )
-            .assertIsDisplayed()
+            ).assertIsDisplayed()
             .performClick()
 
         composeTestRule.runOnIdle {

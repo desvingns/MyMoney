@@ -154,7 +154,7 @@ class TransactionsListViewModel
             val account =
                 accountRepository.findDefault()
                     ?: accountRepository.observeActive().first().firstOrNull()
-                    ?: throw IllegalStateException("No active account")
+                    ?: error("No active account")
             return TransactionsSelection.SpecificAccount(account)
         }
 

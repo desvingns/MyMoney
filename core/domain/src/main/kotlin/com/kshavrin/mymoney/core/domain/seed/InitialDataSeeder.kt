@@ -51,7 +51,7 @@ class InitialDataSeeder
 
                     val baseCurrency =
                         currencyRepository.findByCode(BASE_CURRENCY_CODE)
-                            ?: throw IllegalStateException("$BASE_CURRENCY_CODE seed missing")
+                            ?: error("$BASE_CURRENCY_CODE seed missing")
                     DEFAULT_RATES.forEach { seed ->
                         val target = currencyRepository.findByCode(seed.toCode) ?: return@forEach
                         if (currencyRateRepository.findRate(baseCurrency.id, target.id) == null) {

@@ -160,10 +160,12 @@ private fun formatBalanceTrendValue(
     value: Float,
     locale: Locale,
 ): String =
-    NumberFormat.getNumberInstance(locale).apply {
-        minimumFractionDigits = 0
-        maximumFractionDigits = 6
-    }.format(value.toDouble())
+    NumberFormat
+        .getNumberInstance(locale)
+        .apply {
+            minimumFractionDigits = 0
+            maximumFractionDigits = 6
+        }.format(value.toDouble())
 
 @Composable
 fun BalanceTrendChart(
@@ -269,8 +271,7 @@ fun BalanceTrendChart(
                 .height(totalHeight)
                 .semantics {
                     contentDescription = chartDescription
-                }
-                .testTag(BALANCE_TREND_CHART_TAG),
+                }.testTag(BALANCE_TREND_CHART_TAG),
     ) {
         val chartHeightPx = height.toPx()
         val geometry =

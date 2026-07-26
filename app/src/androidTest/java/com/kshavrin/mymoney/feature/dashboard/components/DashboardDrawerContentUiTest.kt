@@ -95,8 +95,7 @@ class DashboardDrawerContentUiTest {
         composeTestRule
             .onNodeWithContentDescription(
                 targetString(R.string.dashboard_account_toggle_cd, currency.name, currency.code),
-            )
-            .assertIsDisplayed()
+            ).assertIsDisplayed()
         composeTestRule.onAllNodesWithText(cash.name).assertCountEquals(0)
 
         composeTestRule.onNode(hasText(currency.name) and hasClickAction()).performClick()
@@ -113,8 +112,7 @@ class DashboardDrawerContentUiTest {
                     targetString(R.string.left_drawer_all_accounts),
                     targetString(R.string.left_drawer_all_currencies),
                 ),
-            )
-            .assertIsDisplayed()
+            ).assertIsDisplayed()
         composeTestRule
             .onAllNodesWithText(targetString(R.string.left_drawer_manage_accounts))
             .assertCountEquals(0)
@@ -124,8 +122,7 @@ class DashboardDrawerContentUiTest {
         composeTestRule
             .onNodeWithContentDescription(
                 targetString(R.string.dashboard_account_option_with_subtitle_cd, cash.name, currency.code),
-            )
-            .assertIsSelected()
+            ).assertIsSelected()
         accountRow(card.name)
             .assertIsDisplayed()
             .assertIsNotSelected()
@@ -176,8 +173,7 @@ class DashboardDrawerContentUiTest {
                     targetString(R.string.left_drawer_all_accounts),
                     targetString(R.string.left_drawer_all_currencies),
                 ),
-            )
-            .assertIsSelected()
+            ).assertIsSelected()
         accountRow(cash.name).assertIsNotSelected()
         accountRow(card.name).assertIsNotSelected()
         composeTestRule

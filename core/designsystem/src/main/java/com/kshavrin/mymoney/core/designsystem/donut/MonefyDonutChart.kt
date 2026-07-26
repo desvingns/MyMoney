@@ -17,6 +17,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.draw.CacheDrawScope
 import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
@@ -30,6 +31,7 @@ import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.vector.VectorPainter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
@@ -331,41 +333,48 @@ fun MonefyDonutChart(
                                             )
                                         if (hit != null) onSliceClick?.invoke(hit)
                                     }
+                                }
+                                .drawWithCache {
+                                    val cache =
+                                        buildDonutChartDrawCache(
+                                            incomeText = incomeText,
+                                            expenseText = expenseText,
+                                            slices = slices,
+                                            arcs = arcs,
+                                            emptyStateIcons = emptyStateIcons,
+                                            iconPainters = iconPainters,
+                                            textMeasurer = textMeasurer,
+                                            outlineColor = outlineColor,
+                                            outerRadiusFraction = outerRadiusFraction,
+                                            ringThicknessFraction = ringThicknessFraction,
+                                            sliceGapDegrees = sliceGapDegrees,
+                                            iconScale = iconScale,
+                                            explodedOffset = explodedOffset,
+                                            style = style,
+                                            calloutIconSize = calloutIconSize,
+                                            labelMinFraction = labelMinFraction,
+                                            showCategoryLabels = showCategoryLabels,
+                                            centerTextStyle = centerTextStyle,
+                                            centerDividerWidth = centerDividerWidth,
+                                            centerDividerThickness = centerDividerThickness,
+                                            calloutLabelStyle = calloutLabelStyle,
+                                            calloutPercentageStyle = calloutPercentageStyle,
+                                            leaderLineThickness = leaderLineThickness,
+                                        )
+                                    onDrawBehind {
+                                        drawDonutChart(
+                                            cache = cache,
+                                            extrudedRingPaints = extrudedRingPaints,
+                                            progress = progress.value,
+                                            budgetAlertColor = budgetAlertColor,
+                                            badgeBorderColor = badgeBorderColor,
+                                            incomeColor = incomeColor,
+                                            expenseColor = expenseColor,
+                                            centerDividerColor = centerDividerColor,
+                                        )
+                                    }
                                 },
-                    ) {
-                        drawDonutChart(
-                            incomeText = incomeText,
-                            expenseText = expenseText,
-                            slices = slices,
-                            arcs = arcs,
-                            emptyStateIcons = emptyStateIcons,
-                            iconPainters = iconPainters,
-                            extrudedRingPaints = extrudedRingPaints,
-                            progress = progress.value,
-                            textMeasurer = textMeasurer,
-                            outlineColor = outlineColor,
-                            budgetAlertColor = budgetAlertColor,
-                            badgeBorderColor = badgeBorderColor,
-                            incomeColor = incomeColor,
-                            expenseColor = expenseColor,
-                            outerRadiusFraction = outerRadiusFraction,
-                            ringThicknessFraction = ringThicknessFraction,
-                            sliceGapDegrees = sliceGapDegrees,
-                            iconScale = iconScale,
-                            explodedOffset = explodedOffset,
-                            style = style,
-                            calloutIconSize = calloutIconSize,
-                            labelMinFraction = labelMinFraction,
-                            showCategoryLabels = showCategoryLabels,
-                            centerTextStyle = centerTextStyle,
-                            centerDividerColor = centerDividerColor,
-                            centerDividerWidth = centerDividerWidth,
-                            centerDividerThickness = centerDividerThickness,
-                            calloutLabelStyle = calloutLabelStyle,
-                            calloutPercentageStyle = calloutPercentageStyle,
-                            leaderLineThickness = leaderLineThickness,
-                        )
-                    }
+                    ) {}
                 }
             }
         }
@@ -390,21 +399,15 @@ fun MonefyDonutChart(
     }
 }
 
-private fun DrawScope.drawDonutChart(
+private fun CacheDrawScope.buildDonutChartDrawCache(
     incomeText: String,
     expenseText: String,
     slices: List<CategorySlice>,
     arcs: List<SliceArc>,
     emptyStateIcons: List<CategorySlice>,
     iconPainters: Map<String, VectorPainter>,
-    extrudedRingPaints: ExtrudedRingPaints,
-    progress: Float,
     textMeasurer: TextMeasurer,
     outlineColor: Color,
-    budgetAlertColor: Color,
-    badgeBorderColor: Color,
-    incomeColor: Color,
-    expenseColor: Color,
     outerRadiusFraction: Float,
     ringThicknessFraction: Float,
     sliceGapDegrees: Float,
@@ -415,38 +418,50 @@ private fun DrawScope.drawDonutChart(
     labelMinFraction: Float,
     showCategoryLabels: Boolean,
     centerTextStyle: TextStyle,
-    centerDividerColor: Color,
     centerDividerWidth: Dp,
     centerDividerThickness: Dp,
     calloutLabelStyle: TextStyle,
     calloutPercentageStyle: TextStyle,
     leaderLineThickness: Dp,
-) {
+): DonutChartDrawCache {
     val center = Offset(size.width / 2f, size.height / 2f)
     val outerRadius = min(size.width, size.height) / 2f * outerRadiusFraction
-    val th = outerRadius * ringThicknessFraction
-    val r = outerRadius - th / 2f
+    val thickness = outerRadius * ringThicknessFraction
+    val ringRadius = outerRadius - thickness / 2f
     val explodedOffsetPx = explodedOffset.toPx()
-
     val iconSize = calloutIconSize.toPx() * (iconScale / 1.7f)
     val iconMargin = Spacing.s.toPx()
+    val centerTotals =
+        buildCenterTotalsCache(
+            center = center,
+            incomeText = incomeText,
+            expenseText = expenseText,
+            textMeasurer = textMeasurer,
+            innerRadius = outerRadius - thickness,
+            textStyle = centerTextStyle,
+            dividerWidth = centerDividerWidth.toPx(),
+            dividerThickness = centerDividerThickness.toPx(),
+        )
 
     if (slices.isEmpty()) {
         val ringArcs =
             listOf(
-                GappedArc(color = outlineColor, startAngle = -90f, sweepAngle = 360f),
+                CachedDonutArc(
+                    color = outlineColor,
+                    wallColor = shade(outlineColor, -0.40f),
+                    startAngle = -90f,
+                    fullSweep = 360f,
+                    gap = 0f,
+                ),
             )
-        if (style == DonutStyle.Extrude) {
-            drawExtrudedRing(center = center, radius = r, th = th, arcs = ringArcs, paints = extrudedRingPaints)
-        } else {
-            drawFlatRing(center = center, radius = r, th = th, arcs = ringArcs)
-        }
         val inset = iconSize / 2f + iconMargin
         val insetHalfWidth = (size.width / 2f - inset).coerceAtLeast(0f)
         val insetHalfHeightTop = (center.y - inset).coerceAtLeast(0f)
         val insetHalfHeightBottom = (size.height - center.y - inset).coerceAtLeast(0f)
         val angles = DonutGeometry.evenAngles(emptyStateIcons.size)
-        emptyStateIcons.forEachIndexed { index, slice ->
+        val emptyCallouts = ArrayList<EmptyDonutCalloutCache>(emptyStateIcons.size)
+        for (index in emptyStateIcons.indices) {
+            val slice = emptyStateIcons[index]
             val angleDegrees = angles[index]
             val rawSlot =
                 emptyIconFrameSlot(
@@ -456,15 +471,20 @@ private fun DrawScope.drawDonutChart(
                     insetHalfHeightTop = insetHalfHeightTop,
                     insetHalfHeightBottom = insetHalfHeightBottom,
                 )
-            val slot =
-                clampCalloutAnchor(
-                    anchor = rawSlot,
+            val text =
+                measureDonutCallout(
                     iconSize = iconSize,
                     label = null,
                     percentage = "",
                     percentageStyle = calloutPercentageStyle,
                     labelStyle = calloutLabelStyle,
                     textMeasurer = textMeasurer,
+                )
+            val slot =
+                clampCalloutAnchor(
+                    anchor = rawSlot,
+                    iconSize = iconSize,
+                    text = text,
                     canvasWidth = size.width,
                     canvasHeight = size.height,
                 )
@@ -475,66 +495,69 @@ private fun DrawScope.drawDonutChart(
                     radius = outerRadius,
                     explodedOffset = Offset.Zero,
                 )
-            drawLine(
-                color = slice.color,
-                start = ringOuterPoint,
-                end = slot,
-                strokeWidth = leaderLineThickness.toPx(),
-            )
-            drawIconDisc(
-                slotCenter = slot,
-                iconSize = iconSize,
-                tintColor = slice.color,
-                iconPainter = iconPainters[slice.iconKey],
-            )
+            emptyCallouts +=
+                EmptyDonutCalloutCache(
+                    color = slice.color,
+                    lineStart = ringOuterPoint,
+                    slot = slot,
+                    iconPainter = iconPainters[slice.iconKey],
+                )
         }
-        drawCenterTotals(
+        return DonutChartDrawCache(
+            isEmpty = true,
             center = center,
-            incomeText = incomeText,
-            expenseText = expenseText,
-            incomeColor = incomeColor,
-            expenseColor = expenseColor,
-            textMeasurer = textMeasurer,
-            innerRadius = outerRadius - th,
-            textStyle = centerTextStyle,
-            dividerColor = centerDividerColor,
-            dividerWidth = centerDividerWidth.toPx(),
-            dividerThickness = centerDividerThickness.toPx(),
+            outerRadius = outerRadius,
+            ringRadius = ringRadius,
+            thickness = thickness,
+            iconSize = iconSize,
+            leaderLineThickness = leaderLineThickness.toPx(),
+            ringArcs = ringArcs,
+            emptyCallouts = emptyCallouts,
+            slices = emptyList(),
+            centerTotals = centerTotals,
+            extrudedDepth = (thickness * 0.62f).roundToInt().coerceIn(7, 22),
+            budgetBadgeBorderRadius = 5.dp.toPx(),
+            budgetBadgeRadius = 3.5.dp.toPx(),
+            style = style,
         )
-        return
-    }
-
-    val placed = layoutSlices(arcs)
-
-    val gappedArcs =
-        placed.map { p ->
-            val animatedSweep = p.sweepDegrees * progress
-            val gap = DonutGeometry.gapForSweep(p.sweepDegrees, sliceGapDegrees)
-            val offset = p.explodedOffset(explodedOffsetPx)
-            GappedArc(
-                color = p.slice.color,
-                startAngle = p.startAngleDegrees + gap / 2f,
-                sweepAngle = (animatedSweep - gap).coerceAtLeast(0f),
-                offset = offset,
-            )
-        }
-
-    if (style == DonutStyle.Extrude) {
-        drawExtrudedRing(center = center, radius = r, th = th, arcs = gappedArcs, paints = extrudedRingPaints)
-    } else {
-        drawFlatRing(center = center, radius = r, th = th, arcs = gappedArcs)
     }
 
     val inset = iconSize / 2f + iconMargin
     val insetHalfWidth = (size.width / 2f - inset).coerceAtLeast(0f)
     val insetHalfHeightTop = (center.y - inset).coerceAtLeast(0f)
     val insetHalfHeightBottom = (size.height - center.y - inset).coerceAtLeast(0f)
-
-    placed.forEach { p ->
-        if (progress < 1f || p.slice.fraction <= 0f) return@forEach
-        val offset = p.explodedOffset(explodedOffsetPx)
+    val ringArcs = ArrayList<CachedDonutArc>(arcs.size)
+    val cachedSlices = ArrayList<DonutSliceDrawCache>(arcs.size)
+    val placed = layoutSlices(arcs)
+    for (placedSlice in placed) {
+        val gap = DonutGeometry.gapForSweep(placedSlice.sweepDegrees, sliceGapDegrees)
+        val offset = placedSlice.explodedOffset(explodedOffsetPx)
+        ringArcs +=
+            CachedDonutArc(
+                color = placedSlice.slice.color,
+                wallColor = shade(placedSlice.slice.color, -0.40f),
+                startAngle = placedSlice.startAngleDegrees + gap / 2f,
+                fullSweep = placedSlice.sweepDegrees,
+                gap = gap,
+                offset = offset,
+            )
+        if (placedSlice.slice.fraction <= 0f) continue
+        val percentage = "${(placedSlice.slice.fraction * 100f).roundToInt()}%"
+        val label =
+            placedSlice.slice.label.takeIf {
+                showCategoryLabels && placedSlice.slice.fraction >= labelMinFraction
+            }
+        val text =
+            measureDonutCallout(
+                iconSize = iconSize,
+                label = label,
+                percentage = percentage,
+                percentageStyle = calloutPercentageStyle,
+                labelStyle = calloutLabelStyle,
+                textMeasurer = textMeasurer,
+            )
         val rawSlot =
-            p.frameIconCenter(
+            placedSlice.frameIconCenter(
                 center = center,
                 insetHalfWidth = insetHalfWidth,
                 insetHalfHeightTop = insetHalfHeightTop,
@@ -545,72 +568,157 @@ private fun DrawScope.drawDonutChart(
             clampCalloutAnchor(
                 anchor = rawSlot,
                 iconSize = iconSize,
-                label = p.slice.label.takeIf { showCategoryLabels && p.slice.fraction >= labelMinFraction },
-                percentage = "${(p.slice.fraction * 100f).roundToInt()}%",
-                percentageStyle = calloutPercentageStyle,
-                labelStyle = calloutLabelStyle,
-                textMeasurer = textMeasurer,
+                text = text,
                 canvasWidth = size.width,
                 canvasHeight = size.height,
             )
-        val sliceOuterPoint =
+        val lineStart =
             radialPoint(
                 center = center,
-                midRadians = p.midRadians,
+                midRadians = placedSlice.midRadians,
                 radius = outerRadius,
                 explodedOffset = offset,
             )
-        drawLine(
-            color = p.slice.color,
-            start = sliceOuterPoint,
-            end = slot,
-            strokeWidth = leaderLineThickness.toPx(),
-        )
-        val iconCenter =
-            drawIconDisc(
-                slotCenter = slot,
-                iconSize = iconSize,
-                tintColor = p.slice.color,
-                iconPainter = iconPainters[p.slice.iconKey],
-            )
-        if (p.slice.hasBudgetAlert) {
-            val badgeCenter =
+        val callout =
+            if (placedSlice.slice.fraction >= labelMinFraction) {
+                text.toDrawCache(iconCenter = slot, iconSize = iconSize)
+            } else {
+                null
+            }
+        val badgeCenter =
+            if (placedSlice.slice.hasBudgetAlert) {
                 Offset(
-                    x = iconCenter.x + iconSize * 0.35f,
-                    y = iconCenter.y - iconSize * 0.35f,
+                    x = slot.x + iconSize * 0.35f,
+                    y = slot.y - iconSize * 0.35f,
                 )
-            drawCircle(color = badgeBorderColor, radius = 5.dp.toPx(), center = badgeCenter)
-            drawCircle(color = budgetAlertColor, radius = 3.5.dp.toPx(), center = badgeCenter)
-        }
-        if (p.slice.fraction >= labelMinFraction) {
-            val labelText = "${(p.slice.fraction * 100f).roundToInt()}%"
-            drawCalloutText(
-                iconCenter = iconCenter,
-                iconSize = iconSize,
-                label = p.slice.label.takeIf { showCategoryLabels },
-                percentage = labelText,
-                sliceColor = p.slice.color,
-                labelColor = p.slice.labelColor,
-                labelStyle = calloutLabelStyle,
-                percentageStyle = calloutPercentageStyle,
-                textMeasurer = textMeasurer,
+            } else {
+                null
+            }
+        cachedSlices +=
+            DonutSliceDrawCache(
+                slice = placedSlice.slice,
+                lineStart = lineStart,
+                iconCenter = slot,
+                iconPainter = iconPainters[placedSlice.slice.iconKey],
+                callout = callout,
+                badgeCenter = badgeCenter,
             )
+    }
+    return DonutChartDrawCache(
+        isEmpty = false,
+        center = center,
+        outerRadius = outerRadius,
+        ringRadius = ringRadius,
+        thickness = thickness,
+        iconSize = iconSize,
+        leaderLineThickness = leaderLineThickness.toPx(),
+        ringArcs = ringArcs,
+        emptyCallouts = emptyList(),
+        slices = cachedSlices,
+        centerTotals = centerTotals,
+        extrudedDepth = (thickness * 0.62f).roundToInt().coerceIn(7, 22),
+        budgetBadgeBorderRadius = 5.dp.toPx(),
+        budgetBadgeRadius = 3.5.dp.toPx(),
+        style = style,
+    )
+}
+
+private fun DrawScope.drawDonutChart(
+    cache: DonutChartDrawCache,
+    extrudedRingPaints: ExtrudedRingPaints,
+    progress: Float,
+    budgetAlertColor: Color,
+    badgeBorderColor: Color,
+    incomeColor: Color,
+    expenseColor: Color,
+    centerDividerColor: Color,
+) {
+    if (cache.isEmpty) {
+        drawDonutRing(cache, progress = 1f, paints = extrudedRingPaints)
+        for (callout in cache.emptyCallouts) {
+            drawLine(
+                color = callout.color,
+                start = callout.lineStart,
+                end = callout.slot,
+                strokeWidth = cache.leaderLineThickness,
+            )
+            drawIconDisc(
+                slotCenter = callout.slot,
+                iconSize = cache.iconSize,
+                tintColor = callout.color,
+                iconPainter = callout.iconPainter,
+            )
+        }
+    } else {
+        drawDonutRing(cache, progress = progress, paints = extrudedRingPaints)
+        if (progress >= 1f) {
+            for (slice in cache.slices) {
+                drawLine(
+                    color = slice.slice.color,
+                    start = slice.lineStart,
+                    end = slice.iconCenter,
+                    strokeWidth = cache.leaderLineThickness,
+                )
+                drawIconDisc(
+                    slotCenter = slice.iconCenter,
+                    iconSize = cache.iconSize,
+                    tintColor = slice.slice.color,
+                    iconPainter = slice.iconPainter,
+                )
+                slice.badgeCenter?.let { badgeCenter ->
+                    drawCircle(
+                        color = badgeBorderColor,
+                        radius = cache.budgetBadgeBorderRadius,
+                        center = badgeCenter,
+                    )
+                    drawCircle(
+                        color = budgetAlertColor,
+                        radius = cache.budgetBadgeRadius,
+                        center = badgeCenter,
+                    )
+                }
+                slice.callout?.let { callout ->
+                    drawCalloutText(
+                        cache = callout,
+                        sliceColor = slice.slice.color,
+                        labelColor = slice.slice.labelColor,
+                    )
+                }
+            }
         }
     }
-
     drawCenterTotals(
-        center = center,
-        incomeText = incomeText,
-        expenseText = expenseText,
+        cache = cache.centerTotals,
         incomeColor = incomeColor,
         expenseColor = expenseColor,
-        textMeasurer = textMeasurer,
-        innerRadius = outerRadius - th,
-        textStyle = centerTextStyle,
         dividerColor = centerDividerColor,
-        dividerWidth = centerDividerWidth.toPx(),
-        dividerThickness = centerDividerThickness.toPx(),
     )
+}
+
+private fun DrawScope.drawDonutRing(
+    cache: DonutChartDrawCache,
+    progress: Float,
+    paints: ExtrudedRingPaints,
+) {
+    if (cache.style == DonutStyle.Extrude) {
+        drawExtrudedRing(
+            center = cache.center,
+            radius = cache.ringRadius,
+            thickness = cache.thickness,
+            arcs = cache.ringArcs,
+            progress = progress,
+            depth = cache.extrudedDepth,
+            paints = paints,
+        )
+    } else {
+        drawFlatRing(
+            center = cache.center,
+            radius = cache.ringRadius,
+            thickness = cache.thickness,
+            arcs = cache.ringArcs,
+            progress = progress,
+        )
+    }
 }
 
 private class DonutViewConfiguration(
@@ -625,11 +733,58 @@ private data class PlacedSlice(
     val midRadians: Float,
 )
 
-private data class GappedArc(
+private data class CachedDonutArc(
     val color: Color,
+    val wallColor: Color,
     val startAngle: Float,
-    val sweepAngle: Float,
+    val fullSweep: Float,
+    val gap: Float,
     val offset: Offset = Offset.Zero,
+)
+
+private data class DonutChartDrawCache(
+    val isEmpty: Boolean,
+    val center: Offset,
+    val outerRadius: Float,
+    val ringRadius: Float,
+    val thickness: Float,
+    val iconSize: Float,
+    val leaderLineThickness: Float,
+    val ringArcs: List<CachedDonutArc>,
+    val emptyCallouts: List<EmptyDonutCalloutCache>,
+    val slices: List<DonutSliceDrawCache>,
+    val centerTotals: DonutCenterTotalsCache?,
+    val extrudedDepth: Int,
+    val budgetBadgeBorderRadius: Float,
+    val budgetBadgeRadius: Float,
+    val style: DonutStyle = DonutStyle.Extrude,
+)
+
+private data class EmptyDonutCalloutCache(
+    val color: Color,
+    val lineStart: Offset,
+    val slot: Offset,
+    val iconPainter: VectorPainter?,
+)
+
+private data class DonutSliceDrawCache(
+    val slice: CategorySlice,
+    val lineStart: Offset,
+    val iconCenter: Offset,
+    val iconPainter: VectorPainter?,
+    val callout: DonutCalloutTextCache?,
+    val badgeCenter: Offset?,
+)
+
+private data class DonutCenterTotalsCache(
+    val incomeLayout: TextLayoutResult,
+    val expenseLayout: TextLayoutResult,
+    val incomeTop: Float,
+    val dividerY: Float,
+    val expenseTop: Float,
+    val dividerWidth: Float,
+    val dividerThickness: Float,
+    val centerX: Float,
 )
 
 private inline fun <T> List<T>.firstOrNullIndexed(predicate: (Int, T) -> Boolean): T? {
@@ -639,26 +794,23 @@ private inline fun <T> List<T>.firstOrNullIndexed(predicate: (Int, T) -> Boolean
     return null
 }
 
-private fun DrawScope.drawCenterTotals(
+private fun CacheDrawScope.buildCenterTotalsCache(
     center: Offset,
     incomeText: String,
     expenseText: String,
-    incomeColor: Color,
-    expenseColor: Color,
     textMeasurer: TextMeasurer,
     innerRadius: Float,
     textStyle: TextStyle,
-    dividerColor: Color,
     dividerWidth: Float,
     dividerThickness: Float,
-) {
-    if (innerRadius <= 0f) return
+): DonutCenterTotalsCache? {
+    if (innerRadius <= 0f) return null
     val lineGap = Spacing.s.toPx()
     val baseIncome = textMeasurer.measure(text = incomeText, style = textStyle)
     val baseExpense = textMeasurer.measure(text = expenseText, style = textStyle)
     val maxLineWidth = max(baseIncome.size.width, baseExpense.size.width).toFloat()
     val totalBaseHeight = baseIncome.size.height + lineGap * 2f + dividerThickness + baseExpense.size.height
-    if (maxLineWidth <= 0f || totalBaseHeight <= 0f) return
+    if (maxLineWidth <= 0f || totalBaseHeight <= 0f) return null
     val targetW = innerRadius * 2f * 0.92f
     val targetH = innerRadius * 2f * 0.76f
     val scale = min(min(targetW / maxLineWidth, targetH / totalBaseHeight), 1f)
@@ -669,53 +821,126 @@ private fun DrawScope.drawCenterTotals(
     val incomeTop = center.y - totalHeight / 2f
     val dividerY = incomeTop + incomeLayout.size.height + lineGap
     val expenseTop = dividerY + dividerThickness + lineGap
-    drawText(
-        textLayoutResult = incomeLayout,
-        color = incomeColor,
-        topLeft = Offset(center.x - incomeLayout.size.width / 2f, incomeTop),
-    )
-    drawLine(
-        color = dividerColor,
-        start = Offset(center.x - dividerWidth / 2f, dividerY),
-        end = Offset(center.x + dividerWidth / 2f, dividerY),
-        strokeWidth = dividerThickness,
-    )
-    drawText(
-        textLayoutResult = expenseLayout,
-        color = expenseColor,
-        topLeft = Offset(center.x - expenseLayout.size.width / 2f, expenseTop),
+    return DonutCenterTotalsCache(
+        incomeLayout = incomeLayout,
+        expenseLayout = expenseLayout,
+        incomeTop = incomeTop,
+        dividerY = dividerY,
+        expenseTop = expenseTop,
+        dividerWidth = dividerWidth,
+        dividerThickness = dividerThickness,
+        centerX = center.x,
     )
 }
 
-private fun clampCalloutAnchor(
-    anchor: Offset,
+private fun DrawScope.drawCenterTotals(
+    cache: DonutCenterTotalsCache?,
+    incomeColor: Color,
+    expenseColor: Color,
+    dividerColor: Color,
+) {
+    cache ?: return
+    drawText(
+        textLayoutResult = cache.incomeLayout,
+        color = incomeColor,
+        topLeft = Offset(cache.centerX - cache.incomeLayout.size.width / 2f, cache.incomeTop),
+    )
+    drawLine(
+        color = dividerColor,
+        start = Offset(cache.centerX - cache.dividerWidth / 2f, cache.dividerY),
+        end = Offset(cache.centerX + cache.dividerWidth / 2f, cache.dividerY),
+        strokeWidth = cache.dividerThickness,
+    )
+    drawText(
+        textLayoutResult = cache.expenseLayout,
+        color = expenseColor,
+        topLeft = Offset(cache.centerX - cache.expenseLayout.size.width / 2f, cache.expenseTop),
+    )
+}
+
+private data class DonutCalloutMeasurement(
+    val percentageLayout: TextLayoutResult,
+    val labelLayout: TextLayoutResult?,
+    val inlineGap: Float,
+    val iconSize: Float,
+) {
+    val clampBlockWidth: Float get() = iconSize + percentageLayout.size.width
+    val blockWidth: Float get() = iconSize + inlineGap + percentageLayout.size.width
+
+    fun toDrawCache(
+        iconCenter: Offset,
+        iconSize: Float,
+    ): DonutCalloutTextCache {
+        val iconLeft = iconCenter.x - iconSize / 2f
+        val blockCenterX = iconLeft + blockWidth / 2f
+        return DonutCalloutTextCache(
+            percentageLayout = percentageLayout,
+            percentageTopLeft =
+                Offset(
+                    x = iconLeft + iconSize + inlineGap,
+                    y = iconCenter.y - percentageLayout.size.height / 2f,
+                ),
+            labelLayout = labelLayout,
+            labelCenterX = blockCenterX,
+            labelTop = iconCenter.y + iconSize / 2f + inlineGap,
+        )
+    }
+}
+
+private data class DonutCalloutTextCache(
+    val percentageLayout: TextLayoutResult,
+    val percentageTopLeft: Offset,
+    val labelLayout: TextLayoutResult?,
+    val labelCenterX: Float,
+    val labelTop: Float,
+)
+
+private fun CacheDrawScope.measureDonutCallout(
     iconSize: Float,
     label: String?,
     percentage: String,
     percentageStyle: TextStyle,
     labelStyle: TextStyle,
     textMeasurer: TextMeasurer,
+): DonutCalloutMeasurement {
+    val percentageLayout =
+        textMeasurer.measure(
+            text = percentage,
+            style = percentageStyle,
+            maxLines = 1,
+        )
+    val inlineGap = Spacing.xxs.toPx()
+    val blockWidth = iconSize + inlineGap + percentageLayout.size.width
+    val labelLayout =
+        label?.let {
+            measureSingleLineLabel(
+                text = it,
+                maxWidth = blockWidth.roundToInt(),
+                style = labelStyle.copy(textAlign = TextAlign.Center),
+                textMeasurer = textMeasurer,
+            )
+        }
+    return DonutCalloutMeasurement(
+        percentageLayout = percentageLayout,
+        labelLayout = labelLayout,
+        inlineGap = inlineGap,
+        iconSize = iconSize,
+    )
+}
+
+private fun clampCalloutAnchor(
+    anchor: Offset,
+    iconSize: Float,
+    text: DonutCalloutMeasurement,
     canvasWidth: Float,
     canvasHeight: Float,
 ): Offset {
-    val percentageLayout = textMeasurer.measure(text = percentage, style = percentageStyle, maxLines = 1)
-    val blockWidth = iconSize + percentageLayout.size.width
-    val labelHeight =
-        if (label != null) {
-            textMeasurer
-                .measure(text = label, style = labelStyle, maxLines = 1)
-                .size.height
-                .toFloat()
-        } else {
-            0f
-        }
-
     val leftFromAnchor = iconSize / 2f
     val topFromAnchor = iconSize / 2f
-    val bottomFromAnchor = iconSize / 2f + if (label != null) labelHeight else 0f
+    val bottomFromAnchor = iconSize / 2f + (text.labelLayout?.size?.height?.toFloat() ?: 0f)
 
     val minX = leftFromAnchor
-    val maxX = canvasWidth - (blockWidth - leftFromAnchor)
+    val maxX = canvasWidth - (text.clampBlockWidth - leftFromAnchor)
     val minY = topFromAnchor
     val maxY = canvasHeight - bottomFromAnchor
 
@@ -725,46 +950,17 @@ private fun clampCalloutAnchor(
 }
 
 private fun DrawScope.drawCalloutText(
-    iconCenter: Offset,
-    iconSize: Float,
-    label: String?,
-    percentage: String,
+    cache: DonutCalloutTextCache,
     sliceColor: Color,
     labelColor: Color,
-    labelStyle: TextStyle,
-    percentageStyle: TextStyle,
-    textMeasurer: TextMeasurer,
 ) {
-    val inlineGap = Spacing.xxs.toPx()
-    val percentageLayout =
-        textMeasurer.measure(
-            text = percentage,
-            style = percentageStyle.copy(color = sliceColor),
-            maxLines = 1,
-        )
-
-    val iconLeft = iconCenter.x - iconSize / 2f
-    val blockWidth = iconSize + inlineGap + percentageLayout.size.width
-    val blockCenterX = iconLeft + blockWidth / 2f
-
-    val percentageLeft = iconLeft + iconSize + inlineGap
-    val percentageTop = iconCenter.y - percentageLayout.size.height / 2f
     drawText(
-        textLayoutResult = percentageLayout,
+        textLayoutResult = cache.percentageLayout,
         color = sliceColor,
-        topLeft = Offset(percentageLeft, percentageTop),
+        topLeft = cache.percentageTopLeft,
     )
-
-    if (label != null) {
-        val labelLayout =
-            measureSingleLineLabel(
-                text = label,
-                maxWidth = blockWidth.roundToInt(),
-                style = labelStyle.copy(color = labelColor, textAlign = TextAlign.Center),
-                textMeasurer = textMeasurer,
-            )
-        val labelTop = iconCenter.y + iconSize / 2f + inlineGap
-        drawTextCentered(labelLayout, blockCenterX, labelTop, labelColor)
+    cache.labelLayout?.let { labelLayout ->
+        drawTextCentered(labelLayout, cache.labelCenterX, cache.labelTop, labelColor)
     }
 }
 
@@ -862,15 +1058,17 @@ private fun DrawScope.drawArcBand(
     radius: Float,
     width: Float,
     color: Color,
-    arc: GappedArc,
+    arc: CachedDonutArc,
+    progress: Float,
     dy: Float = 0f,
 ) {
-    if (arc.sweepAngle <= 0f) return
+    val sweepAngle = (arc.fullSweep * progress - arc.gap).coerceAtLeast(0f)
+    if (sweepAngle <= 0f) return
     val arcCenter = center + arc.offset
     drawArc(
         color = color,
         startAngle = arc.startAngle,
-        sweepAngle = arc.sweepAngle,
+        sweepAngle = sweepAngle,
         useCenter = false,
         topLeft = Offset(arcCenter.x - radius, arcCenter.y - radius + dy),
         size = Size(radius * 2f, radius * 2f),
@@ -881,20 +1079,27 @@ private fun DrawScope.drawArcBand(
 private fun DrawScope.drawFlatRing(
     center: Offset,
     radius: Float,
-    th: Float,
-    arcs: List<GappedArc>,
+    thickness: Float,
+    arcs: List<CachedDonutArc>,
+    progress: Float,
 ) {
-    arcs.forEach { drawArcBand(center, radius, th, it.color, it) }
+    for (arc in arcs) {
+        drawArcBand(center, radius, thickness, arc.color, arc, progress)
+    }
 }
 
 private val EXTRUDED_RING_CAST_COLOR =
     Color(red = 35f / 255f, green = 60f / 255f, blue = 48f / 255f, alpha = 0.28f)
+private val DONUT_RING_HIGHLIGHT_COLOR = Color.White.copy(alpha = 0.40f)
+private val DONUT_RING_INNER_SHADOW_COLOR = Color.Black.copy(alpha = 0.18f)
 
 private fun DrawScope.drawExtrudedRing(
     center: Offset,
     radius: Float,
-    th: Float,
-    arcs: List<GappedArc>,
+    thickness: Float,
+    arcs: List<CachedDonutArc>,
+    progress: Float,
+    depth: Int,
     paints: ExtrudedRingPaints,
 ) {
     // Visual parity: reuse a remembered Paint/BlurMaskFilter (blur radius is density-derived
@@ -903,46 +1108,56 @@ private fun DrawScope.drawExtrudedRing(
     val shadowPaint =
         paints.shadowPaint.apply {
             color = EXTRUDED_RING_CAST_COLOR
-            strokeWidth = th * 0.92f
+            strokeWidth = thickness * 0.92f
         }
     drawIntoCanvas { canvas ->
-        canvas.drawCircle(Offset(center.x, center.y + th * 0.95f), radius, shadowPaint)
+        canvas.drawCircle(Offset(center.x, center.y + thickness * 0.95f), radius, shadowPaint)
     }
 
-    val depth = (th * 0.62f).roundToInt().coerceIn(7, 22)
-    val wallColor = arcs.map { shade(it.color, -0.40f) }
     for (k in depth downTo 1) {
-        arcs.forEachIndexed { i, arc ->
-            drawArcBand(center, radius, th, wallColor[i], arc, dy = k.toFloat())
-        }
-    }
-
-    arcs.forEach { drawArcBand(center, radius, th, it.color, it) }
-
-    clipRect(
-        left = center.x - radius - th,
-        top = center.y - radius - th,
-        right = center.x + radius + th,
-        bottom = center.y - th * 0.75f,
-        clipOp = ClipOp.Intersect,
-    ) {
-        arcs.forEach {
+        for (arc in arcs) {
             drawArcBand(
-                center,
-                radius + th * 0.5f - 1.2f,
-                2.2f,
-                Color.White.copy(alpha = 0.40f),
-                it,
+                center = center,
+                radius = radius,
+                width = thickness,
+                color = arc.wallColor,
+                arc = arc,
+                progress = progress,
+                dy = k.toFloat(),
             )
         }
     }
-    arcs.forEach {
+
+    for (arc in arcs) {
+        drawArcBand(center, radius, thickness, arc.color, arc, progress)
+    }
+
+    clipRect(
+        left = center.x - radius - thickness,
+        top = center.y - radius - thickness,
+        right = center.x + radius + thickness,
+        bottom = center.y - thickness * 0.75f,
+        clipOp = ClipOp.Intersect,
+    ) {
+        for (arc in arcs) {
+            drawArcBand(
+                center = center,
+                radius = radius + thickness * 0.5f - 1.2f,
+                width = 2.2f,
+                color = DONUT_RING_HIGHLIGHT_COLOR,
+                arc = arc,
+                progress = progress,
+            )
+        }
+    }
+    for (arc in arcs) {
         drawArcBand(
-            center,
-            radius - th * 0.5f + 1f,
-            1.6f,
-            Color.Black.copy(alpha = 0.18f),
-            it,
+            center = center,
+            radius = radius - thickness * 0.5f + 1f,
+            width = 1.6f,
+            color = DONUT_RING_INNER_SHADOW_COLOR,
+            arc = arc,
+            progress = progress,
         )
     }
 }

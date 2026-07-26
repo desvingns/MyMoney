@@ -519,7 +519,7 @@ Convention used in every sub-section:
 
 ### 4.2. S01 — Main dashboard (period: day, negative balance)
 
-![S01 — Main dashboard, day view](input/screenshots/01.jpg)
+![S01 — Main dashboard, day view](../../archive/monefy-clone-source/input/screenshots/01.jpg)
 
 - **Composable shell:** `DashboardScreen()` — root `Scaffold` wrapped by `ModalNavigationDrawer` (left) inside another `ModalNavigationDrawer` (right). Drawer state hoisted to `DashboardViewModel`.
 - **ViewModel:** `DashboardViewModel`
@@ -601,7 +601,7 @@ Convention used in every sub-section:
 
 ### 4.3. S05 — Main dashboard (period: year, positive balance)
 
-![S05 — Main dashboard, year view](input/screenshots/05.jpg)
+![S05 — Main dashboard, year view](../../archive/monefy-clone-source/input/screenshots/05.jpg)
 
 This is the same `DashboardScreen` Composable as S01, rendered with a different `PeriodSelection` (`Year`) and a richer dataset that yields a positive balance. There is no new code surface; it exists in the inventory because it documents a distinct visual variant.
 
@@ -613,7 +613,7 @@ This is the same `DashboardScreen` Composable as S01, rendered with a different 
 
 ### 4.4. S02 — Period & account drawer (left)
 
-![S02 — Left drawer: period + account](input/screenshots/02.jpg)
+![S02 — Left drawer: period + account](../../archive/monefy-clone-source/input/screenshots/02.jpg)
 
 - **Composable shell:** `LeftPeriodDrawerContent()` rendered inside `ModalNavigationDrawer` drawer slot.
 - **ViewModel:** shared `DashboardViewModel` (no separate VM).
@@ -645,7 +645,7 @@ This is the same `DashboardScreen` Composable as S01, rendered with a different 
 
 ### 4.5. S04 — Settings entry drawer (right)
 
-![S04 — Right drawer: 4 big dictionary icons](input/screenshots/04.jpg)
+![S04 — Right drawer: 4 big dictionary icons](../../archive/monefy-clone-source/input/screenshots/04.jpg)
 
 - **Composable shell:** `RightSettingsDrawerContent()`.
 - **ViewModel:** shared `DashboardViewModel`.
@@ -665,7 +665,7 @@ This is the same `DashboardScreen` Composable as S01, rendered with a different 
 
 ### 4.6. S06 — Add Expense form
 
-![S06 — Add Expense, amount + calculator keypad](input/screenshots/06.jpg)
+![S06 — Add Expense, amount + calculator keypad](../../archive/monefy-clone-source/input/screenshots/06.jpg)
 
 - **Composable shell:** `AddExpenseScreen()`.
 - **ViewModel:** `AddExpenseViewModel`.
@@ -706,7 +706,7 @@ This is the same `DashboardScreen` Composable as S01, rendered with a different 
 
 ### 4.7. S07 — Add Income form
 
-![S07 — Add Income](input/screenshots/07.jpg)
+![S07 — Add Income](../../archive/monefy-clone-source/input/screenshots/07.jpg)
 
 Structurally identical to S06, but for incomes. The same `AddExpenseScreen` Composable is reused with a `kind = TransactionKind.INCOME` argument; the title becomes `"New income"` / `"Новый доход"` (`new_income_title`), the toolbar ↔ toggle flips back to `New expense`, and the CTA still reads `Choose Category` — but the category picker S09 filters to income categories only.
 
@@ -719,7 +719,7 @@ Structurally identical to S06, but for incomes. The same `AddExpenseScreen` Comp
 
 ### 4.8. S03 — Transfer form
 
-![S03 — New Transfer](input/screenshots/03.jpg)
+![S03 — New Transfer](../../archive/monefy-clone-source/input/screenshots/03.jpg)
 
 - **Composable shell:** `TransferScreen()`.
 - **ViewModel:** `TransferViewModel`.
@@ -759,7 +759,7 @@ Structurally identical to S06, but for incomes. The same `AddExpenseScreen` Comp
 
 ### 4.9. S08 — Search records
 
-![S08 — Search records, with keyboard](input/screenshots/08.jpg)
+![S08 — Search records, with keyboard](../../archive/monefy-clone-source/input/screenshots/08.jpg)
 
 - **Composable shell:** `SearchRecordsScreen()`.
 - **ViewModel:** `SearchRecordsViewModel`.
@@ -788,8 +788,8 @@ Structurally identical to S06, but for incomes. The same `AddExpenseScreen` Comp
 
 ### 4.10. S09 — Category picker
 
-![S09 — Category picker (lower half)](input/screenshots/09.jpg)
-![S10 — Category picker (upper half, scrolled)](input/screenshots/10.jpg)
+![S09 — Category picker (lower half)](../../archive/monefy-clone-source/input/screenshots/09.jpg)
+![S10 — Category picker (upper half, scrolled)](../../archive/monefy-clone-source/input/screenshots/10.jpg)
 
 (Both screenshots represent the same screen, scrolled differently.)
 

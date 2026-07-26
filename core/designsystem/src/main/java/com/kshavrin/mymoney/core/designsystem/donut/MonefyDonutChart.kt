@@ -15,9 +15,10 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.CacheDrawScope
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.draw.CacheDrawScope
 import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
@@ -31,7 +32,6 @@ import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.vector.VectorPainter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
-import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
@@ -333,8 +333,7 @@ fun MonefyDonutChart(
                                             )
                                         if (hit != null) onSliceClick?.invoke(hit)
                                     }
-                                }
-                                .drawWithCache {
+                                }.drawWithCache {
                                     val cache =
                                         buildDonutChartDrawCache(
                                             incomeText = incomeText,
@@ -937,7 +936,14 @@ private fun clampCalloutAnchor(
 ): Offset {
     val leftFromAnchor = iconSize / 2f
     val topFromAnchor = iconSize / 2f
-    val bottomFromAnchor = iconSize / 2f + (text.labelLayout?.size?.height?.toFloat() ?: 0f)
+    val bottomFromAnchor =
+        iconSize / 2f +
+            (
+                text.labelLayout
+                    ?.size
+                    ?.height
+                    ?.toFloat() ?: 0f
+            )
 
     val minX = leftFromAnchor
     val maxX = canvasWidth - (text.clampBlockWidth - leftFromAnchor)

@@ -1,6 +1,7 @@
 import java.math.BigInteger
 import java.util.Properties
 import org.gradle.api.Action
+import org.gradle.api.execution.TaskExecutionGraph
 
 plugins {
     alias(libs.plugins.mymoney.android.application)
@@ -171,7 +172,7 @@ val releaseVersioningReady =
         releaseTagAtHead != null &&
         releaseTagAtHead == latestReachableReleaseTag &&
         releaseTagAtHead == latestGlobalReleaseTag &&
-        releaseTagAtHead?.let { tag -> runCatching { releaseVersionCode(tag) }.isSuccess } == true &&
+        runCatching { releaseVersionCode(requireNotNull(releaseTagAtHead)) }.isSuccess &&
         (releaseTriggerTag == null || releaseTriggerTag == releaseTagAtHead)
 
 fun isNonDebugPackagingTask(taskPath: String): Boolean {
@@ -198,9 +199,11 @@ if (gradle.startParameter.taskNames.any(::isNonDebugPackagingTask)) {
     requireReleaseVersioning()
 }
 gradle.taskGraph.whenReady(
-    Action { taskGraph ->
-        if (taskGraph.allTasks.any { isNonDebugPackagingTask(it.path) }) {
-            requireReleaseVersioning()
+    object : Action<TaskExecutionGraph> {
+        override fun execute(taskGraph: TaskExecutionGraph) {
+            if (taskGraph.allTasks.any { isNonDebugPackagingTask(it.path) }) {
+                requireReleaseVersioning()
+            }
         }
     },
 )

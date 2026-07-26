@@ -48,6 +48,49 @@ class ConnectedModulesCiContractTest {
         )
     }
 
+    @Test
+    fun `connected job skips radar pull requests while jvm checks remain enabled`() {
+        val workflow = workflowFile.readText()
+        val connectedJob = workflow.substringAfter("  connected:")
+        val jvmJob = workflow.substringAfter("  jvm:").substringBefore("\n  release:")
+
+        assertContainsInOrder(
+            connectedJob,
+            listOf(
+                "if: >-",
+                "github.event_name != 'pull_request' ||",
+                "!(github.event.pull_request.user.login == 'renovate[bot]' ||",
+                "contains(github.event.pull_request.labels.*.name, 'dependency-radar'))",
+            ),
+        )
+        assertTrue(
+            "The connected job must not skip arbitrary Renovate branches without the bot or label contract",
+            !connectedJob.contains("startsWith(github.head_ref, 'renovate/')"),
+        )
+        assertContainsAll(
+            connectedJob,
+            listOf(
+                "name: Materialize Sentry DSN only when the OQ-1 secret is supplied",
+                "name: Materialize Dropbox app key only when the secret is supplied",
+                "name: Materialize Firebase config only when the OQ-9 secret is supplied",
+            ),
+        )
+        assertTrue(
+            "Connected-job secrets must stay unavailable on every pull request",
+            Regex("if: github.event_name != 'pull_request'").findAll(connectedJob).count() >= 3,
+        )
+        assertContainsAll(
+            jvmJob,
+            listOf(
+                "name: Lint, JVM tests, static analysis, and coverage",
+                "run: ./gradlew lintDebug testDebugUnitTest \$FIREBASE_ARGS --stacktrace",
+                "run: ./gradlew detekt --stacktrace",
+                "run: ./gradlew ktlintCheck --stacktrace",
+                "run: ./gradlew koverVerify --stacktrace",
+            ),
+        )
+    }
+
     private fun connectedTestScript(workflow: String): String =
         workflow
             .substringAfter("      - name: Run connected tests on API 34 emulator")
@@ -62,6 +105,15 @@ class ConnectedModulesCiContractTest {
             val index = text.indexOf(fragment, startIndex)
             assertTrue("Expected to find '$fragment' after index $startIndex", index >= 0)
             startIndex = index + fragment.length
+        }
+    }
+
+    private fun assertContainsAll(
+        text: String,
+        fragments: List<String>,
+    ) {
+        fragments.forEach { fragment ->
+            assertTrue("Expected to find '$fragment'", text.contains(fragment))
         }
     }
 

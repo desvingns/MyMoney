@@ -1,7 +1,7 @@
 # Dependency-update radar (Renovate/Dependabot, no auto-bumps)
 Epic: review-2026-07
 Order: 29 of 35
-Status: draft
+Status: done
 Depends-on: —
 Date: 2026-07-06
 
@@ -20,5 +20,5 @@ The stack is intentionally frozen, but "frozen" should be a decision per release
 not blindness to CVEs and deprecations. Source: review item 18 (P3/S).
 
 ## Implementation links
-- commit: (pending)
-- files: (pending)
+- commit: 1d2490e4, 7c63a479, 3f58cff2, 30607c8f, 00f49b8a
+- files: .github/workflows/ci.yml, README.md, renovate.json, app/src/test/java/com/kshavrin/mymoney/DependencyRadarContractTest.kt, app/src/test/java/com/kshavrin/mymoney/ConnectedModulesCiContractTest.kt

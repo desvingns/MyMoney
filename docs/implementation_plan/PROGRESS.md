@@ -10,6 +10,16 @@
 
 > Last three session entries are repeated here for fast startup. Full history is archived below.
 
+- **2026-07-26 (Codex MP `--feature --next`, dependency-update radar):** Completed SPEC
+  `review-2026-07-29-renovate-radar` in commits `1d2490e4`, `7c63a479`, `3f58cff2`,
+  `30607c8f`, and `00f49b8a`. Added a monthly, grouped, report-only Renovate radar with
+  Dependency Dashboard approval, labels, automerge disabled, and TDD-major-bump guidance.
+  CI now keeps secrets out of every pull-request job, skips connected emulator tests only for
+  authenticated `renovate[bot]` or the trusted `dependency-radar` label, and keeps JVM checks
+  enabled. Feature contract tests passed 8/8; full parsed JVM evidence was 2912 passed with
+  15 pre-existing Robolectric/Kover baseline failures; lint and ktlint were clean. Pushed to
+  `origin/main` at `00f49b8a`.
+
 - **2026-07-22 (Codex MP `--feature --next`, property-based tests):** Completed SPEC
   `review-2026-07-26-property-based-tests` in commits `21d9ac19`, `efcdc029`, `be8897d9`,
   and `0f697d18`. Added Kotest property coverage for operation merge ordering/tombstones,
@@ -28,17 +38,6 @@
   verifier gates passed. The generic JVM runner emitted its known no-summary/JaCoCo parser
   false-negative, cleared by XML. Push was attempted twice but timed out; the SPEC and closeout
   commits remain local ahead of `origin/main`.
-
-- **2026-07-22 (Codex MP `--backlog`, private cloud sync):** Completed SPEC
-  `review-2026-07-22-cloud-creds-setup`. Google Drive now uses only `drive.appdata` and app-owned
-  `appDataFolder`; Dropbox remains App Folder; one provider/account binding is active at a time.
-  Fresh real two-device Google and Dropbox round trips passed for `desving123456`, with persisted
-  identity after restart and remote peer records in `outputs/e2e/`. Scoped JVM XML is green
-  (sync 78/0/0, cloud-sync 4/0/0), the force-enabled debug APK built, and the Pixel 5/API 34
-  Compose class passed 3/0/0. A runner safety incident uninstalled the user APK on Pixel 8/9 after
-  AGP selected every healthy emulator; no remote journal was deleted, both local datasets were
-  restored from Dropbox and verified, and `run_connected_test_on_host_avd.ps1` now refuses runs
-  while non-gate devices are attached. No commit or push was made.
 
 ## Historical session log archives
 

@@ -79,8 +79,8 @@ android {
 
     defaultConfig {
         applicationId = "com.kshavrin.mymoney"
-        versionCode = 17
-        versionName = "1.0.16"
+        versionCode = 18
+        versionName = "1.0.17"
 
         testInstrumentationRunner = "com.kshavrin.mymoney.HiltTestRunner"
 

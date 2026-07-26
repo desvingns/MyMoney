@@ -188,6 +188,10 @@ jobs:
   connected:
     name: Connected tests - Pixel 6 API 34
     runs-on: ubuntu-latest
+    if: >-
+      github.event_name != 'pull_request' ||
+      (!startsWith(github.head_ref, 'renovate/') &&
+      !contains(github.event.pull_request.labels.*.name, 'dependency-radar'))
     steps:
       - name: Check out source
         uses: actions/checkout@v4

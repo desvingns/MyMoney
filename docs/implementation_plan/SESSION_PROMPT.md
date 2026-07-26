@@ -23,7 +23,7 @@ Copy-paste these into a new Claude session to resume work on MyMoney.
 - Если фаза закрыта — переведи следующую в "active".
 - Остановись. Не начинай следующую фазу в этой же сессии.
 
-TDD: C:\Pet\MyMoney\TDD\MyMoney\MyMoney_TDD.md. Глоссарий BR-/AS-/OQ- — README.md §5.
+TDD: TDD/MyMoney/MyMoney_TDD.md (repo-relative). Глоссарий BR-/AS-/OQ- — README.md §5.
 Отвечай мне по-русски. Код и артефакты — на английском.
 ```
 

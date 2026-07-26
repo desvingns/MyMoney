@@ -4,7 +4,7 @@ Read this **after** the `mp-developer-android` agent body (from the `mp-dev` plu
 
 ## Source of truth
 
-- **Authoritative spec**: `C:\Pet\MyMoney\TDD\MyMoney\MyMoney_TDD.md` (English prose + EN/RU string tables, 2409 lines).
+- **Authoritative spec**: `TDD/MyMoney/MyMoney_TDD.md` (repo-relative; English prose + EN/RU string tables, 2868 lines).
 - **Cite TDD line ranges**, never paraphrase. Format: `TDD §6.2, lines 1234–1256`.
 - **Phase plan**: `docs/implementation_plan/phases/PHASE_NN_*.md` enumerates what to do; TDD enumerates *how it must look*.
 - If asked to implement something that contradicts the TDD, **stop and ask** before deviating. Don't silently "fix" Monefy v1.0 quirks — see AS-12 and AS-14 below.

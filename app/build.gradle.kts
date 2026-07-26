@@ -63,6 +63,63 @@ val hasReleaseSigningConfig =
 fun String.asBuildConfigString(): String =
     "\"${replace("\\", "\\\\").replace("\"", "\\\"")}\""
 
+/*
+ * Release versioning is derived from the checked-out Git history:
+ * - versionName is the nearest reachable tag with its optional `v` prefix removed.
+ * - versionCode is 1,000,000 plus `git rev-list --count HEAD`. It is reproducible for
+ *   a commit and increases along the release branch's history.
+ * - CI fetches the full history, so local and CI release builds calculate the same code.
+ *   Release tasks fail without complete Git metadata; the fixed fallback is debug-only
+ *   for offline IDE builds from exported or shallow sources and cannot reach Play.
+ */
+fun gitOutput(vararg arguments: String): String? =
+    runCatching {
+        val execution =
+            providers.exec {
+                workingDir = rootProject.projectDir
+                commandLine("git", *arguments)
+                isIgnoreExitValue = true
+            }
+        if (execution.result.get().exitValue == 0) {
+            execution.standardOutput.asText.get().trim().takeIf { it.isNotEmpty() }
+        } else {
+            null
+        }
+    }.getOrNull()
+
+val hasCompleteGitHistory = gitOutput("rev-parse", "--is-shallow-repository") == "false"
+val gitCommitCount =
+    if (hasCompleteGitHistory) {
+        gitOutput("rev-list", "--count", "HEAD")?.toIntOrNull()
+    } else {
+        null
+    }
+val usesLocalVersionFallback = gitCommitCount == null
+val versionCodeBase = 1_000_000
+val appVersionCode =
+    gitCommitCount?.let { commitCount ->
+        require(commitCount <= Int.MAX_VALUE - versionCodeBase) {
+            "Git commit count exceeds the Android versionCode range."
+        }
+        versionCodeBase + commitCount
+    } ?: versionCodeBase
+val appVersionName =
+    gitOutput("describe", "--tags", "--abbrev=0")
+        ?.removePrefix("v")
+        ?.takeIf { it.isNotEmpty() }
+        ?: "1.0.0"
+val releaseArtifactRequested =
+    gradle.startParameter.taskNames.any { taskName ->
+        taskName.contains("release", ignoreCase = true) &&
+            (taskName.contains("assemble", ignoreCase = true) ||
+                taskName.contains("bundle", ignoreCase = true) ||
+                taskName.contains("package", ignoreCase = true))
+    }
+
+check(!releaseArtifactRequested || !usesLocalVersionFallback) {
+    "Release artifacts require complete Git history for a monotonic versionCode."
+}
+
 // google-services is applied only when a google-services.json is present
 // (firebase.enabled=true); the default build ships without Firebase.
 if (providers.gradleProperty("firebase.enabled").orNull == "true") {
@@ -79,8 +136,8 @@ android {
 
     defaultConfig {
         applicationId = "com.kshavrin.mymoney"
-        versionCode = 17
-        versionName = "1.0.16"
+        versionCode = appVersionCode
+        versionName = appVersionName
 
         testInstrumentationRunner = "com.kshavrin.mymoney.HiltTestRunner"
 

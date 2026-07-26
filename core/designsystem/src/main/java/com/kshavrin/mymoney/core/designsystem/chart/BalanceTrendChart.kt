@@ -443,11 +443,13 @@ private fun CacheDrawScope.buildBalanceTrendChartStyleDrawCache(
     when (style) {
         ChartStyle.NeonArea,
         ChartStyle.BaselineFill,
-        ChartStyle.VerticalGradientArea ->
+        ChartStyle.VerticalGradientArea,
+        ->
             areaPath.buildArea(chartPoints, baseline, smooth = false, stepped = false)
 
         ChartStyle.SmoothLine,
-        ChartStyle.Ribbon -> linePath.buildSmooth(chartPoints)
+        ChartStyle.Ribbon,
+        -> linePath.buildSmooth(chartPoints)
 
         ChartStyle.SmoothArea -> {
             areaPath.buildArea(chartPoints, baseline, smooth = true, stepped = false)
@@ -465,7 +467,8 @@ private fun CacheDrawScope.buildBalanceTrendChartStyleDrawCache(
         ChartStyle.DualGlow,
         ChartStyle.DashedLine,
         ChartStyle.ThinMinimal,
-        ChartStyle.ThickBold -> linePath.buildPolyline(chartPoints)
+        ChartStyle.ThickBold,
+        -> linePath.buildPolyline(chartPoints)
 
         ChartStyle.Mountain -> {
             areaPath.buildArea(chartPoints, baseline, smooth = true, stepped = false)
@@ -477,7 +480,8 @@ private fun CacheDrawScope.buildBalanceTrendChartStyleDrawCache(
         ChartStyle.RoundedBars,
         ChartStyle.DotsLine,
         ChartStyle.DotsOnly,
-        ChartStyle.CandySegments -> Unit
+        ChartStyle.CandySegments,
+        -> Unit
     }
 
     val roundedPathStroke =
@@ -487,7 +491,8 @@ private fun CacheDrawScope.buildBalanceTrendChartStyleDrawCache(
             ChartStyle.SmoothLine,
             ChartStyle.SteppedLine,
             ChartStyle.SteppedArea,
-            ChartStyle.VerticalGradientArea -> roundedPathStroke
+            ChartStyle.VerticalGradientArea,
+            -> roundedPathStroke
 
             ChartStyle.SmoothArea ->
                 Stroke(width = lineStroke * 3.2f, cap = StrokeCap.Round, join = StrokeJoin.Round)
@@ -512,7 +517,8 @@ private fun CacheDrawScope.buildBalanceTrendChartStyleDrawCache(
             ChartStyle.ThickBold ->
                 Stroke(width = lineStroke * 2.2f, cap = StrokeCap.Round, join = StrokeJoin.Round)
 
-            ChartStyle.Mountain ->
+            ChartStyle.Mountain,
+            ->
                 Stroke(width = lineStroke * 1.6f, cap = StrokeCap.Round, join = StrokeJoin.Round)
 
             ChartStyle.Ribbon ->
@@ -552,7 +558,8 @@ private fun CacheDrawScope.buildBalanceTrendChartStyleDrawCache(
                 )
 
             ChartStyle.VerticalGradientArea,
-            ChartStyle.Mountain ->
+            ChartStyle.Mountain,
+            ->
                 Brush.verticalGradient(
                     colors = listOf(palette.line.copy(alpha = 0.36f), palette.line.copy(alpha = 0.04f)),
                     startY = 0f,
@@ -915,6 +922,7 @@ private fun calculateBalanceTrendChartBarWidth(
     return (minimumStep * 0.52f).coerceAtLeast(1f)
 }
 
+@Suppress("UnusedPrivateMember")
 private fun DrawScope.drawBalanceTrendChartStyle(
     style: ChartStyle,
     values: List<Float>,
@@ -1450,27 +1458,4 @@ private fun Path.buildArea(
     }
     lineTo(points.last().x, baseline)
     close()
-}
-
-private fun DrawScope.drawLabels(
-    labels: List<String>,
-    points: List<Offset>,
-    top: Float,
-    textMeasurer: TextMeasurer,
-    style: TextStyle,
-) {
-    val count = minOf(labels.size, points.size)
-    for (index in 0 until count) {
-        val layout: TextLayoutResult =
-            textMeasurer.measure(
-                text = labels[index],
-                style = style.copy(textAlign = TextAlign.Center),
-                maxLines = 1,
-            )
-        drawText(
-            textLayoutResult = layout,
-            color = style.color,
-            topLeft = Offset(points[index].x - layout.size.width / 2f, top),
-        )
-    }
 }

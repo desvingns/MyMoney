@@ -10,6 +10,17 @@
 
 > Last three session entries are repeated here for fast startup. Full history is archived below.
 
+- **2026-07-27 (Codex MP `--feature --next`, Monefy decoupling):** Completed SPEC
+  `monefy-decoupling-02-database-rename-migration` in commits `910f1303`, `d9fc696b`,
+  `7d7ae523`, `afa9d15f`, `6db6ff37`, `25e3e092`, `e5e157c8`, `6990f6d9`, `8c6d4a2a`,
+  and `f25bc86c`. Room now migrates `monefy.db` plus `-shm`/`-wal` to `mymoney.db` before
+  open, with marker-based restart recovery and checked backup replacement. JVM migration/XML
+  tests, detekt, KtLint, Kover, and app JVM tests passed; connected SPEC-targeted backup tests
+  passed 5/5 on Pixel 5 API 34. Real-device pre-existing rows survived the rename and the
+  broad database connected suite compiled, while 27 unrelated legacy CSV/DAO/transfer tests
+  remain red. SPEC and epic overview are moved to `.claude/specs/done/`; push is pending the
+  human gate.
+
 - **2026-07-26 (Codex MP `--feature --next`, Monefy decoupling):** Completed SPEC
   `monefy-decoupling-01-ui-component-rename` in commit `3c3ce219`. Renamed the design-system
   `Monefy*` UI components and all scoped consumers/tests/baselines without behavior or layout
@@ -25,14 +36,6 @@
   remained blocked by the existing tag-at-HEAD release guard. Pushed to `origin/main` at
   `db7944b6`; no device run was required.
 
-- **2026-07-26 (Codex MP `--feature --next`, tag-based versioning + CHANGELOG):** Completed SPEC
-  `review-2026-07-30-versioning-changelog` in production commits `309230bb`, `965f6c8d`,
-  `ff220440`, and `93035933`, with contract tests in `cf7336a2`. Git-derived stable SemVer
-  versioning now uses a monotonic numeric scheme with offline fallback and release-task guards;
-  CI validates full-history canonical tags; `CHANGELOG.md` is seeded at summary level. Local
-  immutable tags are `v1.0.0`, `v1.0.1`, `v1.0.2`, and final `v1.0.3`. Reviewer and verifier
-  passed; full `:app:testDebugUnitTest` passed after the final test-only repair. Deterministic
-  runner's stale pre-repair 69/1 result is retained as a limitation; no push performed.
 
 
 ## Historical session log archives

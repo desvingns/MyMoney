@@ -1,7 +1,7 @@
 # Epic: monefy-decoupling — drop the last Monefy naming from a standalone app
 Epic: monefy-decoupling
 Order: 00 (index)
-Status: draft
+Status: done
 Date: 2026-07-26
 
 ## Goal
@@ -31,3 +31,8 @@ the two remaining groups have very different blast radii.
 
 01 and 02 are independent; 02 is deliberately ordered last so a purely cosmetic change is never
 bundled with a persistence change in one push.
+
+## Closure
+
+Both ordered slices are complete. SPEC 01 closed the UI-component naming residue; SPEC 02
+closed the database filename migration with device evidence and backup/restore coverage.

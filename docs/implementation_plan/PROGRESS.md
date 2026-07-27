@@ -13,13 +13,13 @@
 - **2026-07-27 (Codex MP `--feature --next`, Monefy decoupling):** Completed SPEC
   `monefy-decoupling-02-database-rename-migration` in commits `910f1303`, `d9fc696b`,
   `7d7ae523`, `afa9d15f`, `6db6ff37`, `25e3e092`, `e5e157c8`, `6990f6d9`, `8c6d4a2a`,
-  and `f25bc86c`. Room now migrates `monefy.db` plus `-shm`/`-wal` to `mymoney.db` before
+  `f25bc86c`, `12838045`, `71c65765`, `3b7ed4f8`, and `619b27d6`. Room now migrates `monefy.db` plus `-shm`/`-wal` to `mymoney.db` before
   open, with marker-based restart recovery and checked backup replacement. JVM migration/XML
   tests, detekt, KtLint, Kover, and app JVM tests passed; connected SPEC-targeted backup tests
   passed 5/5 on Pixel 5 API 34. Real-device pre-existing rows survived the rename and the
-  broad database connected suite compiled, while 27 unrelated legacy CSV/DAO/transfer tests
-  remain red. SPEC and epic overview are moved to `.claude/specs/done/`; push is pending the
-  human gate.
+  broad database connected suite passed all 212 tests with 0 failures/errors/skips after
+  repairing UUID-isolated fixtures and making the Monefy CSV E2E fallback self-contained.
+  SPEC and epic overview are moved to `.claude/specs/done/`; push is pending the human gate.
 
 - **2026-07-26 (Codex MP `--feature --next`, Monefy decoupling):** Completed SPEC
   `monefy-decoupling-01-ui-component-rename` in commit `3c3ce219`. Renamed the design-system

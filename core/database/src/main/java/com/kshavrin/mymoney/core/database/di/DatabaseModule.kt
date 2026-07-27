@@ -2,6 +2,7 @@ package com.kshavrin.mymoney.core.database.di
 
 import android.content.Context
 import androidx.room.Room
+import com.kshavrin.mymoney.core.common.database.DatabaseFileNames
 import com.kshavrin.mymoney.core.database.MoneyDatabase
 import com.kshavrin.mymoney.core.database.dao.AccountDao
 import com.kshavrin.mymoney.core.database.dao.BudgetDao
@@ -21,6 +22,7 @@ import com.kshavrin.mymoney.core.database.migration.MIGRATION_4_5
 import com.kshavrin.mymoney.core.database.migration.MIGRATION_5_6
 import com.kshavrin.mymoney.core.database.migration.MIGRATION_6_7
 import com.kshavrin.mymoney.core.database.migration.MIGRATION_7_8
+import com.kshavrin.mymoney.core.database.migration.DatabaseFileMigration
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -35,9 +37,11 @@ object DatabaseModule {
     @Singleton
     fun provideMoneyDatabase(
         @ApplicationContext context: Context,
-    ): MoneyDatabase =
-        Room
-            .databaseBuilder(context, MoneyDatabase::class.java, "monefy.db")
+    ): MoneyDatabase {
+        val databaseFile = context.getDatabasePath(DatabaseFileNames.DATABASE_NAME)
+        DatabaseFileMigration.migrate(requireNotNull(databaseFile.parentFile))
+        return Room
+            .databaseBuilder(context, MoneyDatabase::class.java, DatabaseFileNames.DATABASE_NAME)
             .addMigrations(
                 MIGRATION_1_2,
                 MIGRATION_2_3,
@@ -50,6 +54,7 @@ object DatabaseModule {
             // 99 is an unreachable dev/QA sentinel; release schemas 1..8 require explicit migrations.
             .fallbackToDestructiveMigrationFrom(99)
             .build()
+    }
 
     @Provides
     fun provideCurrencyDao(db: MoneyDatabase): CurrencyDao = db.currencyDao()

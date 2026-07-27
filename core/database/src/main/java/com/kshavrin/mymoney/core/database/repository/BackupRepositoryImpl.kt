@@ -7,6 +7,7 @@ import androidx.documentfile.provider.DocumentFile
 import androidx.room.withTransaction
 import com.kshavrin.mymoney.core.common.category.categoryIconDominantHex
 import com.kshavrin.mymoney.core.common.category.categoryTextColorHex
+import com.kshavrin.mymoney.core.common.database.DatabaseFileNames
 import com.kshavrin.mymoney.core.common.di.IoDispatcher
 import com.kshavrin.mymoney.core.database.MoneyDatabase
 import com.kshavrin.mymoney.core.database.entity.AccountEntity
@@ -100,7 +101,7 @@ class BackupRepositoryImpl
                         DocumentFile.fromTreeUri(context, Uri.parse(treeUriString))
                             ?: throw IOException("Cannot open backup directory")
 
-                    val dbFile = context.getDatabasePath(DATABASE_NAME)
+                    val dbFile = context.getDatabasePath(DatabaseFileNames.DATABASE_NAME)
                     checkpoint()
 
                     val name = "$BACKUP_PREFIX${TIMESTAMP_FORMATTER.format(Instant.now())}$BACKUP_SUFFIX"
@@ -121,7 +122,7 @@ class BackupRepositoryImpl
         override suspend fun importDb(documentUriString: String): Result<Unit> =
             withContext(ioDispatcher) {
                 runCatching {
-                    val dbFile = context.getDatabasePath(DATABASE_NAME)
+                    val dbFile = context.getDatabasePath(DatabaseFileNames.DATABASE_NAME)
                     val dbDirectory = dbFile.parentFile ?: throw IOException("Cannot locate database directory")
                     val staged = File.createTempFile("monefy_restore_", ".db", dbDirectory)
                     try {
@@ -959,7 +960,7 @@ class BackupRepositoryImpl
             withContext(ioDispatcher) {
                 runCatching {
                     checkpoint()
-                    val dbFile = context.getDatabasePath(DATABASE_NAME)
+                    val dbFile = context.getDatabasePath(DatabaseFileNames.DATABASE_NAME)
                     dbFile.copyTo(File(destAbsolutePath), overwrite = true)
                     Unit
                 }
@@ -973,7 +974,7 @@ class BackupRepositoryImpl
                     requireCompatibleSchema(src)
 
                     database.close()
-                    val dbFile = context.getDatabasePath(DATABASE_NAME)
+                    val dbFile = context.getDatabasePath(DatabaseFileNames.DATABASE_NAME)
                     src.copyTo(dbFile, overwrite = true)
                     deleteSidecars(dbFile)
                 }
@@ -1129,7 +1130,6 @@ class BackupRepositoryImpl
             throw IOException("Invalid CSV row $rowNumber: $reason")
 
         private companion object {
-            const val DATABASE_NAME = "monefy.db"
             const val BACKUP_PREFIX = "monefy_backup_"
             const val BACKUP_SUFFIX = ".db"
             const val MIME_TYPE = "application/octet-stream"

@@ -3,6 +3,7 @@ package com.kshavrin.mymoney.feature.settings.backup
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.kshavrin.mymoney.core.common.database.DatabaseFileNames
 import com.kshavrin.mymoney.core.common.di.IoDispatcher
 import com.kshavrin.mymoney.core.common.exception.reportToSentry
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
@@ -162,15 +163,12 @@ class BackupRestoreViewModel
             viewModelScope.launch {
                 val size =
                     withContext(ioDispatcher) {
-                        context.getDatabasePath(DATABASE_NAME).length()
+                        context.getDatabasePath(DatabaseFileNames.DATABASE_NAME).length()
                     }
                 _state.value = _state.value.copy(dbSizeBytes = size)
             }
         }
 
-        private companion object {
-            const val DATABASE_NAME = "monefy.db"
-        }
     }
 
 data class BackupRestoreState(

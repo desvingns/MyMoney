@@ -7,6 +7,9 @@
         <exclude domain="sharedpref" path="com.kshavrin.mymoney_secure.xml.bak"/>
     </cloud-backup>
     <device-transfer>
+        <include domain="database" path="mymoney.db"/>
+        <include domain="database" path="mymoney.db-shm"/>
+        <include domain="database" path="mymoney.db-wal"/>
         <include domain="database" path="monefy.db"/>
         <include domain="database" path="monefy.db-shm"/>
         <include domain="database" path="monefy.db-wal"/>

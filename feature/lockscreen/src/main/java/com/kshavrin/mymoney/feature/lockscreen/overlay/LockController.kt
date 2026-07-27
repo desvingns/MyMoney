@@ -44,9 +44,7 @@ class LockController
             scope.launch {
                 appSettingsRepository.settings.collect { latest ->
                     settings = latest
-                    _appContentSecure.value =
-                        latest.biometricLockEnabled ||
-                            latest.hideAppContentInRecents
+                    _appContentSecure.value = latest.hideAppContentInRecents
                     if (!latest.biometricLockEnabled) {
                         _shouldShowLock.value = false
                     }

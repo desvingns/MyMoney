@@ -41,7 +41,7 @@ class LockController
         private var activityStartId = 0L
         private var resolvedActivityStartId: Long? = null
         private var observedSettingsGeneration = 0L
-        private var activityStartSettingsGeneration = 0L
+        private val activityStartSettingsGenerations = mutableMapOf<Long, Long>()
         private val activityLockStates = mutableMapOf<Long, MutableStateFlow<Boolean>>()
         private val resolvedActivityStartIds = mutableSetOf<Long>()
 
@@ -108,7 +108,7 @@ class LockController
                     activityLockStates[activityStartId] = MutableStateFlow(false)
                     resolvedActivityStartId = null
                     _isActivityLockResolved.value = false
-                    activityStartSettingsGeneration = observedSettingsGeneration
+                    activityStartSettingsGenerations[activityStartId] = observedSettingsGeneration
                     activityStartId
                 }
             scope.launch {
@@ -126,6 +126,7 @@ class LockController
         fun onMainActivityDestroyed(activityStartId: Long) {
             synchronized(activityStartLock) {
                 activityLockStates.remove(activityStartId)
+                activityStartSettingsGenerations.remove(activityStartId)
                 resolvedActivityStartIds.remove(activityStartId)
                 _shouldShowLock.value = activityLockStates.values.any { it.value }
                 if (this.activityStartId == activityStartId) {
@@ -164,9 +165,12 @@ class LockController
             startId: Long,
             activitySettings: VersionedAppSettings,
         ) {
+            if (startId in resolvedActivityStartIds) return
             if (startId !in activityLockStates || activityLockStates.keys.maxOrNull() != startId) {
                 return
             }
+            val activityStartSettingsGeneration =
+                activityStartSettingsGenerations[startId] ?: return
             val collectorObservedNewerSettings =
                 observedSettingsGeneration > activityStartSettingsGeneration
             val resolvedSettings =

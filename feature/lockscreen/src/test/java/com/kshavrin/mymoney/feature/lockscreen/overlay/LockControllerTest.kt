@@ -510,6 +510,14 @@ class LockControllerTest {
             assertTrue(controller.isActivityLockResolved.value)
             assertTrue(controller.lockStateFor(olderStartId).value)
 
+            olderSnapshot.complete(AppSettings())
+
+            assertEquals(
+                AppContentSecurityState(olderStartId, shouldSecure = true),
+                controller.appContentSecurityState.value,
+            )
+            assertTrue(controller.lockStateFor(olderStartId).value)
+
             settings.emit(currentSettings.copy(hideAppContentInRecents = false))
 
             assertEquals(

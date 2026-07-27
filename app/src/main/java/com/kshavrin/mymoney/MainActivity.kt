@@ -72,7 +72,8 @@ class MainActivity : AppCompatActivity() {
                     SecureWindowSource.AppContent,
                     securityState.shouldSecure,
                 )
-                if (securityState.activityStartId == activityStartId) {
+                val isInitialActivityState = securityState.activityStartId == activityStartId
+                if (isInitialActivityState) {
                     initialWindowSecurityApplied.set(true)
                 }
             }

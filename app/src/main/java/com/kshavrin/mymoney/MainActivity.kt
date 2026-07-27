@@ -31,6 +31,7 @@ import com.kshavrin.mymoney.navigation.ShortcutDestination
 import dagger.Lazy
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -48,17 +49,25 @@ class MainActivity : AppCompatActivity() {
 
     private val lazySoundPlayer: SoundPlayer by lazy { LazySoundPlayer(soundPlayer) }
     private val lazyHapticPlayer: HapticPlayer by lazy { LazyHapticPlayer(hapticPlayer) }
+    private val initialWindowSecurityApplied = AtomicBoolean(false)
     private lateinit var secureWindowController: SecureWindowController
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
         secureWindowController = SecureWindowController(window)
-        splashScreen.setKeepOnScreenCondition { !lockController.isResolved.value }
+        splashScreen.setKeepOnScreenCondition {
+            !lockController.isResolved.value || !initialWindowSecurityApplied.get()
+        }
         lockController.observeProcessLifecycle()
         lifecycleScope.launch {
-            lockController.appContentSecure.collect { enabled ->
-                secureWindowController.setSecure(SecureWindowSource.AppContent, enabled)
+            lockController.appContentSecurityState.collect { securityState ->
+                if (securityState == null) return@collect
+                secureWindowController.setSecure(
+                    SecureWindowSource.AppContent,
+                    securityState.shouldSecure,
+                )
+                initialWindowSecurityApplied.set(true)
             }
         }
         enableEdgeToEdge()

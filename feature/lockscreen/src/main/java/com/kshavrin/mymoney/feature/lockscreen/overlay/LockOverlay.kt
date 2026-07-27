@@ -94,12 +94,10 @@ fun LockOverlay(
     var lockoutDeadlineEpochMs by rememberSaveable { mutableStateOf<Long?>(null) }
     var nowEpochMs by remember { mutableStateOf(System.currentTimeMillis()) }
 
-    if (secureWindowController != null) {
-        DisposableEffect(secureWindowController) {
-            secureWindowController.setSecure(SecureWindowSource.LockOverlay, enabled = true)
-            onDispose {
-                secureWindowController.setSecure(SecureWindowSource.LockOverlay, enabled = false)
-            }
+    DisposableEffect(secureWindowController) {
+        secureWindowController.setSecure(SecureWindowSource.LockOverlay, enabled = true)
+        onDispose {
+            secureWindowController.setSecure(SecureWindowSource.LockOverlay, enabled = false)
         }
     }
 

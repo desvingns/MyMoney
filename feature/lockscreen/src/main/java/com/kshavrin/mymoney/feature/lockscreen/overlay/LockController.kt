@@ -14,6 +14,10 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
+data class AppContentSecurityState(
+    val shouldSecure: Boolean,
+)
+
 @Singleton
 class LockController
     @Inject
@@ -40,11 +44,17 @@ class LockController
         private val _appContentSecure = MutableStateFlow(false)
         val appContentSecure: StateFlow<Boolean> = _appContentSecure.asStateFlow()
 
+        private val _appContentSecurityState = MutableStateFlow<AppContentSecurityState?>(null)
+        val appContentSecurityState: StateFlow<AppContentSecurityState?> =
+            _appContentSecurityState.asStateFlow()
+
         init {
             scope.launch {
                 appSettingsRepository.settings.collect { latest ->
                     settings = latest
                     _appContentSecure.value = latest.hideAppContentInRecents
+                    _appContentSecurityState.value =
+                        AppContentSecurityState(shouldSecure = latest.hideAppContentInRecents)
                     if (!latest.biometricLockEnabled) {
                         _shouldShowLock.value = false
                     }

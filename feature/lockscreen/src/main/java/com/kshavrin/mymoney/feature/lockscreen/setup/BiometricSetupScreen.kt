@@ -73,12 +73,10 @@ fun BiometricSetupRoute(
     val context = LocalContext.current
     val secureWindowController = LocalSecureWindowController.current
 
-    if (secureWindowController != null) {
-        DisposableEffect(secureWindowController) {
-            secureWindowController.setSecure(SecureWindowSource.BiometricSetup, enabled = true)
-            onDispose {
-                secureWindowController.setSecure(SecureWindowSource.BiometricSetup, enabled = false)
-            }
+    DisposableEffect(secureWindowController) {
+        secureWindowController.setSecure(SecureWindowSource.BiometricSetup, enabled = true)
+        onDispose {
+            secureWindowController.setSecure(SecureWindowSource.BiometricSetup, enabled = false)
         }
     }
 

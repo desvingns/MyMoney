@@ -32,4 +32,7 @@ enum class SecureWindowSource {
     BiometricSetup,
 }
 
-val LocalSecureWindowController = staticCompositionLocalOf<SecureWindowController?> { null }
+val LocalSecureWindowController =
+    staticCompositionLocalOf<SecureWindowController> {
+        error("A SecureWindowController must be provided by the activity host.")
+    }

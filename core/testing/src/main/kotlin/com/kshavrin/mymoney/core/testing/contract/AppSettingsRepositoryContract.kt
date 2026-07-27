@@ -28,6 +28,7 @@ abstract class AppSettingsRepositoryContract {
                     themeMode = "dark",
                     defaultAccountId = 42L,
                     onboardingCompletedAt = 123L,
+                    hideAppContentInRecents = true,
                 )
             }
 
@@ -37,6 +38,7 @@ abstract class AppSettingsRepositoryContract {
                     themeMode = "dark",
                     defaultAccountId = 42L,
                     onboardingCompletedAt = 123L,
+                    hideAppContentInRecents = true,
                 ),
                 repository.settings.first(),
             )

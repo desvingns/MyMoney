@@ -65,12 +65,14 @@ class MainActivity : AppCompatActivity() {
         lockController.observeProcessLifecycle()
         lifecycleScope.launch {
             lockController.appContentSecurityState.collect { securityState ->
-                if (securityState?.activityStartId != activityStartId) return@collect
+                if (securityState == null) return@collect
                 secureWindowController.setSecure(
                     SecureWindowSource.AppContent,
                     securityState.shouldSecure,
                 )
-                initialWindowSecurityApplied.set(true)
+                if (securityState.activityStartId == activityStartId) {
+                    initialWindowSecurityApplied.set(true)
+                }
             }
         }
         enableEdgeToEdge()

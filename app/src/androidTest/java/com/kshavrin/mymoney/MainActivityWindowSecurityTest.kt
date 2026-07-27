@@ -79,6 +79,25 @@ class MainActivityWindowSecurityTest {
         }
 
     @Test
+    fun `older activity reconciles recents privacy changes from a newer activity`() =
+        runTest {
+            seedSettings(biometricLockEnabled = false, hideAppContentInRecents = true)
+
+            ActivityScenario.launch(MainActivity::class.java).use { olderScenario ->
+                olderScenario.waitForFlagSecure(expected = true)
+
+                ActivityScenario.launch(MainActivity::class.java).use { newerScenario ->
+                    newerScenario.waitForFlagSecure(expected = true)
+
+                    seedSettings(biometricLockEnabled = false, hideAppContentInRecents = false)
+
+                    newerScenario.waitForFlagSecure(expected = false)
+                    olderScenario.waitForFlagSecure(expected = false)
+                }
+            }
+        }
+
+    @Test
     fun `secure flag remains while any source is enabled and clears after the last source is removed`() =
         runTest {
             seedSettings(biometricLockEnabled = false)

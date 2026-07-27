@@ -382,7 +382,7 @@ class DestinationsTest {
         assertTrue(activitySource.contains("SHORTCUT_ADD_EXPENSE -> ShortcutDestination.AddExpense"))
         assertTrue(activitySource.contains("SHORTCUT_ADD_INCOME -> ShortcutDestination.AddIncome"))
         assertTrue(activitySource.contains("SHORTCUT_TRANSFER -> ShortcutDestination.Transfer"))
-        assertTrue(activitySource.contains("LockOverlay(onUnlocked = lockController::markUnlocked)"))
+        assertTrue(activitySource.contains("LockOverlay(onUnlocked = { lockController.markUnlocked(activityStartId) })"))
         assertTrue(navHostSource.contains("navController.navigate(Destinations.Dashboard)"))
         assertTrue(navHostSource.contains("ShortcutDestination.AddExpense -> navController.navigate(Destinations.AddExpense)"))
         assertTrue(navHostSource.contains("ShortcutDestination.AddIncome -> navController.navigate(Destinations.AddIncome)"))

@@ -77,6 +77,12 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+        val activityLockState = lockController.lockStateFor(activityStartId)
+        lifecycleScope.launch {
+            activityLockState.collect { locked ->
+                secureWindowController.setSecure(SecureWindowSource.LockOverlay, locked)
+            }
+        }
         enableEdgeToEdge()
         if (savedInstanceState == null) {
             showFactoryResetFailureIfNeeded()
@@ -84,7 +90,7 @@ class MainActivity : AppCompatActivity() {
         val shortcutDestination = resolveShortcutDestination(intent)
         setContent {
             val themeMode by themeViewModel.themeMode.collectAsStateWithLifecycle()
-            val locked by lockController.lockStateFor(activityStartId).collectAsStateWithLifecycle()
+            val locked by activityLockState.collectAsStateWithLifecycle()
             MyMoneyTheme(themeMode = themeMode) {
                 CompositionLocalProvider(
                     LocalSoundPlayer provides lazySoundPlayer,
@@ -103,6 +109,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        if (::secureWindowController.isInitialized) {
+            secureWindowController.setSecure(SecureWindowSource.LockOverlay, enabled = false)
+        }
         activityStartId?.let(lockController::onMainActivityDestroyed)
         super.onDestroy()
     }

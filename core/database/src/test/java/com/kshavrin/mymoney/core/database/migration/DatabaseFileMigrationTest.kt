@@ -1,7 +1,7 @@
 package com.kshavrin.mymoney.core.database.migration
 
-import com.kshavrin.mymoney.core.common.database.DatabaseFileNames
 import java.io.File
+import com.kshavrin.mymoney.core.common.database.DatabaseFileNames
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows

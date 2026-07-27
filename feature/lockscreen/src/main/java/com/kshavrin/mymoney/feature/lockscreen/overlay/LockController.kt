@@ -70,6 +70,7 @@ class LockController
         }
 
         private fun onSettingsChanged(latest: AppSettings) {
+            val biometricWasEnabled = settings.biometricLockEnabled
             observedSettingsGeneration += 1
             settings = latest
             _appContentSecure.value = latest.hideAppContentInRecents
@@ -77,6 +78,10 @@ class LockController
                 _shouldShowLock.value = false
                 activityLockStates.values.forEach { it.value = false }
                 resolvedActivityLockEnabled = false
+            } else if (!biometricWasEnabled) {
+                _shouldShowLock.value = true
+                activityLockStates.values.forEach { it.value = true }
+                resolvedActivityLockEnabled = true
             }
             if (!firstSettingsSeen) {
                 firstSettingsSeen = true

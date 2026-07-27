@@ -363,6 +363,22 @@ class LockControllerTest {
             assertFalse(controller.lockStateFor(newerStartId).value)
         }
 
+    @Test
+    fun `activity start ends locked after intermediate disabled then enabled emissions`() =
+        runTest {
+            val settings = DeferredFirstEmissionAppSettingsRepository()
+            val controller = buildController(settings)
+            val startId = controller.onMainActivityCreated()
+
+            settings.emit(AppSettings(biometricLockEnabled = false))
+            assertFalse(controller.lockStateFor(startId).value)
+
+            settings.emit(AppSettings(biometricLockEnabled = true))
+
+            assertTrue(controller.lockStateFor(startId).value)
+            assertTrue(controller.isActivityLockResolved.value)
+        }
+
     // --- 3. pause / resume idle transition ------------------------------------------------
 
     @Test

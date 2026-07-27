@@ -19,6 +19,8 @@ object DatabaseFileMigration {
                 legacyDatabase.exists() -> startMigration(legacyDatabase, database, marker)
                 hasLegacySidecars(databaseDirectory) ->
                     error("Legacy database sidecars exist without a legacy database file")
+                !database.exists() && hasNeutralSidecars(databaseDirectory) ->
+                    error("Neutral database sidecars exist without a neutral database file")
                 else -> return
             }
         } else {
@@ -79,8 +81,17 @@ object DatabaseFileMigration {
     }
 
     private fun hasLegacySidecars(databaseDirectory: File): Boolean =
+        hasSidecars(databaseDirectory, DatabaseFileNames.LEGACY_DATABASE_NAME)
+
+    private fun hasNeutralSidecars(databaseDirectory: File): Boolean =
+        hasSidecars(databaseDirectory, DatabaseFileNames.DATABASE_NAME)
+
+    private fun hasSidecars(
+        databaseDirectory: File,
+        databaseName: String,
+    ): Boolean =
         DatabaseFileNames.sidecarSuffixes.any { suffix ->
-            File(databaseDirectory, DatabaseFileNames.LEGACY_DATABASE_NAME + suffix).exists()
+            File(databaseDirectory, databaseName + suffix).exists()
         }
 
     private fun move(

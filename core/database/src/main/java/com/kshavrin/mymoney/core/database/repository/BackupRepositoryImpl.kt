@@ -133,14 +133,7 @@ class BackupRepositoryImpl
                         validateSqlite(staged)
                         requireCompatibleSchema(staged)
 
-                        database.close()
-                        Files.move(
-                            staged.toPath(),
-                            dbFile.toPath(),
-                            StandardCopyOption.ATOMIC_MOVE,
-                            StandardCopyOption.REPLACE_EXISTING,
-                        )
-                        deleteSidecars(dbFile)
+                        replaceDatabase(staged, dbFile)
                     } finally {
                         staged.delete()
                     }
@@ -970,13 +963,18 @@ class BackupRepositoryImpl
             withContext(ioDispatcher) {
                 runCatching {
                     val src = File(srcAbsolutePath)
-                    validateSqlite(src)
-                    requireCompatibleSchema(src)
-
-                    database.close()
                     val dbFile = context.getDatabasePath(DatabaseFileNames.DATABASE_NAME)
-                    src.copyTo(dbFile, overwrite = true)
-                    deleteSidecars(dbFile)
+                    val dbDirectory = dbFile.parentFile ?: throw IOException("Cannot locate database directory")
+                    val staged = File.createTempFile("monefy_restore_", ".db", dbDirectory)
+                    try {
+                        src.copyTo(staged, overwrite = true)
+                        validateSqlite(staged)
+                        requireCompatibleSchema(staged)
+
+                        replaceDatabase(staged, dbFile)
+                    } finally {
+                        staged.delete()
+                    }
                 }
             }
 
@@ -1025,9 +1023,31 @@ class BackupRepositoryImpl
             }
         }
 
-        private fun deleteSidecars(dbFile: File) {
-            File("${dbFile.path}-wal").delete()
-            File("${dbFile.path}-shm").delete()
+        private fun replaceDatabase(
+            staged: File,
+            dbFile: File,
+        ) {
+            check(staged.isFile) { "Staged database is not a file" }
+            checkpoint()
+            database.close()
+            clearSidecars(dbFile)
+            Files.move(
+                staged.toPath(),
+                dbFile.toPath(),
+                StandardCopyOption.ATOMIC_MOVE,
+                StandardCopyOption.REPLACE_EXISTING,
+            )
+        }
+
+        private fun clearSidecars(dbFile: File) {
+            DatabaseFileNames.sidecarSuffixes.forEach { suffix ->
+                val sidecar = File(dbFile.parentFile, dbFile.name + suffix)
+                if (sidecar.exists()) {
+                    check(sidecar.isFile) { "Database sidecar is not a file" }
+                    check(sidecar.delete()) { "Cannot clear database sidecar" }
+                }
+                check(!sidecar.exists()) { "Database sidecar remains after cleanup" }
+            }
         }
 
         private fun isBackupName(name: String): Boolean =

@@ -37,6 +37,7 @@ class BackupImportSchemaGateTest {
     private lateinit var backupDirectory: File
     private lateinit var repo: BackupRepositoryImpl
     private var restoredDb: MoneyDatabase? = null
+    private val temporaryFiles = mutableListOf<File>()
 
     @Before
     fun setUp() {
@@ -57,12 +58,24 @@ class BackupImportSchemaGateTest {
 
     @After
     fun tearDown() {
-        db.close()
         restoredDb?.close()
+        db.close()
+
+        val leftovers = mutableListOf<File>()
+        temporaryFiles
+            .filter { it.exists() }
+            .forEach { file ->
+                if (!file.delete()) leftovers += file
+            }
+        listOf(databaseDirectory, backupDirectory).forEach { directory ->
+            if (directory.exists() && !directory.deleteRecursively()) leftovers += directory
+        }
+        check(leftovers.isEmpty()) { "Test cleanup failed: ${leftovers.joinToString()}" }
     }
 
     private fun createBackupFile(userVersion: Int): File {
         val file = File.createTempFile("schema_gate_", ".db", context.cacheDir)
+        temporaryFiles += file
         SQLiteDatabase.openOrCreateDatabase(file, null).use { sqlite ->
             sqlite.execSQL("CREATE TABLE marker(id INTEGER PRIMARY KEY)")
             sqlite.version = userVersion
@@ -138,12 +151,26 @@ class BackupImportSchemaGateTest {
             assertEquals(DatabaseFileNames.LEGACY_DATABASE_NAME, backup.name)
 
             assertTrue(repo.clearDatabase().isSuccess)
-            assertTrue(db.currencyDao().observeAll().first().isEmpty())
+            assertTrue(
+                db
+                    .currencyDao()
+                    .observeAll()
+                    .first()
+                    .isEmpty(),
+            )
 
             assertTrue(repo.importFromFile(backup.absolutePath).isSuccess)
             val restored = reopenRestoredDatabase()
 
-            assertEquals("USD", restored.currencyDao().observeAll().first().single().code)
+            assertEquals(
+                "USD",
+                restored
+                    .currencyDao()
+                    .observeAll()
+                    .first()
+                    .single()
+                    .code,
+            )
         }
 
     @Test
@@ -172,8 +199,23 @@ class BackupImportSchemaGateTest {
             assertTrue(repo.importFromFile(backup.absolutePath).isSuccess)
             val restored = reopenRestoredDatabase()
 
-            assertEquals("NEUTRAL", restored.currencyDao().observeAll().first().single().code)
-            assertTrue(restored.currencyDao().observeAll().first().single().isActive)
+            assertEquals(
+                "NEUTRAL",
+                restored
+                    .currencyDao()
+                    .observeAll()
+                    .first()
+                    .single()
+                    .code,
+            )
+            assertTrue(
+                restored
+                    .currencyDao()
+                    .observeAll()
+                    .first()
+                    .single()
+                    .isActive,
+            )
         }
 
     private fun materializeInMemoryDatabase() {

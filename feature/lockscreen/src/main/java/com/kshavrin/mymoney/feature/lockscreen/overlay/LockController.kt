@@ -41,6 +41,7 @@ class LockController
         private var resolvedActivityLockEnabled = false
         private var observedSettingsGeneration = 0L
         private var activityStartSettingsGeneration = 0L
+        private val activityLockStates = mutableMapOf<Long, MutableStateFlow<Boolean>>()
 
         private val _shouldShowLock = MutableStateFlow(false)
         val shouldShowLock: StateFlow<Boolean> = _shouldShowLock.asStateFlow()
@@ -91,6 +92,7 @@ class LockController
             val startId =
                 synchronized(activityStartLock) {
                     activityStartId += 1
+                    activityLockStates[activityStartId] = MutableStateFlow(false)
                     resolvedActivityStartId = null
                     resolvedActivityLockEnabled = false
                     _isActivityLockResolved.value = false
@@ -104,12 +106,27 @@ class LockController
             return startId
         }
 
+        fun lockStateFor(activityStartId: Long): StateFlow<Boolean> =
+            synchronized(activityStartLock) {
+                requireNotNull(activityLockStates[activityStartId])
+            }
+
+        fun onMainActivityDestroyed(activityStartId: Long) {
+            synchronized(activityStartLock) {
+                activityLockStates.remove(activityStartId)
+                if (this.activityStartId == activityStartId) {
+                    resolvedActivityStartId = null
+                    resolvedActivityLockEnabled = false
+                }
+            }
+        }
+
         private fun resolveActivityLock(
             startId: Long,
             activitySettings: AppSettings,
         ) {
             synchronized(activityStartLock) {
-                if (activityStartId != startId) return
+                if (activityStartId != startId || startId !in activityLockStates) return
                 val collectorObservedNewerSettings =
                     observedSettingsGeneration > activityStartSettingsGeneration
                 val resolvedSettings =
@@ -121,6 +138,7 @@ class LockController
                 settings = resolvedSettings
                 _appContentSecure.value = resolvedSettings.hideAppContentInRecents
                 _shouldShowLock.value = resolvedSettings.biometricLockEnabled
+                activityLockStates[startId]?.value = resolvedSettings.biometricLockEnabled
                 _isActivityLockResolved.value = true
                 resolvedActivityStartId = startId
                 resolvedActivityLockEnabled = resolvedSettings.biometricLockEnabled
@@ -149,19 +167,29 @@ class LockController
         }
 
         override fun onResume(owner: LifecycleOwner) {
-            if (shouldLockAfterIdle(pausedAt, now(), settings)) _shouldShowLock.value = true
+            if (shouldLockAfterIdle(pausedAt, now(), settings)) lockNow()
         }
 
         fun lockNow() {
-            _shouldShowLock.value = true
+            synchronized(activityStartLock) {
+                _shouldShowLock.value = true
+                activityLockStates.values.forEach { it.value = true }
+            }
         }
 
         fun markUnlocked() {
             pausedAt = null
-            synchronized(activityStartLock) {
-                resolvedActivityLockEnabled = false
-            }
             _shouldShowLock.value = false
+        }
+
+        fun markUnlocked(activityStartId: Long) {
+            pausedAt = null
+            synchronized(activityStartLock) {
+                activityLockStates[activityStartId]?.value = false
+                if (this.activityStartId == activityStartId) {
+                    resolvedActivityLockEnabled = false
+                }
+            }
         }
 
         internal fun shouldLockAfterIdle(

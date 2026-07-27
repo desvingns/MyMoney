@@ -51,12 +51,14 @@ class MainActivity : AppCompatActivity() {
     private val lazyHapticPlayer: HapticPlayer by lazy { LazyHapticPlayer(hapticPlayer) }
     private val initialWindowSecurityApplied = AtomicBoolean(false)
     private lateinit var secureWindowController: SecureWindowController
+    private var activityStartId: Long? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
         secureWindowController = SecureWindowController(window)
         val activityStartId = lockController.onMainActivityCreated()
+        this.activityStartId = activityStartId
         splashScreen.setKeepOnScreenCondition {
             !lockController.isResolved.value ||
                 !lockController.isActivityLockResolved.value ||
@@ -82,7 +84,7 @@ class MainActivity : AppCompatActivity() {
         val shortcutDestination = resolveShortcutDestination(intent)
         setContent {
             val themeMode by themeViewModel.themeMode.collectAsStateWithLifecycle()
-            val locked by lockController.shouldShowLock.collectAsStateWithLifecycle()
+            val locked by lockController.lockStateFor(activityStartId).collectAsStateWithLifecycle()
             MyMoneyTheme(themeMode = themeMode) {
                 CompositionLocalProvider(
                     LocalSoundPlayer provides lazySoundPlayer,
@@ -92,12 +94,17 @@ class MainActivity : AppCompatActivity() {
                     Box {
                         MyMoneyNavHost(shortcutDestination = shortcutDestination)
                         if (locked) {
-                            LockOverlay(onUnlocked = lockController::markUnlocked)
+                            LockOverlay(onUnlocked = { lockController.markUnlocked(activityStartId) })
                         }
                     }
                 }
             }
         }
+    }
+
+    override fun onDestroy() {
+        activityStartId?.let(lockController::onMainActivityDestroyed)
+        super.onDestroy()
     }
 
     private fun showFactoryResetFailureIfNeeded() {

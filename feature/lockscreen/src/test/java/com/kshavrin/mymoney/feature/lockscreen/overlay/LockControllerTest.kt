@@ -305,6 +305,51 @@ class LockControllerTest {
             assertTrue(controller.isActivityLockResolved.value)
         }
 
+    @Test
+    fun `unlocking a newer activity start leaves an older lock visible`() =
+        runTest {
+            val controller = buildController(AppSettings(biometricLockEnabled = true))
+
+            val olderStartId = controller.onMainActivityCreated()
+            val newerStartId = controller.onMainActivityCreated()
+
+            assertTrue(controller.lockStateFor(olderStartId).value)
+            assertTrue(controller.lockStateFor(newerStartId).value)
+
+            controller.markUnlocked(newerStartId)
+
+            assertTrue(controller.lockStateFor(olderStartId).value)
+            assertFalse(controller.lockStateFor(newerStartId).value)
+        }
+
+    @Test
+    fun `lockNow locks every live activity start independently`() =
+        runTest {
+            val controller = buildController(AppSettings())
+
+            val olderStartId = controller.onMainActivityCreated()
+            val newerStartId = controller.onMainActivityCreated()
+
+            controller.lockNow()
+            controller.markUnlocked(newerStartId)
+
+            assertTrue(controller.lockStateFor(olderStartId).value)
+            assertFalse(controller.lockStateFor(newerStartId).value)
+        }
+
+    @Test
+    fun `destroyed activity start no longer receives global lock requests`() =
+        runTest {
+            val controller = buildController(AppSettings())
+            val startId = controller.onMainActivityCreated()
+            val lockState = controller.lockStateFor(startId)
+
+            controller.onMainActivityDestroyed(startId)
+            controller.lockNow()
+
+            assertFalse(lockState.value)
+        }
+
     // --- 3. pause / resume idle transition ------------------------------------------------
 
     @Test

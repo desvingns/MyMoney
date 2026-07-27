@@ -618,6 +618,52 @@ class LockControllerTest {
         }
 
     @Test
+    fun `authoritative startup callback replaces provisional re-election`() =
+        runTest {
+            val olderSnapshot = CompletableDeferred<VersionedAppSettings>()
+            val newerSnapshot = CompletableDeferred<VersionedAppSettings>()
+            val settings =
+                DeferredFirstVersionedAppSettingsRepository(
+                    startupSnapshots = listOf(olderSnapshot, newerSnapshot),
+                )
+            val controller = buildController(settings)
+            val olderStartId = controller.onMainActivityCreated()
+            val secureSettings =
+                VersionedAppSettings(
+                    settings =
+                        AppSettings(
+                            biometricLockEnabled = true,
+                            hideAppContentInRecents = true,
+                        ),
+                    revision = 2L,
+                )
+            olderSnapshot.complete(secureSettings)
+            val newerStartId = controller.onMainActivityCreated()
+
+            controller.onMainActivityDestroyed(olderStartId)
+
+            assertEquals(
+                AppContentSecurityState(newerStartId, shouldSecure = true),
+                controller.appContentSecurityState.value,
+            )
+            assertTrue(controller.isActivityLockResolvedFor(newerStartId).value)
+            assertTrue(controller.lockStateFor(newerStartId).value)
+
+            newerSnapshot.complete(
+                VersionedAppSettings(
+                    settings = AppSettings(hideAppContentInRecents = false),
+                    revision = 3L,
+                ),
+            )
+
+            assertEquals(
+                AppContentSecurityState(newerStartId, shouldSecure = false),
+                controller.appContentSecurityState.value,
+            )
+            assertFalse(controller.lockStateFor(newerStartId).value)
+        }
+
+    @Test
     fun `privacy updates reach the elected activity while a newer startup is unresolved`() =
         runTest {
             val olderSnapshot = CompletableDeferred<AppSettings>()
@@ -886,6 +932,31 @@ class LockControllerTest {
         fun emit(settings: VersionedAppSettings) {
             state.value = settings
         }
+
+        override suspend fun update(transform: (AppSettings) -> AppSettings) = Unit
+    }
+
+    private class DeferredFirstVersionedAppSettingsRepository(
+        private val startupSnapshots: List<CompletableDeferred<VersionedAppSettings>>,
+    ) : AppSettingsRepository {
+        private val settingsFlow = MutableSharedFlow<VersionedAppSettings>(replay = 0, extraBufferCapacity = 1)
+        private var startupCollectorIndex = 0
+
+        override val versionedSettings: Flow<VersionedAppSettings> =
+            flow {
+                val collectorIndex =
+                    synchronized(this@DeferredFirstVersionedAppSettingsRepository) {
+                        startupCollectorIndex++
+                    }
+                if (collectorIndex == 0) {
+                    emit(VersionedAppSettings(settings = AppSettings(), revision = 0L))
+                    emitAll(settingsFlow)
+                } else {
+                    emit(startupSnapshots[collectorIndex - 1].await())
+                }
+            }
+
+        override val settings: Flow<AppSettings> = versionedSettings.map { it.settings }
 
         override suspend fun update(transform: (AppSettings) -> AppSettings) = Unit
     }

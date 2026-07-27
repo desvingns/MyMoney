@@ -50,6 +50,7 @@ class MainActivity : AppCompatActivity() {
     private val lazySoundPlayer: SoundPlayer by lazy { LazySoundPlayer(soundPlayer) }
     private val lazyHapticPlayer: HapticPlayer by lazy { LazyHapticPlayer(hapticPlayer) }
     private val initialWindowSecurityApplied = AtomicBoolean(false)
+    private val initialAppContentStateApplied = AtomicBoolean(false)
     private lateinit var secureWindowController: SecureWindowController
     private var activityStartId: Long? = null
 
@@ -73,8 +74,15 @@ class MainActivity : AppCompatActivity() {
                     SecureWindowSource.AppContent,
                     securityState.shouldSecure,
                 )
-                val isInitialActivityState = securityState.activityStartId == activityStartId
-                if (isInitialActivityState) {
+                initialAppContentStateApplied.set(true)
+                if (activityLockResolved.value) {
+                    initialWindowSecurityApplied.set(true)
+                }
+            }
+        }
+        lifecycleScope.launch {
+            activityLockResolved.collect { resolved ->
+                if (resolved && initialAppContentStateApplied.get()) {
                     initialWindowSecurityApplied.set(true)
                 }
             }

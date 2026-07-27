@@ -45,6 +45,7 @@ class LockController
         private val activityLockStates = mutableMapOf<Long, MutableStateFlow<Boolean>>()
         private val activityLockResolutionStates = mutableMapOf<Long, MutableStateFlow<Boolean>>()
         private val resolvedActivityStartIds = mutableSetOf<Long>()
+        private val provisionalActivityStartIds = mutableSetOf<Long>()
 
         private val _shouldShowLock = MutableStateFlow(false)
         val shouldShowLock: StateFlow<Boolean> = _shouldShowLock.asStateFlow()
@@ -135,6 +136,7 @@ class LockController
                 activityLockResolutionStates.remove(activityStartId)
                 activityStartSettingsGenerations.remove(activityStartId)
                 resolvedActivityStartIds.remove(activityStartId)
+                provisionalActivityStartIds.remove(activityStartId)
                 _shouldShowLock.value = activityLockStates.values.any { it.value }
                 val wasResolved = resolvedActivityStartId == activityStartId
                 val wasNewest = this.activityStartId == activityStartId
@@ -150,6 +152,7 @@ class LockController
                                     settings = settings,
                                     revision = settingsRevision,
                                 ),
+                            provisional = true,
                         )
                     } else {
                         _isActivityLockResolved.value = resolvedActivityStartId != null
@@ -173,8 +176,9 @@ class LockController
         private fun resolveActivityLockLocked(
             startId: Long,
             activitySettings: VersionedAppSettings,
+            provisional: Boolean = false,
         ) {
-            if (startId in resolvedActivityStartIds) return
+            if (startId in resolvedActivityStartIds && startId !in provisionalActivityStartIds) return
             if (startId !in activityLockStates) {
                 return
             }
@@ -198,9 +202,15 @@ class LockController
             _shouldShowLock.value = activityLockStates.values.any { it.value }
             activityLockResolutionStates[startId]?.value = true
             resolvedActivityStartIds += startId
+            if (provisional) {
+                provisionalActivityStartIds += startId
+            } else {
+                provisionalActivityStartIds -= startId
+            }
             if (activityLockStates.keys.maxOrNull() != startId) return
             settings = resolvedSettings.settings
             settingsRevision = resolvedSettings.revision
+            observedSettingsGeneration += 1
             _appContentSecure.value = resolvedSettings.settings.hideAppContentInRecents
             _isActivityLockResolved.value = true
             resolvedActivityStartId = startId

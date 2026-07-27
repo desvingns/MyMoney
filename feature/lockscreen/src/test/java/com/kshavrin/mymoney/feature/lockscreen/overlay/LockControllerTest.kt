@@ -11,6 +11,7 @@ import com.kshavrin.mymoney.feature.lockscreen.util.MainDispatcherRule
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.yield
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -379,6 +380,20 @@ class LockControllerTest {
             assertTrue(controller.isActivityLockResolved.value)
         }
 
+    @Test
+    fun `stale disabled emission does not unlock an activity resolved with biometric enabled`() =
+        runTest {
+            val settings = StaleDisabledEmissionAppSettingsRepository()
+            val controller = buildController(settings)
+            val startId = controller.onMainActivityCreated()
+
+            assertTrue(controller.lockStateFor(startId).value)
+
+            settings.emitStaleDisabled()
+
+            assertTrue(controller.lockStateFor(startId).value)
+        }
+
     // --- 3. pause / resume idle transition ------------------------------------------------
 
     @Test
@@ -555,6 +570,32 @@ class LockControllerTest {
                     emit(AppSettings())
                 }
             }
+
+        override suspend fun update(transform: (AppSettings) -> AppSettings) = Unit
+    }
+
+    private class StaleDisabledEmissionAppSettingsRepository : AppSettingsRepository {
+        private val staleDisabled = CompletableDeferred<Unit>()
+        private var subscriptionCount = 0
+
+        override val settings: Flow<AppSettings> =
+            flow {
+                val subscriptionIndex = synchronized(this@StaleDisabledEmissionAppSettingsRepository) {
+                    subscriptionCount++
+                }
+                if (subscriptionIndex == 0) {
+                    emit(AppSettings(biometricLockEnabled = true))
+                    staleDisabled.await()
+                    emit(AppSettings(biometricLockEnabled = false))
+                    awaitCancellation()
+                } else {
+                    emit(AppSettings(biometricLockEnabled = true))
+                }
+            }
+
+        fun emitStaleDisabled() {
+            staleDisabled.complete(Unit)
+        }
 
         override suspend fun update(transform: (AppSettings) -> AppSettings) = Unit
     }

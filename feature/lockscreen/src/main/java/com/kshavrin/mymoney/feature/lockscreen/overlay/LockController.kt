@@ -41,6 +41,7 @@ class LockController
         private var resolvedActivityLockEnabled = false
         private var observedSettingsGeneration = 0L
         private var activityStartSettingsGeneration = 0L
+        private var pendingBiometricDisableGeneration: Long? = null
         private val activityLockStates = mutableMapOf<Long, MutableStateFlow<Boolean>>()
 
         private val _shouldShowLock = MutableStateFlow(false)
@@ -75,10 +76,13 @@ class LockController
             settings = latest
             _appContentSecure.value = latest.hideAppContentInRecents
             if (!latest.biometricLockEnabled) {
-                _shouldShowLock.value = false
-                activityLockStates.values.forEach { it.value = false }
-                resolvedActivityLockEnabled = false
+                if (activityLockStates.values.any { it.value }) {
+                    confirmBiometricDisable(observedSettingsGeneration)
+                } else {
+                    clearLiveActivityLocks()
+                }
             } else if (!biometricWasEnabled) {
+                pendingBiometricDisableGeneration = null
                 _shouldShowLock.value = true
                 activityLockStates.values.forEach { it.value = true }
                 resolvedActivityLockEnabled = true
@@ -89,6 +93,36 @@ class LockController
                 _isResolved.value = true
             }
             publishCurrentActivitySecurityStateLocked(latest)
+        }
+
+        private fun confirmBiometricDisable(generation: Long) {
+            if (pendingBiometricDisableGeneration == generation) return
+            pendingBiometricDisableGeneration = generation
+            scope.launch {
+                val confirmedSettings = appSettingsRepository.settings.first()
+                synchronized(activityStartLock) {
+                    if (
+                        pendingBiometricDisableGeneration != generation ||
+                        observedSettingsGeneration != generation ||
+                        settings.biometricLockEnabled
+                    ) {
+                        return@synchronized
+                    }
+                    pendingBiometricDisableGeneration = null
+                    if (confirmedSettings.biometricLockEnabled) {
+                        onSettingsChanged(confirmedSettings)
+                    } else {
+                        clearLiveActivityLocks()
+                    }
+                }
+            }
+        }
+
+        private fun clearLiveActivityLocks() {
+            pendingBiometricDisableGeneration = null
+            _shouldShowLock.value = false
+            activityLockStates.values.forEach { it.value = false }
+            resolvedActivityLockEnabled = false
         }
 
         fun observeProcessLifecycle() {

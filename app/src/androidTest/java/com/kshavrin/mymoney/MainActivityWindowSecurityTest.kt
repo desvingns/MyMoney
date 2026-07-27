@@ -8,8 +8,10 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
+import com.kshavrin.mymoney.core.datastore.SecureStorage
 import com.kshavrin.mymoney.core.ui.window.SecureWindowController
 import com.kshavrin.mymoney.core.ui.window.SecureWindowSource
+import com.kshavrin.mymoney.feature.lockscreen.setup.PinHasher
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import kotlinx.coroutines.test.runTest
@@ -28,6 +30,11 @@ class MainActivityWindowSecurityTest {
 
     @Inject
     lateinit var appSettingsRepository: AppSettingsRepository
+
+    @Inject
+    lateinit var secureStorage: SecureStorage
+
+    private val pinHasher = PinHasher()
 
     @Before
     fun setUp() {
@@ -138,6 +145,10 @@ class MainActivityWindowSecurityTest {
         biometricLockEnabled: Boolean,
         hideAppContentInRecents: Boolean = false,
     ) {
+        secureStorage.clearAll()
+        if (biometricLockEnabled) {
+            secureStorage.writePinHash(pinHasher.hash("1234"))
+        }
         appSettingsRepository.reset()
         appSettingsRepository.update {
             it.copy(

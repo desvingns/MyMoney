@@ -162,6 +162,8 @@ class SecureStorageImpl private constructor(
                 runBlocking(ioDispatcher) {
                     dataStore.edit { settings ->
                         settings[AppSettingsKeys.BIOMETRIC_LOCK_ENABLED] = false
+                        settings[AppSettingsKeys.SETTINGS_REVISION] =
+                            (settings[AppSettingsKeys.SETTINGS_REVISION] ?: 0L) + 1L
                     }
                 }
             }.onFailure { it.reportToSentry() }

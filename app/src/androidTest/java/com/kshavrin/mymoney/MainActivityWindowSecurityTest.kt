@@ -1,5 +1,7 @@
 package com.kshavrin.mymoney
 
+import android.content.Intent
+import android.net.Uri
 import android.os.SystemClock
 import android.view.WindowManager
 import androidx.test.core.app.ActivityScenario
@@ -83,10 +85,10 @@ class MainActivityWindowSecurityTest {
         runTest {
             seedSettings(biometricLockEnabled = false, hideAppContentInRecents = true)
 
-            ActivityScenario.launch(MainActivity::class.java).use { olderScenario ->
+            launchLiveMainActivity(documentId = "older").use { olderScenario ->
                 olderScenario.waitForFlagSecure(expected = true)
 
-                ActivityScenario.launch(MainActivity::class.java).use { newerScenario ->
+                launchLiveMainActivity(documentId = "newer").use { newerScenario ->
                     newerScenario.waitForFlagSecure(expected = true)
 
                     seedSettings(biometricLockEnabled = false, hideAppContentInRecents = false)
@@ -118,6 +120,19 @@ class MainActivityWindowSecurityTest {
                 }
             }
         }
+
+    private fun launchLiveMainActivity(documentId: String): ActivityScenario<MainActivity> {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val intent =
+            Intent(context, MainActivity::class.java)
+                .setData(Uri.parse("mymoney-test://main/$documentId"))
+                .addFlags(
+                    Intent.FLAG_ACTIVITY_NEW_TASK or
+                        Intent.FLAG_ACTIVITY_MULTIPLE_TASK or
+                        Intent.FLAG_ACTIVITY_NEW_DOCUMENT,
+                )
+        return ActivityScenario.launch(intent)
+    }
 
     private suspend fun seedSettings(
         biometricLockEnabled: Boolean,

@@ -234,6 +234,7 @@ class MonefyCsvImportE2ETest {
             val cashId =
                 db.accountDao().upsert(
                     AccountEntity(
+                        uuid = "fixture-account-01",
                         name = " Наличные ",
                         currencyId = currencyId,
                         initialBalance = 0.0,
@@ -250,6 +251,7 @@ class MonefyCsvImportE2ETest {
             val salaryId =
                 db.categoryDao().upsert(
                     CategoryEntity(
+                        uuid = "fixture-category-01",
                         name = "Зарплата",
                         kind = "income",
                         iconKey = "ic_cat_other",
@@ -264,6 +266,7 @@ class MonefyCsvImportE2ETest {
             val groceriesId =
                 db.categoryDao().upsert(
                     CategoryEntity(
+                        uuid = "fixture-category-02",
                         name = "Продукты",
                         kind = "expense",
                         iconKey = "ic_cat_other",
@@ -1153,6 +1156,7 @@ class MonefyCsvImportE2ETest {
                 db.transactionDao().upsert(
                     TransactionEntity(
                         id = 0L,
+                        uuid = "fixture-append-$i",
                         kind = "expense",
                         amount = (i + 1) * 100.0,
                         currencyId = rubId,
@@ -1750,6 +1754,7 @@ class MonefyCsvImportE2ETest {
                 db.transactionDao().upsert(
                     TransactionEntity(
                         id = 0L,
+                        uuid = "fixture-keep-category-$i",
                         kind = "income",
                         amount = (i + 1) * 1000.0,
                         currencyId = rubId,
@@ -2081,6 +2086,7 @@ class MonefyCsvImportE2ETest {
                 db.transactionDao().upsert(
                     TransactionEntity(
                         id = 0L,
+                        uuid = "fixture-merge-into-$i",
                         kind = "expense",
                         amount = (i + 1) * 100.0,
                         currencyId = rubId,

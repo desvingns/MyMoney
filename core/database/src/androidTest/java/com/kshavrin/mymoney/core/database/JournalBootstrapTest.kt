@@ -9,6 +9,7 @@ import com.kshavrin.mymoney.core.database.entity.CurrencyEntity
 import com.kshavrin.mymoney.core.database.journal.JournalBootstrap
 import com.kshavrin.mymoney.core.database.journal.OperationPayloadCodec
 import com.kshavrin.mymoney.core.database.transaction.RoomTransactionRunner
+import com.kshavrin.mymoney.core.datastore.CloudBinding
 import com.kshavrin.mymoney.core.datastore.JournalSyncConfigStore
 import com.kshavrin.mymoney.core.domain.sync.DeviceIdProvider
 import kotlinx.coroutines.test.runTest
@@ -46,7 +47,7 @@ class JournalBootstrapTest {
                     categoryDao = db.categoryDao(),
                     transactionDao = db.transactionDao(),
                     operationDao = db.operationDao(),
-                    payloadCodec = OperationPayloadCodec(),
+                    payloadCodec = OperationPayloadCodec(db.currencyDao()),
                     deviceIdProvider =
                         object : DeviceIdProvider {
                             override suspend fun deviceId(): String = deviceId
@@ -269,6 +270,7 @@ class JournalBootstrapTest {
     // ─── fake config store ────────────────────────────────────────────────────
 
     private class FakeBootstrapConfigStore : JournalSyncConfigStore {
+        private var currentBinding: CloudBinding? = null
         private var done: Boolean = false
         private val peerHighWater: MutableMap<String, Long> = mutableMapOf()
 
@@ -276,9 +278,17 @@ class JournalBootstrapTest {
             done = false
         }
 
-        override suspend fun folderId(): String = ""
+        override suspend fun binding(): CloudBinding? = currentBinding
 
-        override suspend fun setFolderId(folderId: String) = Unit
+        override suspend fun setBinding(binding: CloudBinding) {
+            currentBinding = binding
+        }
+
+        override suspend fun clearBinding() {
+            currentBinding = null
+            peerHighWater.clear()
+            done = false
+        }
 
         override suspend fun peerHighWaterMs(fileId: String): Long = peerHighWater[fileId] ?: 0L
 
@@ -293,6 +303,12 @@ class JournalBootstrapTest {
 
         override suspend fun markBootstrapDone() {
             done = true
+        }
+
+        override suspend fun clear() {
+            currentBinding = null
+            peerHighWater.clear()
+            done = false
         }
     }
 }

@@ -46,7 +46,7 @@ class CategoryRepositoryImplDualWriteTest {
             CategoryRepositoryImpl(
                 dao = db.categoryDao(),
                 operationDao = db.operationDao(),
-                payloadCodec = OperationPayloadCodec(),
+                payloadCodec = OperationPayloadCodec(db.currencyDao()),
                 deviceIdProvider = deviceIdProvider,
                 clock = Clock.fixed(fixedInstant, ZoneOffset.UTC),
                 transactionRunner = RoomTransactionRunner(db),

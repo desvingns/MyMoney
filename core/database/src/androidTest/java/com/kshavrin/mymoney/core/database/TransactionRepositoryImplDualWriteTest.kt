@@ -33,7 +33,7 @@ class TransactionRepositoryImplDualWriteTest {
     private lateinit var db: MoneyDatabase
     private lateinit var repository: TransactionRepositoryImpl
 
-    private val codec = OperationPayloadCodec()
+    private lateinit var codec: OperationPayloadCodec
     private val fixedInstant = Instant.parse("2026-06-26T10:15:30Z")
     private val fixedClock = Clock.fixed(fixedInstant, ZoneOffset.UTC)
     private val deviceIdProvider =
@@ -55,6 +55,7 @@ class TransactionRepositoryImplDualWriteTest {
                         MoneyDatabase::class.java,
                     ).allowMainThreadQueries()
                     .build()
+            codec = OperationPayloadCodec(db.currencyDao())
             repository =
                 TransactionRepositoryImpl(
                     dao = db.transactionDao(),

@@ -29,7 +29,7 @@ import java.time.Instant
 class JournalApplierTest {
     private lateinit var db: MoneyDatabase
     private lateinit var applier: JournalApplier
-    private val codec = OperationPayloadCodec()
+    private lateinit var codec: OperationPayloadCodec
 
     private var currencyId = 0L
 
@@ -43,11 +43,13 @@ class JournalApplierTest {
                         MoneyDatabase::class.java,
                     ).allowMainThreadQueries()
                     .build()
+            codec = OperationPayloadCodec(db.currencyDao())
             applier =
                 JournalApplier(
                     transactionDao = db.transactionDao(),
                     categoryDao = db.categoryDao(),
                     accountDao = db.accountDao(),
+                    currencyDao = db.currencyDao(),
                     operationDao = db.operationDao(),
                     payloadCodec = codec,
                     transactionRunner = RoomTransactionRunner(db),
@@ -472,7 +474,7 @@ class JournalApplierTest {
         exchangeRate = null,
     )
 
-    private fun accountUpsertOp(
+    private suspend fun accountUpsertOp(
         opId: String,
         uuid: String,
         name: String,
@@ -565,7 +567,7 @@ class JournalApplierTest {
         updatedAt = Instant.ofEpochMilli(updatedAtMs),
     )
 
-    private fun transactionUpsertOp(
+    private suspend fun transactionUpsertOp(
         opId: String,
         txUuid: String,
         accountUuid: String,

@@ -27,7 +27,7 @@ import java.time.ZoneOffset
 class AccountRepositoryImplDualWriteTest {
     private lateinit var db: MoneyDatabase
     private lateinit var repository: AccountRepositoryImpl
-    private val codec = OperationPayloadCodec()
+    private lateinit var codec: OperationPayloadCodec
     private val fixedInstant = Instant.parse("2026-06-26T10:15:30Z")
     private val deviceIdProvider =
         object : DeviceIdProvider {
@@ -46,6 +46,7 @@ class AccountRepositoryImplDualWriteTest {
                         MoneyDatabase::class.java,
                     ).allowMainThreadQueries()
                     .build()
+            codec = OperationPayloadCodec(db.currencyDao())
             repository =
                 AccountRepositoryImpl(
                     dao = db.accountDao(),

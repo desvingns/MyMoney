@@ -526,6 +526,40 @@ class LockControllerTest {
             )
         }
 
+    @Test
+    fun `privacy updates reach the elected activity while a newer startup is unresolved`() =
+        runTest {
+            val olderSnapshot = CompletableDeferred<AppSettings>()
+            val newerSnapshot = CompletableDeferred<AppSettings>()
+            val settings =
+                DeferredFirstEmissionAppSettingsRepository(
+                    startupSnapshots = listOf(olderSnapshot, newerSnapshot),
+                )
+            val controller = buildController(settings)
+            val olderStartId = controller.onMainActivityCreated()
+            val currentSettings = AppSettings(hideAppContentInRecents = true)
+
+            olderSnapshot.complete(currentSettings)
+            assertEquals(
+                AppContentSecurityState(olderStartId, shouldSecure = true),
+                controller.appContentSecurityState.value,
+            )
+
+            val newerStartId = controller.onMainActivityCreated()
+            assertFalse(controller.isActivityLockResolved.value)
+
+            settings.emit(currentSettings.copy(hideAppContentInRecents = false))
+
+            assertEquals(
+                AppContentSecurityState(olderStartId, shouldSecure = false),
+                controller.appContentSecurityState.value,
+            )
+
+            newerSnapshot.complete(currentSettings)
+
+            assertEquals(newerStartId, controller.appContentSecurityState.value?.activityStartId)
+        }
+
     // --- 3. pause / resume idle transition ------------------------------------------------
 
     @Test

@@ -106,7 +106,6 @@ class LockController
                 synchronized(activityStartLock) {
                     activityStartId += 1
                     activityLockStates[activityStartId] = MutableStateFlow(false)
-                    resolvedActivityStartId = null
                     _isActivityLockResolved.value = false
                     activityStartSettingsGenerations[activityStartId] = observedSettingsGeneration
                     activityStartId

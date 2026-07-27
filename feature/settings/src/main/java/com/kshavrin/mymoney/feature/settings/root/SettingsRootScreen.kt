@@ -138,6 +138,30 @@ fun SettingsRootContent(
                         .clickable(onClick = onOpenBiometricLock)
                         .semantics { contentDescription = biometricLabel },
             )
+            val hideRecentsLabel = stringResource(R.string.settings_hide_content_in_recents)
+            ListItem(
+                headlineContent = {
+                    Text(
+                        text = hideRecentsLabel,
+                        modifier = Modifier.clearAndSetSemantics {},
+                    )
+                },
+                supportingContent = {
+                    Text(
+                        text = stringResource(R.string.settings_hide_content_in_recents_subtitle),
+                        modifier = Modifier.clearAndSetSemantics {},
+                    )
+                },
+                trailingContent = {
+                    Switch(
+                        modifier = Modifier.semantics { contentDescription = hideRecentsLabel },
+                        checked = state.hideAppContentInRecents,
+                        onCheckedChange = {
+                            onEvent(SettingsEvent.HideAppContentInRecentsToggled(it))
+                        },
+                    )
+                },
+            )
 
             SectionHeader(stringResource(R.string.settings_section_cloud))
             val cloudSyncLabel = stringResource(R.string.settings_cloud_sync)

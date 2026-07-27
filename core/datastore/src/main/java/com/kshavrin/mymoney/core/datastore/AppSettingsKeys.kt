@@ -10,6 +10,7 @@ internal object AppSettingsKeys {
     val THEME_MODE = stringPreferencesKey("theme_mode")
     val BIOMETRIC_LOCK_ENABLED = booleanPreferencesKey("biometric_lock_enabled")
     val BIOMETRIC_IDLE_TIMEOUT_SEC = intPreferencesKey("biometric_idle_timeout_sec")
+    val HIDE_APP_CONTENT_IN_RECENTS = booleanPreferencesKey("hide_app_content_in_recents")
     val SOUND_ENABLED = booleanPreferencesKey("sound_enabled")
     val HAPTIC_ENABLED = booleanPreferencesKey("haptic_enabled")
     val DEFAULT_ACCOUNT_ID = longPreferencesKey("default_account_id")

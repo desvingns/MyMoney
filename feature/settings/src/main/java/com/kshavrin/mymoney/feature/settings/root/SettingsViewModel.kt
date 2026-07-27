@@ -42,6 +42,7 @@ class SettingsViewModel
                         _state.value.copy(
                             themeMode = ThemeMode.fromStored(settings.themeMode),
                             language = AppLanguage.fromStored(settings.language),
+                            hideAppContentInRecents = settings.hideAppContentInRecents,
                             soundEnabled = settings.soundEnabled,
                             hapticEnabled = settings.hapticEnabled,
                         )
@@ -58,6 +59,12 @@ class SettingsViewModel
                 is SettingsEvent.HapticToggled ->
                     viewModelScope.launch {
                         appSettingsRepository.update { it.copy(hapticEnabled = event.enabled) }
+                    }
+                is SettingsEvent.HideAppContentInRecentsToggled ->
+                    viewModelScope.launch {
+                        appSettingsRepository.update {
+                            it.copy(hideAppContentInRecents = event.enabled)
+                        }
                     }
                 SettingsEvent.FactoryResetRequested ->
                     _state.value =
@@ -107,6 +114,7 @@ enum class FactoryResetStep { Idle, Confirm, TypeWord }
 data class SettingsState(
     val themeMode: ThemeMode = ThemeMode.System,
     val language: AppLanguage = AppLanguage.System,
+    val hideAppContentInRecents: Boolean = false,
     val soundEnabled: Boolean = true,
     val hapticEnabled: Boolean = true,
     val factoryResetStep: FactoryResetStep = FactoryResetStep.Idle,
@@ -120,6 +128,10 @@ sealed interface SettingsEvent {
     ) : SettingsEvent
 
     data class HapticToggled(
+        val enabled: Boolean,
+    ) : SettingsEvent
+
+    data class HideAppContentInRecentsToggled(
         val enabled: Boolean,
     ) : SettingsEvent
 

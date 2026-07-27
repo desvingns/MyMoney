@@ -2,7 +2,6 @@ package com.kshavrin.mymoney
 
 import android.content.Intent
 import android.os.Bundle
-import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -22,6 +21,9 @@ import com.kshavrin.mymoney.core.ui.restart.EXTRA_RESET_HAD_FAILURES
 import com.kshavrin.mymoney.core.ui.sound.SoundKey
 import com.kshavrin.mymoney.core.ui.sound.SoundPlayer
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
+import com.kshavrin.mymoney.core.ui.window.LocalSecureWindowController
+import com.kshavrin.mymoney.core.ui.window.SecureWindowController
+import com.kshavrin.mymoney.core.ui.window.SecureWindowSource
 import com.kshavrin.mymoney.feature.lockscreen.overlay.LockController
 import com.kshavrin.mymoney.feature.lockscreen.overlay.LockOverlay
 import com.kshavrin.mymoney.navigation.MyMoneyNavHost
@@ -46,19 +48,17 @@ class MainActivity : AppCompatActivity() {
 
     private val lazySoundPlayer: SoundPlayer by lazy { LazySoundPlayer(soundPlayer) }
     private val lazyHapticPlayer: HapticPlayer by lazy { LazyHapticPlayer(hapticPlayer) }
+    private lateinit var secureWindowController: SecureWindowController
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
+        secureWindowController = SecureWindowController(window)
         splashScreen.setKeepOnScreenCondition { !lockController.isResolved.value }
         lockController.observeProcessLifecycle()
         lifecycleScope.launch {
-            lockController.biometricLockEnabled.collect { enabled ->
-                if (enabled) {
-                    window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
-                } else {
-                    window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
-                }
+            lockController.appContentSecure.collect { enabled ->
+                secureWindowController.setSecure(SecureWindowSource.AppContent, enabled)
             }
         }
         enableEdgeToEdge()
@@ -73,6 +73,7 @@ class MainActivity : AppCompatActivity() {
                 CompositionLocalProvider(
                     LocalSoundPlayer provides lazySoundPlayer,
                     LocalHapticPlayer provides lazyHapticPlayer,
+                    LocalSecureWindowController provides secureWindowController,
                 ) {
                     Box {
                         MyMoneyNavHost(shortcutDestination = shortcutDestination)

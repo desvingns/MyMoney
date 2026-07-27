@@ -12,6 +12,8 @@
     <string name="settings_section_appearance">Appearance</string>
     <string name="settings_section_security">Security</string>
     <string name="settings_biometric_lock">App lock</string>
+    <string name="settings_hide_content_in_recents">Hide app content in Recents</string>
+    <string name="settings_hide_content_in_recents_subtitle">Prevents app content from appearing in Recents. This also blocks screenshots.</string>
     <string name="settings_section_cloud">Cloud</string>
     <string name="settings_cloud_sync">Sync</string>
     <string name="settings_backup_restore">Backup &amp; Restore</string>

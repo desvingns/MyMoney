@@ -5,6 +5,7 @@ data class AppSettings(
     val themeMode: String = "system",
     val biometricLockEnabled: Boolean = false,
     val biometricIdleTimeoutSec: Int = 60,
+    val hideAppContentInRecents: Boolean = false,
     val soundEnabled: Boolean = true,
     val hapticEnabled: Boolean = true,
     val defaultAccountId: Long = -1L,

@@ -20,6 +20,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -40,6 +41,8 @@ import com.kshavrin.mymoney.core.common.di.IoDispatcher
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
 import com.kshavrin.mymoney.core.datastore.SecureStorage
 import com.kshavrin.mymoney.core.ui.theme.Spacing
+import com.kshavrin.mymoney.core.ui.window.LocalSecureWindowController
+import com.kshavrin.mymoney.core.ui.window.SecureWindowSource
 import com.kshavrin.mymoney.feature.lockscreen.R
 import com.kshavrin.mymoney.feature.lockscreen.setup.PinHasher
 import dagger.hilt.EntryPoint
@@ -76,6 +79,7 @@ fun LockOverlay(
     ) -> Unit = ::launchBiometricPrompt,
 ) {
     val context = LocalContext.current
+    val secureWindowController = LocalSecureWindowController.current
     val haptic = LocalHapticFeedback.current
     val coroutineScope = rememberCoroutineScope()
     val dependencies =
@@ -89,6 +93,15 @@ fun LockOverlay(
     var pinError by remember { mutableStateOf(false) }
     var lockoutDeadlineEpochMs by rememberSaveable { mutableStateOf<Long?>(null) }
     var nowEpochMs by remember { mutableStateOf(System.currentTimeMillis()) }
+
+    if (secureWindowController != null) {
+        DisposableEffect(secureWindowController) {
+            secureWindowController.setSecure(SecureWindowSource.LockOverlay, enabled = true)
+            onDispose {
+                secureWindowController.setSecure(SecureWindowSource.LockOverlay, enabled = false)
+            }
+        }
+    }
 
     BackHandler {}
 

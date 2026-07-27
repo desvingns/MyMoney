@@ -37,14 +37,16 @@ class LockController
         private val _isResolved = MutableStateFlow(false)
         val isResolved: StateFlow<Boolean> = _isResolved.asStateFlow()
 
-        private val _biometricLockEnabled = MutableStateFlow(false)
-        val biometricLockEnabled: StateFlow<Boolean> = _biometricLockEnabled.asStateFlow()
+        private val _appContentSecure = MutableStateFlow(false)
+        val appContentSecure: StateFlow<Boolean> = _appContentSecure.asStateFlow()
 
         init {
             scope.launch {
                 appSettingsRepository.settings.collect { latest ->
                     settings = latest
-                    _biometricLockEnabled.value = latest.biometricLockEnabled
+                    _appContentSecure.value =
+                        latest.biometricLockEnabled ||
+                            latest.hideAppContentInRecents
                     if (!latest.biometricLockEnabled) {
                         _shouldShowLock.value = false
                     }

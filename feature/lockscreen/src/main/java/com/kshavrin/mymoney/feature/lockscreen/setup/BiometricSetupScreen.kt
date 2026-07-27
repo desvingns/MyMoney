@@ -30,6 +30,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -52,6 +53,8 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kshavrin.mymoney.core.ui.theme.Spacing
+import com.kshavrin.mymoney.core.ui.window.LocalSecureWindowController
+import com.kshavrin.mymoney.core.ui.window.SecureWindowSource
 import com.kshavrin.mymoney.feature.lockscreen.R
 import com.kshavrin.mymoney.feature.lockscreen.overlay.PIN_LENGTH
 import com.kshavrin.mymoney.feature.lockscreen.overlay.PinKeypad
@@ -68,6 +71,16 @@ fun BiometricSetupRoute(
 ) {
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
+    val secureWindowController = LocalSecureWindowController.current
+
+    if (secureWindowController != null) {
+        DisposableEffect(secureWindowController) {
+            secureWindowController.setSecure(SecureWindowSource.BiometricSetup, enabled = true)
+            onDispose {
+                secureWindowController.setSecure(SecureWindowSource.BiometricSetup, enabled = false)
+            }
+        }
+    }
 
     LaunchedEffect(viewModel) {
         viewModel.actions.collect { action ->

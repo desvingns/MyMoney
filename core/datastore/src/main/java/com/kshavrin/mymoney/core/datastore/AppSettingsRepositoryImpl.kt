@@ -49,6 +49,7 @@ internal fun Preferences.toAppSettings(): AppSettings =
         themeMode = this[AppSettingsKeys.THEME_MODE] ?: "system",
         biometricLockEnabled = this[AppSettingsKeys.BIOMETRIC_LOCK_ENABLED] ?: false,
         biometricIdleTimeoutSec = this[AppSettingsKeys.BIOMETRIC_IDLE_TIMEOUT_SEC] ?: 60,
+        hideAppContentInRecents = this[AppSettingsKeys.HIDE_APP_CONTENT_IN_RECENTS] ?: false,
         soundEnabled = this[AppSettingsKeys.SOUND_ENABLED] ?: true,
         hapticEnabled = this[AppSettingsKeys.HAPTIC_ENABLED] ?: true,
         defaultAccountId = this[AppSettingsKeys.DEFAULT_ACCOUNT_ID] ?: -1L,
@@ -81,6 +82,7 @@ internal fun AppSettings.writeTo(prefs: androidx.datastore.preferences.core.Muta
     prefs[AppSettingsKeys.THEME_MODE] = themeMode
     prefs[AppSettingsKeys.BIOMETRIC_LOCK_ENABLED] = biometricLockEnabled
     prefs[AppSettingsKeys.BIOMETRIC_IDLE_TIMEOUT_SEC] = biometricIdleTimeoutSec
+    prefs[AppSettingsKeys.HIDE_APP_CONTENT_IN_RECENTS] = hideAppContentInRecents
     prefs[AppSettingsKeys.SOUND_ENABLED] = soundEnabled
     prefs[AppSettingsKeys.HAPTIC_ENABLED] = hapticEnabled
     prefs[AppSettingsKeys.DEFAULT_ACCOUNT_ID] = defaultAccountId

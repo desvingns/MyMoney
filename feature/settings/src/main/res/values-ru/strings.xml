@@ -12,6 +12,8 @@
     <string name="settings_section_appearance">Внешний вид</string>
     <string name="settings_section_security">Безопасность</string>
     <string name="settings_biometric_lock">Блокировка приложения</string>
+    <string name="settings_hide_content_in_recents">Скрывать содержимое приложения в недавних</string>
+    <string name="settings_hide_content_in_recents_subtitle">Скрывает содержимое на экране недавних приложений. Это также блокирует снимки экрана.</string>
     <string name="settings_section_cloud">Облако</string>
     <string name="settings_cloud_sync">Синхронизация</string>
     <string name="settings_backup_restore">Резервное копирование</string>

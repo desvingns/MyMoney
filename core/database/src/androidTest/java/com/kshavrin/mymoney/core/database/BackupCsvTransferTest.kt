@@ -96,6 +96,7 @@ class BackupCsvTransferTest {
         val now = System.currentTimeMillis()
         return db.accountDao().upsert(
             AccountEntity(
+                uuid = "backup-csv-account-$name",
                 name = name,
                 currencyId = currencyId,
                 initialBalance = 0.0,
@@ -119,6 +120,7 @@ class BackupCsvTransferTest {
         val now = System.currentTimeMillis()
         return db.categoryDao().upsert(
             CategoryEntity(
+                uuid = "backup-csv-category-$kind-$name",
                 name = name,
                 kind = kind,
                 iconKey = "ic_cat_other",
@@ -151,6 +153,7 @@ class BackupCsvTransferTest {
             db.transactionDao().upsert(
                 com.kshavrin.mymoney.core.database.entity.TransactionEntity(
                     id = 0L,
+                    uuid = "backup-csv-export-expense",
                     kind = "expense",
                     amount = 100.0,
                     currencyId = currencyId,
@@ -170,6 +173,7 @@ class BackupCsvTransferTest {
             db.transactionDao().upsert(
                 com.kshavrin.mymoney.core.database.entity.TransactionEntity(
                     id = 0L,
+                    uuid = "backup-csv-export-income",
                     kind = "income",
                     amount = 50000.0,
                     currencyId = currencyId,
@@ -189,6 +193,7 @@ class BackupCsvTransferTest {
             db.transactionDao().upsert(
                 com.kshavrin.mymoney.core.database.entity.TransactionEntity(
                     id = 0L,
+                    uuid = "backup-csv-export-transfer",
                     kind = "transfer",
                     amount = 500.0,
                     currencyId = currencyId,
@@ -269,6 +274,7 @@ class BackupCsvTransferTest {
             db.transactionDao().upsert(
                 com.kshavrin.mymoney.core.database.entity.TransactionEntity(
                     id = 1L,
+                    uuid = "backup-csv-roundtrip-transfer",
                     kind = "transfer",
                     amount = 500.0,
                     currencyId = currencyId,

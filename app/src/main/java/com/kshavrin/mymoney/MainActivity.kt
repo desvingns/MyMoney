@@ -103,7 +103,10 @@ class MainActivity : AppCompatActivity() {
                     Box {
                         MyMoneyNavHost(shortcutDestination = shortcutDestination)
                         if (locked) {
-                            LockOverlay(onUnlocked = { lockController.markUnlocked(activityStartId) })
+                            LockOverlay(
+                                onUnlocked = { lockController.markUnlocked(activityStartId) },
+                                managesSecureWindow = false,
+                            )
                         }
                     }
                 }

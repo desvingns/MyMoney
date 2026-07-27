@@ -77,6 +77,7 @@ fun LockOverlay(
         onLockout: () -> Unit,
         onPinFallback: () -> Unit,
     ) -> Unit = ::launchBiometricPrompt,
+    managesSecureWindow: Boolean = true,
 ) {
     val context = LocalContext.current
     val secureWindowController = LocalSecureWindowController.current
@@ -94,10 +95,12 @@ fun LockOverlay(
     var lockoutDeadlineEpochMs by rememberSaveable { mutableStateOf<Long?>(null) }
     var nowEpochMs by remember { mutableStateOf(System.currentTimeMillis()) }
 
-    DisposableEffect(secureWindowController) {
-        secureWindowController.setSecure(SecureWindowSource.LockOverlay, enabled = true)
-        onDispose {
-            secureWindowController.setSecure(SecureWindowSource.LockOverlay, enabled = false)
+    if (managesSecureWindow) {
+        DisposableEffect(secureWindowController) {
+            secureWindowController.setSecure(SecureWindowSource.LockOverlay, enabled = true)
+            onDispose {
+                secureWindowController.setSecure(SecureWindowSource.LockOverlay, enabled = false)
+            }
         }
     }
 

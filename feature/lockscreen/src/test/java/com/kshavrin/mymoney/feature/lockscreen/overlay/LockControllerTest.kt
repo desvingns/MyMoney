@@ -6,6 +6,7 @@ import androidx.lifecycle.LifecycleRegistry
 import app.cash.turbine.test
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
 import com.kshavrin.mymoney.core.datastore.model.AppSettings
+import com.kshavrin.mymoney.core.datastore.model.VersionedAppSettings
 import com.kshavrin.mymoney.core.testing.fake.FakeAppSettingsRepository
 import com.kshavrin.mymoney.feature.lockscreen.util.MainDispatcherRule
 import kotlinx.coroutines.CompletableDeferred
@@ -15,7 +16,9 @@ import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.yield
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -392,6 +395,50 @@ class LockControllerTest {
             settings.emitStaleDisabled()
 
             assertTrue(controller.lockStateFor(startId).value)
+            assertTrue(controller.appContentSecurityState.value?.shouldSecure ?: false)
+        }
+
+    @Test
+    fun `runtime biometric disable clears every live activity state`() =
+        runTest {
+            val settings =
+                VersionedAppSettingsRepository(
+                    VersionedAppSettings(
+                        settings = AppSettings(biometricLockEnabled = true, hideAppContentInRecents = true),
+                        revision = 2L,
+                    ),
+                )
+            val controller = buildController(settings)
+            val olderStartId = controller.onMainActivityCreated()
+            val newerStartId = controller.onMainActivityCreated()
+
+            settings.emit(
+                VersionedAppSettings(
+                    settings = AppSettings(biometricLockEnabled = false, hideAppContentInRecents = false),
+                    revision = 3L,
+                ),
+            )
+
+            assertFalse(controller.lockStateFor(olderStartId).value)
+            assertFalse(controller.lockStateFor(newerStartId).value)
+            assertFalse(controller.shouldShowLock.value)
+            assertFalse(controller.appContentSecurityState.value?.shouldSecure ?: true)
+        }
+
+    @Test
+    fun `scoped unlock recomputes global state from remaining live locks`() =
+        runTest {
+            val controller = buildController(AppSettings(biometricLockEnabled = true))
+            val olderStartId = controller.onMainActivityCreated()
+            val newerStartId = controller.onMainActivityCreated()
+
+            controller.markUnlocked(newerStartId)
+
+            assertTrue(controller.shouldShowLock.value)
+
+            controller.markUnlocked(olderStartId)
+
+            assertFalse(controller.shouldShowLock.value)
         }
 
     // --- 3. pause / resume idle transition ------------------------------------------------
@@ -578,23 +625,55 @@ class LockControllerTest {
         private val staleDisabled = CompletableDeferred<Unit>()
         private var subscriptionCount = 0
 
-        override val settings: Flow<AppSettings> =
+        override val versionedSettings: Flow<VersionedAppSettings> =
             flow {
                 val subscriptionIndex = synchronized(this@StaleDisabledEmissionAppSettingsRepository) {
                     subscriptionCount++
                 }
                 if (subscriptionIndex == 0) {
-                    emit(AppSettings(biometricLockEnabled = true))
+                    emit(
+                        VersionedAppSettings(
+                            settings = AppSettings(biometricLockEnabled = true, hideAppContentInRecents = true),
+                            revision = 2L,
+                        ),
+                    )
                     staleDisabled.await()
-                    emit(AppSettings(biometricLockEnabled = false))
+                    emit(
+                        VersionedAppSettings(
+                            settings = AppSettings(biometricLockEnabled = false),
+                            revision = 1L,
+                        ),
+                    )
                     awaitCancellation()
                 } else {
-                    emit(AppSettings(biometricLockEnabled = true))
+                    emit(
+                        VersionedAppSettings(
+                            settings = AppSettings(biometricLockEnabled = true, hideAppContentInRecents = true),
+                            revision = 2L,
+                        ),
+                    )
                 }
             }
 
+        override val settings: Flow<AppSettings> = versionedSettings.map { it.settings }
+
         fun emitStaleDisabled() {
             staleDisabled.complete(Unit)
+        }
+
+        override suspend fun update(transform: (AppSettings) -> AppSettings) = Unit
+    }
+
+    private class VersionedAppSettingsRepository(
+        initialSettings: VersionedAppSettings,
+    ) : AppSettingsRepository {
+        private val state = MutableStateFlow(initialSettings)
+
+        override val versionedSettings: Flow<VersionedAppSettings> = state
+        override val settings: Flow<AppSettings> = state.map { it.settings }
+
+        fun emit(settings: VersionedAppSettings) {
+            state.value = settings
         }
 
         override suspend fun update(transform: (AppSettings) -> AppSettings) = Unit

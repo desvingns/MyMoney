@@ -36,3 +36,8 @@ data class AppSettings(
     val chartColorRule: String = "by_sign",
     val chartAutoMode: Boolean = true,
 )
+
+data class VersionedAppSettings(
+    val settings: AppSettings,
+    val revision: Long,
+)

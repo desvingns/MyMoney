@@ -4,6 +4,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import com.kshavrin.mymoney.core.datastore.model.AppSettings
+import com.kshavrin.mymoney.core.datastore.model.VersionedAppSettings
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -16,9 +17,19 @@ class AppSettingsRepositoryImpl
     constructor(
         private val dataStore: DataStore<Preferences>,
     ) : AppSettingsRepository {
-        override val settings: Flow<AppSettings> =
+        override val versionedSettings: Flow<VersionedAppSettings> =
             dataStore.data
-                .map { it.toAppSettings() }
+                .map { preferences ->
+                    VersionedAppSettings(
+                        settings = preferences.toAppSettings(),
+                        revision = preferences[AppSettingsKeys.SETTINGS_REVISION] ?: 0L,
+                    )
+                }
+                .distinctUntilChanged()
+
+        override val settings: Flow<AppSettings> =
+            versionedSettings
+                .map { it.settings }
                 .distinctUntilChanged()
 
         override suspend fun update(transform: (AppSettings) -> AppSettings) {
@@ -29,16 +40,20 @@ class AppSettingsRepositoryImpl
                     throw IllegalStateException("firstPositiveSeen is monotonic — cannot flip true to false")
                 }
                 next.writeTo(prefs)
+                prefs[AppSettingsKeys.SETTINGS_REVISION] =
+                    (prefs[AppSettingsKeys.SETTINGS_REVISION] ?: 0L) + 1L
             }
         }
 
         override suspend fun reset() {
             dataStore.edit { prefs ->
                 val deviceId = prefs[AppSettingsKeys.DEVICE_ID]
+                val revision = (prefs[AppSettingsKeys.SETTINGS_REVISION] ?: 0L) + 1L
                 prefs.clear()
                 if (deviceId != null) {
                     prefs[AppSettingsKeys.DEVICE_ID] = deviceId
                 }
+                prefs[AppSettingsKeys.SETTINGS_REVISION] = revision
             }
         }
     }

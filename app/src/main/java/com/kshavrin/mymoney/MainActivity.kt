@@ -30,7 +30,6 @@ import com.kshavrin.mymoney.navigation.MyMoneyNavHost
 import com.kshavrin.mymoney.navigation.ShortcutDestination
 import dagger.Lazy
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
@@ -80,9 +79,7 @@ class MainActivity : AppCompatActivity() {
         }
         val activityLockState = lockController.lockStateFor(activityStartId)
         lifecycleScope.launch {
-            combine(activityLockState, lockController.shouldShowLock) { localActivityLock, globalLock ->
-                localActivityLock || globalLock
-            }.collect { secure ->
+            activityLockState.collect { secure ->
                 secureWindowController.setSecure(SecureWindowSource.LockOverlay, secure)
             }
         }

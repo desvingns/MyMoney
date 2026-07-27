@@ -441,6 +441,42 @@ class LockControllerTest {
             assertFalse(controller.shouldShowLock.value)
         }
 
+    @Test
+    fun `destroying newest activity reelects older activity for privacy updates`() =
+        runTest {
+            val settings =
+                VersionedAppSettingsRepository(
+                    VersionedAppSettings(
+                        settings = AppSettings(hideAppContentInRecents = true),
+                        revision = 1L,
+                    ),
+                )
+            val controller = buildController(settings)
+            val olderStartId = controller.onMainActivityCreated()
+            yield()
+            val newerStartId = controller.onMainActivityCreated()
+            yield()
+
+            controller.onMainActivityDestroyed(newerStartId)
+
+            assertEquals(
+                AppContentSecurityState(olderStartId, shouldSecure = true),
+                controller.appContentSecurityState.value,
+            )
+
+            settings.emit(
+                VersionedAppSettings(
+                    settings = AppSettings(hideAppContentInRecents = false),
+                    revision = 2L,
+                ),
+            )
+
+            assertEquals(
+                AppContentSecurityState(olderStartId, shouldSecure = false),
+                controller.appContentSecurityState.value,
+            )
+        }
+
     // --- 3. pause / resume idle transition ------------------------------------------------
 
     @Test

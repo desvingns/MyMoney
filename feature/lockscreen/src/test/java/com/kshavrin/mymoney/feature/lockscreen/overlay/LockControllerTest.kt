@@ -350,6 +350,19 @@ class LockControllerTest {
             assertFalse(lockState.value)
         }
 
+    @Test
+    fun `disabling biometric lock clears every live activity state`() =
+        runTest {
+            val controller = buildController(AppSettings(biometricLockEnabled = true))
+            val olderStartId = controller.onMainActivityCreated()
+            val newerStartId = controller.onMainActivityCreated()
+
+            appSettings.seed(AppSettings(biometricLockEnabled = false))
+
+            assertFalse(controller.lockStateFor(olderStartId).value)
+            assertFalse(controller.lockStateFor(newerStartId).value)
+        }
+
     // --- 3. pause / resume idle transition ------------------------------------------------
 
     @Test

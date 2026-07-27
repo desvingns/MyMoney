@@ -73,8 +73,10 @@ class LockController
             observedSettingsGeneration += 1
             settings = latest
             _appContentSecure.value = latest.hideAppContentInRecents
-            if (!latest.biometricLockEnabled && !isActivityStartLockActiveLocked()) {
+            if (!latest.biometricLockEnabled) {
                 _shouldShowLock.value = false
+                activityLockStates.values.forEach { it.value = false }
+                resolvedActivityLockEnabled = false
             }
             if (!firstSettingsSeen) {
                 firstSettingsSeen = true
@@ -158,9 +160,6 @@ class LockController
                     shouldSecure = latest.hideAppContentInRecents,
                 )
         }
-
-        private fun isActivityStartLockActiveLocked(): Boolean =
-            resolvedActivityStartId == activityStartId && resolvedActivityLockEnabled
 
         override fun onPause(owner: LifecycleOwner) {
             pausedAt = now()

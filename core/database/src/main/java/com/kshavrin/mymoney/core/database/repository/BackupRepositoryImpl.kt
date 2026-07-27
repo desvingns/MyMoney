@@ -1003,7 +1003,11 @@ class BackupRepositoryImpl
                 .map { BackupFile(it.name.orEmpty(), it.uri.toString(), it.lastModified()) }
 
         private fun checkpoint() {
-            database.query("PRAGMA wal_checkpoint(FULL)", null).use { it.moveToFirst() }
+            database.query("PRAGMA wal_checkpoint(FULL)", null).use { cursor ->
+                check(cursor.moveToFirst()) { "Database checkpoint returned no row" }
+                val busy = cursor.getInt(0)
+                check(busy == 0) { "Database checkpoint is busy (result=$busy)" }
+            }
         }
 
         private fun validateSqlite(file: File) {

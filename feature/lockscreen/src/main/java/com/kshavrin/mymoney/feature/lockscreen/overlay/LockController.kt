@@ -32,7 +32,6 @@ class LockController
         @Volatile
         private var settings: AppSettings = AppSettings()
 
-        @Volatile
         private var firstSettingsSeen = false
 
         private var pausedAt: Long? = null
@@ -40,6 +39,8 @@ class LockController
         private var activityStartId = 0L
         private var resolvedActivityStartId: Long? = null
         private var resolvedActivityLockEnabled = false
+        private var observedSettingsGeneration = 0L
+        private var activityStartSettingsGeneration = 0L
 
         private val _shouldShowLock = MutableStateFlow(false)
         val shouldShowLock: StateFlow<Boolean> = _shouldShowLock.asStateFlow()
@@ -60,19 +61,26 @@ class LockController
         init {
             scope.launch {
                 appSettingsRepository.settings.collect { latest ->
-                    settings = latest
-                    _appContentSecure.value = latest.hideAppContentInRecents
-                    if (!latest.biometricLockEnabled && !isActivityStartLockActive()) {
-                        _shouldShowLock.value = false
+                    synchronized(activityStartLock) {
+                        onSettingsChanged(latest)
                     }
-                    if (!firstSettingsSeen) {
-                        firstSettingsSeen = true
-                        if (latest.biometricLockEnabled) _shouldShowLock.value = true
-                        _isResolved.value = true
-                    }
-                    publishCurrentActivitySecurityState(latest)
                 }
             }
+        }
+
+        private fun onSettingsChanged(latest: AppSettings) {
+            observedSettingsGeneration += 1
+            settings = latest
+            _appContentSecure.value = latest.hideAppContentInRecents
+            if (!latest.biometricLockEnabled && !isActivityStartLockActiveLocked()) {
+                _shouldShowLock.value = false
+            }
+            if (!firstSettingsSeen) {
+                firstSettingsSeen = true
+                if (latest.biometricLockEnabled) _shouldShowLock.value = true
+                _isResolved.value = true
+            }
+            publishCurrentActivitySecurityStateLocked(latest)
         }
 
         fun observeProcessLifecycle() {
@@ -86,6 +94,7 @@ class LockController
                     resolvedActivityStartId = null
                     resolvedActivityLockEnabled = false
                     _isActivityLockResolved.value = false
+                    activityStartSettingsGeneration = observedSettingsGeneration
                     activityStartId
                 }
             scope.launch {
@@ -101,35 +110,39 @@ class LockController
         ) {
             synchronized(activityStartLock) {
                 if (activityStartId != startId) return
-                settings = activitySettings
-                _appContentSecure.value = activitySettings.hideAppContentInRecents
-                _shouldShowLock.value = activitySettings.biometricLockEnabled
+                val collectorObservedNewerSettings =
+                    observedSettingsGeneration > activityStartSettingsGeneration
+                val resolvedSettings =
+                    if (collectorObservedNewerSettings) {
+                        settings
+                    } else {
+                        activitySettings
+                    }
+                settings = resolvedSettings
+                _appContentSecure.value = resolvedSettings.hideAppContentInRecents
+                _shouldShowLock.value = resolvedSettings.biometricLockEnabled
                 _isActivityLockResolved.value = true
                 resolvedActivityStartId = startId
-                resolvedActivityLockEnabled = activitySettings.biometricLockEnabled
+                resolvedActivityLockEnabled = resolvedSettings.biometricLockEnabled
                 _appContentSecurityState.value =
                     AppContentSecurityState(
                         activityStartId = startId,
-                        shouldSecure = activitySettings.hideAppContentInRecents,
+                        shouldSecure = resolvedSettings.hideAppContentInRecents,
                     )
             }
         }
 
-        private fun publishCurrentActivitySecurityState(latest: AppSettings) {
-            synchronized(activityStartLock) {
-                if (resolvedActivityStartId != activityStartId) return
-                _appContentSecurityState.value =
-                    AppContentSecurityState(
-                        activityStartId = activityStartId,
-                        shouldSecure = latest.hideAppContentInRecents,
-                    )
-            }
+        private fun publishCurrentActivitySecurityStateLocked(latest: AppSettings) {
+            if (resolvedActivityStartId != activityStartId) return
+            _appContentSecurityState.value =
+                AppContentSecurityState(
+                    activityStartId = activityStartId,
+                    shouldSecure = latest.hideAppContentInRecents,
+                )
         }
 
-        private fun isActivityStartLockActive(): Boolean =
-            synchronized(activityStartLock) {
-                resolvedActivityStartId == activityStartId && resolvedActivityLockEnabled
-            }
+        private fun isActivityStartLockActiveLocked(): Boolean =
+            resolvedActivityStartId == activityStartId && resolvedActivityLockEnabled
 
         override fun onPause(owner: LifecycleOwner) {
             pausedAt = now()

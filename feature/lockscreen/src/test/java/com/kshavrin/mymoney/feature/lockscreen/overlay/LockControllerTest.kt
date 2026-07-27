@@ -11,8 +11,10 @@ import com.kshavrin.mymoney.feature.lockscreen.util.MainDispatcherRule
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.yield
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -202,6 +204,29 @@ class LockControllerTest {
         }
 
     @Test
+    fun `activity start resolves from the collector emission after creation`() =
+        runTest {
+            val settings = DeferredFirstEmissionAppSettingsRepository()
+            val controller = buildController(settings)
+
+            val startId = controller.onMainActivityCreated()
+
+            assertFalse(controller.isActivityLockResolved.value)
+
+            settings.emit(
+                AppSettings(
+                    biometricLockEnabled = true,
+                    hideAppContentInRecents = true,
+                ),
+            )
+
+            assertEquals(startId, controller.appContentSecurityState.value?.activityStartId)
+            assertTrue(controller.appContentSecurityState.value?.shouldSecure ?: false)
+            assertTrue(controller.shouldShowLock.value)
+            assertTrue(controller.isActivityLockResolved.value)
+        }
+
+    @Test
     fun `stale activity start cannot resolve a newer activity`() =
         runTest {
             val settings = DeferredFirstEmissionAppSettingsRepository()
@@ -257,6 +282,27 @@ class LockControllerTest {
             )
             assertTrue(controller.appContentSecure.value)
             assertTrue(controller.shouldShowLock.value)
+        }
+
+    @Test
+    fun `activity startup snapshot is revalidated after a newer collector emission`() =
+        runTest {
+            val newerSettings =
+                AppSettings(
+                    biometricLockEnabled = true,
+                    hideAppContentInRecents = true,
+                )
+            val controller = buildController(StartupRaceAppSettingsRepository(newerSettings))
+
+            val startId = controller.onMainActivityCreated()
+
+            assertEquals(
+                AppContentSecurityState(startId, shouldSecure = true),
+                controller.appContentSecurityState.value,
+            )
+            assertTrue(controller.appContentSecure.value)
+            assertTrue(controller.shouldShowLock.value)
+            assertTrue(controller.isActivityLockResolved.value)
         }
 
     // --- 3. pause / resume idle transition ------------------------------------------------
@@ -413,5 +459,29 @@ class LockControllerTest {
             latest = settings
             settingsFlow.emit(settings)
         }
+    }
+
+    private class StartupRaceAppSettingsRepository(
+        private val newerSettings: AppSettings,
+    ) : AppSettingsRepository {
+        private val collectorUpdate = CompletableDeferred<AppSettings>()
+        private var subscriptionCount = 0
+
+        override val settings: Flow<AppSettings> =
+            flow {
+                val subscriptionIndex = synchronized(this@StartupRaceAppSettingsRepository) {
+                    subscriptionCount++
+                }
+                if (subscriptionIndex == 0) {
+                    emit(AppSettings())
+                    emit(collectorUpdate.await())
+                } else {
+                    collectorUpdate.complete(newerSettings)
+                    yield()
+                    emit(AppSettings())
+                }
+            }
+
+        override suspend fun update(transform: (AppSettings) -> AppSettings) = Unit
     }
 }

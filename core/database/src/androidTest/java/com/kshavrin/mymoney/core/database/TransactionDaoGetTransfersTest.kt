@@ -14,6 +14,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.util.UUID
 
 /**
  * Contract tests for [TransactionDao.getTransfers].
@@ -35,6 +36,7 @@ class TransactionDaoGetTransfersTest {
     private var accountCard: Long = 0L
     private var accountSavings: Long = 0L
     private var categoryExpense: Long = 0L
+    private var transactionUuidCounter = 0
 
     private val day = 86_400_000L
 
@@ -66,6 +68,7 @@ class TransactionDaoGetTransfersTest {
 
     private fun account(name: String) =
         AccountEntity(
+            uuid = fixtureUuid("account", name),
             name = name,
             currencyId = currencyId,
             initialBalance = 0.0,
@@ -81,6 +84,7 @@ class TransactionDaoGetTransfersTest {
 
     private fun category(name: String) =
         CategoryEntity(
+            uuid = fixtureUuid("category", name),
             name = name,
             kind = "expense",
             iconKey = "ic_cat_food",
@@ -102,6 +106,7 @@ class TransactionDaoGetTransfersTest {
     ): Long =
         db.transactionDao().upsert(
             TransactionEntity(
+                uuid = fixtureUuid("transaction", transactionUuidCounter++),
                 kind = "transfer",
                 amount = amount,
                 currencyId = currencyId,
@@ -125,6 +130,7 @@ class TransactionDaoGetTransfersTest {
     ): Long =
         db.transactionDao().upsert(
             TransactionEntity(
+                uuid = fixtureUuid("transaction", transactionUuidCounter++),
                 kind = "expense",
                 amount = amount,
                 currencyId = currencyId,
@@ -140,6 +146,12 @@ class TransactionDaoGetTransfersTest {
                 exchangeRate = null,
             ),
         )
+
+    private fun fixtureUuid(
+        type: String,
+        key: Any,
+    ): String =
+        UUID.nameUUIDFromBytes("$type:$key".toByteArray(Charsets.UTF_8)).toString()
 
     @Test
     fun getTransfers_returns_only_kind_transfer_rows() =

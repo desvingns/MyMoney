@@ -17,6 +17,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.util.UUID
 
 @RunWith(AndroidJUnit4::class)
 class TransactionDaoPagingTest {
@@ -27,6 +28,7 @@ class TransactionDaoPagingTest {
     private var accountB: Long = 0L
     private var categoryFood: Long = 0L
     private var categoryBills: Long = 0L
+    private var transactionUuidCounter = 0
 
     // A day in millis to keep occurred_at values readable.
     private val day = 86_400_000L
@@ -59,6 +61,7 @@ class TransactionDaoPagingTest {
 
     private fun account(name: String) =
         AccountEntity(
+            uuid = fixtureUuid("account", name),
             name = name,
             currencyId = currencyId,
             initialBalance = 0.0,
@@ -74,6 +77,7 @@ class TransactionDaoPagingTest {
 
     private fun category(name: String) =
         CategoryEntity(
+            uuid = fixtureUuid("category", name),
             name = name,
             kind = "expense",
             iconKey = "ic_cat_${name.lowercase()}",
@@ -96,6 +100,7 @@ class TransactionDaoPagingTest {
     ): Long =
         db.transactionDao().upsert(
             TransactionEntity(
+                uuid = fixtureUuid("transaction", transactionUuidCounter++),
                 kind = kind,
                 amount = 10.0,
                 currencyId = currencyId,
@@ -111,6 +116,12 @@ class TransactionDaoPagingTest {
                 exchangeRate = null,
             ),
         )
+
+    private fun fixtureUuid(
+        type: String,
+        key: Any,
+    ): String =
+        UUID.nameUUIDFromBytes("$type:$key".toByteArray(Charsets.UTF_8)).toString()
 
     private suspend fun loadAll(source: PagingSource<Int, TransactionEntity>): List<TransactionEntity> {
         val result =

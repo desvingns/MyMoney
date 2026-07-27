@@ -14,6 +14,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.util.UUID
 
 @RunWith(AndroidJUnit4::class)
 class TransactionDaoCategoryGroupsTest {
@@ -25,6 +26,7 @@ class TransactionDaoCategoryGroupsTest {
     private var categoryFood: Long = 0L
     private var categoryBills: Long = 0L
     private var categorySalary: Long = 0L
+    private var transactionUuidCounter = 0
 
     private val day = 86_400_000L
 
@@ -57,6 +59,7 @@ class TransactionDaoCategoryGroupsTest {
 
     private fun account(name: String) =
         AccountEntity(
+            uuid = fixtureUuid("account", name),
             name = name,
             currencyId = currencyId,
             initialBalance = 0.0,
@@ -75,6 +78,7 @@ class TransactionDaoCategoryGroupsTest {
         kind: String,
     ) =
         CategoryEntity(
+            uuid = fixtureUuid("category", name),
             name = name,
             kind = kind,
             iconKey = "ic_cat_${name.lowercase()}",
@@ -97,6 +101,7 @@ class TransactionDaoCategoryGroupsTest {
     ): Long =
         db.transactionDao().upsert(
             TransactionEntity(
+                uuid = fixtureUuid("transaction", transactionUuidCounter++),
                 kind = kind,
                 amount = amount,
                 currencyId = currencyId,
@@ -112,6 +117,12 @@ class TransactionDaoCategoryGroupsTest {
                 exchangeRate = null,
             ),
         )
+
+    private fun fixtureUuid(
+        type: String,
+        key: Any,
+    ): String =
+        UUID.nameUUIDFromBytes("$type:$key".toByteArray(Charsets.UTF_8)).toString()
 
     @Test
     fun getCategoryGroups_sums_amount_and_counts_rows_per_category() =

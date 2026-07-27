@@ -15,6 +15,7 @@ import com.kshavrin.mymoney.core.database.dao.RecurringTemplateDao
 import com.kshavrin.mymoney.core.database.dao.SearchHistoryDao
 import com.kshavrin.mymoney.core.database.dao.SyncLogDao
 import com.kshavrin.mymoney.core.database.dao.TransactionDao
+import com.kshavrin.mymoney.core.database.migration.DatabaseFileMigration
 import com.kshavrin.mymoney.core.database.migration.MIGRATION_1_2
 import com.kshavrin.mymoney.core.database.migration.MIGRATION_2_3
 import com.kshavrin.mymoney.core.database.migration.MIGRATION_3_4
@@ -22,7 +23,6 @@ import com.kshavrin.mymoney.core.database.migration.MIGRATION_4_5
 import com.kshavrin.mymoney.core.database.migration.MIGRATION_5_6
 import com.kshavrin.mymoney.core.database.migration.MIGRATION_6_7
 import com.kshavrin.mymoney.core.database.migration.MIGRATION_7_8
-import com.kshavrin.mymoney.core.database.migration.DatabaseFileMigration
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

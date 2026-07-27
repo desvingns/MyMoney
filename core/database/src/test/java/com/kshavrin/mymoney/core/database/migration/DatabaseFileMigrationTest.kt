@@ -46,7 +46,7 @@ class DatabaseFileMigrationTest {
             assertFileBytes(DatabaseFileNames.DATABASE_NAME + suffix, bytes)
             assertFalse(file(legacyName).exists())
         }
-        assertFalse(file(renameMarkerName).exists())
+        assertFalse(file(RENAME_MARKER_NAME).exists())
     }
 
     @Test
@@ -67,7 +67,7 @@ class DatabaseFileMigrationTest {
             assertFileBytes(DatabaseFileNames.DATABASE_NAME + suffix, bytes)
             assertFalse(file(legacyName).exists())
         }
-        assertFalse(file(renameMarkerName).exists())
+        assertFalse(file(RENAME_MARKER_NAME).exists())
     }
 
     @Test
@@ -106,7 +106,7 @@ class DatabaseFileMigrationTest {
         writeFile(DatabaseFileNames.DATABASE_NAME, mainBytes)
         writeFile("${DatabaseFileNames.LEGACY_DATABASE_NAME}-shm", shmBytes)
         writeFile("${DatabaseFileNames.LEGACY_DATABASE_NAME}-wal", walBytes)
-        writeFile(renameMarkerName, ByteArray(0))
+        writeFile(RENAME_MARKER_NAME, ByteArray(0))
 
         DatabaseFileMigration.migrate(databaseDirectory)
 
@@ -115,7 +115,7 @@ class DatabaseFileMigrationTest {
         assertFileBytes("${DatabaseFileNames.DATABASE_NAME}-wal", walBytes)
         assertFalse(file("${DatabaseFileNames.LEGACY_DATABASE_NAME}-shm").exists())
         assertFalse(file("${DatabaseFileNames.LEGACY_DATABASE_NAME}-wal").exists())
-        assertFalse(file(renameMarkerName).exists())
+        assertFalse(file(RENAME_MARKER_NAME).exists())
     }
 
     private fun file(name: String): File = File(databaseDirectory, name)
@@ -137,6 +137,6 @@ class DatabaseFileMigrationTest {
     }
 
     private companion object {
-        const val renameMarkerName = "mymoney.db.rename-in-progress"
+        const val RENAME_MARKER_NAME = "mymoney.db.rename-in-progress"
     }
 }

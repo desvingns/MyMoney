@@ -43,6 +43,7 @@ class LockController
         private var observedSettingsGeneration = 0L
         private val activityStartSettingsGenerations = mutableMapOf<Long, Long>()
         private val activityLockStates = mutableMapOf<Long, MutableStateFlow<Boolean>>()
+        private val activityLockResolutionStates = mutableMapOf<Long, MutableStateFlow<Boolean>>()
         private val resolvedActivityStartIds = mutableSetOf<Long>()
 
         private val _shouldShowLock = MutableStateFlow(false)
@@ -106,6 +107,7 @@ class LockController
                 synchronized(activityStartLock) {
                     activityStartId += 1
                     activityLockStates[activityStartId] = MutableStateFlow(false)
+                    activityLockResolutionStates[activityStartId] = MutableStateFlow(false)
                     _isActivityLockResolved.value = false
                     activityStartSettingsGenerations[activityStartId] = observedSettingsGeneration
                     activityStartId
@@ -122,13 +124,21 @@ class LockController
                 requireNotNull(activityLockStates[activityStartId])
             }
 
+        fun isActivityLockResolvedFor(activityStartId: Long): StateFlow<Boolean> =
+            synchronized(activityStartLock) {
+                requireNotNull(activityLockResolutionStates[activityStartId])
+            }
+
         fun onMainActivityDestroyed(activityStartId: Long) {
             synchronized(activityStartLock) {
-                activityLockStates.remove(activityStartId)
+                val wasLive = activityLockStates.remove(activityStartId) != null
+                activityLockResolutionStates.remove(activityStartId)
                 activityStartSettingsGenerations.remove(activityStartId)
                 resolvedActivityStartIds.remove(activityStartId)
                 _shouldShowLock.value = activityLockStates.values.any { it.value }
-                if (this.activityStartId == activityStartId) {
+                val wasResolved = resolvedActivityStartId == activityStartId
+                val wasNewest = this.activityStartId == activityStartId
+                if (wasLive && (wasResolved || wasNewest)) {
                     val electedStartId = activityLockStates.keys.maxOrNull()
                     resolvedActivityStartId =
                         electedStartId?.takeIf { it in resolvedActivityStartIds }
@@ -165,7 +175,7 @@ class LockController
             activitySettings: VersionedAppSettings,
         ) {
             if (startId in resolvedActivityStartIds) return
-            if (startId !in activityLockStates || activityLockStates.keys.maxOrNull() != startId) {
+            if (startId !in activityLockStates) {
                 return
             }
             val activityStartSettingsGeneration =
@@ -184,12 +194,14 @@ class LockController
                 } else {
                     activitySettings
                 }
+            activityLockStates[startId]?.value = resolvedSettings.settings.biometricLockEnabled
+            _shouldShowLock.value = activityLockStates.values.any { it.value }
+            activityLockResolutionStates[startId]?.value = true
+            resolvedActivityStartIds += startId
+            if (activityLockStates.keys.maxOrNull() != startId) return
             settings = resolvedSettings.settings
             settingsRevision = resolvedSettings.revision
             _appContentSecure.value = resolvedSettings.settings.hideAppContentInRecents
-            activityLockStates[startId]?.value = resolvedSettings.settings.biometricLockEnabled
-            _shouldShowLock.value = activityLockStates.values.any { it.value }
-            resolvedActivityStartIds += startId
             _isActivityLockResolved.value = true
             resolvedActivityStartId = startId
             _appContentSecurityState.value =

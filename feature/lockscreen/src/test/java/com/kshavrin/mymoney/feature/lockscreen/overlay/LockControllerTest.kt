@@ -527,6 +527,97 @@ class LockControllerTest {
         }
 
     @Test
+    fun `older startup callback resolves its local state while newer activity is live`() =
+        runTest {
+            val olderSnapshot = CompletableDeferred<AppSettings>()
+            val newerSnapshot = CompletableDeferred<AppSettings>()
+            val settings =
+                DeferredFirstEmissionAppSettingsRepository(
+                    startupSnapshots = listOf(olderSnapshot, newerSnapshot),
+                )
+            val controller = buildController(settings)
+            val olderStartId = controller.onMainActivityCreated()
+            val newerStartId = controller.onMainActivityCreated()
+            val currentSettings = AppSettings(biometricLockEnabled = true)
+
+            olderSnapshot.complete(currentSettings)
+
+            assertTrue(controller.isActivityLockResolvedFor(olderStartId).value)
+            assertTrue(controller.lockStateFor(olderStartId).value)
+            assertFalse(controller.isActivityLockResolved.value)
+
+            newerSnapshot.complete(currentSettings)
+
+            assertEquals(newerStartId, controller.appContentSecurityState.value?.activityStartId)
+        }
+
+    @Test
+    fun `destroying elected older activity resolves newer unresolved activity and publishes privacy`() =
+        runTest {
+            val olderSnapshot = CompletableDeferred<AppSettings>()
+            val newerSnapshot = CompletableDeferred<AppSettings>()
+            val settings =
+                DeferredFirstEmissionAppSettingsRepository(
+                    startupSnapshots = listOf(olderSnapshot, newerSnapshot),
+                )
+            val controller = buildController(settings)
+            val olderStartId = controller.onMainActivityCreated()
+            val currentSettings =
+                AppSettings(
+                    biometricLockEnabled = true,
+                    hideAppContentInRecents = true,
+                )
+            olderSnapshot.complete(currentSettings)
+            val newerStartId = controller.onMainActivityCreated()
+
+            controller.onMainActivityDestroyed(olderStartId)
+
+            assertEquals(
+                AppContentSecurityState(newerStartId, shouldSecure = true),
+                controller.appContentSecurityState.value,
+            )
+            assertTrue(controller.isActivityLockResolved.value)
+            assertTrue(controller.lockStateFor(newerStartId).value)
+
+            settings.emit(currentSettings.copy(hideAppContentInRecents = false))
+
+            assertEquals(
+                AppContentSecurityState(newerStartId, shouldSecure = false),
+                controller.appContentSecurityState.value,
+            )
+        }
+
+    @Test
+    fun `late older startup callback cannot overwrite elected activity state`() =
+        runTest {
+            val olderSnapshot = CompletableDeferred<AppSettings>()
+            val newerSnapshot = CompletableDeferred<AppSettings>()
+            val settings =
+                DeferredFirstEmissionAppSettingsRepository(
+                    startupSnapshots = listOf(olderSnapshot, newerSnapshot),
+                )
+            val controller = buildController(settings)
+            val olderStartId = controller.onMainActivityCreated()
+            val newerStartId = controller.onMainActivityCreated()
+            val electedSettings =
+                AppSettings(
+                    biometricLockEnabled = true,
+                    hideAppContentInRecents = true,
+                )
+
+            newerSnapshot.complete(electedSettings)
+            olderSnapshot.complete(AppSettings())
+
+            assertEquals(
+                AppContentSecurityState(newerStartId, shouldSecure = true),
+                controller.appContentSecurityState.value,
+            )
+            assertTrue(controller.isActivityLockResolved.value)
+            assertTrue(controller.isActivityLockResolvedFor(olderStartId).value)
+            assertTrue(controller.lockStateFor(newerStartId).value)
+        }
+
+    @Test
     fun `privacy updates reach the elected activity while a newer startup is unresolved`() =
         runTest {
             val olderSnapshot = CompletableDeferred<AppSettings>()

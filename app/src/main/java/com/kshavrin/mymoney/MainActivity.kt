@@ -59,9 +59,10 @@ class MainActivity : AppCompatActivity() {
         secureWindowController = SecureWindowController(window)
         val activityStartId = lockController.onMainActivityCreated()
         this.activityStartId = activityStartId
+        val activityLockResolved = lockController.isActivityLockResolvedFor(activityStartId)
         splashScreen.setKeepOnScreenCondition {
             !lockController.isResolved.value ||
-                !lockController.isActivityLockResolved.value ||
+                !activityLockResolved.value ||
                 !initialWindowSecurityApplied.get()
         }
         lockController.observeProcessLifecycle()

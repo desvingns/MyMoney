@@ -543,6 +543,7 @@ class LockControllerTest {
             olderSnapshot.complete(currentSettings)
 
             assertTrue(controller.isActivityLockResolvedFor(olderStartId).value)
+            assertTrue(controller.activitySecurityReadyFor(olderStartId).value)
             assertTrue(controller.lockStateFor(olderStartId).value)
             assertFalse(controller.isActivityLockResolved.value)
 
@@ -647,6 +648,7 @@ class LockControllerTest {
                 controller.appContentSecurityState.value,
             )
             assertTrue(controller.isActivityLockResolvedFor(newerStartId).value)
+            assertFalse(controller.activitySecurityReadyFor(newerStartId).value)
             assertTrue(controller.lockStateFor(newerStartId).value)
 
             newerSnapshot.complete(
@@ -660,6 +662,7 @@ class LockControllerTest {
                 AppContentSecurityState(newerStartId, shouldSecure = false),
                 controller.appContentSecurityState.value,
             )
+            assertTrue(controller.activitySecurityReadyFor(newerStartId).value)
             assertFalse(controller.lockStateFor(newerStartId).value)
         }
 

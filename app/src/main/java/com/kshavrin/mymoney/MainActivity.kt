@@ -49,8 +49,8 @@ class MainActivity : AppCompatActivity() {
 
     private val lazySoundPlayer: SoundPlayer by lazy { LazySoundPlayer(soundPlayer) }
     private val lazyHapticPlayer: HapticPlayer by lazy { LazyHapticPlayer(hapticPlayer) }
-    private val initialWindowSecurityApplied = AtomicBoolean(false)
     private val initialAppContentStateApplied = AtomicBoolean(false)
+    private val initialLockOverlayStateApplied = AtomicBoolean(false)
     private lateinit var secureWindowController: SecureWindowController
     private var activityStartId: Long? = null
 
@@ -60,11 +60,12 @@ class MainActivity : AppCompatActivity() {
         secureWindowController = SecureWindowController(window)
         val activityStartId = lockController.onMainActivityCreated()
         this.activityStartId = activityStartId
-        val activityLockResolved = lockController.isActivityLockResolvedFor(activityStartId)
+        val activitySecurityReady = lockController.activitySecurityReadyFor(activityStartId)
         splashScreen.setKeepOnScreenCondition {
             !lockController.isResolved.value ||
-                !activityLockResolved.value ||
-                !initialWindowSecurityApplied.get()
+                !activitySecurityReady.value ||
+                !initialAppContentStateApplied.get() ||
+                !initialLockOverlayStateApplied.get()
         }
         lockController.observeProcessLifecycle()
         lifecycleScope.launch {
@@ -75,22 +76,13 @@ class MainActivity : AppCompatActivity() {
                     securityState.shouldSecure,
                 )
                 initialAppContentStateApplied.set(true)
-                if (activityLockResolved.value) {
-                    initialWindowSecurityApplied.set(true)
-                }
-            }
-        }
-        lifecycleScope.launch {
-            activityLockResolved.collect { resolved ->
-                if (resolved && initialAppContentStateApplied.get()) {
-                    initialWindowSecurityApplied.set(true)
-                }
             }
         }
         val activityLockState = lockController.lockStateFor(activityStartId)
         lifecycleScope.launch {
             activityLockState.collect { secure ->
                 secureWindowController.setSecure(SecureWindowSource.LockOverlay, secure)
+                initialLockOverlayStateApplied.set(true)
             }
         }
         enableEdgeToEdge()

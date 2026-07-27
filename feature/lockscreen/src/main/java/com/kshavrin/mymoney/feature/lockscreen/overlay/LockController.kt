@@ -44,6 +44,7 @@ class LockController
         private val activityStartSettingsGenerations = mutableMapOf<Long, Long>()
         private val activityLockStates = mutableMapOf<Long, MutableStateFlow<Boolean>>()
         private val activityLockResolutionStates = mutableMapOf<Long, MutableStateFlow<Boolean>>()
+        private val activitySecurityReadyStates = mutableMapOf<Long, MutableStateFlow<Boolean>>()
         private val resolvedActivityStartIds = mutableSetOf<Long>()
         private val provisionalActivityStartIds = mutableSetOf<Long>()
 
@@ -109,6 +110,7 @@ class LockController
                     activityStartId += 1
                     activityLockStates[activityStartId] = MutableStateFlow(false)
                     activityLockResolutionStates[activityStartId] = MutableStateFlow(false)
+                    activitySecurityReadyStates[activityStartId] = MutableStateFlow(false)
                     _isActivityLockResolved.value = false
                     activityStartSettingsGenerations[activityStartId] = observedSettingsGeneration
                     activityStartId
@@ -130,10 +132,16 @@ class LockController
                 requireNotNull(activityLockResolutionStates[activityStartId])
             }
 
+        fun activitySecurityReadyFor(activityStartId: Long): StateFlow<Boolean> =
+            synchronized(activityStartLock) {
+                requireNotNull(activitySecurityReadyStates[activityStartId])
+            }
+
         fun onMainActivityDestroyed(activityStartId: Long) {
             synchronized(activityStartLock) {
                 val wasLive = activityLockStates.remove(activityStartId) != null
                 activityLockResolutionStates.remove(activityStartId)
+                activitySecurityReadyStates.remove(activityStartId)
                 activityStartSettingsGenerations.remove(activityStartId)
                 resolvedActivityStartIds.remove(activityStartId)
                 provisionalActivityStartIds.remove(activityStartId)
@@ -204,10 +212,24 @@ class LockController
             resolvedActivityStartIds += startId
             if (provisional) {
                 provisionalActivityStartIds += startId
+                if (activityLockStates.keys.maxOrNull() == startId) {
+                    resolvedActivityStartId = startId
+                    _isActivityLockResolved.value = true
+                    _appContentSecure.value = resolvedSettings.settings.hideAppContentInRecents
+                    _appContentSecurityState.value =
+                        AppContentSecurityState(
+                            activityStartId = startId,
+                            shouldSecure = resolvedSettings.settings.hideAppContentInRecents,
+                        )
+                }
+                return
             } else {
                 provisionalActivityStartIds -= startId
             }
-            if (activityLockStates.keys.maxOrNull() != startId) return
+            if (activityLockStates.keys.maxOrNull() != startId) {
+                activitySecurityReadyStates[startId]?.value = true
+                return
+            }
             settings = resolvedSettings.settings
             settingsRevision = resolvedSettings.revision
             observedSettingsGeneration += 1
@@ -219,6 +241,7 @@ class LockController
                     activityStartId = startId,
                     shouldSecure = resolvedSettings.settings.hideAppContentInRecents,
                 )
+            activitySecurityReadyStates[startId]?.value = true
         }
 
         private fun publishCurrentActivitySecurityStateLocked(latest: AppSettings) {

@@ -31,6 +31,9 @@ class DataExtractionRulesTest {
 
         assertEquals(
             setOf(
+                RuleEntry(domain = "database", path = "mymoney.db"),
+                RuleEntry(domain = "database", path = "mymoney.db-shm"),
+                RuleEntry(domain = "database", path = "mymoney.db-wal"),
                 RuleEntry(domain = "database", path = "monefy.db"),
                 RuleEntry(domain = "database", path = "monefy.db-shm"),
                 RuleEntry(domain = "database", path = "monefy.db-wal"),

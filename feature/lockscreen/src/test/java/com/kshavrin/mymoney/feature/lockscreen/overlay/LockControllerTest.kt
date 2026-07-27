@@ -17,6 +17,7 @@ import kotlinx.coroutines.yield
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.runTest
@@ -477,6 +478,46 @@ class LockControllerTest {
             )
         }
 
+    @Test
+    fun `destroying resolved newest activity resolves skipped older startup from current settings`() =
+        runTest {
+            val olderSnapshot = CompletableDeferred<AppSettings>()
+            val newerSnapshot = CompletableDeferred<AppSettings>()
+            val settings =
+                DeferredFirstEmissionAppSettingsRepository(
+                    startupSnapshots = listOf(olderSnapshot, newerSnapshot),
+                )
+            val controller = buildController(settings)
+            val olderStartId = controller.onMainActivityCreated()
+            val newerStartId = controller.onMainActivityCreated()
+            val currentSettings =
+                AppSettings(
+                    biometricLockEnabled = true,
+                    hideAppContentInRecents = true,
+                )
+
+            newerSnapshot.complete(currentSettings)
+
+            assertEquals(newerStartId, controller.appContentSecurityState.value?.activityStartId)
+            assertTrue(controller.lockStateFor(newerStartId).value)
+
+            controller.onMainActivityDestroyed(newerStartId)
+
+            assertEquals(
+                AppContentSecurityState(olderStartId, shouldSecure = true),
+                controller.appContentSecurityState.value,
+            )
+            assertTrue(controller.isActivityLockResolved.value)
+            assertTrue(controller.lockStateFor(olderStartId).value)
+
+            settings.emit(currentSettings.copy(hideAppContentInRecents = false))
+
+            assertEquals(
+                AppContentSecurityState(olderStartId, shouldSecure = false),
+                controller.appContentSecurityState.value,
+            )
+        }
+
     // --- 3. pause / resume idle transition ------------------------------------------------
 
     @Test
@@ -616,6 +657,7 @@ class LockControllerTest {
                         }
                     if (collectorIndex == 0) {
                         emit(AppSettings())
+                        emitAll(settingsFlow)
                     } else {
                         emit(startupSnapshots[collectorIndex - 1].await())
                     }

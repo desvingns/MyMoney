@@ -1,5 +1,6 @@
 package com.kshavrin.mymoney.feature.lockscreen.overlay
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -11,12 +12,16 @@ import androidx.fragment.app.FragmentActivity
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.kshavrin.mymoney.core.datastore.SecureStorage
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
+import com.kshavrin.mymoney.core.ui.window.LocalSecureWindowController
+import com.kshavrin.mymoney.core.ui.window.SecureWindowController
+import com.kshavrin.mymoney.core.ui.window.SecureWindowSource
 import com.kshavrin.mymoney.feature.lockscreen.R
 import com.kshavrin.mymoney.feature.lockscreen.setup.PinHasher
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -97,16 +102,19 @@ class LockOverlayUiTest {
         secureStorage.writePinHash(pinHasher.hash("1234"))
         val restorationTester = StateRestorationTester(composeRule)
         var launchCount = 0
+        val controller = SecureWindowController(composeRule.activity.window)
 
         restorationTester.setContent {
-            MyMoneyTheme {
-                LockOverlay(
-                    onUnlocked = {},
-                    launchBiometric = { _, _, _, _, _, _, onPinFallback ->
-                        launchCount++
-                        onPinFallback()
-                    },
-                )
+            CompositionLocalProvider(LocalSecureWindowController provides controller) {
+                MyMoneyTheme {
+                    LockOverlay(
+                        onUnlocked = {},
+                        launchBiometric = { _, _, _, _, _, _, onPinFallback ->
+                            launchCount++
+                            onPinFallback()
+                        },
+                    )
+                }
             }
         }
 
@@ -124,6 +132,29 @@ class LockOverlayUiTest {
         }
     }
 
+    @Test
+    fun `lock overlay sets secure flag when app content source is disabled`() {
+        val controller = SecureWindowController(composeRule.activity.window)
+        controller.setSecure(SecureWindowSource.AppContent, enabled = false)
+
+        composeRule.setContent {
+            CompositionLocalProvider(LocalSecureWindowController provides controller) {
+                MyMoneyTheme {
+                    LockOverlay(
+                        onUnlocked = {},
+                        launchBiometric = { _, _, _, _, _, _, _ -> },
+                    )
+                }
+            }
+        }
+
+        composeRule.waitForIdle()
+        composeRule.runOnIdle {
+            val flags = composeRule.activity.window.attributes.flags
+            assertTrue(flags and android.view.WindowManager.LayoutParams.FLAG_SECURE != 0)
+        }
+    }
+
     private fun setOverlayContent(
         onUnlocked: () -> Unit = {},
         launchBiometric: (
@@ -136,12 +167,15 @@ class LockOverlayUiTest {
             onPinFallback: () -> Unit,
         ) -> Unit,
     ) {
+        val controller = SecureWindowController(composeRule.activity.window)
         composeRule.setContent {
-            MyMoneyTheme {
-                LockOverlay(
-                    onUnlocked = onUnlocked,
-                    launchBiometric = launchBiometric,
-                )
+            CompositionLocalProvider(LocalSecureWindowController provides controller) {
+                MyMoneyTheme {
+                    LockOverlay(
+                        onUnlocked = onUnlocked,
+                        launchBiometric = launchBiometric,
+                    )
+                }
             }
         }
     }

@@ -13,6 +13,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -152,6 +153,73 @@ class LockControllerTest {
                 assertFalse(awaitItem())
                 cancelAndIgnoreRemainingEvents()
             }
+        }
+
+    @Test
+    fun `app content security mirrors the persisted recents privacy setting`() =
+        runTest {
+            val controller = buildController(AppSettings(hideAppContentInRecents = true))
+
+            controller.appContentSecure.test {
+                assertTrue(awaitItem())
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            appSettings.seed(AppSettings(hideAppContentInRecents = false))
+
+            controller.appContentSecure.test {
+                assertFalse(awaitItem())
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `each activity start publishes its current lock and app content security state`() =
+        runTest {
+            val controller = buildController(AppSettings())
+
+            val firstStartId = controller.onMainActivityCreated()
+
+            assertEquals(firstStartId, controller.appContentSecurityState.value?.activityStartId)
+            assertFalse(controller.appContentSecurityState.value?.shouldSecure ?: true)
+            assertFalse(controller.shouldShowLock.value)
+
+            appSettings.seed(
+                AppSettings(
+                    biometricLockEnabled = true,
+                    hideAppContentInRecents = true,
+                ),
+            )
+
+            val secondStartId = controller.onMainActivityCreated()
+
+            assertTrue(secondStartId > firstStartId)
+            assertEquals(secondStartId, controller.appContentSecurityState.value?.activityStartId)
+            assertTrue(controller.appContentSecurityState.value?.shouldSecure ?: false)
+            assertTrue(controller.shouldShowLock.value)
+            assertTrue(controller.isActivityLockResolved.value)
+        }
+
+    @Test
+    fun `stale activity start cannot resolve a newer activity`() =
+        runTest {
+            val settings = DeferredFirstEmissionAppSettingsRepository()
+            val controller = buildController(settings)
+
+            val staleStartId = controller.onMainActivityCreated()
+            val currentStartId = controller.onMainActivityCreated()
+            settings.emit(
+                AppSettings(
+                    biometricLockEnabled = true,
+                    hideAppContentInRecents = true,
+                ),
+            )
+
+            assertTrue(currentStartId > staleStartId)
+            assertEquals(currentStartId, controller.appContentSecurityState.value?.activityStartId)
+            assertTrue(controller.appContentSecurityState.value?.shouldSecure ?: false)
+            assertTrue(controller.shouldShowLock.value)
+            assertTrue(controller.isActivityLockResolved.value)
         }
 
     // --- 3. pause / resume idle transition ------------------------------------------------

@@ -56,13 +56,16 @@ class MainActivity : AppCompatActivity() {
         val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
         secureWindowController = SecureWindowController(window)
+        val activityStartId = lockController.onMainActivityCreated()
         splashScreen.setKeepOnScreenCondition {
-            !lockController.isResolved.value || !initialWindowSecurityApplied.get()
+            !lockController.isResolved.value ||
+                !lockController.isActivityLockResolved.value ||
+                !initialWindowSecurityApplied.get()
         }
         lockController.observeProcessLifecycle()
         lifecycleScope.launch {
             lockController.appContentSecurityState.collect { securityState ->
-                if (securityState == null) return@collect
+                if (securityState?.activityStartId != activityStartId) return@collect
                 secureWindowController.setSecure(
                     SecureWindowSource.AppContent,
                     securityState.shouldSecure,

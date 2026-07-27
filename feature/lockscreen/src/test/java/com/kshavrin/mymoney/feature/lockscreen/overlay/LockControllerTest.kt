@@ -8,6 +8,7 @@ import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
 import com.kshavrin.mymoney.core.datastore.model.AppSettings
 import com.kshavrin.mymoney.core.testing.fake.FakeAppSettingsRepository
 import com.kshavrin.mymoney.feature.lockscreen.util.MainDispatcherRule
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -222,6 +223,42 @@ class LockControllerTest {
             assertTrue(controller.isActivityLockResolved.value)
         }
 
+    @Test
+    fun `newer settings emission cannot be overwritten by an older activity startup snapshot`() =
+        runTest {
+            val olderSnapshot = CompletableDeferred<AppSettings>()
+            val newerSnapshot = CompletableDeferred<AppSettings>()
+            val settings =
+                DeferredFirstEmissionAppSettingsRepository(
+                    startupSnapshots = listOf(olderSnapshot, newerSnapshot),
+                )
+            val controller = buildController(settings)
+            val olderStartId = controller.onMainActivityCreated()
+            val newerStartId = controller.onMainActivityCreated()
+            val newerSettings =
+                AppSettings(
+                    biometricLockEnabled = true,
+                    hideAppContentInRecents = true,
+                )
+
+            newerSnapshot.complete(newerSettings)
+
+            assertEquals(newerStartId, controller.appContentSecurityState.value?.activityStartId)
+            assertTrue(controller.appContentSecurityState.value?.shouldSecure ?: false)
+            assertTrue(controller.appContentSecure.value)
+            assertTrue(controller.shouldShowLock.value)
+
+            olderSnapshot.complete(AppSettings())
+
+            assertTrue(olderStartId < newerStartId)
+            assertEquals(
+                AppContentSecurityState(newerStartId, shouldSecure = true),
+                controller.appContentSecurityState.value,
+            )
+            assertTrue(controller.appContentSecure.value)
+            assertTrue(controller.shouldShowLock.value)
+        }
+
     // --- 3. pause / resume idle transition ------------------------------------------------
 
     @Test
@@ -343,11 +380,29 @@ class LockControllerTest {
             scope = CoroutineScope(mainDispatcherRule.testDispatcher),
         )
 
-    private class DeferredFirstEmissionAppSettingsRepository : AppSettingsRepository {
+    private class DeferredFirstEmissionAppSettingsRepository(
+        private val startupSnapshots: List<CompletableDeferred<AppSettings>> = emptyList(),
+    ) : AppSettingsRepository {
         private val settingsFlow = MutableSharedFlow<AppSettings>(replay = 0, extraBufferCapacity = 1)
         private var latest = AppSettings()
+        private var startupCollectorIndex = 0
 
-        override val settings: Flow<AppSettings> = settingsFlow
+        override val settings: Flow<AppSettings> =
+            if (startupSnapshots.isEmpty()) {
+                settingsFlow
+            } else {
+                kotlinx.coroutines.flow.flow {
+                    val collectorIndex =
+                        synchronized(this@DeferredFirstEmissionAppSettingsRepository) {
+                            startupCollectorIndex++
+                        }
+                    if (collectorIndex == 0) {
+                        emit(AppSettings())
+                    } else {
+                        emit(startupSnapshots[collectorIndex - 1].await())
+                    }
+                }
+            }
 
         override suspend fun update(transform: (AppSettings) -> AppSettings) {
             latest = transform(latest)

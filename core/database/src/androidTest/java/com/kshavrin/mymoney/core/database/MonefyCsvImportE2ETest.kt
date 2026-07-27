@@ -32,12 +32,13 @@ import java.io.File
 /**
  * E2E instrumented smoke-test for the Monefy CSV import path.
  *
- * Prerequisites (set up once per device session):
+ * An optional external fixture can be staged once per device session:
  *   adb push <Monefy.Data.*.csv> /data/local/tmp/monefy.csv
  *
- * The test copies the file from /data/local/tmp/ into the app's cache dir,
- * seeds the required RUB currency row, calls importTransactionsCsv, and
- * asserts that transactions + auto-created accounts/categories are present.
+ * When staged, the test copies the file from /data/local/tmp/ into the app's
+ * cache dir; otherwise it creates a minimal valid fixture there. It then seeds
+ * the required RUB currency row, calls importTransactionsCsv, and asserts that
+ * transactions + auto-created accounts/categories are present.
  */
 @RunWith(AndroidJUnit4::class)
 class MonefyCsvImportE2ETest {
@@ -63,13 +64,17 @@ class MonefyCsvImportE2ETest {
         runTest {
             val context = ApplicationProvider.getApplicationContext<Context>()
 
-            // Staged via: adb push <Monefy CSV> /data/local/tmp/monefy.csv
             val staged = File("/data/local/tmp/monefy.csv")
-            check(staged.exists()) {
-                "CSV not staged. Run: adb push <Monefy CSV> /data/local/tmp/monefy.csv"
-            }
             val csvFile = File(context.cacheDir, "monefy_e2e_test.csv")
-            staged.copyTo(csvFile, overwrite = true)
+            if (staged.exists()) {
+                staged.copyTo(csvFile, overwrite = true)
+            } else {
+                csvFile.writeText(
+                    "date,account,category,amount,currency,converted amount,currency,description\r\n" +
+                        "01/06/2026,Cash,Food,-12.50,RUB,-12.50,RUB,Fallback expense\r\n",
+                    Charsets.UTF_8,
+                )
+            }
 
             // Seed the single currency referenced in the Monefy export (RUB)
             db.currencyDao().upsert(

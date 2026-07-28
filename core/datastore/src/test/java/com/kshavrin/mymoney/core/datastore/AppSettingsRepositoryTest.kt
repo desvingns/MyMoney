@@ -51,6 +51,7 @@ class AppSettingsRepositoryTest {
             assertEquals("system", settings.themeMode)
             assertEquals(false, settings.biometricLockEnabled)
             assertEquals(60, settings.biometricIdleTimeoutSec)
+            assertEquals(false, settings.hideAppContentInRecents)
             assertEquals(true, settings.soundEnabled)
             assertEquals(true, settings.hapticEnabled)
             assertEquals(-1L, settings.defaultAccountId)
@@ -86,6 +87,7 @@ class AppSettingsRepositoryTest {
                     themeMode = "dark",
                     biometricLockEnabled = true,
                     biometricIdleTimeoutSec = 120,
+                    hideAppContentInRecents = true,
                     soundEnabled = false,
                     hapticEnabled = false,
                     defaultAccountId = 42L,
@@ -173,6 +175,7 @@ class AppSettingsRepositoryTest {
                     dashboardPeriodEpochMs = marchAnchorMs,
                     importFocusEpochMs = 0L,
                     importFocusCurrencyId = -1L,
+                    hideAppContentInRecents = true,
                 )
             }
             writeJob.cancelAndJoin()
@@ -186,6 +189,7 @@ class AppSettingsRepositoryTest {
 
                 assertEquals(marchAnchorMs, coldStartSettings.dashboardPeriodEpochMs)
                 assertEquals(0L, coldStartSettings.importFocusEpochMs)
+                assertEquals(true, coldStartSettings.hideAppContentInRecents)
             } finally {
                 coldStartJob.cancelAndJoin()
             }
@@ -268,6 +272,7 @@ class AppSettingsRepositoryTest {
                     language = "ru",
                     themeMode = "dark",
                     biometricLockEnabled = true,
+                    hideAppContentInRecents = true,
                     lastSyncAt = 456L,
                     autoSyncEnabled = false,
                     firstPositiveSeen = true,
@@ -278,6 +283,7 @@ class AppSettingsRepositoryTest {
             repository.reset()
 
             assertEquals(AppSettings(), repository.settings.first())
+            assertEquals(false, repository.settings.first().hideAppContentInRecents)
             assertEquals(preservedDeviceId, dataStore.data.first()[AppSettingsKeys.DEVICE_ID])
         }
 

@@ -60,6 +60,28 @@ class SettingsViewModelTest {
         }
 
     @Test
+    fun `initial state reflects persisted recents privacy flag`() =
+        runTest {
+            val viewModel = buildViewModel(AppSettings(hideAppContentInRecents = true))
+
+            viewModel.state.test {
+                assertTrue(awaitItem().hideAppContentInRecents)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `initial state defaults recents privacy flag to disabled`() =
+        runTest {
+            val viewModel = buildViewModel()
+
+            viewModel.state.test {
+                assertFalse(awaitItem().hideAppContentInRecents)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
     fun `initial state defaults sound and haptic to enabled`() =
         runTest {
             val viewModel = buildViewModel(AppSettings())
@@ -140,6 +162,59 @@ class SettingsViewModelTest {
 
                 cancelAndIgnoreRemainingEvents()
             }
+        }
+
+    @Test
+    fun `HideAppContentInRecentsToggled on persists and re-emits the enabled value`() =
+        runTest {
+            val viewModel = buildViewModel(AppSettings(hideAppContentInRecents = false))
+
+            viewModel.state.test {
+                assertFalse(awaitItem().hideAppContentInRecents)
+
+                viewModel.onEvent(SettingsEvent.HideAppContentInRecentsToggled(true))
+
+                assertTrue(awaitItem().hideAppContentInRecents)
+                assertTrue(repository.settings.value.hideAppContentInRecents)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `HideAppContentInRecentsToggled off persists and re-emits the disabled value`() =
+        runTest {
+            val viewModel = buildViewModel(AppSettings(hideAppContentInRecents = true))
+
+            viewModel.state.test {
+                assertTrue(awaitItem().hideAppContentInRecents)
+
+                viewModel.onEvent(SettingsEvent.HideAppContentInRecentsToggled(false))
+
+                assertFalse(awaitItem().hideAppContentInRecents)
+                assertFalse(repository.settings.value.hideAppContentInRecents)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `toggling recents privacy leaves unrelated settings untouched`() =
+        runTest {
+            val initial =
+                AppSettings(
+                    language = "ru",
+                    themeMode = "dark",
+                    hideAppContentInRecents = false,
+                    soundEnabled = false,
+                    hapticEnabled = false,
+                    defaultAccountId = 7L,
+                    defaultPeriod = "week",
+                    budgetModeEnabled = false,
+                )
+            val viewModel = buildViewModel(initial)
+
+            viewModel.onEvent(SettingsEvent.HideAppContentInRecentsToggled(true))
+
+            assertEquals(initial.copy(hideAppContentInRecents = true), repository.settings.value)
         }
 
     @Test

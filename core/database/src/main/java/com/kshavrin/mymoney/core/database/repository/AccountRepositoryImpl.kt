@@ -85,6 +85,36 @@ class AccountRepositoryImpl
                 }
             }
 
+        override suspend fun uuidForId(id: Long): String? =
+            withContext(ioDispatcher) {
+                dao.findById(id)?.uuid?.takeIf(String::isNotBlank)
+            }
+
+        override suspend fun applySharedUpsert(
+            account: Account,
+            uuid: String,
+            deviceId: String,
+        ) = withContext(ioDispatcher) {
+            require(uuid.isNotBlank()) { "shared account uuid must not be blank" }
+            val existing = dao.findByUuid(uuid)
+            val entity =
+                account
+                    .toEntity()
+                    .copy(
+                        id = existing?.id ?: 0L,
+                        uuid = uuid,
+                        deviceId = deviceId,
+                    )
+            dao.upsert(entity)
+            Unit
+        }
+
+        override suspend fun applySharedArchive(uuid: String) =
+            withContext(ioDispatcher) {
+                require(uuid.isNotBlank()) { "shared account uuid must not be blank" }
+                dao.archiveByUuid(uuid)
+            }
+
         override suspend fun archive(id: Long) =
             withContext(ioDispatcher) {
                 val now = clock.instant()

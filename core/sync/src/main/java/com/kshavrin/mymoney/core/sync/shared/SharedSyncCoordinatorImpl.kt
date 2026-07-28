@@ -130,7 +130,9 @@ class SharedSyncCoordinatorImpl
             withContext(dispatcher) {
                 runCatching {
                     val workspaceId = requireActiveWorkspaceId()
-                    backupRepository.createInternalBackup().getOrThrow()
+                    // A failed safety backup must NOT keep remote access alive: capture its result but
+                    // always proceed to cut remote access, then propagate the backup failure at the end.
+                    val backup = backupRepository.createInternalBackup()
                     val serverLeave = runCatching { workspaceApi.leaveWorkspace(workspaceId).getOrThrow() }
                     clearSharedLocalState()
                     // The shared data stays as a personal local copy. Whether or not the server-side
@@ -138,6 +140,8 @@ class SharedSyncCoordinatorImpl
                     // keep remote access alive if the server leave did not land.
                     runCatching { auth.signOut().getOrThrow() }
                     serverLeave.getOrThrow()
+                    backup.getOrThrow()
+                    Unit
                 }
             }
 
@@ -157,6 +161,10 @@ class SharedSyncCoordinatorImpl
                 backupRepository.clearDatabase().getOrThrow()
                 pullAndApply(workspace.id)
             }
+            // Mark membership active BEFORE the binding becomes visible, so a concurrent syncNow()
+            // landing between these two writes cannot see the binding with an inactive-membership flag
+            // and wrongly evict a legitimately-joining member.
+            sharedStore.setMembershipActive(true)
             configStore.setBinding(
                 CloudBinding(
                     provider = CloudProvider.Shared,
@@ -164,7 +172,6 @@ class SharedSyncCoordinatorImpl
                     accountLabel = workspace.name,
                 ),
             )
-            sharedStore.setMembershipActive(true)
         }
 
         private suspend fun pullAndApply(workspaceId: String) {
@@ -195,25 +202,36 @@ class SharedSyncCoordinatorImpl
         }
 
         private suspend fun applyOperation(operation: SharedOperation) {
+            // entityId carries the stable cross-device uuid (see publishLocalData). Apply keyed by
+            // uuid via the non-journaling repository methods so a remote row can never overwrite a
+            // local row by Room-id collision, and pulled edits never leak into the private cloud.
+            val uuid = operation.entityId
+            val deviceId = operation.deviceId
             val now = clock.instant()
             when (operation.entityKind) {
                 EntityKind.Transaction ->
                     if (operation.tombstone) {
-                        operation.entityId.toLongOrNull()?.let { transactionRepository.softDelete(it, now) }
+                        transactionRepository.applySharedDelete(uuid, now)
                     } else {
-                        operation.payload?.let { transactionRepository.upsert(codec.decodeTransaction(it)) }
+                        operation.payload?.let {
+                            transactionRepository.applySharedUpsert(codec.decodeTransaction(it), uuid, deviceId)
+                        }
                     }
                 EntityKind.Account ->
                     if (operation.tombstone) {
-                        operation.entityId.toLongOrNull()?.let { accountRepository.archive(it) }
+                        accountRepository.applySharedArchive(uuid)
                     } else {
-                        operation.payload?.let { accountRepository.upsert(codec.decodeAccount(it)) }
+                        operation.payload?.let {
+                            accountRepository.applySharedUpsert(codec.decodeAccount(it), uuid, deviceId)
+                        }
                     }
                 EntityKind.Category ->
                     if (operation.tombstone) {
-                        operation.entityId.toLongOrNull()?.let { categoryRepository.archive(it) }
+                        categoryRepository.applySharedArchive(uuid)
                     } else {
-                        operation.payload?.let { categoryRepository.upsert(codec.decodeCategory(it)) }
+                        operation.payload?.let {
+                            categoryRepository.applySharedUpsert(codec.decodeCategory(it), uuid, deviceId)
+                        }
                     }
             }
         }
@@ -222,19 +240,22 @@ class SharedSyncCoordinatorImpl
             val deviceId = deviceIdProvider.deviceId()
             val baseSequence = sharedStore.cursor()
             accountRepository.observeActive().first().forEach { account ->
-                push(workspaceId, deviceId, baseSequence, EntityKind.Account, codec.entityId(account), codec.encodeAccount(account))
+                val uuid = accountRepository.uuidForId(account.id) ?: return@forEach
+                push(workspaceId, deviceId, baseSequence, EntityKind.Account, uuid, codec.encodeAccount(account, uuid))
             }
             categoryRepository.observeAll().first().forEach { category ->
-                push(workspaceId, deviceId, baseSequence, EntityKind.Category, codec.entityId(category), codec.encodeCategory(category))
+                val uuid = categoryRepository.uuidForId(category.id) ?: return@forEach
+                push(workspaceId, deviceId, baseSequence, EntityKind.Category, uuid, codec.encodeCategory(category, uuid))
             }
             transactionRepository.observeAll().first().forEach { transaction ->
+                val uuid = transactionRepository.uuidForId(transaction.id) ?: return@forEach
                 push(
                     workspaceId,
                     deviceId,
                     baseSequence,
                     EntityKind.Transaction,
-                    codec.entityId(transaction),
-                    codec.encodeTransaction(transaction),
+                    uuid,
+                    codec.encodeTransaction(transaction, uuid),
                 )
             }
         }

@@ -50,6 +50,26 @@ interface TransactionRepository {
 
     suspend fun upsert(transaction: Transaction): Long
 
+    /** Stable cross-device uuid for a local row, for publishing it to a Shared workspace. */
+    suspend fun uuidForId(id: Long): String?
+
+    /**
+     * Apply a Shared-workspace upsert keyed by [uuid]: update the matching local row in place
+     * (preserving its own local Room id), or insert a new row carrying [uuid]. Writes NO
+     * private-cloud journal entry, so pulled shared edits never leak into Dropbox/GoogleDrive.
+     */
+    suspend fun applySharedUpsert(
+        transaction: Transaction,
+        uuid: String,
+        deviceId: String,
+    )
+
+    /** Apply a Shared-workspace delete keyed by [uuid] without a private-cloud journal entry. */
+    suspend fun applySharedDelete(
+        uuid: String,
+        now: Instant,
+    )
+
     suspend fun softDelete(
         id: Long,
         now: Instant,

@@ -172,6 +172,38 @@ class TransactionRepositoryImpl
                 }
             }
 
+        override suspend fun uuidForId(id: Long): String? =
+            withContext(ioDispatcher) {
+                dao.findById(id)?.uuid?.takeIf(String::isNotBlank)
+            }
+
+        override suspend fun applySharedUpsert(
+            transaction: Transaction,
+            uuid: String,
+            deviceId: String,
+        ) = withContext(ioDispatcher) {
+            require(uuid.isNotBlank()) { "shared transaction uuid must not be blank" }
+            val existing = dao.findByUuid(uuid)
+            val entity =
+                transaction
+                    .toEntity()
+                    .copy(
+                        id = existing?.id ?: 0L,
+                        uuid = uuid,
+                        deviceId = deviceId,
+                    )
+            dao.upsert(entity)
+            Unit
+        }
+
+        override suspend fun applySharedDelete(
+            uuid: String,
+            now: Instant,
+        ) = withContext(ioDispatcher) {
+            require(uuid.isNotBlank()) { "shared transaction uuid must not be blank" }
+            dao.softDeleteByUuid(uuid, now.toEpochMilli())
+        }
+
         override suspend fun softDelete(
             id: Long,
             now: Instant,

@@ -31,16 +31,14 @@ class SharedEntityCodec
     constructor(
         private val json: Json,
     ) {
-        fun entityId(transaction: Transaction): String = transaction.id.toString()
-
-        fun entityId(account: Account): String = account.id.toString()
-
-        fun entityId(category: Category): String = category.id.toString()
-
-        fun encodeTransaction(transaction: Transaction): String =
+        fun encodeTransaction(
+            transaction: Transaction,
+            uuid: String,
+        ): String =
             json.encodeToString(
                 JsonObject.serializer(),
                 buildJsonObject {
+                    put("uuid", uuid)
                     put("id", transaction.id)
                     put("kind", transaction.kind.name)
                     put("amount", transaction.amount.toPlainString())
@@ -78,10 +76,14 @@ class SharedEntityCodec
             )
         }
 
-        fun encodeAccount(account: Account): String =
+        fun encodeAccount(
+            account: Account,
+            uuid: String,
+        ): String =
             json.encodeToString(
                 JsonObject.serializer(),
                 buildJsonObject {
+                    put("uuid", uuid)
                     put("id", account.id)
                     put("name", account.name)
                     put("currencyId", account.currencyId)
@@ -115,10 +117,14 @@ class SharedEntityCodec
             )
         }
 
-        fun encodeCategory(category: Category): String =
+        fun encodeCategory(
+            category: Category,
+            uuid: String,
+        ): String =
             json.encodeToString(
                 JsonObject.serializer(),
                 buildJsonObject {
+                    put("uuid", uuid)
                     put("id", category.id)
                     put("name", category.name)
                     put("kind", category.kind.name)

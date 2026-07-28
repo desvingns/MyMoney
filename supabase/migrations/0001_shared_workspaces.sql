@@ -210,6 +210,21 @@ begin
         raise exception 'workspace is full' using errcode = 'P0001';
     end if;
 
+    -- Reject a caller who is already an active member (e.g. the owner replaying
+    -- their own invite token). The ON CONFLICT branch below would otherwise
+    -- overwrite their role to editor while workspaces.owner_id still points at
+    -- them, orphaning the workspace on their next leave. Raise before touching
+    -- workspace_members or consuming the invite, so nothing mutates.
+    if exists (
+        select 1
+        from public.workspace_members
+        where workspace_id = v_invite.workspace_id
+          and user_id = v_user
+          and active
+    ) then
+        raise exception 'already an active member' using errcode = 'P0001';
+    end if;
+
     -- Reactivates a prior membership or inserts a new one; fails on
     -- ux_one_active_membership if the caller already belongs to another workspace.
     insert into public.workspace_members (workspace_id, user_id, role, active)
@@ -235,7 +250,16 @@ declare
     v_user uuid := auth.uid();
     v_role public.workspace_role;
     v_new_owner uuid;
+    v_promoted integer;
 begin
+    -- Lock the workspace row so concurrent leave_workspace calls on the same
+    -- workspace serialize: without this, two active members leaving at once can
+    -- both read a stale membership set and race the owner-transfer promotion.
+    perform 1
+    from public.workspaces
+    where id = p_workspace_id
+    for update;
+
     select role into v_role
     from public.workspace_members
     where workspace_id = p_workspace_id
@@ -264,7 +288,16 @@ begin
         update public.workspace_members
         set role = 'owner'
         where workspace_id = p_workspace_id
-          and user_id = v_new_owner;
+          and user_id = v_new_owner
+          and active = true;
+
+        -- The heir must still be active at promotion time. If they raced their own
+        -- leave in, promotion touches zero rows; fail loudly rather than point
+        -- owner_id at an inactive non-owner (unrecoverable without service-role).
+        get diagnostics v_promoted = row_count;
+        if v_promoted <> 1 then
+            raise exception 'concurrent membership change, retry' using errcode = 'P0001';
+        end if;
 
         update public.workspaces
         set owner_id = v_new_owner
@@ -297,3 +330,15 @@ begin
     delete from public.workspaces where id = p_workspace_id;
 end;
 $$;
+
+-- PostgREST only exposes a function to a signed-in caller when the `authenticated`
+-- role holds EXECUTE on it. Grant it explicitly for every SECURITY DEFINER RPC
+-- (and the is_active_member helper the RLS SELECT policies invoke as that role);
+-- do not rely on the default PUBLIC grant, which the platform may tighten.
+grant execute on function public.is_active_member(uuid, uuid) to authenticated;
+grant execute on function public.create_workspace(text) to authenticated;
+grant execute on function public.create_invite(uuid, text) to authenticated;
+grant execute on function public.revoke_invite(uuid) to authenticated;
+grant execute on function public.join_workspace(text) to authenticated;
+grant execute on function public.leave_workspace(uuid) to authenticated;
+grant execute on function public.delete_workspace(uuid) to authenticated;

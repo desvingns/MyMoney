@@ -1,7 +1,7 @@
 # Android Shared mode, join/import, backups, and membership lifecycle
 Epic: shared-backend-sync
 Order: 03 of 04
-Status: backlog
+Status: active
 Depends-on: shared-backend-sync-02-operation-api-and-conflicts
 Date: 2026-07-22
 

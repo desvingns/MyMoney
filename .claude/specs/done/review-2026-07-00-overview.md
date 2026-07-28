@@ -1,7 +1,7 @@
 # Epic: review-2026-07 — improvements from the 2026-07-06 project review
 Epic: review-2026-07
 Order: 00 (index)
-Status: draft
+Status: done (completed 2026-07-28)
 Date: 2026-07-06
 
 ## Goal
@@ -78,3 +78,16 @@ Wave 3 — nice to have (P2/P3):
 Each SPEC's "Gap / context" cites its review item number (project review 2026-07-06,
 approved plan `calm-moseying-dusk`). Review sections: A=release, B=tests, C=CI/build,
 E=a11y, F=l10n, G=perf, H=security, I=architecture, J=docs/process.
+
+## Epic completion review (2026-07-28, clean)
+
+- 34 of 35 ordered SPECs are in `done/` with commits + files filled (shipped slices include
+  sub-SPECs 02a–d, 13a–c, 16-aurora; final slice 35 = e7b9d1b5 + 30ed4fe1). Every cross-cutting
+  constraint above (free tier only, locked AS decisions, never-delete archive policy,
+  Pixel_5_API_34 device gate) was honoured per-SPEC.
+- SPEC 33 (dashboard-vm-decomposition) is NOT a gap: its own CONSTRAINTS defer it to the next
+  substantial dashboard epic, and it is preserved (never deleted) at
+  `archive/review-2026-07-33-dashboard-vm-decomposition.deferred-no-next-dashboard-feature.md`
+  for that trigger.
+- Goal met: all actionable findings of the 2026-07-06 review are shipped except review section D
+  (excluded by user) and item 56 (already done pre-epic, commit ec62caca).

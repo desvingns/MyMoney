@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.mymoney.android.library)
     alias(libs.plugins.ksp)
@@ -10,6 +12,24 @@ android {
 
     defaultConfig {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        val localProperties =
+            Properties().apply {
+                val localPropertiesFile = rootProject.file("local.properties")
+                if (localPropertiesFile.isFile) {
+                    localPropertiesFile.inputStream().use(::load)
+                }
+            }
+        val supabaseUrl =
+            providers.gradleProperty("supabase.url").orNull
+                ?: localProperties.getProperty("supabase.url")?.takeUnless { it.isBlank() }
+                ?: "PLACEHOLDER_SUPABASE_URL"
+        val supabaseAnonKey =
+            providers.gradleProperty("supabase.anonKey").orNull
+                ?: localProperties.getProperty("supabase.anonKey")?.takeUnless { it.isBlank() }
+                ?: "PLACEHOLDER_SUPABASE_ANON_KEY"
+        buildConfigField("String", "SUPABASE_URL", "\"$supabaseUrl\"")
+        buildConfigField("String", "SUPABASE_ANON_KEY", "\"$supabaseAnonKey\"")
     }
 
     buildFeatures {
@@ -30,6 +50,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
 
     testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
 
     androidTestImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.junit)

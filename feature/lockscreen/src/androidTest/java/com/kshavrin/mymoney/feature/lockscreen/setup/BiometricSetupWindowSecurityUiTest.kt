@@ -33,7 +33,9 @@ class BiometricSetupWindowSecurityUiTest {
     @Test
     fun biometricSetupSetsSecureFlagWhenAppContentSourceIsDisabled() {
         val controller = SecureWindowController(composeRule.activity.window)
-        controller.setSecure(SecureWindowSource.AppContent, enabled = false)
+        composeRule.runOnUiThread {
+            controller.setSecure(SecureWindowSource.AppContent, enabled = false)
+        }
 
         composeRule.setContent {
             CompositionLocalProvider(LocalSecureWindowController provides controller) {

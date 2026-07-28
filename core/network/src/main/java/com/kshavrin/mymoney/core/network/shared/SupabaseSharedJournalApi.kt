@@ -49,7 +49,7 @@ class SupabaseSharedJournalApi
             ).mapCatching { dtos -> dtos.map { it.toDomain() } }
 
         override suspend fun listPendingConflicts(workspaceId: String): Result<List<SharedConflict>> =
-            rpc.listPendingConflicts(workspaceId).map { dtos -> dtos.map { it.toDomain() } }
+            rpc.listPendingConflicts(workspaceId).mapCatching { dtos -> dtos.map { it.toDomain() } }
 
         override suspend fun resolveConflict(
             conflictId: String,

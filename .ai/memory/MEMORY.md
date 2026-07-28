@@ -42,3 +42,10 @@ tool-local memories — tool-local copies remain historical snapshots.
   does not constrain AGP/UTP; `connectedDebugAndroidTest` can run on every healthy local emulator.
   Never run the task while user-owned devices are attached. The helper must abort before Gradle when
   any non-gate device is present, and only a parsed Pixel 5 result may be called device verification.
+- Connected-test tooling (2026-07-28): `scripts/mp-runner-instrumented-android.ps1` parses XML only
+  under `app/build/...`; for `:feature:*:connectedDebugAndroidTest` run `run_connected_test_on_host_avd.ps1`
+  directly and parse `<module>/build/outputs/androidTest-results/connected/**/TEST-*.xml` manually.
+  Every `@HiltAndroidTest` androidTest module also needs its own `TestDataStoreModule`
+  (@TestInstallIn replacing DataStoreModule, unique `test_settings_${UUID}` file per component) —
+  without it, multiple test classes in one instrumentation process collide on the production
+  `app_settings.preferences_pb` file (fixed in :feature:lockscreen, commit f01272c9).

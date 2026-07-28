@@ -10,6 +10,27 @@
 
 > Last three session entries are repeated here for fast startup. Full history is archived below.
 
+- **2026-07-28 (Claude MP `--feature --next`, shared-backend-sync epic, SPEC 02):** Completed
+  SPEC `shared-backend-sync-02-operation-api-and-conflicts` (commits `82f8d6f2` feat,
+  `f132bdc6`+`8b3e0a78` fixes, `c81a5f11` tests; pushed to `main`). Added SQL migration
+  `supabase/migrations/0002_shared_operations.sql` (append-only `operations` + `conflicts`
+  tables, RLS, 4 SECURITY DEFINER RPCs: `push_operation`/`pull_operations`/
+  `list_pending_conflicts`/`resolve_conflict`) plus `:core:domain` (SharedOperation,
+  SharedConflict, SharedJournalRepository) and `:core:network` (DTOs, SharedJournalRpc
+  transport seam, SupabaseSharedJournalApi) Kotlin contracts. Semantic review caught 2
+  blockers (non-atomic push idempotency racing under concurrent retries; `author_id` leaking
+  through `pull_operations`' `select *`, violating the "attribution only in conflict UI"
+  constraint) — both fixed (`INSERT ... ON CONFLICT DO NOTHING RETURNING`; explicit
+  column-list SELECT + `authorId` moved to the conflict-only DTOs) and re-verified clean.
+  Independent critic passed (risk downgraded high→standard) with 2 non-blocking hardening
+  findings logged in the SPEC file's "Deferred hardening" section for SPEC 04 to pick up:
+  default Supabase table grants let a client bypass the RPC's column allowlist via direct
+  PostgREST SELECT (RLS restricts rows, not columns); a non-atomic `base_sequence` MAX-scan
+  in `resolve_conflict` (metadata-only staleness, cursor ordering unaffected). Gates: reviewer
+  0 violations, runner 1771 JVM tests + detekt/lint green, full verifier pass. SPEC moved to
+  `done/`; epic not yet complete (SPECs 03/04 remain in backlog), so feedback question and
+  Telegram offer were both skipped per epic-scoped timing.
+
 - **2026-07-28 (Claude MP `--feature --next`, repo hygiene — review-2026-07 epic CLOSED):**
   Completed SPEC `review-2026-07-35-repo-hygiene`, the epic's final slice, re-scoped after a
   staleness pre-check (item (a) was already delivered: `.codex` strays committed `4115685d`,
@@ -34,17 +55,6 @@
   :feature:lockscreen 5/5), full verifier pass. SPEC moved to done; epic's last remaining
   SPEC is `review-2026-07-35-repo-hygiene`. Critic flagged the now-unused no-arg
   `LockController.markUnlocked()` overload as a hygiene candidate for SPEC 35.
-
-- **2026-07-27 (Codex MP `--feature --next`, Monefy decoupling):** Completed SPEC
-  `monefy-decoupling-02-database-rename-migration` in commits `910f1303`, `d9fc696b`,
-  `7d7ae523`, `afa9d15f`, `6db6ff37`, `25e3e092`, `e5e157c8`, `6990f6d9`, `8c6d4a2a`,
-  `f25bc86c`, `12838045`, `71c65765`, `3b7ed4f8`, and `619b27d6`. Room now migrates `monefy.db` plus `-shm`/`-wal` to `mymoney.db` before
-  open, with marker-based restart recovery and checked backup replacement. JVM migration/XML
-  tests, detekt, KtLint, Kover, and app JVM tests passed; connected SPEC-targeted backup tests
-  passed 5/5 on Pixel 5 API 34. Real-device pre-existing rows survived the rename and the
-  broad database connected suite passed all 212 tests with 0 failures/errors/skips after
-  repairing UUID-isolated fixtures and making the Monefy CSV E2E fallback self-contained.
-  SPEC and epic overview are moved to `.claude/specs/done/`; push is pending the human gate.
 
 
 

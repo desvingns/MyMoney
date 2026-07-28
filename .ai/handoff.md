@@ -3,6 +3,27 @@
 Phase/release state authority: `docs/implementation_plan/PROGRESS.md` (do not restate it here).
 
 ## DONE
+- 2026-07-28: SPEC `shared-backend-sync-02-operation-api-and-conflicts` CLOSED (pushed to
+  `main`, `82f8d6f2` feat → `f132bdc6`+`8b3e0a78` fixes → `c81a5f11` tests). Added
+  `supabase/migrations/0002_shared_operations.sql` (append-only `operations`+`conflicts`,
+  4 SECURITY DEFINER RPCs) plus `:core:domain`/`:core:network` Kotlin contracts
+  (SharedOperation/SharedConflict/SharedJournalRepository, DTOs, SharedJournalRpc transport
+  seam, SupabaseSharedJournalApi). Semantic review caught 2 blockers (non-atomic push
+  idempotency race; `author_id` leaking through `pull_operations`) — fixed and re-verified
+  clean; independent critic passed (risk high→standard) with 2 non-blocking hardening
+  findings recorded in the SPEC file's "Deferred hardening" section, both candidates for
+  SPEC 04 (default Supabase table grants bypass the RPC column allowlist via direct
+  PostgREST SELECT — RLS restricts rows, not columns; non-atomic `base_sequence` MAX-scan
+  in `resolve_conflict`, metadata-only). Gates: reviewer 0 violations, runner 1771 JVM tests
+  + detekt/lint green, full verifier pass. Epic not complete (SPECs 03/04 remain in
+  backlog) — feedback question and Telegram offer both skipped per epic-scoped timing.
+  **Session note:** the mp-developer-standard-android subagent hit an account-wide Claude
+  session-limit mid-task twice; both times it had already applied the edit to disk before
+  failing on the final report-back, so resuming/re-sending the same agent and asking it to
+  just commit recovered cleanly with no lost work or duplicate effort. Also caught one real
+  discrepancy myself: the developer's commit message claimed a `mapCatching` fix was applied
+  to 3 methods but the diff only touched 2 — always spot-check the actual file/diff against
+  a developer agent's JSON claim before trusting it.
 - 2026-07-28: SPEC `shared-backend-sync-01-supabase-auth-workspaces` CLOSED (pushed, `3378d2b3`,
   chain 9255eb20→7bd0aa6b→1eaac834→3378d2b3). Real free-tier Supabase project provisioned by the
   user (EU/Ireland region, not Frankfurt as originally drafted — overview + SPEC corrected).
@@ -59,12 +80,16 @@ Phase/release state authority: `docs/implementation_plan/PROGRESS.md` (do not re
   memories are mirrors.
 
 ## NEXT
-- (owner of the next session) Read PROGRESS.md for the active phase as usual. Before starting
-  SPEC 02 (`shared-backend-sync-02-operation-api-and-conflicts`, next in `.claude/specs/backlog/`),
-  confirm with the user whether `supabase/migrations/0001_shared_workspaces.sql` has been applied
-  via the Supabase Dashboard SQL Editor yet — SPEC 02 builds the operation API/conflicts on top of
-  the schema SPEC 01 defined, and live RLS/RPC verification for SPEC 01 is still outstanding
-  either way. Also awaiting: manual deletion of the 6 logs in `archive/`.
+- (owner of the next session) Read PROGRESS.md for the active phase as usual. Next runnable
+  backlog item is `shared-backend-sync-03-android-shared-mode` (Android mode, join/import,
+  safety backups, lifecycle) — depends on both SPEC 01 and SPEC 02 schemas being live. SPEC
+  0002's migration (`supabase/migrations/0002_shared_operations.sql`) has NOT yet been applied
+  via the Supabase Dashboard SQL Editor (only 0001 was confirmed applied so far) — confirm/apply
+  it before SPEC 03 needs to exercise the operation API end-to-end. Also worth folding into
+  SPEC 04 (realtime-hardening-e2e): the 2 non-blocking hardening findings logged in
+  `.claude/specs/done/shared-backend-sync-02-operation-api-and-conflicts.md`'s "Deferred
+  hardening" section (Supabase default-grant column leak, non-atomic base_sequence read).
+  Also awaiting: manual deletion of the 6 logs in `archive/`.
 
 ## OWNER
 - none (idle)

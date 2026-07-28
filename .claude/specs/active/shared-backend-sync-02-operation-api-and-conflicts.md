@@ -1,7 +1,7 @@
 # Shared backend journal API, cursors, and conflict queue
 Epic: shared-backend-sync
 Order: 02 of 04
-Status: backlog
+Status: active
 Depends-on: shared-backend-sync-01-supabase-auth-workspaces
 Date: 2026-07-22
 
@@ -25,5 +25,14 @@ CONSTRAINTS: Operation identity is unique per workspace; every accepted operatio
 
 ## Implementation links
 
-- commit: pending
-- files: pending
+- commit: pending (see git log)
+- files:
+  - supabase/migrations/0002_shared_operations.sql
+  - core/domain/src/main/kotlin/com/kshavrin/mymoney/core/domain/sync/SharedOperation.kt
+  - core/domain/src/main/kotlin/com/kshavrin/mymoney/core/domain/sync/SharedConflict.kt
+  - core/domain/src/main/kotlin/com/kshavrin/mymoney/core/domain/repository/SharedJournalRepository.kt
+  - core/network/src/main/java/com/kshavrin/mymoney/core/network/shared/SharedOperationDto.kt
+  - core/network/src/main/java/com/kshavrin/mymoney/core/network/shared/SharedConflictDto.kt
+  - core/network/src/main/java/com/kshavrin/mymoney/core/network/shared/SharedJournalRpc.kt
+  - core/network/src/main/java/com/kshavrin/mymoney/core/network/shared/SupabaseSharedJournalApi.kt
+  - core/network/build.gradle.kts (added :core:domain dependency)

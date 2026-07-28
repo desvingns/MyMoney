@@ -10,6 +10,18 @@
 
 > Last three session entries are repeated here for fast startup. Full history is archived below.
 
+- **2026-07-28 (Claude MP `--feature`, review-2026-07 epic):** Completed SPEC
+  `review-2026-07-34-flag-secure-recents` (FLAG_SECURE on lock surfaces unconditional +
+  opt-in "Hide app content in Recents" toggle persisted in AppSettings, default OFF).
+  Implementation had landed incrementally (135e185d..ff945b24); this run verified it end-to-end
+  and finished the tail: repository/VM/strings tests (88c50f5c), lockscreen androidTest
+  DataStore isolation via new TestDataStoreModule (f01272c9) and a pinless-fallback deflake
+  (de2aebcc). Gates: reviewer pass, 1695 JVM tests + detekt + lint green, semantic + critic
+  pass, connected window-security suites green on Pixel 5 API 34 (:app 6/6,
+  :feature:lockscreen 5/5), full verifier pass. SPEC moved to done; epic's last remaining
+  SPEC is `review-2026-07-35-repo-hygiene`. Critic flagged the now-unused no-arg
+  `LockController.markUnlocked()` overload as a hygiene candidate for SPEC 35.
+
 - **2026-07-27 (Codex MP `--feature --next`, Monefy decoupling):** Completed SPEC
   `monefy-decoupling-02-database-rename-migration` in commits `910f1303`, `d9fc696b`,
   `7d7ae523`, `afa9d15f`, `6db6ff37`, `25e3e092`, `e5e157c8`, `6990f6d9`, `8c6d4a2a`,
@@ -27,14 +39,6 @@
   changes. Evidence: 1655 JVM tests and 147 connected design-system tests passed; reviewer,
   runner, and full verifier passed. SPEC moved to `.claude/specs/done/`; database rename remains
   the next independent epic slice.
-
-- **2026-07-26 (Codex MP `--feature --next`, Compose stability audit):** Completed SPEC
-  `review-2026-07-32-compose-stability-audit` in commits `fb8efd62`, `73dad3d2`,
-  `6cb25af9`, and `db7944b6`, with Compose compiler metrics across 11 modules and
-  targeted immutable-state fixes for dashboard/transactions-list hot paths. Changed-module
-  evidence was 356 tests, 0 failures/errors/skips; scoped ktlint and detekt passed; Kover
-  remained blocked by the existing tag-at-HEAD release guard. Pushed to `origin/main` at
-  `db7944b6`; no device run was required.
 
 
 

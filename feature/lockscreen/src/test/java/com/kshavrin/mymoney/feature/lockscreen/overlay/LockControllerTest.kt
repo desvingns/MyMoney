@@ -750,7 +750,8 @@ class LockControllerTest {
     fun `resume after idle exceeds the timeout shows the lock`() =
         runTest {
             val controller = buildController(initialSettings = AppSettings().lockEnabled(timeoutSec = 60))
-            controller.markUnlocked()
+            val startId = controller.onMainActivityCreated()
+            controller.markUnlocked(startId)
 
             controller.now = { 0L }
             controller.onPause(lifecycleOwner)
@@ -767,7 +768,8 @@ class LockControllerTest {
     fun `resume within the timeout stays unlocked`() =
         runTest {
             val controller = buildController(initialSettings = AppSettings().lockEnabled(timeoutSec = 60))
-            controller.markUnlocked()
+            val startId = controller.onMainActivityCreated()
+            controller.markUnlocked(startId)
 
             controller.now = { 0L }
             controller.onPause(lifecycleOwner)
@@ -784,7 +786,8 @@ class LockControllerTest {
     fun `resume without a preceding pause stays unlocked`() =
         runTest {
             val controller = buildController(initialSettings = AppSettings().lockEnabled(timeoutSec = 60))
-            controller.markUnlocked()
+            val startId = controller.onMainActivityCreated()
+            controller.markUnlocked(startId)
 
             controller.now = { 600_000L }
             controller.onResume(lifecycleOwner)
@@ -796,19 +799,6 @@ class LockControllerTest {
         }
 
     // --- 4. markUnlocked ------------------------------------------------------------------
-
-    @Test
-    fun `markUnlocked clears the lock`() =
-        runTest {
-            val controller = buildController(initialSettings = AppSettings().lockEnabled())
-
-            controller.markUnlocked()
-
-            controller.shouldShowLock.test {
-                assertFalse(awaitItem())
-                cancelAndIgnoreRemainingEvents()
-            }
-        }
 
     @Test
     fun `disabling biometric lock after the overlay is shown hides the lock immediately`() =
@@ -826,13 +816,16 @@ class LockControllerTest {
         }
 
     @Test
-    fun `markUnlocked resets pausedAt so a resume within the timeout stays unlocked`() =
+    fun `markUnlocked with an activity start id resets pausedAt so a later resume stays unlocked`() =
         runTest {
             val controller = buildController(initialSettings = AppSettings().lockEnabled(timeoutSec = 60))
+            val startId = controller.onMainActivityCreated()
+
+            assertTrue(controller.shouldShowLock.value)
 
             controller.now = { 0L }
             controller.onPause(lifecycleOwner)
-            controller.markUnlocked()
+            controller.markUnlocked(startId)
             controller.now = { 600_000L }
             controller.onResume(lifecycleOwner)
 

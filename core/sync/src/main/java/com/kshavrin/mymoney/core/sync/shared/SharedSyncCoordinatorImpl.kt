@@ -1,8 +1,11 @@
 package com.kshavrin.mymoney.core.sync.shared
 
+import androidx.room.withTransaction
 import com.kshavrin.mymoney.core.common.di.IoDispatcher
 import com.kshavrin.mymoney.core.common.exception.SyncError
 import com.kshavrin.mymoney.core.common.exception.SyncException
+import com.kshavrin.mymoney.core.common.exception.reportToSentry
+import com.kshavrin.mymoney.core.database.MoneyDatabase
 import com.kshavrin.mymoney.core.datastore.CloudBinding
 import com.kshavrin.mymoney.core.datastore.CloudProvider
 import com.kshavrin.mymoney.core.datastore.JournalSyncConfigStore
@@ -19,6 +22,7 @@ import com.kshavrin.mymoney.core.domain.sync.SharedOperation
 import com.kshavrin.mymoney.core.network.shared.SharedAuth
 import com.kshavrin.mymoney.core.network.shared.SharedWorkspace
 import com.kshavrin.mymoney.core.network.shared.SharedWorkspaceApi
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -42,6 +46,7 @@ class SharedSyncCoordinatorImpl
         private val accountRepository: AccountRepository,
         private val categoryRepository: CategoryRepository,
         private val codec: SharedEntityCodec,
+        private val database: MoneyDatabase,
         private val clock: Clock,
         @IoDispatcher private val dispatcher: CoroutineDispatcher,
     ) : SharedSyncCoordinator {
@@ -94,6 +99,13 @@ class SharedSyncCoordinatorImpl
             withContext(dispatcher) {
                 runCatching {
                     val workspaceId = requireActiveWorkspaceId()
+                    // Forced-removal guard: if this device's membership is no longer active, detach the
+                    // shared binding (mirroring leave's local cleanup) so background sync stops and the
+                    // UI can surface an access-denied state, keeping the shared data as a personal copy.
+                    if (!sharedStore.isMembershipActive()) {
+                        clearSharedLocalState()
+                        throw SyncException(SyncError.Auth)
+                    }
                     pullAndApply(workspaceId)
                 }
             }
@@ -119,9 +131,13 @@ class SharedSyncCoordinatorImpl
                 runCatching {
                     val workspaceId = requireActiveWorkspaceId()
                     backupRepository.createInternalBackup().getOrThrow()
-                    runCatching { workspaceApi.leaveWorkspace(workspaceId).getOrThrow() }
-                    configStore.clearBinding()
-                    sharedStore.clear()
+                    val serverLeave = runCatching { workspaceApi.leaveWorkspace(workspaceId).getOrThrow() }
+                    clearSharedLocalState()
+                    // The shared data stays as a personal local copy. Whether or not the server-side
+                    // membership row was removed, always drop the auth session so a stale token cannot
+                    // keep remote access alive if the server leave did not land.
+                    runCatching { auth.signOut().getOrThrow() }
+                    serverLeave.getOrThrow()
                 }
             }
 
@@ -132,8 +148,11 @@ class SharedSyncCoordinatorImpl
             backupRepository.createInternalBackup().getOrThrow()
             sharedStore.clear()
             if (importLocalData) {
-                pullAndApply(workspace.id)
+                // Publish the ORIGINAL local rows before pulling remote state; applying remote
+                // operations first could overwrite a local row (IDs are still local Room ids) and
+                // then publish the overwritten remote data instead of the user's own data.
                 publishLocalData(workspace.id)
+                pullAndApply(workspace.id)
             } else {
                 backupRepository.clearDatabase().getOrThrow()
                 pullAndApply(workspace.id)
@@ -151,11 +170,26 @@ class SharedSyncCoordinatorImpl
         private suspend fun pullAndApply(workspaceId: String) {
             var after = sharedStore.cursor()
             while (true) {
-                val operations = journalRepository.pull(workspaceId, after, PAGE_SIZE).getOrThrow()
+                val operations =
+                    journalRepository
+                        .pull(workspaceId, after, PAGE_SIZE)
+                        .getOrThrow()
+                        .sortedBy { it.serverSequence }
                 if (operations.isEmpty()) break
-                operations.forEach { applyOperation(it) }
-                after = operations.maxOf { it.serverSequence }
-                sharedStore.setCursor(after)
+                for (operation in operations) {
+                    // A single malformed/unknown operation must not stall sync forever: log and skip
+                    // it, but still advance the cursor past it so the next pull moves on. Each op is
+                    // applied in its own Room transaction so a process kill cannot leave a half-applied
+                    // batch behind.
+                    try {
+                        database.withTransaction { applyOperation(operation) }
+                    } catch (t: Throwable) {
+                        if (t is CancellationException) throw t
+                        t.reportToSentry()
+                    }
+                    after = operation.serverSequence
+                    sharedStore.setCursor(after)
+                }
                 if (operations.size < PAGE_SIZE) break
             }
         }
@@ -224,6 +258,11 @@ class SharedSyncCoordinatorImpl
                     payload = payload,
                     tombstone = false,
                 ).getOrThrow()
+        }
+
+        private suspend fun clearSharedLocalState() {
+            configStore.clearBinding()
+            sharedStore.clear()
         }
 
         private fun ensureSignedIn() {

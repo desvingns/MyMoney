@@ -8,7 +8,6 @@ data class SharedOperation(
     val idempotencyKey: String,
     val serverSequence: Long,
     val baseSequence: Long,
-    val authorId: String,
     val deviceId: String,
     val entityKind: EntityKind,
     val entityId: String,

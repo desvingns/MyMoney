@@ -45,6 +45,13 @@ create index ix_conflicts_workspace_pending on public.conflicts (workspace_id)
     where status = 'pending';
 create index ix_conflicts_entity on public.conflicts (workspace_id, entity_kind, entity_id);
 
+-- Enforces at most one pending conflict per entity at the DB level. push_operation
+-- treats a unique_violation on this index as a no-op: a concurrent pusher's conflict
+-- row already captures the divergence.
+create unique index ux_one_pending_conflict_per_entity
+    on public.conflicts (workspace_id, entity_kind, entity_id)
+    where status = 'pending';
+
 alter table public.operations enable row level security;
 alter table public.conflicts enable row level security;
 
@@ -56,13 +63,14 @@ create policy operations_select_members on public.operations
 create policy conflicts_select_members on public.conflicts
     for select using (public.is_active_member(workspace_id, auth.uid()));
 
--- Idempotent push: if (workspace_id, idempotency_key) already exists, return the
--- accepted row unchanged so retried pushes converge without duplicating side-effects.
+-- Idempotent push: the INSERT ... ON CONFLICT DO NOTHING is atomic, so two
+-- concurrent retries on the same (workspace_id, idempotency_key) cannot both
+-- insert; the second sees zero RETURNING rows and falls back to a SELECT.
 -- Conflict detection: when a concurrent edit on the same entity landed after the
 -- caller's base_sequence, open a conflict row. The new operation is still accepted
--- (non-blocking); the conflict queue surfaces the divergence for manual resolution.
--- At most one pending conflict per entity is created (additional concurrent ops land
--- in the journal and will be covered when the existing conflict is resolved).
+-- (non-blocking). ux_one_pending_conflict_per_entity enforces the one-pending-per-
+-- entity invariant at the DB level; a unique_violation from a concurrent push is
+-- treated as a no-op.
 create or replace function public.push_operation(
     p_workspace_id uuid,
     p_idempotency_key text,
@@ -86,23 +94,29 @@ begin
         raise exception 'not a workspace member' using errcode = '42501';
     end if;
 
-    select * into v_op
-    from public.operations
-    where workspace_id = p_workspace_id
-      and idempotency_key = p_idempotency_key;
-
-    if v_op is not null then
-        return v_op;
-    end if;
-
+    -- Atomic idempotent insert: if the key already exists, DO NOTHING and RETURNING
+    -- produces zero rows (v_op stays NULL).
     insert into public.operations (
         workspace_id, idempotency_key, base_sequence, author_id, device_id,
         entity_kind, entity_id, payload, tombstone
     ) values (
         p_workspace_id, p_idempotency_key, p_base_sequence, v_user, p_device_id,
         p_entity_kind, p_entity_id, p_payload, p_tombstone
-    ) returning * into v_op;
+    ) on conflict (workspace_id, idempotency_key) do nothing
+    returning * into v_op;
 
+    if v_op is null then
+        -- The row was inserted by an earlier call (or a concurrent retry that won
+        -- the race); return the already-accepted operation.
+        select * into v_op
+        from public.operations
+        where workspace_id = p_workspace_id
+          and idempotency_key = p_idempotency_key;
+        return v_op;
+    end if;
+
+    -- Conflict detection: find the most recent accepted operation on the same entity
+    -- that landed after the caller's base_sequence.
     select * into v_conflict_op
     from public.operations
     where workspace_id = p_workspace_id
@@ -113,31 +127,42 @@ begin
     order by server_sequence desc
     limit 1;
 
-    if v_conflict_op is not null and not exists (
-        select 1 from public.conflicts
-        where workspace_id = p_workspace_id
-          and entity_kind = p_entity_kind
-          and entity_id = p_entity_id
-          and status = 'pending'
-    ) then
-        insert into public.conflicts (
-            workspace_id, entity_kind, entity_id, operation_a_id, operation_b_id
-        ) values (
-            p_workspace_id, p_entity_kind, p_entity_id, v_conflict_op.id, v_op.id
-        );
+    if v_conflict_op is not null then
+        begin
+            insert into public.conflicts (
+                workspace_id, entity_kind, entity_id, operation_a_id, operation_b_id
+            ) values (
+                p_workspace_id, p_entity_kind, p_entity_id, v_conflict_op.id, v_op.id
+            );
+        exception when unique_violation then
+            -- A concurrent push already created the pending conflict for this entity.
+            null;
+        end;
     end if;
 
     return v_op;
 end;
 $$;
 
--- Cursor-paginated pull ordered by server_sequence ascending so callers advance
--- their local cursor incrementally and receive every accepted operation exactly once.
+-- Cursor-paginated pull ordered by server_sequence ascending. author_id is
+-- intentionally excluded: author attribution is exposed only to the conflict UI.
 create or replace function public.pull_operations(
     p_workspace_id uuid,
     p_after_sequence bigint,
     p_limit integer default 100
-) returns setof public.operations
+) returns table (
+    id uuid,
+    workspace_id uuid,
+    idempotency_key text,
+    server_sequence bigint,
+    base_sequence bigint,
+    device_id text,
+    entity_kind public.entity_kind,
+    entity_id uuid,
+    payload jsonb,
+    tombstone boolean,
+    created_at timestamptz
+)
     language plpgsql
     security definer
     set search_path = public
@@ -148,17 +173,29 @@ begin
     end if;
 
     return query
-    select *
-    from public.operations
-    where workspace_id = p_workspace_id
-      and server_sequence > p_after_sequence
-    order by server_sequence asc
+    select
+        o.id,
+        o.workspace_id,
+        o.idempotency_key,
+        o.server_sequence,
+        o.base_sequence,
+        o.device_id,
+        o.entity_kind,
+        o.entity_id,
+        o.payload,
+        o.tombstone,
+        o.created_at
+    from public.operations o
+    where o.workspace_id = p_workspace_id
+      and o.server_sequence > p_after_sequence
+    order by o.server_sequence asc
     limit p_limit;
 end;
 $$;
 
--- Returns pending conflicts with both participant operations embedded as JSON so
--- the caller receives all data for the conflict-resolution UI in a single round-trip.
+-- Returns pending conflicts with both participant operations embedded as JSON and
+-- their author ids as separate top-level columns. author_id is surfaced here because
+-- this path feeds the conflict-resolution UI — the only place attribution is shown.
 create or replace function public.list_pending_conflicts(
     p_workspace_id uuid
 ) returns table (
@@ -168,6 +205,8 @@ create or replace function public.list_pending_conflicts(
     entity_id uuid,
     operation_a json,
     operation_b json,
+    author_a_id uuid,
+    author_b_id uuid,
     status public.conflict_status,
     resolver_id uuid,
     resolved_into_id uuid,
@@ -191,6 +230,8 @@ begin
         c.entity_id,
         row_to_json(a.*),
         row_to_json(b.*),
+        a.author_id,
+        b.author_id,
         c.status,
         c.resolver_id,
         c.resolved_into_id,
@@ -208,7 +249,8 @@ $$;
 -- Membership-authorized resolution. Appends a superseding operation carrying the
 -- winning side's payload so the winner becomes the latest accepted state for the
 -- entity. The conflict row is closed; historical operations are never mutated.
--- The resolution idempotency_key 'resolve:<conflict_id>' makes retried calls safe.
+-- The idempotency check runs before the status guard so a network retry after a
+-- successful commit returns the superseding op instead of raising.
 create or replace function public.resolve_conflict(
     p_conflict_id uuid,
     p_winner_operation_id uuid
@@ -235,6 +277,17 @@ begin
         raise exception 'not a workspace member' using errcode = '42501';
     end if;
 
+    -- Idempotency probe runs BEFORE the status guard so a retry after a successful
+    -- commit returns the superseding operation rather than raising 'already resolved'.
+    select * into v_superseding
+    from public.operations
+    where workspace_id = v_conflict.workspace_id
+      and idempotency_key = v_resolution_key;
+
+    if v_superseding is not null then
+        return v_superseding;
+    end if;
+
     if v_conflict.status <> 'pending' then
         raise exception 'conflict already resolved' using errcode = 'P0001';
     end if;
@@ -243,17 +296,6 @@ begin
         and p_winner_operation_id <> v_conflict.operation_b_id then
         raise exception 'winner must be one of the two conflict participants'
             using errcode = 'P0001';
-    end if;
-
-    -- Idempotency: if the superseding operation already exists, the conflict was
-    -- already resolved on a prior call; return the existing superseding op.
-    select * into v_superseding
-    from public.operations
-    where workspace_id = v_conflict.workspace_id
-      and idempotency_key = v_resolution_key;
-
-    if v_superseding is not null then
-        return v_superseding;
     end if;
 
     select * into v_winner from public.operations where id = p_winner_operation_id;

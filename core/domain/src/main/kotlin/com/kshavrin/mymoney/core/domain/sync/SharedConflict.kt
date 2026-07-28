@@ -14,6 +14,8 @@ data class SharedConflict(
     val entityId: String,
     val operationA: SharedOperation,
     val operationB: SharedOperation,
+    val authorAId: String,
+    val authorBId: String,
     val status: ConflictStatus,
     val resolverId: String?,
     val resolvedIntoId: String?,

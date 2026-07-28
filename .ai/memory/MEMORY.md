@@ -49,3 +49,11 @@ tool-local memories — tool-local copies remain historical snapshots.
   (@TestInstallIn replacing DataStoreModule, unique `test_settings_${UUID}` file per component) —
   without it, multiple test classes in one instrumentation process collide on the production
   `app_settings.preferences_pb` file (fixed in :feature:lockscreen, commit f01272c9).
+- Git commit hygiene on Windows (2026-07-28, SPEC review-2026-07-35): never emit a PowerShell
+  here-string (`git commit -m @"..."@`) into a Git Bash shell — bash strips the quotes and git
+  folds the literal `@` lines into the subject (4 commits shipped with a stray "@ " prefix:
+  f451c240, b41aecad, 5cdddc78, 8ddb79cf). Use plain `git commit -m "..."` or a bash heredoc.
+- `git mv` of a just-edited file stages ONLY the 100% rename; the fresh content edits stay
+  unstaged and the next commit records the rename alone (bit SPEC activation commit 4f0d2aaf,
+  folded into the close commit). After `git mv` of a file you just edited, always `git add <dest>`
+  and check `git status` before committing.

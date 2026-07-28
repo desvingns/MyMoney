@@ -83,6 +83,12 @@ class LockOverlayUiTest {
             launchBiometric = { _, _, _, _, _, _, onPinFallback -> onPinFallback() },
         )
 
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule
+                .onAllNodesWithText(stringRes(R.string.lock_pin_unavailable))
+                .fetchSemanticsNodes()
+                .isNotEmpty()
+        }
         composeRule
             .onNodeWithText(stringRes(R.string.lock_pin_unavailable))
             .assertIsDisplayed()

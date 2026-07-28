@@ -272,11 +272,6 @@ class LockController
             }
         }
 
-        fun markUnlocked() {
-            pausedAt = null
-            _shouldShowLock.value = false
-        }
-
         fun markUnlocked(activityStartId: Long) {
             pausedAt = null
             synchronized(activityStartLock) {

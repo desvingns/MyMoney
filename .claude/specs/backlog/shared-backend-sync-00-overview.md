@@ -20,7 +20,7 @@ reuse Google Drive sharing and does not replace private Dropbox or Google Drive 
 
 ## Cross-cutting decisions
 
-- Supabase free tier in the Frankfurt region; TLS plus RLS for MVP, no end-to-end encryption.
+- Supabase free tier in the EU (Ireland region, as actually provisioned); TLS plus RLS for MVP, no end-to-end encryption.
 - Google identity through Supabase Auth (`openid email profile`), with no Drive permission.
 - One active workspace and one active local database; no workspace/profile column on every domain row.
 - Shared operations cover Transaction, Account, and Category. Device/security preferences stay local.

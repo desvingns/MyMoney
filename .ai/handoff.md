@@ -3,6 +3,25 @@
 Phase/release state authority: `docs/implementation_plan/PROGRESS.md` (do not restate it here).
 
 ## DONE
+- 2026-07-28: SPEC `shared-backend-sync-01-supabase-auth-workspaces` CLOSED (pushed, `3378d2b3`,
+  chain 9255eb20→7bd0aa6b→1eaac834→3378d2b3). Real free-tier Supabase project provisioned by the
+  user (EU/Ireland region, not Frankfurt as originally drafted — overview + SPEC corrected).
+  Delivered: SQL migration (`workspaces`/`workspace_members`/`workspace_invites`, RLS, RPCs for
+  invite create/join/revoke/owner-transfer/delete) under `supabase/migrations/`, `:core:network`
+  Kotlin auth/API contracts (`SharedAuth`, `SharedWorkspaceApi`/`Rpc`, `SupabaseSharedWorkspaceApi`,
+  `InviteTokenFactory`, `SupabaseConfig`), secret injection via `local.properties`
+  (`supabase.url`/`supabase.anonKey`) mirroring the existing `DROPBOX_APP_KEY` BuildConfig seam.
+  Semantic review caught 2 blocker race conditions (owner-transfer race in `leave_workspace`,
+  self-rejoin-via-own-invite in `join_workspace`) — both fixed and re-verified; independent critic
+  passed clean with 2 non-blocking hardening warnings (`revoke_invite` no-op signalling,
+  `PUBLIC`-not-revoked on SECURITY DEFINER grants). Gates: reviewer 0 violations, runner 1729/0 JVM
+  tests + detekt/lint ok, verifier pass. **Not yet live-verifiable**: no Supabase CLI/Docker/
+  service-role key on this machine, so the migration is committed but NOT applied to the project —
+  the user must run it via the Supabase Dashboard SQL Editor (`supabase/README.md`) before any
+  RLS/RPC integration test or SPEC 02/03/04 work can exercise it end-to-end. This was an
+  intermediate epic slice (1 of 4) — post-ship feedback question and Telegram build offer were
+  both skipped per epic-scoped timing (SPECs 02-04 still in backlog; nothing user-visible to try
+  yet).
 - 2026-07-28: SPEC `review-2026-07-35-repo-hygiene` CLOSED — final slice, so the whole
   `review-2026-07` epic (35 SPECs) is now closed; overview moved to `done/`. (b) 6 root logs
   moved to git-ignored `archive/` (manual deletion pending on the user); (c) stray "@ "
@@ -40,16 +59,18 @@ Phase/release state authority: `docs/implementation_plan/PROGRESS.md` (do not re
   memories are mirrors.
 
 ## NEXT
-- (owner of the next session) Read PROGRESS.md for the active phase as usual. The backlog holds
-  only the `shared-backend-sync` epic (01..04); SPEC 01 starts with real Supabase provisioning
-  (free-tier Frankfurt project + Google OAuth for Supabase Auth) — an external-account gate on
-  the user, with no local Docker/supabase-CLI fallback on this machine. Either provision with
-  the user or groom new work (`--spec`); also awaiting: manual deletion of the 6 logs in
-  `archive/`.
+- (owner of the next session) Read PROGRESS.md for the active phase as usual. Before starting
+  SPEC 02 (`shared-backend-sync-02-operation-api-and-conflicts`, next in `.claude/specs/backlog/`),
+  confirm with the user whether `supabase/migrations/0001_shared_workspaces.sql` has been applied
+  via the Supabase Dashboard SQL Editor yet — SPEC 02 builds the operation API/conflicts on top of
+  the schema SPEC 01 defined, and live RLS/RPC verification for SPEC 01 is still outstanding
+  either way. Also awaiting: manual deletion of the 6 logs in `archive/`.
 
 ## OWNER
 - none (idle)
 
 ## BLOCKERS
-- `shared-backend-sync-01` — needs the user to create the free-tier Frankfurt Supabase project
-  and configure Google OAuth in Supabase Auth before agents can verify RLS/RPC acceptance.
+- none currently open. (Prior blocker — real Supabase project + Google OAuth for SPEC 01 — was
+  resolved 2026-07-28: project provisioned by the user in the EU/Ireland region, credentials in
+  `local.properties`. The SQL migration still needs manual application before live verification,
+  but that is tracked as a NEXT item, not a hard blocker on further schema/code work.)

@@ -416,3 +416,33 @@ val ColorScheme.dashboardInlineRecordContainer: Color
 // the amount/note text while still giving the eye a row separator.
 val ColorScheme.dashboardInlineRecordDivider: Color
     get() = outlineVariant
+
+// Conflict resolution UI — local (my) version panel container.
+// primaryContainer gives the "mine" side a mint-flavored subtle tint in the neon palette,
+// consistent with primary accent semantics (primary = NeonMint = the user's own actions).
+// Used ONLY in the conflict resolution screen per SPEC constraint.
+val ColorScheme.conflictLocalContainer: Color
+    get() = primaryContainer
+
+val ColorScheme.conflictLocalContent: Color
+    get() = onPrimaryContainer
+
+// Conflict resolution UI — remote (their) version panel container.
+// secondaryContainer (NeonTrack) gives the "theirs" side a cyan-flavored tint that is
+// visually distinct from both the local panel and from error/warning surfaces.
+val ColorScheme.conflictRemoteContainer: Color
+    get() = secondaryContainer
+
+val ColorScheme.conflictRemoteContent: Color
+    get() = onSecondaryContainer
+
+// Conflict resolution UI — author attribution badge.
+// Author identity appears ONLY in the conflict UI per SPEC constraint; onSurfaceVariant
+// keeps the author label subordinate to the entity data (amount, category, date).
+// surfaceVariant badge background follows the same low-prominence convention used by
+// wizardStepProgressContainer.
+val ColorScheme.conflictAuthorLabel: Color
+    get() = onSurfaceVariant
+
+val ColorScheme.conflictAuthorContainer: Color
+    get() = surfaceVariant

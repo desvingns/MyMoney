@@ -30,6 +30,7 @@ import com.kshavrin.mymoney.navigation.MyMoneyNavHost
 import com.kshavrin.mymoney.navigation.ShortcutDestination
 import dagger.Lazy
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
@@ -75,16 +76,32 @@ class MainActivity : AppCompatActivity() {
                     SecureWindowSource.AppContent,
                     securityState.shouldSecure,
                 )
-                initialAppContentStateApplied.set(true)
+                if (activitySecurityReady.value) {
+                    initialAppContentStateApplied.set(true)
+                }
+            }
+        }
+        lifecycleScope.launch {
+            activitySecurityReady.collect { ready ->
+                if (!ready) return@collect
+                lockController.appContentSecurityState.value?.let { securityState ->
+                    secureWindowController.setSecure(
+                        SecureWindowSource.AppContent,
+                        securityState.shouldSecure,
+                    )
+                    initialAppContentStateApplied.set(true)
+                }
             }
         }
         val activityLockState = lockController.lockStateFor(activityStartId)
         lifecycleScope.launch {
-            activityLockState.collect { secure ->
-                secureWindowController.setSecure(SecureWindowSource.LockOverlay, secure)
-                initialLockOverlayStateApplied.set(true)
+            combine(activitySecurityReady, activityLockState) { ready, secure -> ready to secure }
+                .collect { (ready, secure) ->
+                    if (!ready) return@collect
+                    secureWindowController.setSecure(SecureWindowSource.LockOverlay, secure)
+                    initialLockOverlayStateApplied.set(true)
+                }
             }
-        }
         enableEdgeToEdge()
         if (savedInstanceState == null) {
             showFactoryResetFailureIfNeeded()

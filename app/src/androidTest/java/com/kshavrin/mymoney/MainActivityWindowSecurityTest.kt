@@ -42,7 +42,7 @@ class MainActivityWindowSecurityTest {
     }
 
     @Test
-    fun `launch with biometric lock enabled applies secure window flag`() =
+    fun launchWithBiometricLockEnabledAppliesSecureWindowFlag() =
         runTest {
             seedSettings(biometricLockEnabled = true)
 
@@ -52,7 +52,7 @@ class MainActivityWindowSecurityTest {
         }
 
     @Test
-    fun `launch with biometric lock disabled leaves secure window flag cleared`() =
+    fun launchWithBiometricLockDisabledLeavesSecureWindowFlagCleared() =
         runTest {
             seedSettings(biometricLockEnabled = false)
 
@@ -62,7 +62,7 @@ class MainActivityWindowSecurityTest {
         }
 
     @Test
-    fun `launch with recents hiding enabled applies secure flag without biometric lock`() =
+    fun launchWithRecentsHidingEnabledAppliesSecureFlagWithoutBiometricLock() =
         runTest {
             seedSettings(biometricLockEnabled = false, hideAppContentInRecents = true)
 
@@ -72,7 +72,7 @@ class MainActivityWindowSecurityTest {
         }
 
     @Test
-    fun `relaunch applies the current recents privacy setting`() =
+    fun relaunchAppliesCurrentRecentsPrivacySetting() =
         runTest {
             seedSettings(biometricLockEnabled = false, hideAppContentInRecents = true)
 
@@ -88,7 +88,7 @@ class MainActivityWindowSecurityTest {
         }
 
     @Test
-    fun `older activity reconciles recents privacy changes from a newer activity`() =
+    fun olderActivityReconcilesRecentsPrivacyChangesFromNewerActivity() =
         runTest {
             seedSettings(biometricLockEnabled = false, hideAppContentInRecents = true)
 
@@ -107,7 +107,7 @@ class MainActivityWindowSecurityTest {
         }
 
     @Test
-    fun `secure flag remains while any source is enabled and clears after the last source is removed`() =
+    fun secureFlagRemainsWhileAnySourceIsEnabledAndClearsAfterLastSourceRemoved() =
         runTest {
             seedSettings(biometricLockEnabled = false)
 

@@ -553,6 +553,47 @@ class LockControllerTest {
         }
 
     @Test
+    fun `newer non elected startup revision remains canonical when elected callback is stale`() =
+        runTest {
+            val olderSnapshot = CompletableDeferred<VersionedAppSettings>()
+            val newerSnapshot = CompletableDeferred<VersionedAppSettings>()
+            val settings =
+                DeferredFirstVersionedAppSettingsRepository(
+                    startupSnapshots = listOf(olderSnapshot, newerSnapshot),
+                )
+            val controller = buildController(settings)
+            val olderStartId = controller.onMainActivityCreated()
+            val newerStartId = controller.onMainActivityCreated()
+
+            olderSnapshot.complete(
+                VersionedAppSettings(
+                    settings =
+                        AppSettings(
+                            biometricLockEnabled = true,
+                            hideAppContentInRecents = true,
+                        ),
+                    revision = 5L,
+                ),
+            )
+
+            assertTrue(controller.activitySecurityReadyFor(olderStartId).value)
+
+            newerSnapshot.complete(
+                VersionedAppSettings(
+                    settings = AppSettings(hideAppContentInRecents = false),
+                    revision = 3L,
+                ),
+            )
+
+            assertEquals(
+                AppContentSecurityState(newerStartId, shouldSecure = true),
+                controller.appContentSecurityState.value,
+            )
+            assertTrue(controller.appContentSecure.value)
+            assertTrue(controller.lockStateFor(newerStartId).value)
+        }
+
+    @Test
     fun `destroying elected older activity resolves newer unresolved activity and publishes privacy`() =
         runTest {
             val olderSnapshot = CompletableDeferred<AppSettings>()

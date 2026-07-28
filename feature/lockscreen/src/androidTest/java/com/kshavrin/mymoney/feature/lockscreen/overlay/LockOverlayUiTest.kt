@@ -133,7 +133,7 @@ class LockOverlayUiTest {
     }
 
     @Test
-    fun `lock overlay sets secure flag when app content source is disabled`() {
+    fun lockOverlaySetsSecureFlagWhenAppContentSourceIsDisabled() {
         val controller = SecureWindowController(composeRule.activity.window)
         controller.setSecure(SecureWindowSource.AppContent, enabled = false)
 

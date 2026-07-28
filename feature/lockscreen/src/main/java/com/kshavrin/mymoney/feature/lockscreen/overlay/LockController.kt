@@ -192,35 +192,39 @@ class LockController
             }
             val activityStartSettingsGeneration =
                 activityStartSettingsGenerations[startId] ?: return
-            val collectorObservedNewerSettings =
-                observedSettingsGeneration > activityStartSettingsGeneration
+            val canonicalSettingsAreNewer =
+                settingsRevision > activitySettings.revision ||
+                    (settingsRevision == activitySettings.revision &&
+                        observedSettingsGeneration > activityStartSettingsGeneration)
             val resolvedSettings =
-                if (activitySettings.revision > 0L || settingsRevision > 0L) {
-                    if (settingsRevision > activitySettings.revision) {
-                        VersionedAppSettings(settings = settings, revision = settingsRevision)
-                    } else {
-                        activitySettings
-                    }
-                } else if (collectorObservedNewerSettings) {
+                if (canonicalSettingsAreNewer) {
                     VersionedAppSettings(settings = settings, revision = settingsRevision)
                 } else {
                     activitySettings
                 }
+            val shouldUpdateCanonicalSettings =
+                !provisional &&
+                    !canonicalSettingsAreNewer &&
+                    (activitySettings.revision > settingsRevision ||
+                        (activitySettings.revision == settingsRevision &&
+                            observedSettingsGeneration <= activityStartSettingsGeneration))
             activityLockStates[startId]?.value = resolvedSettings.settings.biometricLockEnabled
             _shouldShowLock.value = activityLockStates.values.any { it.value }
             activityLockResolutionStates[startId]?.value = true
             resolvedActivityStartIds += startId
+            if (shouldUpdateCanonicalSettings) {
+                settings = activitySettings.settings
+                settingsRevision = activitySettings.revision
+                observedSettingsGeneration += 1
+                _appContentSecure.value = settings.hideAppContentInRecents
+                publishCurrentActivitySecurityStateLocked(settings)
+            }
             if (provisional) {
                 provisionalActivityStartIds += startId
                 if (activityLockStates.keys.maxOrNull() == startId) {
                     resolvedActivityStartId = startId
                     _isActivityLockResolved.value = true
-                    _appContentSecure.value = resolvedSettings.settings.hideAppContentInRecents
-                    _appContentSecurityState.value =
-                        AppContentSecurityState(
-                            activityStartId = startId,
-                            shouldSecure = resolvedSettings.settings.hideAppContentInRecents,
-                        )
+                    publishCurrentActivitySecurityStateLocked(settings)
                 }
                 return
             } else {
@@ -230,17 +234,10 @@ class LockController
                 activitySecurityReadyStates[startId]?.value = true
                 return
             }
-            settings = resolvedSettings.settings
-            settingsRevision = resolvedSettings.revision
-            observedSettingsGeneration += 1
-            _appContentSecure.value = resolvedSettings.settings.hideAppContentInRecents
             _isActivityLockResolved.value = true
             resolvedActivityStartId = startId
-            _appContentSecurityState.value =
-                AppContentSecurityState(
-                    activityStartId = startId,
-                    shouldSecure = resolvedSettings.settings.hideAppContentInRecents,
-                )
+            _appContentSecure.value = settings.hideAppContentInRecents
+            publishCurrentActivitySecurityStateLocked(settings)
             activitySecurityReadyStates[startId]?.value = true
         }
 

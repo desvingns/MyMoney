@@ -8,4 +8,6 @@ sealed interface CloudSyncAction {
     data object LaunchGoogleDriveAuth : CloudSyncAction
 
     data object RequestMigrationBackupDirectory : CloudSyncAction
+
+    data object LaunchSharedGoogleSignIn : CloudSyncAction
 }

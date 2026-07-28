@@ -3,6 +3,7 @@ package com.kshavrin.mymoney.core.datastore
 enum class CloudProvider {
     Dropbox,
     GoogleDrive,
+    Shared,
 }
 
 data class CloudBinding(

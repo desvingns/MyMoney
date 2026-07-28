@@ -51,6 +51,17 @@ interface BackupRepository {
 
     suspend fun importFromFile(srcAbsolutePath: String): Result<Unit>
 
+    /**
+     * Take an automatic app-private safety snapshot of the active database (no SAF picker,
+     * no user-chosen location) right before Shared join/leave/removal mutates local data.
+     * Returns the absolute path of the created backup.
+     */
+    suspend fun createInternalBackup(): Result<String> =
+        Result.failure(UnsupportedOperationException("Internal backups are not supported"))
+
+    /** App-private safety snapshots, newest first. Distinct from SAF-exported backups. */
+    suspend fun listInternalBackups(): List<BackupFile> = emptyList()
+
     companion object {
         const val KEEP_NEWEST: Int = 3
 

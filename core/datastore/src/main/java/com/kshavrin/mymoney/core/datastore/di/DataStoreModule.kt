@@ -13,6 +13,8 @@ import com.kshavrin.mymoney.core.datastore.JournalSyncConfigStore
 import com.kshavrin.mymoney.core.datastore.JournalSyncConfigStoreImpl
 import com.kshavrin.mymoney.core.datastore.SecureStorage
 import com.kshavrin.mymoney.core.datastore.SecureStorageImpl
+import com.kshavrin.mymoney.core.datastore.SharedSyncStore
+import com.kshavrin.mymoney.core.datastore.SharedSyncStoreImpl
 import com.kshavrin.mymoney.core.domain.sync.DeviceIdProvider
 import dagger.Binds
 import dagger.Module
@@ -61,4 +63,8 @@ abstract class DataStoreBindings {
     @Binds
     @Singleton
     abstract fun bindJournalSyncConfigStore(impl: JournalSyncConfigStoreImpl): JournalSyncConfigStore
+
+    @Binds
+    @Singleton
+    abstract fun bindSharedSyncStore(impl: SharedSyncStoreImpl): SharedSyncStore
 }

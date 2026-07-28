@@ -18,8 +18,10 @@ import com.kshavrin.mymoney.core.sync.MigrationResolution
 import com.kshavrin.mymoney.core.sync.SnapshotSync
 import com.kshavrin.mymoney.core.sync.SyncScheduler
 import com.kshavrin.mymoney.core.sync.SyncTarget
+import com.kshavrin.mymoney.core.sync.shared.SharedSyncCoordinator
 import com.kshavrin.mymoney.core.sync.toCloudProvider
 import com.kshavrin.mymoney.core.sync.toSyncTarget
+import com.kshavrin.mymoney.core.domain.sync.SharedConflict
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.BufferOverflow
@@ -45,6 +47,7 @@ class CloudSyncViewModel
         private val appSettings: AppSettingsRepository,
         private val backupRepository: BackupRepository,
         private val remoteConfig: RemoteConfigRepository,
+        private val sharedCoordinator: SharedSyncCoordinator,
     ) : ViewModel() {
         private val _state =
             MutableStateFlow(
@@ -87,6 +90,24 @@ class CloudSyncViewModel
                 CloudSyncEvent.CancelMigration -> cancelMigration()
                 CloudSyncEvent.DismissError -> _state.value = _state.value.copy(errorBannerRes = null)
                 CloudSyncEvent.BackClicked -> viewModelScope.launch { _actions.emit(CloudSyncAction.NavigateBack) }
+                CloudSyncEvent.SharedSignInClicked -> launchSharedSignIn()
+                is CloudSyncEvent.SharedSignInCompleted -> completeSharedSignIn(event.googleIdToken)
+                CloudSyncEvent.SharedSignInFailed -> {
+                    _state.value = _state.value.copy(isConnecting = false)
+                    showError(R.string.sync_err_auth)
+                }
+                CloudSyncEvent.SharedSetupClicked -> openSharedSetup()
+                is CloudSyncEvent.SharedImportChoiceChanged ->
+                    _state.value = _state.value.copy(importLocalData = event.importLocalData)
+                is CloudSyncEvent.SharedCreateWorkspace -> createSharedWorkspace(event.name)
+                is CloudSyncEvent.SharedJoinWorkspace -> joinSharedWorkspace(event.inviteToken)
+                CloudSyncEvent.SharedSyncNowClicked -> sharedSyncNow()
+                CloudSyncEvent.SharedConflictsClicked -> openSharedConflicts()
+                is CloudSyncEvent.SharedResolveConflict -> resolveSharedConflict(event.conflictId, event.winnerOperationId)
+                CloudSyncEvent.SharedLeaveClicked ->
+                    _state.value = _state.value.copy(sharedDialog = SharedDialog.ConfirmLeave)
+                CloudSyncEvent.SharedConfirmLeave -> leaveSharedWorkspace()
+                CloudSyncEvent.SharedDialogDismissed -> _state.value = _state.value.copy(sharedDialog = null)
             }
         }
 
@@ -109,6 +130,7 @@ class CloudSyncViewModel
                     when (target) {
                         SyncTarget.Dropbox -> CloudSyncAction.LaunchDropboxAuth
                         SyncTarget.GoogleDrive -> CloudSyncAction.LaunchGoogleDriveAuth
+                        SyncTarget.Shared -> CloudSyncAction.LaunchSharedGoogleSignIn
                     },
                 )
             }
@@ -184,6 +206,10 @@ class CloudSyncViewModel
                 return
             }
             val active = _state.value.binding ?: return
+            if (active.provider == CloudProvider.Shared) {
+                showError(R.string.sync_shared_leave_first)
+                return
+            }
             if (active.provider == target.toCloudProvider()) {
                 showError(R.string.sync_err_disconnect_required)
                 return
@@ -311,6 +337,7 @@ class CloudSyncViewModel
                     when (binding?.provider) {
                         CloudProvider.Dropbox -> dropbox.errorRes
                         CloudProvider.GoogleDrive -> drive.errorRes
+                        CloudProvider.Shared -> null
                         null -> null
                     }
                 _state.value =
@@ -321,8 +348,177 @@ class CloudSyncViewModel
                         requiresProviderChoice = binding == null && dropbox.card.connected && drive.card.connected,
                         errorBannerRes = activeError ?: _state.value.errorBannerRes,
                     )
+                refreshShared(binding?.provider == CloudProvider.Shared)
             }
         }
+
+        private suspend fun refreshShared(active: Boolean) {
+            val workspace = if (active) sharedCoordinator.activeWorkspace() else null
+            val conflictCount =
+                if (active) {
+                    sharedCoordinator.listConflicts().getOrNull()?.size ?: _state.value.shared.conflictCount
+                } else {
+                    0
+                }
+            _state.value =
+                _state.value.copy(
+                    shared =
+                        _state.value.shared.copy(
+                            signedIn = sharedCoordinator.isSignedIn(),
+                            accountEmail = sharedCoordinator.accountEmail(),
+                            active = active,
+                            workspaceName = workspace?.name,
+                            conflictCount = conflictCount,
+                        ),
+                )
+        }
+
+        private fun launchSharedSignIn() {
+            if (_state.value.binding != null && _state.value.binding?.provider != CloudProvider.Shared) {
+                showError(R.string.sync_err_disconnect_required)
+                return
+            }
+            viewModelScope.launch {
+                _state.value = _state.value.copy(isConnecting = true, errorBannerRes = null)
+                _actions.emit(CloudSyncAction.LaunchSharedGoogleSignIn)
+            }
+        }
+
+        private fun completeSharedSignIn(googleIdToken: String) {
+            viewModelScope.launch {
+                try {
+                    sharedCoordinator.signIn(googleIdToken).getOrThrow()
+                } catch (t: Throwable) {
+                    if (t is CancellationException) throw t
+                    reportAndShow(t)
+                } finally {
+                    _state.value = _state.value.copy(isConnecting = false)
+                    refresh()
+                }
+            }
+        }
+
+        private fun openSharedSetup() {
+            if (!_state.value.shared.signedIn) {
+                showError(R.string.sync_shared_sign_in_required)
+                return
+            }
+            if (_state.value.binding != null) {
+                showError(R.string.sync_err_disconnect_required)
+                return
+            }
+            _state.value = _state.value.copy(sharedDialog = SharedDialog.Setup, importLocalData = false)
+        }
+
+        private fun createSharedWorkspace(name: String) {
+            runSharedSetup { sharedCoordinator.createWorkspace(name.trim(), _state.value.importLocalData) }
+        }
+
+        private fun joinSharedWorkspace(inviteToken: String) {
+            runSharedSetup { sharedCoordinator.joinWorkspace(inviteToken.trim(), _state.value.importLocalData) }
+        }
+
+        private fun runSharedSetup(block: suspend () -> Result<*>) {
+            viewModelScope.launch {
+                _state.value = _state.value.copy(isConnecting = true, errorBannerRes = null)
+                try {
+                    block().getOrThrow()
+                    _state.value = _state.value.copy(sharedDialog = null)
+                } catch (t: Throwable) {
+                    if (t is CancellationException) throw t
+                    reportAndShow(t)
+                } finally {
+                    _state.value = _state.value.copy(isConnecting = false)
+                    refresh()
+                }
+            }
+        }
+
+        private fun sharedSyncNow() {
+            viewModelScope.launch {
+                _state.value = _state.value.copy(isConnecting = true, errorBannerRes = null)
+                try {
+                    sharedCoordinator.syncNow().getOrThrow()
+                } catch (t: Throwable) {
+                    if (t is CancellationException) throw t
+                    reportAndShow(t)
+                } finally {
+                    _state.value = _state.value.copy(isConnecting = false)
+                    refresh()
+                }
+            }
+        }
+
+        private fun openSharedConflicts() {
+            viewModelScope.launch {
+                _state.value = _state.value.copy(isConnecting = true, errorBannerRes = null)
+                try {
+                    val conflicts = sharedCoordinator.listConflicts().getOrThrow().map { it.toUi() }
+                    _state.value =
+                        _state.value.copy(
+                            conflicts = conflicts,
+                            sharedDialog = SharedDialog.Conflicts,
+                            shared = _state.value.shared.copy(conflictCount = conflicts.size),
+                        )
+                } catch (t: Throwable) {
+                    if (t is CancellationException) throw t
+                    reportAndShow(t)
+                } finally {
+                    _state.value = _state.value.copy(isConnecting = false)
+                }
+            }
+        }
+
+        private fun resolveSharedConflict(
+            conflictId: String,
+            winnerOperationId: String,
+        ) {
+            viewModelScope.launch {
+                _state.value = _state.value.copy(isConnecting = true, errorBannerRes = null)
+                try {
+                    sharedCoordinator.resolveConflict(conflictId, winnerOperationId).getOrThrow()
+                    val conflicts = sharedCoordinator.listConflicts().getOrThrow().map { it.toUi() }
+                    _state.value =
+                        _state.value.copy(
+                            conflicts = conflicts,
+                            sharedDialog = if (conflicts.isEmpty()) null else SharedDialog.Conflicts,
+                            shared = _state.value.shared.copy(conflictCount = conflicts.size),
+                        )
+                } catch (t: Throwable) {
+                    if (t is CancellationException) throw t
+                    reportAndShow(t)
+                } finally {
+                    _state.value = _state.value.copy(isConnecting = false)
+                }
+            }
+        }
+
+        private fun leaveSharedWorkspace() {
+            viewModelScope.launch {
+                _state.value = _state.value.copy(isConnecting = true, errorBannerRes = null, sharedDialog = null)
+                try {
+                    sharedCoordinator.leaveWorkspace().getOrThrow()
+                } catch (t: Throwable) {
+                    if (t is CancellationException) throw t
+                    reportAndShow(t)
+                } finally {
+                    _state.value = _state.value.copy(isConnecting = false)
+                    refresh()
+                }
+            }
+        }
+
+        private fun SharedConflict.toUi(): ConflictUi =
+            ConflictUi(
+                conflictId = id,
+                entityKind = entityKind.name,
+                localOperationId = operationA.id,
+                localAuthorId = authorAId,
+                localSummary = operationA.payload ?: SUMMARY_DELETED,
+                remoteOperationId = operationB.id,
+                remoteAuthorId = authorBId,
+                remoteSummary = operationB.payload ?: SUMMARY_DELETED,
+            )
 
         private suspend fun verifiedCard(card: TargetCardState): VerifiedCard {
             if (!snapshotSync.isConnected(card.target)) return VerifiedCard(card.copy(connected = false, accountLabel = null))
@@ -352,6 +548,7 @@ class CloudSyncViewModel
             when (target) {
                 SyncTarget.Dropbox -> _state.value.dropbox
                 SyncTarget.GoogleDrive -> _state.value.drive
+                SyncTarget.Shared -> error("Shared mode does not use the file-exchange provider card flow")
             }
 
         private fun reportAndShow(t: Throwable) {
@@ -386,4 +583,8 @@ class CloudSyncViewModel
             val card: TargetCardState,
             @StringRes val errorRes: Int? = null,
         )
+
+        private companion object {
+            const val SUMMARY_DELETED = "(deleted)"
+        }
     }

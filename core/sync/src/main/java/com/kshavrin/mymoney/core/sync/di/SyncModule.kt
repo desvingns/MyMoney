@@ -20,6 +20,8 @@ import com.kshavrin.mymoney.core.sync.gdrive.GoogleDriveAuthorizer
 import com.kshavrin.mymoney.core.sync.gdrive.GoogleDriveJournalBackend
 import com.kshavrin.mymoney.core.sync.gdrive.GoogleDriveRepository
 import com.kshavrin.mymoney.core.sync.remoteconfig.RemoteConfigRepositoryImpl
+import com.kshavrin.mymoney.core.sync.shared.SharedSyncCoordinator
+import com.kshavrin.mymoney.core.sync.shared.SharedSyncCoordinatorImpl
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -73,4 +75,8 @@ abstract class SyncModule {
     @Binds
     @Singleton
     abstract fun bindFactoryResetGateway(impl: FactoryResetGatewayImpl): FactoryResetGateway
+
+    @Binds
+    @Singleton
+    abstract fun bindSharedSyncCoordinator(impl: SharedSyncCoordinatorImpl): SharedSyncCoordinator
 }

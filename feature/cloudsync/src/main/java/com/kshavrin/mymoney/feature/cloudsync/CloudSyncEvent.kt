@@ -40,4 +40,41 @@ sealed interface CloudSyncEvent {
     data object DismissError : CloudSyncEvent
 
     data object BackClicked : CloudSyncEvent
+
+    data object SharedSignInClicked : CloudSyncEvent
+
+    data class SharedSignInCompleted(
+        val googleIdToken: String,
+    ) : CloudSyncEvent
+
+    data object SharedSignInFailed : CloudSyncEvent
+
+    data object SharedSetupClicked : CloudSyncEvent
+
+    data class SharedImportChoiceChanged(
+        val importLocalData: Boolean,
+    ) : CloudSyncEvent
+
+    data class SharedCreateWorkspace(
+        val name: String,
+    ) : CloudSyncEvent
+
+    data class SharedJoinWorkspace(
+        val inviteToken: String,
+    ) : CloudSyncEvent
+
+    data object SharedSyncNowClicked : CloudSyncEvent
+
+    data object SharedConflictsClicked : CloudSyncEvent
+
+    data class SharedResolveConflict(
+        val conflictId: String,
+        val winnerOperationId: String,
+    ) : CloudSyncEvent
+
+    data object SharedLeaveClicked : CloudSyncEvent
+
+    data object SharedConfirmLeave : CloudSyncEvent
+
+    data object SharedDialogDismissed : CloudSyncEvent
 }

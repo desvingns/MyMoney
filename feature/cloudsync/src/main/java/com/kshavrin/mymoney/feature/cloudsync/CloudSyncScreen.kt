@@ -7,8 +7,10 @@ import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -25,6 +27,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -40,6 +44,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -61,6 +66,12 @@ import com.kshavrin.mymoney.core.sync.MigrationResolution
 import com.kshavrin.mymoney.core.sync.SyncTarget
 import com.kshavrin.mymoney.core.sync.toCloudProvider
 import com.kshavrin.mymoney.core.ui.theme.Spacing
+import com.kshavrin.mymoney.core.ui.theme.conflictAuthorContainer
+import com.kshavrin.mymoney.core.ui.theme.conflictAuthorLabel
+import com.kshavrin.mymoney.core.ui.theme.conflictLocalContainer
+import com.kshavrin.mymoney.core.ui.theme.conflictLocalContent
+import com.kshavrin.mymoney.core.ui.theme.conflictRemoteContainer
+import com.kshavrin.mymoney.core.ui.theme.conflictRemoteContent
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -205,6 +216,10 @@ fun CloudSyncRoute(
                 }
                 CloudSyncAction.RequestMigrationBackupDirectory ->
                     migrationBackupDirectoryLauncher.launch(null)
+                CloudSyncAction.LaunchSharedGoogleSignIn ->
+                    // Google ID-token acquisition (Credential Manager / One Tap) is deferred to a
+                    // dedicated auth-integration SPEC; the downstream Shared state machine is complete.
+                    viewModel.onEvent(CloudSyncEvent.SharedSignInFailed)
                 CloudSyncAction.LaunchGoogleDriveAuth ->
                     runCatching {
                         accountPickerLauncher.launch(
@@ -276,6 +291,7 @@ fun CloudSyncContent(
             )
         null -> Unit
     }
+    SharedDialogHost(state = state, onEvent = onEvent)
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -313,6 +329,12 @@ fun CloudSyncContent(
                 title = stringResource(R.string.sync_gdrive_section),
                 card = state.drive,
                 bindingProvider = state.binding?.provider,
+                isConnecting = state.isConnecting,
+                onEvent = onEvent,
+            )
+            SharedCard(
+                state = state.shared,
+                otherProviderActive = state.binding != null && state.binding.provider != CloudProvider.Shared,
                 isConnecting = state.isConnecting,
                 onEvent = onEvent,
             )
@@ -430,11 +452,300 @@ private fun ProviderCard(
 }
 
 @Composable
+private fun SharedCard(
+    state: SharedCardState,
+    otherProviderActive: Boolean,
+    isConnecting: Boolean,
+    onEvent: (CloudSyncEvent) -> Unit,
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(Spacing.l),
+            verticalArrangement = Arrangement.spacedBy(Spacing.s),
+        ) {
+            Text(stringResource(R.string.sync_shared_section), style = MaterialTheme.typography.titleMedium)
+            Text(
+                text =
+                    when {
+                        state.active ->
+                            stringResource(R.string.sync_shared_active, state.workspaceName.orEmpty())
+                        state.signedIn ->
+                            stringResource(R.string.sync_shared_signed_in, state.accountEmail.orEmpty())
+                        else -> stringResource(R.string.sync_shared_signed_out)
+                    },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            when {
+                otherProviderActive ->
+                    Text(
+                        text = stringResource(R.string.sync_shared_other_provider_active),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                !state.signedIn ->
+                    Button(
+                        modifier = Modifier.testTag(SyncTarget.Shared.controlTag("sign_in")),
+                        onClick = { onEvent(CloudSyncEvent.SharedSignInClicked) },
+                        enabled = state.enabled && !isConnecting,
+                    ) {
+                        Text(stringResource(R.string.sync_shared_sign_in))
+                    }
+                state.active -> {
+                    if (state.conflictCount > 0) {
+                        OutlinedButton(
+                            modifier = Modifier.testTag(SyncTarget.Shared.controlTag("conflicts")),
+                            onClick = { onEvent(CloudSyncEvent.SharedConflictsClicked) },
+                            enabled = !isConnecting,
+                        ) {
+                            Text(stringResource(R.string.sync_shared_review_conflicts, state.conflictCount))
+                        }
+                    }
+                    Button(
+                        modifier = Modifier.testTag(SyncTarget.Shared.controlTag("sync_now")),
+                        onClick = { onEvent(CloudSyncEvent.SharedSyncNowClicked) },
+                        enabled = !isConnecting,
+                    ) {
+                        Text(stringResource(R.string.sync_shared_sync_now))
+                    }
+                    OutlinedButton(
+                        modifier = Modifier.testTag(SyncTarget.Shared.controlTag("leave")),
+                        onClick = { onEvent(CloudSyncEvent.SharedLeaveClicked) },
+                        enabled = !isConnecting,
+                    ) {
+                        Text(stringResource(R.string.sync_shared_leave))
+                    }
+                }
+                else ->
+                    Button(
+                        modifier = Modifier.testTag(SyncTarget.Shared.controlTag("setup")),
+                        onClick = { onEvent(CloudSyncEvent.SharedSetupClicked) },
+                        enabled = !isConnecting,
+                    ) {
+                        Text(stringResource(R.string.sync_shared_setup))
+                    }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SharedDialogHost(
+    state: CloudSyncState,
+    onEvent: (CloudSyncEvent) -> Unit,
+) {
+    when (state.sharedDialog) {
+        SharedDialog.Setup -> SharedSetupDialog(importLocalData = state.importLocalData, onEvent = onEvent)
+        SharedDialog.Conflicts -> SharedConflictsDialog(conflicts = state.conflicts, onEvent = onEvent)
+        SharedDialog.ConfirmLeave ->
+            AlertDialog(
+                onDismissRequest = { onEvent(CloudSyncEvent.SharedDialogDismissed) },
+                title = { Text(stringResource(R.string.sync_shared_leave_title)) },
+                text = { Text(stringResource(R.string.sync_shared_leave_body)) },
+                confirmButton = {
+                    Button(onClick = { onEvent(CloudSyncEvent.SharedConfirmLeave) }) {
+                        Text(stringResource(R.string.sync_shared_leave))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { onEvent(CloudSyncEvent.SharedDialogDismissed) }) {
+                        Text(stringResource(R.string.sync_migration_cancel))
+                    }
+                },
+            )
+        null -> Unit
+    }
+}
+
+@Composable
+private fun SharedSetupDialog(
+    importLocalData: Boolean,
+    onEvent: (CloudSyncEvent) -> Unit,
+) {
+    var name by remember { mutableStateOf("") }
+    var token by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = { onEvent(CloudSyncEvent.SharedDialogDismissed) },
+        title = { Text(stringResource(R.string.sync_shared_setup_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.s)) {
+                OutlinedTextField(
+                    modifier = Modifier.fillMaxWidth().testTag("cloud_sync_shared_name"),
+                    value = name,
+                    onValueChange = { name = it },
+                    singleLine = true,
+                    label = { Text(stringResource(R.string.sync_shared_workspace_name)) },
+                )
+                OutlinedTextField(
+                    modifier = Modifier.fillMaxWidth().testTag("cloud_sync_shared_token"),
+                    value = token,
+                    onValueChange = { token = it },
+                    singleLine = true,
+                    label = { Text(stringResource(R.string.sync_shared_invite_token)) },
+                )
+                Text(
+                    text = stringResource(R.string.sync_shared_import_choice_title),
+                    style = MaterialTheme.typography.titleSmall,
+                )
+                ImportChoiceRow(
+                    selected = !importLocalData,
+                    label = stringResource(R.string.sync_shared_import_none),
+                    testTag = "cloud_sync_shared_import_none",
+                    onClick = { onEvent(CloudSyncEvent.SharedImportChoiceChanged(false)) },
+                )
+                ImportChoiceRow(
+                    selected = importLocalData,
+                    label = stringResource(R.string.sync_shared_import_publish),
+                    testTag = "cloud_sync_shared_import_publish",
+                    onClick = { onEvent(CloudSyncEvent.SharedImportChoiceChanged(true)) },
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                modifier = Modifier.testTag("cloud_sync_shared_create"),
+                onClick = { onEvent(CloudSyncEvent.SharedCreateWorkspace(name)) },
+                enabled = name.isNotBlank(),
+            ) {
+                Text(stringResource(R.string.sync_shared_create))
+            }
+        },
+        dismissButton = {
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
+                TextButton(
+                    modifier = Modifier.testTag("cloud_sync_shared_join"),
+                    onClick = { onEvent(CloudSyncEvent.SharedJoinWorkspace(token)) },
+                    enabled = token.isNotBlank(),
+                ) {
+                    Text(stringResource(R.string.sync_shared_join))
+                }
+                TextButton(onClick = { onEvent(CloudSyncEvent.SharedDialogDismissed) }) {
+                    Text(stringResource(R.string.sync_migration_cancel))
+                }
+            }
+        },
+    )
+}
+
+@Composable
+private fun ImportChoiceRow(
+    selected: Boolean,
+    label: String,
+    testTag: String,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().testTag(testTag),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        RadioButton(selected = selected, onClick = onClick)
+        Text(text = label, style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
+@Composable
+private fun SharedConflictsDialog(
+    conflicts: List<ConflictUi>,
+    onEvent: (CloudSyncEvent) -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = { onEvent(CloudSyncEvent.SharedDialogDismissed) },
+        title = { Text(stringResource(R.string.sync_shared_conflicts_title)) },
+        text = {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(Spacing.m),
+            ) {
+                if (conflicts.isEmpty()) {
+                    Text(stringResource(R.string.sync_shared_no_conflicts))
+                } else {
+                    conflicts.forEach { conflict -> ConflictRow(conflict = conflict, onEvent = onEvent) }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onEvent(CloudSyncEvent.SharedDialogDismissed) }) {
+                Text(stringResource(R.string.sync_dismiss))
+            }
+        },
+    )
+}
+
+@Composable
+private fun ConflictRow(
+    conflict: ConflictUi,
+    onEvent: (CloudSyncEvent) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.s)) {
+        Text(text = conflict.entityKind, style = MaterialTheme.typography.titleSmall)
+        ConflictPanel(
+            container = MaterialTheme.colorScheme.conflictLocalContainer,
+            content = MaterialTheme.colorScheme.conflictLocalContent,
+            authorId = conflict.localAuthorId,
+            summary = conflict.localSummary,
+            actionLabel = stringResource(R.string.sync_shared_keep_local),
+            testTag = "cloud_sync_conflict_keep_local",
+            onResolve = {
+                onEvent(CloudSyncEvent.SharedResolveConflict(conflict.conflictId, conflict.localOperationId))
+            },
+        )
+        ConflictPanel(
+            container = MaterialTheme.colorScheme.conflictRemoteContainer,
+            content = MaterialTheme.colorScheme.conflictRemoteContent,
+            authorId = conflict.remoteAuthorId,
+            summary = conflict.remoteSummary,
+            actionLabel = stringResource(R.string.sync_shared_keep_remote),
+            testTag = "cloud_sync_conflict_keep_remote",
+            onResolve = {
+                onEvent(CloudSyncEvent.SharedResolveConflict(conflict.conflictId, conflict.remoteOperationId))
+            },
+        )
+    }
+}
+
+@Composable
+private fun ConflictPanel(
+    container: androidx.compose.ui.graphics.Color,
+    content: androidx.compose.ui.graphics.Color,
+    authorId: String,
+    summary: String,
+    actionLabel: String,
+    testTag: String,
+    onResolve: () -> Unit,
+) {
+    Column(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(MaterialTheme.shapes.medium)
+                .background(container)
+                .padding(Spacing.m),
+        verticalArrangement = Arrangement.spacedBy(Spacing.s),
+    ) {
+        Text(
+            text = stringResource(R.string.sync_shared_conflict_author, authorId),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.conflictAuthorLabel,
+            modifier =
+                Modifier
+                    .clip(MaterialTheme.shapes.small)
+                    .background(MaterialTheme.colorScheme.conflictAuthorContainer)
+                    .padding(horizontal = Spacing.s, vertical = Spacing.xs),
+        )
+        Text(text = summary, style = MaterialTheme.typography.bodySmall, color = content)
+        Button(modifier = Modifier.testTag(testTag), onClick = onResolve) {
+            Text(actionLabel)
+        }
+    }
+}
+
+@Composable
 private fun providerName(target: SyncTarget): String =
     stringResource(
         when (target) {
             SyncTarget.Dropbox -> R.string.sync_dropbox_section
             SyncTarget.GoogleDrive -> R.string.sync_gdrive_section
+            SyncTarget.Shared -> R.string.sync_shared_section
         },
     )
 
@@ -444,6 +755,7 @@ private fun providerName(provider: CloudProvider): String =
         when (provider) {
             CloudProvider.Dropbox -> R.string.sync_dropbox_section
             CloudProvider.GoogleDrive -> R.string.sync_gdrive_section
+            CloudProvider.Shared -> R.string.sync_shared_section
         },
     )
 
@@ -499,4 +811,5 @@ private fun SyncTarget.controlTag(control: String): String =
     when (this) {
         SyncTarget.Dropbox -> "cloud_sync_dropbox_$control"
         SyncTarget.GoogleDrive -> "cloud_sync_google_drive_$control"
+        SyncTarget.Shared -> "cloud_sync_shared_$control"
     }

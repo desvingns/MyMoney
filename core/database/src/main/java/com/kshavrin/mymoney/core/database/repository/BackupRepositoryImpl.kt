@@ -978,6 +978,39 @@ class BackupRepositoryImpl
                 }
             }
 
+        override suspend fun createInternalBackup(): Result<String> =
+            withContext(ioDispatcher) {
+                runCatching {
+                    checkpoint()
+                    val directory = internalBackupDir().apply { mkdirs() }
+                    val dbFile = context.getDatabasePath(DatabaseFileNames.DATABASE_NAME)
+                    val name = "$INTERNAL_BACKUP_PREFIX${TIMESTAMP_FORMATTER.format(Instant.now())}$BACKUP_SUFFIX"
+                    val target = File(directory, name)
+                    dbFile.copyTo(target, overwrite = true)
+                    BackupRepository.backupsToDelete(listInternalBackupFiles()).forEach { backup ->
+                        File(backup.uriString).delete()
+                    }
+                    target.absolutePath
+                }
+            }
+
+        override suspend fun listInternalBackups(): List<BackupFile> =
+            withContext(ioDispatcher) {
+                listInternalBackupFiles().sortedByDescending { it.lastModifiedEpochMs }
+            }
+
+        private fun internalBackupDir(): File = File(context.filesDir, INTERNAL_BACKUP_DIR)
+
+        private fun listInternalBackupFiles(): List<BackupFile> =
+            internalBackupDir()
+                .listFiles()
+                ?.filter { it.isFile && isInternalBackupName(it.name) }
+                ?.map { BackupFile(it.name, it.absolutePath, it.lastModified()) }
+                ?: emptyList()
+
+        private fun isInternalBackupName(name: String): Boolean =
+            name.startsWith(INTERNAL_BACKUP_PREFIX) && name.endsWith(BACKUP_SUFFIX)
+
         override suspend fun listLocalBackups(treeUriString: String): List<BackupFile> =
             withContext(ioDispatcher) {
                 val tree = DocumentFile.fromTreeUri(context, Uri.parse(treeUriString)) ?: return@withContext emptyList()
@@ -1155,6 +1188,8 @@ class BackupRepositoryImpl
 
         private companion object {
             const val BACKUP_PREFIX = "monefy_backup_"
+            const val INTERNAL_BACKUP_DIR = "shared_safety_backups"
+            const val INTERNAL_BACKUP_PREFIX = "shared_safety_"
             const val BACKUP_SUFFIX = ".db"
             const val MIME_TYPE = "application/octet-stream"
             const val MAX_NOTE_LENGTH = 256

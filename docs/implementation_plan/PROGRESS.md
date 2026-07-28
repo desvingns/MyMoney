@@ -10,6 +10,19 @@
 
 > Last three session entries are repeated here for fast startup. Full history is archived below.
 
+- **2026-07-28 (Claude MP `--feature --next`, repo hygiene — review-2026-07 epic CLOSED):**
+  Completed SPEC `review-2026-07-35-repo-hygiene`, the epic's final slice, re-scoped after a
+  staleness pre-check (item (a) was already delivered: `.codex` strays committed `4115685d`,
+  `outputs/` ignored `a4e41e06`). (b) 6 root logs moved to git-ignored `archive/` (awaiting
+  manual deletion); (c) the stray "@ " commit-subject prefix root-caused to PowerShell
+  here-strings fed to Git Bash `git commit -m` (transient 2026-06-26 artifact, no versioned
+  source, history untouched) + local `.git/hooks/post-commit` null-byte probe fixed; (d) dead
+  no-arg `LockController.markUnlocked()` removed (`e7b9d1b5`) with 5 stale test refs migrated
+  (`30ed4fe1`, user-gated). Gates: reviewer pass, 1694 JVM tests + detekt + lint green, full
+  verifier pass. Epic completion review clean (34/35 in done/, SPEC 33 archived-deferred per its
+  own constraint); overview moved to done. Backlog now holds only the `shared-backend-sync`
+  epic, blocked on real Supabase provisioning (external-account gate; no Docker/CLI locally).
+
 - **2026-07-28 (Claude MP `--feature`, review-2026-07 epic):** Completed SPEC
   `review-2026-07-34-flag-secure-recents` (FLAG_SECURE on lock surfaces unconditional +
   opt-in "Hide app content in Recents" toggle persisted in AppSettings, default OFF).
@@ -32,13 +45,6 @@
   broad database connected suite passed all 212 tests with 0 failures/errors/skips after
   repairing UUID-isolated fixtures and making the Monefy CSV E2E fallback self-contained.
   SPEC and epic overview are moved to `.claude/specs/done/`; push is pending the human gate.
-
-- **2026-07-26 (Codex MP `--feature --next`, Monefy decoupling):** Completed SPEC
-  `monefy-decoupling-01-ui-component-rename` in commit `3c3ce219`. Renamed the design-system
-  `Monefy*` UI components and all scoped consumers/tests/baselines without behavior or layout
-  changes. Evidence: 1655 JVM tests and 147 connected design-system tests passed; reviewer,
-  runner, and full verifier passed. SPEC moved to `.claude/specs/done/`; database rename remains
-  the next independent epic slice.
 
 
 

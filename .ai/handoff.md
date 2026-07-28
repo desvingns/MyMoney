@@ -3,6 +3,13 @@
 Phase/release state authority: `docs/implementation_plan/PROGRESS.md` (do not restate it here).
 
 ## DONE
+- 2026-07-28: SPEC `review-2026-07-35-repo-hygiene` CLOSED — final slice, so the whole
+  `review-2026-07` epic (35 SPECs) is now closed; overview moved to `done/`. (b) 6 root logs
+  moved to git-ignored `archive/` (manual deletion pending on the user); (c) stray "@ "
+  commit-subject prefix root-caused: PowerShell here-strings fed to Git Bash `git commit -m`
+  (transient 2026-06-26 artifact, no versioned source to fix); (d) dead no-arg
+  `LockController.markUnlocked()` removed (`e7b9d1b5`) + 5 stale test refs migrated (`30ed4fe1`).
+  Gates: reviewer pass, 1694 JVM tests + detekt + lint green, full verifier pass.
 - 2026-07-26: SPEC `monefy-decoupling-01-ui-component-rename` CLOSED locally in commit
   `3c3ce219`. Renamed the design-system Monefy-prefixed UI components, consumers, tests,
   detekt baseline, and screenshot baselines. Evidence: 1655 JVM tests + 147 connected
@@ -33,11 +40,16 @@ Phase/release state authority: `docs/implementation_plan/PROGRESS.md` (do not re
   memories are mirrors.
 
 ## NEXT
-- (owner of the next session) Read PROGRESS.md for the active phase as usual. The next runnable
-  backlog SPEC is `monefy-decoupling-02-database-rename-migration.md`.
+- (owner of the next session) Read PROGRESS.md for the active phase as usual. The backlog holds
+  only the `shared-backend-sync` epic (01..04); SPEC 01 starts with real Supabase provisioning
+  (free-tier Frankfurt project + Google OAuth for Supabase Auth) — an external-account gate on
+  the user, with no local Docker/supabase-CLI fallback on this machine. Either provision with
+  the user or groom new work (`--spec`); also awaiting: manual deletion of the 6 logs in
+  `archive/`.
 
 ## OWNER
 - none (idle)
 
 ## BLOCKERS
-- none
+- `shared-backend-sync-01` — needs the user to create the free-tier Frankfurt Supabase project
+  and configure Google OAuth in Supabase Auth before agents can verify RLS/RPC acceptance.

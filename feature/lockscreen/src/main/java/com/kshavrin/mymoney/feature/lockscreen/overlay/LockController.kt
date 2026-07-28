@@ -216,6 +216,10 @@ class LockController
                 settings = activitySettings.settings
                 settingsRevision = activitySettings.revision
                 observedSettingsGeneration += 1
+                activityLockStates.values.forEach {
+                    it.value = settings.biometricLockEnabled
+                }
+                _shouldShowLock.value = activityLockStates.values.any { it.value }
                 _appContentSecure.value = settings.hideAppContentInRecents
                 publishCurrentActivitySecurityStateLocked(settings)
             }

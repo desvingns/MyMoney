@@ -577,6 +577,9 @@ class LockControllerTest {
             )
 
             assertTrue(controller.activitySecurityReadyFor(olderStartId).value)
+            assertTrue(controller.lockStateFor(olderStartId).value)
+            assertTrue(controller.lockStateFor(newerStartId).value)
+            assertTrue(controller.shouldShowLock.value)
 
             newerSnapshot.complete(
                 VersionedAppSettings(

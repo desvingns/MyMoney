@@ -72,13 +72,12 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             lockController.appContentSecurityState.collect { securityState ->
                 if (securityState == null) return@collect
+                if (!activitySecurityReady.value) return@collect
                 secureWindowController.setSecure(
                     SecureWindowSource.AppContent,
                     securityState.shouldSecure,
                 )
-                if (activitySecurityReady.value) {
-                    initialAppContentStateApplied.set(true)
-                }
+                initialAppContentStateApplied.set(true)
             }
         }
         lifecycleScope.launch {

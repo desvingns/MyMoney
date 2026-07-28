@@ -228,6 +228,7 @@ class SettingsRootContentTest {
     private enum class Row {
         Theme,
         AppLock,
+        HideAppContentInRecents,
         Sync,
         Backup,
         Language,
@@ -243,6 +244,7 @@ class SettingsRootContentTest {
         listOf(
             Row.Theme,
             Row.AppLock,
+            Row.HideAppContentInRecents,
             Row.Sync,
             Row.Backup,
             Row.Language,
@@ -258,6 +260,7 @@ class SettingsRootContentTest {
         when (row) {
             Row.Theme -> R.string.settings_theme
             Row.AppLock -> R.string.settings_biometric_lock
+            Row.HideAppContentInRecents -> R.string.settings_hide_content_in_recents
             Row.Sync -> R.string.settings_cloud_sync
             Row.Backup -> R.string.settings_backup_restore
             Row.Language -> R.string.settings_language
@@ -276,7 +279,8 @@ class SettingsRootContentTest {
     private fun isDisabled(row: Row): Boolean =
         when (row) {
             Row.Theme, Row.AppLock, Row.Sync, Row.Backup, Row.Language,
-            Row.Sound, Row.Haptic, Row.About, Row.Licences, Row.FactoryReset,
+            Row.HideAppContentInRecents, Row.Sound, Row.Haptic, Row.About, Row.Licences,
+            Row.FactoryReset,
             -> false
         }
 
@@ -291,13 +295,13 @@ class SettingsRootContentTest {
         when (row) {
             Row.Theme -> "onOpenTheme"
             Row.AppLock -> "onOpenBiometricLock"
+            Row.HideAppContentInRecents, Row.Sound, Row.Haptic -> null
             Row.Sync -> "onOpenCloudSync"
             Row.Language -> "onOpenLanguage"
             Row.Backup -> "onOpenBackup"
             Row.About -> "onOpenAbout"
             Row.Licences -> "onOpenLicences"
             Row.FactoryReset -> "onEvent:FactoryResetRequested"
-            Row.Sound, Row.Haptic -> null
         }
 
     /** Mirror of the private `ThemeMode.labelRes` mapping in SettingsRootScreen. */
@@ -400,6 +404,12 @@ class SettingsRootContentTest {
     }
 
     @Test
+    fun `the recents privacy switch checked state mirrors state hideAppContentInRecents`() {
+        assertTrue(SettingsState(hideAppContentInRecents = true).hideAppContentInRecents)
+        assertFalse(SettingsState(hideAppContentInRecents = false).hideAppContentInRecents)
+    }
+
+    @Test
     fun `flipping the sound switch emits SoundToggled carrying the new value`() {
         assertEquals(SettingsEvent.SoundToggled(true), SettingsEvent.SoundToggled(true))
         assertEquals(SettingsEvent.SoundToggled(false), SettingsEvent.SoundToggled(false))
@@ -471,6 +481,7 @@ class SettingsRootContentTest {
     fun `the inline switch rows route to no navigation callback`() {
         assertNull(callbackKeyForRowClick(Row.Sound))
         assertNull(callbackKeyForRowClick(Row.Haptic))
+        assertNull(callbackKeyForRowClick(Row.HideAppContentInRecents))
     }
 
     @Test

@@ -1,5 +1,6 @@
 package com.kshavrin.mymoney.feature.cloudsync
 
+import android.content.Context
 import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -23,6 +24,7 @@ import com.kshavrin.mymoney.core.sync.toCloudProvider
 import com.kshavrin.mymoney.core.sync.toSyncTarget
 import com.kshavrin.mymoney.core.domain.sync.SharedConflict
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -48,6 +50,7 @@ class CloudSyncViewModel
         private val backupRepository: BackupRepository,
         private val remoteConfig: RemoteConfigRepository,
         private val sharedCoordinator: SharedSyncCoordinator,
+        @ApplicationContext private val applicationContext: Context? = null,
     ) : ViewModel() {
         private val _state =
             MutableStateFlow(
@@ -554,11 +557,14 @@ class CloudSyncViewModel
                 entityKind = entityKind.name,
                 localOperationId = operationA.id,
                 localAuthorId = authorAId,
-                localSummary = operationA.payload ?: SUMMARY_DELETED,
+                localSummary = operationA.payload ?: deletedSummary,
                 remoteOperationId = operationB.id,
                 remoteAuthorId = authorBId,
-                remoteSummary = operationB.payload ?: SUMMARY_DELETED,
+                remoteSummary = operationB.payload ?: deletedSummary,
             )
+
+        private val deletedSummary: String
+            get() = checkNotNull(applicationContext).getString(R.string.sync_shared_conflict_deleted)
 
         private suspend fun verifiedCard(card: TargetCardState): VerifiedCard {
             if (!snapshotSync.isConnected(card.target)) return VerifiedCard(card.copy(connected = false, accountLabel = null))
@@ -623,8 +629,4 @@ class CloudSyncViewModel
             val card: TargetCardState,
             @StringRes val errorRes: Int? = null,
         )
-
-        private companion object {
-            const val SUMMARY_DELETED = "(deleted)"
-        }
     }

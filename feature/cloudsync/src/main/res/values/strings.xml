@@ -65,6 +65,7 @@
     <string name="sync_shared_conflicts_title">Resolve conflicts</string>
     <string name="sync_shared_no_conflicts">No conflicts to resolve.</string>
     <string name="sync_shared_conflict_author">Edited by %1$s</string>
+    <string name="sync_shared_conflict_deleted">(deleted)</string>
     <string name="sync_shared_keep_local">Keep this version</string>
     <string name="sync_shared_keep_remote">Keep this version</string>
 </resources>

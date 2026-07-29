@@ -65,6 +65,7 @@
     <string name="sync_shared_conflicts_title">Разрешение конфликтов</string>
     <string name="sync_shared_no_conflicts">Нет конфликтов для разрешения.</string>
     <string name="sync_shared_conflict_author">Изменил: %1$s</string>
+    <string name="sync_shared_conflict_deleted">(удалено)</string>
     <string name="sync_shared_keep_local">Оставить эту версию</string>
     <string name="sync_shared_keep_remote">Оставить эту версию</string>
 </resources>

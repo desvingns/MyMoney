@@ -6,9 +6,12 @@ import com.kshavrin.mymoney.core.database.journal.JournalApplier
 import com.kshavrin.mymoney.core.database.journal.JournalBootstrap
 import com.kshavrin.mymoney.core.database.journal.toDomain
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
+import com.kshavrin.mymoney.core.datastore.CloudProvider
 import com.kshavrin.mymoney.core.datastore.JournalSyncConfigStore
 import com.kshavrin.mymoney.core.domain.sync.DeviceIdProvider
 import com.kshavrin.mymoney.core.domain.sync.Operation
+import com.kshavrin.mymoney.core.sync.shared.SharedSyncCoordinator
+import dagger.Lazy
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.sync.Mutex
@@ -32,6 +35,7 @@ class JournalSyncImpl
         private val appSettings: AppSettingsRepository,
         private val clock: Clock,
         @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+        private val sharedCoordinator: Lazy<SharedSyncCoordinator>?,
     ) : JournalSync {
         constructor(
             operationDao: OperationDao,
@@ -55,6 +59,7 @@ class JournalSyncImpl
             appSettings = appSettings,
             clock = clock,
             ioDispatcher = ioDispatcher,
+            sharedCoordinator = null,
         )
 
         override suspend fun syncNow() = syncMutex.withLock { syncNowLocked() }
@@ -119,6 +124,13 @@ class JournalSyncImpl
             }
 
         private suspend fun syncNowLocked() {
+            if (configStore.binding()?.provider == CloudProvider.Shared) {
+                requireNotNull(sharedCoordinator) { "Shared sync coordinator is unavailable" }
+                    .get()
+                    .syncNow()
+                    .getOrThrow()
+                return
+            }
             if (activeBackend() == null) return
             bootstrap.runIfNeeded()
             withContext(ioDispatcher) {

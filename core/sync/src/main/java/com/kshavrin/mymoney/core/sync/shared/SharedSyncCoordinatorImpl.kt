@@ -26,6 +26,8 @@ import com.kshavrin.mymoney.core.network.shared.SharedWorkspaceApi
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.time.Clock
 import java.util.UUID
@@ -52,6 +54,8 @@ class SharedSyncCoordinatorImpl
         private val clock: Clock,
         @IoDispatcher private val dispatcher: CoroutineDispatcher,
     ) : SharedSyncCoordinator {
+        private val operationMutex = Mutex()
+
         override fun isSignedIn(): Boolean = auth.currentSession() != null
 
         override fun accountEmail(): String? = auth.currentSession()?.user?.email
@@ -74,12 +78,14 @@ class SharedSyncCoordinatorImpl
             importLocalData: Boolean,
         ): Result<SharedWorkspaceSummary> =
             withContext(dispatcher) {
-                runCatching {
-                    ensureSignedIn()
-                    ensureNoActiveBinding()
-                    val workspace = workspaceApi.createWorkspace(name).getOrThrow()
-                    adoptWorkspace(workspace, importLocalData)
-                    SharedWorkspaceSummary(workspace.id, workspace.name)
+                operationMutex.withLock {
+                    runCatching {
+                        ensureSignedIn()
+                        ensureNoActiveBinding()
+                        val workspace = workspaceApi.createWorkspace(name).getOrThrow()
+                        adoptWorkspace(workspace, importLocalData)
+                        SharedWorkspaceSummary(workspace.id, workspace.name)
+                    }
                 }
             }
 
@@ -88,27 +94,32 @@ class SharedSyncCoordinatorImpl
             importLocalData: Boolean,
         ): Result<SharedWorkspaceSummary> =
             withContext(dispatcher) {
-                runCatching {
-                    ensureSignedIn()
-                    ensureNoActiveBinding()
-                    val workspace = workspaceApi.joinWorkspace(inviteToken).getOrThrow()
-                    adoptWorkspace(workspace, importLocalData)
-                    SharedWorkspaceSummary(workspace.id, workspace.name)
+                operationMutex.withLock {
+                    runCatching {
+                        ensureSignedIn()
+                        ensureNoActiveBinding()
+                        val workspace = workspaceApi.joinWorkspace(inviteToken).getOrThrow()
+                        adoptWorkspace(workspace, importLocalData)
+                        SharedWorkspaceSummary(workspace.id, workspace.name)
+                    }
                 }
             }
 
         override suspend fun syncNow(): Result<Unit> =
             withContext(dispatcher) {
-                runCatching {
-                    val workspaceId = requireActiveWorkspaceId()
-                    // Forced-removal guard: if this device's membership is no longer active, detach the
-                    // shared binding (mirroring leave's local cleanup) so background sync stops and the
-                    // UI can surface an access-denied state, keeping the shared data as a personal copy.
-                    if (!sharedStore.isMembershipActive()) {
-                        clearSharedLocalState()
-                        throw SyncException(SyncError.Auth)
+                operationMutex.withLock {
+                    runCatching {
+                        val workspaceId = requireActiveWorkspaceId()
+                        // Forced-removal guard: if this device's membership is no longer active, detach the
+                        // shared binding (mirroring leave's local cleanup) so background sync stops and the
+                        // UI can surface an access-denied state, keeping the shared data as a personal copy.
+                        if (!sharedStore.isMembershipActive()) {
+                            clearSharedLocalState()
+                            throw SyncException(SyncError.Auth)
+                        }
+                        publishLocalData(workspaceId)
+                        pullAndApply(workspaceId)
                     }
-                    pullAndApply(workspaceId)
                 }
             }
 
@@ -122,33 +133,37 @@ class SharedSyncCoordinatorImpl
             winnerOperationId: String,
         ): Result<Unit> =
             withContext(dispatcher) {
-                runCatching {
-                    journalRepository.resolveConflict(conflictId, winnerOperationId).getOrThrow()
-                    pullAndApply(requireActiveWorkspaceId())
+                operationMutex.withLock {
+                    runCatching {
+                        journalRepository.resolveConflict(conflictId, winnerOperationId).getOrThrow()
+                        pullAndApply(requireActiveWorkspaceId())
+                    }
                 }
             }
 
         override suspend fun leaveWorkspace(): Result<Unit> =
             withContext(dispatcher) {
-                runCatching {
-                    val workspaceId = requireActiveWorkspaceId()
-                    // A failed safety backup must NOT keep remote access alive: capture its result but
-                    // always proceed to cut remote access, then propagate the backup failure at the end.
-                    val backup = backupRepository.createInternalBackup()
-                    val serverLeave = runCatching { workspaceApi.leaveWorkspace(workspaceId).getOrThrow() }
-                    clearSharedLocalState()
-                    // The shared data stays as a personal local copy. Whether or not the server-side
-                    // membership row was removed, always drop the auth session so a stale token cannot
-                    // keep remote access alive if the server leave did not land.
-                    runCatching { auth.signOut().getOrThrow() }
-                    val serverError = serverLeave.exceptionOrNull()
-                    val backupError = backup.exceptionOrNull()
-                    if (serverError != null) {
-                        backupError?.let(serverError::addSuppressed)
-                        throw serverError
+                operationMutex.withLock {
+                    runCatching {
+                        val workspaceId = requireActiveWorkspaceId()
+                        // A failed safety backup must NOT keep remote access alive: capture its result but
+                        // always proceed to cut remote access, then propagate the backup failure at the end.
+                        val backup = backupRepository.createInternalBackup()
+                        val serverLeave = runCatching { workspaceApi.leaveWorkspace(workspaceId).getOrThrow() }
+                        clearSharedLocalState()
+                        // The shared data stays as a personal local copy. Whether or not the server-side
+                        // membership row was removed, always drop the auth session so a stale token cannot
+                        // keep remote access alive if the server leave did not land.
+                        runCatching { auth.signOut().getOrThrow() }
+                        val serverError = serverLeave.exceptionOrNull()
+                        val backupError = backup.exceptionOrNull()
+                        if (serverError != null) {
+                            backupError?.let(serverError::addSuppressed)
+                            throw serverError
+                        }
+                        backupError?.let { throw it }
+                        Unit
                     }
-                    backupError?.let { throw it }
-                    Unit
                 }
             }
 

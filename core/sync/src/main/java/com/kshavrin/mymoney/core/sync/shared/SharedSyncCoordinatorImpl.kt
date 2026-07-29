@@ -139,8 +139,13 @@ class SharedSyncCoordinatorImpl
                     // membership row was removed, always drop the auth session so a stale token cannot
                     // keep remote access alive if the server leave did not land.
                     runCatching { auth.signOut().getOrThrow() }
-                    serverLeave.getOrThrow()
-                    backup.getOrThrow()
+                    val serverError = serverLeave.exceptionOrNull()
+                    val backupError = backup.exceptionOrNull()
+                    if (serverError != null) {
+                        backupError?.let(serverError::addSuppressed)
+                        throw serverError
+                    }
+                    backupError?.let { throw it }
                     Unit
                 }
             }
@@ -213,8 +218,30 @@ class SharedSyncCoordinatorImpl
                     if (operation.tombstone) {
                         transactionRepository.applySharedDelete(uuid, now)
                     } else {
-                        operation.payload?.let {
-                            transactionRepository.applySharedUpsert(codec.decodeTransaction(it), uuid, deviceId)
+                        operation.payload?.let { payload ->
+                            val decoded = codec.decodeTransaction(payload)
+                            val refs = codec.decodeTransactionRefs(payload)
+                            // Remap portable FK uuids to LOCAL ids. A null lookup (the referenced
+                            // account/category has not been applied yet) throws, so the per-operation
+                            // catch logs and skips this op; its create arrives on a later pull.
+                            val accountId =
+                                accountRepository.idForUuid(refs.accountUuid)
+                                    ?: error("shared transaction references unknown account ${refs.accountUuid}")
+                            val categoryId =
+                                refs.categoryUuid?.let {
+                                    categoryRepository.idForUuid(it)
+                                        ?: error("shared transaction references unknown category $it")
+                                }
+                            val toAccountId =
+                                refs.toAccountUuid?.let {
+                                    accountRepository.idForUuid(it)
+                                        ?: error("shared transaction references unknown account $it")
+                                }
+                            transactionRepository.applySharedUpsert(
+                                decoded.copy(accountId = accountId, categoryId = categoryId, toAccountId = toAccountId),
+                                uuid,
+                                deviceId,
+                            )
                         }
                     }
                 EntityKind.Account ->
@@ -249,13 +276,20 @@ class SharedSyncCoordinatorImpl
             }
             transactionRepository.observeAll().first().forEach { transaction ->
                 val uuid = transactionRepository.uuidForId(transaction.id) ?: return@forEach
+                // Publish portable FK references. If any referenced row lacks a uuid it cannot be
+                // shared portably yet, so skip the whole transaction rather than emit a broken ref.
+                val accountUuid = accountRepository.uuidForId(transaction.accountId) ?: return@forEach
+                val categoryUuid =
+                    transaction.categoryId?.let { categoryRepository.uuidForId(it) ?: return@forEach }
+                val toAccountUuid =
+                    transaction.toAccountId?.let { accountRepository.uuidForId(it) ?: return@forEach }
                 push(
                     workspaceId,
                     deviceId,
                     baseSequence,
                     EntityKind.Transaction,
                     uuid,
-                    codec.encodeTransaction(transaction, uuid),
+                    codec.encodeTransaction(transaction, uuid, accountUuid, categoryUuid, toAccountUuid),
                 )
             }
         }

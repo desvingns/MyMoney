@@ -18,6 +18,9 @@ interface CategoryRepository {
     /** Stable cross-device uuid for a local row, for publishing it to a Shared workspace. */
     suspend fun uuidForId(id: Long): String?
 
+    /** Resolve a local Room id from a cross-device uuid when applying Shared foreign-key references. */
+    suspend fun idForUuid(uuid: String): Long?
+
     /**
      * Apply a Shared-workspace upsert keyed by [uuid]: update the matching local row in place
      * (preserving its own local Room id), or insert a new row carrying [uuid]. Writes NO

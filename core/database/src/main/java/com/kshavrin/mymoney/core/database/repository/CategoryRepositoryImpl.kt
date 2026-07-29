@@ -117,6 +117,11 @@ class CategoryRepositoryImpl
                 dao.findById(id)?.uuid?.takeIf(String::isNotBlank)
             }
 
+        override suspend fun idForUuid(uuid: String): Long? =
+            withContext(ioDispatcher) {
+                dao.findByUuid(uuid)?.id
+            }
+
         override suspend fun applySharedUpsert(
             category: Category,
             uuid: String,

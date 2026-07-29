@@ -578,6 +578,8 @@ private object NoOpCategoryRepository : CategoryRepository {
 
     override suspend fun uuidForId(id: Long): String? = null
 
+    override suspend fun idForUuid(uuid: String): Long? = null
+
     override suspend fun applySharedUpsert(
         category: Category,
         uuid: String,

@@ -34,6 +34,9 @@ class SharedEntityCodec
         fun encodeTransaction(
             transaction: Transaction,
             uuid: String,
+            accountUuid: String,
+            categoryUuid: String?,
+            toAccountUuid: String?,
         ): String =
             json.encodeToString(
                 JsonObject.serializer(),
@@ -43,18 +46,39 @@ class SharedEntityCodec
                     put("kind", transaction.kind.name)
                     put("amount", transaction.amount.toPlainString())
                     put("currencyId", transaction.currencyId)
+                    // Portable cross-device references: apply resolves these uuids back to LOCAL ids.
+                    // The numeric *Id fields are the sender's local Room ids, kept only for debugging.
+                    put("accountUuid", accountUuid)
                     put("accountId", transaction.accountId)
+                    categoryUuid?.let { put("categoryUuid", it) }
                     transaction.categoryId?.let { put("categoryId", it) }
+                    toAccountUuid?.let { put("toAccountUuid", it) }
+                    transaction.toAccountId?.let { put("toAccountId", it) }
                     transaction.note?.let { put("note", it) }
                     put("occurredAt", transaction.occurredAt.toEpochMilli())
                     put("createdAt", transaction.createdAt.toEpochMilli())
                     put("updatedAt", transaction.updatedAt.toEpochMilli())
                     put("isDeleted", transaction.isDeleted)
-                    transaction.toAccountId?.let { put("toAccountId", it) }
                     transaction.toAmount?.let { put("toAmount", it.toPlainString()) }
                     transaction.exchangeRate?.let { put("exchangeRate", it) }
                 },
             )
+
+        /** Portable foreign-key references carried by a transaction payload. */
+        data class TransactionRefs(
+            val accountUuid: String,
+            val categoryUuid: String?,
+            val toAccountUuid: String?,
+        )
+
+        fun decodeTransactionRefs(payload: String): TransactionRefs {
+            val obj = json.parseToJsonElement(payload) as JsonObject
+            return TransactionRefs(
+                accountUuid = obj.string("accountUuid"),
+                categoryUuid = obj.stringOrNull("categoryUuid"),
+                toAccountUuid = obj.stringOrNull("toAccountUuid"),
+            )
+        }
 
         fun decodeTransaction(payload: String): Transaction {
             val obj = json.parseToJsonElement(payload) as JsonObject

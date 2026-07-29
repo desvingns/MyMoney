@@ -7,6 +7,7 @@ import com.kshavrin.mymoney.core.datastore.JournalSyncConfigStore
 import com.kshavrin.mymoney.core.datastore.SecureStorage
 import com.kshavrin.mymoney.core.domain.repository.BackupRepository
 import com.kshavrin.mymoney.core.domain.reset.FactoryResetGateway
+import com.kshavrin.mymoney.core.network.shared.SharedAuth
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -19,6 +20,7 @@ class FactoryResetGatewayImpl
         private val backupRepository: BackupRepository,
         private val appSettingsRepository: AppSettingsRepository,
         private val secureStorage: SecureStorage,
+        private val sharedAuth: SharedAuth,
         private val journalSyncConfigStore: JournalSyncConfigStore,
         private val operationDao: OperationDao,
         private val syncScheduler: SyncScheduler,
@@ -33,7 +35,10 @@ class FactoryResetGatewayImpl
         }
 
         override suspend fun clearSecrets() {
-            withContext(ioDispatcher) { secureStorage.clearAll() }
+            withContext(ioDispatcher) {
+                sharedAuth.clearLocalSession()
+                secureStorage.clearAll()
+            }
         }
 
         override suspend fun detachCloudSync() {

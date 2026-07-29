@@ -25,8 +25,12 @@ class SupabaseSharedAuth
     ) : SharedAuth {
         @Volatile private var session: ActiveSession? = null
         private val sessionMutex = Mutex()
+        private val sessionCacheLock = Any()
 
-        override fun currentSession(): SharedSession? = cachedOrStoredSession()?.session
+        override fun currentSession(): SharedSession? =
+            synchronized(sessionCacheLock) {
+                cachedOrStoredSessionLocked()?.session
+            }
 
         override suspend fun accessToken(): Result<String> =
             sessionMutex.withLock {
@@ -75,6 +79,10 @@ class SupabaseSharedAuth
             }
         }
 
+        override suspend fun clearLocalSession() {
+            sessionMutex.withLock { clearSession() }
+        }
+
         private suspend fun refresh(refreshToken: String): Result<ActiveSession> =
             http
                 .post(
@@ -88,6 +96,11 @@ class SupabaseSharedAuth
                 }
 
         private fun cachedOrStoredSession(): ActiveSession? =
+            synchronized(sessionCacheLock) {
+                cachedOrStoredSessionLocked()
+            }
+
+        private fun cachedOrStoredSessionLocked(): ActiveSession? =
             session ?: sessionStore.readSharedSession()?.toActiveSession()?.also { session = it }
 
         private fun saveSession(response: kotlinx.serialization.json.JsonObject): ActiveSession =
@@ -97,8 +110,10 @@ class SupabaseSharedAuth
             }
 
         private fun clearSession() {
-            session = null
-            sessionStore.clearSharedSession()
+            synchronized(sessionCacheLock) {
+                session = null
+                sessionStore.clearSharedSession()
+            }
         }
 
         private fun kotlinx.serialization.json.JsonObject.toActiveSession(): ActiveSession {

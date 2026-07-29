@@ -2,6 +2,7 @@ package com.kshavrin.mymoney.core.network.shared
 
 import com.kshavrin.mymoney.core.common.exception.SyncError
 import com.kshavrin.mymoney.core.common.exception.SyncException
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
@@ -13,6 +14,7 @@ import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -20,6 +22,10 @@ import org.junit.Test
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 
 class SupabaseSharedTransportTest {
     private lateinit var server: MockWebServer
@@ -187,6 +193,43 @@ class SupabaseSharedTransportTest {
     }
 
     @Test
+    fun `terminal sign out clear wins over an in-flight session restore`() {
+        val interleavingStore = InterleavingSessionStore(storedSession(expiresAt = 1_800_000_000L))
+        val config =
+            SupabaseConfig(
+                url = server.url("/").toString().removeSuffix("/"),
+                anonKey = "anon-key",
+                googleWebClientId = "web-client-id",
+            )
+        val restartedAuth =
+            SupabaseSharedAuth(
+                config,
+                SupabaseHttpTransport(config, OkHttpClient(), Json),
+                interleavingStore,
+                clock,
+            )
+        val executor = Executors.newFixedThreadPool(2)
+        server.enqueue(MockResponse().setResponseCode(204))
+
+        try {
+            val restoringSession = executor.submit<SharedSession?> { restartedAuth.currentSession() }
+            assertTrue(interleavingStore.firstReadStarted.await(1, TimeUnit.SECONDS))
+
+            val signingOut = executor.submit<Result<Unit>> { runBlocking { restartedAuth.signOut() } }
+            assertFalse(interleavingStore.secondReadStarted.await(250, TimeUnit.MILLISECONDS))
+
+            interleavingStore.allowFirstRead.countDown()
+            assertEquals("user-1", restoringSession.get(1, TimeUnit.SECONDS)?.user?.id)
+            assertTrue(signingOut.get(1, TimeUnit.SECONDS).isSuccess)
+            assertNull(interleavingStore.session)
+            assertNull(restartedAuth.currentSession())
+        } finally {
+            interleavingStore.allowFirstRead.countDown()
+            executor.shutdownNow()
+        }
+    }
+
+    @Test
     fun `rpc without a session fails with auth and does not issue a request`() = runTest {
         val result = workspaceRpc.createWorkspace("Budget")
 
@@ -320,6 +363,31 @@ class SupabaseSharedTransportTest {
 
         override fun writeSharedSession(session: StoredSharedSession) {
             this.session = session
+        }
+
+        override fun clearSharedSession() {
+            session = null
+        }
+    }
+
+    private class InterleavingSessionStore(
+        @Volatile var session: StoredSharedSession?,
+    ) : SharedSessionStore {
+        private val readCount = AtomicInteger()
+        val firstReadStarted = CountDownLatch(1)
+        val secondReadStarted = CountDownLatch(1)
+        val allowFirstRead = CountDownLatch(1)
+
+        override fun readSharedSession(): StoredSharedSession? {
+            val snapshot = session
+            when (readCount.incrementAndGet()) {
+                1 -> {
+                    firstReadStarted.countDown()
+                    check(allowFirstRead.await(1, TimeUnit.SECONDS)) { "first session read was not released" }
+                }
+                2 -> secondReadStarted.countDown()
+            }
+            return snapshot
         }
 
         override fun clearSharedSession() {

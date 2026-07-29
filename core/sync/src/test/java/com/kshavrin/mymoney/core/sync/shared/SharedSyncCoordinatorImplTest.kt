@@ -338,6 +338,25 @@ class SharedSyncCoordinatorImplTest {
         assertEquals(0, workspaceApi.createInviteCalls)
     }
 
+    @Test
+    fun `createInvite rejects inactive membership and revokes the local session`() = runTest(dispatcher) {
+        auth.session = fakeSession()
+        configStore.current = CloudBinding(CloudProvider.Shared, "ws-1", "Budget")
+        sharedStore.membershipActive = false
+        workspaceApi.createInviteResult = Result.success(fakeCreatedInvite("invite-token"))
+
+        val result = coordinator.createInvite()
+
+        assertTrue(result.isFailure)
+        assertEquals(SyncError.Auth, (result.exceptionOrNull() as SyncException).syncError)
+        assertEquals(0, workspaceApi.createInviteCalls)
+        assertNull(configStore.current)
+        assertTrue(sharedStore.cursorIsCleared)
+        assertEquals(1, scheduler.disableCalls)
+        assertEquals(1, auth.signOutCalls)
+        assertNull(auth.session)
+    }
+
     // ── leaveWorkspace ─────────────────────────────────────────────────────
 
     @Test

@@ -11,11 +11,27 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
 import com.kshavrin.mymoney.core.datastore.CloudBinding
 import com.kshavrin.mymoney.core.datastore.CloudProvider
+import com.kshavrin.mymoney.core.datastore.JournalSyncConfigStore
+import com.kshavrin.mymoney.core.datastore.model.AppSettings
+import com.kshavrin.mymoney.core.domain.model.BackupFile
+import com.kshavrin.mymoney.core.domain.repository.BackupRepository
+import com.kshavrin.mymoney.core.domain.repository.RemoteConfigRepository
+import com.kshavrin.mymoney.core.domain.sync.SharedConflict
+import com.kshavrin.mymoney.core.sync.CloudAccountIdentity
+import com.kshavrin.mymoney.core.sync.JournalSync
 import com.kshavrin.mymoney.core.sync.MigrationResolution
+import com.kshavrin.mymoney.core.sync.SnapshotSync
+import com.kshavrin.mymoney.core.sync.SyncScheduler
 import com.kshavrin.mymoney.core.sync.SyncTarget
+import com.kshavrin.mymoney.core.sync.shared.SharedSyncCoordinator
+import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceInvite
+import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceSummary
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -108,6 +124,32 @@ class CloudSyncContentUiTest {
         }
     }
 
+    @Test
+    fun `CloudSyncRoute copies invite token to the system clipboard`() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val viewModel = inviteViewModel()
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                CloudSyncRoute(onBack = {}, viewModel = viewModel)
+            }
+        }
+        viewModel.onEvent(CloudSyncEvent.SharedCreateInviteClicked)
+        composeTestRule.waitForIdle()
+
+        composeTestRule
+            .onNodeWithTag("cloud_sync_shared_invite_token")
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithTag("cloud_sync_shared_copy_invite")
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            val clipboard = context.getSystemService(android.content.ClipboardManager::class.java)
+            assertEquals("invite-token", clipboard?.primaryClip?.getItemAt(0)?.text?.toString())
+        }
+    }
+
     private fun setContent(
         state: CloudSyncState = CloudSyncState(),
         onEvent: (CloudSyncEvent) -> Unit = {},
@@ -116,4 +158,134 @@ class CloudSyncContentUiTest {
     }
 
     private fun targetString(resourceId: Int): String = InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)
+
+    private fun inviteViewModel() =
+        CloudSyncViewModel(
+            snapshotSync = EmptySnapshotSync(),
+            journalSync = EmptyJournalSync(),
+            journalSyncConfig = SharedConfigStore(),
+            syncScheduler = EmptySyncScheduler(),
+            appSettings = EmptyAppSettingsRepository(),
+            backupRepository = EmptyBackupRepository(),
+            remoteConfig = EmptyRemoteConfigRepository(),
+            sharedCoordinator = InviteCoordinator(),
+        )
+
+    private class EmptySnapshotSync : SnapshotSync {
+        override fun isConnected(target: SyncTarget) = false
+
+        override fun connectedTargets() = emptyList<SyncTarget>()
+
+        override fun connect(target: SyncTarget, payload: String) = Unit
+
+        override fun disconnect(target: SyncTarget) = Unit
+
+        override suspend fun accountLabel(target: SyncTarget) = Result.success("unused")
+
+        override suspend fun accountIdentity(target: SyncTarget) = Result.success(CloudAccountIdentity("unused", "unused"))
+    }
+
+    private class EmptyJournalSync : JournalSync {
+        override suspend fun push() = Unit
+
+        override suspend fun pull() = Unit
+
+        override suspend fun syncNow() = Unit
+    }
+
+    private class EmptySyncScheduler : SyncScheduler {
+        override fun enablePeriodicSync() = Unit
+
+        override fun disablePeriodicSync() = Unit
+
+        override fun syncNow(target: SyncTarget?) = Unit
+    }
+
+    private class EmptyAppSettingsRepository : AppSettingsRepository {
+        override val settings: Flow<AppSettings> = flowOf(AppSettings())
+
+        override suspend fun update(transform: (AppSettings) -> AppSettings) = Unit
+    }
+
+    private class EmptyBackupRepository : BackupRepository {
+        override suspend fun exportDb(treeUriString: String) = Result.success(Unit)
+
+        override suspend fun importDb(documentUriString: String) = Result.success(Unit)
+
+        override suspend fun listLocalBackups(treeUriString: String): List<BackupFile> = emptyList()
+
+        override suspend fun rotateBackups(treeUriString: String) = Result.success(Unit)
+
+        override suspend fun exportToFile(destAbsolutePath: String) = Result.success(Unit)
+
+        override suspend fun importFromFile(srcAbsolutePath: String) = Result.success(Unit)
+    }
+
+    private class EmptyRemoteConfigRepository : RemoteConfigRepository {
+        override suspend fun refresh() = Result.success(Unit)
+
+        override fun recurringTemplatesEnabled() = false
+
+        override fun budgetModeEnabled() = false
+
+        override fun dropboxSyncEnabled() = false
+
+        override fun gdriveSyncEnabled() = false
+
+        override fun minSupportedVersionCode() = 0L
+
+        override fun aestheticSoundPack() = ""
+    }
+
+    private class SharedConfigStore : JournalSyncConfigStore {
+        private var current: CloudBinding? = CloudBinding(CloudProvider.Shared, "ws-1", "Budget")
+
+        override suspend fun binding() = current
+
+        override suspend fun setBinding(binding: CloudBinding) {
+            current = binding
+        }
+
+        override suspend fun clearBinding() {
+            current = null
+        }
+
+        override suspend fun peerHighWaterMs(fileId: String) = 0L
+
+        override suspend fun setPeerHighWaterMs(fileId: String, modifiedAtMs: Long) = Unit
+
+        override suspend fun isBootstrapDone() = true
+
+        override suspend fun markBootstrapDone() = Unit
+
+        override suspend fun clear() {
+            current = null
+        }
+    }
+
+    private class InviteCoordinator : SharedSyncCoordinator {
+        override fun isSignedIn() = true
+
+        override fun accountEmail() = "owner@example.com"
+
+        override suspend fun signIn(googleIdToken: String, nonce: String) = Result.success(Unit)
+
+        override suspend fun signOut() = Result.success(Unit)
+
+        override suspend fun activeWorkspace() = SharedWorkspaceSummary("ws-1", "Budget")
+
+        override suspend fun createWorkspace(name: String, importLocalData: Boolean) = Result.success(SharedWorkspaceSummary("ws-1", name))
+
+        override suspend fun joinWorkspace(inviteToken: String, importLocalData: Boolean) = Result.success(SharedWorkspaceSummary("ws-1", "Budget"))
+
+        override suspend fun createInvite() = Result.success(SharedWorkspaceInvite("invite-token"))
+
+        override suspend fun syncNow() = Result.success(Unit)
+
+        override suspend fun listConflicts(): Result<List<SharedConflict>> = Result.success(emptyList())
+
+        override suspend fun resolveConflict(conflictId: String, winnerOperationId: String) = Result.success(Unit)
+
+        override suspend fun leaveWorkspace() = Result.success(Unit)
+    }
 }

@@ -8,9 +8,11 @@ import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import androidx.work.await
 import androidx.work.workDataOf
 import com.kshavrin.mymoney.core.sync.worker.SyncWorker
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -43,10 +45,17 @@ class SyncSchedulerImpl
             workManager.cancelUniqueWork(SyncWorker.UNIQUE_PERIODIC)
         }
 
-        override fun cancelAllSync() {
-            workManager.cancelUniqueWork(SyncWorker.UNIQUE_PERIODIC)
-            workManager.cancelUniqueWork(SyncWorker.UNIQUE_MANUAL)
-        }
+        override suspend fun cancelAllSync(): Result<Unit> =
+            try {
+                val periodicCancellation = workManager.cancelUniqueWork(SyncWorker.UNIQUE_PERIODIC)
+                val manualCancellation = workManager.cancelUniqueWork(SyncWorker.UNIQUE_MANUAL)
+                periodicCancellation.await()
+                manualCancellation.await()
+                Result.success(Unit)
+            } catch (t: Throwable) {
+                if (t is CancellationException) throw t
+                Result.failure(t)
+            }
 
         override fun syncNow(target: SyncTarget?) {
             val request =

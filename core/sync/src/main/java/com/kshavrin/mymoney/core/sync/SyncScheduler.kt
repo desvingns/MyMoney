@@ -5,8 +5,9 @@ interface SyncScheduler {
 
     fun disablePeriodicSync()
 
-    fun cancelAllSync() {
+    suspend fun cancelAllSync(): Result<Unit> {
         disablePeriodicSync()
+        return Result.success(Unit)
     }
 
     fun syncNow(target: SyncTarget? = null)

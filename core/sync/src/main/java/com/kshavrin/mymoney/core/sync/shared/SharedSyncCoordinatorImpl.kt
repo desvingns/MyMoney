@@ -178,7 +178,7 @@ class SharedSyncCoordinatorImpl
             withContext(dispatcher) {
                 operationMutex.withLock {
                     runCatching {
-                        syncScheduler.cancelAllSync()
+                        syncScheduler.cancelAllSync().getOrThrow()
                         configStore.clearBinding()
                         sharedStore.clear()
                         runCatching { clearSharedOutbox() }.onFailure(Throwable::reportToSentry)

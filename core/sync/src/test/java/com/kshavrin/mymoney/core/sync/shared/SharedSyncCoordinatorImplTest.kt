@@ -58,6 +58,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import org.junit.After
@@ -655,7 +656,7 @@ class SharedSyncCoordinatorImplTest {
         gateEntered.await()
 
         val listJob = async { coordinator.listConflicts() }
-        kotlinx.coroutines.test.runCurrent()
+        runCurrent()
         assertNotNull(configStore.current)
 
         releaseGate.complete(Unit)
@@ -681,7 +682,7 @@ class SharedSyncCoordinatorImplTest {
         gateEntered.await()
 
         val restoreJob = async { coordinator.restoreInternalBackup("/internal/backup-1.db") }
-        kotlinx.coroutines.test.runCurrent()
+        runCurrent()
         assertTrue(backupRepository.importPaths.isEmpty())
 
         releaseGate.complete(Unit)
@@ -785,11 +786,6 @@ class SharedSyncCoordinatorImplTest {
         tombstone = tombstone,
         createdAt = clock.instant(),
     )
-
-    private fun buildAccountPayload(currencyCode: String): String =
-        """{"uuid":"e-uuid","id":1,"name":"Acct","currencyCode":"$currencyCode","currencyId":99,""" +
-            """"initialBalance":"0","type":"Cash","colorHex":"#000000","iconKey":"ic","isDefault":false,""" +
-            """"sortOrder":0,"createdAt":1000,"updatedAt":1000,"isArchived":false}"""
 
     // ── local fakes ────────────────────────────────────────────────────────
 

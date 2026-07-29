@@ -12,15 +12,15 @@ import javax.inject.Singleton
 abstract class SharedModule {
     @Binds
     @Singleton
-    abstract fun bindSharedAuth(impl: StubSharedAuth): SharedAuth
+    abstract fun bindSharedAuth(impl: SupabaseSharedAuth): SharedAuth
 
     @Binds
     @Singleton
-    abstract fun bindSharedWorkspaceRpc(impl: StubSharedWorkspaceRpc): SharedWorkspaceRpc
+    abstract fun bindSharedWorkspaceRpc(impl: SupabaseSharedWorkspaceRpc): SharedWorkspaceRpc
 
     @Binds
     @Singleton
-    abstract fun bindSharedJournalRpc(impl: StubSharedJournalRpc): SharedJournalRpc
+    abstract fun bindSharedJournalRpc(impl: SupabaseSharedJournalRpc): SharedJournalRpc
 
     @Binds
     @Singleton

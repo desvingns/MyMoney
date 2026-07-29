@@ -19,7 +19,10 @@ interface SharedSyncCoordinator {
 
     fun accountEmail(): String?
 
-    suspend fun signIn(googleIdToken: String): Result<Unit>
+    suspend fun signIn(
+        googleIdToken: String,
+        nonce: String,
+    ): Result<Unit>
 
     suspend fun signOut(): Result<Unit>
 

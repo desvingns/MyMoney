@@ -10,4 +10,6 @@ sealed interface CloudSyncAction {
     data object RequestMigrationBackupDirectory : CloudSyncAction
 
     data object LaunchSharedGoogleSignIn : CloudSyncAction
+
+    data object ClearSharedGoogleCredentialState : CloudSyncAction
 }

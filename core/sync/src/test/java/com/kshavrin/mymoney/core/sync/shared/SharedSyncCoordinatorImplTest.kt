@@ -432,7 +432,10 @@ class SharedSyncCoordinatorImplTest {
         var signOutCalls = 0
 
         override fun currentSession() = session
-        override suspend fun signInWithGoogle(googleIdToken: String) =
+        override suspend fun signInWithGoogle(
+            googleIdToken: String,
+            nonce: String,
+        ) =
             Result.success(session ?: fakeSession())
         override suspend fun signOut(): Result<Unit> {
             signOutCalls++

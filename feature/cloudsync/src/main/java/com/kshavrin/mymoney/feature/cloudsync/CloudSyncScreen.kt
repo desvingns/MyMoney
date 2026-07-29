@@ -3,7 +3,10 @@ package com.kshavrin.mymoney.feature.cloudsync
 import android.accounts.Account
 import android.accounts.AccountManager
 import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import android.content.Intent
+import android.util.Base64
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -49,6 +52,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.credentials.ClearCredentialStateRequest
+import androidx.credentials.CredentialManager
+import androidx.credentials.CustomCredential
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.NoCredentialException
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -61,8 +69,11 @@ import com.google.android.gms.auth.api.identity.Identity
 import com.google.android.gms.common.AccountPicker
 import com.google.android.gms.common.api.Scope
 import com.google.api.services.drive.DriveScopes
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.kshavrin.mymoney.core.common.exception.reportToSentry
 import com.kshavrin.mymoney.core.datastore.CloudProvider
+import com.kshavrin.mymoney.core.network.BuildConfig as NetworkBuildConfig
 import com.kshavrin.mymoney.core.sync.MigrationResolution
 import com.kshavrin.mymoney.core.sync.SyncTarget
 import com.kshavrin.mymoney.core.sync.toCloudProvider
@@ -77,6 +88,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
+import java.security.SecureRandom
 import java.util.Locale
 import com.kshavrin.mymoney.core.sync.BuildConfig as SyncBuildConfig
 
@@ -92,6 +104,7 @@ fun CloudSyncRoute(
     var pendingDropboxLaunchSequence by rememberSaveable { mutableStateOf<Int?>(null) }
     var pendingGoogleAccountEmail by rememberSaveable { mutableStateOf<String?>(null) }
     val googleAuthorizationClient = remember(context) { Identity.getAuthorizationClient(context) }
+    val sharedCredentialManager = remember(context) { CredentialManager.create(context) }
     val migrationBackupDirectoryLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { treeUri ->
             if (treeUri == null) {
@@ -172,6 +185,52 @@ fun CloudSyncRoute(
             }
         }
 
+    suspend fun launchSharedGoogleSignIn() {
+        val activity = context.findActivity()
+        val webClientId = NetworkBuildConfig.SUPABASE_GOOGLE_WEB_CLIENT_ID
+        if (activity == null || webClientId.startsWith(PLACEHOLDER_PREFIX)) {
+            viewModel.onEvent(CloudSyncEvent.SharedSignInFailed)
+            return
+        }
+        val nonce = generateGoogleNonce()
+        val result =
+            try {
+                sharedCredentialManager.getCredential(
+                    context = activity,
+                    request = sharedGoogleCredentialRequest(webClientId, nonce, authorizedAccountsOnly = true),
+                )
+            } catch (_: NoCredentialException) {
+                try {
+                    sharedCredentialManager.getCredential(
+                        context = activity,
+                        request = sharedGoogleCredentialRequest(webClientId, nonce, authorizedAccountsOnly = false),
+                    )
+                } catch (t: Throwable) {
+                    t.reportToSentry()
+                    viewModel.onEvent(CloudSyncEvent.SharedSignInFailed)
+                    return
+                }
+            } catch (t: Throwable) {
+                t.reportToSentry()
+                viewModel.onEvent(CloudSyncEvent.SharedSignInFailed)
+                return
+            }
+        val credential = result.credential as? CustomCredential
+        val idToken =
+            credential
+                ?.takeIf { it.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL }
+                ?.let {
+                    runCatching { GoogleIdTokenCredential.createFrom(it.data).idToken }
+                        .onFailure(Throwable::reportToSentry)
+                        .getOrNull()
+                }
+        if (idToken.isNullOrBlank()) {
+            viewModel.onEvent(CloudSyncEvent.SharedSignInFailed)
+        } else {
+            viewModel.onEvent(CloudSyncEvent.SharedSignInCompleted(idToken, nonce))
+        }
+    }
+
     DisposableEffect(lifecycleOwner) {
         val observer =
             LifecycleEventObserver { _, event ->
@@ -217,10 +276,11 @@ fun CloudSyncRoute(
                 }
                 CloudSyncAction.RequestMigrationBackupDirectory ->
                     migrationBackupDirectoryLauncher.launch(null)
-                CloudSyncAction.LaunchSharedGoogleSignIn ->
-                    // Google ID-token acquisition (Credential Manager / One Tap) is deferred to a
-                    // dedicated auth-integration SPEC; the downstream Shared state machine is complete.
-                    viewModel.onEvent(CloudSyncEvent.SharedSignInFailed)
+                CloudSyncAction.LaunchSharedGoogleSignIn -> launchSharedGoogleSignIn()
+                CloudSyncAction.ClearSharedGoogleCredentialState ->
+                    runCatching {
+                        sharedCredentialManager.clearCredentialState(ClearCredentialStateRequest())
+                    }.onFailure(Throwable::reportToSentry)
                 CloudSyncAction.LaunchGoogleDriveAuth ->
                     runCatching {
                         accountPickerLauncher.launch(
@@ -798,6 +858,8 @@ internal fun googleDriveAuthorizationPolicy(accountEmail: String): GoogleDriveAu
     )
 
 private const val GOOGLE_ACCOUNT_TYPE = "com.google"
+private const val NONCE_BYTES = 32
+private const val PLACEHOLDER_PREFIX = "PLACEHOLDER_"
 private const val DROPBOX_APP_KEY_PLACEHOLDER = "PLACEHOLDER_DROPBOX_APP_KEY"
 private const val DROPBOX_CLIENT_IDENTIFIER = "MyMoney/1.0"
 private val DROPBOX_OAUTH_SCOPES =
@@ -814,3 +876,32 @@ private fun SyncTarget.controlTag(control: String): String =
         SyncTarget.GoogleDrive -> "cloud_sync_google_drive_$control"
         SyncTarget.Shared -> "cloud_sync_shared_$control"
     }
+
+private fun Context.findActivity(): Activity? =
+    when (this) {
+        is Activity -> this
+        is ContextWrapper -> baseContext.findActivity()
+        else -> null
+    }
+
+private fun generateGoogleNonce(): String =
+    ByteArray(NONCE_BYTES)
+        .also(SecureRandom()::nextBytes)
+        .let { Base64.encodeToString(it, Base64.NO_WRAP or Base64.URL_SAFE or Base64.NO_PADDING) }
+
+private fun sharedGoogleCredentialRequest(
+    webClientId: String,
+    nonce: String,
+    authorizedAccountsOnly: Boolean,
+): GetCredentialRequest =
+    GetCredentialRequest
+        .Builder()
+        .addCredentialOption(
+            GetGoogleIdOption
+                .Builder()
+                .setFilterByAuthorizedAccounts(authorizedAccountsOnly)
+                .setAutoSelectEnabled(authorizedAccountsOnly)
+                .setServerClientId(webClientId)
+                .setNonce(nonce)
+                .build(),
+        ).build()

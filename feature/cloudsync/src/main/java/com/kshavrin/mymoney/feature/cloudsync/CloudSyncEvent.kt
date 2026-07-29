@@ -45,6 +45,7 @@ sealed interface CloudSyncEvent {
 
     data class SharedSignInCompleted(
         val googleIdToken: String,
+        val nonce: String,
     ) : CloudSyncEvent
 
     data object SharedSignInFailed : CloudSyncEvent

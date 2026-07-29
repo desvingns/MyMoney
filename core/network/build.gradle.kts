@@ -28,8 +28,13 @@ android {
             providers.gradleProperty("supabase.anonKey").orNull
                 ?: localProperties.getProperty("supabase.anonKey")?.takeUnless { it.isBlank() }
                 ?: "PLACEHOLDER_SUPABASE_ANON_KEY"
+        val supabaseGoogleWebClientId =
+            providers.gradleProperty("supabase.googleWebClientId").orNull
+                ?: localProperties.getProperty("supabase.googleWebClientId")?.takeUnless { it.isBlank() }
+                ?: "PLACEHOLDER_SUPABASE_GOOGLE_WEB_CLIENT_ID"
         buildConfigField("String", "SUPABASE_URL", "\"$supabaseUrl\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"$supabaseAnonKey\"")
+        buildConfigField("String", "SUPABASE_GOOGLE_WEB_CLIENT_ID", "\"$supabaseGoogleWebClientId\"")
     }
 
     buildFeatures {
@@ -39,6 +44,7 @@ android {
 
 dependencies {
     implementation(project(":core:domain"))
+    implementation(project(":core:common"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.hilt.android)
@@ -53,6 +59,7 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.okhttp.mockwebserver)
 
     androidTestImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.junit)

@@ -121,6 +121,17 @@ class CloudSyncViewModelTest {
     }
 
     @Test
+    fun `SharedSignInCompleted forwards token and nonce to the coordinator`() = runTest {
+        val shared = SharedCoordinator()
+        val vm = viewModel(SnapshotFake(), RecordingJournalSync(), Config(null), Scheduler(), shared = shared)
+
+        vm.onEvent(CloudSyncEvent.SharedSignInCompleted("google-id-token", "request-nonce"))
+        runCurrent()
+
+        assertEquals("google-id-token" to "request-nonce", shared.lastSignIn)
+    }
+
+    @Test
     fun `SharedSetupClicked when signed in and no binding opens setup dialog with importLocalData false`() = runTest {
         val shared = SharedCoordinator().apply { signedIn = true }
         val vm = viewModel(SnapshotFake(), RecordingJournalSync(), Config(null), Scheduler(), shared = shared)
@@ -361,10 +372,17 @@ class CloudSyncViewModelTest {
         var leaveCalls = 0
         var lastJoinToken: String? = null
         var lastResolve: Pair<String, String>? = null
+        var lastSignIn: Pair<String, String>? = null
 
         override fun isSignedIn() = signedIn
         override fun accountEmail(): String? = if (signedIn) "user@example.com" else null
-        override suspend fun signIn(googleIdToken: String) = Result.success(Unit)
+        override suspend fun signIn(
+            googleIdToken: String,
+            nonce: String,
+        ): Result<Unit> {
+            lastSignIn = googleIdToken to nonce
+            return Result.success(Unit)
+        }
         override suspend fun signOut() = Result.success(Unit)
         override suspend fun activeWorkspace() = workspaceSummary
         override suspend fun createWorkspace(name: String, importLocalData: Boolean): Result<SharedWorkspaceSummary> {

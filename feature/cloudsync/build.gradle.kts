@@ -25,6 +25,9 @@ dependencies {
     implementation(libs.dropbox.android.sdk)
     implementation(libs.google.api.services.drive)
     implementation(libs.play.services.auth)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.googleid)
 
     testImplementation(libs.turbine)
     testImplementation(project(":core:testing"))

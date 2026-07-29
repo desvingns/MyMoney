@@ -5,6 +5,7 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import okhttp3.OkHttpClient
 import java.security.SecureRandom
 import javax.inject.Singleton
 
@@ -17,7 +18,13 @@ object SharedConfigModule {
         SupabaseConfig(
             url = BuildConfig.SUPABASE_URL,
             anonKey = BuildConfig.SUPABASE_ANON_KEY,
+            googleWebClientId = BuildConfig.SUPABASE_GOOGLE_WEB_CLIENT_ID,
         )
+
+    @Provides
+    @Singleton
+    @SharedSupabaseClient
+    fun provideSharedSupabaseClient(): OkHttpClient = OkHttpClient.Builder().build()
 
     @Provides
     fun provideSecureRandom(): SecureRandom = SecureRandom()

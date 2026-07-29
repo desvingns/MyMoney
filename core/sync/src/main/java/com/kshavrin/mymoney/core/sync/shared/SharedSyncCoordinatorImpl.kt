@@ -64,8 +64,11 @@ class SharedSyncCoordinatorImpl
 
         override fun accountEmail(): String? = auth.currentSession()?.user?.email
 
-        override suspend fun signIn(googleIdToken: String): Result<Unit> =
-            withContext(dispatcher) { auth.signInWithGoogle(googleIdToken).map { } }
+        override suspend fun signIn(
+            googleIdToken: String,
+            nonce: String,
+        ): Result<Unit> =
+            withContext(dispatcher) { auth.signInWithGoogle(googleIdToken, nonce).map { } }
 
         override suspend fun signOut(): Result<Unit> = withContext(dispatcher) { auth.signOut() }
 

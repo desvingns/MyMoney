@@ -91,7 +91,7 @@ class CloudSyncViewModel
                 CloudSyncEvent.DismissError -> _state.value = _state.value.copy(errorBannerRes = null)
                 CloudSyncEvent.BackClicked -> viewModelScope.launch { _actions.emit(CloudSyncAction.NavigateBack) }
                 CloudSyncEvent.SharedSignInClicked -> launchSharedSignIn()
-                is CloudSyncEvent.SharedSignInCompleted -> completeSharedSignIn(event.googleIdToken)
+                is CloudSyncEvent.SharedSignInCompleted -> completeSharedSignIn(event.googleIdToken, event.nonce)
                 CloudSyncEvent.SharedSignInFailed -> {
                     _state.value = _state.value.copy(isConnecting = false)
                     showError(R.string.sync_err_auth)
@@ -384,10 +384,13 @@ class CloudSyncViewModel
             }
         }
 
-        private fun completeSharedSignIn(googleIdToken: String) {
+        private fun completeSharedSignIn(
+            googleIdToken: String,
+            nonce: String,
+        ) {
             viewModelScope.launch {
                 try {
-                    sharedCoordinator.signIn(googleIdToken).getOrThrow()
+                    sharedCoordinator.signIn(googleIdToken, nonce).getOrThrow()
                 } catch (t: Throwable) {
                     if (t is CancellationException) throw t
                     reportAndShow(t)
@@ -503,6 +506,7 @@ class CloudSyncViewModel
                     reportAndShow(t)
                 } finally {
                     _state.value = _state.value.copy(isConnecting = false)
+                    _actions.emit(CloudSyncAction.ClearSharedGoogleCredentialState)
                     refresh()
                 }
             }

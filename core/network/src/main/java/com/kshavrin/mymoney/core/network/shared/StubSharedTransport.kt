@@ -20,7 +20,10 @@ class StubSharedAuth
     constructor() : SharedAuth {
         override fun currentSession(): SharedSession? = null
 
-        override suspend fun signInWithGoogle(googleIdToken: String): Result<SharedSession> = Result.failure(notWired())
+        override suspend fun signInWithGoogle(
+            googleIdToken: String,
+            nonce: String,
+        ): Result<SharedSession> = Result.failure(notWired())
 
         override suspend fun signOut(): Result<Unit> = Result.success(Unit)
     }

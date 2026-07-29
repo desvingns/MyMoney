@@ -8,7 +8,10 @@ data class SharedSession(
 interface SharedAuth {
     fun currentSession(): SharedSession?
 
-    suspend fun signInWithGoogle(googleIdToken: String): Result<SharedSession>
+    suspend fun signInWithGoogle(
+        googleIdToken: String,
+        nonce: String,
+    ): Result<SharedSession>
 
     suspend fun signOut(): Result<Unit>
 

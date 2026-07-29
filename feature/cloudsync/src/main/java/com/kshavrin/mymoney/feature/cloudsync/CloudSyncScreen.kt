@@ -188,8 +188,8 @@ fun CloudSyncRoute(
 
     suspend fun launchSharedGoogleSignIn() {
         val activity = context.findActivity()
-        val webClientId = normalizeSharedGoogleWebClientId(NetworkBuildConfig.SUPABASE_GOOGLE_WEB_CLIENT_ID)
-        if (activity == null || webClientId.startsWith(PLACEHOLDER_PREFIX)) {
+        val webClientId = sharedGoogleWebClientIdOrNull(NetworkBuildConfig.SUPABASE_GOOGLE_WEB_CLIENT_ID)
+        if (activity == null || webClientId == null) {
             viewModel.onEvent(CloudSyncEvent.SharedSignInFailed)
             return
         }
@@ -911,6 +911,10 @@ internal fun normalizeSharedGoogleWebClientId(configuredClientId: String): Strin
         .trim()
         .removeSurrounding("<", ">")
         .trim()
+
+internal fun sharedGoogleWebClientIdOrNull(configuredClientId: String): String? =
+    normalizeSharedGoogleWebClientId(configuredClientId)
+        .takeIf { it.isNotBlank() && !it.startsWith(PLACEHOLDER_PREFIX) }
 
 internal fun sharedGoogleCredentialRequest(
     webClientId: String,

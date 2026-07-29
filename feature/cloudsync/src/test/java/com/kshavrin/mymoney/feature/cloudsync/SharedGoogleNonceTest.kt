@@ -2,6 +2,7 @@ package com.kshavrin.mymoney.feature.cloudsync
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class SharedGoogleNonceTest {
@@ -26,5 +27,11 @@ class SharedGoogleNonceTest {
             "123456789012-example.apps.googleusercontent.com",
             normalizeSharedGoogleWebClientId(clientId),
         )
+    }
+
+    @Test
+    fun `Shared Google client id rejects empty template brackets and whitespace`() {
+        assertNull(sharedGoogleWebClientIdOrNull("<>"))
+        assertNull(sharedGoogleWebClientIdOrNull(" \t "))
     }
 }

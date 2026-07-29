@@ -1,6 +1,7 @@
 package com.kshavrin.mymoney.feature.cloudsync
 
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -70,6 +71,38 @@ class CloudSyncContentUiTest {
                     CloudSyncEvent.ConfirmMigration(MigrationResolution.UseTarget),
                     CloudSyncEvent.ConfirmMigration(MigrationResolution.KeepLocal),
                 ),
+                events,
+            )
+        }
+    }
+
+    @Test
+    fun `active Shared card exposes invite code copy and dismiss controls`() {
+        val events = mutableListOf<CloudSyncEvent>()
+        setContent(
+            CloudSyncState(
+                binding = CloudBinding(CloudProvider.Shared, "ws-1", "Budget"),
+                shared = SharedCardState(signedIn = true, active = true, workspaceName = "Budget"),
+            ),
+            events::add,
+        )
+        composeTestRule
+            .onNodeWithTag("cloud_sync_shared_create_invite")
+            .performScrollTo()
+            .assertIsDisplayed()
+            .performClick()
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(CloudSyncEvent.SharedCreateInviteClicked), events)
+        }
+
+        events.clear()
+        setContent(CloudSyncState(sharedDialog = SharedDialog.Invite("invite-token")), events::add)
+        composeTestRule.onNodeWithText("invite-token").assertIsDisplayed()
+        composeTestRule.onNodeWithText(targetString(R.string.sync_shared_copy_invite)).performClick()
+        composeTestRule.onNodeWithText(targetString(R.string.sync_dismiss)).performClick()
+        composeTestRule.runOnIdle {
+            assertEquals(
+                listOf(CloudSyncEvent.SharedCopyInviteClicked, CloudSyncEvent.SharedDialogDismissed),
                 events,
             )
         }

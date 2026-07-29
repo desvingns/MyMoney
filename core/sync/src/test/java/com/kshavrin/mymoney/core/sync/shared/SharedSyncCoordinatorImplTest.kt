@@ -36,6 +36,7 @@ import com.kshavrin.mymoney.core.network.shared.SharedUser
 import com.kshavrin.mymoney.core.network.shared.SharedWorkspace
 import com.kshavrin.mymoney.core.network.shared.SharedWorkspaceApi
 import com.kshavrin.mymoney.core.network.shared.WorkspaceMember
+import com.kshavrin.mymoney.core.sync.SyncScheduler
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
@@ -73,6 +74,7 @@ class SharedSyncCoordinatorImplTest {
     private lateinit var backupRepository: FakeInternalBackupRepository
     private lateinit var configStore: FakeJournalSyncConfigStore
     private lateinit var sharedStore: FakeSharedSyncStore
+    private lateinit var scheduler: FakeSyncScheduler
     private lateinit var accountRepository: FakeAccountRepository
     private lateinit var categoryRepository: FakeCategoryRepository
     private lateinit var transactionRepository: FakeTransactionRepository
@@ -94,6 +96,7 @@ class SharedSyncCoordinatorImplTest {
         backupRepository = FakeInternalBackupRepository()
         configStore = FakeJournalSyncConfigStore()
         sharedStore = FakeSharedSyncStore()
+        scheduler = FakeSyncScheduler()
         accountRepository = FakeAccountRepository()
         categoryRepository = FakeCategoryRepository()
         transactionRepository = FakeTransactionRepository()
@@ -109,6 +112,7 @@ class SharedSyncCoordinatorImplTest {
             backupRepository = backupRepository,
             configStore = configStore,
             sharedStore = sharedStore,
+            syncScheduler = scheduler,
             deviceIdProvider = deviceIdProvider,
             transactionRepository = transactionRepository,
             accountRepository = accountRepository,
@@ -256,6 +260,7 @@ class SharedSyncCoordinatorImplTest {
 
         // Binding must be cleared regardless of backup failure
         assertNull(configStore.current)
+        assertEquals(1, scheduler.disableCalls)
         assertEquals(1, auth.signOutCalls)
         // Result carries the backup failure
         assertTrue(result.isFailure)
@@ -311,6 +316,7 @@ class SharedSyncCoordinatorImplTest {
 
         assertNull("binding must be cleared on forced removal", configStore.current)
         assertTrue(sharedStore.cursorIsCleared)
+        assertEquals(1, scheduler.disableCalls)
         assertTrue(result.isFailure)
         val ex = result.exceptionOrNull() as? SyncException
         assertEquals(SyncError.Auth, ex?.syncError)
@@ -551,6 +557,18 @@ class SharedSyncCoordinatorImplTest {
             membershipActive = false
             cursorIsCleared = true
         }
+    }
+
+    private class FakeSyncScheduler : SyncScheduler {
+        var disableCalls = 0
+
+        override fun enablePeriodicSync() = Unit
+
+        override fun disablePeriodicSync() {
+            disableCalls++
+        }
+
+        override fun syncNow(target: com.kshavrin.mymoney.core.sync.SyncTarget?) = Unit
     }
 
     private inner class FakeAccountRepository : AccountRepository {

@@ -12,6 +12,7 @@ import com.kshavrin.mymoney.core.datastore.CloudBinding
 import com.kshavrin.mymoney.core.datastore.CloudProvider
 import com.kshavrin.mymoney.core.datastore.JournalSyncConfigStore
 import com.kshavrin.mymoney.core.datastore.SharedSyncStore
+import com.kshavrin.mymoney.core.sync.SyncScheduler
 import com.kshavrin.mymoney.core.domain.repository.AccountRepository
 import com.kshavrin.mymoney.core.domain.repository.BackupRepository
 import com.kshavrin.mymoney.core.domain.repository.CategoryRepository
@@ -46,6 +47,7 @@ class SharedSyncCoordinatorImpl
         private val backupRepository: BackupRepository,
         private val configStore: JournalSyncConfigStore,
         private val sharedStore: SharedSyncStore,
+        private val syncScheduler: SyncScheduler,
         private val deviceIdProvider: DeviceIdProvider,
         private val transactionRepository: TransactionRepository,
         private val accountRepository: AccountRepository,
@@ -429,6 +431,7 @@ class SharedSyncCoordinatorImpl
         }
 
         private suspend fun clearSharedLocalState() {
+            syncScheduler.disablePeriodicSync()
             clearSharedOutbox()
             configStore.clearBinding()
             sharedStore.clear()

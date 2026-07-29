@@ -1,10 +1,13 @@
 package com.kshavrin.mymoney.core.sync.shared
 
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.kshavrin.mymoney.core.common.exception.SyncError
 import com.kshavrin.mymoney.core.common.exception.SyncException
 import com.kshavrin.mymoney.core.database.MoneyDatabase
+import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
+import com.kshavrin.mymoney.core.datastore.AppSettingsRepositoryImpl
 import com.kshavrin.mymoney.core.datastore.CloudBinding
 import com.kshavrin.mymoney.core.datastore.CloudProvider
 import com.kshavrin.mymoney.core.datastore.JournalSyncConfigStore
@@ -37,8 +40,15 @@ import com.kshavrin.mymoney.core.network.shared.SharedWorkspace
 import com.kshavrin.mymoney.core.network.shared.SharedWorkspaceApi
 import com.kshavrin.mymoney.core.network.shared.WorkspaceMember
 import com.kshavrin.mymoney.core.sync.SyncScheduler
+import com.kshavrin.mymoney.core.testing.fake.FakeAppSettingsRepository
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -53,10 +63,12 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.io.File
 import java.math.BigDecimal
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
+import java.util.UUID
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = android.app.Application::class)
@@ -72,6 +84,7 @@ class SharedSyncCoordinatorImplTest {
     private lateinit var workspaceApi: FakeSharedWorkspaceApi
     private lateinit var journalRepository: FakeSharedJournalRepository
     private lateinit var backupRepository: FakeInternalBackupRepository
+    private lateinit var appSettings: AppSettingsRepository
     private lateinit var configStore: FakeJournalSyncConfigStore
     private lateinit var sharedStore: FakeSharedSyncStore
     private lateinit var scheduler: FakeSyncScheduler
@@ -94,6 +107,7 @@ class SharedSyncCoordinatorImplTest {
         workspaceApi = FakeSharedWorkspaceApi()
         journalRepository = FakeSharedJournalRepository()
         backupRepository = FakeInternalBackupRepository()
+        appSettings = FakeAppSettingsRepository()
         configStore = FakeJournalSyncConfigStore()
         sharedStore = FakeSharedSyncStore()
         scheduler = FakeSyncScheduler()
@@ -105,11 +119,16 @@ class SharedSyncCoordinatorImplTest {
             override suspend fun deviceId() = "test-device"
         }
 
-        coordinator = SharedSyncCoordinatorImpl(
+        coordinator = createCoordinator()
+    }
+
+    private fun createCoordinator() =
+        SharedSyncCoordinatorImpl(
             auth = auth,
             workspaceApi = workspaceApi,
             journalRepository = journalRepository,
             backupRepository = backupRepository,
+            appSettings = appSettings,
             configStore = configStore,
             sharedStore = sharedStore,
             syncScheduler = scheduler,
@@ -123,7 +142,6 @@ class SharedSyncCoordinatorImplTest {
             clock = clock,
             dispatcher = dispatcher,
         )
-    }
 
     @After
     fun tearDown() {
@@ -382,6 +400,66 @@ class SharedSyncCoordinatorImplTest {
         assertTrue(result.isSuccess)
         // binding remains intact
         assertNotNull(configStore.current)
+    }
+
+    @Test
+    fun `successful Shared sync persists completion time across a fresh settings store`() = runTest(dispatcher) {
+        val settingsFile =
+            File(
+                System.getProperty("java.io.tmpdir"),
+                "shared-sync-${UUID.randomUUID()}.preferences_pb",
+            )
+        val writeJob = Job()
+        appSettings =
+            AppSettingsRepositoryImpl(
+                PreferenceDataStoreFactory.create(
+                    scope = CoroutineScope(writeJob + Dispatchers.IO),
+                    produceFile = { settingsFile },
+                ),
+            )
+        coordinator = createCoordinator()
+        configStore.current = CloudBinding(CloudProvider.Shared, "ws-1", "Budget")
+        sharedStore.membershipActive = true
+        journalRepository.pullResults.add(Result.success(emptyList()))
+
+        try {
+            assertTrue(coordinator.syncNow().isSuccess)
+            writeJob.cancelAndJoin()
+
+            val readJob = Job()
+            try {
+                val coldStartSettings =
+                    AppSettingsRepositoryImpl(
+                        PreferenceDataStoreFactory.create(
+                            scope = CoroutineScope(readJob + Dispatchers.IO),
+                            produceFile = { settingsFile },
+                        ),
+                    ).settings.first()
+
+                assertEquals(clock.millis(), coldStartSettings.lastSyncAt)
+            } finally {
+                readJob.cancelAndJoin()
+            }
+        } finally {
+            writeJob.cancel()
+            settingsFile.delete()
+        }
+    }
+
+    @Test
+    fun `failed or cancelled Shared sync does not advance last sync time`() = runTest(dispatcher) {
+        appSettings.update { it.copy(lastSyncAt = 1_600_000_000_000L) }
+        configStore.current = CloudBinding(CloudProvider.Shared, "ws-1", "Budget")
+        sharedStore.membershipActive = true
+        journalRepository.pullResults.add(Result.failure(SyncException(SyncError.Network)))
+
+        assertTrue(coordinator.syncNow().isFailure)
+        assertEquals(1_600_000_000_000L, appSettings.settings.first().lastSyncAt)
+
+        journalRepository.pullResults.add(Result.failure(CancellationException()))
+
+        assertTrue(coordinator.syncNow().isFailure)
+        assertEquals(1_600_000_000_000L, appSettings.settings.first().lastSyncAt)
     }
 
     // ── pullAndApply per-operation skip-and-continue ───────────────────────

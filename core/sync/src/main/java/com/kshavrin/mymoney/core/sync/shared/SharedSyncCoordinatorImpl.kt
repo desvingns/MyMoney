@@ -8,6 +8,7 @@ import com.kshavrin.mymoney.core.common.exception.reportToSentry
 import com.kshavrin.mymoney.core.database.MoneyDatabase
 import com.kshavrin.mymoney.core.database.entity.SharedEntityStateEntity
 import com.kshavrin.mymoney.core.database.entity.SharedPendingOperationEntity
+import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
 import com.kshavrin.mymoney.core.datastore.CloudBinding
 import com.kshavrin.mymoney.core.datastore.CloudProvider
 import com.kshavrin.mymoney.core.datastore.JournalSyncConfigStore
@@ -45,6 +46,7 @@ class SharedSyncCoordinatorImpl
         private val workspaceApi: SharedWorkspaceApi,
         private val journalRepository: SharedJournalRepository,
         private val backupRepository: BackupRepository,
+        private val appSettings: AppSettingsRepository,
         private val configStore: JournalSyncConfigStore,
         private val sharedStore: SharedSyncStore,
         private val syncScheduler: SyncScheduler,
@@ -127,6 +129,7 @@ class SharedSyncCoordinatorImpl
                             enqueueLocalChanges(workspaceId)
                             publishPendingOperations(workspaceId)
                             pullAndApply(workspaceId)
+                            appSettings.update { it.copy(lastSyncAt = clock.millis()) }
                         }
                     if (result.isAuthFailure()) {
                         clearSharedLocalState()

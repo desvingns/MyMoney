@@ -10,6 +10,20 @@
 
 > Last three session entries are repeated here for fast startup. Full history is archived below.
 
+- **2026-07-29 (Claude MP `--feature --next`, shared-backend-sync epic, SPEC 03 — IN PROGRESS,
+  not closed):** SPEC `shared-backend-sync-03-android-shared-mode` (Android Shared sync mode:
+  Google sign-in, join/create workspace, import/no-import choice, internal backups,
+  conflict-resolution UI, leave/removal) is still in `.claude/specs/active/`, NOT pushed. Five
+  semantic-review fix rounds landed real correctness fixes (leave/join ordering + races,
+  cross-device entity identity moved from local Room Long id to the entity's own `uuid` column,
+  Transaction FK-ref uuid remapping, currency-code portability, archived-account publishing,
+  private Dropbox/GDrive-journal leak prevention) — see the SPEC file's "Implementation links"
+  for the full commit-by-commit history. Runner is currently RED with 9 real test failures (2
+  easy stale-test updates in `SyncTargetTest`/`FactoryResetGatewayDetachTest`; 7 undiagnosed
+  failures in the new `CloudSyncScreenContentTest`, root cause not yet known). Stopped
+  deliberately after many fix rounds — full resume plan is in the SPEC file and
+  `.ai/handoff.md`. Do not restart from scratch; read the SPEC file's notes first.
+
 - **2026-07-28 (Claude MP `--feature --next`, shared-backend-sync epic, SPEC 02):** Completed
   SPEC `shared-backend-sync-02-operation-api-and-conflicts` (commits `82f8d6f2` feat,
   `f132bdc6`+`8b3e0a78` fixes, `c81a5f11` tests; pushed to `main`). Added SQL migration
@@ -43,18 +57,6 @@
   verifier pass. Epic completion review clean (34/35 in done/, SPEC 33 archived-deferred per its
   own constraint); overview moved to done. Backlog now holds only the `shared-backend-sync`
   epic, blocked on real Supabase provisioning (external-account gate; no Docker/CLI locally).
-
-- **2026-07-28 (Claude MP `--feature`, review-2026-07 epic):** Completed SPEC
-  `review-2026-07-34-flag-secure-recents` (FLAG_SECURE on lock surfaces unconditional +
-  opt-in "Hide app content in Recents" toggle persisted in AppSettings, default OFF).
-  Implementation had landed incrementally (135e185d..ff945b24); this run verified it end-to-end
-  and finished the tail: repository/VM/strings tests (88c50f5c), lockscreen androidTest
-  DataStore isolation via new TestDataStoreModule (f01272c9) and a pinless-fallback deflake
-  (de2aebcc). Gates: reviewer pass, 1695 JVM tests + detekt + lint green, semantic + critic
-  pass, connected window-security suites green on Pixel 5 API 34 (:app 6/6,
-  :feature:lockscreen 5/5), full verifier pass. SPEC moved to done; epic's last remaining
-  SPEC is `review-2026-07-35-repo-hygiene`. Critic flagged the now-unused no-arg
-  `LockController.markUnlocked()` overload as a hygiene candidate for SPEC 35.
 
 
 

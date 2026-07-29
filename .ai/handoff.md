@@ -2,7 +2,22 @@
 
 Phase/release state authority: `docs/implementation_plan/PROGRESS.md` (do not restate it here).
 
-## DONE
+## DONE (in progress — see BLOCKERS/NEXT, not closed)
+- 2026-07-28/29: SPEC `shared-backend-sync-03-android-shared-mode` (still `active/`, NOT
+  pushed) went through 5 semantic-review fix rounds fixing real bugs (leave/join
+  ordering+races, cross-device entity identity moved from local Room Long id to the
+  entity's own `uuid` column, Transaction FK-ref uuid remapping, currency-code
+  portability, archived-account publishing, private-journal leak prevention) — full
+  commit-by-commit history and exact remaining work written into
+  `.claude/specs/active/shared-backend-sync-03-android-shared-mode.md` under
+  "Implementation links" (read that file fully before resuming, do not re-derive from
+  scratch). Runner is currently RED with 9 real test failures (2 easy stale-test updates
+  in `SyncTargetTest`/`FactoryResetGatewayDetachTest`, 7 undiagnosed failures in the new
+  `CloudSyncScreenContentTest` — root cause not yet known, could be `CloudSyncScreen`
+  itself or the test's node-matching). Stopped here deliberately (many rounds already,
+  late session) — next session resumes at "diagnose the 7 CloudSyncScreenContentTest
+  failures" per the SPEC file's detailed notes, then re-run Runner, independent critic,
+  Verifier, push.
 - 2026-07-28: SPEC `shared-backend-sync-02-operation-api-and-conflicts` CLOSED (pushed to
   `main`, `82f8d6f2` feat → `f132bdc6`+`8b3e0a78` fixes → `c81a5f11` tests). Added
   `supabase/migrations/0002_shared_operations.sql` (append-only `operations`+`conflicts`,
@@ -80,22 +95,34 @@ Phase/release state authority: `docs/implementation_plan/PROGRESS.md` (do not re
   memories are mirrors.
 
 ## NEXT
-- (owner of the next session) Read PROGRESS.md for the active phase as usual. Next runnable
-  backlog item is `shared-backend-sync-03-android-shared-mode` (Android mode, join/import,
-  safety backups, lifecycle) — depends on both SPEC 01 and SPEC 02 schemas being live. SPEC
-  0002's migration (`supabase/migrations/0002_shared_operations.sql`) has NOT yet been applied
-  via the Supabase Dashboard SQL Editor (only 0001 was confirmed applied so far) — confirm/apply
-  it before SPEC 03 needs to exercise the operation API end-to-end. Also worth folding into
-  SPEC 04 (realtime-hardening-e2e): the 2 non-blocking hardening findings logged in
-  `.claude/specs/done/shared-backend-sync-02-operation-api-and-conflicts.md`'s "Deferred
-  hardening" section (Supabase default-grant column leak, non-atomic base_sequence read).
-  Also awaiting: manual deletion of the 6 logs in `archive/`.
+- (owner of the next session) **SPEC 03 is mid-flight, not a fresh start.** Read
+  `.claude/specs/active/shared-backend-sync-03-android-shared-mode.md` in full first — it has
+  the complete commit-by-commit history and exact remaining failures. In order:
+  1. Fix `SyncTargetTest`/`FactoryResetGatewayDetachTest` (easy, stale expectations vs. the new
+     `Shared` enum entry).
+  2. Diagnose and fix the 7 failing tests in `feature/cloudsync/src/test/.../CloudSyncScreenContentTest.kt`
+     (component-not-displayed / event-not-emitted for the Shared card's signed-out /
+     signed-in-no-workspace / active-workspace states, and the setup dialog's import-choice rows) —
+     read `CloudSyncScreen.kt`'s actual Shared-card composable against what the test looks up first.
+  3. Re-run the Runner (`mp-runner-android.sh false`), then the required independent-critic
+     semantic-review pass (risk route already flagged `independent_critic=true`), then Verifier,
+     then push per the auto-push override once Verifier passes clean.
+  - Separately (not blocking SPEC 03): confirm/apply `supabase/migrations/0002_shared_operations.sql`
+    via the Supabase Dashboard SQL Editor if not already done (only 0001 was confirmed applied as of
+    SPEC 02's close-out) before SPEC 03/04 need to exercise the operation API live.
+  - Fold into SPEC 04 (realtime-hardening-e2e): the deferred-hardening items logged in both
+    `.claude/specs/done/shared-backend-sync-02-operation-api-and-conflicts.md` (Supabase
+    default-grant column leak, non-atomic base_sequence read) and the SPEC 03 active file (FK-ref
+    causal-ordering assumption, forced-removal detection needs the real transport, soft-deleted
+    transactions not published on import).
+  - Also awaiting: manual deletion of the 6 logs in `archive/`.
 
 ## OWNER
 - none (idle)
 
 ## BLOCKERS
-- none currently open. (Prior blocker — real Supabase project + Google OAuth for SPEC 01 — was
-  resolved 2026-07-28: project provisioned by the user in the EU/Ireland region, credentials in
-  `local.properties`. The SQL migration still needs manual application before live verification,
-  but that is tracked as a NEXT item, not a hard blocker on further schema/code work.)
+- none hard-blocking. SPEC 03 is red on 9 test failures (see NEXT) — resumable, not stuck; just
+  needs another session's diagnosis time. (Prior blocker — real Supabase project + Google OAuth
+  for SPEC 01 — was resolved 2026-07-28: project provisioned by the user in the EU/Ireland region,
+  credentials in `local.properties`. The 0002 migration still needs manual application before live
+  verification, tracked as a NEXT item, not a hard blocker on further schema/code work.)

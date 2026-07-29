@@ -10,6 +10,6 @@ class FactoryResetGatewayDetachTest {
     fun `detached cloud state has no active binding`() {
         val detached: CloudBinding? = null
         assertNull(detached)
-        check(CloudProvider.entries.size == 2)
+        check(CloudProvider.entries.size == 3)
     }
 }

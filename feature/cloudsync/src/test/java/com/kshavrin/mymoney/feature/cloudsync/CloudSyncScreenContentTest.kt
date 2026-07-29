@@ -7,6 +7,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import com.kshavrin.mymoney.core.datastore.CloudBinding
 import com.kshavrin.mymoney.core.datastore.CloudProvider
 import com.kshavrin.mymoney.core.sync.SyncTarget
@@ -39,14 +40,14 @@ class CloudSyncScreenContentTest {
     @Test
     fun `Shared card shows sign-in button when user is not signed in`() {
         setContent(CloudSyncState())
-        composeTestRule.onNodeWithTag("cloud_sync_shared_sign_in").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("cloud_sync_shared_sign_in").performScrollTo().assertIsDisplayed()
     }
 
     @Test
     fun `Shared card sign-in button click emits SharedSignInClicked`() {
         val events = mutableListOf<CloudSyncEvent>()
         setContent(CloudSyncState(), events::add)
-        composeTestRule.onNodeWithTag("cloud_sync_shared_sign_in").performClick()
+        composeTestRule.onNodeWithTag("cloud_sync_shared_sign_in").performScrollTo().performClick()
         composeTestRule.runOnIdle {
             assertEquals(listOf(CloudSyncEvent.SharedSignInClicked), events)
         }
@@ -57,7 +58,7 @@ class CloudSyncScreenContentTest {
     @Test
     fun `Shared card shows setup button when signed in but no active workspace`() {
         setContent(CloudSyncState(shared = SharedCardState(signedIn = true, active = false)))
-        composeTestRule.onNodeWithTag("cloud_sync_shared_setup").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("cloud_sync_shared_setup").performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -83,8 +84,8 @@ class CloudSyncScreenContentTest {
                 shared = SharedCardState(signedIn = true, active = true, workspaceName = "Budget"),
             ),
         )
-        composeTestRule.onNodeWithTag("cloud_sync_shared_sync_now").assertIsDisplayed()
-        composeTestRule.onNodeWithTag("cloud_sync_shared_leave").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("cloud_sync_shared_sync_now").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithTag("cloud_sync_shared_leave").performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -95,7 +96,7 @@ class CloudSyncScreenContentTest {
                 shared = SharedCardState(signedIn = true, active = true, conflictCount = 3),
             ),
         )
-        composeTestRule.onNodeWithTag("cloud_sync_shared_conflicts").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("cloud_sync_shared_conflicts").performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -119,7 +120,7 @@ class CloudSyncScreenContentTest {
             ),
             events::add,
         )
-        composeTestRule.onNodeWithTag("cloud_sync_shared_leave").performClick()
+        composeTestRule.onNodeWithTag("cloud_sync_shared_leave").performScrollTo().performClick()
         composeTestRule.runOnIdle {
             assertEquals(listOf(CloudSyncEvent.SharedLeaveClicked), events)
         }

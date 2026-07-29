@@ -27,6 +27,7 @@ class SupabaseHttpTransport
             path: String,
             payload: JsonObject,
             accessToken: String? = null,
+            mapBadRequestToAuth: Boolean = false,
         ): Result<JsonElement> =
             execute(
                 Request
@@ -36,6 +37,7 @@ class SupabaseHttpTransport
                     .apply { accessToken?.let { header(AUTHORIZATION_HEADER, "Bearer $it") } }
                     .post(json.encodeToString(payload).toRequestBody(JSON_MEDIA_TYPE))
                     .build(),
+                mapBadRequestToAuth,
             )
 
         suspend fun get(
@@ -52,12 +54,15 @@ class SupabaseHttpTransport
                     .build(),
             )
 
-        private fun execute(request: Request): Result<JsonElement> {
+        private fun execute(
+            request: Request,
+            mapBadRequestToAuth: Boolean = false,
+        ): Result<JsonElement> {
             if (!config.isConfigured) return Result.failure(SyncException(SyncError.Server))
             return runCatching {
                 client.newCall(request).execute().use { response ->
                     val responseBody = response.body?.string().orEmpty()
-                    if (!response.isSuccessful) throw SupabaseHttpException(response.code)
+                    if (!response.isSuccessful) throw SupabaseHttpException(response.code, mapBadRequestToAuth)
                     responseBody.takeIf(String::isNotBlank)?.let(json::parseToJsonElement) ?: JsonNull
                 }
             }.mapFailure()
@@ -72,6 +77,7 @@ class SupabaseHttpTransport
 
 private class SupabaseHttpException(
     val statusCode: Int,
+    val mapBadRequestToAuth: Boolean,
 ) : Exception()
 
 private fun <T> Result<T>.mapFailure(): Result<T> =
@@ -85,6 +91,7 @@ private fun Throwable.toSyncException(): Throwable =
             SyncException(
                 when (statusCode) {
                     401, 403 -> SyncError.Auth
+                    400 -> if (mapBadRequestToAuth) SyncError.Auth else SyncError.Unknown
                     409 -> SyncError.Conflict
                     429 -> SyncError.Quota
                     in 500..599 -> SyncError.Server

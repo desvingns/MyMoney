@@ -1,6 +1,7 @@
 package com.kshavrin.mymoney.core.datastore
 
 import com.kshavrin.mymoney.core.datastore.model.SecureSettings
+import com.kshavrin.mymoney.core.datastore.model.SecureSharedSession
 
 interface SecureStorage {
     fun read(): SecureSettings
@@ -10,6 +11,12 @@ interface SecureStorage {
     fun writeGdriveAccountEmail(email: String?)
 
     fun writePinHash(hash: String?)
+
+    fun readSharedSession(): SecureSharedSession? = null
+
+    fun writeSharedSession(session: SecureSharedSession) = Unit
+
+    fun clearSharedSession() = Unit
 
     fun writePinLockout(
         failedPinAttempts: Int,

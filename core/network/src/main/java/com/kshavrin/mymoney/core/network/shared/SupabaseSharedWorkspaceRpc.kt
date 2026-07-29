@@ -2,8 +2,6 @@ package com.kshavrin.mymoney.core.network.shared
 
 import com.kshavrin.mymoney.core.common.exception.SyncError
 import com.kshavrin.mymoney.core.common.exception.SyncException
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -23,29 +21,31 @@ class SupabaseSharedWorkspaceRpc
             rpc("create_workspace", buildJsonObject { put("p_name", name) }, ::workspaceFrom)
 
         override suspend fun currentWorkspace(): Result<SharedWorkspace?> {
-            val accessToken = accessTokenOrFailure() ?: return Result.failure(SyncException(SyncError.Auth))
-            return http
-                .get(
-                    path =
-                        "rest/v1/workspace_members?select=workspace:workspaces!inner(id,name,owner_id,created_at)&active=eq.true&limit=1",
-                    accessToken = accessToken,
-                ).mapCatching { response ->
-                    response.jsonArray.firstOrNull()?.jsonObject?.requiredObject("workspace")?.let(::workspaceFrom)
-                }
+            return withAccessToken { accessToken ->
+                http
+                    .get(
+                        path =
+                            "rest/v1/workspace_members?select=workspace:workspaces!inner(id,name,owner_id,created_at)&active=eq.true&limit=1",
+                        accessToken = accessToken,
+                    ).mapCatching { response ->
+                        response.jsonArray.firstOrNull()?.jsonObject?.requiredObject("workspace")?.let(::workspaceFrom)
+                    }
+            }
         }
 
         override suspend fun listMembers(workspaceId: String): Result<List<WorkspaceMember>> {
-            val accessToken = accessTokenOrFailure() ?: return Result.failure(SyncException(SyncError.Auth))
-            return http
-                .get(
-                    path =
-                        "rest/v1/workspace_members?select=user_id,role,joined_at,active&workspace_id=eq.$workspaceId",
-                    accessToken = accessToken,
-                ).mapCatching { response ->
-                    response.jsonArray.map { member ->
-                        memberFrom(member.jsonObject, auth.currentSession()?.user)
+            return withAccessToken { accessToken ->
+                http
+                    .get(
+                        path =
+                            "rest/v1/workspace_members?select=user_id,role,joined_at,active&workspace_id=eq.$workspaceId",
+                        accessToken = accessToken,
+                    ).mapCatching { response ->
+                        response.jsonArray.map { member ->
+                            memberFrom(member.jsonObject, auth.currentSession()?.user)
+                        }
                     }
-                }
+            }
         }
 
         override suspend fun createInvite(
@@ -77,21 +77,26 @@ class SupabaseSharedWorkspaceRpc
             name: String,
             payload: kotlinx.serialization.json.JsonObject,
             decode: (kotlinx.serialization.json.JsonObject) -> T,
-        ): Result<T> {
-            val accessToken = accessTokenOrFailure() ?: return Result.failure(SyncException(SyncError.Auth))
-            return http
-                .post("rest/v1/rpc/$name", payload, accessToken)
-                .mapCatching { response -> decode(response.jsonObject) }
-        }
-
-        private fun accessTokenOrFailure(): String? = runCatching(auth::requireAccessToken).getOrNull()
+        ): Result<T> =
+            withAccessToken { accessToken ->
+                http
+                    .post("rest/v1/rpc/$name", payload, accessToken)
+                    .mapCatching { response -> decode(response.jsonObject) }
+            }
 
         private suspend fun rpcUnit(
             name: String,
             payload: kotlinx.serialization.json.JsonObject,
-        ): Result<Unit> {
-            val accessToken = accessTokenOrFailure() ?: return Result.failure(SyncException(SyncError.Auth))
-            return http.post("rest/v1/rpc/$name", payload, accessToken).map { Unit }
+        ): Result<Unit> =
+            withAccessToken { accessToken ->
+                http.post("rest/v1/rpc/$name", payload, accessToken).map { Unit }
+            }
+
+        private suspend fun <T> withAccessToken(
+            request: suspend (String) -> Result<T>,
+        ): Result<T> {
+            val accessToken = auth.accessToken().getOrElse { return Result.failure(it) }
+            return request(accessToken)
         }
 
         private fun workspaceFrom(value: kotlinx.serialization.json.JsonObject): SharedWorkspace =

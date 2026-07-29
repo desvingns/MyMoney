@@ -9,6 +9,7 @@ import com.kshavrin.mymoney.core.common.di.IoDispatcher
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepositoryImpl
 import com.kshavrin.mymoney.core.datastore.DeviceIdProviderImpl
+import com.kshavrin.mymoney.core.datastore.EncryptedSharedSessionStore
 import com.kshavrin.mymoney.core.datastore.JournalSyncConfigStore
 import com.kshavrin.mymoney.core.datastore.JournalSyncConfigStoreImpl
 import com.kshavrin.mymoney.core.datastore.SecureStorage
@@ -16,6 +17,7 @@ import com.kshavrin.mymoney.core.datastore.SecureStorageImpl
 import com.kshavrin.mymoney.core.datastore.SharedSyncStore
 import com.kshavrin.mymoney.core.datastore.SharedSyncStoreImpl
 import com.kshavrin.mymoney.core.domain.sync.DeviceIdProvider
+import com.kshavrin.mymoney.core.network.shared.SharedSessionStore
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -55,6 +57,10 @@ abstract class DataStoreBindings {
     @Binds
     @Singleton
     abstract fun bindSecureStorage(impl: SecureStorageImpl): SecureStorage
+
+    @Binds
+    @Singleton
+    abstract fun bindSharedSessionStore(impl: EncryptedSharedSessionStore): SharedSessionStore
 
     @Binds
     @Singleton

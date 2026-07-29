@@ -1,7 +1,5 @@
 package com.kshavrin.mymoney.core.network.shared
 
-import com.kshavrin.mymoney.core.common.exception.SyncError
-import com.kshavrin.mymoney.core.common.exception.SyncException
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNull
@@ -91,8 +89,7 @@ class SupabaseSharedJournalRpc
             payload: kotlinx.serialization.json.JsonObject,
             decode: (JsonElement) -> T,
         ): Result<T> {
-            val accessToken = runCatching(auth::requireAccessToken).getOrNull()
-                ?: return Result.failure(SyncException(SyncError.Auth))
+            val accessToken = auth.accessToken().getOrElse { return Result.failure(it) }
             return http
                 .post("rest/v1/rpc/$name", payload, accessToken)
                 .mapCatching(decode)

@@ -354,6 +354,24 @@ class SharedSyncCoordinatorImplTest {
     }
 
     @Test
+    fun `syncNow terminal auth failure clears binding cancels work and signs out`() = runTest(dispatcher) {
+        auth.session = fakeSession()
+        configStore.current = CloudBinding(CloudProvider.Shared, "ws-1", "Budget")
+        sharedStore.membershipActive = true
+        journalRepository.pullResults.add(Result.failure(SyncException(SyncError.Auth)))
+
+        val result = coordinator.syncNow()
+
+        assertTrue(result.isFailure)
+        assertEquals(SyncError.Auth, (result.exceptionOrNull() as? SyncException)?.syncError)
+        assertNull(configStore.current)
+        assertTrue(sharedStore.cursorIsCleared)
+        assertEquals(1, scheduler.disableCalls)
+        assertEquals(1, auth.signOutCalls)
+        assertNull(auth.session)
+    }
+
+    @Test
     fun `syncNow proceeds normally when membership is active`() = runTest(dispatcher) {
         configStore.current = CloudBinding(CloudProvider.Shared, "ws-1", "Budget")
         sharedStore.membershipActive = true

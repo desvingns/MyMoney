@@ -10,6 +10,7 @@ import androidx.security.crypto.MasterKey
 import com.kshavrin.mymoney.core.common.di.IoDispatcher
 import com.kshavrin.mymoney.core.common.exception.reportToSentry
 import com.kshavrin.mymoney.core.datastore.model.SecureSettings
+import com.kshavrin.mymoney.core.datastore.model.SecureSharedSession
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.runBlocking
@@ -108,6 +109,55 @@ class SecureStorageImpl private constructor(
         }
     }
 
+    override fun readSharedSession(): SecureSharedSession? {
+        val userId = prefs.getString(KEY_SHARED_USER_ID, null)
+        val userEmail = prefs.getString(KEY_SHARED_USER_EMAIL, null)
+        val accessToken = prefs.getString(KEY_SHARED_ACCESS_TOKEN, null)
+        val refreshToken = prefs.getString(KEY_SHARED_REFRESH_TOKEN, null)
+        if (
+            userId.isNullOrBlank() ||
+            userEmail.isNullOrBlank() ||
+            accessToken.isNullOrBlank() ||
+            refreshToken.isNullOrBlank() ||
+            !prefs.contains(KEY_SHARED_ACCESS_TOKEN_EXPIRES_AT)
+        ) {
+            return null
+        }
+        return SecureSharedSession(
+            userId = userId,
+            userEmail = userEmail,
+            accessToken = accessToken,
+            refreshToken = refreshToken,
+            accessTokenExpiresAtEpochSeconds = prefs.getLong(KEY_SHARED_ACCESS_TOKEN_EXPIRES_AT, 0L),
+        )
+    }
+
+    override fun writeSharedSession(session: SecureSharedSession) {
+        check(
+            prefs
+                .edit()
+                .putString(KEY_SHARED_USER_ID, session.userId)
+                .putString(KEY_SHARED_USER_EMAIL, session.userEmail)
+                .putString(KEY_SHARED_ACCESS_TOKEN, session.accessToken)
+                .putString(KEY_SHARED_REFRESH_TOKEN, session.refreshToken)
+                .putLong(KEY_SHARED_ACCESS_TOKEN_EXPIRES_AT, session.accessTokenExpiresAtEpochSeconds)
+                .commit(),
+        ) { "Unable to persist shared session" }
+    }
+
+    override fun clearSharedSession() {
+        check(
+            prefs
+                .edit()
+                .remove(KEY_SHARED_USER_ID)
+                .remove(KEY_SHARED_USER_EMAIL)
+                .remove(KEY_SHARED_ACCESS_TOKEN)
+                .remove(KEY_SHARED_REFRESH_TOKEN)
+                .remove(KEY_SHARED_ACCESS_TOKEN_EXPIRES_AT)
+                .commit(),
+        ) { "Unable to clear shared session" }
+    }
+
     override fun clearAll() {
         check(prefs.edit().clear().commit()) { "Unable to clear secure storage" }
     }
@@ -119,6 +169,11 @@ class SecureStorageImpl private constructor(
         const val KEY_PIN_HASH = "pin_hash"
         const val KEY_FAILED_PIN_ATTEMPTS = "failed_pin_attempts"
         const val KEY_PIN_LOCKOUT_DEADLINE_EPOCH_MS = "pin_lockout_deadline_epoch_ms"
+        const val KEY_SHARED_USER_ID = "shared_user_id"
+        const val KEY_SHARED_USER_EMAIL = "shared_user_email"
+        const val KEY_SHARED_ACCESS_TOKEN = "shared_access_token"
+        const val KEY_SHARED_REFRESH_TOKEN = "shared_refresh_token"
+        const val KEY_SHARED_ACCESS_TOKEN_EXPIRES_AT = "shared_access_token_expires_at"
 
         fun createPrefs(
             context: Context,

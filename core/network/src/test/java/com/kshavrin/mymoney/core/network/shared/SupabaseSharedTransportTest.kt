@@ -17,12 +17,17 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
 
 class SupabaseSharedTransportTest {
     private lateinit var server: MockWebServer
     private lateinit var auth: SupabaseSharedAuth
     private lateinit var workspaceRpc: SupabaseSharedWorkspaceRpc
     private lateinit var journalRpc: SupabaseSharedJournalRpc
+    private lateinit var sessionStore: RecordingSessionStore
+    private val clock = Clock.fixed(Instant.ofEpochSecond(1_700_000_000L), ZoneOffset.UTC)
 
     @Before
     fun setUp() {
@@ -35,7 +40,8 @@ class SupabaseSharedTransportTest {
                 googleWebClientId = "web-client-id",
             )
         val http = SupabaseHttpTransport(config, OkHttpClient(), Json)
-        auth = SupabaseSharedAuth(config, http)
+        sessionStore = RecordingSessionStore()
+        auth = SupabaseSharedAuth(config, http, sessionStore, clock)
         workspaceRpc = SupabaseSharedWorkspaceRpc(auth, http)
         journalRpc = SupabaseSharedJournalRpc(auth, http)
     }
@@ -49,7 +55,7 @@ class SupabaseSharedTransportTest {
     fun `Google id token exchange forwards nonce without an authorization header`() = runTest {
         server.enqueue(
             MockResponse().setResponseCode(200).setBody(
-                """{"access_token":"shared-access-token","user":{"id":"user-1","email":"member@example.com"}}""",
+                sessionResponse(),
             ),
         )
 
@@ -67,6 +73,7 @@ class SupabaseSharedTransportTest {
         assertEquals("member@example.com", session.user.email)
         assertEquals("shared-access-token", session.accessToken)
         assertEquals(session, auth.currentSession())
+        assertEquals("shared-refresh-token", sessionStore.session?.refreshToken)
     }
 
     @Test
@@ -82,7 +89,7 @@ class SupabaseSharedTransportTest {
     fun `Google id token exchange maps an incomplete session payload to a server error`() = runTest {
         server.enqueue(
             MockResponse().setResponseCode(200).setBody(
-                """{"access_token":"shared-access-token","user":{"id":"user-1"}}""",
+                """{"access_token":"shared-access-token","refresh_token":"shared-refresh-token","expires_at":1700003600,"user":{"id":"user-1"}}""",
             ),
         )
 
@@ -104,6 +111,79 @@ class SupabaseSharedTransportTest {
         assertEquals("anon-key", request.getHeader("apikey"))
         assertEquals("Bearer shared-access-token", request.getHeader("Authorization"))
         assertNull(auth.currentSession())
+        assertNull(sessionStore.session)
+    }
+
+    @Test
+    fun `restarted auth restores an encrypted stored session before a shared RPC`() = runTest {
+        sessionStore.session = storedSession(accessToken = "persisted-access-token", expiresAt = 1_800_000_000L)
+        val config =
+            SupabaseConfig(
+                url = server.url("/").toString().removeSuffix("/"),
+                anonKey = "anon-key",
+                googleWebClientId = "web-client-id",
+            )
+        val restartedAuth = SupabaseSharedAuth(config, SupabaseHttpTransport(config, OkHttpClient(), Json), sessionStore, clock)
+        val restartedRpc = SupabaseSharedWorkspaceRpc(restartedAuth, SupabaseHttpTransport(config, OkHttpClient(), Json))
+        server.enqueue(
+            MockResponse().setResponseCode(200).setBody(
+                """{"id":"workspace-1","name":"Budget","owner_id":"user-1","created_at":"2026-07-29T12:00:00Z"}""",
+            ),
+        )
+
+        restartedRpc.createWorkspace("Budget").getOrThrow()
+
+        assertEquals("member@example.com", restartedAuth.currentSession()?.user?.email)
+        assertEquals("Bearer persisted-access-token", server.takeRequest().getHeader("Authorization"))
+    }
+
+    @Test
+    fun `expired stored session refreshes and atomically rotates credentials before a shared RPC`() = runTest {
+        sessionStore.session = storedSession(accessToken = "expired-access-token", refreshToken = "old-refresh-token", expiresAt = 1L)
+        val config =
+            SupabaseConfig(
+                url = server.url("/").toString().removeSuffix("/"),
+                anonKey = "anon-key",
+                googleWebClientId = "web-client-id",
+            )
+        val restartedAuth = SupabaseSharedAuth(config, SupabaseHttpTransport(config, OkHttpClient(), Json), sessionStore, clock)
+        val restartedRpc = SupabaseSharedWorkspaceRpc(restartedAuth, SupabaseHttpTransport(config, OkHttpClient(), Json))
+        server.enqueue(MockResponse().setResponseCode(200).setBody(sessionResponse("refreshed-access-token", "rotated-refresh-token")))
+        server.enqueue(
+            MockResponse().setResponseCode(200).setBody(
+                """{"id":"workspace-1","name":"Budget","owner_id":"user-1","created_at":"2026-07-29T12:00:00Z"}""",
+            ),
+        )
+
+        restartedRpc.createWorkspace("Budget").getOrThrow()
+
+        val refreshRequest = server.takeRequest()
+        val refreshBody = Json.parseToJsonElement(refreshRequest.body.readUtf8()).jsonObject
+        assertEquals("/auth/v1/token?grant_type=refresh_token", refreshRequest.path)
+        assertNull(refreshRequest.getHeader("Authorization"))
+        assertEquals("old-refresh-token", refreshBody["refresh_token"]?.jsonPrimitive?.content)
+        assertEquals("Bearer refreshed-access-token", server.takeRequest().getHeader("Authorization"))
+        assertEquals("rotated-refresh-token", sessionStore.session?.refreshToken)
+        assertEquals("refreshed-access-token", sessionStore.session?.accessToken)
+    }
+
+    @Test
+    fun `terminal refresh auth failure clears stored credentials`() = runTest {
+        sessionStore.session = storedSession(expiresAt = 1L)
+        val config =
+            SupabaseConfig(
+                url = server.url("/").toString().removeSuffix("/"),
+                anonKey = "anon-key",
+                googleWebClientId = "web-client-id",
+            )
+        val restartedAuth = SupabaseSharedAuth(config, SupabaseHttpTransport(config, OkHttpClient(), Json), sessionStore, clock)
+        server.enqueue(MockResponse().setResponseCode(400))
+
+        val result = restartedAuth.accessToken()
+
+        assertSyncError(result, SyncError.Auth)
+        assertNull(sessionStore.session)
+        assertNull(restartedAuth.currentSession())
     }
 
     @Test
@@ -207,11 +287,44 @@ class SupabaseSharedTransportTest {
     private suspend fun signIn() {
         server.enqueue(
             MockResponse().setResponseCode(200).setBody(
-                """{"access_token":"shared-access-token","user":{"id":"user-1","email":"member@example.com"}}""",
+                sessionResponse(),
             ),
         )
         auth.signInWithGoogle("google-id-token", "request-nonce").getOrThrow()
         server.takeRequest()
+    }
+
+    private fun sessionResponse(
+        accessToken: String = "shared-access-token",
+        refreshToken: String = "shared-refresh-token",
+    ): String =
+        """{"access_token":"$accessToken","refresh_token":"$refreshToken","expires_at":1700003600,"user":{"id":"user-1","email":"member@example.com"}}"""
+
+    private fun storedSession(
+        accessToken: String = "shared-access-token",
+        refreshToken: String = "shared-refresh-token",
+        expiresAt: Long,
+    ): StoredSharedSession =
+        StoredSharedSession(
+            userId = "user-1",
+            userEmail = "member@example.com",
+            accessToken = accessToken,
+            refreshToken = refreshToken,
+            accessTokenExpiresAtEpochSeconds = expiresAt,
+        )
+
+    private class RecordingSessionStore : SharedSessionStore {
+        var session: StoredSharedSession? = null
+
+        override fun readSharedSession(): StoredSharedSession? = session
+
+        override fun writeSharedSession(session: StoredSharedSession) {
+            this.session = session
+        }
+
+        override fun clearSharedSession() {
+            session = null
+        }
     }
 
     private fun assertSyncError(

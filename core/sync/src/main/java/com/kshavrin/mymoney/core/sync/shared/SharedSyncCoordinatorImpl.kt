@@ -115,19 +115,24 @@ class SharedSyncCoordinatorImpl
         override suspend fun syncNow(): Result<Unit> =
             withContext(dispatcher) {
                 operationMutex.withLock {
-                    runCatching {
-                        val workspaceId = requireActiveWorkspaceId()
-                        // Forced-removal guard: if this device's membership is no longer active, detach the
-                        // shared binding (mirroring leave's local cleanup) so background sync stops and the
-                        // UI can surface an access-denied state, keeping the shared data as a personal copy.
-                        if (!sharedStore.isMembershipActive()) {
-                            clearSharedLocalState()
-                            throw SyncException(SyncError.Auth)
+                    val result =
+                        runCatching {
+                            val workspaceId = requireActiveWorkspaceId()
+                            // Forced-removal guard: if this device's membership is no longer active, detach the
+                            // shared binding (mirroring leave's local cleanup) so background sync stops and the
+                            // UI can surface an access-denied state, keeping the shared data as a personal copy.
+                            if (!sharedStore.isMembershipActive()) {
+                                throw SyncException(SyncError.Auth)
+                            }
+                            enqueueLocalChanges(workspaceId)
+                            publishPendingOperations(workspaceId)
+                            pullAndApply(workspaceId)
                         }
-                        enqueueLocalChanges(workspaceId)
-                        publishPendingOperations(workspaceId)
-                        pullAndApply(workspaceId)
+                    if (result.isAuthFailure()) {
+                        clearSharedLocalState()
+                        runCatching { auth.signOut().getOrThrow() }
                     }
+                    result
                 }
             }
 
@@ -488,6 +493,9 @@ class SharedSyncCoordinatorImpl
                 ?.takeIf { it.provider == CloudProvider.Shared }
                 ?.stableAccountId
                 ?: throw SyncException(SyncError.Conflict)
+
+        private fun Result<*>.isAuthFailure(): Boolean =
+            (exceptionOrNull() as? SyncException)?.syncError == SyncError.Auth
 
         private companion object {
             const val PAGE_SIZE = 100

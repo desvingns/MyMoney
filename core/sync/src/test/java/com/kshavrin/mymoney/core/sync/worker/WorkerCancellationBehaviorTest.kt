@@ -32,6 +32,7 @@ import com.kshavrin.mymoney.core.domain.transaction.TransactionRunner
 import com.kshavrin.mymoney.core.domain.usecase.GenerateDueRecurringUseCase
 import com.kshavrin.mymoney.core.domain.usecase.RecurringScheduler
 import com.kshavrin.mymoney.core.sync.JournalSync
+import com.kshavrin.mymoney.core.sync.SyncExecutionGate
 import com.kshavrin.mymoney.core.sync.SyncTarget
 import com.kshavrin.mymoney.core.testing.fake.FakeAppSettingsRepository
 import kotlinx.coroutines.CancellationException
@@ -52,6 +53,7 @@ import kotlin.coroutines.EmptyCoroutineContext
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class WorkerCancellationBehaviorTest {
+    private val executionGate = SyncExecutionGate()
     private val executor: Executor = Executor { it.run() }
     private val taskExecutor = ImmediateTaskExecutor(executor)
     private val workerFactory =
@@ -214,6 +216,7 @@ class WorkerCancellationBehaviorTest {
                         ),
                     journalSync = FakeJournalSync(error = CancellationException("cancelled")),
                     settings = settings,
+                    executionGate = executionGate,
                 )
 
             try {
@@ -240,6 +243,7 @@ class WorkerCancellationBehaviorTest {
                         ),
                     journalSync = FakeJournalSync(error = SyncException(SyncError.Network)),
                     settings = settings,
+                    executionGate = executionGate,
                 )
 
             assertEquals(ListenableWorker.Result.retry(), worker.doWork())

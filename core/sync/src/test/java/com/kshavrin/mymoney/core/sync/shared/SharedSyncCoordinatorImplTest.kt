@@ -41,6 +41,7 @@ import com.kshavrin.mymoney.core.network.shared.SharedWorkspaceApi
 import com.kshavrin.mymoney.core.network.shared.WorkspaceInvite
 import com.kshavrin.mymoney.core.network.shared.WorkspaceMember
 import com.kshavrin.mymoney.core.network.shared.WorkspaceRole
+import com.kshavrin.mymoney.core.sync.SyncExecutionGate
 import com.kshavrin.mymoney.core.sync.SyncScheduler
 import com.kshavrin.mymoney.core.testing.fake.FakeAppSettingsRepository
 import kotlinx.coroutines.CancellationException
@@ -80,6 +81,7 @@ class SharedSyncCoordinatorImplTest {
     private val clock = Clock.fixed(Instant.ofEpochMilli(1_700_000_000_000L), ZoneOffset.UTC)
     private val json = Json { ignoreUnknownKeys = true }
     private val codec = SharedEntityCodec(json)
+    private val executionGate = SyncExecutionGate()
 
     private lateinit var db: MoneyDatabase
     private lateinit var auth: FakeSharedAuth
@@ -134,6 +136,7 @@ class SharedSyncCoordinatorImplTest {
             configStore = configStore,
             sharedStore = sharedStore,
             syncScheduler = scheduler,
+            executionGate = executionGate,
             deviceIdProvider = deviceIdProvider,
             transactionRepository = transactionRepository,
             accountRepository = accountRepository,

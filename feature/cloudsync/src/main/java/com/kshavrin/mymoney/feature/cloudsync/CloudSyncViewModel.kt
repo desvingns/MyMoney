@@ -362,10 +362,16 @@ class CloudSyncViewModel
                 } else {
                     0
                 }
-            _state.value =
-                _state.value.copy(
-                    shared =
-                        _state.value.shared.copy(
+                _state.value =
+                    _state.value.copy(
+                        sharedDialog =
+                            if (!active && _state.value.sharedDialog is SharedDialog.Invite) {
+                                null
+                            } else {
+                                _state.value.sharedDialog
+                            },
+                        shared =
+                            _state.value.shared.copy(
                             signedIn = sharedCoordinator.isSignedIn(),
                             accountEmail = sharedCoordinator.accountEmail(),
                             active = active,
@@ -425,7 +431,7 @@ class CloudSyncViewModel
 
         private fun createSharedInvite() {
             viewModelScope.launch {
-                _state.value = _state.value.copy(isConnecting = true, errorBannerRes = null)
+                _state.value = _state.value.copy(isConnecting = true, errorBannerRes = null, sharedDialog = null)
                 try {
                     val invite = sharedCoordinator.createInvite().getOrThrow()
                     _state.value = _state.value.copy(sharedDialog = SharedDialog.Invite(invite.token))
@@ -434,6 +440,7 @@ class CloudSyncViewModel
                     reportAndShow(t)
                 } finally {
                     _state.value = _state.value.copy(isConnecting = false)
+                    refresh()
                 }
             }
         }

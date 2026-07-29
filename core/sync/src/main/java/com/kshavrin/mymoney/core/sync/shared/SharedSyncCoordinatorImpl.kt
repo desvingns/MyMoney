@@ -117,10 +117,20 @@ class SharedSyncCoordinatorImpl
         override suspend fun createInvite(): Result<SharedWorkspaceInvite> =
             withContext(dispatcher) {
                 operationMutex.withLock {
-                    runCatching {
-                        ensureSignedIn()
-                        SharedWorkspaceInvite(workspaceApi.createInvite(requireActiveWorkspaceId()).getOrThrow().token)
+                    val result =
+                        runCatching {
+                            ensureSignedIn()
+                            val workspaceId = requireActiveWorkspaceId()
+                            if (!sharedStore.isMembershipActive()) {
+                                throw SyncException(SyncError.Auth)
+                            }
+                            SharedWorkspaceInvite(workspaceApi.createInvite(workspaceId).getOrThrow().token)
+                        }
+                    if (result.isAuthFailure()) {
+                        clearSharedLocalState()
+                        runCatching { auth.signOut().getOrThrow() }
                     }
+                    result
                 }
             }
 

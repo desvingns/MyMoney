@@ -282,6 +282,40 @@ class CloudSyncViewModelTest {
     }
 
     @Test
+    fun `invite failure refreshes cleared membership and removes stale invite state`() = runTest {
+        val config = Config(CloudBinding(CloudProvider.Shared, "ws-1", "Budget"))
+        val shared =
+            SharedCoordinator().apply {
+                signedIn = true
+                workspaceSummary = SharedWorkspaceSummary("ws-1", "Budget")
+                createInviteResult = Result.success(SharedWorkspaceInvite("invite-token"))
+            }
+        val vm = viewModel(SnapshotFake(), RecordingJournalSync(), config, Scheduler(), shared = shared)
+
+        vm.onEvent(CloudSyncEvent.SharedCreateInviteClicked)
+        runCurrent()
+        assertEquals(SharedDialog.Invite("invite-token"), vm.state.value.sharedDialog)
+
+        shared.createInviteResult = Result.failure(SyncException(SyncError.Auth))
+        shared.onCreateInvite = {
+            shared.signedIn = false
+            shared.workspaceSummary = null
+            config.clearForTest()
+        }
+
+        vm.onEvent(CloudSyncEvent.SharedCreateInviteClicked)
+        runCurrent()
+
+        assertNull(vm.state.value.sharedDialog)
+        assertFalse(vm.state.value.shared.signedIn)
+        assertFalse(vm.state.value.shared.active)
+        assertNull(vm.state.value.shared.accountEmail)
+        assertNull(vm.state.value.shared.workspaceName)
+        assertNull(config.binding())
+        assertEquals(R.string.sync_err_auth, vm.state.value.errorBannerRes)
+    }
+
+    @Test
     fun `SharedLeaveClicked shows confirm-leave dialog`() = runTest {
         val vm = viewModel(SnapshotFake(), RecordingJournalSync(), Config(null), Scheduler())
         vm.onEvent(CloudSyncEvent.SharedLeaveClicked)
@@ -378,6 +412,10 @@ class CloudSyncViewModelTest {
         override suspend fun markBootstrapDone() = Unit
 
         override suspend fun clear() {
+            current = null
+        }
+
+        fun clearForTest() {
             current = null
         }
     }
@@ -482,6 +520,7 @@ class CloudSyncViewModelTest {
         var leaveCalls = 0
         var lastJoinToken: String? = null
         var createInviteResult: Result<SharedWorkspaceInvite> = Result.failure(RuntimeException("unused"))
+        var onCreateInvite: (() -> Unit)? = null
         var lastResolve: Pair<String, String>? = null
         var lastSignIn: Pair<String, String>? = null
         var signInResult: Result<Unit> = Result.success(Unit)
@@ -505,7 +544,10 @@ class CloudSyncViewModelTest {
             lastJoinToken = inviteToken
             return Result.success(SharedWorkspaceSummary("ws-joined", "Joined"))
         }
-        override suspend fun createInvite() = createInviteResult
+        override suspend fun createInvite(): Result<SharedWorkspaceInvite> {
+            onCreateInvite?.invoke()
+            return createInviteResult
+        }
         override suspend fun syncNow() = Result.success(Unit)
         override suspend fun listConflicts(): Result<List<SharedConflict>> = Result.success(conflicts)
         override suspend fun resolveConflict(conflictId: String, winnerOperationId: String): Result<Unit> {

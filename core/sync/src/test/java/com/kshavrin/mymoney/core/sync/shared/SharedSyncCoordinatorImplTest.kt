@@ -29,11 +29,13 @@ import com.kshavrin.mymoney.core.domain.sync.DeviceIdProvider
 import com.kshavrin.mymoney.core.domain.sync.EntityKind
 import com.kshavrin.mymoney.core.domain.sync.SharedConflict
 import com.kshavrin.mymoney.core.domain.sync.SharedOperation
+import com.kshavrin.mymoney.core.network.shared.CreatedInvite
 import com.kshavrin.mymoney.core.network.shared.SharedAuth
 import com.kshavrin.mymoney.core.network.shared.SharedSession
 import com.kshavrin.mymoney.core.network.shared.SharedUser
 import com.kshavrin.mymoney.core.network.shared.SharedWorkspace
 import com.kshavrin.mymoney.core.network.shared.SharedWorkspaceApi
+import com.kshavrin.mymoney.core.network.shared.WorkspaceMember
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
@@ -445,8 +447,8 @@ class SharedSyncCoordinatorImplTest {
             return Result.success(Unit)
         }
         override suspend fun currentWorkspace() = Result.success<SharedWorkspace?>(null)
-        override suspend fun listMembers(workspaceId: String) = Result.success(emptyList())
-        override suspend fun createInvite(workspaceId: String) = Result.failure(RuntimeException("unused"))
+        override suspend fun listMembers(workspaceId: String) = Result.success(emptyList<WorkspaceMember>())
+        override suspend fun createInvite(workspaceId: String) = Result.failure<CreatedInvite>(RuntimeException("unused"))
         override suspend fun revokeInvite(inviteId: String) = Result.success(Unit)
         override suspend fun deleteWorkspace(workspaceId: String) = Result.success(Unit)
     }

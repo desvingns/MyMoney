@@ -270,10 +270,8 @@ class SharedSyncCoordinatorImpl
                         .sortedBy { it.serverSequence }
                 if (operations.isEmpty()) break
                 for (operation in operations) {
-                    // A single malformed/unknown operation must not stall sync forever: log and skip
-                    // it, but still advance the cursor past it so the next pull moves on. Each op is
-                    // applied in its own Room transaction so a process kill cannot leave a half-applied
-                    // batch behind.
+                    // Proven malformed operations are logged and skipped, but a valid three-letter
+                    // currency reference without canonical data is retained for retry instead of losing it.
                     try {
                         database.withTransaction {
                             applyOperation(operation)
@@ -284,6 +282,9 @@ class SharedSyncCoordinatorImpl
                     } catch (t: Throwable) {
                         if (t is CancellationException) throw t
                         t.reportToSentry()
+                        if (t is SharedCurrencyIntegrityException) {
+                            throw SyncException(SyncError.Conflict)
+                        }
                     }
                     after = operation.serverSequence
                     sharedStore.setCursor(after)
@@ -482,14 +483,31 @@ class SharedSyncCoordinatorImpl
             code: String,
             payloadCurrency: Currency?,
         ): Currency {
-            val existing = currencyRepository.findByCode(code)
-            if (payloadCurrency == null) {
-                return existing ?: error("shared operation references currency $code without canonical currency data")
+            require(code.matches(CURRENCY_CODE_REGEX)) { "shared currency code is invalid" }
+            payloadCurrency?.let { currency ->
+                require(currency.code == code) { "shared currency code does not match its reference" }
+                require(currency.symbol.isNotBlank() && currency.symbol.length <= 4) {
+                    "shared currency symbol is invalid"
+                }
+                require(currency.name.isNotBlank()) { "shared currency name is invalid" }
+                require(currency.decimalDigits in 0..8) { "shared currency decimal digits are invalid" }
             }
-            require(payloadCurrency.code == code) { "shared currency code does not match its reference" }
-            currencyRepository.upsert(payloadCurrency.copy(id = existing?.id ?: 0L))
-            return checkNotNull(currencyRepository.findByCode(code)) {
-                "shared currency $code was not persisted"
+            try {
+                val existing = currencyRepository.findByCode(code)
+                if (payloadCurrency == null) {
+                    return existing
+                        ?: throw SharedCurrencyIntegrityException(
+                            "shared operation references currency $code without canonical currency data",
+                        )
+                }
+                currencyRepository.upsert(payloadCurrency.copy(id = existing?.id ?: 0L))
+                return checkNotNull(currencyRepository.findByCode(code)) {
+                    "shared currency $code was not persisted"
+                }
+            } catch (t: Throwable) {
+                if (t is CancellationException) throw t
+                if (t is SharedCurrencyIntegrityException) throw t
+                throw SharedCurrencyIntegrityException("shared currency $code could not be materialized", t)
             }
         }
 
@@ -513,6 +531,11 @@ class SharedSyncCoordinatorImpl
             val payload: String?,
             val tombstone: Boolean,
         )
+
+        private class SharedCurrencyIntegrityException(
+            message: String,
+            cause: Throwable? = null,
+        ) : IllegalStateException(message, cause)
 
         private fun SharedEntityStateEntity?.matches(snapshot: LocalSnapshot): Boolean =
             this?.let { it.payload == snapshot.statePayload && it.tombstone == snapshot.tombstone } ?: false
@@ -569,5 +592,6 @@ class SharedSyncCoordinatorImpl
 
         private companion object {
             const val PAGE_SIZE = 100
+            val CURRENCY_CODE_REGEX = Regex("^[A-Z]{3}$")
         }
     }

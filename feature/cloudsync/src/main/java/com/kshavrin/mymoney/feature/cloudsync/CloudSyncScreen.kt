@@ -833,7 +833,7 @@ private fun ConflictPanel(
     container: androidx.compose.ui.graphics.Color,
     content: androidx.compose.ui.graphics.Color,
     authorId: String,
-    summary: String,
+    summary: ConflictSummaryUi,
     actionLabel: String,
     testTag: String,
     onResolve: () -> Unit,
@@ -857,7 +857,15 @@ private fun ConflictPanel(
                     .background(MaterialTheme.colorScheme.conflictAuthorContainer)
                     .padding(horizontal = Spacing.s, vertical = Spacing.xs),
         )
-        Text(text = summary, style = MaterialTheme.typography.bodySmall, color = content)
+        Text(
+            text =
+                when (summary) {
+                    ConflictSummaryUi.Deleted -> stringResource(R.string.sync_shared_conflict_deleted)
+                    is ConflictSummaryUi.Text -> summary.value
+                },
+            style = MaterialTheme.typography.bodySmall,
+            color = content,
+        )
         Button(modifier = Modifier.testTag(testTag), onClick = onResolve) {
             Text(actionLabel)
         }

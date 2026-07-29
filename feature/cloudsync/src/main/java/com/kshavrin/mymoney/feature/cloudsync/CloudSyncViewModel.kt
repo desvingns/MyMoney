@@ -1,6 +1,4 @@
 package com.kshavrin.mymoney.feature.cloudsync
-
-import android.content.Context
 import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -24,7 +22,6 @@ import com.kshavrin.mymoney.core.sync.toCloudProvider
 import com.kshavrin.mymoney.core.sync.toSyncTarget
 import com.kshavrin.mymoney.core.domain.sync.SharedConflict
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -50,7 +47,6 @@ class CloudSyncViewModel
         private val backupRepository: BackupRepository,
         private val remoteConfig: RemoteConfigRepository,
         private val sharedCoordinator: SharedSyncCoordinator,
-        @ApplicationContext private val applicationContext: Context? = null,
     ) : ViewModel() {
         private val _state =
             MutableStateFlow(
@@ -557,14 +553,14 @@ class CloudSyncViewModel
                 entityKind = entityKind.name,
                 localOperationId = operationA.id,
                 localAuthorId = authorAId,
-                localSummary = operationA.payload ?: deletedSummary,
+                localSummary = operationA.payload.toConflictSummary(),
                 remoteOperationId = operationB.id,
                 remoteAuthorId = authorBId,
-                remoteSummary = operationB.payload ?: deletedSummary,
+                remoteSummary = operationB.payload.toConflictSummary(),
             )
 
-        private val deletedSummary: String
-            get() = checkNotNull(applicationContext).getString(R.string.sync_shared_conflict_deleted)
+        private fun String?.toConflictSummary(): ConflictSummaryUi =
+            this?.let(ConflictSummaryUi::Text) ?: ConflictSummaryUi.Deleted
 
         private suspend fun verifiedCard(card: TargetCardState): VerifiedCard {
             if (!snapshotSync.isConnected(card.target)) return VerifiedCard(card.copy(connected = false, accountLabel = null))

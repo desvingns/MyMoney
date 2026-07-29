@@ -65,8 +65,36 @@ data class ConflictUi(
     val entityKind: String,
     val localOperationId: String,
     val localAuthorId: String,
-    val localSummary: String,
+    val localSummary: ConflictSummaryUi,
     val remoteOperationId: String,
     val remoteAuthorId: String,
-    val remoteSummary: String,
-)
+    val remoteSummary: ConflictSummaryUi,
+) {
+    constructor(
+        conflictId: String,
+        entityKind: String,
+        localOperationId: String,
+        localAuthorId: String,
+        localSummary: String,
+        remoteOperationId: String,
+        remoteAuthorId: String,
+        remoteSummary: String,
+    ) : this(
+        conflictId = conflictId,
+        entityKind = entityKind,
+        localOperationId = localOperationId,
+        localAuthorId = localAuthorId,
+        localSummary = ConflictSummaryUi.Text(localSummary),
+        remoteOperationId = remoteOperationId,
+        remoteAuthorId = remoteAuthorId,
+        remoteSummary = ConflictSummaryUi.Text(remoteSummary),
+    )
+}
+
+sealed interface ConflictSummaryUi {
+    data class Text(
+        val value: String,
+    ) : ConflictSummaryUi
+
+    data object Deleted : ConflictSummaryUi
+}

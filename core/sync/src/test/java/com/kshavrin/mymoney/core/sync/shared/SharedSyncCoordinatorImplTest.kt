@@ -28,6 +28,7 @@ import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
 import com.kshavrin.mymoney.core.domain.repository.SharedJournalRepository
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
 import com.kshavrin.mymoney.core.domain.repository.TransferRow
+import com.kshavrin.mymoney.core.domain.seed.InitialDataSeeder
 import com.kshavrin.mymoney.core.domain.sync.DeviceIdProvider
 import com.kshavrin.mymoney.core.domain.sync.EntityKind
 import com.kshavrin.mymoney.core.domain.sync.SharedConflict
@@ -45,14 +46,17 @@ import com.kshavrin.mymoney.core.sync.SyncExecutionGate
 import com.kshavrin.mymoney.core.sync.SyncScheduler
 import com.kshavrin.mymoney.core.testing.fake.FakeAppSettingsRepository
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
@@ -224,6 +228,7 @@ class SharedSyncCoordinatorImplTest {
         assertEquals("ws-1", result.getOrThrow().id)
         assertEquals(1, backupRepository.internalBackupCalls)
         assertEquals(1, backupRepository.clearDatabaseCalls)
+        assertEquals(InitialDataSeeder.defaultCurrencyCatalog(), currencyRepository.lastUpsertAll)
         assertTrue(sharedStore.membershipActive)
         assertNotNull(configStore.current)
         assertEquals(CloudProvider.Shared, configStore.current?.provider)
@@ -528,13 +533,13 @@ class SharedSyncCoordinatorImplTest {
     // ── pullAndApply per-operation skip-and-continue ───────────────────────
 
     @Test
-    fun `pullAndApply advances cursor past malformed op and applies subsequent valid op`() = runTest(dispatcher) {
+    fun `pullAndApply advances cursor past malformed non-currency op and applies subsequent valid op`() = runTest(dispatcher) {
         configStore.current = CloudBinding(CloudProvider.Shared, "ws-1", "Budget")
         sharedStore.membershipActive = true
 
-        // Op 1: references unknown currency → will throw inside applyOperation → skipped
-        val malformedOp = fakeOperation(serverSequence = 1L, entityKind = EntityKind.Account,
-            payload = buildAccountPayload(currencyCode = "UNKNOWN_XYZ"))
+        // A malformed category payload is still a proven-invalid operation and may be skipped.
+        // Currency integrity failures are covered below and must remain retryable instead.
+        val malformedOp = fakeOperation(serverSequence = 1L, entityKind = EntityKind.Category, payload = "{}")
         // Op 2: tombstone account (no ref resolution needed) → applied
         val validOp = fakeOperation(serverSequence = 2L, entityKind = EntityKind.Account,
             tombstone = true, payload = null)
@@ -546,6 +551,147 @@ class SharedSyncCoordinatorImplTest {
         assertEquals(2L, sharedStore.cursor)
         // applySharedArchive was called for the tombstone op
         assertTrue(accountRepository.archivedUuids.contains(validOp.entityId))
+    }
+
+    @Test
+    fun `pullAndApply retains missing canonical currency and does not advance cursor`() = runTest(dispatcher) {
+        configStore.current = CloudBinding(CloudProvider.Shared, "ws-1", "Budget")
+        sharedStore.membershipActive = true
+        val payload = codec.encodeAccount(sampleAccount(currencyId = 77L), "account-uuid", "XYZ")
+        journalRepository.pullResults.add(
+            Result.success(
+                listOf(fakeOperation(serverSequence = 1L, payload = payload)),
+            ),
+        )
+
+        val result = coordinator.syncNow()
+
+        assertTrue(result.isFailure)
+        assertEquals(SyncError.Conflict, (result.exceptionOrNull() as? SyncException)?.syncError)
+        assertEquals(0L, sharedStore.cursor)
+        assertTrue(accountRepository.upsertCalls.isEmpty())
+    }
+
+    @Test
+    fun `pullAndApply retains malformed currency payload and does not advance cursor`() = runTest(dispatcher) {
+        configStore.current = CloudBinding(CloudProvider.Shared, "ws-1", "Budget")
+        sharedStore.membershipActive = true
+        val malformedPayload =
+            """{"uuid":"account-uuid","id":1,"name":"Acct","currencyCode":"XYZ","currency":{"code":"XYZ"}}"""
+        journalRepository.pullResults.add(
+            Result.success(
+                listOf(fakeOperation(serverSequence = 1L, payload = malformedPayload)),
+            ),
+        )
+
+        val result = coordinator.syncNow()
+
+        assertTrue(result.isFailure)
+        assertEquals(SyncError.Conflict, (result.exceptionOrNull() as? SyncException)?.syncError)
+        assertEquals(0L, sharedStore.cursor)
+        assertTrue(accountRepository.upsertCalls.isEmpty())
+    }
+
+    @Test
+    fun `pullAndApply materializes portable custom currency before dependent account and transaction`() = runTest(dispatcher) {
+        configStore.current = CloudBinding(CloudProvider.Shared, "ws-1", "Budget")
+        sharedStore.membershipActive = true
+        accountRepository.uuids = mapOf(10L to "account-uuid")
+        val customCurrency = fakeCurrency(code = "XYZ").copy(id = 0L, symbol = "¤", name = "Test currency")
+        val account = sampleAccount(id = 10L, currencyId = 0L)
+        val transaction = sampleTransaction(currencyId = 0L, accountId = 10L)
+        val order = mutableListOf<String>()
+        currencyRepository.onUpsert = { order += "currency" }
+        accountRepository.onApply = { order += "account" }
+        transactionRepository.onApply = { order += "transaction" }
+        journalRepository.pullResults.add(
+            Result.success(
+                listOf(
+                    fakeOperation(
+                        serverSequence = 1L,
+                        entityKind = EntityKind.Account,
+                        entityId = "account-uuid",
+                        payload = codec.encodeAccount(account, "account-uuid", customCurrency),
+                    ),
+                    fakeOperation(
+                        serverSequence = 2L,
+                        entityKind = EntityKind.Transaction,
+                        entityId = "transaction-uuid",
+                        payload = codec.encodeTransaction(
+                            transaction,
+                            "transaction-uuid",
+                            customCurrency,
+                            "account-uuid",
+                            null,
+                            null,
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val result = coordinator.syncNow()
+
+        assertTrue(result.isSuccess)
+        assertEquals(listOf("currency", "account", "currency", "transaction"), order)
+        assertEquals("XYZ", currencyRepository.findByCode("XYZ")?.code)
+        assertEquals(currencyRepository.findByCode("XYZ")?.id, accountRepository.upsertCalls.single().first.currencyId)
+        assertEquals(currencyRepository.findByCode("XYZ")?.id, transactionRepository.upsertCalls.single().first.currencyId)
+    }
+
+    @Test
+    fun `listConflicts auth cleanup waits for the shared execution gate`() = runTest(dispatcher) {
+        auth.session = fakeSession()
+        configStore.current = CloudBinding(CloudProvider.Shared, "ws-1", "Budget")
+        journalRepository.conflictsResult = Result.failure(SyncException(SyncError.Auth))
+        val gateEntered = CompletableDeferred<Unit>()
+        val releaseGate = CompletableDeferred<Unit>()
+        val holder = launch {
+            executionGate.withExclusive {
+                gateEntered.complete(Unit)
+                releaseGate.await()
+            }
+        }
+        gateEntered.await()
+
+        val listJob = async { coordinator.listConflicts() }
+        kotlinx.coroutines.test.runCurrent()
+        assertNotNull(configStore.current)
+
+        releaseGate.complete(Unit)
+        assertTrue(listJob.await().isFailure)
+        holder.join()
+        assertNull(configStore.current)
+        assertEquals(1, scheduler.disableCalls)
+        assertEquals(1, auth.signOutCalls)
+    }
+
+    @Test
+    fun `restoreInternalBackup waits for worker gate and detaches binding before importing`() = runTest(dispatcher) {
+        auth.session = fakeSession()
+        configStore.current = CloudBinding(CloudProvider.Shared, "ws-1", "Budget")
+        val gateEntered = CompletableDeferred<Unit>()
+        val releaseGate = CompletableDeferred<Unit>()
+        val holder = launch {
+            executionGate.withExclusive {
+                gateEntered.complete(Unit)
+                releaseGate.await()
+            }
+        }
+        gateEntered.await()
+
+        val restoreJob = async { coordinator.restoreInternalBackup("/internal/backup-1.db") }
+        kotlinx.coroutines.test.runCurrent()
+        assertTrue(backupRepository.importPaths.isEmpty())
+
+        releaseGate.complete(Unit)
+        assertTrue(restoreJob.await().isSuccess)
+        holder.join()
+        assertEquals(1, scheduler.cancelAllCalls)
+        assertNull(configStore.current)
+        assertTrue(sharedStore.cursorIsCleared)
+        assertEquals(1, auth.clearLocalSessionCalls)
+        assertEquals(listOf("/internal/backup-1.db"), backupRepository.importPaths)
     }
 
     // ── resolveConflict ────────────────────────────────────────────────────
@@ -583,10 +729,10 @@ class SharedSyncCoordinatorImplTest {
             token = token,
         )
 
-    private fun sampleAccount(id: Long = 1L) = Account(
+    private fun sampleAccount(id: Long = 1L, currencyId: Long = 5L) = Account(
         id = id,
         name = "Cash",
-        currencyId = 5L,
+        currencyId = currencyId,
         initialBalance = BigDecimal.ZERO,
         type = AccountType.Cash,
         colorHex = "#4CAF50",
@@ -603,9 +749,27 @@ class SharedSyncCoordinatorImplTest {
         decimalDigits = 2, isActive = true, sortOrder = 0,
     )
 
+    private fun sampleTransaction(currencyId: Long = 5L, accountId: Long = 10L) = Transaction(
+        id = 42L,
+        kind = TransactionKind.Expense,
+        amount = BigDecimal("99.99"),
+        currencyId = currencyId,
+        accountId = accountId,
+        categoryId = null,
+        note = "lunch",
+        occurredAt = clock.instant(),
+        createdAt = clock.instant(),
+        updatedAt = clock.instant(),
+        isDeleted = false,
+        toAccountId = null,
+        toAmount = null,
+        exchangeRate = null,
+    )
+
     private fun fakeOperation(
         serverSequence: Long,
         entityKind: EntityKind = EntityKind.Account,
+        entityId: String = "entity-uuid-$serverSequence",
         tombstone: Boolean = false,
         payload: String? = null,
     ) = SharedOperation(
@@ -616,7 +780,7 @@ class SharedSyncCoordinatorImplTest {
         baseSequence = 0L,
         deviceId = "other-device",
         entityKind = entityKind,
-        entityId = "entity-uuid-$serverSequence",
+        entityId = entityId,
         payload = payload,
         tombstone = tombstone,
         createdAt = clock.instant(),
@@ -632,6 +796,7 @@ class SharedSyncCoordinatorImplTest {
     private inner class FakeSharedAuth : SharedAuth {
         var session: SharedSession? = null
         var signOutCalls = 0
+        var clearLocalSessionCalls = 0
         var lastSignIn: Pair<String, String>? = null
         var signInFailure: Throwable? = null
 
@@ -648,6 +813,11 @@ class SharedSyncCoordinatorImplTest {
             signOutCalls++
             session = null
             return Result.success(Unit)
+        }
+
+        override suspend fun clearLocalSession() {
+            clearLocalSessionCalls++
+            session = null
         }
     }
 
@@ -681,6 +851,7 @@ class SharedSyncCoordinatorImplTest {
         var pushCalls = 0
         var resolveCalls = 0
         var lastResolve: Pair<String, String>? = null
+        var conflictsResult: Result<List<SharedConflict>> = Result.success(emptyList())
 
         override suspend fun push(
             workspaceId: String,
@@ -703,7 +874,7 @@ class SharedSyncCoordinatorImplTest {
         ): Result<List<SharedOperation>> = pullResults.removeFirstOrNull()
             ?: Result.success(emptyList())
 
-        override suspend fun listPendingConflicts(workspaceId: String) = Result.success(emptyList<SharedConflict>())
+        override suspend fun listPendingConflicts(workspaceId: String) = conflictsResult
 
         override suspend fun resolveConflict(
             conflictId: String,
@@ -719,6 +890,7 @@ class SharedSyncCoordinatorImplTest {
         var internalBackupCalls = 0
         var internalBackupFailure: Throwable? = null
         var clearDatabaseCalls = 0
+        var importPaths = mutableListOf<String>()
 
         override suspend fun createInternalBackup(): Result<String> {
             internalBackupCalls++
@@ -736,7 +908,10 @@ class SharedSyncCoordinatorImplTest {
         override suspend fun listLocalBackups(treeUriString: String) = emptyList<com.kshavrin.mymoney.core.domain.model.BackupFile>()
         override suspend fun rotateBackups(treeUriString: String) = Result.success(Unit)
         override suspend fun exportToFile(destAbsolutePath: String) = Result.success(Unit)
-        override suspend fun importFromFile(srcAbsolutePath: String) = Result.success(Unit)
+        override suspend fun importFromFile(srcAbsolutePath: String): Result<Unit> {
+            importPaths += srcAbsolutePath
+            return Result.success(Unit)
+        }
     }
 
     private inner class FakeJournalSyncConfigStore : JournalSyncConfigStore {
@@ -778,11 +953,17 @@ class SharedSyncCoordinatorImplTest {
 
     private class FakeSyncScheduler : SyncScheduler {
         var disableCalls = 0
+        var cancelAllCalls = 0
 
         override fun enablePeriodicSync() = Unit
 
         override fun disablePeriodicSync() {
             disableCalls++
+        }
+
+        override suspend fun cancelAllSync(): Result<Unit> {
+            cancelAllCalls++
+            return Result.success(Unit)
         }
 
         override fun syncNow(target: com.kshavrin.mymoney.core.sync.SyncTarget?) = Unit
@@ -793,6 +974,7 @@ class SharedSyncCoordinatorImplTest {
         var uuids: Map<Long, String> = emptyMap()
         val archivedUuids = mutableListOf<String>()
         val upsertCalls = mutableListOf<Triple<Account, String, String>>()
+        var onApply: (() -> Unit)? = null
 
         override fun observeActive(): Flow<List<Account>> = flowOf(accounts)
         override suspend fun listAllIncludingArchived() = accounts
@@ -804,6 +986,7 @@ class SharedSyncCoordinatorImplTest {
         override suspend fun idForUuid(uuid: String) = uuids.entries.firstOrNull { it.value == uuid }?.key
         override suspend fun applySharedUpsert(account: Account, uuid: String, deviceId: String) {
             upsertCalls += Triple(account, uuid, deviceId)
+            onApply?.invoke()
         }
         override suspend fun applySharedArchive(uuid: String) { archivedUuids += uuid }
         override suspend fun archive(id: Long) = Unit
@@ -832,6 +1015,7 @@ class SharedSyncCoordinatorImplTest {
         var uuids: Map<Long, String> = emptyMap()
         val deletedUuids = mutableListOf<String>()
         val upsertCalls = mutableListOf<Triple<Transaction, String, String>>()
+        var onApply: (() -> Unit)? = null
 
         override fun observeRecent(limit: Int): Flow<List<Transaction>> = flowOf(emptyList())
         override fun observeAll(): Flow<List<Transaction>> = flowOf(transactions)
@@ -846,6 +1030,7 @@ class SharedSyncCoordinatorImplTest {
         override suspend fun uuidForId(id: Long) = uuids[id]
         override suspend fun applySharedUpsert(transaction: Transaction, uuid: String, deviceId: String) {
             upsertCalls += Triple(transaction, uuid, deviceId)
+            onApply?.invoke()
         }
         override suspend fun applySharedDelete(uuid: String, now: Instant) { deletedUuids += uuid }
         override suspend fun softDelete(id: Long, now: Instant) = Unit
@@ -859,13 +1044,24 @@ class SharedSyncCoordinatorImplTest {
     private inner class FakeCurrencyRepository : CurrencyRepository {
         var currencies: Map<Long, Currency> = emptyMap()
         private val byCode: Map<String, Currency> get() = currencies.values.associateBy { it.code }
+        var lastUpsertAll: List<Currency> = emptyList()
+        var onUpsert: (() -> Unit)? = null
 
         override fun observeActive(): Flow<List<Currency>> = flowOf(currencies.values.toList())
         override fun observeAll(): Flow<List<Currency>> = flowOf(currencies.values.toList())
         override suspend fun findById(id: Long) = currencies[id]
         override suspend fun findByCode(code: String) = byCode[code]
-        override suspend fun upsert(currency: Currency) = currency.id
-        override suspend fun upsertAll(currencies: List<Currency>) = Unit
+        override suspend fun upsert(currency: Currency): Long {
+            val id = if (currency.id == 0L) (currencies.keys.maxOrNull() ?: 0L) + 1L else currency.id
+            currencies = currencies + (id to currency.copy(id = id))
+            onUpsert?.invoke()
+            return id
+        }
+
+        override suspend fun upsertAll(currencies: List<Currency>) {
+            lastUpsertAll = currencies
+            currencies.forEach { upsert(it) }
+        }
         override suspend fun setActive(id: Long, active: Boolean) = Unit
     }
 }

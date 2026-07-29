@@ -345,6 +345,41 @@ class CloudSyncViewModelTest {
     }
 
     @Test
+    fun `SharedInternalBackupsClicked loads backups and opens the recovery dialog`() = runTest {
+        val backup = BackupFile("shared-1.db", "/internal/shared-1.db", 1_700_000_000_000L)
+        val backups = BackupFake().apply { internalBackups = listOf(backup) }
+        val vm = viewModel(SnapshotFake(), RecordingJournalSync(), Config(null), Scheduler(), backup = backups)
+
+        vm.onEvent(CloudSyncEvent.SharedInternalBackupsClicked)
+        runCurrent()
+
+        assertEquals(listOf(backup), vm.state.value.internalBackups)
+        assertEquals(SharedDialog.InternalBackups, vm.state.value.sharedDialog)
+        assertFalse(vm.state.value.isConnecting)
+    }
+
+    @Test
+    fun `SharedInternalBackupRestoreClicked confirms and restores through the shared coordinator`() = runTest {
+        val backup = BackupFile("shared-1.db", "/internal/shared-1.db", 1_700_000_000_000L)
+        val shared = SharedCoordinator()
+        val vm = viewModel(SnapshotFake(), RecordingJournalSync(), Config(null), Scheduler(), shared = shared)
+
+        vm.onEvent(CloudSyncEvent.SharedInternalBackupRestoreClicked(backup))
+        assertEquals(SharedDialog.ConfirmInternalBackupRestore(backup), vm.state.value.sharedDialog)
+
+        vm.actions.test {
+            vm.onEvent(CloudSyncEvent.SharedConfirmInternalBackupRestore)
+            assertEquals(CloudSyncAction.RestartAfterInternalBackupRestore, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+        runCurrent()
+
+        assertEquals(listOf(backup.uriString), shared.restorePaths)
+        assertNull(vm.state.value.sharedDialog)
+        assertFalse(vm.state.value.isConnecting)
+    }
+
+    @Test
     fun `SharedConflictsClicked populates conflict list and opens conflicts dialog`() = runTest {
         val shared = SharedCoordinator().apply {
             signedIn = true
@@ -493,6 +528,7 @@ class CloudSyncViewModelTest {
 
     private class BackupFake : BackupRepository {
         var exports = 0
+        var internalBackups: List<BackupFile> = emptyList()
 
         override suspend fun exportDb(treeUriString: String): Result<Unit> {
             exports++
@@ -510,6 +546,8 @@ class CloudSyncViewModelTest {
         override suspend fun importFromFile(srcAbsolutePath: String) = Result.success(Unit)
 
         override suspend fun createInternalBackup() = Result.success("/internal/backup.db")
+
+        override suspend fun listInternalBackups(): List<BackupFile> = internalBackups
     }
 
     private inner class SharedCoordinator : SharedSyncCoordinator {
@@ -524,6 +562,8 @@ class CloudSyncViewModelTest {
         var lastResolve: Pair<String, String>? = null
         var lastSignIn: Pair<String, String>? = null
         var signInResult: Result<Unit> = Result.success(Unit)
+        var restorePaths: MutableList<String> = mutableListOf()
+        var restoreResult: Result<Unit> = Result.success(Unit)
 
         override fun isSignedIn() = signedIn
         override fun accountEmail(): String? = if (signedIn) "user@example.com" else null
@@ -554,6 +594,11 @@ class CloudSyncViewModelTest {
             lastResolve = conflictId to winnerOperationId
             conflicts = emptyList()
             return Result.success(Unit)
+        }
+
+        override suspend fun restoreInternalBackup(backupPath: String): Result<Unit> {
+            restorePaths += backupPath
+            return restoreResult
         }
         override suspend fun leaveWorkspace(): Result<Unit> {
             leaveCalls++

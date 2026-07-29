@@ -36,12 +36,18 @@ import com.kshavrin.mymoney.core.sync.SyncExecutionGate
 import com.kshavrin.mymoney.core.sync.SyncTarget
 import com.kshavrin.mymoney.core.testing.fake.FakeAppSettingsRepository
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
 import java.io.File
@@ -249,6 +255,48 @@ class WorkerCancellationBehaviorTest {
             assertEquals(ListenableWorker.Result.retry(), worker.doWork())
         }
 
+    @Test
+    fun `sync workers never overlap the execution gate database section`() =
+        runTest {
+            val firstStarted = CompletableDeferred<Unit>()
+            val secondStarted = CompletableDeferred<Unit>()
+            val releaseFirst = CompletableDeferred<Unit>()
+            val journal =
+                GatedJournalSync(
+                    firstStarted = firstStarted,
+                    secondStarted = secondStarted,
+                    releaseFirst = releaseFirst,
+                )
+            val settings = FakeAppSettingsRepository(AppSettings(autoSyncEnabled = true))
+            fun worker() =
+                SyncWorker(
+                    appContext = appContext,
+                    params =
+                        workerParameters(
+                            inputData =
+                                Data
+                                    .Builder()
+                                    .putString(SyncWorker.KEY_TARGET, SyncTarget.Dropbox.name)
+                                    .build(),
+                        ),
+                    journalSync = journal,
+                    settings = settings,
+                    executionGate = executionGate,
+                )
+
+            val first = async { worker().doWork() }
+            firstStarted.await()
+            val second = async { worker().doWork() }
+            runCurrent()
+            assertFalse(secondStarted.isCompleted)
+
+            releaseFirst.complete(Unit)
+            assertEquals(ListenableWorker.Result.success(), first.await())
+            assertEquals(ListenableWorker.Result.success(), second.await())
+            assertTrue(secondStarted.isCompleted)
+            assertEquals(1, journal.maxActive)
+        }
+
     private fun workerParameters(
         inputData: Data = Data.EMPTY,
         runAttemptCount: Int = 0,
@@ -297,6 +345,34 @@ class WorkerCancellationBehaviorTest {
 
         override suspend fun syncNow() {
             error?.let { throw it }
+        }
+    }
+
+    private class GatedJournalSync(
+        private val firstStarted: CompletableDeferred<Unit>,
+        private val secondStarted: CompletableDeferred<Unit>,
+        private val releaseFirst: CompletableDeferred<Unit>,
+    ) : JournalSync {
+        private var calls = 0
+        private var active = 0
+        var maxActive = 0
+            private set
+
+        override suspend fun push() = Unit
+
+        override suspend fun pull() = Unit
+
+        override suspend fun syncNow() {
+            calls++
+            active++
+            maxActive = maxOf(maxActive, active)
+            if (calls == 1) {
+                firstStarted.complete(Unit)
+                releaseFirst.await()
+            } else {
+                secondStarted.complete(Unit)
+            }
+            active--
         }
     }
 

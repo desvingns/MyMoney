@@ -10,6 +10,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import com.kshavrin.mymoney.core.datastore.CloudBinding
 import com.kshavrin.mymoney.core.datastore.CloudProvider
+import com.kshavrin.mymoney.core.domain.model.BackupFile
 import com.kshavrin.mymoney.core.sync.SyncTarget
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import org.junit.Assert.assertEquals
@@ -122,6 +123,67 @@ class CloudSyncScreenContentTest {
 
         composeTestRule.runOnIdle {
             assertEquals(listOf(CloudSyncEvent.SharedCreateInviteClicked), events)
+        }
+    }
+
+    @Test
+    fun `Shared card backup button emits SharedInternalBackupsClicked`() {
+        val events = mutableListOf<CloudSyncEvent>()
+        setContent(
+            CloudSyncState(
+                binding = CloudBinding(CloudProvider.Shared, "ws-1", "Budget"),
+                shared = SharedCardState(signedIn = true, active = true),
+            ),
+            events::add,
+        )
+
+        composeTestRule.onNodeWithTag("cloud_sync_shared_backups").performScrollTo().performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(CloudSyncEvent.SharedInternalBackupsClicked), events)
+        }
+    }
+
+    @Test
+    fun `internal backup list renders a backup and emits restore selection`() {
+        val events = mutableListOf<CloudSyncEvent>()
+        val backup = BackupFile("shared-1.db", "/internal/shared-1.db", 1_700_000_000_000L)
+        setContent(
+            CloudSyncState(
+                sharedDialog = SharedDialog.InternalBackups,
+                internalBackups = listOf(backup),
+            ),
+            events::add,
+        )
+
+        composeTestRule
+            .onNodeWithTag("cloud_sync_shared_backup_${backup.lastModifiedEpochMs}")
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(CloudSyncEvent.SharedInternalBackupRestoreClicked(backup)), events)
+        }
+    }
+
+    @Test
+    fun `restore confirmation dialog emits confirmation event`() {
+        val events = mutableListOf<CloudSyncEvent>()
+        setContent(
+            CloudSyncState(
+                sharedDialog =
+                    SharedDialog.ConfirmInternalBackupRestore(
+                        BackupFile("shared-1.db", "/internal/shared-1.db", 1_700_000_000_000L),
+                    ),
+            ),
+            events::add,
+        )
+
+        composeTestRule
+            .onNodeWithText(str(R.string.sync_shared_restore_backup_confirm))
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(CloudSyncEvent.SharedConfirmInternalBackupRestore), events)
         }
     }
 

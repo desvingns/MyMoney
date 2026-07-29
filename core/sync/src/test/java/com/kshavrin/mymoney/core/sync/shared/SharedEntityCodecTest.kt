@@ -4,6 +4,7 @@ import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.AccountType
 import com.kshavrin.mymoney.core.domain.model.Category
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
+import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
 import kotlinx.serialization.json.Json
@@ -145,6 +146,24 @@ class SharedEntityCodecTest {
     fun `decodeAccountCurrencyCode extracts the ISO code`() {
         val payload = codec.encodeAccount(sampleAccount(), TX_UUID, CURRENCY_CODE)
         assertEquals(CURRENCY_CODE, codec.decodeAccountCurrencyCode(payload))
+    }
+
+    @Test
+    fun `canonical currency payload round-trips with a portable account reference`() {
+        val custom =
+            Currency(
+                id = 0L,
+                code = "XYZ",
+                symbol = "¤",
+                name = "Test currency",
+                decimalDigits = 2,
+                isActive = true,
+                sortOrder = 7,
+            )
+        val reference = codec.decodeAccountCurrencyReference(codec.encodeAccount(sampleAccount(), TX_UUID, custom))
+
+        assertEquals("XYZ", reference.code)
+        assertEquals(custom, reference.currency)
     }
 
     // ── Category round-trips ───────────────────────────────────────────────

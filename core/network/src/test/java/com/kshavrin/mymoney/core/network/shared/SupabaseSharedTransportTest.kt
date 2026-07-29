@@ -399,6 +399,48 @@ class SupabaseSharedTransportTest {
     }
 
     @Test
+    fun `journal rpc maps only SQLSTATE 42501 on HTTP400 to auth`() = runTest {
+        signIn()
+        server.enqueue(
+            MockResponse()
+                .setResponseCode(400)
+                .setBody("""{"code":"42501","message":"row-level security policy"}"""),
+        )
+        val membershipDenied =
+            journalRpc.pushOperation(
+                workspaceId = "workspace-1",
+                idempotencyKey = "operation-denied",
+                baseSequence = 0,
+                deviceId = "device-1",
+                entityKind = "account",
+                entityId = "account-1",
+                payload = null,
+                tombstone = true,
+            )
+        assertSyncError(membershipDenied, SyncError.Auth)
+        server.takeRequest()
+
+        server.enqueue(
+            MockResponse()
+                .setResponseCode(400)
+                .setBody("""{"code":"425010","message":"bad request"}"""),
+        )
+        val unrelatedBadRequest =
+            journalRpc.pushOperation(
+                workspaceId = "workspace-1",
+                idempotencyKey = "operation-bad-request",
+                baseSequence = 0,
+                deviceId = "device-1",
+                entityKind = "account",
+                entityId = "account-1",
+                payload = null,
+                tombstone = true,
+            )
+        assertSyncError(unrelatedBadRequest, SyncError.Unknown)
+        server.takeRequest()
+    }
+
+    @Test
     fun `void workspace RPCs succeed on empty 204 responses`() = runTest {
         signIn()
         repeat(3) { server.enqueue(MockResponse().setResponseCode(204)) }

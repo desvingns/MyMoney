@@ -67,6 +67,7 @@ class CloudSyncViewModel
 
         private var pendingMigration: PendingMigration? = null
         private var pendingMigrationAuthentication: SyncTarget? = null
+        private var refreshGeneration = 0L
 
         init {
             refresh()
@@ -331,6 +332,7 @@ class CloudSyncViewModel
         }
 
         private fun refresh() {
+            val generation = ++refreshGeneration
             viewModelScope.launch {
                 val binding = journalSyncConfig.binding()
                 val dropbox = verifiedCard(_state.value.dropbox)
@@ -342,6 +344,7 @@ class CloudSyncViewModel
                         CloudProvider.Shared -> null
                         null -> null
                     }
+                if (generation != refreshGeneration) return@launch
                 _state.value =
                     _state.value.copy(
                         binding = binding,
@@ -350,11 +353,14 @@ class CloudSyncViewModel
                         requiresProviderChoice = binding == null && dropbox.card.connected && drive.card.connected,
                         errorBannerRes = activeError ?: _state.value.errorBannerRes,
                     )
-                refreshShared(binding?.provider == CloudProvider.Shared)
+                refreshShared(binding?.provider == CloudProvider.Shared, generation)
             }
         }
 
-        private suspend fun refreshShared(active: Boolean) {
+        private suspend fun refreshShared(
+            active: Boolean,
+            generation: Long,
+        ) {
             val workspace = if (active) sharedCoordinator.activeWorkspace() else null
             val conflictCount =
                 if (active) {
@@ -362,16 +368,17 @@ class CloudSyncViewModel
                 } else {
                     0
                 }
-                _state.value =
-                    _state.value.copy(
-                        sharedDialog =
-                            if (!active && _state.value.sharedDialog is SharedDialog.Invite) {
-                                null
-                            } else {
-                                _state.value.sharedDialog
-                            },
-                        shared =
-                            _state.value.shared.copy(
+            if (generation != refreshGeneration) return
+            _state.value =
+                _state.value.copy(
+                    sharedDialog =
+                        if (!active && _state.value.sharedDialog is SharedDialog.Invite) {
+                            null
+                        } else {
+                            _state.value.sharedDialog
+                        },
+                    shared =
+                        _state.value.shared.copy(
                             signedIn = sharedCoordinator.isSignedIn(),
                             accountEmail = sharedCoordinator.accountEmail(),
                             active = active,

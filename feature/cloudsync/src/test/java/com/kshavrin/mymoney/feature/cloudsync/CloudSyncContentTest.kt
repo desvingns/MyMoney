@@ -8,6 +8,7 @@ import com.kshavrin.mymoney.core.sync.SyncTarget
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class CloudSyncContentTest {
@@ -39,5 +40,66 @@ class CloudSyncContentTest {
         assertEquals("com.google", policy.accountType)
         assertEquals(listOf(DriveScopes.DRIVE_APPDATA), policy.scopeUris)
         assertFalse(policy.requestsConsentPrompt)
+    }
+
+    // ── SharedCardState ────────────────────────────────────────────────────
+
+    @Test
+    fun `SharedCardState defaults to enabled true signed-out and inactive`() {
+        val s = SharedCardState()
+        assertTrue(s.enabled)
+        assertFalse(s.signedIn)
+        assertFalse(s.active)
+        assertEquals(0, s.conflictCount)
+        assertNull(s.accountEmail)
+        assertNull(s.workspaceName)
+    }
+
+    @Test
+    fun `SharedDialog sealed values cover Setup Conflicts and ConfirmLeave`() {
+        val setup: SharedDialog = SharedDialog.Setup
+        val conflicts: SharedDialog = SharedDialog.Conflicts
+        val leave: SharedDialog = SharedDialog.ConfirmLeave
+        // All three must be distinct
+        assertFalse(setup == conflicts)
+        assertFalse(conflicts == leave)
+        assertFalse(setup == leave)
+    }
+
+    @Test
+    fun `CloudSyncState importLocalData defaults to false enforcing no-import as the default`() {
+        assertFalse(CloudSyncState().importLocalData)
+    }
+
+    @Test
+    fun `ConflictUi carries both author ids and operation ids`() {
+        val conflict = ConflictUi(
+            conflictId = "c-1",
+            entityKind = "Account",
+            localOperationId = "op-local",
+            localAuthorId = "user-a",
+            localSummary = "local data",
+            remoteOperationId = "op-remote",
+            remoteAuthorId = "user-b",
+            remoteSummary = "remote data",
+        )
+        assertEquals("c-1", conflict.conflictId)
+        assertEquals("user-a", conflict.localAuthorId)
+        assertEquals("user-b", conflict.remoteAuthorId)
+        assertEquals("op-local", conflict.localOperationId)
+        assertEquals("op-remote", conflict.remoteOperationId)
+    }
+
+    @Test
+    fun `SharedCreateWorkspace and SharedJoinWorkspace events carry their payloads`() {
+        assertEquals("My Budget", CloudSyncEvent.SharedCreateWorkspace("My Budget").name)
+        assertEquals("invite-abc", CloudSyncEvent.SharedJoinWorkspace("invite-abc").inviteToken)
+    }
+
+    @Test
+    fun `SharedResolveConflict event carries conflictId and winnerOperationId`() {
+        val ev = CloudSyncEvent.SharedResolveConflict("c-1", "op-winner")
+        assertEquals("c-1", ev.conflictId)
+        assertEquals("op-winner", ev.winnerOperationId)
     }
 }

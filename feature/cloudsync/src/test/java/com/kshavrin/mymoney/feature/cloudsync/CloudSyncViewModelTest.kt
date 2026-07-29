@@ -6,6 +6,7 @@ import com.kshavrin.mymoney.core.datastore.JournalSyncConfigStore
 import com.kshavrin.mymoney.core.datastore.model.AppSettings
 import com.kshavrin.mymoney.core.domain.model.BackupFile
 import com.kshavrin.mymoney.core.domain.repository.BackupRepository
+import com.kshavrin.mymoney.core.domain.sync.SharedConflict
 import com.kshavrin.mymoney.core.sync.CloudAccountIdentity
 import com.kshavrin.mymoney.core.sync.JournalMigrationPreview
 import com.kshavrin.mymoney.core.sync.JournalSync
@@ -13,12 +14,15 @@ import com.kshavrin.mymoney.core.sync.MigrationResolution
 import com.kshavrin.mymoney.core.sync.SnapshotSync
 import com.kshavrin.mymoney.core.sync.SyncScheduler
 import com.kshavrin.mymoney.core.sync.SyncTarget
+import com.kshavrin.mymoney.core.sync.shared.SharedSyncCoordinator
+import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceSummary
 import com.kshavrin.mymoney.core.testing.fake.FakeAppSettingsRepository
 import com.kshavrin.mymoney.feature.cloudsync.fake.FakeRemoteConfigRepository
 import com.kshavrin.mymoney.feature.cloudsync.util.MainDispatcherRule
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -99,13 +103,134 @@ class CloudSyncViewModelTest {
             assertEquals(CloudProvider.GoogleDrive, config.binding()?.provider)
         }
 
+    // ── Shared mode state machine ──────────────────────────────────────────
+
+    @Test
+    fun `SharedSignInClicked when other provider active shows disconnect-required error`() = runTest {
+        val config = Config(CloudBinding(CloudProvider.Dropbox, "id", "a"))
+        val vm = viewModel(SnapshotFake(), RecordingJournalSync(), config, Scheduler())
+        vm.onEvent(CloudSyncEvent.SharedSignInClicked)
+        assertEquals(R.string.sync_err_disconnect_required, vm.state.value.errorBannerRes)
+    }
+
+    @Test
+    fun `SharedSetupClicked when not signed in shows sign-in-required error`() = runTest {
+        val vm = viewModel(SnapshotFake(), RecordingJournalSync(), Config(null), Scheduler())
+        vm.onEvent(CloudSyncEvent.SharedSetupClicked)
+        assertEquals(R.string.sync_shared_sign_in_required, vm.state.value.errorBannerRes)
+    }
+
+    @Test
+    fun `SharedSetupClicked when signed in and no binding opens setup dialog with importLocalData false`() = runTest {
+        val shared = SharedCoordinator().apply { signedIn = true }
+        val vm = viewModel(SnapshotFake(), RecordingJournalSync(), Config(null), Scheduler(), shared = shared)
+        vm.onEvent(CloudSyncEvent.SharedSetupClicked)
+        runCurrent()
+        assertEquals(SharedDialog.Setup, vm.state.value.sharedDialog)
+        assertFalse("no-import must be the default", vm.state.value.importLocalData)
+    }
+
+    @Test
+    fun `SharedSetupClicked when binding exists shows disconnect-required error`() = runTest {
+        val shared = SharedCoordinator().apply { signedIn = true }
+        val config = Config(CloudBinding(CloudProvider.Dropbox, "id", "a"))
+        val vm = viewModel(SnapshotFake(), RecordingJournalSync(), config, Scheduler(), shared = shared)
+        vm.onEvent(CloudSyncEvent.SharedSetupClicked)
+        assertEquals(R.string.sync_err_disconnect_required, vm.state.value.errorBannerRes)
+    }
+
+    @Test
+    fun `SharedImportChoiceChanged toggles importLocalData flag`() = runTest {
+        val shared = SharedCoordinator().apply { signedIn = true }
+        val vm = viewModel(SnapshotFake(), RecordingJournalSync(), Config(null), Scheduler(), shared = shared)
+        vm.onEvent(CloudSyncEvent.SharedSetupClicked)
+        assertFalse(vm.state.value.importLocalData)
+        vm.onEvent(CloudSyncEvent.SharedImportChoiceChanged(true))
+        assertTrue(vm.state.value.importLocalData)
+        vm.onEvent(CloudSyncEvent.SharedImportChoiceChanged(false))
+        assertFalse(vm.state.value.importLocalData)
+    }
+
+    @Test
+    fun `SharedCreateWorkspace success dismisses dialog and activates shared binding`() = runTest {
+        val shared = SharedCoordinator().apply { signedIn = true }
+        val vm = viewModel(SnapshotFake(), RecordingJournalSync(), Config(null), Scheduler(), shared = shared)
+        vm.onEvent(CloudSyncEvent.SharedSetupClicked)
+        vm.onEvent(CloudSyncEvent.SharedCreateWorkspace("My Budget"))
+        runCurrent()
+        assertNull("Dialog must dismiss on success", vm.state.value.sharedDialog)
+        assertTrue(shared.createCalls > 0)
+    }
+
+    @Test
+    fun `SharedJoinWorkspace trims invite token before delegating`() = runTest {
+        val shared = SharedCoordinator().apply { signedIn = true }
+        val vm = viewModel(SnapshotFake(), RecordingJournalSync(), Config(null), Scheduler(), shared = shared)
+        vm.onEvent(CloudSyncEvent.SharedSetupClicked)
+        vm.onEvent(CloudSyncEvent.SharedJoinWorkspace("  invite-abc  "))
+        runCurrent()
+        assertEquals("invite-abc", shared.lastJoinToken)
+    }
+
+    @Test
+    fun `SharedLeaveClicked shows confirm-leave dialog`() = runTest {
+        val vm = viewModel(SnapshotFake(), RecordingJournalSync(), Config(null), Scheduler())
+        vm.onEvent(CloudSyncEvent.SharedLeaveClicked)
+        assertEquals(SharedDialog.ConfirmLeave, vm.state.value.sharedDialog)
+    }
+
+    @Test
+    fun `SharedConfirmLeave delegates to coordinator and clears isConnecting`() = runTest {
+        val shared = SharedCoordinator().apply { signedIn = true; workspaceSummary = SharedWorkspaceSummary("ws-1", "Budget") }
+        val vm = viewModel(SnapshotFake(), RecordingJournalSync(), Config(null), Scheduler(), shared = shared)
+        vm.onEvent(CloudSyncEvent.SharedConfirmLeave)
+        runCurrent()
+        assertTrue(shared.leaveCalls > 0)
+        assertFalse(vm.state.value.isConnecting)
+    }
+
+    @Test
+    fun `SharedConflictsClicked populates conflict list and opens conflicts dialog`() = runTest {
+        val shared = SharedCoordinator().apply {
+            signedIn = true
+            conflicts = listOf(fakeConflict("c-1"))
+        }
+        val config = Config(CloudBinding(CloudProvider.Shared, "ws-1", "Budget"))
+        val vm = viewModel(SnapshotFake(), RecordingJournalSync(), config, Scheduler(), shared = shared)
+        vm.onEvent(CloudSyncEvent.SharedConflictsClicked)
+        runCurrent()
+        assertEquals(SharedDialog.Conflicts, vm.state.value.sharedDialog)
+        assertEquals(1, vm.state.value.conflicts.size)
+        assertEquals("c-1", vm.state.value.conflicts.first().conflictId)
+    }
+
+    @Test
+    fun `SharedResolveConflict delegates to coordinator and refreshes conflict list`() = runTest {
+        val shared = SharedCoordinator().apply { signedIn = true }
+        val config = Config(CloudBinding(CloudProvider.Shared, "ws-1", "Budget"))
+        val vm = viewModel(SnapshotFake(), RecordingJournalSync(), config, Scheduler(), shared = shared)
+        vm.onEvent(CloudSyncEvent.SharedResolveConflict("c-1", "op-winner"))
+        runCurrent()
+        assertEquals("c-1" to "op-winner", shared.lastResolve)
+        assertFalse(vm.state.value.isConnecting)
+    }
+
+    @Test
+    fun `SwitchClicked from Shared-active binding shows leave-first error`() = runTest {
+        val config = Config(CloudBinding(CloudProvider.Shared, "ws-1", "Budget"))
+        val vm = viewModel(SnapshotFake(), RecordingJournalSync(), config, Scheduler())
+        vm.onEvent(CloudSyncEvent.SwitchClicked(SyncTarget.Dropbox))
+        assertEquals(R.string.sync_shared_leave_first, vm.state.value.errorBannerRes)
+    }
+
     private fun viewModel(
         snapshot: SnapshotSync,
         journal: JournalSync,
         config: Config,
         scheduler: Scheduler,
         backup: BackupRepository = BackupFake(),
-    ) = CloudSyncViewModel(snapshot, journal, config, scheduler, FakeAppSettingsRepository(AppSettings(autoSyncEnabled = true)), backup, FakeRemoteConfigRepository())
+        shared: SharedSyncCoordinator = SharedCoordinator(),
+    ) = CloudSyncViewModel(snapshot, journal, config, scheduler, FakeAppSettingsRepository(AppSettings(autoSyncEnabled = true)), backup, FakeRemoteConfigRepository(), shared)
 
     private class Config(
         private var current: CloudBinding?,
@@ -224,5 +349,74 @@ class CloudSyncViewModelTest {
         override suspend fun exportToFile(destAbsolutePath: String) = Result.success(Unit)
 
         override suspend fun importFromFile(srcAbsolutePath: String) = Result.success(Unit)
+
+        override suspend fun createInternalBackup() = Result.success("/internal/backup.db")
+    }
+
+    private inner class SharedCoordinator : SharedSyncCoordinator {
+        var signedIn = false
+        var workspaceSummary: SharedWorkspaceSummary? = null
+        var conflicts: List<SharedConflict> = emptyList()
+        var createCalls = 0
+        var leaveCalls = 0
+        var lastJoinToken: String? = null
+        var lastResolve: Pair<String, String>? = null
+
+        override fun isSignedIn() = signedIn
+        override fun accountEmail(): String? = if (signedIn) "user@example.com" else null
+        override suspend fun signIn(googleIdToken: String) = Result.success(Unit)
+        override suspend fun signOut() = Result.success(Unit)
+        override suspend fun activeWorkspace() = workspaceSummary
+        override suspend fun createWorkspace(name: String, importLocalData: Boolean): Result<SharedWorkspaceSummary> {
+            createCalls++
+            return Result.success(SharedWorkspaceSummary("ws-new", name))
+        }
+        override suspend fun joinWorkspace(inviteToken: String, importLocalData: Boolean): Result<SharedWorkspaceSummary> {
+            lastJoinToken = inviteToken
+            return Result.success(SharedWorkspaceSummary("ws-joined", "Joined"))
+        }
+        override suspend fun syncNow() = Result.success(Unit)
+        override suspend fun listConflicts(): Result<List<SharedConflict>> = Result.success(conflicts)
+        override suspend fun resolveConflict(conflictId: String, winnerOperationId: String): Result<Unit> {
+            lastResolve = conflictId to winnerOperationId
+            conflicts = emptyList()
+            return Result.success(Unit)
+        }
+        override suspend fun leaveWorkspace(): Result<Unit> {
+            leaveCalls++
+            return Result.success(Unit)
+        }
+    }
+
+    private fun fakeConflict(id: String): SharedConflict {
+        val now = java.time.Instant.ofEpochMilli(1_700_000_000_000L)
+        val op = com.kshavrin.mymoney.core.domain.sync.SharedOperation(
+            id = "op-$id",
+            workspaceId = "ws-1",
+            idempotencyKey = "key",
+            serverSequence = 1L,
+            baseSequence = 0L,
+            deviceId = "device",
+            entityKind = com.kshavrin.mymoney.core.domain.sync.EntityKind.Account,
+            entityId = "e-uuid",
+            payload = "{}",
+            tombstone = false,
+            createdAt = now,
+        )
+        return SharedConflict(
+            id = id,
+            workspaceId = "ws-1",
+            entityKind = com.kshavrin.mymoney.core.domain.sync.EntityKind.Account,
+            entityId = "e-uuid",
+            operationA = op,
+            operationB = op.copy(id = "op-b"),
+            authorAId = "user-a",
+            authorBId = "user-b",
+            status = com.kshavrin.mymoney.core.domain.sync.ConflictStatus.Pending,
+            resolverId = null,
+            resolvedIntoId = null,
+            createdAt = now,
+            resolvedAt = null,
+        )
     }
 }

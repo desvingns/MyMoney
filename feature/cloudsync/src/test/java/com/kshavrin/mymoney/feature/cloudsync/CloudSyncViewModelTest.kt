@@ -228,6 +228,60 @@ class CloudSyncViewModelTest {
     }
 
     @Test
+    fun `SharedCreateInviteClicked shows the one-time code returned by the coordinator`() = runTest {
+        val shared =
+            SharedCoordinator().apply {
+                signedIn = true
+                createInviteResult = Result.success(SharedWorkspaceInvite("invite-token"))
+            }
+        val vm = viewModel(SnapshotFake(), RecordingJournalSync(), Config(CloudBinding(CloudProvider.Shared, "ws-1", "Budget")), Scheduler(), shared = shared)
+
+        vm.onEvent(CloudSyncEvent.SharedCreateInviteClicked)
+        runCurrent()
+
+        assertEquals(SharedDialog.Invite("invite-token"), vm.state.value.sharedDialog)
+        assertFalse(vm.state.value.isConnecting)
+    }
+
+    @Test
+    fun `SharedCreateInviteClicked failure leaves no code in the state and shows an error`() = runTest {
+        val shared =
+            SharedCoordinator().apply {
+                signedIn = true
+                createInviteResult = Result.failure(SyncException(SyncError.Network))
+            }
+        val vm = viewModel(SnapshotFake(), RecordingJournalSync(), Config(CloudBinding(CloudProvider.Shared, "ws-1", "Budget")), Scheduler(), shared = shared)
+
+        vm.onEvent(CloudSyncEvent.SharedCreateInviteClicked)
+        runCurrent()
+
+        assertNull(vm.state.value.sharedDialog)
+        assertFalse(vm.state.value.isConnecting)
+        assertEquals(R.string.sync_err_network, vm.state.value.errorBannerRes)
+    }
+
+    @Test
+    fun `SharedCopyInviteClicked emits the token only after an invite is displayed`() = runTest {
+        val shared =
+            SharedCoordinator().apply {
+                signedIn = true
+                createInviteResult = Result.success(SharedWorkspaceInvite("invite-token"))
+            }
+        val vm = viewModel(SnapshotFake(), RecordingJournalSync(), Config(CloudBinding(CloudProvider.Shared, "ws-1", "Budget")), Scheduler(), shared = shared)
+        vm.onEvent(CloudSyncEvent.SharedCreateInviteClicked)
+        runCurrent()
+
+        vm.actions.test {
+            vm.onEvent(CloudSyncEvent.SharedCopyInviteClicked)
+            assertEquals(CloudSyncAction.CopySharedInvite("invite-token"), awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        vm.onEvent(CloudSyncEvent.SharedDialogDismissed)
+        assertNull(vm.state.value.sharedDialog)
+    }
+
+    @Test
     fun `SharedLeaveClicked shows confirm-leave dialog`() = runTest {
         val vm = viewModel(SnapshotFake(), RecordingJournalSync(), Config(null), Scheduler())
         vm.onEvent(CloudSyncEvent.SharedLeaveClicked)

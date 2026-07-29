@@ -38,7 +38,9 @@ import com.kshavrin.mymoney.core.network.shared.SharedSession
 import com.kshavrin.mymoney.core.network.shared.SharedUser
 import com.kshavrin.mymoney.core.network.shared.SharedWorkspace
 import com.kshavrin.mymoney.core.network.shared.SharedWorkspaceApi
+import com.kshavrin.mymoney.core.network.shared.WorkspaceInvite
 import com.kshavrin.mymoney.core.network.shared.WorkspaceMember
+import com.kshavrin.mymoney.core.network.shared.WorkspaceRole
 import com.kshavrin.mymoney.core.sync.SyncScheduler
 import com.kshavrin.mymoney.core.testing.fake.FakeAppSettingsRepository
 import kotlinx.coroutines.CancellationException
@@ -297,6 +299,45 @@ class SharedSyncCoordinatorImplTest {
         assertEquals(listOf("membership", "binding"), activationOrder)
     }
 
+    @Test
+    fun `createInvite returns the one-time token for the active Shared workspace`() = runTest(dispatcher) {
+        auth.session = fakeSession()
+        configStore.current = CloudBinding(CloudProvider.Shared, "ws-1", "Budget")
+        workspaceApi.createInviteResult = Result.success(fakeCreatedInvite("invite-token"))
+
+        val result = coordinator.createInvite()
+
+        assertTrue(result.isSuccess)
+        assertEquals("invite-token", result.getOrThrow().token)
+        assertEquals(1, workspaceApi.createInviteCalls)
+        assertEquals("ws-1", workspaceApi.lastCreateInviteWorkspaceId)
+    }
+
+    @Test
+    fun `createInvite exposes no token when the provider rejects the request`() = runTest(dispatcher) {
+        auth.session = fakeSession()
+        configStore.current = CloudBinding(CloudProvider.Shared, "ws-1", "Budget")
+        workspaceApi.createInviteResult = Result.failure(SyncException(SyncError.Network))
+
+        val result = coordinator.createInvite()
+
+        assertTrue(result.isFailure)
+        assertNull(result.getOrNull())
+        assertEquals(SyncError.Network, (result.exceptionOrNull() as SyncException).syncError)
+    }
+
+    @Test
+    fun `createInvite does not call the provider without an active Shared workspace`() = runTest(dispatcher) {
+        auth.session = fakeSession()
+        configStore.current = CloudBinding(CloudProvider.Dropbox, "dropbox-id", "dropbox@example.com")
+
+        val result = coordinator.createInvite()
+
+        assertTrue(result.isFailure)
+        assertEquals(SyncError.Conflict, (result.exceptionOrNull() as SyncException).syncError)
+        assertEquals(0, workspaceApi.createInviteCalls)
+    }
+
     // ── leaveWorkspace ─────────────────────────────────────────────────────
 
     @Test
@@ -508,6 +549,18 @@ class SharedSyncCoordinatorImplTest {
     private fun fakeWorkspace(id: String = "ws-1", name: String = "Budget") =
         SharedWorkspace(id = id, name = name, ownerId = "user-1", createdAt = clock.instant())
 
+    private fun fakeCreatedInvite(token: String) =
+        CreatedInvite(
+            invite =
+                WorkspaceInvite(
+                    id = "invite-1",
+                    workspaceId = "ws-1",
+                    role = WorkspaceRole.Editor,
+                    expiresAt = clock.instant().plusSeconds(3_600),
+                ),
+            token = token,
+        )
+
     private fun sampleAccount(id: Long = 1L) = Account(
         id = id,
         name = "Cash",
@@ -580,6 +633,8 @@ class SharedSyncCoordinatorImplTest {
         var createResult: Result<SharedWorkspace> = Result.failure(RuntimeException("not set"))
         var joinResult: Result<SharedWorkspace> = Result.failure(RuntimeException("not set"))
         var createInviteResult: Result<CreatedInvite> = Result.failure(RuntimeException("unused"))
+        var createInviteCalls = 0
+        var lastCreateInviteWorkspaceId: String? = null
         var leaveFailure: Throwable? = null
 
         override suspend fun createWorkspace(name: String) = createResult
@@ -590,7 +645,11 @@ class SharedSyncCoordinatorImplTest {
         }
         override suspend fun currentWorkspace() = Result.success<SharedWorkspace?>(null)
         override suspend fun listMembers(workspaceId: String) = Result.success(emptyList<WorkspaceMember>())
-        override suspend fun createInvite(workspaceId: String) = createInviteResult
+        override suspend fun createInvite(workspaceId: String): Result<CreatedInvite> {
+            createInviteCalls++
+            lastCreateInviteWorkspaceId = workspaceId
+            return createInviteResult
+        }
         override suspend fun revokeInvite(inviteId: String) = Result.success(Unit)
         override suspend fun deleteWorkspace(workspaceId: String) = Result.success(Unit)
     }

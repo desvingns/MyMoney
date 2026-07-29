@@ -89,6 +89,67 @@ class CloudSyncScreenContentTest {
     }
 
     @Test
+    fun `Shared card shows create-invite button only for an active workspace`() {
+        setContent(
+            CloudSyncState(
+                binding = CloudBinding(CloudProvider.Shared, "ws-1", "Budget"),
+                shared = SharedCardState(signedIn = true, active = true, workspaceName = "Budget"),
+            ),
+        )
+        composeTestRule.onNodeWithTag("cloud_sync_shared_create_invite").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText(str(R.string.sync_shared_create_invite)).assertIsDisplayed()
+    }
+
+    @Test
+    fun `Shared card hides create-invite button until a workspace is active`() {
+        setContent(CloudSyncState(shared = SharedCardState(signedIn = true, active = false)))
+
+        composeTestRule.onNodeWithTag("cloud_sync_shared_create_invite").assertDoesNotExist()
+    }
+
+    @Test
+    fun `create-invite button emits SharedCreateInviteClicked`() {
+        val events = mutableListOf<CloudSyncEvent>()
+        setContent(
+            CloudSyncState(
+                binding = CloudBinding(CloudProvider.Shared, "ws-1", "Budget"),
+                shared = SharedCardState(signedIn = true, active = true),
+            ),
+            events::add,
+        )
+
+        composeTestRule.onNodeWithTag("cloud_sync_shared_create_invite").performScrollTo().performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(CloudSyncEvent.SharedCreateInviteClicked), events)
+        }
+    }
+
+    @Test
+    fun `invite dialog shows token and emits copy and dismiss events`() {
+        val events = mutableListOf<CloudSyncEvent>()
+        setContent(
+            CloudSyncState(sharedDialog = SharedDialog.Invite("invite-token")),
+            events::add,
+        )
+
+        composeTestRule.onNodeWithTag("cloud_sync_shared_invite_token").assertIsDisplayed()
+        composeTestRule.onNodeWithText("invite-token").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("cloud_sync_shared_copy_invite").performClick()
+        composeTestRule.onNodeWithText(str(R.string.sync_dismiss)).performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(
+                listOf(
+                    CloudSyncEvent.SharedCopyInviteClicked,
+                    CloudSyncEvent.SharedDialogDismissed,
+                ),
+                events,
+            )
+        }
+    }
+
+    @Test
     fun `Shared card shows review-conflicts button only when conflictCount is positive`() {
         setContent(
             CloudSyncState(

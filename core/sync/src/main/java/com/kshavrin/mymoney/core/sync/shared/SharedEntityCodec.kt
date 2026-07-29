@@ -197,6 +197,14 @@ class SharedEntityCodec
             )
         }
 
+        fun canonicalPayload(payload: String): String {
+            val fields = json.parseToJsonElement(payload) as JsonObject
+            return json.encodeToString(
+                JsonObject.serializer(),
+                JsonObject(fields.filterKeys { it !in LOCAL_ID_FIELDS }),
+            )
+        }
+
         private fun JsonObject.string(key: String): String = getValue(key).jsonPrimitive.content
 
         private fun JsonObject.stringOrNull(key: String): String? = this[key]?.jsonPrimitive?.content
@@ -214,4 +222,8 @@ class SharedEntityCodec
         private fun JsonObject.doubleOrNull(key: String): Double? = this[key]?.jsonPrimitive?.doubleOrNull
 
         private fun JsonObject.boolOrNull(key: String): Boolean? = this[key]?.jsonPrimitive?.booleanOrNull
+
+        private companion object {
+            val LOCAL_ID_FIELDS = setOf("id", "currencyId", "accountId", "categoryId", "toAccountId")
+        }
     }

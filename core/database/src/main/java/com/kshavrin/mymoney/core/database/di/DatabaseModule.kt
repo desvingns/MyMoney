@@ -23,6 +23,7 @@ import com.kshavrin.mymoney.core.database.migration.MIGRATION_4_5
 import com.kshavrin.mymoney.core.database.migration.MIGRATION_5_6
 import com.kshavrin.mymoney.core.database.migration.MIGRATION_6_7
 import com.kshavrin.mymoney.core.database.migration.MIGRATION_7_8
+import com.kshavrin.mymoney.core.database.migration.MIGRATION_8_9
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -50,8 +51,9 @@ object DatabaseModule {
                 MIGRATION_5_6,
                 MIGRATION_6_7,
                 MIGRATION_7_8,
+                MIGRATION_8_9,
             )
-            // 99 is an unreachable dev/QA sentinel; release schemas 1..8 require explicit migrations.
+            // 99 is an unreachable dev/QA sentinel; release schemas 1..9 require explicit migrations.
             .fallbackToDestructiveMigrationFrom(99)
             .build()
     }

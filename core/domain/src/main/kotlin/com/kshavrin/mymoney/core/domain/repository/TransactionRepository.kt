@@ -6,12 +6,15 @@ import com.kshavrin.mymoney.core.domain.model.Period
 import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import java.time.Instant
 
 interface TransactionRepository {
     fun observeRecent(limit: Int): Flow<List<Transaction>>
 
     fun observeAll(): Flow<List<Transaction>>
+
+    suspend fun listAllIncludingDeleted(): List<Transaction> = observeAll().first()
 
     fun paged(
         accountId: Long,

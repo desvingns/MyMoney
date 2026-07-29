@@ -125,6 +125,38 @@ val MIGRATION_7_8 =
         }
     }
 
+val MIGRATION_8_9 =
+    object : Migration(8, 9) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `shared_pending_operation` (" +
+                    "`idempotency_key` TEXT NOT NULL, " +
+                    "`workspace_id` TEXT NOT NULL, " +
+                    "`base_sequence` INTEGER NOT NULL, " +
+                    "`device_id` TEXT NOT NULL, " +
+                    "`entity_kind` TEXT NOT NULL, " +
+                    "`entity_id` TEXT NOT NULL, " +
+                    "`payload` TEXT, " +
+                    "`tombstone` INTEGER NOT NULL, " +
+                    "`created_at` INTEGER NOT NULL, " +
+                    "PRIMARY KEY(`idempotency_key`))",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_shared_pending_operation_workspace_id_entity_kind_entity_id` " +
+                    "ON `shared_pending_operation` (`workspace_id`, `entity_kind`, `entity_id`)",
+            )
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `shared_entity_state` (" +
+                    "`workspace_id` TEXT NOT NULL, " +
+                    "`entity_kind` TEXT NOT NULL, " +
+                    "`entity_id` TEXT NOT NULL, " +
+                    "`payload` TEXT, " +
+                    "`tombstone` INTEGER NOT NULL, " +
+                    "PRIMARY KEY(`workspace_id`, `entity_kind`, `entity_id`))",
+            )
+        }
+    }
+
 val MIGRATION_6_7 =
     object : Migration(6, 7) {
         override fun migrate(db: SupportSQLiteDatabase) {

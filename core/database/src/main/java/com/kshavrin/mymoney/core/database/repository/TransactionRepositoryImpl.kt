@@ -56,6 +56,11 @@ class TransactionRepositoryImpl
         override fun observeAll(): Flow<List<Transaction>> =
             dao.observeAll().map { list -> list.map { it.toDomain() } }
 
+        override suspend fun listAllIncludingDeleted(): List<Transaction> =
+            withContext(ioDispatcher) {
+                dao.listAll().map { it.toDomain() }
+            }
+
         override fun paged(
             accountId: Long,
             categoryId: Long?,

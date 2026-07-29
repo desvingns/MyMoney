@@ -13,6 +13,7 @@ import com.kshavrin.mymoney.core.database.dao.GoalDao
 import com.kshavrin.mymoney.core.database.dao.OperationDao
 import com.kshavrin.mymoney.core.database.dao.RecurringTemplateDao
 import com.kshavrin.mymoney.core.database.dao.SearchHistoryDao
+import com.kshavrin.mymoney.core.database.dao.SharedOutboxDao
 import com.kshavrin.mymoney.core.database.dao.SyncLogDao
 import com.kshavrin.mymoney.core.database.dao.TransactionDao
 import com.kshavrin.mymoney.core.database.entity.AccountEntity
@@ -24,6 +25,8 @@ import com.kshavrin.mymoney.core.database.entity.GoalEntity
 import com.kshavrin.mymoney.core.database.entity.OperationEntity
 import com.kshavrin.mymoney.core.database.entity.RecurringTemplateEntity
 import com.kshavrin.mymoney.core.database.entity.SearchHistoryEntity
+import com.kshavrin.mymoney.core.database.entity.SharedEntityStateEntity
+import com.kshavrin.mymoney.core.database.entity.SharedPendingOperationEntity
 import com.kshavrin.mymoney.core.database.entity.SyncLogEntity
 import com.kshavrin.mymoney.core.database.entity.TransactionEntity
 
@@ -40,6 +43,8 @@ import com.kshavrin.mymoney.core.database.entity.TransactionEntity
         SearchHistoryEntity::class,
         GoalEntity::class,
         OperationEntity::class,
+        SharedPendingOperationEntity::class,
+        SharedEntityStateEntity::class,
     ],
     version = MoneyDatabase.SCHEMA_VERSION,
     exportSchema = true,
@@ -68,7 +73,9 @@ abstract class MoneyDatabase : RoomDatabase() {
 
     abstract fun operationDao(): OperationDao
 
+    abstract fun sharedOutboxDao(): SharedOutboxDao
+
     companion object {
-        const val SCHEMA_VERSION = 8
+        const val SCHEMA_VERSION = 9
     }
 }

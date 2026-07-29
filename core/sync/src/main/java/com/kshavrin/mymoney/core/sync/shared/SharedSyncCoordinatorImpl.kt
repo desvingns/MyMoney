@@ -6,6 +6,8 @@ import com.kshavrin.mymoney.core.common.exception.SyncError
 import com.kshavrin.mymoney.core.common.exception.SyncException
 import com.kshavrin.mymoney.core.common.exception.reportToSentry
 import com.kshavrin.mymoney.core.database.MoneyDatabase
+import com.kshavrin.mymoney.core.database.entity.SharedEntityStateEntity
+import com.kshavrin.mymoney.core.database.entity.SharedPendingOperationEntity
 import com.kshavrin.mymoney.core.datastore.CloudBinding
 import com.kshavrin.mymoney.core.datastore.CloudProvider
 import com.kshavrin.mymoney.core.datastore.JournalSyncConfigStore
@@ -117,7 +119,8 @@ class SharedSyncCoordinatorImpl
                             clearSharedLocalState()
                             throw SyncException(SyncError.Auth)
                         }
-                        publishLocalData(workspaceId)
+                        enqueueLocalChanges(workspaceId)
+                        publishPendingOperations(workspaceId)
                         pullAndApply(workspaceId)
                     }
                 }
@@ -173,11 +176,13 @@ class SharedSyncCoordinatorImpl
         ) {
             backupRepository.createInternalBackup().getOrThrow()
             sharedStore.clear()
+            clearSharedOutbox()
             if (importLocalData) {
                 // Publish the ORIGINAL local rows before pulling remote state; applying remote
                 // operations first could overwrite a local row (IDs are still local Room ids) and
                 // then publish the overwritten remote data instead of the user's own data.
-                publishLocalData(workspace.id)
+                enqueueLocalChanges(workspace.id)
+                publishPendingOperations(workspace.id)
                 pullAndApply(workspace.id)
             } else {
                 backupRepository.clearDatabase().getOrThrow()
@@ -211,7 +216,12 @@ class SharedSyncCoordinatorImpl
                     // applied in its own Room transaction so a process kill cannot leave a half-applied
                     // batch behind.
                     try {
-                        database.withTransaction { applyOperation(operation) }
+                        database.withTransaction {
+                            applyOperation(operation)
+                            if (operation.tombstone || operation.payload != null) {
+                                database.sharedOutboxDao().upsertState(operation.toState())
+                            }
+                        }
                     } catch (t: Throwable) {
                         if (t is CancellationException) throw t
                         t.reportToSentry()
@@ -224,7 +234,7 @@ class SharedSyncCoordinatorImpl
         }
 
         private suspend fun applyOperation(operation: SharedOperation) {
-            // entityId carries the stable cross-device uuid (see publishLocalData). Apply keyed by
+            // entityId carries the stable cross-device uuid. Apply keyed by
             // uuid via the non-journaling repository methods so a remote row can never overwrite a
             // local row by Room-id collision, and pulled edits never leak into the private cloud.
             val uuid = operation.entityId
@@ -293,71 +303,170 @@ class SharedSyncCoordinatorImpl
             }
         }
 
-        private suspend fun publishLocalData(workspaceId: String) {
+        private suspend fun enqueueLocalChanges(workspaceId: String) {
+            val snapshots = localSnapshots()
             val deviceId = deviceIdProvider.deviceId()
             val baseSequence = sharedStore.cursor()
-            accountRepository.listAllIncludingArchived().forEach { account ->
-                val uuid = accountRepository.uuidForId(account.id) ?: return@forEach
-                val currencyCode = currencyRepository.findById(account.currencyId)?.code ?: return@forEach
-                push(
-                    workspaceId,
-                    deviceId,
-                    baseSequence,
-                    EntityKind.Account,
-                    uuid,
-                    codec.encodeAccount(account, uuid, currencyCode),
-                )
-            }
-            categoryRepository.observeAll().first().forEach { category ->
-                val uuid = categoryRepository.uuidForId(category.id) ?: return@forEach
-                push(workspaceId, deviceId, baseSequence, EntityKind.Category, uuid, codec.encodeCategory(category, uuid))
-            }
-            transactionRepository.observeAll().first().forEach { transaction ->
-                val uuid = transactionRepository.uuidForId(transaction.id) ?: return@forEach
-                // Publish portable references. If any referenced row lacks a uuid/code it cannot be
-                // shared portably yet, so skip the whole transaction rather than emit a broken ref.
-                val currencyCode = currencyRepository.findById(transaction.currencyId)?.code ?: return@forEach
-                val accountUuid = accountRepository.uuidForId(transaction.accountId) ?: return@forEach
-                val categoryUuid =
-                    transaction.categoryId?.let { categoryRepository.uuidForId(it) ?: return@forEach }
-                val toAccountUuid =
-                    transaction.toAccountId?.let { accountRepository.uuidForId(it) ?: return@forEach }
-                push(
-                    workspaceId,
-                    deviceId,
-                    baseSequence,
-                    EntityKind.Transaction,
-                    uuid,
-                    codec.encodeTransaction(transaction, uuid, currencyCode, accountUuid, categoryUuid, toAccountUuid),
-                )
+            database.withTransaction {
+                val outbox = database.sharedOutboxDao()
+                snapshots.forEach { snapshot ->
+                    val pending =
+                        outbox.pendingForEntity(
+                            workspaceId = workspaceId,
+                            entityKind = snapshot.entityKind.name,
+                            entityId = snapshot.entityId,
+                        )
+                    val state =
+                        outbox.stateForEntity(
+                            workspaceId = workspaceId,
+                            entityKind = snapshot.entityKind.name,
+                            entityId = snapshot.entityId,
+                        )
+                    if (pending.isEmpty() && state.matches(snapshot)) return@forEach
+                    if (pending.any { it.matches(snapshot) }) return@forEach
+                    outbox.insertPending(
+                        SharedPendingOperationEntity(
+                            idempotencyKey = UUID.randomUUID().toString(),
+                            workspaceId = workspaceId,
+                            baseSequence = baseSequence,
+                            deviceId = deviceId,
+                            entityKind = snapshot.entityKind.name,
+                            entityId = snapshot.entityId,
+                            payload = snapshot.payload,
+                            tombstone = snapshot.tombstone,
+                            createdAt = clock.millis(),
+                        ),
+                    )
+                }
             }
         }
 
-        private suspend fun push(
-            workspaceId: String,
-            deviceId: String,
-            baseSequence: Long,
-            entityKind: EntityKind,
-            entityId: String,
-            payload: String,
-        ) {
-            journalRepository
-                .push(
-                    workspaceId = workspaceId,
-                    idempotencyKey = UUID.randomUUID().toString(),
-                    baseSequence = baseSequence,
-                    deviceId = deviceId,
-                    entityKind = entityKind,
-                    entityId = entityId,
-                    payload = payload,
-                    tombstone = false,
-                ).getOrThrow()
+        private suspend fun publishPendingOperations(workspaceId: String) {
+            database.sharedOutboxDao().pendingForWorkspace(workspaceId).forEach { operation ->
+                journalRepository
+                    .push(
+                        workspaceId = operation.workspaceId,
+                        idempotencyKey = operation.idempotencyKey,
+                        baseSequence = operation.baseSequence,
+                        deviceId = operation.deviceId,
+                        entityKind = EntityKind.valueOf(operation.entityKind),
+                        entityId = operation.entityId,
+                        payload = operation.payload,
+                        tombstone = operation.tombstone,
+                    ).getOrThrow()
+                database.withTransaction {
+                    database.sharedOutboxDao().upsertState(operation.toState())
+                    database.sharedOutboxDao().deletePending(operation.idempotencyKey)
+                }
+            }
+        }
+
+        private suspend fun localSnapshots(): List<LocalSnapshot> =
+            buildList {
+                accountRepository.listAllIncludingArchived().forEach { account ->
+                    val uuid = accountRepository.uuidForId(account.id)
+                    val currencyCode = currencyRepository.findById(account.currencyId)?.code
+                    if (uuid != null && currencyCode != null) {
+                        add(
+                            LocalSnapshot(
+                                entityKind = EntityKind.Account,
+                                entityId = uuid,
+                                payload = codec.encodeAccount(account, uuid, currencyCode),
+                                tombstone = false,
+                            ),
+                        )
+                    }
+                }
+                categoryRepository.observeAll().first().forEach { category ->
+                    val uuid = categoryRepository.uuidForId(category.id)
+                    if (uuid != null) {
+                        add(
+                            LocalSnapshot(
+                                entityKind = EntityKind.Category,
+                                entityId = uuid,
+                                payload = codec.encodeCategory(category, uuid),
+                                tombstone = false,
+                            ),
+                        )
+                    }
+                }
+                transactionRepository.listAllIncludingDeleted().forEach { transaction ->
+                    val uuid = transactionRepository.uuidForId(transaction.id) ?: return@forEach
+                    if (transaction.isDeleted) {
+                        add(LocalSnapshot(EntityKind.Transaction, uuid, payload = null, tombstone = true))
+                        return@forEach
+                    }
+                    val currencyCode = currencyRepository.findById(transaction.currencyId)?.code ?: return@forEach
+                    val accountUuid = accountRepository.uuidForId(transaction.accountId) ?: return@forEach
+                    val categoryUuid =
+                        transaction.categoryId?.let { categoryRepository.uuidForId(it) ?: return@forEach }
+                    val toAccountUuid =
+                        transaction.toAccountId?.let { accountRepository.uuidForId(it) ?: return@forEach }
+                    add(
+                        LocalSnapshot(
+                            entityKind = EntityKind.Transaction,
+                            entityId = uuid,
+                            payload =
+                                codec.encodeTransaction(
+                                    transaction,
+                                    uuid,
+                                    currencyCode,
+                                    accountUuid,
+                                    categoryUuid,
+                                    toAccountUuid,
+                                ),
+                            tombstone = false,
+                        ),
+                    )
+                }
+            }
+
+        private suspend fun clearSharedOutbox() {
+            database.withTransaction {
+                database.sharedOutboxDao().clearPending()
+                database.sharedOutboxDao().clearStates()
+            }
         }
 
         private suspend fun clearSharedLocalState() {
+            clearSharedOutbox()
             configStore.clearBinding()
             sharedStore.clear()
         }
+
+        private data class LocalSnapshot(
+            val entityKind: EntityKind,
+            val entityId: String,
+            val payload: String?,
+            val tombstone: Boolean,
+        )
+
+        private fun SharedEntityStateEntity?.matches(snapshot: LocalSnapshot): Boolean =
+            this?.let { it.payload == snapshot.statePayload && it.tombstone == snapshot.tombstone } ?: false
+
+        private fun SharedPendingOperationEntity.matches(snapshot: LocalSnapshot): Boolean =
+            payload?.let(codec::canonicalPayload) == snapshot.statePayload && tombstone == snapshot.tombstone
+
+        private val LocalSnapshot.statePayload: String?
+            get() = payload?.let(codec::canonicalPayload)
+
+        private fun SharedOperation.toState(): SharedEntityStateEntity =
+            SharedEntityStateEntity(
+                workspaceId = workspaceId,
+                entityKind = entityKind.name,
+                entityId = entityId,
+                payload = payload?.let(codec::canonicalPayload),
+                tombstone = tombstone,
+            )
+
+        private fun SharedPendingOperationEntity.toState(): SharedEntityStateEntity =
+            SharedEntityStateEntity(
+                workspaceId = workspaceId,
+                entityKind = entityKind,
+                entityId = entityId,
+                payload = payload?.let(codec::canonicalPayload),
+                tombstone = tombstone,
+            )
 
         private fun ensureSignedIn() {
             if (auth.currentSession() == null) throw SyncException(SyncError.Auth)

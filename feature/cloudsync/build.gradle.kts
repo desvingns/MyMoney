@@ -5,6 +5,12 @@ plugins {
 
 android {
     namespace = "com.kshavrin.mymoney.feature.cloudsync"
+
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+        }
+    }
 }
 
 dependencies {
@@ -22,4 +28,9 @@ dependencies {
 
     testImplementation(libs.turbine)
     testImplementation(project(":core:testing"))
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.compose.ui.test.junit4)
+    testImplementation(libs.androidx.test.junit)
+    testImplementation(libs.robolectric)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
 }

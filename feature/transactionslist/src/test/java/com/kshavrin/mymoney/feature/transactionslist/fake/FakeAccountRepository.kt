@@ -16,6 +16,8 @@ class FakeAccountRepository : AccountRepository {
 
     override fun observeActive(): Flow<List<Account>> = accounts.asStateFlow()
 
+    override suspend fun listAllIncludingArchived(): List<Account> = accounts.value
+
     override suspend fun findById(id: Long): Account? = accounts.value.firstOrNull { it.id == id }
 
     override suspend fun findDefault(): Account? = accounts.value.firstOrNull { it.isDefault }
@@ -23,6 +25,18 @@ class FakeAccountRepository : AccountRepository {
     override suspend fun computeBalance(accountId: Long): BigDecimal = BigDecimal.ZERO
 
     override suspend fun upsert(account: Account): Long = account.id
+
+    override suspend fun uuidForId(id: Long): String? = null
+
+    override suspend fun idForUuid(uuid: String): Long? = null
+
+    override suspend fun applySharedUpsert(
+        account: Account,
+        uuid: String,
+        deviceId: String,
+    ) = Unit
+
+    override suspend fun applySharedArchive(uuid: String) = Unit
 
     override suspend fun archive(id: Long) = Unit
 

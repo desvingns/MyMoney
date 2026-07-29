@@ -30,6 +30,18 @@ class FakeCategoryRepository : CategoryRepository {
         categories.forEach { upsert(it) }
     }
 
+    override suspend fun uuidForId(id: Long): String? = null
+
+    override suspend fun idForUuid(uuid: String): Long? = null
+
+    override suspend fun applySharedUpsert(
+        category: Category,
+        uuid: String,
+        deviceId: String,
+    ) = Unit
+
+    override suspend fun applySharedArchive(uuid: String) = Unit
+
     override suspend fun archive(id: Long) {
         state.value = state.value.map { if (it.id == id) it.copy(isArchived = true) else it }
     }

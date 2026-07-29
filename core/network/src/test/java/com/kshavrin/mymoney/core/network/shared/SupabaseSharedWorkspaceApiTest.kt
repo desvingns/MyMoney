@@ -5,6 +5,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.security.SecureRandom
 import java.time.Instant
 
 class SupabaseSharedWorkspaceApiTest {
@@ -76,7 +77,7 @@ class SupabaseSharedWorkspaceApiTest {
 
     // Use a real InviteTokenFactory (SecureRandom); tests compute expected hashes from
     // the returned plaintext rather than requiring deterministic byte sequences.
-    private val tokenFactory = InviteTokenFactory()
+    private val tokenFactory = InviteTokenFactory(SecureRandom())
     private val api = SupabaseSharedWorkspaceApi(rpc = fakeRpc, tokenFactory = tokenFactory)
 
     private val stubWorkspace = SharedWorkspace(

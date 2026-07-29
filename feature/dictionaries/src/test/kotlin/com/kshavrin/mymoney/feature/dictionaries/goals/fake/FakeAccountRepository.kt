@@ -24,6 +24,8 @@ class FakeAccountRepository : AccountRepository {
 
     override fun observeActive(): Flow<List<Account>> = state.asStateFlow()
 
+    override suspend fun listAllIncludingArchived(): List<Account> = state.value
+
     override suspend fun findById(id: Long): Account? =
         state.value.firstOrNull { it.id == id }
 
@@ -38,6 +40,18 @@ class FakeAccountRepository : AccountRepository {
         state.value = state.value.filterNot { it.id == id } + account.copy(id = id)
         return id
     }
+
+    override suspend fun uuidForId(id: Long): String? = null
+
+    override suspend fun idForUuid(uuid: String): Long? = null
+
+    override suspend fun applySharedUpsert(
+        account: Account,
+        uuid: String,
+        deviceId: String,
+    ) = Unit
+
+    override suspend fun applySharedArchive(uuid: String) = Unit
 
     override suspend fun archive(id: Long) {
         state.value = state.value.map { if (it.id == id) it.copy(isArchived = true) else it }

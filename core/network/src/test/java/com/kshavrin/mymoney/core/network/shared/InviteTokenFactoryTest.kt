@@ -4,9 +4,10 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.security.SecureRandom
 
 class InviteTokenFactoryTest {
-    private val factory = InviteTokenFactory()
+    private val factory = InviteTokenFactory(SecureRandom())
 
     // --- newToken structure ---
 

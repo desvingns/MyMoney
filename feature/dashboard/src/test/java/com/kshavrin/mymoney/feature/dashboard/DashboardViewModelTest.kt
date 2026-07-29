@@ -4923,6 +4923,8 @@ private class FakeDashboardAccountRepository : AccountRepository {
 
     override fun observeActive(): Flow<List<Account>> = state.asStateFlow()
 
+    override suspend fun listAllIncludingArchived(): List<Account> = state.value
+
     override suspend fun findById(id: Long): Account? = state.value.firstOrNull { it.id == id }
 
     override suspend fun findDefault(): Account? = state.value.firstOrNull { it.isDefault }
@@ -4930,6 +4932,18 @@ private class FakeDashboardAccountRepository : AccountRepository {
     override suspend fun computeBalance(accountId: Long): BigDecimal = BigDecimal.ZERO
 
     override suspend fun upsert(account: Account): Long = account.id
+
+    override suspend fun uuidForId(id: Long): String? = null
+
+    override suspend fun idForUuid(uuid: String): Long? = null
+
+    override suspend fun applySharedUpsert(
+        account: Account,
+        uuid: String,
+        deviceId: String,
+    ) = Unit
+
+    override suspend fun applySharedArchive(uuid: String) = Unit
 
     override suspend fun archive(id: Long) = Unit
 
@@ -5025,6 +5039,18 @@ private class FakeDashboardCategoryRepository : CategoryRepository {
     override suspend fun upsert(category: Category): Long = category.id
 
     override suspend fun upsertAll(categories: List<Category>) = Unit
+
+    override suspend fun uuidForId(id: Long): String? = null
+
+    override suspend fun idForUuid(uuid: String): Long? = null
+
+    override suspend fun applySharedUpsert(
+        category: Category,
+        uuid: String,
+        deviceId: String,
+    ) = Unit
+
+    override suspend fun applySharedArchive(uuid: String) = Unit
 
     override suspend fun archive(id: Long) = Unit
 }
@@ -5133,6 +5159,19 @@ private open class FakeDashboardTransactionRepository : TransactionRepository {
     ): List<Transaction> = emptyList()
 
     override suspend fun upsert(transaction: Transaction): Long = transaction.id
+
+    override suspend fun uuidForId(id: Long): String? = null
+
+    override suspend fun applySharedUpsert(
+        transaction: Transaction,
+        uuid: String,
+        deviceId: String,
+    ) = Unit
+
+    override suspend fun applySharedDelete(
+        uuid: String,
+        now: Instant,
+    ) = Unit
 
     override suspend fun softDelete(
         id: Long,

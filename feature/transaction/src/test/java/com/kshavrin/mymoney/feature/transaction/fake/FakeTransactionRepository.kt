@@ -60,6 +60,19 @@ class FakeTransactionRepository : TransactionRepository {
         return id
     }
 
+    override suspend fun uuidForId(id: Long): String? = null
+
+    override suspend fun applySharedUpsert(
+        transaction: Transaction,
+        uuid: String,
+        deviceId: String,
+    ) = Unit
+
+    override suspend fun applySharedDelete(
+        uuid: String,
+        now: Instant,
+    ) = Unit
+
     override suspend fun softDelete(
         id: Long,
         now: Instant,

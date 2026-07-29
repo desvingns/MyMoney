@@ -142,15 +142,17 @@ class InitialDataSeeder
             val rate: Double,
         )
 
-        private companion object {
-            const val ACCOUNT_NAME_EN = "Cash"
-            const val ACCOUNT_NAME_RU = "Наличные"
+        companion object {
+            fun defaultCurrencyCatalog(): List<Currency> = DEFAULT_CURRENCIES
 
-            const val BASE_CURRENCY_CODE = "EUR"
+            private const val ACCOUNT_NAME_EN = "Cash"
+            private const val ACCOUNT_NAME_RU = "Наличные"
 
-            val RATE_SNAPSHOT_INSTANT: Instant = Instant.ofEpochMilli(1781913600000L)
+            private const val BASE_CURRENCY_CODE = "EUR"
 
-            val DEFAULT_RATES =
+            private val RATE_SNAPSHOT_INSTANT: Instant = Instant.ofEpochMilli(1781913600000L)
+
+            private val DEFAULT_RATES =
                 listOf(
                     RateSeed("USD", 1.146893),
                     RateSeed("RUB", 84.181245),
@@ -159,7 +161,7 @@ class InitialDataSeeder
                     RateSeed("AED", 4.211961),
                 )
 
-            val DEFAULT_CURRENCIES =
+            private val DEFAULT_CURRENCIES =
                 listOf(
                     Currency(0L, "USD", "$", "US Dollar", 2, true, 0),
                     Currency(0L, "EUR", "€", "Euro", 2, true, 1),
@@ -186,7 +188,7 @@ class InitialDataSeeder
                     Currency(0L, "AED", "د.إ", "UAE Dirham", 2, true, 22),
                 )
 
-            val EXPENSE_CATEGORY_SEEDS =
+            private val EXPENSE_CATEGORY_SEEDS =
                 listOf(
                     CategorySeed("Clothing", "Одежда", "ic_cat_clothing", "#9C5BB8"),
                     CategorySeed("Bills", "Счета", "ic_cat_bills", "#C9A227"),
@@ -205,7 +207,7 @@ class InitialDataSeeder
                     CategorySeed("Car", "Автомобиль", "ic_cat_car", "#4A5870"),
                 )
 
-            val DEFAULT_INCOME_CATEGORIES =
+            private val DEFAULT_INCOME_CATEGORIES =
                 listOf(
                     CategorySeed("Salary", "Зарплата", "ic_cat_salary", "#7AC29A"),
                     CategorySeed("Other", "Прочее", "ic_cat_other", "#9CBBA8"),

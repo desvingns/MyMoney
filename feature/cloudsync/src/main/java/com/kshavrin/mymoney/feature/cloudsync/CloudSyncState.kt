@@ -2,6 +2,7 @@ package com.kshavrin.mymoney.feature.cloudsync
 
 import androidx.annotation.StringRes
 import com.kshavrin.mymoney.core.datastore.CloudBinding
+import com.kshavrin.mymoney.core.domain.model.BackupFile
 import com.kshavrin.mymoney.core.sync.SyncTarget
 
 data class CloudSyncState(
@@ -15,6 +16,7 @@ data class CloudSyncState(
     val sharedDialog: SharedDialog? = null,
     val importLocalData: Boolean = false,
     val conflicts: List<ConflictUi> = emptyList(),
+    val internalBackups: List<BackupFile> = emptyList(),
     val isConnecting: Boolean = false,
     @StringRes val errorBannerRes: Int? = null,
 )
@@ -54,6 +56,12 @@ sealed interface SharedDialog {
     data object Conflicts : SharedDialog
 
     data object ConfirmLeave : SharedDialog
+
+    data object InternalBackups : SharedDialog
+
+    data class ConfirmInternalBackupRestore(
+        val backup: BackupFile,
+    ) : SharedDialog
 
     data class Invite(
         val token: String,

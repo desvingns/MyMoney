@@ -13,6 +13,8 @@ sealed interface CloudSyncAction {
 
     data object ClearSharedGoogleCredentialState : CloudSyncAction
 
+    data object RestartAfterInternalBackupRestore : CloudSyncAction
+
     data class CopySharedInvite(
         val token: String,
     ) : CloudSyncAction

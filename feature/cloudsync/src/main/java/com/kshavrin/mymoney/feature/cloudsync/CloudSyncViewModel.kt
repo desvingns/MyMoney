@@ -109,6 +109,10 @@ class CloudSyncViewModel
                 CloudSyncEvent.SharedLeaveClicked ->
                     _state.value = _state.value.copy(sharedDialog = SharedDialog.ConfirmLeave)
                 CloudSyncEvent.SharedConfirmLeave -> leaveSharedWorkspace()
+                CloudSyncEvent.SharedInternalBackupsClicked -> openInternalBackups()
+                is CloudSyncEvent.SharedInternalBackupRestoreClicked ->
+                    _state.value = _state.value.copy(sharedDialog = SharedDialog.ConfirmInternalBackupRestore(event.backup))
+                CloudSyncEvent.SharedConfirmInternalBackupRestore -> restoreInternalBackup()
                 CloudSyncEvent.SharedDialogDismissed -> _state.value = _state.value.copy(sharedDialog = null)
             }
         }
@@ -543,6 +547,46 @@ class CloudSyncViewModel
                     _state.value = _state.value.copy(isConnecting = false)
                     _actions.emit(CloudSyncAction.ClearSharedGoogleCredentialState)
                     refresh()
+                }
+            }
+        }
+
+        private fun openInternalBackups() {
+            viewModelScope.launch {
+                _state.value = _state.value.copy(isConnecting = true, errorBannerRes = null)
+                try {
+                    _state.value =
+                        _state.value.copy(
+                            internalBackups = backupRepository.listInternalBackups(),
+                            sharedDialog = SharedDialog.InternalBackups,
+                        )
+                } catch (t: Throwable) {
+                    if (t is CancellationException) throw t
+                    t.reportToSentry()
+                    showError(R.string.sync_shared_restore_backup_error)
+                } finally {
+                    _state.value = _state.value.copy(isConnecting = false)
+                }
+            }
+        }
+
+        private fun restoreInternalBackup() {
+            val backup = (_state.value.sharedDialog as? SharedDialog.ConfirmInternalBackupRestore)?.backup ?: return
+            viewModelScope.launch {
+                var restored = false
+                _state.value = _state.value.copy(isConnecting = true, errorBannerRes = null)
+                try {
+                    backupRepository.importFromFile(backup.uriString).getOrThrow()
+                    restored = true
+                    _state.value = _state.value.copy(sharedDialog = null)
+                    _actions.emit(CloudSyncAction.RestartAfterInternalBackupRestore)
+                } catch (t: Throwable) {
+                    if (t is CancellationException) throw t
+                    t.reportToSentry()
+                    showError(R.string.sync_shared_restore_backup_error)
+                } finally {
+                    _state.value = _state.value.copy(isConnecting = false)
+                    if (!restored) refresh()
                 }
             }
         }

@@ -7,6 +7,8 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -28,6 +30,7 @@ class SupabaseHttpTransport
             payload: JsonObject,
             accessToken: String? = null,
             mapBadRequestToAuth: Boolean = false,
+            mapMembershipDeniedToAuth: Boolean = false,
         ): Result<JsonElement> =
             execute(
                 Request
@@ -38,6 +41,7 @@ class SupabaseHttpTransport
                     .post(json.encodeToString(payload).toRequestBody(JSON_MEDIA_TYPE))
                     .build(),
                 mapBadRequestToAuth,
+                mapMembershipDeniedToAuth,
             )
 
         suspend fun get(
@@ -57,12 +61,20 @@ class SupabaseHttpTransport
         private fun execute(
             request: Request,
             mapBadRequestToAuth: Boolean = false,
+            mapMembershipDeniedToAuth: Boolean = false,
         ): Result<JsonElement> {
             if (!config.isConfigured) return Result.failure(SyncException(SyncError.Server))
             return runCatching {
                 client.newCall(request).execute().use { response ->
                     val responseBody = response.body?.string().orEmpty()
-                    if (!response.isSuccessful) throw SupabaseHttpException(response.code, mapBadRequestToAuth)
+                    if (!response.isSuccessful) {
+                        throw SupabaseHttpException(
+                            statusCode = response.code,
+                            responseBody = responseBody,
+                            mapBadRequestToAuth = mapBadRequestToAuth,
+                            mapMembershipDeniedToAuth = mapMembershipDeniedToAuth,
+                        )
+                    }
                     responseBody.takeIf(String::isNotBlank)?.let(json::parseToJsonElement) ?: JsonNull
                 }
             }.mapFailure()
@@ -77,7 +89,9 @@ class SupabaseHttpTransport
 
 private class SupabaseHttpException(
     val statusCode: Int,
+    val responseBody: String,
     val mapBadRequestToAuth: Boolean,
+    val mapMembershipDeniedToAuth: Boolean,
 ) : Exception()
 
 private fun <T> Result<T>.mapFailure(): Result<T> =
@@ -91,7 +105,14 @@ private fun Throwable.toSyncException(): Throwable =
             SyncException(
                 when (statusCode) {
                     401, 403 -> SyncError.Auth
-                    400 -> if (mapBadRequestToAuth) SyncError.Auth else SyncError.Unknown
+                    400 ->
+                        if (mapMembershipDeniedToAuth && responseBody.hasSqlState42501()) {
+                            SyncError.Auth
+                        } else if (mapBadRequestToAuth) {
+                            SyncError.Auth
+                        } else {
+                            SyncError.Unknown
+                        }
                     409 -> SyncError.Conflict
                     429 -> SyncError.Quota
                     in 500..599 -> SyncError.Server
@@ -100,6 +121,15 @@ private fun Throwable.toSyncException(): Throwable =
             )
         else -> SyncException(SyncError.Unknown)
     }
+
+private fun String.hasSqlState42501(): Boolean =
+    runCatching {
+        Json
+            .parseToJsonElement(this)
+            .jsonObject["code"]
+            ?.jsonPrimitive
+            ?.content == "42501"
+    }.getOrDefault(false)
 
 private fun SupabaseConfig.urlFor(path: String): String =
     "${url.trimEnd('/')}/${path.trimStart('/')}"

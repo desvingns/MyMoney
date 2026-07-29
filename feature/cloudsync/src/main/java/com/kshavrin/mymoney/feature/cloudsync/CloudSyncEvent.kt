@@ -1,5 +1,6 @@
 package com.kshavrin.mymoney.feature.cloudsync
 
+import com.kshavrin.mymoney.core.domain.model.BackupFile
 import com.kshavrin.mymoney.core.sync.MigrationResolution
 import com.kshavrin.mymoney.core.sync.SyncTarget
 
@@ -80,6 +81,14 @@ sealed interface CloudSyncEvent {
     data object SharedLeaveClicked : CloudSyncEvent
 
     data object SharedConfirmLeave : CloudSyncEvent
+
+    data object SharedInternalBackupsClicked : CloudSyncEvent
+
+    data class SharedInternalBackupRestoreClicked(
+        val backup: BackupFile,
+    ) : CloudSyncEvent
+
+    data object SharedConfirmInternalBackupRestore : CloudSyncEvent
 
     data object SharedDialogDismissed : CloudSyncEvent
 }

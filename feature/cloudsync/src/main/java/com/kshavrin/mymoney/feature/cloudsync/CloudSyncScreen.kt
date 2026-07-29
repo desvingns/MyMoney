@@ -8,6 +8,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
+import android.os.Process
 import android.util.Base64
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
@@ -75,6 +76,7 @@ import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.kshavrin.mymoney.core.common.exception.reportToSentry
 import com.kshavrin.mymoney.core.datastore.CloudProvider
+import com.kshavrin.mymoney.core.domain.model.BackupFile
 import com.kshavrin.mymoney.core.network.BuildConfig as NetworkBuildConfig
 import com.kshavrin.mymoney.core.sync.MigrationResolution
 import com.kshavrin.mymoney.core.sync.SyncTarget
@@ -294,6 +296,7 @@ fun CloudSyncRoute(
                     runCatching {
                         sharedCredentialManager.clearCredentialState(ClearCredentialStateRequest())
                     }.onFailure(Throwable::reportToSentry)
+                CloudSyncAction.RestartAfterInternalBackupRestore -> relaunchApplication(context)
                 is CloudSyncAction.CopySharedInvite ->
                     context
                         .getSystemService(ClipboardManager::class.java)
@@ -615,6 +618,13 @@ private fun SharedCard(
                         Text(stringResource(R.string.sync_shared_setup))
                     }
             }
+            OutlinedButton(
+                modifier = Modifier.testTag(SyncTarget.Shared.controlTag("backups")),
+                onClick = { onEvent(CloudSyncEvent.SharedInternalBackupsClicked) },
+                enabled = !isConnecting,
+            ) {
+                Text(stringResource(R.string.sync_shared_recovery_backups))
+            }
         }
     }
 }
@@ -627,7 +637,13 @@ private fun SharedDialogHost(
     when (state.sharedDialog) {
         SharedDialog.Setup -> SharedSetupDialog(importLocalData = state.importLocalData, onEvent = onEvent)
         SharedDialog.Conflicts -> SharedConflictsDialog(conflicts = state.conflicts, onEvent = onEvent)
+        SharedDialog.InternalBackups -> SharedInternalBackupsDialog(backups = state.internalBackups, onEvent = onEvent)
         is SharedDialog.Invite -> SharedInviteDialog(token = state.sharedDialog.token, onEvent = onEvent)
+        is SharedDialog.ConfirmInternalBackupRestore ->
+            SharedInternalBackupRestoreDialog(
+                isConnecting = state.isConnecting,
+                onEvent = onEvent,
+            )
         SharedDialog.ConfirmLeave ->
             AlertDialog(
                 onDismissRequest = { onEvent(CloudSyncEvent.SharedDialogDismissed) },
@@ -646,6 +662,78 @@ private fun SharedDialogHost(
             )
         null -> Unit
     }
+}
+
+@Composable
+private fun SharedInternalBackupsDialog(
+    backups: List<BackupFile>,
+    onEvent: (CloudSyncEvent) -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = { onEvent(CloudSyncEvent.SharedDialogDismissed) },
+        title = { Text(stringResource(R.string.sync_shared_recovery_backups_title)) },
+        text = {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(Spacing.s),
+            ) {
+                if (backups.isEmpty()) {
+                    Text(stringResource(R.string.sync_shared_recovery_backups_empty))
+                } else {
+                    backups.forEach { backup ->
+                        OutlinedButton(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .testTag("cloud_sync_shared_backup_${backup.lastModifiedEpochMs}"),
+                            onClick = { onEvent(CloudSyncEvent.SharedInternalBackupRestoreClicked(backup)) },
+                        ) {
+                            Text(
+                                stringResource(
+                                    R.string.sync_shared_recovery_backup_item,
+                                    backup.name,
+                                    formatTimestamp(backup.lastModifiedEpochMs),
+                                ),
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onEvent(CloudSyncEvent.SharedDialogDismissed) }) {
+                Text(stringResource(R.string.sync_dismiss))
+            }
+        },
+    )
+}
+
+@Composable
+private fun SharedInternalBackupRestoreDialog(
+    isConnecting: Boolean,
+    onEvent: (CloudSyncEvent) -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = { onEvent(CloudSyncEvent.SharedDialogDismissed) },
+        title = { Text(stringResource(R.string.sync_shared_restore_backup_title)) },
+        text = { Text(stringResource(R.string.sync_shared_restore_backup_body)) },
+        confirmButton = {
+            Button(
+                onClick = { onEvent(CloudSyncEvent.SharedConfirmInternalBackupRestore) },
+                enabled = !isConnecting,
+            ) {
+                Text(stringResource(R.string.sync_shared_restore_backup_confirm))
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = { onEvent(CloudSyncEvent.SharedDialogDismissed) },
+                enabled = !isConnecting,
+            ) {
+                Text(stringResource(R.string.sync_shared_restore_backup_cancel))
+            }
+        },
+    )
 }
 
 @Composable
@@ -948,6 +1036,12 @@ private fun SyncTarget.controlTag(control: String): String =
         SyncTarget.GoogleDrive -> "cloud_sync_google_drive_$control"
         SyncTarget.Shared -> "cloud_sync_shared_$control"
     }
+
+private fun relaunchApplication(context: Context) {
+    val component = checkNotNull(context.packageManager.getLaunchIntentForPackage(context.packageName)?.component)
+    context.startActivity(Intent.makeRestartActivityTask(component))
+    Process.killProcess(Process.myPid())
+}
 
 private fun Context.findActivity(): Activity? =
     when (this) {

@@ -68,4 +68,13 @@
     <string name="sync_shared_conflict_deleted">(deleted)</string>
     <string name="sync_shared_keep_local">Keep this version</string>
     <string name="sync_shared_keep_remote">Keep this version</string>
+    <string name="sync_shared_recovery_backups">Safety backups</string>
+    <string name="sync_shared_recovery_backups_title">Safety backups</string>
+    <string name="sync_shared_recovery_backups_empty">No safety backups are available.</string>
+    <string name="sync_shared_recovery_backup_item">%1$s · %2$s</string>
+    <string name="sync_shared_restore_backup_title">Restore safety backup?</string>
+    <string name="sync_shared_restore_backup_body">Current data will be replaced with this safety backup. MyMoney will restart.</string>
+    <string name="sync_shared_restore_backup_confirm">Restore</string>
+    <string name="sync_shared_restore_backup_cancel">Cancel</string>
+    <string name="sync_shared_restore_backup_error">Safety backup could not be restored. Try again.</string>
 </resources>

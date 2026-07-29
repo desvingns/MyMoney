@@ -91,7 +91,12 @@ class SupabaseSharedJournalRpc
         ): Result<T> {
             val accessToken = auth.accessToken().getOrElse { return Result.failure(it) }
             return http
-                .post("rest/v1/rpc/$name", payload, accessToken)
+                .post(
+                    path = "rest/v1/rpc/$name",
+                    payload = payload,
+                    accessToken = accessToken,
+                    mapMembershipDeniedToAuth = true,
+                )
                 .mapCatching(decode)
         }
     }

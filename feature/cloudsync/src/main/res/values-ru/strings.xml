@@ -68,4 +68,13 @@
     <string name="sync_shared_conflict_deleted">(удалено)</string>
     <string name="sync_shared_keep_local">Оставить эту версию</string>
     <string name="sync_shared_keep_remote">Оставить эту версию</string>
+    <string name="sync_shared_recovery_backups">Резервные копии</string>
+    <string name="sync_shared_recovery_backups_title">Резервные копии</string>
+    <string name="sync_shared_recovery_backups_empty">Резервных копий нет.</string>
+    <string name="sync_shared_recovery_backup_item">%1$s · %2$s</string>
+    <string name="sync_shared_restore_backup_title">Восстановить резервную копию?</string>
+    <string name="sync_shared_restore_backup_body">Текущие данные будут заменены этой резервной копией. MyMoney будет перезапущен.</string>
+    <string name="sync_shared_restore_backup_confirm">Восстановить</string>
+    <string name="sync_shared_restore_backup_cancel">Отмена</string>
+    <string name="sync_shared_restore_backup_error">Не удалось восстановить резервную копию. Попробуйте ещё раз.</string>
 </resources>

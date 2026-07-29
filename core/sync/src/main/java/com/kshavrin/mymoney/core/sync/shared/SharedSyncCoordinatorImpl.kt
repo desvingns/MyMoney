@@ -20,6 +20,7 @@ import com.kshavrin.mymoney.core.domain.repository.CategoryRepository
 import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
 import com.kshavrin.mymoney.core.domain.repository.SharedJournalRepository
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
+import com.kshavrin.mymoney.core.domain.seed.InitialDataSeeder
 import com.kshavrin.mymoney.core.domain.sync.DeviceIdProvider
 import com.kshavrin.mymoney.core.domain.sync.EntityKind
 import com.kshavrin.mymoney.core.domain.sync.SharedConflict
@@ -126,11 +127,7 @@ class SharedSyncCoordinatorImpl
                             }
                             SharedWorkspaceInvite(workspaceApi.createInvite(workspaceId).getOrThrow().token)
                         }
-                    if (result.isAuthFailure()) {
-                        clearSharedLocalState()
-                        runCatching { auth.signOut().getOrThrow() }
-                    }
-                    result
+                    clearSharedStateOnAuthFailure(result)
                 }
             }
 
@@ -151,17 +148,15 @@ class SharedSyncCoordinatorImpl
                             pullAndApply(workspaceId)
                             appSettings.update { it.copy(lastSyncAt = clock.millis()) }
                         }
-                    if (result.isAuthFailure()) {
-                        clearSharedLocalState()
-                        runCatching { auth.signOut().getOrThrow() }
-                    }
-                    result
+                    clearSharedStateOnAuthFailure(result)
                 }
             }
 
         override suspend fun listConflicts(): Result<List<SharedConflict>> =
             withContext(dispatcher) {
-                runCatching { journalRepository.listPendingConflicts(requireActiveWorkspaceId()).getOrThrow() }
+                clearSharedStateOnAuthFailure(
+                    runCatching { journalRepository.listPendingConflicts(requireActiveWorkspaceId()).getOrThrow() },
+                )
             }
 
         override suspend fun resolveConflict(
@@ -170,10 +165,12 @@ class SharedSyncCoordinatorImpl
         ): Result<Unit> =
             withContext(dispatcher) {
                 operationMutex.withLock {
-                    runCatching {
-                        journalRepository.resolveConflict(conflictId, winnerOperationId).getOrThrow()
-                        pullAndApply(requireActiveWorkspaceId())
-                    }
+                    clearSharedStateOnAuthFailure(
+                        runCatching {
+                            journalRepository.resolveConflict(conflictId, winnerOperationId).getOrThrow()
+                            pullAndApply(requireActiveWorkspaceId())
+                        },
+                    )
                 }
             }
 
@@ -219,6 +216,7 @@ class SharedSyncCoordinatorImpl
                 pullAndApply(workspace.id)
             } else {
                 backupRepository.clearDatabase().getOrThrow()
+                currencyRepository.upsertAll(InitialDataSeeder.defaultCurrencyCatalog())
                 pullAndApply(workspace.id)
             }
             // Mark membership active BEFORE the binding becomes visible, so a concurrent syncNow()
@@ -463,9 +461,9 @@ class SharedSyncCoordinatorImpl
 
         private suspend fun clearSharedLocalState() {
             syncScheduler.disablePeriodicSync()
-            clearSharedOutbox()
             configStore.clearBinding()
             sharedStore.clear()
+            runCatching { clearSharedOutbox() }.onFailure(Throwable::reportToSentry)
         }
 
         private data class LocalSnapshot(
@@ -519,6 +517,14 @@ class SharedSyncCoordinatorImpl
 
         private fun Result<*>.isAuthFailure(): Boolean =
             (exceptionOrNull() as? SyncException)?.syncError == SyncError.Auth
+
+        private suspend fun <T> clearSharedStateOnAuthFailure(result: Result<T>): Result<T> {
+            if (result.isAuthFailure()) {
+                clearSharedLocalState()
+                runCatching { auth.signOut().getOrThrow() }.onFailure(Throwable::reportToSentry)
+            }
+            return result
+        }
 
         private companion object {
             const val PAGE_SIZE = 100

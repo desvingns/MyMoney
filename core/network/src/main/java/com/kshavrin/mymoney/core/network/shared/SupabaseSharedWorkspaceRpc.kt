@@ -80,7 +80,12 @@ class SupabaseSharedWorkspaceRpc
         ): Result<T> =
             withAccessToken { accessToken ->
                 http
-                    .post("rest/v1/rpc/$name", payload, accessToken)
+                    .post(
+                        path = "rest/v1/rpc/$name",
+                        payload = payload,
+                        accessToken = accessToken,
+                        mapMembershipDeniedToAuth = true,
+                    )
                     .mapCatching { response -> decode(response.jsonObject) }
             }
 
@@ -89,7 +94,13 @@ class SupabaseSharedWorkspaceRpc
             payload: kotlinx.serialization.json.JsonObject,
         ): Result<Unit> =
             withAccessToken { accessToken ->
-                http.post("rest/v1/rpc/$name", payload, accessToken).map { Unit }
+                http
+                    .post(
+                        path = "rest/v1/rpc/$name",
+                        payload = payload,
+                        accessToken = accessToken,
+                        mapMembershipDeniedToAuth = true,
+                    ).map { Unit }
             }
 
         private suspend fun <T> withAccessToken(

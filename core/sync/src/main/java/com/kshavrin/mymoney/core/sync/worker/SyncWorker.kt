@@ -6,6 +6,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
 import com.kshavrin.mymoney.core.sync.JournalSync
+import com.kshavrin.mymoney.core.sync.SyncExecutionGate
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.CancellationException
@@ -19,18 +20,23 @@ class SyncWorker
         @Assisted params: WorkerParameters,
         private val journalSync: JournalSync,
         private val settings: AppSettingsRepository,
+        private val executionGate: SyncExecutionGate,
     ) : CoroutineWorker(appContext, params) {
-        override suspend fun doWork(): Result {
-            val manual = inputData.getString(KEY_TARGET) != null
-            if (!manual && !settings.settings.first().autoSyncEnabled) return Result.success()
-            return runCatching { journalSync.syncNow() }.fold(
-                onSuccess = { Result.success() },
-                onFailure = {
-                    if (it is CancellationException) throw it
-                    if (runAttemptCount < MAX_RETRIES) Result.retry() else Result.failure()
-                },
-            )
-        }
+        override suspend fun doWork(): Result =
+            executionGate.withExclusive {
+                val manual = inputData.getString(KEY_TARGET) != null
+                if (!manual && !settings.settings.first().autoSyncEnabled) {
+                    Result.success()
+                } else {
+                    runCatching { journalSync.syncNow() }.fold(
+                        onSuccess = { Result.success() },
+                        onFailure = {
+                            if (it is CancellationException) throw it
+                            if (runAttemptCount < MAX_RETRIES) Result.retry() else Result.failure()
+                        },
+                    )
+                }
+            }
 
         companion object {
             const val KEY_TARGET = "target"

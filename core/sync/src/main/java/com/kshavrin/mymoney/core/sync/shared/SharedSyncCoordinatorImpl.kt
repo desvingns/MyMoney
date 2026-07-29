@@ -13,6 +13,7 @@ import com.kshavrin.mymoney.core.datastore.CloudBinding
 import com.kshavrin.mymoney.core.datastore.CloudProvider
 import com.kshavrin.mymoney.core.datastore.JournalSyncConfigStore
 import com.kshavrin.mymoney.core.datastore.SharedSyncStore
+import com.kshavrin.mymoney.core.sync.SyncExecutionGate
 import com.kshavrin.mymoney.core.sync.SyncScheduler
 import com.kshavrin.mymoney.core.domain.repository.AccountRepository
 import com.kshavrin.mymoney.core.domain.repository.BackupRepository
@@ -51,6 +52,7 @@ class SharedSyncCoordinatorImpl
         private val configStore: JournalSyncConfigStore,
         private val sharedStore: SharedSyncStore,
         private val syncScheduler: SyncScheduler,
+        private val executionGate: SyncExecutionGate,
         private val deviceIdProvider: DeviceIdProvider,
         private val transactionRepository: TransactionRepository,
         private val accountRepository: AccountRepository,
@@ -174,15 +176,15 @@ class SharedSyncCoordinatorImpl
                 }
             }
 
-        override suspend fun detachForLocalRestore(): Result<Unit> =
+        override suspend fun restoreInternalBackup(backupPath: String): Result<Unit> =
             withContext(dispatcher) {
-                operationMutex.withLock {
-                    runCatching {
-                        syncScheduler.cancelAllSync().getOrThrow()
-                        configStore.clearBinding()
-                        sharedStore.clear()
-                        runCatching { clearSharedOutbox() }.onFailure(Throwable::reportToSentry)
-                        auth.clearLocalSession()
+                runCatching {
+                    syncScheduler.cancelAllSync().getOrThrow()
+                    executionGate.withExclusive {
+                        operationMutex.withLock {
+                            detachForLocalRestoreLocked()
+                            backupRepository.importFromFile(backupPath).getOrThrow()
+                        }
                     }
                 }
             }
@@ -243,6 +245,13 @@ class SharedSyncCoordinatorImpl
                     accountLabel = workspace.name,
                 ),
             )
+        }
+
+        private suspend fun detachForLocalRestoreLocked() {
+            configStore.clearBinding()
+            sharedStore.clear()
+            runCatching { clearSharedOutbox() }.onFailure(Throwable::reportToSentry)
+            auth.clearLocalSession()
         }
 
         private suspend fun pullAndApply(workspaceId: String) {

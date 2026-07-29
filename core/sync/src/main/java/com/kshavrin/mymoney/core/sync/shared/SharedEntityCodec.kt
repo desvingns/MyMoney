@@ -4,6 +4,7 @@ import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.AccountType
 import com.kshavrin.mymoney.core.domain.model.Category
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
+import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
 import kotlinx.serialization.json.Json
@@ -15,6 +16,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.long
 import kotlinx.serialization.json.put
 import java.math.BigDecimal
@@ -36,7 +38,44 @@ class SharedEntityCodec
         fun encodeTransaction(
             transaction: Transaction,
             uuid: String,
+            currency: Currency,
+            accountUuid: String,
+            categoryUuid: String?,
+            toAccountUuid: String?,
+        ): String =
+            encodeTransaction(
+                transaction = transaction,
+                uuid = uuid,
+                currencyCode = currency.code,
+                currency = currency,
+                accountUuid = accountUuid,
+                categoryUuid = categoryUuid,
+                toAccountUuid = toAccountUuid,
+            )
+
+        fun encodeTransaction(
+            transaction: Transaction,
+            uuid: String,
             currencyCode: String,
+            accountUuid: String,
+            categoryUuid: String?,
+            toAccountUuid: String?,
+        ): String =
+            encodeTransaction(
+                transaction = transaction,
+                uuid = uuid,
+                currencyCode = currencyCode,
+                currency = null,
+                accountUuid = accountUuid,
+                categoryUuid = categoryUuid,
+                toAccountUuid = toAccountUuid,
+            )
+
+        private fun encodeTransaction(
+            transaction: Transaction,
+            uuid: String,
+            currencyCode: String,
+            currency: Currency?,
             accountUuid: String,
             categoryUuid: String?,
             toAccountUuid: String?,
@@ -50,6 +89,7 @@ class SharedEntityCodec
                     put("amount", transaction.amount.toPlainString())
                     // Currency ids are not stable across installs; carry the ISO code and resolve on apply.
                     put("currencyCode", currencyCode)
+                    currency?.let { put("currency", it.toPayload()) }
                     put("currencyId", transaction.currencyId)
                     // Portable cross-device references: apply resolves these uuids back to LOCAL ids.
                     // The numeric *Id fields are the sender's local Room ids, kept only for debugging.
@@ -72,6 +112,7 @@ class SharedEntityCodec
         /** Portable references carried by a transaction payload, resolved to LOCAL ids on apply. */
         data class TransactionRefs(
             val currencyCode: String,
+            val currency: Currency?,
             val accountUuid: String,
             val categoryUuid: String?,
             val toAccountUuid: String?,
@@ -79,8 +120,14 @@ class SharedEntityCodec
 
         fun decodeTransactionRefs(payload: String): TransactionRefs {
             val obj = json.parseToJsonElement(payload) as JsonObject
+            val currencyCode = obj.string("currencyCode")
+            val currency = obj.currencyOrNull()
+            require(currency == null || currency.code == currencyCode) {
+                "shared transaction currency code does not match its canonical currency"
+            }
             return TransactionRefs(
-                currencyCode = obj.string("currencyCode"),
+                currencyCode = currencyCode,
+                currency = currency,
                 accountUuid = obj.string("accountUuid"),
                 categoryUuid = obj.stringOrNull("categoryUuid"),
                 toAccountUuid = obj.stringOrNull("toAccountUuid"),
@@ -114,7 +161,32 @@ class SharedEntityCodec
         fun encodeAccount(
             account: Account,
             uuid: String,
+            currency: Currency,
+        ): String =
+            encodeAccount(
+                account = account,
+                uuid = uuid,
+                currencyCode = currency.code,
+                currency = currency,
+            )
+
+        fun encodeAccount(
+            account: Account,
+            uuid: String,
             currencyCode: String,
+        ): String =
+            encodeAccount(
+                account = account,
+                uuid = uuid,
+                currencyCode = currencyCode,
+                currency = null,
+            )
+
+        private fun encodeAccount(
+            account: Account,
+            uuid: String,
+            currencyCode: String,
+            currency: Currency?,
         ): String =
             json.encodeToString(
                 JsonObject.serializer(),
@@ -124,6 +196,7 @@ class SharedEntityCodec
                     put("name", account.name)
                     // Currency ids are not stable across installs; carry the ISO code and resolve on apply.
                     put("currencyCode", currencyCode)
+                    currency?.let { put("currency", it.toPayload()) }
                     put("currencyId", account.currencyId)
                     put("initialBalance", account.initialBalance.toPlainString())
                     put("type", account.type.name)
@@ -139,6 +212,9 @@ class SharedEntityCodec
 
         fun decodeAccountCurrencyCode(payload: String): String =
             (json.parseToJsonElement(payload) as JsonObject).string("currencyCode")
+
+        fun decodeAccountCurrency(payload: String): Currency? =
+            (json.parseToJsonElement(payload) as JsonObject).currencyOrNull()
 
         /**
          * Decode with a placeholder currencyId (0). The caller MUST overwrite currencyId with the
@@ -240,6 +316,29 @@ class SharedEntityCodec
         private fun JsonObject.doubleOrNull(key: String): Double? = this[key]?.jsonPrimitive?.doubleOrNull
 
         private fun JsonObject.boolOrNull(key: String): Boolean? = this[key]?.jsonPrimitive?.booleanOrNull
+
+        private fun Currency.toPayload(): JsonObject =
+            buildJsonObject {
+                put("code", code)
+                put("symbol", symbol)
+                put("name", name)
+                put("decimalDigits", decimalDigits)
+                put("isActive", isActive)
+                put("sortOrder", sortOrder)
+            }
+
+        private fun JsonObject.currencyOrNull(): Currency? =
+            this["currency"]?.jsonObject?.let { currency ->
+                Currency(
+                    id = 0L,
+                    code = currency.string("code"),
+                    symbol = currency.string("symbol"),
+                    name = currency.string("name"),
+                    decimalDigits = currency.int("decimalDigits"),
+                    isActive = currency.boolOrNull("isActive") ?: error("shared currency is missing isActive"),
+                    sortOrder = currency.int("sortOrder"),
+                )
+            }
 
         private companion object {
             val LOCAL_ID_FIELDS = setOf("id", "currencyId", "accountId", "categoryId", "toAccountId")

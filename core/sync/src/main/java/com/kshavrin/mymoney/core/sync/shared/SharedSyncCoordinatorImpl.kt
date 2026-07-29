@@ -13,6 +13,7 @@ import com.kshavrin.mymoney.core.datastore.CloudBinding
 import com.kshavrin.mymoney.core.datastore.CloudProvider
 import com.kshavrin.mymoney.core.datastore.JournalSyncConfigStore
 import com.kshavrin.mymoney.core.datastore.SharedSyncStore
+import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.sync.SyncExecutionGate
 import com.kshavrin.mymoney.core.sync.SyncScheduler
 import com.kshavrin.mymoney.core.domain.repository.AccountRepository
@@ -156,9 +157,14 @@ class SharedSyncCoordinatorImpl
 
         override suspend fun listConflicts(): Result<List<SharedConflict>> =
             withContext(dispatcher) {
-                clearSharedStateOnAuthFailure(
-                    runCatching { journalRepository.listPendingConflicts(requireActiveWorkspaceId()).getOrThrow() },
-                )
+                val result = runCatching { journalRepository.listPendingConflicts(requireActiveWorkspaceId()).getOrThrow() }
+                if (result.isAuthFailure()) {
+                    executionGate.withExclusive {
+                        operationMutex.withLock { clearSharedStateOnAuthFailure(result) }
+                    }
+                } else {
+                    result
+                }
             }
 
         override suspend fun resolveConflict(
@@ -305,8 +311,7 @@ class SharedSyncCoordinatorImpl
                             // currency/account/category not present yet) throws, so the per-operation
                             // catch logs and skips this op; the missing row arrives on a later pull.
                             val currencyId =
-                                currencyRepository.findByCode(refs.currencyCode)?.id
-                                    ?: error("shared transaction references unknown currency ${refs.currencyCode}")
+                                materializeCurrency(refs.currencyCode, refs.currency).id
                             val accountId =
                                 accountRepository.idForUuid(refs.accountUuid)
                                     ?: error("shared transaction references unknown account ${refs.accountUuid}")
@@ -340,8 +345,7 @@ class SharedSyncCoordinatorImpl
                             val decoded = codec.decodeAccount(payload)
                             val currencyCode = codec.decodeAccountCurrencyCode(payload)
                             val currencyId =
-                                currencyRepository.findByCode(currencyCode)?.id
-                                    ?: error("shared account references unknown currency $currencyCode")
+                                materializeCurrency(currencyCode, codec.decodeAccountCurrency(payload)).id
                             accountRepository.applySharedUpsert(decoded.copy(currencyId = currencyId), uuid, deviceId)
                         }
                     }
@@ -418,13 +422,13 @@ class SharedSyncCoordinatorImpl
             buildList {
                 accountRepository.listAllIncludingArchived().forEach { account ->
                     val uuid = accountRepository.uuidForId(account.id)
-                    val currencyCode = currencyRepository.findById(account.currencyId)?.code
-                    if (uuid != null && currencyCode != null) {
+                    val currency = currencyRepository.findById(account.currencyId)
+                    if (uuid != null && currency != null) {
                         add(
                             LocalSnapshot(
                                 entityKind = EntityKind.Account,
                                 entityId = uuid,
-                                payload = codec.encodeAccount(account, uuid, currencyCode),
+                                payload = codec.encodeAccount(account, uuid, currency),
                                 tombstone = false,
                             ),
                         )
@@ -449,7 +453,7 @@ class SharedSyncCoordinatorImpl
                         add(LocalSnapshot(EntityKind.Transaction, uuid, payload = null, tombstone = true))
                         return@forEach
                     }
-                    val currencyCode = currencyRepository.findById(transaction.currencyId)?.code ?: return@forEach
+                    val currency = currencyRepository.findById(transaction.currencyId) ?: return@forEach
                     val accountUuid = accountRepository.uuidForId(transaction.accountId) ?: return@forEach
                     val categoryUuid =
                         transaction.categoryId?.let { categoryRepository.uuidForId(it) ?: return@forEach }
@@ -463,7 +467,7 @@ class SharedSyncCoordinatorImpl
                                 codec.encodeTransaction(
                                     transaction,
                                     uuid,
-                                    currencyCode,
+                                    currency,
                                     accountUuid,
                                     categoryUuid,
                                     toAccountUuid,
@@ -473,6 +477,21 @@ class SharedSyncCoordinatorImpl
                     )
                 }
             }
+
+        private suspend fun materializeCurrency(
+            code: String,
+            payloadCurrency: Currency?,
+        ): Currency {
+            val existing = currencyRepository.findByCode(code)
+            if (payloadCurrency == null) {
+                return existing ?: error("shared operation references currency $code without canonical currency data")
+            }
+            require(payloadCurrency.code == code) { "shared currency code does not match its reference" }
+            currencyRepository.upsert(payloadCurrency.copy(id = existing?.id ?: 0L))
+            return checkNotNull(currencyRepository.findByCode(code)) {
+                "shared currency $code was not persisted"
+            }
+        }
 
         private suspend fun clearSharedOutbox() {
             database.withTransaction {

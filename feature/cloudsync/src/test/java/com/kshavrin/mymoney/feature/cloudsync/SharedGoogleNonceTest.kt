@@ -17,4 +17,14 @@ class SharedGoogleNonceTest {
             credentialNonce,
         )
     }
+
+    @Test
+    fun `Shared Google client id strips template brackets copied into local config`() {
+        val clientId = "<123456789012-example.apps.googleusercontent.com>"
+
+        assertEquals(
+            "123456789012-example.apps.googleusercontent.com",
+            normalizeSharedGoogleWebClientId(clientId),
+        )
+    }
 }

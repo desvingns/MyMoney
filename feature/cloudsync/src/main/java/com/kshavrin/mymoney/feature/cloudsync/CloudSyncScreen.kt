@@ -188,7 +188,7 @@ fun CloudSyncRoute(
 
     suspend fun launchSharedGoogleSignIn() {
         val activity = context.findActivity()
-        val webClientId = NetworkBuildConfig.SUPABASE_GOOGLE_WEB_CLIENT_ID
+        val webClientId = normalizeSharedGoogleWebClientId(NetworkBuildConfig.SUPABASE_GOOGLE_WEB_CLIENT_ID)
         if (activity == null || webClientId.startsWith(PLACEHOLDER_PREFIX)) {
             viewModel.onEvent(CloudSyncEvent.SharedSignInFailed)
             return
@@ -906,7 +906,13 @@ internal fun sharedGoogleCredentialNonce(rawNonce: String): String =
         .digest(rawNonce.toByteArray(Charsets.UTF_8))
         .joinToString(separator = "") { byte -> "%02x".format(byte.toInt() and 0xff) }
 
-private fun sharedGoogleCredentialRequest(
+internal fun normalizeSharedGoogleWebClientId(configuredClientId: String): String =
+    configuredClientId
+        .trim()
+        .removeSurrounding("<", ">")
+        .trim()
+
+internal fun sharedGoogleCredentialRequest(
     webClientId: String,
     nonce: String,
     authorizedAccountsOnly: Boolean,
@@ -918,7 +924,7 @@ private fun sharedGoogleCredentialRequest(
                 .Builder()
                 .setFilterByAuthorizedAccounts(authorizedAccountsOnly)
                 .setAutoSelectEnabled(authorizedAccountsOnly)
-                .setServerClientId(webClientId)
+                .setServerClientId(normalizeSharedGoogleWebClientId(webClientId))
                 .setNonce(nonce)
                 .build(),
         ).build()

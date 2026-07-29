@@ -3,6 +3,16 @@
 Phase/release state authority: `docs/implementation_plan/PROGRESS.md` (do not restate it here).
 
 ## DONE (in progress — see BLOCKERS/NEXT, not closed)
+- 2026-07-29: SPEC `shared-backend-sync-03-android-shared-mode` remains `active/` and unpushed.
+  Codex resolved the original 9 failures (`c4eb0cd`), coordinator publish/lifecycle races
+  (`94951044`), a durable isolated Shared outbox with Room 8→9 migration (`7c49472a`), JSON
+  canonicalization plus focused tests (`80f2923c`, `c73051ed`), and scheduler cancellation on
+  detach (`5bf10b1e`). Evidence: final reviewer pass, JVM Runner 1860/0 + detekt/lint OK, and
+  `CloudSyncSharedCardUiTest` on Pixel_5/API34 3/0. Do not re-derive these fixes; inspect their
+  commits and the active SPEC history if needed. The independent critic found the remaining
+  blocker: `CloudSyncScreen` deliberately maps `LaunchSharedGoogleSignIn` to failure; no Google
+  OAuth server client ID exists in `local.properties`. A real Credential Manager + Supabase Auth
+  integration and external OAuth setup are needed before this SPEC can be closed/pushed.
 - 2026-07-28/29: SPEC `shared-backend-sync-03-android-shared-mode` (still `active/`, NOT
   pushed) went through 5 semantic-review fix rounds fixing real bugs (leave/join
   ordering+races, cross-device entity identity moved from local Room Long id to the

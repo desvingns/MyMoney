@@ -53,3 +53,20 @@ CONSTRAINTS: Dropbox, Google Drive, and Shared are mutually exclusive; one activ
 - Device used for the instrumented test type: Pixel_5/API34 at `emulator-5554` (re-verify live via `adb devices -l` + `getprop ro.boot.qemu.avd_name`/`ro.build.version.sdk`/`sys.boot_completed` — the serial has drifted before, per cross-session memory `device-topology-and-single-test-run.md`). `CloudSyncSharedCardUiTest` (instrumented) has not yet been run on-device — do that as part of the Runner/verification pass once the JVM-side failures are fixed.
 - Deferred hardening (flagged during semantic review, non-blocking, candidates for SPEC 04 "realtime-hardening-e2e"): (a) a currently-dead-but-harmless `currencyId`/`accountId`/`categoryId`/`toAccountId` numeric field is still emitted alongside the uuid/code fields in the payload "for debugging" — cosmetic only, decode ignores it; (b) distinguishing a "you were removed" RPC error to flip `isMembershipActive` to false still needs the real Supabase transport (currently only self-initiated leave clears it); (c) whether `pullAndApply`'s per-operation skip-on-unresolved-ref (cursor still advances, so a permanently-unresolvable FK ref, e.g. arriving out of causal order across concurrent devices, is lost rather than retried) is an acceptable residual risk depends on whether the Shared journal's `server_sequence` assignment actually guarantees causal ordering across devices — not verifiable from client code alone; (d) soft-deleted transactions are excluded from `publishLocalData` (join-with-import), so a transaction deleted locally just before joining does not propagate its deletion to the workspace — unclear if this is in scope for SPEC 03's acceptance or an open question.
 - The `feature/settings/.../ImportWizardViewModel.kt` `NoOpCategoryRepository`/`FakeCategoryRepository` touches across this SPEC are all mechanical interface-completeness updates (test/preview stubs), not behavior changes.
+
+## Resume status — 2026-07-29 (supersedes the stale red-Runner section above)
+
+- `c4eb0cd` fixed the nine Runner failures: stale Shared enum expectations, scroll-aware Shared
+  Compose assertions, and whole-row import selection.
+- Semantic review then found and fixes landed for post-adoption publication/lifecycle races
+  (`94951044`), durable isolated pending Shared operations plus Room 8→9 migration
+  (`7c49472a`), recursively canonical JSON payload comparison (`80f2923c`) with focused tests
+  (`c73051ed`), and periodic work cancellation during Shared detach (`5bf10b1e`).
+- Final verification evidence: deterministic reviewer pass; JVM Runner **1860 passed / 0 failed**
+  with detekt/lint OK; on-device `CloudSyncSharedCardUiTest` on Pixel_5/API34 **3 passed / 0
+  failed**.
+- **Blocking acceptance gap:** `CloudSyncScreen` deliberately maps
+  `LaunchSharedGoogleSignIn` to `SharedSignInFailed`; `local.properties` has no Google OAuth
+  server client ID. Implementing real Credential Manager ID-token acquisition and binding it to
+  Supabase Auth requires external OAuth configuration/authorization. The SPEC must stay active,
+  must not be pushed, and must not move to `done/` until this is implemented and verified.

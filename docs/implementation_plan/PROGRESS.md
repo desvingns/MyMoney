@@ -8,6 +8,18 @@
 
 ## Current state
 
+- **2026-07-29 (Codex MP `--feature --next`, shared-backend-sync epic, SPEC 03 — BLOCKED,
+  not closed):** Resumed and fixed the 9 red tests (`c4eb0cd`), Shared coordinator lifecycle/
+  publish races (`94951044`), durable Shared outbox + Room 8→9 migration (`7c49472a`), JSON
+  canonicalization (`80f2923c` + `c73051ed` tests), and scheduler cancellation on detach
+  (`5bf10b1e`). Latest deterministic reviewer is clean; Runner is **1860 passed / 0 failed**
+  with detekt/lint OK; `CloudSyncSharedCardUiTest` on Pixel_5/API34 is **3 passed / 0 failed**.
+  SPEC remains in `active/`, unpushed: independent critic confirms its Google sign-in acceptance
+  is non-functional because `LaunchSharedGoogleSignIn` deliberately emits failure and
+  `local.properties` lacks a Google OAuth server client ID. This requires a real Credential
+  Manager/Supabase Auth integration and external OAuth configuration; do not close/push/move the
+  SPEC until that is authorized and verified. Keep documented SPEC 04 deferrals separate.
+
 > Last three session entries are repeated here for fast startup. Full history is archived below.
 
 - **2026-07-29 (Claude MP `--feature --next`, shared-backend-sync epic, SPEC 03 — IN PROGRESS,

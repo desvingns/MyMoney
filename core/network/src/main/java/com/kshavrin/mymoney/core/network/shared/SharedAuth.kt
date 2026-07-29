@@ -43,6 +43,11 @@ interface SharedAuth {
 
     suspend fun clearLocalSession() = Unit
 
+    suspend fun resetLocalSession(clearSecrets: () -> Unit) {
+        clearLocalSession()
+        clearSecrets()
+    }
+
     companion object {
         val GOOGLE_SCOPES = listOf("openid", "email", "profile")
     }

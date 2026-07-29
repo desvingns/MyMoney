@@ -26,6 +26,8 @@ class SupabaseSharedAuth
         @Volatile private var session: ActiveSession? = null
         private val sessionMutex = Mutex()
         private val sessionCacheLock = Any()
+        @Volatile private var sessionGeneration = 0L
+        @Volatile private var resetInProgress = false
 
         override fun currentSession(): SharedSession? =
             synchronized(sessionCacheLock) {
@@ -49,7 +51,16 @@ class SupabaseSharedAuth
             if (!config.isGoogleSignInConfigured || googleIdToken.isBlank() || nonce.isBlank()) {
                 return Result.failure(SyncException(SyncError.Auth))
             }
+            val operationGeneration = currentSessionGeneration()
+            val resetWasInProgress = resetInProgress
             return sessionMutex.withLock {
+                if (
+                    resetWasInProgress ||
+                    resetInProgress ||
+                    !isCurrentSessionGeneration(operationGeneration)
+                ) {
+                    return@withLock Result.failure(SyncException(SyncError.Auth))
+                }
                 http
                     .post(
                         path = "auth/v1/token?grant_type=id_token",
@@ -83,6 +94,21 @@ class SupabaseSharedAuth
             sessionMutex.withLock { clearSession() }
         }
 
+        override suspend fun resetLocalSession(clearSecrets: () -> Unit) {
+            sessionMutex.withLock {
+                synchronized(sessionCacheLock) {
+                    resetInProgress = true
+                    sessionGeneration += 1
+                    try {
+                        clearSessionLocked()
+                        clearSecrets()
+                    } finally {
+                        resetInProgress = false
+                    }
+                }
+            }
+        }
+
         private suspend fun refresh(refreshToken: String): Result<ActiveSession> =
             http
                 .post(
@@ -105,15 +131,23 @@ class SupabaseSharedAuth
 
         private fun saveSession(response: kotlinx.serialization.json.JsonObject): ActiveSession =
             response.toActiveSession().also { active ->
-                sessionStore.writeSharedSession(active.toStoredSession())
-                session = active
+                synchronized(sessionCacheLock) {
+                    sessionStore.writeSharedSession(active.toStoredSession())
+                    session = active
+                }
             }
 
+        private fun currentSessionGeneration(): Long = sessionGeneration
+
+        private fun isCurrentSessionGeneration(generation: Long): Boolean = generation == sessionGeneration
+
         private fun clearSession() {
-            synchronized(sessionCacheLock) {
-                session = null
-                sessionStore.clearSharedSession()
-            }
+            synchronized(sessionCacheLock) { clearSessionLocked() }
+        }
+
+        private fun clearSessionLocked() {
+            session = null
+            sessionStore.clearSharedSession()
         }
 
         private fun kotlinx.serialization.json.JsonObject.toActiveSession(): ActiveSession {

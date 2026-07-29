@@ -36,8 +36,7 @@ class FactoryResetGatewayImpl
 
         override suspend fun clearSecrets() {
             withContext(ioDispatcher) {
-                sharedAuth.clearLocalSession()
-                secureStorage.clearAll()
+                sharedAuth.resetLocalSession(secureStorage::clearAll)
             }
         }
 

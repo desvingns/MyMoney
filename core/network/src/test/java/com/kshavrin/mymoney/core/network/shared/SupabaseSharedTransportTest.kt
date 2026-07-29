@@ -230,6 +230,91 @@ class SupabaseSharedTransportTest {
     }
 
     @Test
+    fun `sign in storage write and cache update win over an in-flight session restore`() {
+        val interleavingStore = RestoreThenWriteSessionStore(storedSession(accessToken = "old-access-token", expiresAt = 1_800_000_000L))
+        val config =
+            SupabaseConfig(
+                url = server.url("/").toString().removeSuffix("/"),
+                anonKey = "anon-key",
+                googleWebClientId = "web-client-id",
+            )
+        val restartedAuth =
+            SupabaseSharedAuth(
+                config,
+                SupabaseHttpTransport(config, OkHttpClient(), Json),
+                interleavingStore,
+                clock,
+            )
+        val executor = Executors.newFixedThreadPool(2)
+        server.enqueue(MockResponse().setResponseCode(200).setBody(sessionResponse("new-access-token", "new-refresh-token")))
+
+        try {
+            val restoringSession = executor.submit<SharedSession?> { restartedAuth.currentSession() }
+            assertTrue(interleavingStore.firstReadStarted.await(1, TimeUnit.SECONDS))
+
+            val signingIn =
+                executor.submit<Result<SharedSession>> {
+                    runBlocking { restartedAuth.signInWithGoogle("google-id-token", "request-nonce") }
+                }
+            assertTrue(server.takeRequest(1, TimeUnit.SECONDS) != null)
+            assertFalse(interleavingStore.writeStarted.await(250, TimeUnit.MILLISECONDS))
+
+            interleavingStore.allowFirstRead.countDown()
+            assertEquals("old-access-token", restoringSession.get(1, TimeUnit.SECONDS)?.accessToken)
+            assertTrue(interleavingStore.writeStarted.await(1, TimeUnit.SECONDS))
+            assertEquals("new-access-token", signingIn.get(1, TimeUnit.SECONDS).getOrThrow().accessToken)
+            assertEquals("new-access-token", restartedAuth.currentSession()?.accessToken)
+            assertEquals("new-access-token", interleavingStore.session?.accessToken)
+        } finally {
+            interleavingStore.allowFirstRead.countDown()
+            executor.shutdownNow()
+        }
+    }
+
+    @Test
+    fun `reset clears a concurrent sign in from memory and encrypted storage`() {
+        val interleavingStore = BlockingWriteSessionStore()
+        val config =
+            SupabaseConfig(
+                url = server.url("/").toString().removeSuffix("/"),
+                anonKey = "anon-key",
+                googleWebClientId = "web-client-id",
+            )
+        val restartedAuth =
+            SupabaseSharedAuth(
+                config,
+                SupabaseHttpTransport(config, OkHttpClient(), Json),
+                interleavingStore,
+                clock,
+            )
+        val executor = Executors.newFixedThreadPool(2)
+        server.enqueue(MockResponse().setResponseCode(200).setBody(sessionResponse()))
+
+        try {
+            val signingIn =
+                executor.submit<Result<SharedSession>> {
+                    runBlocking { restartedAuth.signInWithGoogle("google-id-token", "request-nonce") }
+                }
+            assertTrue(interleavingStore.writeStarted.await(1, TimeUnit.SECONDS))
+
+            val resetting =
+                executor.submit<Unit> {
+                    runBlocking { restartedAuth.resetLocalSession(interleavingStore::clearAll) }
+                }
+            interleavingStore.allowWrite.countDown()
+
+            assertTrue(signingIn.get(1, TimeUnit.SECONDS).isSuccess)
+            resetting.get(1, TimeUnit.SECONDS)
+            assertEquals(1, interleavingStore.clearAllCalls)
+            assertNull(interleavingStore.session)
+            assertNull(restartedAuth.currentSession())
+        } finally {
+            interleavingStore.allowWrite.countDown()
+            executor.shutdownNow()
+        }
+    }
+
+    @Test
     fun `rpc without a session fails with auth and does not issue a request`() = runTest {
         val result = workspaceRpc.createWorkspace("Budget")
 
@@ -391,6 +476,48 @@ class SupabaseSharedTransportTest {
         }
 
         override fun clearSharedSession() {
+            session = null
+        }
+    }
+
+    private class RestoreThenWriteSessionStore(
+        @Volatile var session: StoredSharedSession?,
+    ) : SharedSessionStore {
+        val firstReadStarted = CountDownLatch(1)
+        val allowFirstRead = CountDownLatch(1)
+        val writeStarted = CountDownLatch(1)
+
+        override fun readSharedSession(): StoredSharedSession? {
+            val snapshot = session
+            firstReadStarted.countDown()
+            check(allowFirstRead.await(1, TimeUnit.SECONDS)) { "session restore was not released" }
+            return snapshot
+        }
+
+        override fun writeSharedSession(session: StoredSharedSession) {
+            writeStarted.countDown()
+            this.session = session
+        }
+    }
+
+    private class BlockingWriteSessionStore : SharedSessionStore {
+        @Volatile var session: StoredSharedSession? = null
+        val writeStarted = CountDownLatch(1)
+        val allowWrite = CountDownLatch(1)
+        var clearAllCalls = 0
+
+        override fun writeSharedSession(session: StoredSharedSession) {
+            writeStarted.countDown()
+            check(allowWrite.await(1, TimeUnit.SECONDS)) { "session write was not released" }
+            this.session = session
+        }
+
+        override fun clearSharedSession() {
+            session = null
+        }
+
+        fun clearAll() {
+            clearAllCalls++
             session = null
         }
     }

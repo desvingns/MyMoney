@@ -118,21 +118,25 @@ class SharedEntityCodec
             val toAccountUuid: String?,
         )
 
+        data class CurrencyReference(
+            val code: String,
+            val currency: Currency?,
+        )
+
         fun decodeTransactionRefs(payload: String): TransactionRefs {
             val obj = json.parseToJsonElement(payload) as JsonObject
-            val currencyCode = obj.string("currencyCode")
-            val currency = obj.currencyOrNull()
-            require(currency == null || currency.code == currencyCode) {
-                "shared transaction currency code does not match its canonical currency"
-            }
+            val currency = obj.currencyReference()
             return TransactionRefs(
-                currencyCode = currencyCode,
-                currency = currency,
+                currencyCode = currency.code,
+                currency = currency.currency,
                 accountUuid = obj.string("accountUuid"),
                 categoryUuid = obj.stringOrNull("categoryUuid"),
                 toAccountUuid = obj.stringOrNull("toAccountUuid"),
             )
         }
+
+        fun decodeTransactionCurrencyReference(payload: String): CurrencyReference =
+            (json.parseToJsonElement(payload) as JsonObject).currencyReference()
 
         /**
          * Decode with placeholder currency/account/category ids (0). The caller MUST overwrite
@@ -211,10 +215,13 @@ class SharedEntityCodec
             )
 
         fun decodeAccountCurrencyCode(payload: String): String =
-            (json.parseToJsonElement(payload) as JsonObject).string("currencyCode")
+            decodeAccountCurrencyReference(payload).code
 
         fun decodeAccountCurrency(payload: String): Currency? =
-            (json.parseToJsonElement(payload) as JsonObject).currencyOrNull()
+            decodeAccountCurrencyReference(payload).currency
+
+        fun decodeAccountCurrencyReference(payload: String): CurrencyReference =
+            (json.parseToJsonElement(payload) as JsonObject).currencyReference()
 
         /**
          * Decode with a placeholder currencyId (0). The caller MUST overwrite currencyId with the
@@ -339,6 +346,15 @@ class SharedEntityCodec
                     sortOrder = currency.int("sortOrder"),
                 )
             }
+
+        private fun JsonObject.currencyReference(): CurrencyReference {
+            val code = string("currencyCode")
+            val currency = currencyOrNull()
+            require(currency == null || currency.code == code) {
+                "shared currency code does not match its canonical currency"
+            }
+            return CurrencyReference(code, currency)
+        }
 
         private companion object {
             val LOCAL_ID_FIELDS = setOf("id", "currencyId", "accountId", "categoryId", "toAccountId")

@@ -306,13 +306,16 @@ class SharedSyncCoordinatorImpl
                         transactionRepository.applySharedDelete(uuid, now)
                     } else {
                         operation.payload?.let { payload ->
+                            val currencyReference = decodeCurrencyReference {
+                                codec.decodeTransactionCurrencyReference(payload)
+                            }
                             val decoded = codec.decodeTransaction(payload)
                             val refs = codec.decodeTransactionRefs(payload)
                             // Remap portable references to LOCAL ids. A null lookup (referenced
                             // currency/account/category not present yet) throws, so the per-operation
                             // catch logs and skips this op; the missing row arrives on a later pull.
                             val currencyId =
-                                materializeCurrency(refs.currencyCode, refs.currency).id
+                                materializeCurrency(currencyReference.code, currencyReference.currency).id
                             val accountId =
                                 accountRepository.idForUuid(refs.accountUuid)
                                     ?: error("shared transaction references unknown account ${refs.accountUuid}")
@@ -343,10 +346,12 @@ class SharedSyncCoordinatorImpl
                         accountRepository.applySharedArchive(uuid)
                     } else {
                         operation.payload?.let { payload ->
+                            val currencyReference = decodeCurrencyReference {
+                                codec.decodeAccountCurrencyReference(payload)
+                            }
                             val decoded = codec.decodeAccount(payload)
-                            val currencyCode = codec.decodeAccountCurrencyCode(payload)
                             val currencyId =
-                                materializeCurrency(currencyCode, codec.decodeAccountCurrency(payload)).id
+                                materializeCurrency(currencyReference.code, currencyReference.currency).id
                             accountRepository.applySharedUpsert(decoded.copy(currencyId = currencyId), uuid, deviceId)
                         }
                     }
@@ -482,34 +487,45 @@ class SharedSyncCoordinatorImpl
         private suspend fun materializeCurrency(
             code: String,
             payloadCurrency: Currency?,
-        ): Currency {
-            require(code.matches(CURRENCY_CODE_REGEX)) { "shared currency code is invalid" }
-            payloadCurrency?.let { currency ->
-                require(currency.code == code) { "shared currency code does not match its reference" }
-                require(currency.symbol.isNotBlank() && currency.symbol.length <= 4) {
-                    "shared currency symbol is invalid"
-                }
-                require(currency.name.isNotBlank()) { "shared currency name is invalid" }
-                require(currency.decimalDigits in 0..8) { "shared currency decimal digits are invalid" }
-            }
+        ): Currency =
             try {
+                require(code.matches(CURRENCY_CODE_REGEX)) { "shared currency code is invalid" }
+                payloadCurrency?.let { currency ->
+                    require(currency.code == code) { "shared currency code does not match its reference" }
+                    require(currency.symbol.isNotBlank() && currency.symbol.length <= 4) {
+                        "shared currency symbol is invalid"
+                    }
+                    require(currency.name.isNotBlank()) { "shared currency name is invalid" }
+                    require(currency.decimalDigits in 0..8) { "shared currency decimal digits are invalid" }
+                }
                 val existing = currencyRepository.findByCode(code)
                 if (payloadCurrency == null) {
-                    return existing
+                    existing
                         ?: throw SharedCurrencyIntegrityException(
                             "shared operation references currency $code without canonical currency data",
                         )
-                }
-                currencyRepository.upsert(payloadCurrency.copy(id = existing?.id ?: 0L))
-                return checkNotNull(currencyRepository.findByCode(code)) {
-                    "shared currency $code was not persisted"
+                } else {
+                    currencyRepository.upsert(payloadCurrency.copy(id = existing?.id ?: 0L))
+                    checkNotNull(currencyRepository.findByCode(code)) {
+                        "shared currency $code was not persisted"
+                    }
                 }
             } catch (t: Throwable) {
                 if (t is CancellationException) throw t
                 if (t is SharedCurrencyIntegrityException) throw t
                 throw SharedCurrencyIntegrityException("shared currency $code could not be materialized", t)
             }
-        }
+
+        private fun decodeCurrencyReference(
+            block: () -> SharedEntityCodec.CurrencyReference,
+        ): SharedEntityCodec.CurrencyReference =
+            try {
+                block()
+            } catch (t: Throwable) {
+                if (t is CancellationException) throw t
+                if (t is SharedCurrencyIntegrityException) throw t
+                throw SharedCurrencyIntegrityException("shared currency payload is invalid", t)
+            }
 
         private suspend fun clearSharedOutbox() {
             database.withTransaction {

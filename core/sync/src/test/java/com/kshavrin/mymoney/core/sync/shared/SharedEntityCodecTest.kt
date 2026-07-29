@@ -8,6 +8,7 @@ import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 import java.math.BigDecimal
@@ -170,6 +171,58 @@ class SharedEntityCodecTest {
         val category = sampleCategory().copy(isArchived = true)
         val payload = codec.encodeCategory(category, TX_UUID)
         assertEquals(true, codec.decodeCategory(payload).isArchived)
+    }
+
+    @Test
+    fun `canonicalPayload is independent of top-level key order`() {
+        val first = """{"z":3,"a":1,"middle":"x"}"""
+        val second = """{"middle":"x","z":3,"a":1}"""
+
+        assertEquals("""{"a":1,"middle":"x","z":3}""", codec.canonicalPayload(first))
+        assertEquals(codec.canonicalPayload(first), codec.canonicalPayload(second))
+    }
+
+    @Test
+    fun `canonicalPayload recursively sorts nested object keys`() {
+        val first = """{"top":"v","outer":{"z":{"b":2,"a":1},"a":{"y":9,"x":8}}}"""
+        val second = """{"outer":{"a":{"x":8,"y":9},"z":{"a":1,"b":2}},"top":"v"}"""
+
+        assertEquals(
+            """{"outer":{"a":{"x":8,"y":9},"z":{"a":1,"b":2}},"top":"v"}""",
+            codec.canonicalPayload(first),
+        )
+        assertEquals(codec.canonicalPayload(first), codec.canonicalPayload(second))
+    }
+
+    @Test
+    fun `canonicalPayload preserves array element order while canonicalizing each element`() {
+        val ordered = """{"items":[{"z":3,"a":1},{"b":2,"a":4}]}"""
+        val reversed = """{"items":[{"b":2,"a":4},{"z":3,"a":1}]}"""
+
+        assertEquals(
+            """{"items":[{"a":1,"z":3},{"a":4,"b":2}]}""",
+            codec.canonicalPayload(ordered),
+        )
+        assertNotEquals(codec.canonicalPayload(ordered), codec.canonicalPayload(reversed))
+    }
+
+    @Test
+    fun `canonicalPayload removes local id fields recursively`() {
+        val payload = """{
+            "id":1,
+            "currencyId":2,
+            "accountId":3,
+            "categoryId":4,
+            "toAccountId":5,
+            "name":"kept",
+            "nested":{"id":10,"categoryId":40,"keep":"yes"},
+            "items":[{"accountId":30,"toAccountId":50,"value":"v"}]
+        }"""
+
+        assertEquals(
+            """{"items":[{"value":"v"}],"name":"kept","nested":{"keep":"yes"}}""",
+            codec.canonicalPayload(payload),
+        )
     }
 
     // ── helpers ────────────────────────────────────────────────────────────

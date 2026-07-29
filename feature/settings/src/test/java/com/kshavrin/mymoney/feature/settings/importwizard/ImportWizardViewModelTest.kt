@@ -85,6 +85,18 @@ class ImportWizardViewModelTest {
             categories.forEach { upsert(it) }
         }
 
+        override suspend fun uuidForId(id: Long): String? = null
+
+        override suspend fun idForUuid(uuid: String): Long? = null
+
+        override suspend fun applySharedUpsert(
+            category: Category,
+            uuid: String,
+            deviceId: String,
+        ) = Unit
+
+        override suspend fun applySharedArchive(uuid: String) = Unit
+
         override suspend fun archive(id: Long) = Unit
     }
 

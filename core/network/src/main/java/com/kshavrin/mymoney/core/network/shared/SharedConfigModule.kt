@@ -5,6 +5,7 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import java.security.SecureRandom
 import javax.inject.Singleton
 
 @Module
@@ -17,4 +18,7 @@ object SharedConfigModule {
             url = BuildConfig.SUPABASE_URL,
             anonKey = BuildConfig.SUPABASE_ANON_KEY,
         )
+
+    @Provides
+    fun provideSecureRandom(): SecureRandom = SecureRandom()
 }

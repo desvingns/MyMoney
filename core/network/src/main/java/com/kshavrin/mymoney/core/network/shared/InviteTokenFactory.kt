@@ -14,7 +14,7 @@ data class InviteToken(
 class InviteTokenFactory
     @Inject
     constructor(
-        private val random: SecureRandom = SecureRandom(),
+        private val random: SecureRandom,
     ) {
         fun newToken(): InviteToken {
             val bytes = ByteArray(TOKEN_BYTES).also(random::nextBytes)

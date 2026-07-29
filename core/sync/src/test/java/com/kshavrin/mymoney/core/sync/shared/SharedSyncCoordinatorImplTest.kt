@@ -156,6 +156,37 @@ class SharedSyncCoordinatorImplTest {
         assertEquals("user@example.com", coordinator.accountEmail())
     }
 
+    @Test
+    fun `signIn delegates the Google token and raw nonce to auth`() = runTest(dispatcher) {
+        auth.session = fakeSession(email = "signed-in@example.com")
+
+        val result = coordinator.signIn("google-id-token", "raw-nonce")
+
+        assertTrue(result.isSuccess)
+        assertEquals("google-id-token" to "raw-nonce", auth.lastSignIn)
+    }
+
+    @Test
+    fun `signIn propagates authentication failure`() = runTest(dispatcher) {
+        auth.signInFailure = SyncException(SyncError.Auth)
+
+        val result = coordinator.signIn("google-id-token", "raw-nonce")
+
+        assertTrue(result.isFailure)
+        assertEquals(SyncError.Auth, (result.exceptionOrNull() as SyncException).syncError)
+    }
+
+    @Test
+    fun `signOut delegates to auth and removes the cached session`() = runTest(dispatcher) {
+        auth.session = fakeSession()
+
+        val result = coordinator.signOut()
+
+        assertTrue(result.isSuccess)
+        assertEquals(1, auth.signOutCalls)
+        assertNull(auth.session)
+    }
+
     // ── createWorkspace ────────────────────────────────────────────────────
 
     @Test
@@ -430,13 +461,18 @@ class SharedSyncCoordinatorImplTest {
     private inner class FakeSharedAuth : SharedAuth {
         var session: SharedSession? = null
         var signOutCalls = 0
+        var lastSignIn: Pair<String, String>? = null
+        var signInFailure: Throwable? = null
 
         override fun currentSession() = session
         override suspend fun signInWithGoogle(
             googleIdToken: String,
             nonce: String,
-        ) =
-            Result.success(session ?: fakeSession())
+        ): Result<SharedSession> {
+            lastSignIn = googleIdToken to nonce
+            signInFailure?.let { return Result.failure(it) }
+            return Result.success(session ?: fakeSession())
+        }
         override suspend fun signOut(): Result<Unit> {
             signOutCalls++
             session = null

@@ -63,7 +63,55 @@ class SupabaseSharedTransportTest {
         assertEquals("google", body["provider"]?.jsonPrimitive?.content)
         assertEquals("google-id-token", body["id_token"]?.jsonPrimitive?.content)
         assertEquals("request-nonce", body["nonce"]?.jsonPrimitive?.content)
+        assertEquals("user-1", session.user.id)
         assertEquals("member@example.com", session.user.email)
+        assertEquals("shared-access-token", session.accessToken)
+        assertEquals(session, auth.currentSession())
+    }
+
+    @Test
+    fun `Google id token exchange rejects blank credentials without a network call`() = runTest {
+        val result = auth.signInWithGoogle(googleIdToken = "", nonce = "request-nonce")
+
+        assertSyncError(result, SyncError.Auth)
+        assertEquals(0, server.requestCount)
+        assertNull(auth.currentSession())
+    }
+
+    @Test
+    fun `Google id token exchange maps an incomplete session payload to a server error`() = runTest {
+        server.enqueue(
+            MockResponse().setResponseCode(200).setBody(
+                """{"access_token":"shared-access-token","user":{"id":"user-1"}}""",
+            ),
+        )
+
+        val result = auth.signInWithGoogle("google-id-token", "request-nonce")
+
+        assertSyncError(result, SyncError.Server)
+        assertNull(auth.currentSession())
+    }
+
+    @Test
+    fun `sign out sends the session bearer and clears the cached session`() = runTest {
+        signIn()
+        server.enqueue(MockResponse().setResponseCode(204))
+
+        auth.signOut().getOrThrow()
+
+        val request = server.takeRequest()
+        assertEquals("/auth/v1/logout", request.path)
+        assertEquals("anon-key", request.getHeader("apikey"))
+        assertEquals("Bearer shared-access-token", request.getHeader("Authorization"))
+        assertNull(auth.currentSession())
+    }
+
+    @Test
+    fun `rpc without a session fails with auth and does not issue a request`() = runTest {
+        val result = workspaceRpc.createWorkspace("Budget")
+
+        assertSyncError(result, SyncError.Auth)
+        assertEquals(0, server.requestCount)
     }
 
     @Test
@@ -112,6 +160,37 @@ class SupabaseSharedTransportTest {
     }
 
     @Test
+    fun `journal rpc maps Supabase HTTP statuses to sync errors`() = runTest {
+        signIn()
+        val statusMappings =
+            listOf(
+                401 to SyncError.Auth,
+                409 to SyncError.Conflict,
+                429 to SyncError.Quota,
+                500 to SyncError.Server,
+                404 to SyncError.Unknown,
+            )
+
+        statusMappings.forEachIndexed { index, (status, expectedError) ->
+            server.enqueue(MockResponse().setResponseCode(status))
+            val result =
+                journalRpc.pushOperation(
+                    workspaceId = "workspace-1",
+                    idempotencyKey = "operation-$index",
+                    baseSequence = 0,
+                    deviceId = "device-1",
+                    entityKind = "account",
+                    entityId = "account-1",
+                    payload = null,
+                    tombstone = true,
+                )
+
+            assertSyncError(result, expectedError)
+            server.takeRequest()
+        }
+    }
+
+    @Test
     fun `void workspace RPCs succeed on empty 204 responses`() = runTest {
         signIn()
         repeat(3) { server.enqueue(MockResponse().setResponseCode(204)) }
@@ -133,5 +212,13 @@ class SupabaseSharedTransportTest {
         )
         auth.signInWithGoogle("google-id-token", "request-nonce").getOrThrow()
         server.takeRequest()
+    }
+
+    private fun assertSyncError(
+        result: Result<*>,
+        expected: SyncError,
+    ) {
+        val exception = result.exceptionOrNull() as? SyncException
+        assertEquals(expected, exception?.syncError)
     }
 }

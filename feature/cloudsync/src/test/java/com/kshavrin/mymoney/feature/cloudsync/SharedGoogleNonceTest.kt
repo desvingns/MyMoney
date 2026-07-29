@@ -1,14 +1,20 @@
 package com.kshavrin.mymoney.feature.cloudsync
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Test
 
 class SharedGoogleNonceTest {
     @Test
-    fun `Credential Manager nonce is SHA-256 hex of the raw Supabase nonce`() {
+    fun `Credential Manager nonce is hashed while the Supabase nonce remains raw`() {
+        val rawNonce = "abc"
+
+        val credentialNonce = sharedGoogleCredentialNonce(rawNonce)
+
+        assertNotEquals(rawNonce, credentialNonce)
         assertEquals(
             "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
-            sharedGoogleCredentialNonce("abc"),
+            credentialNonce,
         )
     }
 }

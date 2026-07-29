@@ -83,4 +83,31 @@ class SupabaseConfigTest {
         )
         assertFalse(config.isConfigured)
     }
+
+    @Test
+    fun `isGoogleSignInConfigured returns true only when the base config and client id are valid`() {
+        val config = SupabaseConfig(
+            url = "https://xyzxyz.supabase.co",
+            anonKey = "valid-anon-key",
+            googleWebClientId = "123.apps.googleusercontent.com",
+        )
+
+        assertTrue(config.isGoogleSignInConfigured)
+    }
+
+    @Test
+    fun `isGoogleSignInConfigured rejects blank and placeholder client ids`() {
+        val blank = SupabaseConfig(
+            url = "https://xyzxyz.supabase.co",
+            anonKey = "valid-anon-key",
+        )
+        val placeholder = SupabaseConfig(
+            url = "https://xyzxyz.supabase.co",
+            anonKey = "valid-anon-key",
+            googleWebClientId = "PLACEHOLDER_GOOGLE_CLIENT_ID",
+        )
+
+        assertFalse(blank.isGoogleSignInConfigured)
+        assertFalse(placeholder.isGoogleSignInConfigured)
+    }
 }

@@ -1,5 +1,8 @@
 package com.kshavrin.mymoney.feature.cloudsync
 
+import app.cash.turbine.test
+import com.kshavrin.mymoney.core.common.exception.SyncError
+import com.kshavrin.mymoney.core.common.exception.SyncException
 import com.kshavrin.mymoney.core.datastore.CloudBinding
 import com.kshavrin.mymoney.core.datastore.CloudProvider
 import com.kshavrin.mymoney.core.datastore.JournalSyncConfigStore
@@ -114,6 +117,31 @@ class CloudSyncViewModelTest {
     }
 
     @Test
+    fun `SharedSignInClicked emits the shared Google sign-in action when no provider is active`() = runTest {
+        val vm = viewModel(SnapshotFake(), RecordingJournalSync(), Config(null), Scheduler())
+
+        vm.actions.test {
+            vm.onEvent(CloudSyncEvent.SharedSignInClicked)
+            assertEquals(CloudSyncAction.LaunchSharedGoogleSignIn, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `SharedSignInFailed clears progress and shows the authentication error`() = runTest {
+        val vm = viewModel(SnapshotFake(), RecordingJournalSync(), Config(null), Scheduler())
+
+        vm.onEvent(CloudSyncEvent.SharedSignInClicked)
+        runCurrent()
+        assertTrue(vm.state.value.isConnecting)
+
+        vm.onEvent(CloudSyncEvent.SharedSignInFailed)
+
+        assertFalse(vm.state.value.isConnecting)
+        assertEquals(R.string.sync_err_auth, vm.state.value.errorBannerRes)
+    }
+
+    @Test
     fun `SharedSetupClicked when not signed in shows sign-in-required error`() = runTest {
         val vm = viewModel(SnapshotFake(), RecordingJournalSync(), Config(null), Scheduler())
         vm.onEvent(CloudSyncEvent.SharedSetupClicked)
@@ -129,6 +157,21 @@ class CloudSyncViewModelTest {
         runCurrent()
 
         assertEquals("google-id-token" to "request-nonce", shared.lastSignIn)
+    }
+
+    @Test
+    fun `SharedSignInCompleted maps coordinator authentication failure to an error banner`() = runTest {
+        val shared =
+            SharedCoordinator().apply {
+                signInResult = Result.failure(SyncException(SyncError.Auth))
+            }
+        val vm = viewModel(SnapshotFake(), RecordingJournalSync(), Config(null), Scheduler(), shared = shared)
+
+        vm.onEvent(CloudSyncEvent.SharedSignInCompleted("google-id-token", "request-nonce"))
+        runCurrent()
+
+        assertFalse(vm.state.value.isConnecting)
+        assertEquals(R.string.sync_err_auth, vm.state.value.errorBannerRes)
     }
 
     @Test
@@ -198,6 +241,18 @@ class CloudSyncViewModelTest {
         runCurrent()
         assertTrue(shared.leaveCalls > 0)
         assertFalse(vm.state.value.isConnecting)
+    }
+
+    @Test
+    fun `SharedConfirmLeave emits credential-state cleanup after a successful leave`() = runTest {
+        val shared = SharedCoordinator().apply { signedIn = true }
+        val vm = viewModel(SnapshotFake(), RecordingJournalSync(), Config(null), Scheduler(), shared = shared)
+
+        vm.actions.test {
+            vm.onEvent(CloudSyncEvent.SharedConfirmLeave)
+            assertEquals(CloudSyncAction.ClearSharedGoogleCredentialState, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 
     @Test
@@ -373,6 +428,7 @@ class CloudSyncViewModelTest {
         var lastJoinToken: String? = null
         var lastResolve: Pair<String, String>? = null
         var lastSignIn: Pair<String, String>? = null
+        var signInResult: Result<Unit> = Result.success(Unit)
 
         override fun isSignedIn() = signedIn
         override fun accountEmail(): String? = if (signedIn) "user@example.com" else null
@@ -381,7 +437,7 @@ class CloudSyncViewModelTest {
             nonce: String,
         ): Result<Unit> {
             lastSignIn = googleIdToken to nonce
-            return Result.success(Unit)
+            return signInResult
         }
         override suspend fun signOut() = Result.success(Unit)
         override suspend fun activeWorkspace() = workspaceSummary

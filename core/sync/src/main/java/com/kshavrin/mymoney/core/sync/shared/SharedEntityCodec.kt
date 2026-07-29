@@ -34,6 +34,7 @@ class SharedEntityCodec
         fun encodeTransaction(
             transaction: Transaction,
             uuid: String,
+            currencyCode: String,
             accountUuid: String,
             categoryUuid: String?,
             toAccountUuid: String?,
@@ -45,6 +46,8 @@ class SharedEntityCodec
                     put("id", transaction.id)
                     put("kind", transaction.kind.name)
                     put("amount", transaction.amount.toPlainString())
+                    // Currency ids are not stable across installs; carry the ISO code and resolve on apply.
+                    put("currencyCode", currencyCode)
                     put("currencyId", transaction.currencyId)
                     // Portable cross-device references: apply resolves these uuids back to LOCAL ids.
                     // The numeric *Id fields are the sender's local Room ids, kept only for debugging.
@@ -64,8 +67,9 @@ class SharedEntityCodec
                 },
             )
 
-        /** Portable foreign-key references carried by a transaction payload. */
+        /** Portable references carried by a transaction payload, resolved to LOCAL ids on apply. */
         data class TransactionRefs(
+            val currencyCode: String,
             val accountUuid: String,
             val categoryUuid: String?,
             val toAccountUuid: String?,
@@ -74,19 +78,24 @@ class SharedEntityCodec
         fun decodeTransactionRefs(payload: String): TransactionRefs {
             val obj = json.parseToJsonElement(payload) as JsonObject
             return TransactionRefs(
+                currencyCode = obj.string("currencyCode"),
                 accountUuid = obj.string("accountUuid"),
                 categoryUuid = obj.stringOrNull("categoryUuid"),
                 toAccountUuid = obj.stringOrNull("toAccountUuid"),
             )
         }
 
+        /**
+         * Decode with placeholder currency/account/category ids (0). The caller MUST overwrite
+         * currencyId/accountId/categoryId/toAccountId with LOCAL ids resolved from [TransactionRefs].
+         */
         fun decodeTransaction(payload: String): Transaction {
             val obj = json.parseToJsonElement(payload) as JsonObject
             return Transaction(
                 id = obj.long("id"),
                 kind = TransactionKind.valueOf(obj.string("kind")),
                 amount = obj.decimal("amount"),
-                currencyId = obj.long("currencyId"),
+                currencyId = 0L,
                 accountId = obj.long("accountId"),
                 categoryId = obj.longOrNull("categoryId"),
                 note = obj.stringOrNull("note"),
@@ -103,6 +112,7 @@ class SharedEntityCodec
         fun encodeAccount(
             account: Account,
             uuid: String,
+            currencyCode: String,
         ): String =
             json.encodeToString(
                 JsonObject.serializer(),
@@ -110,6 +120,8 @@ class SharedEntityCodec
                     put("uuid", uuid)
                     put("id", account.id)
                     put("name", account.name)
+                    // Currency ids are not stable across installs; carry the ISO code and resolve on apply.
+                    put("currencyCode", currencyCode)
                     put("currencyId", account.currencyId)
                     put("initialBalance", account.initialBalance.toPlainString())
                     put("type", account.type.name)
@@ -123,12 +135,19 @@ class SharedEntityCodec
                 },
             )
 
+        fun decodeAccountCurrencyCode(payload: String): String =
+            (json.parseToJsonElement(payload) as JsonObject).string("currencyCode")
+
+        /**
+         * Decode with a placeholder currencyId (0). The caller MUST overwrite currencyId with the
+         * LOCAL id resolved from [decodeAccountCurrencyCode].
+         */
         fun decodeAccount(payload: String): Account {
             val obj = json.parseToJsonElement(payload) as JsonObject
             return Account(
                 id = obj.long("id"),
                 name = obj.string("name"),
-                currencyId = obj.long("currencyId"),
+                currencyId = 0L,
                 initialBalance = obj.decimal("initialBalance"),
                 type = AccountType.valueOf(obj.string("type")),
                 colorHex = obj.string("colorHex"),

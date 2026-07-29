@@ -7,6 +7,9 @@ import java.math.BigDecimal
 interface AccountRepository {
     fun observeActive(): Flow<List<Account>>
 
+    /** Every account, including archived ones — for publishing full history to a Shared workspace. */
+    suspend fun listAllIncludingArchived(): List<Account>
+
     suspend fun findById(id: Long): Account?
 
     suspend fun findDefault(): Account?

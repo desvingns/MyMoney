@@ -38,6 +38,11 @@ class AccountRepositoryImpl
     ) : AccountRepository {
         override fun observeActive(): Flow<List<Account>> = dao.observeActive().map { list -> list.map { it.toDomain() } }
 
+        override suspend fun listAllIncludingArchived(): List<Account> =
+            withContext(ioDispatcher) {
+                dao.listAll().map { it.toDomain() }
+            }
+
         override suspend fun findById(id: Long): Account? =
             withContext(ioDispatcher) {
                 dao.findById(id)?.toDomain()

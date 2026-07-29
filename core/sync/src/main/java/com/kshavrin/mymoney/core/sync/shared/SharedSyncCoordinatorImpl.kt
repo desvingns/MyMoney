@@ -13,6 +13,7 @@ import com.kshavrin.mymoney.core.datastore.SharedSyncStore
 import com.kshavrin.mymoney.core.domain.repository.AccountRepository
 import com.kshavrin.mymoney.core.domain.repository.BackupRepository
 import com.kshavrin.mymoney.core.domain.repository.CategoryRepository
+import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
 import com.kshavrin.mymoney.core.domain.repository.SharedJournalRepository
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
 import com.kshavrin.mymoney.core.domain.sync.DeviceIdProvider
@@ -45,6 +46,7 @@ class SharedSyncCoordinatorImpl
         private val transactionRepository: TransactionRepository,
         private val accountRepository: AccountRepository,
         private val categoryRepository: CategoryRepository,
+        private val currencyRepository: CurrencyRepository,
         private val codec: SharedEntityCodec,
         private val database: MoneyDatabase,
         private val clock: Clock,
@@ -221,9 +223,12 @@ class SharedSyncCoordinatorImpl
                         operation.payload?.let { payload ->
                             val decoded = codec.decodeTransaction(payload)
                             val refs = codec.decodeTransactionRefs(payload)
-                            // Remap portable FK uuids to LOCAL ids. A null lookup (the referenced
-                            // account/category has not been applied yet) throws, so the per-operation
-                            // catch logs and skips this op; its create arrives on a later pull.
+                            // Remap portable references to LOCAL ids. A null lookup (referenced
+                            // currency/account/category not present yet) throws, so the per-operation
+                            // catch logs and skips this op; the missing row arrives on a later pull.
+                            val currencyId =
+                                currencyRepository.findByCode(refs.currencyCode)?.id
+                                    ?: error("shared transaction references unknown currency ${refs.currencyCode}")
                             val accountId =
                                 accountRepository.idForUuid(refs.accountUuid)
                                     ?: error("shared transaction references unknown account ${refs.accountUuid}")
@@ -238,7 +243,12 @@ class SharedSyncCoordinatorImpl
                                         ?: error("shared transaction references unknown account $it")
                                 }
                             transactionRepository.applySharedUpsert(
-                                decoded.copy(accountId = accountId, categoryId = categoryId, toAccountId = toAccountId),
+                                decoded.copy(
+                                    currencyId = currencyId,
+                                    accountId = accountId,
+                                    categoryId = categoryId,
+                                    toAccountId = toAccountId,
+                                ),
                                 uuid,
                                 deviceId,
                             )
@@ -248,8 +258,13 @@ class SharedSyncCoordinatorImpl
                     if (operation.tombstone) {
                         accountRepository.applySharedArchive(uuid)
                     } else {
-                        operation.payload?.let {
-                            accountRepository.applySharedUpsert(codec.decodeAccount(it), uuid, deviceId)
+                        operation.payload?.let { payload ->
+                            val decoded = codec.decodeAccount(payload)
+                            val currencyCode = codec.decodeAccountCurrencyCode(payload)
+                            val currencyId =
+                                currencyRepository.findByCode(currencyCode)?.id
+                                    ?: error("shared account references unknown currency $currencyCode")
+                            accountRepository.applySharedUpsert(decoded.copy(currencyId = currencyId), uuid, deviceId)
                         }
                     }
                 EntityKind.Category ->
@@ -266,9 +281,17 @@ class SharedSyncCoordinatorImpl
         private suspend fun publishLocalData(workspaceId: String) {
             val deviceId = deviceIdProvider.deviceId()
             val baseSequence = sharedStore.cursor()
-            accountRepository.observeActive().first().forEach { account ->
+            accountRepository.listAllIncludingArchived().forEach { account ->
                 val uuid = accountRepository.uuidForId(account.id) ?: return@forEach
-                push(workspaceId, deviceId, baseSequence, EntityKind.Account, uuid, codec.encodeAccount(account, uuid))
+                val currencyCode = currencyRepository.findById(account.currencyId)?.code ?: return@forEach
+                push(
+                    workspaceId,
+                    deviceId,
+                    baseSequence,
+                    EntityKind.Account,
+                    uuid,
+                    codec.encodeAccount(account, uuid, currencyCode),
+                )
             }
             categoryRepository.observeAll().first().forEach { category ->
                 val uuid = categoryRepository.uuidForId(category.id) ?: return@forEach
@@ -276,8 +299,9 @@ class SharedSyncCoordinatorImpl
             }
             transactionRepository.observeAll().first().forEach { transaction ->
                 val uuid = transactionRepository.uuidForId(transaction.id) ?: return@forEach
-                // Publish portable FK references. If any referenced row lacks a uuid it cannot be
+                // Publish portable references. If any referenced row lacks a uuid/code it cannot be
                 // shared portably yet, so skip the whole transaction rather than emit a broken ref.
+                val currencyCode = currencyRepository.findById(transaction.currencyId)?.code ?: return@forEach
                 val accountUuid = accountRepository.uuidForId(transaction.accountId) ?: return@forEach
                 val categoryUuid =
                     transaction.categoryId?.let { categoryRepository.uuidForId(it) ?: return@forEach }
@@ -289,7 +313,7 @@ class SharedSyncCoordinatorImpl
                     baseSequence,
                     EntityKind.Transaction,
                     uuid,
-                    codec.encodeTransaction(transaction, uuid, accountUuid, categoryUuid, toAccountUuid),
+                    codec.encodeTransaction(transaction, uuid, currencyCode, accountUuid, categoryUuid, toAccountUuid),
                 )
             }
         }

@@ -88,6 +88,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
+import java.security.MessageDigest
 import java.security.SecureRandom
 import java.util.Locale
 import com.kshavrin.mymoney.core.sync.BuildConfig as SyncBuildConfig
@@ -197,13 +198,23 @@ fun CloudSyncRoute(
             try {
                 sharedCredentialManager.getCredential(
                     context = activity,
-                    request = sharedGoogleCredentialRequest(webClientId, nonce, authorizedAccountsOnly = true),
+                    request =
+                        sharedGoogleCredentialRequest(
+                            webClientId,
+                            sharedGoogleCredentialNonce(nonce),
+                            authorizedAccountsOnly = true,
+                        ),
                 )
             } catch (_: NoCredentialException) {
                 try {
                     sharedCredentialManager.getCredential(
                         context = activity,
-                        request = sharedGoogleCredentialRequest(webClientId, nonce, authorizedAccountsOnly = false),
+                        request =
+                            sharedGoogleCredentialRequest(
+                                webClientId,
+                                sharedGoogleCredentialNonce(nonce),
+                                authorizedAccountsOnly = false,
+                            ),
                     )
                 } catch (t: Throwable) {
                     t.reportToSentry()
@@ -888,6 +899,12 @@ private fun generateGoogleNonce(): String =
     ByteArray(NONCE_BYTES)
         .also(SecureRandom()::nextBytes)
         .let { Base64.encodeToString(it, Base64.NO_WRAP or Base64.URL_SAFE or Base64.NO_PADDING) }
+
+internal fun sharedGoogleCredentialNonce(rawNonce: String): String =
+    MessageDigest
+        .getInstance("SHA-256")
+        .digest(rawNonce.toByteArray(Charsets.UTF_8))
+        .joinToString(separator = "") { byte -> "%02x".format(byte.toInt() and 0xff) }
 
 private fun sharedGoogleCredentialRequest(
     webClientId: String,

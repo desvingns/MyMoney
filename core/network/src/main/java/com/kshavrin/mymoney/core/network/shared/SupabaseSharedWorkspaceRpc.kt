@@ -65,13 +65,13 @@ class SupabaseSharedWorkspaceRpc
             rpc("join_workspace", buildJsonObject { put("p_token", token) }, ::workspaceFrom)
 
         override suspend fun revokeInvite(inviteId: String): Result<Unit> =
-            rpc("revoke_invite", buildJsonObject { put("p_invite_id", inviteId) }) { Unit }
+            rpcUnit("revoke_invite", buildJsonObject { put("p_invite_id", inviteId) })
 
         override suspend fun leaveWorkspace(workspaceId: String): Result<Unit> =
-            rpc("leave_workspace", buildJsonObject { put("p_workspace_id", workspaceId) }) { Unit }
+            rpcUnit("leave_workspace", buildJsonObject { put("p_workspace_id", workspaceId) })
 
         override suspend fun deleteWorkspace(workspaceId: String): Result<Unit> =
-            rpc("delete_workspace", buildJsonObject { put("p_workspace_id", workspaceId) }) { Unit }
+            rpcUnit("delete_workspace", buildJsonObject { put("p_workspace_id", workspaceId) })
 
         private suspend fun <T> rpc(
             name: String,
@@ -85,6 +85,14 @@ class SupabaseSharedWorkspaceRpc
         }
 
         private fun accessTokenOrFailure(): String? = runCatching(auth::requireAccessToken).getOrNull()
+
+        private suspend fun rpcUnit(
+            name: String,
+            payload: kotlinx.serialization.json.JsonObject,
+        ): Result<Unit> {
+            val accessToken = accessTokenOrFailure() ?: return Result.failure(SyncException(SyncError.Auth))
+            return http.post("rest/v1/rpc/$name", payload, accessToken).map { Unit }
+        }
 
         private fun workspaceFrom(value: kotlinx.serialization.json.JsonObject): SharedWorkspace =
             SharedWorkspace(

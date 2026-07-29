@@ -111,6 +111,20 @@ class SupabaseSharedTransportTest {
         assertEquals(SyncError.Auth, (result.exceptionOrNull() as SyncException).syncError)
     }
 
+    @Test
+    fun `void workspace RPCs succeed on empty 204 responses`() = runTest {
+        signIn()
+        repeat(3) { server.enqueue(MockResponse().setResponseCode(204)) }
+
+        workspaceRpc.revokeInvite("invite-1").getOrThrow()
+        workspaceRpc.leaveWorkspace("workspace-1").getOrThrow()
+        workspaceRpc.deleteWorkspace("workspace-1").getOrThrow()
+
+        assertEquals("/rest/v1/rpc/revoke_invite", server.takeRequest().path)
+        assertEquals("/rest/v1/rpc/leave_workspace", server.takeRequest().path)
+        assertEquals("/rest/v1/rpc/delete_workspace", server.takeRequest().path)
+    }
+
     private suspend fun signIn() {
         server.enqueue(
             MockResponse().setResponseCode(200).setBody(

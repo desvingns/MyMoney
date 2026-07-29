@@ -576,6 +576,7 @@ class CloudSyncViewModel
                 var restored = false
                 _state.value = _state.value.copy(isConnecting = true, errorBannerRes = null)
                 try {
+                    sharedCoordinator.detachForLocalRestore().getOrThrow()
                     backupRepository.importFromFile(backup.uriString).getOrThrow()
                     restored = true
                     _state.value = _state.value.copy(sharedDialog = null)

@@ -43,6 +43,11 @@ class SyncSchedulerImpl
             workManager.cancelUniqueWork(SyncWorker.UNIQUE_PERIODIC)
         }
 
+        override fun cancelAllSync() {
+            workManager.cancelUniqueWork(SyncWorker.UNIQUE_PERIODIC)
+            workManager.cancelUniqueWork(SyncWorker.UNIQUE_MANUAL)
+        }
+
         override fun syncNow(target: SyncTarget?) {
             val request =
                 OneTimeWorkRequestBuilder<SyncWorker>()

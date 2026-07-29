@@ -53,5 +53,7 @@ interface SharedSyncCoordinator {
         winnerOperationId: String,
     ): Result<Unit>
 
+    suspend fun detachForLocalRestore(): Result<Unit> = Result.success(Unit)
+
     suspend fun leaveWorkspace(): Result<Unit>
 }

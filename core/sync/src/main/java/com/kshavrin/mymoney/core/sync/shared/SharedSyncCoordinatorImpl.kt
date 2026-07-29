@@ -174,6 +174,19 @@ class SharedSyncCoordinatorImpl
                 }
             }
 
+        override suspend fun detachForLocalRestore(): Result<Unit> =
+            withContext(dispatcher) {
+                operationMutex.withLock {
+                    runCatching {
+                        syncScheduler.cancelAllSync()
+                        configStore.clearBinding()
+                        sharedStore.clear()
+                        runCatching { clearSharedOutbox() }.onFailure(Throwable::reportToSentry)
+                        auth.clearLocalSession()
+                    }
+                }
+            }
+
         override suspend fun leaveWorkspace(): Result<Unit> =
             withContext(dispatcher) {
                 operationMutex.withLock {

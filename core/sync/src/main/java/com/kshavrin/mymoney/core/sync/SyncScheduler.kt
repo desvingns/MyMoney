@@ -5,5 +5,9 @@ interface SyncScheduler {
 
     fun disablePeriodicSync()
 
+    fun cancelAllSync() {
+        disablePeriodicSync()
+    }
+
     fun syncNow(target: SyncTarget? = null)
 }

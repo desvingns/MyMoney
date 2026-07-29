@@ -7,6 +7,8 @@ import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
@@ -201,9 +203,25 @@ class SharedEntityCodec
             val fields = json.parseToJsonElement(payload) as JsonObject
             return json.encodeToString(
                 JsonObject.serializer(),
-                JsonObject(fields.filterKeys { it !in LOCAL_ID_FIELDS }),
+                canonicalizeObject(fields),
             )
         }
+
+        private fun canonicalizeObject(fields: JsonObject): JsonObject =
+            buildJsonObject {
+                fields.entries
+                    .asSequence()
+                    .filter { (key) -> key !in LOCAL_ID_FIELDS }
+                    .sortedBy { (key) -> key }
+                    .forEach { (key, value) -> put(key, canonicalize(value)) }
+            }
+
+        private fun canonicalize(element: JsonElement): JsonElement =
+            when (element) {
+                is JsonObject -> canonicalizeObject(element)
+                is JsonArray -> JsonArray(element.map(::canonicalize))
+                else -> element
+            }
 
         private fun JsonObject.string(key: String): String = getValue(key).jsonPrimitive.content
 

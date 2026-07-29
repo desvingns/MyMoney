@@ -12,4 +12,8 @@ sealed interface CloudSyncAction {
     data object LaunchSharedGoogleSignIn : CloudSyncAction
 
     data object ClearSharedGoogleCredentialState : CloudSyncAction
+
+    data class CopySharedInvite(
+        val token: String,
+    ) : CloudSyncAction
 }

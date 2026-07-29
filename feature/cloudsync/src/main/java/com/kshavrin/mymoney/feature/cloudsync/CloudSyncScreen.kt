@@ -3,6 +3,8 @@ package com.kshavrin.mymoney.feature.cloudsync
 import android.accounts.Account
 import android.accounts.AccountManager
 import android.app.Activity
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
@@ -292,6 +294,15 @@ fun CloudSyncRoute(
                     runCatching {
                         sharedCredentialManager.clearCredentialState(ClearCredentialStateRequest())
                     }.onFailure(Throwable::reportToSentry)
+                is CloudSyncAction.CopySharedInvite ->
+                    context
+                        .getSystemService(ClipboardManager::class.java)
+                        ?.setPrimaryClip(
+                            ClipData.newPlainText(
+                                context.getString(R.string.sync_shared_invite_clip_label),
+                                action.token,
+                            ),
+                        )
                 CloudSyncAction.LaunchGoogleDriveAuth ->
                     runCatching {
                         accountPickerLauncher.launch(
@@ -581,6 +592,13 @@ private fun SharedCard(
                         Text(stringResource(R.string.sync_shared_sync_now))
                     }
                     OutlinedButton(
+                        modifier = Modifier.testTag(SyncTarget.Shared.controlTag("create_invite")),
+                        onClick = { onEvent(CloudSyncEvent.SharedCreateInviteClicked) },
+                        enabled = !isConnecting,
+                    ) {
+                        Text(stringResource(R.string.sync_shared_create_invite))
+                    }
+                    OutlinedButton(
                         modifier = Modifier.testTag(SyncTarget.Shared.controlTag("leave")),
                         onClick = { onEvent(CloudSyncEvent.SharedLeaveClicked) },
                         enabled = !isConnecting,
@@ -609,6 +627,7 @@ private fun SharedDialogHost(
     when (state.sharedDialog) {
         SharedDialog.Setup -> SharedSetupDialog(importLocalData = state.importLocalData, onEvent = onEvent)
         SharedDialog.Conflicts -> SharedConflictsDialog(conflicts = state.conflicts, onEvent = onEvent)
+        is SharedDialog.Invite -> SharedInviteDialog(token = state.sharedDialog.token, onEvent = onEvent)
         SharedDialog.ConfirmLeave ->
             AlertDialog(
                 onDismissRequest = { onEvent(CloudSyncEvent.SharedDialogDismissed) },
@@ -627,6 +646,40 @@ private fun SharedDialogHost(
             )
         null -> Unit
     }
+}
+
+@Composable
+private fun SharedInviteDialog(
+    token: String,
+    onEvent: (CloudSyncEvent) -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = { onEvent(CloudSyncEvent.SharedDialogDismissed) },
+        title = { Text(stringResource(R.string.sync_shared_invite_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.s)) {
+                Text(stringResource(R.string.sync_shared_invite_body))
+                Text(
+                    modifier = Modifier.testTag("cloud_sync_shared_invite_token"),
+                    text = token,
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                modifier = Modifier.testTag("cloud_sync_shared_copy_invite"),
+                onClick = { onEvent(CloudSyncEvent.SharedCopyInviteClicked) },
+            ) {
+                Text(stringResource(R.string.sync_shared_copy_invite))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = { onEvent(CloudSyncEvent.SharedDialogDismissed) }) {
+                Text(stringResource(R.string.sync_dismiss))
+            }
+        },
+    )
 }
 
 @Composable

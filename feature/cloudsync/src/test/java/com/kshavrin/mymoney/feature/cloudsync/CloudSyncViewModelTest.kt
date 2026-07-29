@@ -18,6 +18,7 @@ import com.kshavrin.mymoney.core.sync.SnapshotSync
 import com.kshavrin.mymoney.core.sync.SyncScheduler
 import com.kshavrin.mymoney.core.sync.SyncTarget
 import com.kshavrin.mymoney.core.sync.shared.SharedSyncCoordinator
+import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceInvite
 import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceSummary
 import com.kshavrin.mymoney.core.testing.fake.FakeAppSettingsRepository
 import com.kshavrin.mymoney.feature.cloudsync.fake.FakeRemoteConfigRepository
@@ -426,6 +427,7 @@ class CloudSyncViewModelTest {
         var createCalls = 0
         var leaveCalls = 0
         var lastJoinToken: String? = null
+        var createInviteResult: Result<SharedWorkspaceInvite> = Result.failure(RuntimeException("unused"))
         var lastResolve: Pair<String, String>? = null
         var lastSignIn: Pair<String, String>? = null
         var signInResult: Result<Unit> = Result.success(Unit)
@@ -449,6 +451,7 @@ class CloudSyncViewModelTest {
             lastJoinToken = inviteToken
             return Result.success(SharedWorkspaceSummary("ws-joined", "Joined"))
         }
+        override suspend fun createInvite() = createInviteResult
         override suspend fun syncNow() = Result.success(Unit)
         override suspend fun listConflicts(): Result<List<SharedConflict>> = Result.success(conflicts)
         override suspend fun resolveConflict(conflictId: String, winnerOperationId: String): Result<Unit> {

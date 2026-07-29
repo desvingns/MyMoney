@@ -114,6 +114,16 @@ class SharedSyncCoordinatorImpl
                 }
             }
 
+        override suspend fun createInvite(): Result<SharedWorkspaceInvite> =
+            withContext(dispatcher) {
+                operationMutex.withLock {
+                    runCatching {
+                        ensureSignedIn()
+                        SharedWorkspaceInvite(workspaceApi.createInvite(requireActiveWorkspaceId()).getOrThrow().token)
+                    }
+                }
+            }
+
         override suspend fun syncNow(): Result<Unit> =
             withContext(dispatcher) {
                 operationMutex.withLock {

@@ -54,6 +54,10 @@ sealed interface SharedDialog {
     data object Conflicts : SharedDialog
 
     data object ConfirmLeave : SharedDialog
+
+    data class Invite(
+        val token: String,
+    ) : SharedDialog
 }
 
 data class ConflictUi(

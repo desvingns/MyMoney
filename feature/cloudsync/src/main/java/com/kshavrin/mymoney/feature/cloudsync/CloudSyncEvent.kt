@@ -64,6 +64,10 @@ sealed interface CloudSyncEvent {
         val inviteToken: String,
     ) : CloudSyncEvent
 
+    data object SharedCreateInviteClicked : CloudSyncEvent
+
+    data object SharedCopyInviteClicked : CloudSyncEvent
+
     data object SharedSyncNowClicked : CloudSyncEvent
 
     data object SharedConflictsClicked : CloudSyncEvent

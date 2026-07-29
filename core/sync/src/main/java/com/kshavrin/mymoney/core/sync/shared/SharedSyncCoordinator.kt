@@ -7,6 +7,10 @@ data class SharedWorkspaceSummary(
     val name: String,
 )
 
+data class SharedWorkspaceInvite(
+    val token: String,
+)
+
 /**
  * Single orchestration entry point for Shared sync mode. Unlike the file-exchange
  * [com.kshavrin.mymoney.core.sync.JournalSync], Shared mode is a server-side operation log:
@@ -37,6 +41,8 @@ interface SharedSyncCoordinator {
         inviteToken: String,
         importLocalData: Boolean,
     ): Result<SharedWorkspaceSummary>
+
+    suspend fun createInvite(): Result<SharedWorkspaceInvite>
 
     suspend fun syncNow(): Result<Unit>
 

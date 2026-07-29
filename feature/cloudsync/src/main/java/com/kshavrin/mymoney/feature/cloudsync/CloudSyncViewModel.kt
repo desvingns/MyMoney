@@ -101,6 +101,8 @@ class CloudSyncViewModel
                     _state.value = _state.value.copy(importLocalData = event.importLocalData)
                 is CloudSyncEvent.SharedCreateWorkspace -> createSharedWorkspace(event.name)
                 is CloudSyncEvent.SharedJoinWorkspace -> joinSharedWorkspace(event.inviteToken)
+                CloudSyncEvent.SharedCreateInviteClicked -> createSharedInvite()
+                CloudSyncEvent.SharedCopyInviteClicked -> copySharedInvite()
                 CloudSyncEvent.SharedSyncNowClicked -> sharedSyncNow()
                 CloudSyncEvent.SharedConflictsClicked -> openSharedConflicts()
                 is CloudSyncEvent.SharedResolveConflict -> resolveSharedConflict(event.conflictId, event.winnerOperationId)
@@ -419,6 +421,26 @@ class CloudSyncViewModel
 
         private fun joinSharedWorkspace(inviteToken: String) {
             runSharedSetup { sharedCoordinator.joinWorkspace(inviteToken.trim(), _state.value.importLocalData) }
+        }
+
+        private fun createSharedInvite() {
+            viewModelScope.launch {
+                _state.value = _state.value.copy(isConnecting = true, errorBannerRes = null)
+                try {
+                    val invite = sharedCoordinator.createInvite().getOrThrow()
+                    _state.value = _state.value.copy(sharedDialog = SharedDialog.Invite(invite.token))
+                } catch (t: Throwable) {
+                    if (t is CancellationException) throw t
+                    reportAndShow(t)
+                } finally {
+                    _state.value = _state.value.copy(isConnecting = false)
+                }
+            }
+        }
+
+        private fun copySharedInvite() {
+            val invite = _state.value.sharedDialog as? SharedDialog.Invite ?: return
+            viewModelScope.launch { _actions.emit(CloudSyncAction.CopySharedInvite(invite.token)) }
         }
 
         private fun runSharedSetup(block: suspend () -> Result<*>) {

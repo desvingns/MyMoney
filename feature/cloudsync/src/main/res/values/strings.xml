@@ -51,6 +51,11 @@
     <string name="sync_shared_import_publish">Import my current data into the workspace</string>
     <string name="sync_shared_create">Create</string>
     <string name="sync_shared_join">Join</string>
+    <string name="sync_shared_create_invite">Create invite</string>
+    <string name="sync_shared_invite_title">One-time invite code</string>
+    <string name="sync_shared_invite_body">Share this code only with the person you want to invite. It will not be shown again after you close this dialog.</string>
+    <string name="sync_shared_copy_invite">Copy code</string>
+    <string name="sync_shared_invite_clip_label">Shared workspace invite code</string>
     <string name="sync_shared_sync_now">Sync now</string>
     <string name="sync_shared_leave">Leave workspace</string>
     <string name="sync_shared_leave_title">Leave shared workspace?</string>

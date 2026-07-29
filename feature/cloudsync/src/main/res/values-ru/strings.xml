@@ -51,6 +51,11 @@
     <string name="sync_shared_import_publish">Импортировать мои текущие данные в пространство</string>
     <string name="sync_shared_create">Создать</string>
     <string name="sync_shared_join">Присоединиться</string>
+    <string name="sync_shared_create_invite">Создать приглашение</string>
+    <string name="sync_shared_invite_title">Одноразовый код приглашения</string>
+    <string name="sync_shared_invite_body">Передайте этот код только тому, кого хотите пригласить. После закрытия этого окна он больше не будет показан.</string>
+    <string name="sync_shared_copy_invite">Скопировать код</string>
+    <string name="sync_shared_invite_clip_label">Код приглашения в общее пространство</string>
     <string name="sync_shared_sync_now">Синхронизировать</string>
     <string name="sync_shared_leave">Покинуть пространство</string>
     <string name="sync_shared_leave_title">Покинуть общее пространство?</string>

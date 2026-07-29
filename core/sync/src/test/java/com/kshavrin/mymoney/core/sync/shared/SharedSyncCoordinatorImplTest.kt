@@ -579,6 +579,7 @@ class SharedSyncCoordinatorImplTest {
     private inner class FakeSharedWorkspaceApi : SharedWorkspaceApi {
         var createResult: Result<SharedWorkspace> = Result.failure(RuntimeException("not set"))
         var joinResult: Result<SharedWorkspace> = Result.failure(RuntimeException("not set"))
+        var createInviteResult: Result<CreatedInvite> = Result.failure(RuntimeException("unused"))
         var leaveFailure: Throwable? = null
 
         override suspend fun createWorkspace(name: String) = createResult
@@ -589,7 +590,7 @@ class SharedSyncCoordinatorImplTest {
         }
         override suspend fun currentWorkspace() = Result.success<SharedWorkspace?>(null)
         override suspend fun listMembers(workspaceId: String) = Result.success(emptyList<WorkspaceMember>())
-        override suspend fun createInvite(workspaceId: String) = Result.failure<CreatedInvite>(RuntimeException("unused"))
+        override suspend fun createInvite(workspaceId: String) = createInviteResult
         override suspend fun revokeInvite(inviteId: String) = Result.success(Unit)
         override suspend fun deleteWorkspace(workspaceId: String) = Result.success(Unit)
     }

@@ -284,6 +284,35 @@ class SharedSyncCoordinatorImplTest {
             assertEquals(SyncError.Conflict, ex?.syncError)
         }
 
+    @Test
+    fun `discoverRemoteWorkspace reads server membership without changing local state`() =
+        runTest(dispatcher) {
+            auth.session = fakeSession()
+            workspaceApi.currentWorkspaceResult = Result.success(fakeWorkspace())
+
+            val result = coordinator.discoverRemoteWorkspace()
+
+            assertEquals(SharedWorkspaceSummary("ws-1", "Budget"), result.getOrThrow())
+            assertNull(configStore.current)
+            assertEquals(0, backupRepository.internalBackupCalls)
+            assertEquals(0, backupRepository.clearDatabaseCalls)
+        }
+
+    @Test
+    fun `recoverRemoteWorkspace clears local data only after the explicit recovery call`() =
+        runTest(dispatcher) {
+            auth.session = fakeSession()
+            workspaceApi.currentWorkspaceResult = Result.success(fakeWorkspace())
+            journalRepository.pullResults.add(Result.success(emptyList()))
+
+            val result = coordinator.recoverRemoteWorkspace(importLocalData = false)
+
+            assertTrue(result.isSuccess)
+            assertEquals(1, backupRepository.internalBackupCalls)
+            assertEquals(1, backupRepository.clearDatabaseCalls)
+            assertEquals(CloudProvider.Shared, configStore.current?.provider)
+        }
+
     // ── joinWorkspace ──────────────────────────────────────────────────────
 
     @Test
@@ -891,6 +920,7 @@ class SharedSyncCoordinatorImplTest {
         var createInviteCalls = 0
         var lastCreateInviteWorkspaceId: String? = null
         var leaveFailure: Throwable? = null
+        var currentWorkspaceResult: Result<SharedWorkspace?> = Result.success(null)
 
         override suspend fun createWorkspace(name: String) = createResult
 
@@ -901,7 +931,7 @@ class SharedSyncCoordinatorImplTest {
             return Result.success(Unit)
         }
 
-        override suspend fun currentWorkspace() = Result.success<SharedWorkspace?>(null)
+        override suspend fun currentWorkspace() = currentWorkspaceResult
 
         override suspend fun listMembers(workspaceId: String) = Result.success(emptyList<WorkspaceMember>())
 

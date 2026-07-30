@@ -92,6 +92,39 @@ class SharedSyncCoordinatorImpl
                     ?.let { SharedWorkspaceSummary(id = it.stableAccountId, name = it.accountLabel) }
             }
 
+        override suspend fun discoverRemoteWorkspace(): Result<SharedWorkspaceSummary?> =
+            withContext(dispatcher) {
+                runCatching {
+                    ensureSignedIn()
+                    workspaceApi.currentWorkspace().getOrThrow()?.let {
+                        SharedWorkspaceSummary(id = it.id, name = it.name)
+                    }
+                }
+            }
+
+        override suspend fun recoverRemoteWorkspace(
+            importLocalData: Boolean,
+        ): Result<SharedWorkspaceSummary> =
+            withContext(dispatcher) {
+                operationMutex.withLock {
+                    runCatching {
+                        ensureSignedIn()
+                        ensureNoActiveBinding()
+                        val workspace =
+                            workspaceApi.currentWorkspace().getOrThrow()
+                                ?: throw SyncException(SyncError.Auth)
+                        val backupPath = backupRepository.createInternalBackup().getOrThrow()
+                        adoptWorkspaceWithRecovery(
+                            workspace = workspace,
+                            importLocalData = importLocalData,
+                            backupPath = backupPath,
+                            remoteCompensation = {},
+                        )
+                        SharedWorkspaceSummary(workspace.id, workspace.name)
+                    }
+                }
+            }
+
         override suspend fun createWorkspace(
             name: String,
             importLocalData: Boolean,

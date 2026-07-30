@@ -10,6 +10,7 @@ import androidx.compose.ui.test.performScrollTo
 import com.kshavrin.mymoney.core.datastore.CloudBinding
 import com.kshavrin.mymoney.core.datastore.CloudProvider
 import com.kshavrin.mymoney.core.domain.model.BackupFile
+import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceSummary
 import com.kshavrin.mymoney.core.sync.SyncTarget
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import org.junit.Assert.assertEquals
@@ -291,6 +292,36 @@ class CloudSyncScreenContentTest {
         )
         // With an empty name TextField the "Create" button should be disabled
         composeTestRule.onNodeWithTag("cloud_sync_shared_create").assertExists()
+    }
+
+    @Test
+    fun `remote workspace recovery dialog keeps import choice explicit and emits confirmation`() {
+        val events = mutableListOf<CloudSyncEvent>()
+        setContent(
+            CloudSyncState(
+                sharedDialog =
+                    SharedDialog.RecoverRemoteWorkspace(
+                        SharedWorkspaceSummary("ws-1", "Family budget"),
+                    ),
+                importLocalData = false,
+            ),
+            events::add,
+        )
+
+        composeTestRule.onNodeWithText("Family budget", substring = true).assertIsDisplayed()
+        composeTestRule.onNodeWithTag("cloud_sync_shared_recovery_import_none").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("cloud_sync_shared_recovery_import_publish").performClick()
+        composeTestRule.onNodeWithTag("cloud_sync_shared_recovery_confirm").performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(
+                listOf(
+                    CloudSyncEvent.SharedImportChoiceChanged(true),
+                    CloudSyncEvent.SharedConfirmRemoteWorkspaceRecovery,
+                ),
+                events,
+            )
+        }
     }
 
     // ── SharedConflictsDialog ──────────────────────────────────────────────

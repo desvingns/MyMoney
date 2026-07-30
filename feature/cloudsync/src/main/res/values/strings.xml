@@ -49,6 +49,9 @@
     <string name="sync_shared_import_choice_title">Before joining</string>
     <string name="sync_shared_import_none">Do not import — replace my data with the shared data</string>
     <string name="sync_shared_import_publish">Import my current data into the workspace</string>
+    <string name="sync_shared_recovery_title">Existing shared workspace found</string>
+    <string name="sync_shared_recovery_body">You already belong to “%1$s”. Choose how to continue before MyMoney connects this device.</string>
+    <string name="sync_shared_recovery_confirm">Connect workspace</string>
     <string name="sync_shared_create">Create</string>
     <string name="sync_shared_join">Join</string>
     <string name="sync_shared_create_invite">Create invite</string>

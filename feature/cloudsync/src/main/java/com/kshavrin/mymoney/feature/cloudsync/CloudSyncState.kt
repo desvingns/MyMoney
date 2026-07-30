@@ -4,6 +4,7 @@ import androidx.annotation.StringRes
 import com.kshavrin.mymoney.core.datastore.CloudBinding
 import com.kshavrin.mymoney.core.domain.model.BackupFile
 import com.kshavrin.mymoney.core.sync.SyncTarget
+import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceSummary
 
 data class CloudSyncState(
     val binding: CloudBinding? = null,
@@ -53,6 +54,10 @@ data class SharedCardState(
 
 sealed interface SharedDialog {
     data object Setup : SharedDialog
+
+    data class RecoverRemoteWorkspace(
+        val workspace: SharedWorkspaceSummary,
+    ) : SharedDialog
 
     data object Conflicts : SharedDialog
 

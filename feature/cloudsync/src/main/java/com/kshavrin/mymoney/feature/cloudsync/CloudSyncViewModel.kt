@@ -103,6 +103,7 @@ class CloudSyncViewModel
                     _state.value = _state.value.copy(importLocalData = event.importLocalData)
                 is CloudSyncEvent.SharedCreateWorkspace -> createSharedWorkspace(event.name)
                 is CloudSyncEvent.SharedJoinWorkspace -> joinSharedWorkspace(event.inviteToken)
+                CloudSyncEvent.SharedConfirmRemoteWorkspaceRecovery -> recoverRemoteWorkspace()
                 CloudSyncEvent.SharedCreateInviteClicked -> createSharedInvite()
                 CloudSyncEvent.SharedCopyInviteClicked -> copySharedInvite()
                 CloudSyncEvent.SharedSyncNowClicked -> sharedSyncNow()
@@ -434,6 +435,7 @@ class CloudSyncViewModel
             viewModelScope.launch {
                 try {
                     sharedCoordinator.signIn(googleIdToken, nonce).getOrThrow()
+                    openSharedSetupOrRemoteRecovery()
                 } catch (t: Throwable) {
                     if (t is CancellationException) throw t
                     reportAndShow(t)
@@ -453,7 +455,28 @@ class CloudSyncViewModel
                 showError(R.string.sync_err_disconnect_required)
                 return
             }
-            _state.value = _state.value.copy(sharedDialog = SharedDialog.Setup, importLocalData = false)
+            openSharedSetupOrRemoteRecovery()
+        }
+
+        private fun openSharedSetupOrRemoteRecovery() {
+            viewModelScope.launch {
+                _state.value = _state.value.copy(isConnecting = true, errorBannerRes = null)
+                try {
+                    val remoteWorkspace = sharedCoordinator.discoverRemoteWorkspace().getOrThrow()
+                    _state.value =
+                        _state.value.copy(
+                            sharedDialog =
+                                remoteWorkspace?.let(SharedDialog::RecoverRemoteWorkspace)
+                                    ?: SharedDialog.Setup,
+                            importLocalData = false,
+                        )
+                } catch (t: Throwable) {
+                    if (t is CancellationException) throw t
+                    reportAndShow(t)
+                } finally {
+                    _state.value = _state.value.copy(isConnecting = false)
+                }
+            }
         }
 
         private fun createSharedWorkspace(name: String) {
@@ -462,6 +485,11 @@ class CloudSyncViewModel
 
         private fun joinSharedWorkspace(inviteToken: String) {
             runSharedSetup { sharedCoordinator.joinWorkspace(inviteToken.trim(), _state.value.importLocalData) }
+        }
+
+        private fun recoverRemoteWorkspace() {
+            if (_state.value.sharedDialog !is SharedDialog.RecoverRemoteWorkspace) return
+            runSharedSetup { sharedCoordinator.recoverRemoteWorkspace(_state.value.importLocalData) }
         }
 
         private fun createSharedInvite() {

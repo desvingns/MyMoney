@@ -193,6 +193,49 @@ class CloudSyncViewModelTest {
         }
 
     @Test
+    fun `SharedSetupClicked discovers remote workspace before offering create or join`() =
+        runTest {
+            val shared =
+                SharedCoordinator().apply {
+                    signedIn = true
+                    remoteWorkspace = SharedWorkspaceSummary("ws-remote", "Family budget")
+                }
+            val vm = viewModel(SnapshotFake(), RecordingJournalSync(), Config(null), Scheduler(), shared = shared)
+
+            vm.onEvent(CloudSyncEvent.SharedSetupClicked)
+            runCurrent()
+
+            assertEquals(
+                SharedDialog.RecoverRemoteWorkspace(SharedWorkspaceSummary("ws-remote", "Family budget")),
+                vm.state.value.sharedDialog,
+            )
+            assertFalse(vm.state.value.importLocalData)
+            assertEquals(1, shared.discoverRemoteWorkspaceCalls)
+            assertEquals(0, shared.recoverRemoteWorkspaceCalls)
+        }
+
+    @Test
+    fun `remote workspace recovery adopts only after explicit confirmation with selected import choice`() =
+        runTest {
+            val shared =
+                SharedCoordinator().apply {
+                    signedIn = true
+                    remoteWorkspace = SharedWorkspaceSummary("ws-remote", "Family budget")
+                }
+            val vm = viewModel(SnapshotFake(), RecordingJournalSync(), Config(null), Scheduler(), shared = shared)
+
+            vm.onEvent(CloudSyncEvent.SharedSetupClicked)
+            runCurrent()
+            vm.onEvent(CloudSyncEvent.SharedImportChoiceChanged(true))
+            vm.onEvent(CloudSyncEvent.SharedConfirmRemoteWorkspaceRecovery)
+            runCurrent()
+
+            assertEquals(1, shared.recoverRemoteWorkspaceCalls)
+            assertTrue(shared.lastRecoveryImportLocalData)
+            assertNull(vm.state.value.sharedDialog)
+        }
+
+    @Test
     fun `SharedSetupClicked when binding exists shows disconnect-required error`() =
         runTest {
             val shared = SharedCoordinator().apply { signedIn = true }
@@ -597,6 +640,10 @@ class CloudSyncViewModelTest {
         var signInResult: Result<Unit> = Result.success(Unit)
         var restorePaths: MutableList<String> = mutableListOf()
         var restoreResult: Result<Unit> = Result.success(Unit)
+        var remoteWorkspace: SharedWorkspaceSummary? = null
+        var discoverRemoteWorkspaceCalls = 0
+        var recoverRemoteWorkspaceCalls = 0
+        var lastRecoveryImportLocalData = false
 
         override fun isSignedIn() = signedIn
 
@@ -613,6 +660,17 @@ class CloudSyncViewModelTest {
         override suspend fun signOut() = Result.success(Unit)
 
         override suspend fun activeWorkspace() = workspaceSummary
+
+        override suspend fun discoverRemoteWorkspace(): Result<SharedWorkspaceSummary?> {
+            discoverRemoteWorkspaceCalls++
+            return Result.success(remoteWorkspace)
+        }
+
+        override suspend fun recoverRemoteWorkspace(importLocalData: Boolean): Result<SharedWorkspaceSummary> {
+            recoverRemoteWorkspaceCalls++
+            lastRecoveryImportLocalData = importLocalData
+            return Result.success(remoteWorkspace ?: SharedWorkspaceSummary("ws-recovered", "Recovered"))
+        }
 
         override suspend fun createWorkspace(
             name: String,

@@ -37,6 +37,15 @@ interface SharedSyncCoordinator {
 
     suspend fun activeWorkspace(): SharedWorkspaceSummary?
 
+    /**
+     * Reads an already-active server membership without changing local data or the local binding.
+     * The caller must ask the person using the device before calling [recoverRemoteWorkspace].
+     */
+    suspend fun discoverRemoteWorkspace(): Result<SharedWorkspaceSummary?> = Result.success(null)
+
+    suspend fun recoverRemoteWorkspace(importLocalData: Boolean): Result<SharedWorkspaceSummary> =
+        Result.failure(UnsupportedOperationException("Remote workspace recovery is not supported"))
+
     suspend fun activeWorkspaceOwnership(): Result<SharedWorkspaceOwnership> =
         Result.success(SharedWorkspaceOwnership())
 

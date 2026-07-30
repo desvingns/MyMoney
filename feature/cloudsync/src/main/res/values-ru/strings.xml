@@ -49,6 +49,9 @@
     <string name="sync_shared_import_choice_title">Перед присоединением</string>
     <string name="sync_shared_import_none">Не импортировать — заменить мои данные общими</string>
     <string name="sync_shared_import_publish">Импортировать мои текущие данные в пространство</string>
+    <string name="sync_shared_recovery_title">Найдено общее пространство</string>
+    <string name="sync_shared_recovery_body">Вы уже состоите в «%1$s». Выберите, как продолжить, прежде чем MyMoney подключит это устройство.</string>
+    <string name="sync_shared_recovery_confirm">Подключить пространство</string>
     <string name="sync_shared_create">Создать</string>
     <string name="sync_shared_join">Присоединиться</string>
     <string name="sync_shared_create_invite">Создать приглашение</string>

@@ -79,6 +79,7 @@ import com.kshavrin.mymoney.core.datastore.CloudProvider
 import com.kshavrin.mymoney.core.domain.model.BackupFile
 import com.kshavrin.mymoney.core.sync.MigrationResolution
 import com.kshavrin.mymoney.core.sync.SyncTarget
+import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceSummary
 import com.kshavrin.mymoney.core.sync.toCloudProvider
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.core.ui.theme.conflictAuthorContainer
@@ -648,6 +649,13 @@ private fun SharedDialogHost(
 ) {
     when (state.sharedDialog) {
         SharedDialog.Setup -> SharedSetupDialog(importLocalData = state.importLocalData, onEvent = onEvent)
+        is SharedDialog.RecoverRemoteWorkspace ->
+            SharedRemoteWorkspaceRecoveryDialog(
+                workspace = state.sharedDialog.workspace,
+                importLocalData = state.importLocalData,
+                isConnecting = state.isConnecting,
+                onEvent = onEvent,
+            )
         SharedDialog.Conflicts -> SharedConflictsDialog(conflicts = state.conflicts, onEvent = onEvent)
         SharedDialog.InternalBackups -> SharedInternalBackupsDialog(backups = state.internalBackups, onEvent = onEvent)
         is SharedDialog.Invite -> SharedInviteDialog(token = state.sharedDialog.token, onEvent = onEvent)
@@ -863,6 +871,57 @@ private fun SharedSetupDialog(
                 TextButton(onClick = { onEvent(CloudSyncEvent.SharedDialogDismissed) }) {
                     Text(stringResource(R.string.sync_migration_cancel))
                 }
+            }
+        },
+    )
+}
+
+@Composable
+private fun SharedRemoteWorkspaceRecoveryDialog(
+    workspace: SharedWorkspaceSummary,
+    importLocalData: Boolean,
+    isConnecting: Boolean,
+    onEvent: (CloudSyncEvent) -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = { onEvent(CloudSyncEvent.SharedDialogDismissed) },
+        title = { Text(stringResource(R.string.sync_shared_recovery_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.s)) {
+                Text(stringResource(R.string.sync_shared_recovery_body, workspace.name))
+                Text(
+                    text = stringResource(R.string.sync_shared_import_choice_title),
+                    style = MaterialTheme.typography.titleSmall,
+                )
+                ImportChoiceRow(
+                    selected = !importLocalData,
+                    label = stringResource(R.string.sync_shared_import_none),
+                    testTag = "cloud_sync_shared_recovery_import_none",
+                    onClick = { onEvent(CloudSyncEvent.SharedImportChoiceChanged(false)) },
+                )
+                ImportChoiceRow(
+                    selected = importLocalData,
+                    label = stringResource(R.string.sync_shared_import_publish),
+                    testTag = "cloud_sync_shared_recovery_import_publish",
+                    onClick = { onEvent(CloudSyncEvent.SharedImportChoiceChanged(true)) },
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                modifier = Modifier.testTag("cloud_sync_shared_recovery_confirm"),
+                onClick = { onEvent(CloudSyncEvent.SharedConfirmRemoteWorkspaceRecovery) },
+                enabled = !isConnecting,
+            ) {
+                Text(stringResource(R.string.sync_shared_recovery_confirm))
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = { onEvent(CloudSyncEvent.SharedDialogDismissed) },
+                enabled = !isConnecting,
+            ) {
+                Text(stringResource(R.string.sync_migration_cancel))
             }
         },
     )

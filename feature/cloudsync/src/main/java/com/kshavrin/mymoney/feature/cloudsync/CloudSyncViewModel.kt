@@ -23,6 +23,7 @@ import com.kshavrin.mymoney.core.sync.toCloudProvider
 import com.kshavrin.mymoney.core.sync.toSyncTarget
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,6 +34,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
@@ -494,7 +496,13 @@ class CloudSyncViewModel
                     reportAndShow(t)
                 } finally {
                     _state.value = _state.value.copy(isConnecting = false)
-                    refresh()
+                    if (sharedCoordinator.consumeRestartRequiredAfterAdoptionRecovery()) {
+                        withContext(NonCancellable) {
+                            _actions.emit(CloudSyncAction.RestartAfterInternalBackupRestore)
+                        }
+                    } else {
+                        refresh()
+                    }
                 }
             }
         }

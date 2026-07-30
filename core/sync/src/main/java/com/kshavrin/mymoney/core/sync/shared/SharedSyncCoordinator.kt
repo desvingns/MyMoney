@@ -40,6 +40,8 @@ interface SharedSyncCoordinator {
     suspend fun activeWorkspaceOwnership(): Result<SharedWorkspaceOwnership> =
         Result.success(SharedWorkspaceOwnership())
 
+    fun consumeRestartRequiredAfterAdoptionRecovery(): Boolean = false
+
     suspend fun createWorkspace(
         name: String,
         importLocalData: Boolean,

@@ -42,6 +42,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.time.Clock
 import java.util.UUID
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -69,6 +70,7 @@ class SharedSyncCoordinatorImpl
         @IoDispatcher private val dispatcher: CoroutineDispatcher,
     ) : SharedSyncCoordinator {
         private val operationMutex = Mutex()
+        private val restartRequiredAfterAdoptionRecovery = AtomicBoolean(false)
 
         override fun isSignedIn(): Boolean = auth.currentSession() != null
 
@@ -201,10 +203,10 @@ class SharedSyncCoordinatorImpl
         override suspend fun restoreInternalBackup(backupPath: String): Result<Unit> =
             withContext(dispatcher) {
                 runCatching {
+                    syncScheduler.cancelAllSync().getOrThrow()
                     executionGate.withExclusive {
                         operationMutex.withLock {
                             ensureInternalBackupRestoreAllowed()
-                            syncScheduler.cancelAllSync().getOrThrow()
                             detachForLocalRestoreLocked()
                             backupRepository.importFromFile(backupPath).getOrThrow()
                         }
@@ -238,6 +240,9 @@ class SharedSyncCoordinatorImpl
                     )
                 }
             }
+
+        override fun consumeRestartRequiredAfterAdoptionRecovery(): Boolean =
+            restartRequiredAfterAdoptionRecovery.getAndSet(false)
 
         override suspend fun deleteWorkspace(): Result<Unit> =
             withContext(dispatcher) {
@@ -290,24 +295,23 @@ class SharedSyncCoordinatorImpl
         ) {
             try {
                 adoptWorkspace(workspace, importLocalData)
-                if (importLocalData) currentCoroutineContext().ensureActive()
+                if (importLocalData) {
+                    currentCoroutineContext().ensureActive()
+                    // The local binding is committed before delivery. Shielding publication prevents a
+                    // cancellation from leaving a partial join import that a remote leave cannot retract.
+                    withContext(NonCancellable) {
+                        try {
+                            publishPendingOperations(workspace.id)
+                        } catch (failure: Throwable) {
+                            if (failure is CancellationException) throw failure
+                            failure.reportToSentry()
+                        }
+                    }
+                    currentCoroutineContext().ensureActive()
+                }
             } catch (failure: Throwable) {
                 recoverFailedAdoption(backupPath, remoteCompensation, failure)
                 throw failure
-            }
-
-            if (importLocalData) {
-                // The local binding is committed before delivery. Shielding publication prevents a
-                // cancellation from leaving a partial join import that a remote leave cannot retract.
-                withContext(NonCancellable) {
-                    try {
-                        publishPendingOperations(workspace.id)
-                    } catch (failure: Throwable) {
-                        if (failure is CancellationException) throw failure
-                        failure.reportToSentry()
-                    }
-                }
-                currentCoroutineContext().ensureActive()
             }
         }
 
@@ -323,6 +327,7 @@ class SharedSyncCoordinatorImpl
                 collectRecoveryFailure(recoveryFailures) { configStore.clearBinding() }
                 collectRecoveryFailure(recoveryFailures) { sharedStore.clear() }
                 collectRecoveryFailure(recoveryFailures) { clearSharedOutbox() }
+                restartRequiredAfterAdoptionRecovery.set(true)
                 collectRecoveryFailure(recoveryFailures) {
                     backupRepository.importFromFile(backupPath).getOrThrow()
                 }
@@ -683,21 +688,12 @@ class SharedSyncCoordinatorImpl
             }
         }
 
-        private suspend fun clearSharedLocalState() {
-            val failures = mutableListOf<Throwable>()
-            collectSharedLocalCleanupFailures(failures)
-            reportAndThrowCleanupFailures(failures)
-        }
-
         private suspend fun completeRemoteWorkspaceExit(
             backup: Result<String>,
             remoteExit: Result<Unit>,
         ) {
             val remoteError = remoteExit.exceptionOrNull()
-            val localCleanupFailures = mutableListOf<Throwable>()
-            collectSharedLocalCleanupFailures(localCleanupFailures)
-            collectCleanupFailure(localCleanupFailures) { auth.signOut().getOrThrow() }
-            collectCleanupFailure(localCleanupFailures) { auth.clearLocalSession() }
+            val localCleanupFailures = revokeSharedLocalAccess()
             localCleanupFailures.forEach(Throwable::reportToSentry)
             if (remoteError != null) {
                 remoteError.reportToSentry()
@@ -711,6 +707,15 @@ class SharedSyncCoordinatorImpl
             }
             throwCleanupFailures(localCleanupFailures)
         }
+
+        private suspend fun revokeSharedLocalAccess(): List<Throwable> =
+            withContext(NonCancellable) {
+                val failures = mutableListOf<Throwable>()
+                collectSharedLocalCleanupFailures(failures)
+                collectCleanupFailure(failures) { auth.signOut().getOrThrow() }
+                collectCleanupFailure(failures) { auth.clearLocalSession() }
+                failures
+            }
 
         private suspend fun collectSharedLocalCleanupFailures(failures: MutableList<Throwable>) {
             collectCleanupFailure(failures) { syncScheduler.disablePeriodicSync() }
@@ -726,14 +731,8 @@ class SharedSyncCoordinatorImpl
             try {
                 cleanup()
             } catch (failure: Throwable) {
-                if (failure is CancellationException) throw failure
                 failures += failure
             }
-        }
-
-        private fun reportAndThrowCleanupFailures(failures: List<Throwable>) {
-            failures.forEach(Throwable::reportToSentry)
-            throwCleanupFailures(failures)
         }
 
         private fun throwCleanupFailures(failures: List<Throwable>) {
@@ -815,9 +814,11 @@ class SharedSyncCoordinatorImpl
 
         private suspend fun <T> clearSharedStateOnAuthFailure(result: Result<T>): Result<T> {
             if (result.isAuthFailure()) {
-                clearSharedLocalState()
-                runCatching { auth.signOut().getOrThrow() }.onFailure(Throwable::reportToSentry)
-                runCatching { auth.clearLocalSession() }.onFailure(Throwable::reportToSentry)
+                val cleanupFailures = revokeSharedLocalAccess()
+                cleanupFailures.forEach(Throwable::reportToSentry)
+                result.exceptionOrNull()?.let { authFailure ->
+                    cleanupFailures.forEach(authFailure::addSuppressed)
+                }
             }
             return result
         }

@@ -2961,6 +2961,38 @@ class DashboardViewModelTest {
             }
         }
 
+    @Test
+    fun `removing the active account cancels its pending balance calculation and clears stale data`() =
+        runTest {
+            val findGate = CompletableDeferred<Unit>()
+            accountRepository =
+                object : FakeDashboardAccountRepository() {
+                    override suspend fun findById(id: Long): Account? {
+                        findGate.await()
+                        return super.findById(id)
+                    }
+                }.apply { seed(cash) }
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                accountRepository.seed()
+                runCurrent()
+                findGate.complete(Unit)
+                runCurrent()
+
+                val state = viewModel.state.value
+                assertNull(state.dashboardSelection)
+                assertNull(state.balanceSnapshot)
+                assertTrue(state.currencyCards.isEmpty())
+                assertTrue(state.slices.isEmpty())
+                assertTrue(state.expenseTiles.isEmpty())
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
     // -------------------------------------------------------------------------
     // Auto mode — trend window derived from the selected period (SPEC 01/02/03)
     // -------------------------------------------------------------------------
@@ -4914,7 +4946,7 @@ private class FakeDashboardAppSettingsRepository(
     }
 }
 
-private class FakeDashboardAccountRepository : AccountRepository {
+private open class FakeDashboardAccountRepository : AccountRepository {
     private val state = MutableStateFlow<List<Account>>(emptyList())
 
     fun seed(vararg accounts: Account) {

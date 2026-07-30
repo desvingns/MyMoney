@@ -443,10 +443,27 @@ class DashboardViewModel
 
         private fun recomputeBalance() {
             val state = _state.value
-            val selection = state.dashboardSelection ?: return
-            val period = _state.value.period
             recomputeJob?.cancel()
             neighborJob?.cancel()
+            val selection = state.dashboardSelection
+            if (selection == null) {
+                _state.value =
+                    state.copy(
+                        balanceSnapshot = null,
+                        currencyCards = emptyList(),
+                        periodNet = Money.zero(DASHBOARD_FALLBACK_CURRENCY),
+                        ringFraction = 0f,
+                        ringIsExpense = false,
+                        trendPoints = emptyList(),
+                        trendAxis = ChartTrendAxis.None,
+                        slices = emptyList(),
+                        expenseTiles = emptyList(),
+                        previousPeriodPage = null,
+                        nextPeriodPage = null,
+                    )
+                return
+            }
+            val period = _state.value.period
             if (_state.value.previousPeriodPage != null || _state.value.nextPeriodPage != null) {
                 _state.value = _state.value.copy(previousPeriodPage = null, nextPeriodPage = null)
             }

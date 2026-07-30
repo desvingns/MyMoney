@@ -258,11 +258,9 @@ class SharedSyncCoordinatorImpl
             sharedStore.clear()
             clearSharedOutbox()
             if (importLocalData) {
-                // Publish the ORIGINAL local rows before pulling remote state; applying remote
-                // operations first could overwrite a local row (IDs are still local Room ids) and
-                // then publish the overwritten remote data instead of the user's own data.
+                // Enqueue snapshots before pulling remote state. The durable outbox preserves the
+                // user's original payloads even if a remote operation subsequently changes a row.
                 enqueueLocalChanges(workspace.id)
-                publishPendingOperations(workspace.id)
                 pullAndApply(workspace.id)
             } else {
                 backupRepository.clearDatabase().getOrThrow()
@@ -293,6 +291,13 @@ class SharedSyncCoordinatorImpl
             } catch (failure: Throwable) {
                 recoverFailedAdoption(backupPath, remoteCompensation, failure)
                 throw failure
+            }
+
+            if (importLocalData) {
+                // Adoption is now locally committed and the outbox is durable. Delivery failures
+                // are retried by normal sync rather than compensating a workspace that may already
+                // have received some operations.
+                runCatching { publishPendingOperations(workspace.id) }.onFailure(Throwable::reportToSentry)
             }
         }
 
@@ -340,29 +345,65 @@ class SharedSyncCoordinatorImpl
                         .getOrThrow()
                         .sortedBy { it.serverSequence }
                 if (operations.isEmpty()) break
+
+                val deferredOperations = mutableListOf<SharedOperation>()
+                val completedSequences = mutableSetOf<Long>()
                 for (operation in operations) {
-                    // Proven malformed operations are logged and skipped, but a valid three-letter
-                    // currency reference without canonical data is retained for retry instead of losing it.
-                    try {
-                        database.withTransaction {
-                            applyOperation(operation)
-                            if (operation.tombstone || operation.payload != null) {
-                                database.sharedOutboxDao().upsertState(operation.toState())
+                    when (applyPulledOperation(operation)) {
+                        PullOperationResult.Completed -> completedSequences += operation.serverSequence
+                        PullOperationResult.Deferred -> deferredOperations += operation
+                    }
+                }
+
+                var retryMadeProgress = true
+                while (deferredOperations.isNotEmpty() && retryMadeProgress) {
+                    retryMadeProgress = false
+                    val iterator = deferredOperations.iterator()
+                    while (iterator.hasNext()) {
+                        val operation = iterator.next()
+                        when (applyPulledOperation(operation)) {
+                            PullOperationResult.Completed -> {
+                                completedSequences += operation.serverSequence
+                                iterator.remove()
+                                retryMadeProgress = true
                             }
-                        }
-                    } catch (t: Throwable) {
-                        if (t is CancellationException) throw t
-                        t.reportToSentry()
-                        if (t is SharedIntegrityException) {
-                            throw SyncException(SyncError.Conflict)
+
+                            PullOperationResult.Deferred -> Unit
                         }
                     }
-                    after = operation.serverSequence
+                }
+
+                var contiguousAfter = after
+                for (operation in operations) {
+                    if (operation.serverSequence !in completedSequences) break
+                    contiguousAfter = operation.serverSequence
+                }
+                if (contiguousAfter > after) {
+                    after = contiguousAfter
                     sharedStore.setCursor(after)
+                }
+
+                if (deferredOperations.isNotEmpty()) {
+                    throw SyncException(SyncError.Conflict)
                 }
                 if (operations.size < PAGE_SIZE) break
             }
         }
+
+        private suspend fun applyPulledOperation(operation: SharedOperation): PullOperationResult =
+            try {
+                database.withTransaction {
+                    applyOperation(operation)
+                    if (operation.tombstone || operation.payload != null) {
+                        database.sharedOutboxDao().upsertState(operation.toState())
+                    }
+                }
+                PullOperationResult.Completed
+            } catch (t: Throwable) {
+                if (t is CancellationException) throw t
+                t.reportToSentry()
+                if (t is SharedIntegrityException) PullOperationResult.Deferred else PullOperationResult.Completed
+            }
 
         private suspend fun applyOperation(operation: SharedOperation) {
             // entityId carries the stable cross-device uuid. Apply keyed by
@@ -625,14 +666,20 @@ class SharedSyncCoordinatorImpl
             remoteExit: Result<Unit>,
         ) {
             val remoteError = remoteExit.exceptionOrNull()
-            if (remoteError != null) {
-                backup.exceptionOrNull()?.let(remoteError::addSuppressed)
-                throw remoteError
-            }
             clearSharedLocalState()
             runCatching { auth.signOut().getOrThrow() }.onFailure(Throwable::reportToSentry)
             runCatching { auth.clearLocalSession() }.onFailure(Throwable::reportToSentry)
+            if (remoteError != null) {
+                remoteError.reportToSentry()
+                backup.exceptionOrNull()?.let(remoteError::addSuppressed)
+                throw remoteError
+            }
             backup.exceptionOrNull()?.let { throw it }
+        }
+
+        private enum class PullOperationResult {
+            Completed,
+            Deferred,
         }
 
         private data class LocalSnapshot(

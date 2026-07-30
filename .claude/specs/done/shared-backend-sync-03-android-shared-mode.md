@@ -1,7 +1,7 @@
 # Android Shared mode, join/import, backups, and membership lifecycle
 Epic: shared-backend-sync
 Order: 03 of 04
-Status: active
+Status: done
 Depends-on: shared-backend-sync-02-operation-api-and-conflicts
 Date: 2026-07-22
 
@@ -65,8 +65,22 @@ CONSTRAINTS: Dropbox, Google Drive, and Shared are mutually exclusive; one activ
 - Final verification evidence: deterministic reviewer pass; JVM Runner **1860 passed / 0 failed**
   with detekt/lint OK; on-device `CloudSyncSharedCardUiTest` on Pixel_5/API34 **3 passed / 0
   failed**.
-- **Blocking acceptance gap:** `CloudSyncScreen` deliberately maps
-  `LaunchSharedGoogleSignIn` to `SharedSignInFailed`; `local.properties` has no Google OAuth
-  server client ID. Implementing real Credential Manager ID-token acquisition and binding it to
-  Supabase Auth requires external OAuth configuration/authorization. The SPEC must stay active,
-  must not be pushed, and must not move to `done/` until this is implemented and verified.
+- **Resolved acceptance gap:** Google Credential Manager ID-token acquisition and Supabase Auth
+  binding are implemented and verified against the manually authorized test account.
+
+## Final close-out — 2026-07-30
+
+- `d2009674` through `fefc3a7c` implement and harden real Shared Google authentication,
+  nonce handling, session persistence, and client configuration validation.
+- `7d2e9ec6` through `807f998b`, plus `f8ab8429`, make failed adoption recoverable and add
+  explicit discovery/recovery for an already-existing remote workspace before a create/join action.
+- `e42ef485` prevents a stale Dashboard calculation from resolving an account after no-import
+  adoption clears the local database; focused regression coverage was added.
+- Final automated verification: `gradlew testDebugUnitTest` passed; `:app:assembleDebug`,
+  `:feature:dashboard:testDebugUnitTest`, `:feature:cloudsync:testDebugUnitTest`, and
+  `:core:sync:testDebugUnitTest` passed. Focused detekt passed for dashboard, cloudsync, and core
+  sync. `git diff --check b34a9b94..HEAD` is clean.
+- Final device verification on the required Pixel_5/API34 (`emulator-5554`): real Google account
+  sign-in; live remote workspace discovery for `MyMoney QA`; default no-import recovery; and
+  manual `Sync now`. The resulting UI showed `Active provider: Shared (MyMoney QA)` and an updated
+  `Last sync` timestamp, with no new crash-buffer entry.

@@ -421,6 +421,7 @@ fun CloudSyncContent(
             SharedCard(
                 state = state.shared,
                 otherProviderActive = state.binding != null && state.binding.provider != CloudProvider.Shared,
+                showInternalBackups = state.binding == null || state.binding.provider == CloudProvider.Shared,
                 isConnecting = state.isConnecting,
                 onEvent = onEvent,
             )
@@ -541,6 +542,7 @@ private fun ProviderCard(
 private fun SharedCard(
     state: SharedCardState,
     otherProviderActive: Boolean,
+    showInternalBackups: Boolean,
     isConnecting: Boolean,
     onEvent: (CloudSyncEvent) -> Unit,
 ) {
@@ -606,7 +608,15 @@ private fun SharedCard(
                         onClick = { onEvent(CloudSyncEvent.SharedLeaveClicked) },
                         enabled = !isConnecting,
                     ) {
-                        Text(stringResource(R.string.sync_shared_leave))
+                        Text(
+                            stringResource(
+                                if (state.isSoleOwner) {
+                                    R.string.sync_shared_delete_workspace
+                                } else {
+                                    R.string.sync_shared_leave
+                                },
+                            ),
+                        )
                     }
                 }
                 else ->
@@ -618,12 +628,14 @@ private fun SharedCard(
                         Text(stringResource(R.string.sync_shared_setup))
                     }
             }
-            OutlinedButton(
-                modifier = Modifier.testTag(SyncTarget.Shared.controlTag("backups")),
-                onClick = { onEvent(CloudSyncEvent.SharedInternalBackupsClicked) },
-                enabled = !isConnecting,
-            ) {
-                Text(stringResource(R.string.sync_shared_recovery_backups))
+            if (showInternalBackups) {
+                OutlinedButton(
+                    modifier = Modifier.testTag(SyncTarget.Shared.controlTag("backups")),
+                    onClick = { onEvent(CloudSyncEvent.SharedInternalBackupsClicked) },
+                    enabled = !isConnecting,
+                ) {
+                    Text(stringResource(R.string.sync_shared_recovery_backups))
+                }
             }
         }
     }
@@ -652,6 +664,22 @@ private fun SharedDialogHost(
                 confirmButton = {
                     Button(onClick = { onEvent(CloudSyncEvent.SharedConfirmLeave) }) {
                         Text(stringResource(R.string.sync_shared_leave))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { onEvent(CloudSyncEvent.SharedDialogDismissed) }) {
+                        Text(stringResource(R.string.sync_migration_cancel))
+                    }
+                },
+            )
+        SharedDialog.ConfirmWorkspaceDeletion ->
+            AlertDialog(
+                onDismissRequest = { onEvent(CloudSyncEvent.SharedDialogDismissed) },
+                title = { Text(stringResource(R.string.sync_shared_delete_workspace_title)) },
+                text = { Text(stringResource(R.string.sync_shared_delete_workspace_body)) },
+                confirmButton = {
+                    Button(onClick = { onEvent(CloudSyncEvent.SharedConfirmWorkspaceDeletion) }) {
+                        Text(stringResource(R.string.sync_shared_delete_workspace))
                     }
                 },
                 dismissButton = {

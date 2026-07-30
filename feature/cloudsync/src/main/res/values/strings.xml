@@ -60,6 +60,9 @@
     <string name="sync_shared_leave">Leave workspace</string>
     <string name="sync_shared_leave_title">Leave shared workspace?</string>
     <string name="sync_shared_leave_body">You will stop syncing with other members. The current shared data stays on this device as your personal copy.</string>
+    <string name="sync_shared_delete_workspace">Delete workspace</string>
+    <string name="sync_shared_delete_workspace_title">Delete this shared workspace?</string>
+    <string name="sync_shared_delete_workspace_body">You are the only owner. Deleting the workspace permanently removes its shared access. The current data stays on this device as your personal copy.</string>
     <string name="sync_shared_leave_first">Leave the shared workspace before switching cloud providers.</string>
     <string name="sync_shared_review_conflicts">Review conflicts (%1$d)</string>
     <string name="sync_shared_conflicts_title">Resolve conflicts</string>
@@ -76,5 +79,6 @@
     <string name="sync_shared_restore_backup_body">Current data will be replaced with this safety backup. MyMoney will restart.</string>
     <string name="sync_shared_restore_backup_confirm">Restore</string>
     <string name="sync_shared_restore_backup_cancel">Cancel</string>
+    <string name="sync_shared_restore_unavailable">Safety backups can only be restored when no personal cloud provider is active.</string>
     <string name="sync_shared_restore_backup_error">Safety backup could not be restored. Try again.</string>
 </resources>

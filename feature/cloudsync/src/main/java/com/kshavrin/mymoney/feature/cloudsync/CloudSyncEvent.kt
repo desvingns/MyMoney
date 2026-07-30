@@ -82,6 +82,8 @@ sealed interface CloudSyncEvent {
 
     data object SharedConfirmLeave : CloudSyncEvent
 
+    data object SharedConfirmWorkspaceDeletion : CloudSyncEvent
+
     data object SharedInternalBackupsClicked : CloudSyncEvent
 
     data class SharedInternalBackupRestoreClicked(

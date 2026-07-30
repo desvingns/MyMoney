@@ -48,6 +48,7 @@ data class SharedCardState(
     val active: Boolean = false,
     val workspaceName: String? = null,
     val conflictCount: Int = 0,
+    val isSoleOwner: Boolean = false,
 )
 
 sealed interface SharedDialog {
@@ -56,6 +57,8 @@ sealed interface SharedDialog {
     data object Conflicts : SharedDialog
 
     data object ConfirmLeave : SharedDialog
+
+    data object ConfirmWorkspaceDeletion : SharedDialog
 
     data object InternalBackups : SharedDialog
 

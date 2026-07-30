@@ -11,6 +11,11 @@ data class SharedWorkspaceInvite(
     val token: String,
 )
 
+data class SharedWorkspaceOwnership(
+    val isOwner: Boolean = false,
+    val isSoleOwner: Boolean = false,
+)
+
 /**
  * Single orchestration entry point for Shared sync mode. Unlike the file-exchange
  * [com.kshavrin.mymoney.core.sync.JournalSync], Shared mode is a server-side operation log:
@@ -31,6 +36,9 @@ interface SharedSyncCoordinator {
     suspend fun signOut(): Result<Unit>
 
     suspend fun activeWorkspace(): SharedWorkspaceSummary?
+
+    suspend fun activeWorkspaceOwnership(): Result<SharedWorkspaceOwnership> =
+        Result.success(SharedWorkspaceOwnership())
 
     suspend fun createWorkspace(
         name: String,
@@ -56,4 +64,7 @@ interface SharedSyncCoordinator {
     suspend fun restoreInternalBackup(backupPath: String): Result<Unit> = Result.success(Unit)
 
     suspend fun leaveWorkspace(): Result<Unit>
+
+    suspend fun deleteWorkspace(): Result<Unit> =
+        Result.failure(UnsupportedOperationException("Workspace deletion is not supported"))
 }

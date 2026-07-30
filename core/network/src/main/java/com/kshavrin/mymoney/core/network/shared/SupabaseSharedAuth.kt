@@ -2,6 +2,7 @@ package com.kshavrin.mymoney.core.network.shared
 
 import com.kshavrin.mymoney.core.common.exception.SyncError
 import com.kshavrin.mymoney.core.common.exception.SyncException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.buildJsonObject
@@ -82,13 +83,21 @@ class SupabaseSharedAuth
         override suspend fun signOut(): Result<Unit> {
             return sessionMutex.withLock {
                 val active = cachedOrStoredSession() ?: return@withLock Result.success(Unit)
-                http
-                    .post(
-                        path = "auth/v1/logout",
-                        payload = buildJsonObject { },
-                        accessToken = active.session.accessToken,
-                    ).map { Unit }
-                    .also { clearSession() }
+                try {
+                    try {
+                        http
+                            .post(
+                                path = "auth/v1/logout",
+                                payload = buildJsonObject { },
+                                accessToken = active.session.accessToken,
+                            ).map { Unit }
+                    } catch (t: Throwable) {
+                        if (t is CancellationException) throw t
+                        Result.failure(t)
+                    }
+                } finally {
+                    clearSession()
+                }
             }
         }
 

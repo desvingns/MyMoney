@@ -64,6 +64,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.util.UUID
+import java.util.concurrent.atomic.AtomicLong
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -78,6 +79,8 @@ class BackupRepositoryImpl
         private val clock: Clock,
         @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     ) : BackupRepository {
+        private val lastInternalBackupEpochMs = AtomicLong(0L)
+
         constructor(
             context: Context,
             database: MoneyDatabase,
@@ -984,9 +987,11 @@ class BackupRepositoryImpl
                     checkpoint()
                     val directory = internalBackupDir().apply { mkdirs() }
                     val dbFile = context.getDatabasePath(DatabaseFileNames.DATABASE_NAME)
-                    val name = "$INTERNAL_BACKUP_PREFIX${TIMESTAMP_FORMATTER.format(Instant.now())}$BACKUP_SUFFIX"
+                    val snapshotEpochMs = nextInternalBackupEpochMs()
+                    val name = "$INTERNAL_BACKUP_PREFIX${snapshotEpochMs}_${UUID.randomUUID()}$BACKUP_SUFFIX"
                     val target = File(directory, name)
                     dbFile.copyTo(target, overwrite = true)
+                    check(target.setLastModified(snapshotEpochMs)) { "Cannot timestamp internal backup" }
                     BackupRepository.backupsToDelete(listInternalBackupFiles()).forEach { backup ->
                         File(backup.uriString).delete()
                     }
@@ -1005,11 +1010,27 @@ class BackupRepositoryImpl
             internalBackupDir()
                 .listFiles()
                 ?.filter { it.isFile && isInternalBackupName(it.name) }
-                ?.map { BackupFile(it.name, it.absolutePath, it.lastModified()) }
+                ?.map { file ->
+                    BackupFile(
+                        name = file.name,
+                        uriString = file.absolutePath,
+                        lastModifiedEpochMs = internalBackupTimestamp(file.name) ?: file.lastModified(),
+                    )
+                }
                 ?: emptyList()
 
         private fun isInternalBackupName(name: String): Boolean =
             name.startsWith(INTERNAL_BACKUP_PREFIX) && name.endsWith(BACKUP_SUFFIX)
+
+        private fun nextInternalBackupEpochMs(): Long =
+            lastInternalBackupEpochMs.updateAndGet { previous -> maxOf(clock.millis(), previous + 1L) }
+
+        private fun internalBackupTimestamp(name: String): Long? =
+            name
+                .removePrefix(INTERNAL_BACKUP_PREFIX)
+                .removeSuffix(BACKUP_SUFFIX)
+                .substringBefore('_')
+                .toLongOrNull()
 
         override suspend fun listLocalBackups(treeUriString: String): List<BackupFile> =
             withContext(ioDispatcher) {

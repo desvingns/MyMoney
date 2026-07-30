@@ -28,10 +28,12 @@ import com.kshavrin.mymoney.core.domain.sync.SharedOperation
 import com.kshavrin.mymoney.core.network.shared.SharedAuth
 import com.kshavrin.mymoney.core.network.shared.SharedWorkspace
 import com.kshavrin.mymoney.core.network.shared.SharedWorkspaceApi
+import com.kshavrin.mymoney.core.network.shared.WorkspaceRole
 import com.kshavrin.mymoney.core.sync.SyncExecutionGate
 import com.kshavrin.mymoney.core.sync.SyncScheduler
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -95,8 +97,14 @@ class SharedSyncCoordinatorImpl
                     runCatching {
                         ensureSignedIn()
                         ensureNoActiveBinding()
+                        val backupPath = backupRepository.createInternalBackup().getOrThrow()
                         val workspace = workspaceApi.createWorkspace(name).getOrThrow()
-                        adoptWorkspace(workspace, importLocalData)
+                        adoptWorkspaceWithRecovery(
+                            workspace = workspace,
+                            importLocalData = importLocalData,
+                            backupPath = backupPath,
+                            remoteCompensation = { workspaceApi.deleteWorkspace(workspace.id).getOrThrow() },
+                        )
                         SharedWorkspaceSummary(workspace.id, workspace.name)
                     }
                 }
@@ -111,8 +119,14 @@ class SharedSyncCoordinatorImpl
                     runCatching {
                         ensureSignedIn()
                         ensureNoActiveBinding()
+                        val backupPath = backupRepository.createInternalBackup().getOrThrow()
                         val workspace = workspaceApi.joinWorkspace(inviteToken).getOrThrow()
-                        adoptWorkspace(workspace, importLocalData)
+                        adoptWorkspaceWithRecovery(
+                            workspace = workspace,
+                            importLocalData = importLocalData,
+                            backupPath = backupPath,
+                            remoteCompensation = { workspaceApi.leaveWorkspace(workspace.id).getOrThrow() },
+                        )
                         SharedWorkspaceSummary(workspace.id, workspace.name)
                     }
                 }
@@ -185,9 +199,10 @@ class SharedSyncCoordinatorImpl
         override suspend fun restoreInternalBackup(backupPath: String): Result<Unit> =
             withContext(dispatcher) {
                 runCatching {
-                    syncScheduler.cancelAllSync().getOrThrow()
                     executionGate.withExclusive {
                         operationMutex.withLock {
+                            ensureInternalBackupRestoreAllowed()
+                            syncScheduler.cancelAllSync().getOrThrow()
                             detachForLocalRestoreLocked()
                             backupRepository.importFromFile(backupPath).getOrThrow()
                         }
@@ -200,23 +215,38 @@ class SharedSyncCoordinatorImpl
                 operationMutex.withLock {
                     runCatching {
                         val workspaceId = requireActiveWorkspaceId()
-                        // A failed safety backup must NOT keep remote access alive: capture its result but
-                        // always proceed to cut remote access, then propagate the backup failure at the end.
                         val backup = backupRepository.createInternalBackup()
                         val serverLeave = runCatching { workspaceApi.leaveWorkspace(workspaceId).getOrThrow() }
-                        clearSharedLocalState()
-                        // The shared data stays as a personal local copy. Whether or not the server-side
-                        // membership row was removed, always drop the auth session so a stale token cannot
-                        // keep remote access alive if the server leave did not land.
-                        runCatching { auth.signOut().getOrThrow() }
-                        val serverError = serverLeave.exceptionOrNull()
-                        val backupError = backup.exceptionOrNull()
-                        if (serverError != null) {
-                            backupError?.let(serverError::addSuppressed)
-                            throw serverError
-                        }
-                        backupError?.let { throw it }
-                        Unit
+                        completeRemoteWorkspaceExit(backup, serverLeave)
+                    }
+                }
+            }
+
+        override suspend fun activeWorkspaceOwnership(): Result<SharedWorkspaceOwnership> =
+            withContext(dispatcher) {
+                runCatching {
+                    val workspaceId = requireActiveWorkspaceId()
+                    val userId = auth.currentSession()?.user?.id ?: throw SyncException(SyncError.Auth)
+                    val members = workspaceApi.listMembers(workspaceId).getOrThrow().filter { it.active }
+                    val ownMembership = members.firstOrNull { it.userId == userId }
+                    val isOwner = ownMembership?.role == WorkspaceRole.Owner
+                    SharedWorkspaceOwnership(
+                        isOwner = isOwner,
+                        isSoleOwner = isOwner && members.size == 1,
+                    )
+                }
+            }
+
+        override suspend fun deleteWorkspace(): Result<Unit> =
+            withContext(dispatcher) {
+                operationMutex.withLock {
+                    runCatching {
+                        val workspaceId = requireActiveWorkspaceId()
+                        val ownership = activeWorkspaceOwnership().getOrThrow()
+                        if (!ownership.isSoleOwner) throw SyncException(SyncError.Conflict)
+                        val backup = backupRepository.createInternalBackup()
+                        val serverDelete = runCatching { workspaceApi.deleteWorkspace(workspaceId).getOrThrow() }
+                        completeRemoteWorkspaceExit(backup, serverDelete)
                     }
                 }
             }
@@ -225,7 +255,6 @@ class SharedSyncCoordinatorImpl
             workspace: SharedWorkspace,
             importLocalData: Boolean,
         ) {
-            backupRepository.createInternalBackup().getOrThrow()
             sharedStore.clear()
             clearSharedOutbox()
             if (importLocalData) {
@@ -253,11 +282,53 @@ class SharedSyncCoordinatorImpl
             )
         }
 
+        private suspend fun adoptWorkspaceWithRecovery(
+            workspace: SharedWorkspace,
+            importLocalData: Boolean,
+            backupPath: String,
+            remoteCompensation: suspend () -> Unit,
+        ) {
+            try {
+                adoptWorkspace(workspace, importLocalData)
+            } catch (failure: Throwable) {
+                recoverFailedAdoption(backupPath, remoteCompensation, failure)
+                throw failure
+            }
+        }
+
+        private suspend fun recoverFailedAdoption(
+            backupPath: String,
+            remoteCompensation: suspend () -> Unit,
+            failure: Throwable,
+        ) =
+            withContext(NonCancellable) {
+                runCatching { remoteCompensation() }.onFailure { recoveryFailure ->
+                    recoveryFailure.reportToSentry()
+                    failure.addSuppressed(recoveryFailure)
+                }
+                runCatching {
+                    syncScheduler.disablePeriodicSync()
+                    configStore.clearBinding()
+                    sharedStore.clear()
+                    backupRepository.importFromFile(backupPath).getOrThrow()
+                }.onFailure { recoveryFailure ->
+                    recoveryFailure.reportToSentry()
+                    failure.addSuppressed(recoveryFailure)
+                }
+            }
+
         private suspend fun detachForLocalRestoreLocked() {
             configStore.clearBinding()
             sharedStore.clear()
             runCatching { clearSharedOutbox() }.onFailure(Throwable::reportToSentry)
             auth.clearLocalSession()
+        }
+
+        private suspend fun ensureInternalBackupRestoreAllowed() {
+            val binding = configStore.binding()
+            if (binding != null && binding.provider != CloudProvider.Shared) {
+                throw SyncException(SyncError.Conflict)
+            }
         }
 
         private suspend fun pullAndApply(workspaceId: String) {
@@ -282,7 +353,7 @@ class SharedSyncCoordinatorImpl
                     } catch (t: Throwable) {
                         if (t is CancellationException) throw t
                         t.reportToSentry()
-                        if (t is SharedCurrencyIntegrityException) {
+                        if (t is SharedIntegrityException) {
                             throw SyncException(SyncError.Conflict)
                         }
                     }
@@ -319,16 +390,22 @@ class SharedSyncCoordinatorImpl
                                 materializeCurrency(currencyReference.code, currencyReference.currency).id
                             val accountId =
                                 accountRepository.idForUuid(refs.accountUuid)
-                                    ?: error("shared transaction references unknown account ${refs.accountUuid}")
+                                    ?: throw SharedForeignKeyIntegrityException(
+                                        "shared transaction references unknown account ${refs.accountUuid}",
+                                    )
                             val categoryId =
                                 refs.categoryUuid?.let {
                                     categoryRepository.idForUuid(it)
-                                        ?: error("shared transaction references unknown category $it")
+                                        ?: throw SharedForeignKeyIntegrityException(
+                                            "shared transaction references unknown category $it",
+                                        )
                                 }
                             val toAccountId =
                                 refs.toAccountUuid?.let {
                                     accountRepository.idForUuid(it)
-                                        ?: error("shared transaction references unknown account $it")
+                                        ?: throw SharedForeignKeyIntegrityException(
+                                            "shared transaction references unknown account $it",
+                                        )
                                 }
                             transactionRepository.applySharedUpsert(
                                 decoded.copy(
@@ -543,6 +620,21 @@ class SharedSyncCoordinatorImpl
             runCatching { clearSharedOutbox() }.onFailure(Throwable::reportToSentry)
         }
 
+        private suspend fun completeRemoteWorkspaceExit(
+            backup: Result<String>,
+            remoteExit: Result<Unit>,
+        ) {
+            val remoteError = remoteExit.exceptionOrNull()
+            if (remoteError != null) {
+                backup.exceptionOrNull()?.let(remoteError::addSuppressed)
+                throw remoteError
+            }
+            clearSharedLocalState()
+            runCatching { auth.signOut().getOrThrow() }.onFailure(Throwable::reportToSentry)
+            runCatching { auth.clearLocalSession() }.onFailure(Throwable::reportToSentry)
+            backup.exceptionOrNull()?.let { throw it }
+        }
+
         private data class LocalSnapshot(
             val entityKind: EntityKind,
             val entityId: String,
@@ -550,10 +642,19 @@ class SharedSyncCoordinatorImpl
             val tombstone: Boolean,
         )
 
-        private class SharedCurrencyIntegrityException(
+        private open class SharedIntegrityException(
             message: String,
             cause: Throwable? = null,
         ) : IllegalStateException(message, cause)
+
+        private class SharedCurrencyIntegrityException(
+            message: String,
+            cause: Throwable? = null,
+        ) : SharedIntegrityException(message, cause)
+
+        private class SharedForeignKeyIntegrityException(
+            message: String,
+        ) : SharedIntegrityException(message)
 
         private fun SharedEntityStateEntity?.matches(snapshot: LocalSnapshot): Boolean =
             this?.let { it.payload == snapshot.statePayload && it.tombstone == snapshot.tombstone } ?: false
@@ -604,6 +705,7 @@ class SharedSyncCoordinatorImpl
             if (result.isAuthFailure()) {
                 clearSharedLocalState()
                 runCatching { auth.signOut().getOrThrow() }.onFailure(Throwable::reportToSentry)
+                runCatching { auth.clearLocalSession() }.onFailure(Throwable::reportToSentry)
             }
             return result
         }

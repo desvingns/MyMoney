@@ -107,11 +107,20 @@ class CloudSyncViewModel
                 CloudSyncEvent.SharedConflictsClicked -> openSharedConflicts()
                 is CloudSyncEvent.SharedResolveConflict -> resolveSharedConflict(event.conflictId, event.winnerOperationId)
                 CloudSyncEvent.SharedLeaveClicked ->
-                    _state.value = _state.value.copy(sharedDialog = SharedDialog.ConfirmLeave)
+                    _state.value =
+                        _state.value.copy(
+                            sharedDialog =
+                                if (_state.value.shared.isSoleOwner) {
+                                    SharedDialog.ConfirmWorkspaceDeletion
+                                } else {
+                                    SharedDialog.ConfirmLeave
+                                },
+                        )
                 CloudSyncEvent.SharedConfirmLeave -> leaveSharedWorkspace()
+                CloudSyncEvent.SharedConfirmWorkspaceDeletion -> deleteSharedWorkspace()
                 CloudSyncEvent.SharedInternalBackupsClicked -> openInternalBackups()
                 is CloudSyncEvent.SharedInternalBackupRestoreClicked ->
-                    _state.value = _state.value.copy(sharedDialog = SharedDialog.ConfirmInternalBackupRestore(event.backup))
+                    requestInternalBackupRestore(event.backup)
                 CloudSyncEvent.SharedConfirmInternalBackupRestore -> restoreInternalBackup()
                 CloudSyncEvent.SharedDialogDismissed -> _state.value = _state.value.copy(sharedDialog = null)
             }
@@ -365,6 +374,12 @@ class CloudSyncViewModel
             generation: Long,
         ) {
             val workspace = if (active) sharedCoordinator.activeWorkspace() else null
+            val ownership =
+                if (active) {
+                    sharedCoordinator.activeWorkspaceOwnership().getOrNull()
+                } else {
+                    null
+                }
             val conflictCount =
                 if (active) {
                     sharedCoordinator.listConflicts().getOrNull()?.size ?: _state.value.shared.conflictCount
@@ -372,10 +387,17 @@ class CloudSyncViewModel
                     0
                 }
             if (generation != refreshGeneration) return
+            val currentBinding = journalSyncConfig.binding()
+            val stillActive = currentBinding?.provider == CloudProvider.Shared
+            if (!active && stillActive) {
+                refresh()
+                return
+            }
             _state.value =
                 _state.value.copy(
+                    binding = currentBinding,
                     sharedDialog =
-                        if (!active && _state.value.sharedDialog is SharedDialog.Invite) {
+                        if (!stillActive && _state.value.sharedDialog is SharedDialog.Invite) {
                             null
                         } else {
                             _state.value.sharedDialog
@@ -384,9 +406,10 @@ class CloudSyncViewModel
                         _state.value.shared.copy(
                             signedIn = sharedCoordinator.isSignedIn(),
                             accountEmail = sharedCoordinator.accountEmail(),
-                            active = active,
-                            workspaceName = workspace?.name,
-                            conflictCount = conflictCount,
+                            active = stillActive,
+                            workspaceName = if (stillActive) workspace?.name else null,
+                            conflictCount = if (stillActive) conflictCount else 0,
+                            isSoleOwner = stillActive && ownership?.isSoleOwner == true,
                         ),
                 )
         }
@@ -537,15 +560,35 @@ class CloudSyncViewModel
 
         private fun leaveSharedWorkspace() {
             viewModelScope.launch {
+                var detached = false
                 _state.value = _state.value.copy(isConnecting = true, errorBannerRes = null, sharedDialog = null)
                 try {
                     sharedCoordinator.leaveWorkspace().getOrThrow()
+                    detached = true
                 } catch (t: Throwable) {
                     if (t is CancellationException) throw t
                     reportAndShow(t)
                 } finally {
                     _state.value = _state.value.copy(isConnecting = false)
-                    _actions.emit(CloudSyncAction.ClearSharedGoogleCredentialState)
+                    if (detached) _actions.emit(CloudSyncAction.ClearSharedGoogleCredentialState)
+                    refresh()
+                }
+            }
+        }
+
+        private fun deleteSharedWorkspace() {
+            viewModelScope.launch {
+                var detached = false
+                _state.value = _state.value.copy(isConnecting = true, errorBannerRes = null, sharedDialog = null)
+                try {
+                    sharedCoordinator.deleteWorkspace().getOrThrow()
+                    detached = true
+                } catch (t: Throwable) {
+                    if (t is CancellationException) throw t
+                    reportAndShow(t)
+                } finally {
+                    _state.value = _state.value.copy(isConnecting = false)
+                    if (detached) _actions.emit(CloudSyncAction.ClearSharedGoogleCredentialState)
                     refresh()
                 }
             }
@@ -553,6 +596,10 @@ class CloudSyncViewModel
 
         private fun openInternalBackups() {
             viewModelScope.launch {
+                if (!canAccessInternalBackups()) {
+                    showError(R.string.sync_shared_restore_unavailable)
+                    return@launch
+                }
                 _state.value = _state.value.copy(isConnecting = true, errorBannerRes = null)
                 try {
                     _state.value =
@@ -570,12 +617,26 @@ class CloudSyncViewModel
             }
         }
 
+        private fun requestInternalBackupRestore(backup: com.kshavrin.mymoney.core.domain.model.BackupFile) {
+            viewModelScope.launch {
+                if (!canAccessInternalBackups()) {
+                    showError(R.string.sync_shared_restore_unavailable)
+                    return@launch
+                }
+                _state.value = _state.value.copy(sharedDialog = SharedDialog.ConfirmInternalBackupRestore(backup))
+            }
+        }
+
         private fun restoreInternalBackup() {
             val backup = (_state.value.sharedDialog as? SharedDialog.ConfirmInternalBackupRestore)?.backup ?: return
             viewModelScope.launch {
                 var restored = false
                 _state.value = _state.value.copy(isConnecting = true, errorBannerRes = null)
                 try {
+                    if (!canAccessInternalBackups()) {
+                        showError(R.string.sync_shared_restore_unavailable)
+                        return@launch
+                    }
                     sharedCoordinator.restoreInternalBackup(backup.uriString).getOrThrow()
                     restored = true
                     _state.value = _state.value.copy(sharedDialog = null)
@@ -590,6 +651,11 @@ class CloudSyncViewModel
                 }
             }
         }
+
+        private suspend fun canAccessInternalBackups(): Boolean =
+            journalSyncConfig.binding()?.provider.let { provider ->
+                provider == null || provider == CloudProvider.Shared
+            }
 
         private fun SharedConflict.toUi(): ConflictUi =
             ConflictUi(

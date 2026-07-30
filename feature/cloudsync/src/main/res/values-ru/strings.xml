@@ -60,6 +60,9 @@
     <string name="sync_shared_leave">Покинуть пространство</string>
     <string name="sync_shared_leave_title">Покинуть общее пространство?</string>
     <string name="sync_shared_leave_body">Синхронизация с другими участниками прекратится. Текущие общие данные останутся на этом устройстве как ваша личная копия.</string>
+    <string name="sync_shared_delete_workspace">Удалить пространство</string>
+    <string name="sync_shared_delete_workspace_title">Удалить это общее пространство?</string>
+    <string name="sync_shared_delete_workspace_body">Вы единственный владелец. Удаление навсегда закроет общий доступ к пространству. Текущие данные останутся на этом устройстве как ваша личная копия.</string>
     <string name="sync_shared_leave_first">Покиньте общее пространство перед сменой облачного провайдера.</string>
     <string name="sync_shared_review_conflicts">Разрешить конфликты (%1$d)</string>
     <string name="sync_shared_conflicts_title">Разрешение конфликтов</string>
@@ -76,5 +79,6 @@
     <string name="sync_shared_restore_backup_body">Текущие данные будут заменены этой резервной копией. MyMoney будет перезапущен.</string>
     <string name="sync_shared_restore_backup_confirm">Восстановить</string>
     <string name="sync_shared_restore_backup_cancel">Отмена</string>
+    <string name="sync_shared_restore_unavailable">Резервные копии можно восстанавливать только когда личный облачный провайдер не активен.</string>
     <string name="sync_shared_restore_backup_error">Не удалось восстановить резервную копию. Попробуйте ещё раз.</string>
 </resources>

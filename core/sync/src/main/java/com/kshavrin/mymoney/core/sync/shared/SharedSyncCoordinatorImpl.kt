@@ -297,7 +297,15 @@ class SharedSyncCoordinatorImpl
                 // Adoption is now locally committed and the outbox is durable. Delivery failures
                 // are retried by normal sync rather than compensating a workspace that may already
                 // have received some operations.
-                runCatching { publishPendingOperations(workspace.id) }.onFailure(Throwable::reportToSentry)
+                try {
+                    publishPendingOperations(workspace.id)
+                } catch (failure: Throwable) {
+                    if (failure is CancellationException) {
+                        recoverFailedAdoption(backupPath, remoteCompensation, failure)
+                        throw failure
+                    }
+                    failure.reportToSentry()
+                }
             }
         }
 
@@ -337,18 +345,25 @@ class SharedSyncCoordinatorImpl
         }
 
         private suspend fun pullAndApply(workspaceId: String) {
-            var after = sharedStore.cursor()
+            var durableAfter = sharedStore.cursor()
+            var fetchAfter = durableAfter
+            val fetchedOperations = mutableListOf<SharedOperation>()
+            val deferredOperations = mutableListOf<SharedOperation>()
+            val completedSequences = mutableSetOf<Long>()
+            var nextCursorOperationIndex = 0
             while (true) {
                 val operations =
                     journalRepository
-                        .pull(workspaceId, after, PAGE_SIZE)
+                        .pull(workspaceId, fetchAfter, PAGE_SIZE)
                         .getOrThrow()
                         .sortedBy { it.serverSequence }
                 if (operations.isEmpty()) break
 
-                val deferredOperations = mutableListOf<SharedOperation>()
-                val completedSequences = mutableSetOf<Long>()
+                val nextFetchAfter = operations.last().serverSequence
+                if (nextFetchAfter <= fetchAfter) throw SyncException(SyncError.Conflict)
+
                 for (operation in operations) {
+                    fetchedOperations += operation
                     when (applyPulledOperation(operation)) {
                         PullOperationResult.Completed -> completedSequences += operation.serverSequence
                         PullOperationResult.Deferred -> deferredOperations += operation
@@ -373,21 +388,22 @@ class SharedSyncCoordinatorImpl
                     }
                 }
 
-                var contiguousAfter = after
-                for (operation in operations) {
+                val cursorBeforeCheckpoint = durableAfter
+                while (nextCursorOperationIndex < fetchedOperations.size) {
+                    val operation = fetchedOperations[nextCursorOperationIndex]
                     if (operation.serverSequence !in completedSequences) break
-                    contiguousAfter = operation.serverSequence
+                    durableAfter = operation.serverSequence
+                    nextCursorOperationIndex += 1
                 }
-                if (contiguousAfter > after) {
-                    after = contiguousAfter
-                    sharedStore.setCursor(after)
+                if (durableAfter > cursorBeforeCheckpoint) {
+                    sharedStore.setCursor(durableAfter)
                 }
 
-                if (deferredOperations.isNotEmpty()) {
-                    throw SyncException(SyncError.Conflict)
-                }
                 if (operations.size < PAGE_SIZE) break
+                fetchAfter = nextFetchAfter
             }
+
+            if (deferredOperations.isNotEmpty()) throw SyncException(SyncError.Conflict)
         }
 
         private suspend fun applyPulledOperation(operation: SharedOperation): PullOperationResult =
@@ -655,10 +671,9 @@ class SharedSyncCoordinatorImpl
         }
 
         private suspend fun clearSharedLocalState() {
-            syncScheduler.disablePeriodicSync()
-            configStore.clearBinding()
-            sharedStore.clear()
-            runCatching { clearSharedOutbox() }.onFailure(Throwable::reportToSentry)
+            val failures = mutableListOf<Throwable>()
+            collectSharedLocalCleanupFailures(failures)
+            reportAndThrowCleanupFailures(failures)
         }
 
         private suspend fun completeRemoteWorkspaceExit(
@@ -666,15 +681,52 @@ class SharedSyncCoordinatorImpl
             remoteExit: Result<Unit>,
         ) {
             val remoteError = remoteExit.exceptionOrNull()
-            clearSharedLocalState()
-            runCatching { auth.signOut().getOrThrow() }.onFailure(Throwable::reportToSentry)
-            runCatching { auth.clearLocalSession() }.onFailure(Throwable::reportToSentry)
+            val localCleanupFailures = mutableListOf<Throwable>()
+            collectSharedLocalCleanupFailures(localCleanupFailures)
+            collectCleanupFailure(localCleanupFailures) { auth.signOut().getOrThrow() }
+            collectCleanupFailure(localCleanupFailures) { auth.clearLocalSession() }
+            localCleanupFailures.forEach(Throwable::reportToSentry)
             if (remoteError != null) {
                 remoteError.reportToSentry()
+                localCleanupFailures.forEach(remoteError::addSuppressed)
                 backup.exceptionOrNull()?.let(remoteError::addSuppressed)
                 throw remoteError
             }
-            backup.exceptionOrNull()?.let { throw it }
+            backup.exceptionOrNull()?.let { backupFailure ->
+                localCleanupFailures.forEach(backupFailure::addSuppressed)
+                throw backupFailure
+            }
+            throwCleanupFailures(localCleanupFailures)
+        }
+
+        private suspend fun collectSharedLocalCleanupFailures(failures: MutableList<Throwable>) {
+            collectCleanupFailure(failures) { syncScheduler.disablePeriodicSync() }
+            collectCleanupFailure(failures) { configStore.clearBinding() }
+            collectCleanupFailure(failures) { sharedStore.clear() }
+            collectCleanupFailure(failures) { clearSharedOutbox() }
+        }
+
+        private suspend fun collectCleanupFailure(
+            failures: MutableList<Throwable>,
+            cleanup: suspend () -> Unit,
+        ) {
+            try {
+                cleanup()
+            } catch (failure: Throwable) {
+                if (failure is CancellationException) throw failure
+                failures += failure
+            }
+        }
+
+        private fun reportAndThrowCleanupFailures(failures: List<Throwable>) {
+            failures.forEach(Throwable::reportToSentry)
+            throwCleanupFailures(failures)
+        }
+
+        private fun throwCleanupFailures(failures: List<Throwable>) {
+            val primaryFailure = failures.firstOrNull() ?: return
+            failures.drop(1).forEach(primaryFailure::addSuppressed)
+            throw primaryFailure
         }
 
         private enum class PullOperationResult {

@@ -34,6 +34,8 @@ import com.kshavrin.mymoney.core.sync.SyncScheduler
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -288,24 +290,24 @@ class SharedSyncCoordinatorImpl
         ) {
             try {
                 adoptWorkspace(workspace, importLocalData)
+                if (importLocalData) currentCoroutineContext().ensureActive()
             } catch (failure: Throwable) {
                 recoverFailedAdoption(backupPath, remoteCompensation, failure)
                 throw failure
             }
 
             if (importLocalData) {
-                // Adoption is now locally committed and the outbox is durable. Delivery failures
-                // are retried by normal sync rather than compensating a workspace that may already
-                // have received some operations.
-                try {
-                    publishPendingOperations(workspace.id)
-                } catch (failure: Throwable) {
-                    if (failure is CancellationException) {
-                        recoverFailedAdoption(backupPath, remoteCompensation, failure)
-                        throw failure
+                // The local binding is committed before delivery. Shielding publication prevents a
+                // cancellation from leaving a partial join import that a remote leave cannot retract.
+                withContext(NonCancellable) {
+                    try {
+                        publishPendingOperations(workspace.id)
+                    } catch (failure: Throwable) {
+                        if (failure is CancellationException) throw failure
+                        failure.reportToSentry()
                     }
-                    failure.reportToSentry()
                 }
+                currentCoroutineContext().ensureActive()
             }
         }
 
@@ -315,20 +317,31 @@ class SharedSyncCoordinatorImpl
             failure: Throwable,
         ) =
             withContext(NonCancellable) {
-                runCatching { remoteCompensation() }.onFailure { recoveryFailure ->
-                    recoveryFailure.reportToSentry()
-                    failure.addSuppressed(recoveryFailure)
-                }
-                runCatching {
-                    syncScheduler.disablePeriodicSync()
-                    configStore.clearBinding()
-                    sharedStore.clear()
+                val recoveryFailures = mutableListOf<Throwable>()
+                collectRecoveryFailure(recoveryFailures) { remoteCompensation() }
+                collectRecoveryFailure(recoveryFailures) { syncScheduler.disablePeriodicSync() }
+                collectRecoveryFailure(recoveryFailures) { configStore.clearBinding() }
+                collectRecoveryFailure(recoveryFailures) { sharedStore.clear() }
+                collectRecoveryFailure(recoveryFailures) { clearSharedOutbox() }
+                collectRecoveryFailure(recoveryFailures) {
                     backupRepository.importFromFile(backupPath).getOrThrow()
-                }.onFailure { recoveryFailure ->
+                }
+                recoveryFailures.forEach { recoveryFailure ->
                     recoveryFailure.reportToSentry()
                     failure.addSuppressed(recoveryFailure)
                 }
             }
+
+        private suspend fun collectRecoveryFailure(
+            failures: MutableList<Throwable>,
+            recovery: suspend () -> Unit,
+        ) {
+            try {
+                recovery()
+            } catch (failure: Throwable) {
+                failures += failure
+            }
+        }
 
         private suspend fun detachForLocalRestoreLocked() {
             configStore.clearBinding()

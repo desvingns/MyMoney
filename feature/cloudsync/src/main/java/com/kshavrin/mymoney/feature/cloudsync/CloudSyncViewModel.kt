@@ -638,24 +638,29 @@ class CloudSyncViewModel
         private fun restoreInternalBackup() {
             val backup = (_state.value.sharedDialog as? SharedDialog.ConfirmInternalBackupRestore)?.backup ?: return
             viewModelScope.launch {
-                var restored = false
+                var restoreAttempted = false
                 _state.value = _state.value.copy(isConnecting = true, errorBannerRes = null)
                 try {
                     if (!canAccessInternalBackups()) {
                         showError(R.string.sync_shared_restore_unavailable)
                         return@launch
                     }
+                    restoreAttempted = true
                     sharedCoordinator.restoreInternalBackup(backup.uriString).getOrThrow()
-                    restored = true
                     _state.value = _state.value.copy(sharedDialog = null)
-                    _actions.emit(CloudSyncAction.RestartAfterInternalBackupRestore)
                 } catch (t: Throwable) {
                     if (t is CancellationException) throw t
                     t.reportToSentry()
                     showError(R.string.sync_shared_restore_backup_error)
                 } finally {
                     _state.value = _state.value.copy(isConnecting = false)
-                    if (!restored) refresh()
+                    if (restoreAttempted) {
+                        withContext(NonCancellable) {
+                            _actions.emit(CloudSyncAction.RestartAfterInternalBackupRestore)
+                        }
+                    } else {
+                        refresh()
+                    }
                 }
             }
         }

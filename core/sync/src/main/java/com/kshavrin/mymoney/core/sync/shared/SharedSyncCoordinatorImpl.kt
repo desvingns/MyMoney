@@ -202,8 +202,7 @@ class SharedSyncCoordinatorImpl
 
         override suspend fun restoreInternalBackup(backupPath: String): Result<Unit> =
             withContext(dispatcher) {
-                runCatching {
-                    syncScheduler.cancelAllSync().getOrThrow()
+                try {
                     executionGate.withExclusive {
                         operationMutex.withLock {
                             ensureInternalBackupRestoreAllowed()
@@ -211,6 +210,10 @@ class SharedSyncCoordinatorImpl
                             backupRepository.importFromFile(backupPath).getOrThrow()
                         }
                     }
+                    Result.success(Unit)
+                } catch (failure: Throwable) {
+                    if (failure is CancellationException) throw failure
+                    Result.failure(failure)
                 }
             }
 
@@ -349,10 +352,16 @@ class SharedSyncCoordinatorImpl
         }
 
         private suspend fun detachForLocalRestoreLocked() {
-            configStore.clearBinding()
-            sharedStore.clear()
-            runCatching { clearSharedOutbox() }.onFailure(Throwable::reportToSentry)
-            auth.clearLocalSession()
+            val cleanupFailures = mutableListOf<Throwable>()
+            withContext(NonCancellable) {
+                collectCleanupFailure(cleanupFailures) { syncScheduler.cancelAllSync().getOrThrow() }
+                collectCleanupFailure(cleanupFailures) { configStore.clearBinding() }
+                collectCleanupFailure(cleanupFailures) { sharedStore.clear() }
+                collectCleanupFailure(cleanupFailures) { clearSharedOutbox() }
+                collectCleanupFailure(cleanupFailures) { auth.clearLocalSession() }
+            }
+            currentCoroutineContext().ensureActive()
+            throwCleanupFailures(cleanupFailures)
         }
 
         private suspend fun ensureInternalBackupRestoreAllowed() {

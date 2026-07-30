@@ -1,5 +1,6 @@
 package com.kshavrin.mymoney.feature.cloudsync
 
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -95,13 +96,28 @@ class CloudSyncContentUiTest {
     @Test
     fun `active Shared card exposes invite code copy and dismiss controls`() {
         val events = mutableListOf<CloudSyncEvent>()
-        setContent(
-            CloudSyncState(
-                binding = CloudBinding(CloudProvider.Shared, "ws-1", "Budget"),
-                shared = SharedCardState(signedIn = true, active = true, workspaceName = "Budget"),
-            ),
-            events::add,
-        )
+        val renderedState =
+            mutableStateOf(
+                CloudSyncState(
+                    binding = CloudBinding(CloudProvider.Shared, "ws-1", "Budget"),
+                    shared = SharedCardState(signedIn = true, active = true, workspaceName = "Budget"),
+                ),
+            )
+        val onEvent: (CloudSyncEvent) -> Unit = { event ->
+            events += event
+            when (event) {
+                CloudSyncEvent.SharedCreateInviteClicked ->
+                    renderedState.value = CloudSyncState(sharedDialog = SharedDialog.Invite("invite-token"))
+                CloudSyncEvent.SharedDialogDismissed -> renderedState.value = CloudSyncState()
+                else -> Unit
+            }
+        }
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                CloudSyncContent(state = renderedState.value, onEvent = onEvent)
+            }
+        }
         composeTestRule
             .onNodeWithTag("cloud_sync_shared_create_invite")
             .performScrollTo()
@@ -112,7 +128,7 @@ class CloudSyncContentUiTest {
         }
 
         events.clear()
-        setContent(CloudSyncState(sharedDialog = SharedDialog.Invite("invite-token")), events::add)
+        composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText("invite-token").assertIsDisplayed()
         composeTestRule.onNodeWithText(targetString(R.string.sync_shared_copy_invite)).performClick()
         composeTestRule.onNodeWithText(targetString(R.string.sync_dismiss)).performClick()

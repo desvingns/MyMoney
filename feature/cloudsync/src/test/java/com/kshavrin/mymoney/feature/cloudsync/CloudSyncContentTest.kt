@@ -73,16 +73,17 @@ class CloudSyncContentTest {
 
     @Test
     fun `ConflictUi carries both author ids and operation ids`() {
-        val conflict = ConflictUi(
-            conflictId = "c-1",
-            entityKind = "Account",
-            localOperationId = "op-local",
-            localAuthorId = "user-a",
-            localSummary = "local data",
-            remoteOperationId = "op-remote",
-            remoteAuthorId = "user-b",
-            remoteSummary = "remote data",
-        )
+        val conflict =
+            ConflictUi(
+                conflictId = "c-1",
+                entityKind = "Account",
+                localOperationId = "op-local",
+                localAuthorId = "user-a",
+                localSummary = "local data",
+                remoteOperationId = "op-remote",
+                remoteAuthorId = "user-b",
+                remoteSummary = "remote data",
+            )
         assertEquals("c-1", conflict.conflictId)
         assertEquals("user-a", conflict.localAuthorId)
         assertEquals("user-b", conflict.remoteAuthorId)

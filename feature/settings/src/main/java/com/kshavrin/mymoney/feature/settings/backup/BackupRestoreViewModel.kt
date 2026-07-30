@@ -168,7 +168,6 @@ class BackupRestoreViewModel
                 _state.value = _state.value.copy(dbSizeBytes = size)
             }
         }
-
     }
 
 data class BackupRestoreState(

@@ -11,6 +11,7 @@ import com.kshavrin.mymoney.core.datastore.CloudProvider
 import com.kshavrin.mymoney.core.datastore.JournalSyncConfigStore
 import com.kshavrin.mymoney.core.domain.repository.BackupRepository
 import com.kshavrin.mymoney.core.domain.repository.RemoteConfigRepository
+import com.kshavrin.mymoney.core.domain.sync.SharedConflict
 import com.kshavrin.mymoney.core.sync.JournalMigrationPreview
 import com.kshavrin.mymoney.core.sync.JournalSync
 import com.kshavrin.mymoney.core.sync.MigrationResolution
@@ -20,7 +21,6 @@ import com.kshavrin.mymoney.core.sync.SyncTarget
 import com.kshavrin.mymoney.core.sync.shared.SharedSyncCoordinator
 import com.kshavrin.mymoney.core.sync.toCloudProvider
 import com.kshavrin.mymoney.core.sync.toSyncTarget
-import com.kshavrin.mymoney.core.domain.sync.SharedConflict
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.BufferOverflow

@@ -8,22 +8,25 @@ import org.junit.Test
 import java.time.Instant
 
 class SharedConflictDtoTest {
-
     private val createdAtStr = "2025-04-01T14:00:00Z"
 
-    private fun stubOpDto(id: String = "op-1", entityKind: String = "transaction") = SharedOperationDto(
-        id = id,
-        workspaceId = "ws-1",
-        idempotencyKey = "idem-$id",
-        serverSequence = 1L,
-        baseSequence = 0L,
-        deviceId = "dev-1",
-        entityKind = entityKind,
-        entityId = "entity-1",
-        payload = null,
-        tombstone = false,
-        createdAt = createdAtStr,
-    )
+    private fun stubOpDto(
+        id: String = "op-1",
+        entityKind: String = "transaction",
+    ) =
+        SharedOperationDto(
+            id = id,
+            workspaceId = "ws-1",
+            idempotencyKey = "idem-$id",
+            serverSequence = 1L,
+            baseSequence = 0L,
+            deviceId = "dev-1",
+            entityKind = entityKind,
+            entityId = "entity-1",
+            payload = null,
+            tombstone = false,
+            createdAt = createdAtStr,
+        )
 
     private fun minimalConflictDto(
         status: String = "pending",
@@ -69,21 +72,22 @@ class SharedConflictDtoTest {
 
     @Test
     fun `toDomain maps all scalar fields from dto to domain correctly`() {
-        val dto = SharedConflictDto(
-            id = "conflict-complete",
-            workspaceId = "ws-complete",
-            entityKind = "account",
-            entityId = "account-99",
-            operationA = stubOpDto("op-A"),
-            operationB = stubOpDto("op-B"),
-            authorAId = "author-alice",
-            authorBId = "author-bob",
-            status = "pending",
-            resolverId = null,
-            resolvedIntoId = null,
-            createdAt = createdAtStr,
-            resolvedAt = null,
-        )
+        val dto =
+            SharedConflictDto(
+                id = "conflict-complete",
+                workspaceId = "ws-complete",
+                entityKind = "account",
+                entityId = "account-99",
+                operationA = stubOpDto("op-A"),
+                operationB = stubOpDto("op-B"),
+                authorAId = "author-alice",
+                authorBId = "author-bob",
+                status = "pending",
+                resolverId = null,
+                resolvedIntoId = null,
+                createdAt = createdAtStr,
+                resolvedAt = null,
+            )
 
         val domain = dto.toDomain()
 
@@ -103,21 +107,22 @@ class SharedConflictDtoTest {
     @Test
     fun `toDomain maps resolved fields correctly when resolvedAt is present`() {
         val resolvedAt = "2025-04-02T10:00:00Z"
-        val dto = SharedConflictDto(
-            id = "conflict-2",
-            workspaceId = "ws-1",
-            entityKind = "category",
-            entityId = "cat-1",
-            operationA = stubOpDto("op-A"),
-            operationB = stubOpDto("op-B"),
-            authorAId = "user-A",
-            authorBId = "user-B",
-            status = "resolved",
-            resolverId = "user-A",
-            resolvedIntoId = "op-A",
-            createdAt = createdAtStr,
-            resolvedAt = resolvedAt,
-        )
+        val dto =
+            SharedConflictDto(
+                id = "conflict-2",
+                workspaceId = "ws-1",
+                entityKind = "category",
+                entityId = "cat-1",
+                operationA = stubOpDto("op-A"),
+                operationB = stubOpDto("op-B"),
+                authorAId = "user-A",
+                authorBId = "user-B",
+                status = "resolved",
+                resolverId = "user-A",
+                resolvedIntoId = "op-A",
+                createdAt = createdAtStr,
+                resolvedAt = resolvedAt,
+            )
 
         val domain = dto.toDomain()
 
@@ -131,10 +136,11 @@ class SharedConflictDtoTest {
 
     @Test
     fun `toDomain maps nested operationA and operationB to domain operations`() {
-        val dto = minimalConflictDto(
-            operationA = stubOpDto("op-first", entityKind = "transaction"),
-            operationB = stubOpDto("op-second", entityKind = "account"),
-        )
+        val dto =
+            minimalConflictDto(
+                operationA = stubOpDto("op-first", entityKind = "transaction"),
+                operationB = stubOpDto("op-second", entityKind = "account"),
+            )
 
         val domain = dto.toDomain()
 

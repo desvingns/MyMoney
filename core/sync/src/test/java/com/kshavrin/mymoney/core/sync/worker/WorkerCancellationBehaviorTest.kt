@@ -41,7 +41,6 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -268,6 +267,7 @@ class WorkerCancellationBehaviorTest {
                     releaseFirst = releaseFirst,
                 )
             val settings = FakeAppSettingsRepository(AppSettings(autoSyncEnabled = true))
+
             fun worker() =
                 SyncWorker(
                     appContext = appContext,

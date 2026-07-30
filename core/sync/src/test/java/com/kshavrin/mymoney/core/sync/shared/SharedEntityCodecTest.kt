@@ -16,7 +16,6 @@ import java.math.BigDecimal
 import java.time.Instant
 
 class SharedEntityCodecTest {
-
     private val json = Json { ignoreUnknownKeys = true }
     private val codec = SharedEntityCodec(json)
 
@@ -25,9 +24,15 @@ class SharedEntityCodecTest {
     @Test
     fun `encodeTransaction and decodeTransaction round-trip all scalar fields`() {
         val tx = sampleTransaction()
-        val payload = codec.encodeTransaction(
-            tx, TX_UUID, CURRENCY_CODE, ACCOUNT_UUID, CATEGORY_UUID, null,
-        )
+        val payload =
+            codec.encodeTransaction(
+                tx,
+                TX_UUID,
+                CURRENCY_CODE,
+                ACCOUNT_UUID,
+                CATEGORY_UUID,
+                null,
+            )
         val decoded = codec.decodeTransaction(payload)
 
         assertEquals(tx.id, decoded.id)
@@ -42,9 +47,15 @@ class SharedEntityCodecTest {
 
     @Test
     fun `decodeTransaction yields placeholder currencyId zero because caller must remap`() {
-        val payload = codec.encodeTransaction(
-            sampleTransaction(), TX_UUID, CURRENCY_CODE, ACCOUNT_UUID, null, null,
-        )
+        val payload =
+            codec.encodeTransaction(
+                sampleTransaction(),
+                TX_UUID,
+                CURRENCY_CODE,
+                ACCOUNT_UUID,
+                null,
+                null,
+            )
         assertEquals(0L, codec.decodeTransaction(payload).currencyId)
     }
 
@@ -52,9 +63,15 @@ class SharedEntityCodecTest {
     fun `decodeTransactionRefs extracts currencyCode accountUuid categoryUuid and toAccountUuid`() {
         val tx = sampleTransaction()
         val toAccountUuid = "to-acct-uuid-99"
-        val payload = codec.encodeTransaction(
-            tx, TX_UUID, CURRENCY_CODE, ACCOUNT_UUID, CATEGORY_UUID, toAccountUuid,
-        )
+        val payload =
+            codec.encodeTransaction(
+                tx,
+                TX_UUID,
+                CURRENCY_CODE,
+                ACCOUNT_UUID,
+                CATEGORY_UUID,
+                toAccountUuid,
+            )
         val refs = codec.decodeTransactionRefs(payload)
 
         assertEquals(CURRENCY_CODE, refs.currencyCode)
@@ -66,9 +83,15 @@ class SharedEntityCodecTest {
     @Test
     fun `decodeTransactionRefs returns null for absent optional uuids`() {
         val tx = sampleTransaction().copy(categoryId = null, toAccountId = null)
-        val payload = codec.encodeTransaction(
-            tx, TX_UUID, CURRENCY_CODE, ACCOUNT_UUID, null, null,
-        )
+        val payload =
+            codec.encodeTransaction(
+                tx,
+                TX_UUID,
+                CURRENCY_CODE,
+                ACCOUNT_UUID,
+                null,
+                null,
+            )
         val refs = codec.decodeTransactionRefs(payload)
 
         assertNull(refs.categoryUuid)
@@ -91,9 +114,15 @@ class SharedEntityCodecTest {
     @Test
     fun `toAmount round-trips when present`() {
         val tx = sampleTransaction().copy(toAmount = BigDecimal("200.50"), toAccountId = 99L)
-        val payload = codec.encodeTransaction(
-            tx, TX_UUID, CURRENCY_CODE, ACCOUNT_UUID, null, "to-uuid",
-        )
+        val payload =
+            codec.encodeTransaction(
+                tx,
+                TX_UUID,
+                CURRENCY_CODE,
+                ACCOUNT_UUID,
+                null,
+                "to-uuid",
+            )
         val decoded = codec.decodeTransaction(payload)
         assertEquals(0, BigDecimal("200.50").compareTo(decoded.toAmount))
     }
@@ -101,9 +130,15 @@ class SharedEntityCodecTest {
     @Test
     fun `exchangeRate round-trips when present`() {
         val tx = sampleTransaction().copy(exchangeRate = 1.23456)
-        val payload = codec.encodeTransaction(
-            tx, TX_UUID, CURRENCY_CODE, ACCOUNT_UUID, null, null,
-        )
+        val payload =
+            codec.encodeTransaction(
+                tx,
+                TX_UUID,
+                CURRENCY_CODE,
+                ACCOUNT_UUID,
+                null,
+                null,
+            )
         val decoded = codec.decodeTransaction(payload)
         assertEquals(1.23456, decoded.exchangeRate!!, 0.00001)
     }
@@ -111,8 +146,9 @@ class SharedEntityCodecTest {
     @Test
     fun `decodeTransaction defaults isDeleted to false when key absent`() {
         // Payload emitted by an older client that didn't include isDeleted
-        val payload = """{"id":1,"kind":"Expense","amount":"10.00","currencyCode":"USD",""" +
-            """"accountUuid":"a","accountId":1,"occurredAt":1000000,"createdAt":1000000,"updatedAt":1000000}"""
+        val payload =
+            """{"id":1,"kind":"Expense","amount":"10.00","currencyCode":"USD",""" +
+                """"accountUuid":"a","accountId":1,"occurredAt":1000000,"createdAt":1000000,"updatedAt":1000000}"""
         assertEquals(false, codec.decodeTransaction(payload).isDeleted)
     }
 
@@ -246,50 +282,53 @@ class SharedEntityCodecTest {
 
     // ── helpers ────────────────────────────────────────────────────────────
 
-    private fun sampleTransaction() = Transaction(
-        id = 42L,
-        kind = TransactionKind.Expense,
-        amount = BigDecimal("99.99"),
-        currencyId = 5L,
-        accountId = 10L,
-        categoryId = 20L,
-        note = "lunch",
-        occurredAt = Instant.ofEpochMilli(1_700_000_000_000L),
-        createdAt = Instant.ofEpochMilli(1_700_000_000_000L),
-        updatedAt = Instant.ofEpochMilli(1_700_000_000_001L),
-        isDeleted = false,
-        toAccountId = null,
-        toAmount = null,
-        exchangeRate = null,
-    )
+    private fun sampleTransaction() =
+        Transaction(
+            id = 42L,
+            kind = TransactionKind.Expense,
+            amount = BigDecimal("99.99"),
+            currencyId = 5L,
+            accountId = 10L,
+            categoryId = 20L,
+            note = "lunch",
+            occurredAt = Instant.ofEpochMilli(1_700_000_000_000L),
+            createdAt = Instant.ofEpochMilli(1_700_000_000_000L),
+            updatedAt = Instant.ofEpochMilli(1_700_000_000_001L),
+            isDeleted = false,
+            toAccountId = null,
+            toAmount = null,
+            exchangeRate = null,
+        )
 
-    private fun sampleAccount() = Account(
-        id = 7L,
-        name = "Cash",
-        currencyId = 5L,
-        initialBalance = BigDecimal("500.00"),
-        type = AccountType.Cash,
-        colorHex = "#4CAF50",
-        iconKey = "ic_cash",
-        isDefault = true,
-        sortOrder = 0,
-        createdAt = Instant.ofEpochMilli(1_700_000_000_000L),
-        updatedAt = Instant.ofEpochMilli(1_700_000_000_001L),
-        isArchived = false,
-    )
+    private fun sampleAccount() =
+        Account(
+            id = 7L,
+            name = "Cash",
+            currencyId = 5L,
+            initialBalance = BigDecimal("500.00"),
+            type = AccountType.Cash,
+            colorHex = "#4CAF50",
+            iconKey = "ic_cash",
+            isDefault = true,
+            sortOrder = 0,
+            createdAt = Instant.ofEpochMilli(1_700_000_000_000L),
+            updatedAt = Instant.ofEpochMilli(1_700_000_000_001L),
+            isArchived = false,
+        )
 
-    private fun sampleCategory() = Category(
-        id = 3L,
-        name = "Food",
-        kind = CategoryKind.Expense,
-        iconKey = "ic_food",
-        colorHex = "#FF5722",
-        textColor = "#FFFFFF",
-        sortOrder = 1,
-        isDefault = true,
-        isArchived = false,
-        createdAt = Instant.ofEpochMilli(1_700_000_000_000L),
-    )
+    private fun sampleCategory() =
+        Category(
+            id = 3L,
+            name = "Food",
+            kind = CategoryKind.Expense,
+            iconKey = "ic_food",
+            colorHex = "#FF5722",
+            textColor = "#FFFFFF",
+            sortOrder = 1,
+            isDefault = true,
+            isArchived = false,
+            createdAt = Instant.ofEpochMilli(1_700_000_000_000L),
+        )
 
     private companion object {
         const val TX_UUID = "test-uuid-1234"

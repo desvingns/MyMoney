@@ -14,8 +14,6 @@ import com.kshavrin.mymoney.core.datastore.CloudProvider
 import com.kshavrin.mymoney.core.datastore.JournalSyncConfigStore
 import com.kshavrin.mymoney.core.datastore.SharedSyncStore
 import com.kshavrin.mymoney.core.domain.model.Currency
-import com.kshavrin.mymoney.core.sync.SyncExecutionGate
-import com.kshavrin.mymoney.core.sync.SyncScheduler
 import com.kshavrin.mymoney.core.domain.repository.AccountRepository
 import com.kshavrin.mymoney.core.domain.repository.BackupRepository
 import com.kshavrin.mymoney.core.domain.repository.CategoryRepository
@@ -30,6 +28,8 @@ import com.kshavrin.mymoney.core.domain.sync.SharedOperation
 import com.kshavrin.mymoney.core.network.shared.SharedAuth
 import com.kshavrin.mymoney.core.network.shared.SharedWorkspace
 import com.kshavrin.mymoney.core.network.shared.SharedWorkspaceApi
+import com.kshavrin.mymoney.core.sync.SyncExecutionGate
+import com.kshavrin.mymoney.core.sync.SyncScheduler
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.first
@@ -306,9 +306,10 @@ class SharedSyncCoordinatorImpl
                         transactionRepository.applySharedDelete(uuid, now)
                     } else {
                         operation.payload?.let { payload ->
-                            val currencyReference = decodeCurrencyReference {
-                                codec.decodeTransactionCurrencyReference(payload)
-                            }
+                            val currencyReference =
+                                decodeCurrencyReference {
+                                    codec.decodeTransactionCurrencyReference(payload)
+                                }
                             val decoded = codec.decodeTransaction(payload)
                             val refs = codec.decodeTransactionRefs(payload)
                             // Remap portable references to LOCAL ids. A null lookup (referenced
@@ -346,9 +347,10 @@ class SharedSyncCoordinatorImpl
                         accountRepository.applySharedArchive(uuid)
                     } else {
                         operation.payload?.let { payload ->
-                            val currencyReference = decodeCurrencyReference {
-                                codec.decodeAccountCurrencyReference(payload)
-                            }
+                            val currencyReference =
+                                decodeCurrencyReference {
+                                    codec.decodeAccountCurrencyReference(payload)
+                                }
                             val decoded = codec.decodeAccount(payload)
                             val currencyId =
                                 materializeCurrency(currencyReference.code, currencyReference.currency).id

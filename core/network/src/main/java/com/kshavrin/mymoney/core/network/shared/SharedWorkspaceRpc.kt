@@ -15,7 +15,10 @@ interface SharedWorkspaceRpc {
 
     // Maps to create_invite(p_workspace_id, p_token_hash): only the SHA-256 hash
     // crosses the wire; the plaintext token never leaves the device.
-    suspend fun createInvite(workspaceId: String, tokenHash: String): Result<WorkspaceInvite>
+    suspend fun createInvite(
+        workspaceId: String,
+        tokenHash: String,
+    ): Result<WorkspaceInvite>
 
     suspend fun joinWorkspace(token: String): Result<SharedWorkspace>
 

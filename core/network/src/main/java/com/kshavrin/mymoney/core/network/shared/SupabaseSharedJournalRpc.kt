@@ -1,7 +1,7 @@
 package com.kshavrin.mymoney.core.network.shared
 
-import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonArray
@@ -96,7 +96,6 @@ class SupabaseSharedJournalRpc
                     payload = payload,
                     accessToken = accessToken,
                     mapMembershipDeniedToAuth = true,
-                )
-                .mapCatching(decode)
+                ).mapCatching(decode)
         }
     }

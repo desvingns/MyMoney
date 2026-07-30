@@ -9,22 +9,22 @@ import org.junit.Test
 import java.time.Instant
 
 class SharedOperationDtoTest {
-
     private val createdAtStr = "2025-03-10T09:30:00Z"
 
-    private fun minimalDto(entityKind: String = "transaction") = SharedOperationDto(
-        id = "op-1",
-        workspaceId = "ws-1",
-        idempotencyKey = "idem-1",
-        serverSequence = 1L,
-        baseSequence = 0L,
-        deviceId = "dev-1",
-        entityKind = entityKind,
-        entityId = "entity-1",
-        payload = null,
-        tombstone = false,
-        createdAt = createdAtStr,
-    )
+    private fun minimalDto(entityKind: String = "transaction") =
+        SharedOperationDto(
+            id = "op-1",
+            workspaceId = "ws-1",
+            idempotencyKey = "idem-1",
+            serverSequence = 1L,
+            baseSequence = 0L,
+            deviceId = "dev-1",
+            entityKind = entityKind,
+            entityId = "entity-1",
+            payload = null,
+            tombstone = false,
+            createdAt = createdAtStr,
+        )
 
     // --- toEntityKind() ---
 
@@ -81,19 +81,20 @@ class SharedOperationDtoTest {
 
     @Test
     fun `toDomain maps all scalar fields from dto to domain operation`() {
-        val dto = SharedOperationDto(
-            id = "op-xyz",
-            workspaceId = "ws-2",
-            idempotencyKey = "idem-abc",
-            serverSequence = 42L,
-            baseSequence = 41L,
-            deviceId = "dev-007",
-            entityKind = "account",
-            entityId = "acct-88",
-            payload = null,
-            tombstone = false,
-            createdAt = createdAtStr,
-        )
+        val dto =
+            SharedOperationDto(
+                id = "op-xyz",
+                workspaceId = "ws-2",
+                idempotencyKey = "idem-abc",
+                serverSequence = 42L,
+                baseSequence = 41L,
+                deviceId = "dev-007",
+                entityKind = "account",
+                entityId = "acct-88",
+                payload = null,
+                tombstone = false,
+                createdAt = createdAtStr,
+            )
 
         val domain = dto.toDomain()
 

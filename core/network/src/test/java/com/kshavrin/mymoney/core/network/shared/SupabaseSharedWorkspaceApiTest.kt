@@ -9,7 +9,6 @@ import java.security.SecureRandom
 import java.time.Instant
 
 class SupabaseSharedWorkspaceApiTest {
-
     // Nested fake — records every arg so tests can assert the API wired things correctly.
     private class FakeSharedWorkspaceRpc : SharedWorkspaceRpc {
         var createWorkspaceResult: Result<SharedWorkspace> = defaultFailure()
@@ -42,7 +41,10 @@ class SupabaseSharedWorkspaceApiTest {
             return listMembersResult
         }
 
-        override suspend fun createInvite(workspaceId: String, tokenHash: String): Result<WorkspaceInvite> {
+        override suspend fun createInvite(
+            workspaceId: String,
+            tokenHash: String,
+        ): Result<WorkspaceInvite> {
             lastCreateInviteWorkspaceId = workspaceId
             lastCreateInviteTokenHash = tokenHash
             return createInviteResult
@@ -80,154 +82,170 @@ class SupabaseSharedWorkspaceApiTest {
     private val tokenFactory = InviteTokenFactory(SecureRandom())
     private val api = SupabaseSharedWorkspaceApi(rpc = fakeRpc, tokenFactory = tokenFactory)
 
-    private val stubWorkspace = SharedWorkspace(
-        id = "ws-1",
-        name = "Test Workspace",
-        ownerId = "user-1",
-        createdAt = Instant.EPOCH,
-    )
+    private val stubWorkspace =
+        SharedWorkspace(
+            id = "ws-1",
+            name = "Test Workspace",
+            ownerId = "user-1",
+            createdAt = Instant.EPOCH,
+        )
 
-    private val stubInvite = WorkspaceInvite(
-        id = "inv-1",
-        workspaceId = "ws-1",
-        role = WorkspaceRole.Editor,
-        expiresAt = Instant.EPOCH.plusSeconds(86_400),
-    )
+    private val stubInvite =
+        WorkspaceInvite(
+            id = "inv-1",
+            workspaceId = "ws-1",
+            role = WorkspaceRole.Editor,
+            expiresAt = Instant.EPOCH.plusSeconds(86_400),
+        )
 
     // --- createInvite: the critical hashed-invite invariant ---
 
     @Test
-    fun `createInvite sends sha256 hash of returned plaintext to rpc`() = runTest {
-        fakeRpc.createInviteResult = Result.success(stubInvite)
+    fun `createInvite sends sha256 hash of returned plaintext to rpc`() =
+        runTest {
+            fakeRpc.createInviteResult = Result.success(stubInvite)
 
-        val result = api.createInvite("ws-1").getOrThrow()
+            val result = api.createInvite("ws-1").getOrThrow()
 
-        // The value sent over the wire must equal SHA-256(plaintext returned to caller).
-        // This is the seam that mirrors join_workspace()'s encode(digest(p_token,'sha256'),'hex').
-        val expectedHash = tokenFactory.hash(result.token)
-        assertEquals(expectedHash, fakeRpc.lastCreateInviteTokenHash)
-    }
-
-    @Test
-    fun `createInvite does not send plaintext to rpc`() = runTest {
-        fakeRpc.createInviteResult = Result.success(stubInvite)
-
-        val result = api.createInvite("ws-1").getOrThrow()
-
-        // The RPC must receive the hash, not the plaintext token.
-        assertNotEquals(result.token, fakeRpc.lastCreateInviteTokenHash)
-    }
+            // The value sent over the wire must equal SHA-256(plaintext returned to caller).
+            // This is the seam that mirrors join_workspace()'s encode(digest(p_token,'sha256'),'hex').
+            val expectedHash = tokenFactory.hash(result.token)
+            assertEquals(expectedHash, fakeRpc.lastCreateInviteTokenHash)
+        }
 
     @Test
-    fun `createInvite passes workspace id to rpc`() = runTest {
-        fakeRpc.createInviteResult = Result.success(stubInvite)
+    fun `createInvite does not send plaintext to rpc`() =
+        runTest {
+            fakeRpc.createInviteResult = Result.success(stubInvite)
 
-        api.createInvite("ws-42")
+            val result = api.createInvite("ws-1").getOrThrow()
 
-        assertEquals("ws-42", fakeRpc.lastCreateInviteWorkspaceId)
-    }
-
-    @Test
-    fun `createInvite wraps rpc invite in CreatedInvite preserving all fields`() = runTest {
-        fakeRpc.createInviteResult = Result.success(stubInvite)
-
-        val result = api.createInvite("ws-1").getOrThrow()
-
-        assertEquals(stubInvite, result.invite)
-    }
+            // The RPC must receive the hash, not the plaintext token.
+            assertNotEquals(result.token, fakeRpc.lastCreateInviteTokenHash)
+        }
 
     @Test
-    fun `createInvite propagates rpc failure without swallowing it`() = runTest {
-        val error = RuntimeException("rpc network error")
-        fakeRpc.createInviteResult = Result.failure(error)
+    fun `createInvite passes workspace id to rpc`() =
+        runTest {
+            fakeRpc.createInviteResult = Result.success(stubInvite)
 
-        val result = api.createInvite("ws-1")
+            api.createInvite("ws-42")
 
-        assertTrue(result.isFailure)
-        assertEquals(error, result.exceptionOrNull())
-    }
+            assertEquals("ws-42", fakeRpc.lastCreateInviteWorkspaceId)
+        }
+
+    @Test
+    fun `createInvite wraps rpc invite in CreatedInvite preserving all fields`() =
+        runTest {
+            fakeRpc.createInviteResult = Result.success(stubInvite)
+
+            val result = api.createInvite("ws-1").getOrThrow()
+
+            assertEquals(stubInvite, result.invite)
+        }
+
+    @Test
+    fun `createInvite propagates rpc failure without swallowing it`() =
+        runTest {
+            val error = RuntimeException("rpc network error")
+            fakeRpc.createInviteResult = Result.failure(error)
+
+            val result = api.createInvite("ws-1")
+
+            assertTrue(result.isFailure)
+            assertEquals(error, result.exceptionOrNull())
+        }
 
     // --- pass-through delegation for every other method ---
 
     @Test
-    fun `createWorkspace delegates to rpc and returns its result`() = runTest {
-        fakeRpc.createWorkspaceResult = Result.success(stubWorkspace)
+    fun `createWorkspace delegates to rpc and returns its result`() =
+        runTest {
+            fakeRpc.createWorkspaceResult = Result.success(stubWorkspace)
 
-        val result = api.createWorkspace("My Workspace").getOrThrow()
+            val result = api.createWorkspace("My Workspace").getOrThrow()
 
-        assertEquals(stubWorkspace, result)
-        assertEquals("My Workspace", fakeRpc.lastCreateWorkspaceName)
-    }
-
-    @Test
-    fun `currentWorkspace delegates to rpc and returns workspace when present`() = runTest {
-        fakeRpc.currentWorkspaceResult = Result.success(stubWorkspace)
-
-        val result = api.currentWorkspace().getOrThrow()
-
-        assertEquals(stubWorkspace, result)
-    }
+            assertEquals(stubWorkspace, result)
+            assertEquals("My Workspace", fakeRpc.lastCreateWorkspaceName)
+        }
 
     @Test
-    fun `currentWorkspace delegates to rpc and returns null when user has no workspace`() = runTest {
-        fakeRpc.currentWorkspaceResult = Result.success(null)
+    fun `currentWorkspace delegates to rpc and returns workspace when present`() =
+        runTest {
+            fakeRpc.currentWorkspaceResult = Result.success(stubWorkspace)
 
-        val result = api.currentWorkspace().getOrThrow()
+            val result = api.currentWorkspace().getOrThrow()
 
-        assertEquals(null, result)
-    }
-
-    @Test
-    fun `listMembers delegates to rpc with correct workspace id`() = runTest {
-        val member = WorkspaceMember(
-            userId = "user-1",
-            email = "owner@example.com",
-            role = WorkspaceRole.Owner,
-            joinedAt = Instant.EPOCH,
-            active = true,
-        )
-        fakeRpc.listMembersResult = Result.success(listOf(member))
-
-        val result = api.listMembers("ws-1").getOrThrow()
-
-        assertEquals(listOf(member), result)
-        assertEquals("ws-1", fakeRpc.lastListMembersWorkspaceId)
-    }
+            assertEquals(stubWorkspace, result)
+        }
 
     @Test
-    fun `joinWorkspace delegates to rpc passing plaintext token unchanged`() = runTest {
-        fakeRpc.joinWorkspaceResult = Result.success(stubWorkspace)
+    fun `currentWorkspace delegates to rpc and returns null when user has no workspace`() =
+        runTest {
+            fakeRpc.currentWorkspaceResult = Result.success(null)
 
-        val result = api.joinWorkspace("plain-invite-token").getOrThrow()
+            val result = api.currentWorkspace().getOrThrow()
 
-        assertEquals(stubWorkspace, result)
-        assertEquals("plain-invite-token", fakeRpc.lastJoinWorkspaceToken)
-    }
-
-    @Test
-    fun `revokeInvite delegates to rpc with correct invite id`() = runTest {
-        fakeRpc.revokeInviteResult = Result.success(Unit)
-
-        api.revokeInvite("inv-99").getOrThrow()
-
-        assertEquals("inv-99", fakeRpc.lastRevokeInviteId)
-    }
+            assertEquals(null, result)
+        }
 
     @Test
-    fun `leaveWorkspace delegates to rpc with correct workspace id`() = runTest {
-        fakeRpc.leaveWorkspaceResult = Result.success(Unit)
+    fun `listMembers delegates to rpc with correct workspace id`() =
+        runTest {
+            val member =
+                WorkspaceMember(
+                    userId = "user-1",
+                    email = "owner@example.com",
+                    role = WorkspaceRole.Owner,
+                    joinedAt = Instant.EPOCH,
+                    active = true,
+                )
+            fakeRpc.listMembersResult = Result.success(listOf(member))
 
-        api.leaveWorkspace("ws-1").getOrThrow()
+            val result = api.listMembers("ws-1").getOrThrow()
 
-        assertEquals("ws-1", fakeRpc.lastLeaveWorkspaceId)
-    }
+            assertEquals(listOf(member), result)
+            assertEquals("ws-1", fakeRpc.lastListMembersWorkspaceId)
+        }
 
     @Test
-    fun `deleteWorkspace delegates to rpc with correct workspace id`() = runTest {
-        fakeRpc.deleteWorkspaceResult = Result.success(Unit)
+    fun `joinWorkspace delegates to rpc passing plaintext token unchanged`() =
+        runTest {
+            fakeRpc.joinWorkspaceResult = Result.success(stubWorkspace)
 
-        api.deleteWorkspace("ws-1").getOrThrow()
+            val result = api.joinWorkspace("plain-invite-token").getOrThrow()
 
-        assertEquals("ws-1", fakeRpc.lastDeleteWorkspaceId)
-    }
+            assertEquals(stubWorkspace, result)
+            assertEquals("plain-invite-token", fakeRpc.lastJoinWorkspaceToken)
+        }
+
+    @Test
+    fun `revokeInvite delegates to rpc with correct invite id`() =
+        runTest {
+            fakeRpc.revokeInviteResult = Result.success(Unit)
+
+            api.revokeInvite("inv-99").getOrThrow()
+
+            assertEquals("inv-99", fakeRpc.lastRevokeInviteId)
+        }
+
+    @Test
+    fun `leaveWorkspace delegates to rpc with correct workspace id`() =
+        runTest {
+            fakeRpc.leaveWorkspaceResult = Result.success(Unit)
+
+            api.leaveWorkspace("ws-1").getOrThrow()
+
+            assertEquals("ws-1", fakeRpc.lastLeaveWorkspaceId)
+        }
+
+    @Test
+    fun `deleteWorkspace delegates to rpc with correct workspace id`() =
+        runTest {
+            fakeRpc.deleteWorkspaceResult = Result.success(Unit)
+
+            api.deleteWorkspace("ws-1").getOrThrow()
+
+            assertEquals("ws-1", fakeRpc.lastDeleteWorkspaceId)
+        }
 }

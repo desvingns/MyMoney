@@ -20,21 +20,24 @@ class SupabaseSharedWorkspaceRpc
         override suspend fun createWorkspace(name: String): Result<SharedWorkspace> =
             rpc("create_workspace", buildJsonObject { put("p_name", name) }, ::workspaceFrom)
 
-        override suspend fun currentWorkspace(): Result<SharedWorkspace?> {
-            return withAccessToken { accessToken ->
+        override suspend fun currentWorkspace(): Result<SharedWorkspace?> =
+            withAccessToken { accessToken ->
                 http
                     .get(
                         path =
                             "rest/v1/workspace_members?select=workspace:workspaces!inner(id,name,owner_id,created_at)&active=eq.true&limit=1",
                         accessToken = accessToken,
                     ).mapCatching { response ->
-                        response.jsonArray.firstOrNull()?.jsonObject?.requiredObject("workspace")?.let(::workspaceFrom)
+                        response.jsonArray
+                            .firstOrNull()
+                            ?.jsonObject
+                            ?.requiredObject("workspace")
+                            ?.let(::workspaceFrom)
                     }
             }
-        }
 
-        override suspend fun listMembers(workspaceId: String): Result<List<WorkspaceMember>> {
-            return withAccessToken { accessToken ->
+        override suspend fun listMembers(workspaceId: String): Result<List<WorkspaceMember>> =
+            withAccessToken { accessToken ->
                 http
                     .get(
                         path =
@@ -46,7 +49,6 @@ class SupabaseSharedWorkspaceRpc
                         }
                     }
             }
-        }
 
         override suspend fun createInvite(
             workspaceId: String,
@@ -85,8 +87,7 @@ class SupabaseSharedWorkspaceRpc
                         payload = payload,
                         accessToken = accessToken,
                         mapMembershipDeniedToAuth = true,
-                    )
-                    .mapCatching { response -> decode(response.jsonObject) }
+                    ).mapCatching { response -> decode(response.jsonObject) }
             }
 
         private suspend fun rpcUnit(

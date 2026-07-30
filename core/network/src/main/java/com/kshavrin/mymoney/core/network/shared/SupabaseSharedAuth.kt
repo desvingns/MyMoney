@@ -2,13 +2,13 @@ package com.kshavrin.mymoney.core.network.shared
 
 import com.kshavrin.mymoney.core.common.exception.SyncError
 import com.kshavrin.mymoney.core.common.exception.SyncException
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.json.put
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import java.time.Clock
 import java.time.Instant
 import javax.inject.Inject
@@ -26,7 +26,9 @@ class SupabaseSharedAuth
         @Volatile private var session: ActiveSession? = null
         private val sessionMutex = Mutex()
         private val sessionCacheLock = Any()
+
         @Volatile private var sessionGeneration = 0L
+
         @Volatile private var resetInProgress = false
 
         override fun currentSession(): SharedSession? =

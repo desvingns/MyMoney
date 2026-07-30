@@ -58,139 +58,146 @@ class SupabaseSharedTransportTest {
     }
 
     @Test
-    fun `Google id token exchange forwards nonce without an authorization header`() = runTest {
-        server.enqueue(
-            MockResponse().setResponseCode(200).setBody(
-                sessionResponse(),
-            ),
-        )
-
-        val session = auth.signInWithGoogle("google-id-token", "request-nonce").getOrThrow()
-
-        val request = server.takeRequest()
-        val body = Json.parseToJsonElement(request.body.readUtf8()).jsonObject
-        assertEquals("/auth/v1/token?grant_type=id_token", request.path)
-        assertEquals("anon-key", request.getHeader("apikey"))
-        assertNull(request.getHeader("Authorization"))
-        assertEquals("google", body["provider"]?.jsonPrimitive?.content)
-        assertEquals("google-id-token", body["id_token"]?.jsonPrimitive?.content)
-        assertEquals("request-nonce", body["nonce"]?.jsonPrimitive?.content)
-        assertEquals("user-1", session.user.id)
-        assertEquals("member@example.com", session.user.email)
-        assertEquals("shared-access-token", session.accessToken)
-        assertEquals(session, auth.currentSession())
-        assertEquals("shared-refresh-token", sessionStore.session?.refreshToken)
-    }
-
-    @Test
-    fun `Google id token exchange rejects blank credentials without a network call`() = runTest {
-        val result = auth.signInWithGoogle(googleIdToken = "", nonce = "request-nonce")
-
-        assertSyncError(result, SyncError.Auth)
-        assertEquals(0, server.requestCount)
-        assertNull(auth.currentSession())
-    }
-
-    @Test
-    fun `Google id token exchange maps an incomplete session payload to a server error`() = runTest {
-        server.enqueue(
-            MockResponse().setResponseCode(200).setBody(
-                """{"access_token":"shared-access-token","refresh_token":"shared-refresh-token","expires_at":1700003600,"user":{"id":"user-1"}}""",
-            ),
-        )
-
-        val result = auth.signInWithGoogle("google-id-token", "request-nonce")
-
-        assertSyncError(result, SyncError.Server)
-        assertNull(auth.currentSession())
-    }
-
-    @Test
-    fun `sign out sends the session bearer and clears the cached session`() = runTest {
-        signIn()
-        server.enqueue(MockResponse().setResponseCode(204))
-
-        auth.signOut().getOrThrow()
-
-        val request = server.takeRequest()
-        assertEquals("/auth/v1/logout", request.path)
-        assertEquals("anon-key", request.getHeader("apikey"))
-        assertEquals("Bearer shared-access-token", request.getHeader("Authorization"))
-        assertNull(auth.currentSession())
-        assertNull(sessionStore.session)
-    }
-
-    @Test
-    fun `restarted auth restores an encrypted stored session before a shared RPC`() = runTest {
-        sessionStore.session = storedSession(accessToken = "persisted-access-token", expiresAt = 1_800_000_000L)
-        val config =
-            SupabaseConfig(
-                url = server.url("/").toString().removeSuffix("/"),
-                anonKey = "anon-key",
-                googleWebClientId = "web-client-id",
+    fun `Google id token exchange forwards nonce without an authorization header`() =
+        runTest {
+            server.enqueue(
+                MockResponse().setResponseCode(200).setBody(
+                    sessionResponse(),
+                ),
             )
-        val restartedAuth = SupabaseSharedAuth(config, SupabaseHttpTransport(config, OkHttpClient(), Json), sessionStore, clock)
-        val restartedRpc = SupabaseSharedWorkspaceRpc(restartedAuth, SupabaseHttpTransport(config, OkHttpClient(), Json))
-        server.enqueue(
-            MockResponse().setResponseCode(200).setBody(
-                """{"id":"workspace-1","name":"Budget","owner_id":"user-1","created_at":"2026-07-29T12:00:00Z"}""",
-            ),
-        )
 
-        restartedRpc.createWorkspace("Budget").getOrThrow()
+            val session = auth.signInWithGoogle("google-id-token", "request-nonce").getOrThrow()
 
-        assertEquals("member@example.com", restartedAuth.currentSession()?.user?.email)
-        assertEquals("Bearer persisted-access-token", server.takeRequest().getHeader("Authorization"))
-    }
-
-    @Test
-    fun `expired stored session refreshes and atomically rotates credentials before a shared RPC`() = runTest {
-        sessionStore.session = storedSession(accessToken = "expired-access-token", refreshToken = "old-refresh-token", expiresAt = 1L)
-        val config =
-            SupabaseConfig(
-                url = server.url("/").toString().removeSuffix("/"),
-                anonKey = "anon-key",
-                googleWebClientId = "web-client-id",
-            )
-        val restartedAuth = SupabaseSharedAuth(config, SupabaseHttpTransport(config, OkHttpClient(), Json), sessionStore, clock)
-        val restartedRpc = SupabaseSharedWorkspaceRpc(restartedAuth, SupabaseHttpTransport(config, OkHttpClient(), Json))
-        server.enqueue(MockResponse().setResponseCode(200).setBody(sessionResponse("refreshed-access-token", "rotated-refresh-token")))
-        server.enqueue(
-            MockResponse().setResponseCode(200).setBody(
-                """{"id":"workspace-1","name":"Budget","owner_id":"user-1","created_at":"2026-07-29T12:00:00Z"}""",
-            ),
-        )
-
-        restartedRpc.createWorkspace("Budget").getOrThrow()
-
-        val refreshRequest = server.takeRequest()
-        val refreshBody = Json.parseToJsonElement(refreshRequest.body.readUtf8()).jsonObject
-        assertEquals("/auth/v1/token?grant_type=refresh_token", refreshRequest.path)
-        assertNull(refreshRequest.getHeader("Authorization"))
-        assertEquals("old-refresh-token", refreshBody["refresh_token"]?.jsonPrimitive?.content)
-        assertEquals("Bearer refreshed-access-token", server.takeRequest().getHeader("Authorization"))
-        assertEquals("rotated-refresh-token", sessionStore.session?.refreshToken)
-        assertEquals("refreshed-access-token", sessionStore.session?.accessToken)
-    }
+            val request = server.takeRequest()
+            val body = Json.parseToJsonElement(request.body.readUtf8()).jsonObject
+            assertEquals("/auth/v1/token?grant_type=id_token", request.path)
+            assertEquals("anon-key", request.getHeader("apikey"))
+            assertNull(request.getHeader("Authorization"))
+            assertEquals("google", body["provider"]?.jsonPrimitive?.content)
+            assertEquals("google-id-token", body["id_token"]?.jsonPrimitive?.content)
+            assertEquals("request-nonce", body["nonce"]?.jsonPrimitive?.content)
+            assertEquals("user-1", session.user.id)
+            assertEquals("member@example.com", session.user.email)
+            assertEquals("shared-access-token", session.accessToken)
+            assertEquals(session, auth.currentSession())
+            assertEquals("shared-refresh-token", sessionStore.session?.refreshToken)
+        }
 
     @Test
-    fun `terminal refresh auth failure clears stored credentials`() = runTest {
-        sessionStore.session = storedSession(expiresAt = 1L)
-        val config =
-            SupabaseConfig(
-                url = server.url("/").toString().removeSuffix("/"),
-                anonKey = "anon-key",
-                googleWebClientId = "web-client-id",
+    fun `Google id token exchange rejects blank credentials without a network call`() =
+        runTest {
+            val result = auth.signInWithGoogle(googleIdToken = "", nonce = "request-nonce")
+
+            assertSyncError(result, SyncError.Auth)
+            assertEquals(0, server.requestCount)
+            assertNull(auth.currentSession())
+        }
+
+    @Test
+    fun `Google id token exchange maps an incomplete session payload to a server error`() =
+        runTest {
+            server.enqueue(
+                MockResponse().setResponseCode(200).setBody(
+                    """{"access_token":"shared-access-token","refresh_token":"shared-refresh-token","expires_at":1700003600,"user":{"id":"user-1"}}""",
+                ),
             )
-        val restartedAuth = SupabaseSharedAuth(config, SupabaseHttpTransport(config, OkHttpClient(), Json), sessionStore, clock)
-        server.enqueue(MockResponse().setResponseCode(400))
 
-        val result = restartedAuth.accessToken()
+            val result = auth.signInWithGoogle("google-id-token", "request-nonce")
 
-        assertSyncError(result, SyncError.Auth)
-        assertNull(sessionStore.session)
-        assertNull(restartedAuth.currentSession())
-    }
+            assertSyncError(result, SyncError.Server)
+            assertNull(auth.currentSession())
+        }
+
+    @Test
+    fun `sign out sends the session bearer and clears the cached session`() =
+        runTest {
+            signIn()
+            server.enqueue(MockResponse().setResponseCode(204))
+
+            auth.signOut().getOrThrow()
+
+            val request = server.takeRequest()
+            assertEquals("/auth/v1/logout", request.path)
+            assertEquals("anon-key", request.getHeader("apikey"))
+            assertEquals("Bearer shared-access-token", request.getHeader("Authorization"))
+            assertNull(auth.currentSession())
+            assertNull(sessionStore.session)
+        }
+
+    @Test
+    fun `restarted auth restores an encrypted stored session before a shared RPC`() =
+        runTest {
+            sessionStore.session = storedSession(accessToken = "persisted-access-token", expiresAt = 1_800_000_000L)
+            val config =
+                SupabaseConfig(
+                    url = server.url("/").toString().removeSuffix("/"),
+                    anonKey = "anon-key",
+                    googleWebClientId = "web-client-id",
+                )
+            val restartedAuth = SupabaseSharedAuth(config, SupabaseHttpTransport(config, OkHttpClient(), Json), sessionStore, clock)
+            val restartedRpc = SupabaseSharedWorkspaceRpc(restartedAuth, SupabaseHttpTransport(config, OkHttpClient(), Json))
+            server.enqueue(
+                MockResponse().setResponseCode(200).setBody(
+                    """{"id":"workspace-1","name":"Budget","owner_id":"user-1","created_at":"2026-07-29T12:00:00Z"}""",
+                ),
+            )
+
+            restartedRpc.createWorkspace("Budget").getOrThrow()
+
+            assertEquals("member@example.com", restartedAuth.currentSession()?.user?.email)
+            assertEquals("Bearer persisted-access-token", server.takeRequest().getHeader("Authorization"))
+        }
+
+    @Test
+    fun `expired stored session refreshes and atomically rotates credentials before a shared RPC`() =
+        runTest {
+            sessionStore.session = storedSession(accessToken = "expired-access-token", refreshToken = "old-refresh-token", expiresAt = 1L)
+            val config =
+                SupabaseConfig(
+                    url = server.url("/").toString().removeSuffix("/"),
+                    anonKey = "anon-key",
+                    googleWebClientId = "web-client-id",
+                )
+            val restartedAuth = SupabaseSharedAuth(config, SupabaseHttpTransport(config, OkHttpClient(), Json), sessionStore, clock)
+            val restartedRpc = SupabaseSharedWorkspaceRpc(restartedAuth, SupabaseHttpTransport(config, OkHttpClient(), Json))
+            server.enqueue(MockResponse().setResponseCode(200).setBody(sessionResponse("refreshed-access-token", "rotated-refresh-token")))
+            server.enqueue(
+                MockResponse().setResponseCode(200).setBody(
+                    """{"id":"workspace-1","name":"Budget","owner_id":"user-1","created_at":"2026-07-29T12:00:00Z"}""",
+                ),
+            )
+
+            restartedRpc.createWorkspace("Budget").getOrThrow()
+
+            val refreshRequest = server.takeRequest()
+            val refreshBody = Json.parseToJsonElement(refreshRequest.body.readUtf8()).jsonObject
+            assertEquals("/auth/v1/token?grant_type=refresh_token", refreshRequest.path)
+            assertNull(refreshRequest.getHeader("Authorization"))
+            assertEquals("old-refresh-token", refreshBody["refresh_token"]?.jsonPrimitive?.content)
+            assertEquals("Bearer refreshed-access-token", server.takeRequest().getHeader("Authorization"))
+            assertEquals("rotated-refresh-token", sessionStore.session?.refreshToken)
+            assertEquals("refreshed-access-token", sessionStore.session?.accessToken)
+        }
+
+    @Test
+    fun `terminal refresh auth failure clears stored credentials`() =
+        runTest {
+            sessionStore.session = storedSession(expiresAt = 1L)
+            val config =
+                SupabaseConfig(
+                    url = server.url("/").toString().removeSuffix("/"),
+                    anonKey = "anon-key",
+                    googleWebClientId = "web-client-id",
+                )
+            val restartedAuth = SupabaseSharedAuth(config, SupabaseHttpTransport(config, OkHttpClient(), Json), sessionStore, clock)
+            server.enqueue(MockResponse().setResponseCode(400))
+
+            val result = restartedAuth.accessToken()
+
+            assertSyncError(result, SyncError.Auth)
+            assertNull(sessionStore.session)
+            assertNull(restartedAuth.currentSession())
+        }
 
     @Test
     fun `terminal sign out clear wins over an in-flight session restore`() {
@@ -315,76 +322,113 @@ class SupabaseSharedTransportTest {
     }
 
     @Test
-    fun `rpc without a session fails with auth and does not issue a request`() = runTest {
-        val result = workspaceRpc.createWorkspace("Budget")
+    fun `rpc without a session fails with auth and does not issue a request`() =
+        runTest {
+            val result = workspaceRpc.createWorkspace("Budget")
 
-        assertSyncError(result, SyncError.Auth)
-        assertEquals(0, server.requestCount)
-    }
-
-    @Test
-    fun `workspace rpc uses the Supabase bearer session and RPC parameter names`() = runTest {
-        signIn()
-        server.enqueue(
-            MockResponse().setResponseCode(200).setBody(
-                """{"id":"workspace-1","name":"Budget","owner_id":"user-1","created_at":"2026-07-29T12:00:00Z"}""",
-            ),
-        )
-
-        val workspace = workspaceRpc.createWorkspace("Budget").getOrThrow()
-
-        val request = server.takeRequest()
-        val body = Json.parseToJsonElement(request.body.readUtf8()).jsonObject
-        assertEquals("/rest/v1/rpc/create_workspace", request.path)
-        assertEquals("Bearer shared-access-token", request.getHeader("Authorization"))
-        assertEquals("anon-key", request.getHeader("apikey"))
-        assertEquals("Budget", body["p_name"]?.jsonPrimitive?.content)
-        assertEquals("workspace-1", workspace.id)
-    }
+            assertSyncError(result, SyncError.Auth)
+            assertEquals(0, server.requestCount)
+        }
 
     @Test
-    fun `journal rpc preserves payload and maps forbidden response to auth failure`() = runTest {
-        signIn()
-        server.enqueue(MockResponse().setResponseCode(403).setBody("forbidden"))
-
-        val result =
-            journalRpc.pushOperation(
-                workspaceId = "workspace-1",
-                idempotencyKey = "operation-1",
-                baseSequence = 4,
-                deviceId = "device-1",
-                entityKind = "transaction",
-                entityId = "transaction-1",
-                payload = buildJsonObject { put("amount", "42.50") },
-                tombstone = false,
+    fun `workspace rpc uses the Supabase bearer session and RPC parameter names`() =
+        runTest {
+            signIn()
+            server.enqueue(
+                MockResponse().setResponseCode(200).setBody(
+                    """{"id":"workspace-1","name":"Budget","owner_id":"user-1","created_at":"2026-07-29T12:00:00Z"}""",
+                ),
             )
 
-        val request = server.takeRequest()
-        val body = Json.parseToJsonElement(request.body.readUtf8()).jsonObject
-        assertEquals("/rest/v1/rpc/push_operation", request.path)
-        assertEquals("42.50", body["p_payload"]?.jsonObject?.get("amount")?.jsonPrimitive?.content)
-        assertTrue(result.exceptionOrNull() is SyncException)
-        assertEquals(SyncError.Auth, (result.exceptionOrNull() as SyncException).syncError)
-    }
+            val workspace = workspaceRpc.createWorkspace("Budget").getOrThrow()
+
+            val request = server.takeRequest()
+            val body = Json.parseToJsonElement(request.body.readUtf8()).jsonObject
+            assertEquals("/rest/v1/rpc/create_workspace", request.path)
+            assertEquals("Bearer shared-access-token", request.getHeader("Authorization"))
+            assertEquals("anon-key", request.getHeader("apikey"))
+            assertEquals("Budget", body["p_name"]?.jsonPrimitive?.content)
+            assertEquals("workspace-1", workspace.id)
+        }
 
     @Test
-    fun `journal rpc maps Supabase HTTP statuses to sync errors`() = runTest {
-        signIn()
-        val statusMappings =
-            listOf(
-                401 to SyncError.Auth,
-                409 to SyncError.Conflict,
-                429 to SyncError.Quota,
-                500 to SyncError.Server,
-                404 to SyncError.Unknown,
-            )
+    fun `journal rpc preserves payload and maps forbidden response to auth failure`() =
+        runTest {
+            signIn()
+            server.enqueue(MockResponse().setResponseCode(403).setBody("forbidden"))
 
-        statusMappings.forEachIndexed { index, (status, expectedError) ->
-            server.enqueue(MockResponse().setResponseCode(status))
             val result =
                 journalRpc.pushOperation(
                     workspaceId = "workspace-1",
-                    idempotencyKey = "operation-$index",
+                    idempotencyKey = "operation-1",
+                    baseSequence = 4,
+                    deviceId = "device-1",
+                    entityKind = "transaction",
+                    entityId = "transaction-1",
+                    payload = buildJsonObject { put("amount", "42.50") },
+                    tombstone = false,
+                )
+
+            val request = server.takeRequest()
+            val body = Json.parseToJsonElement(request.body.readUtf8()).jsonObject
+            assertEquals("/rest/v1/rpc/push_operation", request.path)
+            assertEquals(
+                "42.50",
+                body["p_payload"]
+                    ?.jsonObject
+                    ?.get("amount")
+                    ?.jsonPrimitive
+                    ?.content,
+            )
+            assertTrue(result.exceptionOrNull() is SyncException)
+            assertEquals(SyncError.Auth, (result.exceptionOrNull() as SyncException).syncError)
+        }
+
+    @Test
+    fun `journal rpc maps Supabase HTTP statuses to sync errors`() =
+        runTest {
+            signIn()
+            val statusMappings =
+                listOf(
+                    401 to SyncError.Auth,
+                    409 to SyncError.Conflict,
+                    429 to SyncError.Quota,
+                    500 to SyncError.Server,
+                    404 to SyncError.Unknown,
+                )
+
+            statusMappings.forEachIndexed { index, (status, expectedError) ->
+                server.enqueue(MockResponse().setResponseCode(status))
+                val result =
+                    journalRpc.pushOperation(
+                        workspaceId = "workspace-1",
+                        idempotencyKey = "operation-$index",
+                        baseSequence = 0,
+                        deviceId = "device-1",
+                        entityKind = "account",
+                        entityId = "account-1",
+                        payload = null,
+                        tombstone = true,
+                    )
+
+                assertSyncError(result, expectedError)
+                server.takeRequest()
+            }
+        }
+
+    @Test
+    fun `journal rpc maps only SQLSTATE 42501 on HTTP400 to auth`() =
+        runTest {
+            signIn()
+            server.enqueue(
+                MockResponse()
+                    .setResponseCode(400)
+                    .setBody("""{"code":"42501","message":"row-level security policy"}"""),
+            )
+            val membershipDenied =
+                journalRpc.pushOperation(
+                    workspaceId = "workspace-1",
+                    idempotencyKey = "operation-denied",
                     baseSequence = 0,
                     deviceId = "device-1",
                     entityKind = "account",
@@ -392,67 +436,43 @@ class SupabaseSharedTransportTest {
                     payload = null,
                     tombstone = true,
                 )
+            assertSyncError(membershipDenied, SyncError.Auth)
+            server.takeRequest()
 
-            assertSyncError(result, expectedError)
+            server.enqueue(
+                MockResponse()
+                    .setResponseCode(400)
+                    .setBody("""{"code":"425010","message":"bad request"}"""),
+            )
+            val unrelatedBadRequest =
+                journalRpc.pushOperation(
+                    workspaceId = "workspace-1",
+                    idempotencyKey = "operation-bad-request",
+                    baseSequence = 0,
+                    deviceId = "device-1",
+                    entityKind = "account",
+                    entityId = "account-1",
+                    payload = null,
+                    tombstone = true,
+                )
+            assertSyncError(unrelatedBadRequest, SyncError.Unknown)
             server.takeRequest()
         }
-    }
 
     @Test
-    fun `journal rpc maps only SQLSTATE 42501 on HTTP400 to auth`() = runTest {
-        signIn()
-        server.enqueue(
-            MockResponse()
-                .setResponseCode(400)
-                .setBody("""{"code":"42501","message":"row-level security policy"}"""),
-        )
-        val membershipDenied =
-            journalRpc.pushOperation(
-                workspaceId = "workspace-1",
-                idempotencyKey = "operation-denied",
-                baseSequence = 0,
-                deviceId = "device-1",
-                entityKind = "account",
-                entityId = "account-1",
-                payload = null,
-                tombstone = true,
-            )
-        assertSyncError(membershipDenied, SyncError.Auth)
-        server.takeRequest()
+    fun `void workspace RPCs succeed on empty 204 responses`() =
+        runTest {
+            signIn()
+            repeat(3) { server.enqueue(MockResponse().setResponseCode(204)) }
 
-        server.enqueue(
-            MockResponse()
-                .setResponseCode(400)
-                .setBody("""{"code":"425010","message":"bad request"}"""),
-        )
-        val unrelatedBadRequest =
-            journalRpc.pushOperation(
-                workspaceId = "workspace-1",
-                idempotencyKey = "operation-bad-request",
-                baseSequence = 0,
-                deviceId = "device-1",
-                entityKind = "account",
-                entityId = "account-1",
-                payload = null,
-                tombstone = true,
-            )
-        assertSyncError(unrelatedBadRequest, SyncError.Unknown)
-        server.takeRequest()
-    }
+            workspaceRpc.revokeInvite("invite-1").getOrThrow()
+            workspaceRpc.leaveWorkspace("workspace-1").getOrThrow()
+            workspaceRpc.deleteWorkspace("workspace-1").getOrThrow()
 
-    @Test
-    fun `void workspace RPCs succeed on empty 204 responses`() = runTest {
-        signIn()
-        repeat(3) { server.enqueue(MockResponse().setResponseCode(204)) }
-
-        workspaceRpc.revokeInvite("invite-1").getOrThrow()
-        workspaceRpc.leaveWorkspace("workspace-1").getOrThrow()
-        workspaceRpc.deleteWorkspace("workspace-1").getOrThrow()
-
-        assertEquals("/rest/v1/rpc/revoke_invite", server.takeRequest().path)
-        assertEquals("/rest/v1/rpc/leave_workspace", server.takeRequest().path)
-        assertEquals("/rest/v1/rpc/delete_workspace", server.takeRequest().path)
-    }
+            assertEquals("/rest/v1/rpc/revoke_invite", server.takeRequest().path)
+            assertEquals("/rest/v1/rpc/leave_workspace", server.takeRequest().path)
+            assertEquals("/rest/v1/rpc/delete_workspace", server.takeRequest().path)
+        }
 
     private suspend fun signIn() {
         server.enqueue(

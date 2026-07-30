@@ -71,13 +71,12 @@ import com.google.android.gms.auth.api.identity.AuthorizationRequest
 import com.google.android.gms.auth.api.identity.Identity
 import com.google.android.gms.common.AccountPicker
 import com.google.android.gms.common.api.Scope
-import com.google.api.services.drive.DriveScopes
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import com.google.api.services.drive.DriveScopes
 import com.kshavrin.mymoney.core.common.exception.reportToSentry
 import com.kshavrin.mymoney.core.datastore.CloudProvider
 import com.kshavrin.mymoney.core.domain.model.BackupFile
-import com.kshavrin.mymoney.core.network.BuildConfig as NetworkBuildConfig
 import com.kshavrin.mymoney.core.sync.MigrationResolution
 import com.kshavrin.mymoney.core.sync.SyncTarget
 import com.kshavrin.mymoney.core.sync.toCloudProvider
@@ -88,13 +87,14 @@ import com.kshavrin.mymoney.core.ui.theme.conflictLocalContainer
 import com.kshavrin.mymoney.core.ui.theme.conflictLocalContent
 import com.kshavrin.mymoney.core.ui.theme.conflictRemoteContainer
 import com.kshavrin.mymoney.core.ui.theme.conflictRemoteContent
+import java.security.MessageDigest
+import java.security.SecureRandom
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
-import java.security.MessageDigest
-import java.security.SecureRandom
 import java.util.Locale
+import com.kshavrin.mymoney.core.network.BuildConfig as NetworkBuildConfig
 import com.kshavrin.mymoney.core.sync.BuildConfig as SyncBuildConfig
 
 @Composable

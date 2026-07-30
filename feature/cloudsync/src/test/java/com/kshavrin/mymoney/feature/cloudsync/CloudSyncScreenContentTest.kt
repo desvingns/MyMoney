@@ -2,7 +2,6 @@ package com.kshavrin.mymoney.feature.cloudsync
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
-import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -14,7 +13,6 @@ import com.kshavrin.mymoney.core.domain.model.BackupFile
 import com.kshavrin.mymoney.core.sync.SyncTarget
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -32,7 +30,6 @@ import org.robolectric.annotation.GraphicsMode
 @Config(sdk = [34], application = android.app.Application::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class CloudSyncScreenContentTest {
-
     @get:Rule
     val composeTestRule = createComposeRule()
 
@@ -305,18 +302,19 @@ class CloudSyncScreenContentTest {
                 binding = CloudBinding(CloudProvider.Shared, "ws-1", "Budget"),
                 shared = SharedCardState(signedIn = true, active = true),
                 sharedDialog = SharedDialog.Conflicts,
-                conflicts = listOf(
-                    ConflictUi(
-                        conflictId = "c-1",
-                        entityKind = "Account",
-                        localOperationId = "op-local",
-                        localAuthorId = "author-local-id",
-                        localSummary = "Local version",
-                        remoteOperationId = "op-remote",
-                        remoteAuthorId = "author-remote-id",
-                        remoteSummary = "Remote version",
+                conflicts =
+                    listOf(
+                        ConflictUi(
+                            conflictId = "c-1",
+                            entityKind = "Account",
+                            localOperationId = "op-local",
+                            localAuthorId = "author-local-id",
+                            localSummary = "Local version",
+                            remoteOperationId = "op-remote",
+                            remoteAuthorId = "author-remote-id",
+                            remoteSummary = "Remote version",
+                        ),
                     ),
-                ),
             ),
         )
         // Entity kind label shown
@@ -337,18 +335,19 @@ class CloudSyncScreenContentTest {
                 binding = CloudBinding(CloudProvider.Shared, "ws-1", "Budget"),
                 shared = SharedCardState(signedIn = true, active = true),
                 sharedDialog = SharedDialog.Conflicts,
-                conflicts = listOf(
-                    ConflictUi(
-                        conflictId = "c-1",
-                        entityKind = "Transaction",
-                        localOperationId = "op-local",
-                        localAuthorId = "user-a",
-                        localSummary = "local data",
-                        remoteOperationId = "op-remote",
-                        remoteAuthorId = "user-b",
-                        remoteSummary = "remote data",
+                conflicts =
+                    listOf(
+                        ConflictUi(
+                            conflictId = "c-1",
+                            entityKind = "Transaction",
+                            localOperationId = "op-local",
+                            localAuthorId = "user-a",
+                            localSummary = "local data",
+                            remoteOperationId = "op-remote",
+                            remoteAuthorId = "user-b",
+                            remoteSummary = "remote data",
+                        ),
                     ),
-                ),
             ),
             events::add,
         )
@@ -441,6 +440,7 @@ class CloudSyncScreenContentTest {
     }
 
     private fun str(resId: Int): String =
-        androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
+        androidx.test.core.app.ApplicationProvider
+            .getApplicationContext<android.content.Context>()
             .getString(resId)
 }

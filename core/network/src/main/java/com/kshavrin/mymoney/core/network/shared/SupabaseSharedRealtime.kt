@@ -174,7 +174,6 @@ class SupabaseSharedRealtime
             url
                 .toHttpUrl()
                 .newBuilder()
-                .scheme(if (url.startsWith("https://")) "wss" else "ws")
                 .addPathSegments("realtime/v1/websocket")
                 .addQueryParameter("apikey", anonKey)
                 .addQueryParameter("vsn", "1.0.0")

@@ -55,6 +55,8 @@ import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
@@ -787,10 +789,97 @@ class SharedSyncCoordinatorImplTest {
 
             assertTrue(coordinator.startForegroundRealtime().isSuccess)
             assertEquals(SharedRealtimeStatus.Starting, coordinator.foregroundRealtimeStatus.value)
+            realtime.awaitActiveSubscriptions(1)
+            assertEquals(1, realtime.eventsCalls)
+            assertEquals(1, realtime.activeSubscriptions)
 
             coordinator.stopForegroundRealtime()
+            realtime.awaitActiveSubscriptions(0)
 
             assertEquals(SharedRealtimeStatus.Inactive, coordinator.foregroundRealtimeStatus.value)
+            assertEquals(0, realtime.activeSubscriptions)
+        }
+
+    @Test
+    fun `foreground realtime reconciles every operation hint through the durable sync path`() =
+        runTest(dispatcher) {
+            auth.session = fakeSession()
+            configStore.current = CloudBinding(CloudProvider.Shared, "ws-1", "Budget")
+            sharedStore.membershipActive = true
+            realtime.eventsFlow =
+                flow {
+                    emit(SharedRealtimeEvent.Connected)
+                    emit(SharedRealtimeEvent.OperationAvailable)
+                    emit(SharedRealtimeEvent.OperationAvailable)
+                    awaitCancellation()
+                }
+
+            assertTrue(coordinator.startForegroundRealtime().isSuccess)
+
+            assertEquals(
+                SharedRealtimeStatus.Connected,
+                coordinator.foregroundRealtimeStatus.first { it == SharedRealtimeStatus.Connected },
+            )
+            journalRepository.awaitPullCalls(3)
+            assertEquals(1, realtime.eventsCalls)
+            assertTrue("each hint must reconcile through syncNow", journalRepository.pullCalls >= 3)
+
+            coordinator.stopForegroundRealtime()
+            realtime.awaitActiveSubscriptions(0)
+            assertEquals(0, realtime.activeSubscriptions)
+        }
+
+    @Test
+    fun `server disconnect exposes sleeping status before bounded retry`() =
+        runTest(dispatcher) {
+            auth.session = fakeSession()
+            configStore.current = CloudBinding(CloudProvider.Shared, "ws-1", "Budget")
+            sharedStore.membershipActive = true
+            realtime.eventsFlow = flow { emit(SharedRealtimeEvent.Disconnected(SyncException(SyncError.Server))) }
+
+            assertTrue(coordinator.startForegroundRealtime().isSuccess)
+
+            assertEquals(
+                SharedRealtimeStatus.Sleeping(1),
+                coordinator.foregroundRealtimeStatus.first { it == SharedRealtimeStatus.Sleeping(1) },
+            )
+            assertEquals(1, realtime.eventsCalls)
+            coordinator.stopForegroundRealtime()
+        }
+
+    @Test
+    fun `auth disconnect revokes the binding and ends realtime without retry`() =
+        runTest(dispatcher) {
+            auth.session = fakeSession()
+            configStore.current = CloudBinding(CloudProvider.Shared, "ws-1", "Budget")
+            sharedStore.membershipActive = true
+            realtime.eventsFlow = flow { emit(SharedRealtimeEvent.Disconnected(SyncException(SyncError.Auth))) }
+
+            assertTrue(coordinator.startForegroundRealtime().isSuccess)
+            auth.awaitSignOutCalls(1)
+
+            assertNull(configStore.current)
+            assertEquals(1, scheduler.disableCalls)
+            assertEquals(1, auth.signOutCalls)
+            assertEquals(SharedRealtimeStatus.Inactive, coordinator.foregroundRealtimeStatus.value)
+            assertEquals(1, realtime.eventsCalls)
+        }
+
+    @Test
+    fun `realtime transient failures stop after bounded retries with error status`() =
+        runTest(dispatcher) {
+            auth.session = fakeSession()
+            configStore.current = CloudBinding(CloudProvider.Shared, "ws-1", "Budget")
+            sharedStore.membershipActive = true
+            realtime.eventsFlow = flow { emit(SharedRealtimeEvent.Disconnected(IllegalStateException("socket lost"))) }
+
+            assertTrue(coordinator.startForegroundRealtime().isSuccess)
+
+            assertEquals(
+                SharedRealtimeStatus.Error,
+                coordinator.foregroundRealtimeStatus.first { it == SharedRealtimeStatus.Error },
+            )
+            assertEquals(6, realtime.eventsCalls)
         }
 
     // ── resolveConflict ────────────────────────────────────────────────────
@@ -908,6 +997,7 @@ class SharedSyncCoordinatorImplTest {
     private inner class FakeSharedAuth : SharedAuth {
         var session: SharedSession? = null
         var signOutCalls = 0
+        private val signOutCallCount = MutableStateFlow(0)
         var clearLocalSessionCalls = 0
         var lastSignIn: Pair<String, String>? = null
         var signInFailure: Throwable? = null
@@ -925,8 +1015,13 @@ class SharedSyncCoordinatorImplTest {
 
         override suspend fun signOut(): Result<Unit> {
             signOutCalls++
+            signOutCallCount.value = signOutCalls
             session = null
             return Result.success(Unit)
+        }
+
+        suspend fun awaitSignOutCalls(expected: Int) {
+            signOutCallCount.first { it >= expected }
         }
 
         override suspend fun clearLocalSession() {
@@ -938,8 +1033,10 @@ class SharedSyncCoordinatorImplTest {
     private class FakeSharedRealtime : SharedRealtime {
         var eventsCalls = 0
         var activeSubscriptions = 0
+        private val activeSubscriptionCount = MutableStateFlow(0)
         var workspaceId: String? = null
         var accessToken: String? = null
+        var eventsFlow: Flow<SharedRealtimeEvent> = flow { awaitCancellation() }
 
         override fun events(
             workspaceId: String,
@@ -950,12 +1047,18 @@ class SharedSyncCoordinatorImplTest {
                 this@FakeSharedRealtime.workspaceId = workspaceId
                 this@FakeSharedRealtime.accessToken = accessToken
                 activeSubscriptions++
+                activeSubscriptionCount.value = activeSubscriptions
                 try {
-                    awaitCancellation()
+                    emitAll(eventsFlow)
                 } finally {
                     activeSubscriptions--
+                    activeSubscriptionCount.value = activeSubscriptions
                 }
             }
+
+        suspend fun awaitActiveSubscriptions(expected: Int) {
+            activeSubscriptionCount.first { it == expected }
+        }
     }
 
     private inner class FakeSharedWorkspaceApi : SharedWorkspaceApi {
@@ -993,6 +1096,8 @@ class SharedSyncCoordinatorImplTest {
 
     private inner class FakeSharedJournalRepository : SharedJournalRepository {
         val pullResults = ArrayDeque<Result<List<SharedOperation>>>()
+        var pullCalls = 0
+        private val pullCallCount = MutableStateFlow(0)
         var pushCalls = 0
         var resolveCalls = 0
         var lastResolve: Pair<String, String>? = null
@@ -1016,9 +1121,16 @@ class SharedSyncCoordinatorImplTest {
             workspaceId: String,
             afterSequence: Long,
             limit: Int,
-        ): Result<List<SharedOperation>> =
-            pullResults.removeFirstOrNull()
+        ): Result<List<SharedOperation>> {
+            pullCalls++
+            pullCallCount.value = pullCalls
+            return pullResults.removeFirstOrNull()
                 ?: Result.success(emptyList())
+        }
+
+        suspend fun awaitPullCalls(expected: Int) {
+            pullCallCount.first { it >= expected }
+        }
 
         override suspend fun listPendingConflicts(workspaceId: String) = conflictsResult
 

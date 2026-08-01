@@ -446,3 +446,36 @@ val ColorScheme.conflictAuthorLabel: Color
 
 val ColorScheme.conflictAuthorContainer: Color
     get() = surfaceVariant
+
+val ColorScheme.sharedSyncConnectedContainer: Color
+    get() = primaryContainer
+
+val ColorScheme.sharedSyncConnectedContent: Color
+    get() = onPrimaryContainer
+
+val ColorScheme.sharedSyncStartingContainer: Color
+    get() = tertiaryContainer
+
+val ColorScheme.sharedSyncStartingContent: Color
+    get() = onTertiaryContainer
+
+val ColorScheme.sharedSyncSleepingContainer: Color
+    get() = secondaryContainer
+
+val ColorScheme.sharedSyncSleepingContent: Color
+    get() = onSecondaryContainer
+
+val ColorScheme.sharedSyncRetryingContainer: Color
+    get() = surfaceVariant
+
+val ColorScheme.sharedSyncRetryingContent: Color
+    get() = onSurfaceVariant
+
+val ColorScheme.sharedSyncErrorContainer: Color
+    get() = errorContainer
+
+val ColorScheme.sharedSyncErrorContent: Color
+    get() = onErrorContainer
+
+val ColorScheme.sharedSyncStatusOutline: Color
+    get() = outlineVariant

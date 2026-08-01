@@ -11,6 +11,8 @@ interface RemoteConfigRepository {
 
     fun gdriveSyncEnabled(): Boolean
 
+    fun sharedSyncEnabled(): Boolean = false
+
     fun minSupportedVersionCode(): Long
 
     fun aestheticSoundPack(): String

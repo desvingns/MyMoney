@@ -60,6 +60,12 @@
     <string name="sync_shared_copy_invite">Скопировать код</string>
     <string name="sync_shared_invite_clip_label">Код приглашения в общее пространство</string>
     <string name="sync_shared_sync_now">Синхронизировать</string>
+    <string name="sync_shared_status_connected">Синхронизация в реальном времени подключена</string>
+    <string name="sync_shared_status_starting">Подключение к общей синхронизации</string>
+    <string name="sync_shared_status_sleeping">Общий сервер запускается. Локальные изменения в сохранности.</string>
+    <string name="sync_shared_status_retrying">Повторное подключение к общей синхронизации (попытка %1$d)</string>
+    <string name="sync_shared_status_error">Синхронизация в реальном времени недоступна. Плановая и ручная синхронизация остаются доступными.</string>
+    <string name="sync_shared_retry_realtime">Повторить подключение</string>
     <string name="sync_shared_leave">Покинуть пространство</string>
     <string name="sync_shared_leave_title">Покинуть общее пространство?</string>
     <string name="sync_shared_leave_body">Синхронизация с другими участниками прекратится. Текущие общие данные останутся на этом устройстве как ваша личная копия.</string>

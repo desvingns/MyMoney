@@ -29,4 +29,8 @@ abstract class SharedModule {
     @Binds
     @Singleton
     abstract fun bindSharedJournalRepository(impl: SupabaseSharedJournalApi): SharedJournalRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindSharedRealtime(impl: SupabaseSharedRealtime): SharedRealtime
 }

@@ -18,6 +18,7 @@ import com.kshavrin.mymoney.core.sync.MigrationResolution
 import com.kshavrin.mymoney.core.sync.SnapshotSync
 import com.kshavrin.mymoney.core.sync.SyncScheduler
 import com.kshavrin.mymoney.core.sync.SyncTarget
+import com.kshavrin.mymoney.core.sync.shared.SharedRealtimeStatus
 import com.kshavrin.mymoney.core.sync.shared.SharedSyncCoordinator
 import com.kshavrin.mymoney.core.sync.toCloudProvider
 import com.kshavrin.mymoney.core.sync.toSyncTarget
@@ -32,6 +33,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -55,6 +57,7 @@ class CloudSyncViewModel
                 CloudSyncState(
                     dropbox = TargetCardState(SyncTarget.Dropbox, enabled = remoteConfig.dropboxSyncEnabled()),
                     drive = TargetCardState(SyncTarget.GoogleDrive, enabled = remoteConfig.gdriveSyncEnabled()),
+                    shared = SharedCardState(enabled = remoteConfig.sharedSyncEnabled()),
                 ),
             )
         val state: StateFlow<CloudSyncState> = _state.asStateFlow()
@@ -73,6 +76,7 @@ class CloudSyncViewModel
         init {
             refresh()
             observeSettings()
+            observeForegroundRealtimeStatus()
         }
 
         fun onEvent(event: CloudSyncEvent) {
@@ -107,6 +111,9 @@ class CloudSyncViewModel
                 CloudSyncEvent.SharedCreateInviteClicked -> createSharedInvite()
                 CloudSyncEvent.SharedCopyInviteClicked -> copySharedInvite()
                 CloudSyncEvent.SharedSyncNowClicked -> sharedSyncNow()
+                CloudSyncEvent.SharedRealtimeForegroundStarted -> startForegroundRealtime()
+                CloudSyncEvent.SharedRealtimeForegroundStopped -> sharedCoordinator.stopForegroundRealtime()
+                CloudSyncEvent.SharedRetryRealtimeClicked -> restartForegroundRealtime()
                 CloudSyncEvent.SharedConflictsClicked -> openSharedConflicts()
                 is CloudSyncEvent.SharedResolveConflict -> resolveSharedConflict(event.conflictId, event.winnerOperationId)
                 CloudSyncEvent.SharedLeaveClicked ->
@@ -376,6 +383,8 @@ class CloudSyncViewModel
             active: Boolean,
             generation: Long,
         ) {
+            val sharedEnabled = remoteConfig.sharedSyncEnabled()
+            if (!sharedEnabled) sharedCoordinator.stopForegroundRealtime()
             val workspace = if (active) sharedCoordinator.activeWorkspace() else null
             val ownership =
                 if (active) {
@@ -407,14 +416,32 @@ class CloudSyncViewModel
                         },
                     shared =
                         _state.value.shared.copy(
+                            enabled = sharedEnabled,
                             signedIn = sharedCoordinator.isSignedIn(),
                             accountEmail = sharedCoordinator.accountEmail(),
                             active = stillActive,
                             workspaceName = if (stillActive) workspace?.name else null,
                             conflictCount = if (stillActive) conflictCount else 0,
                             isSoleOwner = stillActive && ownership?.isSoleOwner == true,
+                            realtimeStatus =
+                                if (sharedEnabled && stillActive) {
+                                    _state.value.shared.realtimeStatus
+                                } else {
+                                    SharedRealtimeStatus.Inactive
+                                },
                         ),
                 )
+        }
+
+        private fun observeForegroundRealtimeStatus() {
+            viewModelScope.launch {
+                sharedCoordinator.foregroundRealtimeStatus.collect { status ->
+                    _state.value =
+                        _state.value.copy(
+                            shared = _state.value.shared.copy(realtimeStatus = status),
+                        )
+                }
+            }
         }
 
         private fun launchSharedSignIn() {
@@ -530,6 +557,7 @@ class CloudSyncViewModel
                         }
                     } else {
                         refresh()
+                        startForegroundRealtime()
                     }
                 }
             }
@@ -548,6 +576,20 @@ class CloudSyncViewModel
                     refresh()
                 }
             }
+        }
+
+        private fun startForegroundRealtime() {
+            if (!remoteConfig.sharedSyncEnabled()) return
+            viewModelScope.launch {
+                if (journalSyncConfig.binding()?.provider == CloudProvider.Shared) {
+                    sharedCoordinator.startForegroundRealtime()
+                }
+            }
+        }
+
+        private fun restartForegroundRealtime() {
+            sharedCoordinator.stopForegroundRealtime()
+            startForegroundRealtime()
         }
 
         private fun openSharedConflicts() {

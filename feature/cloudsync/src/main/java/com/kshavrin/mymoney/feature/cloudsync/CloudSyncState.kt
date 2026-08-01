@@ -4,6 +4,7 @@ import androidx.annotation.StringRes
 import com.kshavrin.mymoney.core.datastore.CloudBinding
 import com.kshavrin.mymoney.core.domain.model.BackupFile
 import com.kshavrin.mymoney.core.sync.SyncTarget
+import com.kshavrin.mymoney.core.sync.shared.SharedRealtimeStatus
 import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceSummary
 
 data class CloudSyncState(
@@ -50,6 +51,7 @@ data class SharedCardState(
     val workspaceName: String? = null,
     val conflictCount: Int = 0,
     val isSoleOwner: Boolean = false,
+    val realtimeStatus: SharedRealtimeStatus = SharedRealtimeStatus.Inactive,
 )
 
 sealed interface SharedDialog {

@@ -73,6 +73,12 @@ sealed interface CloudSyncEvent {
 
     data object SharedSyncNowClicked : CloudSyncEvent
 
+    data object SharedRealtimeForegroundStarted : CloudSyncEvent
+
+    data object SharedRealtimeForegroundStopped : CloudSyncEvent
+
+    data object SharedRetryRealtimeClicked : CloudSyncEvent
+
     data object SharedConflictsClicked : CloudSyncEvent
 
     data class SharedResolveConflict(

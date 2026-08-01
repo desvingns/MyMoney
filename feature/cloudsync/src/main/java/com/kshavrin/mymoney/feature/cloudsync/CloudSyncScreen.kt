@@ -13,6 +13,7 @@ import android.util.Base64
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -29,6 +30,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -55,6 +57,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.credentials.ClearCredentialStateRequest
 import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
@@ -79,6 +82,7 @@ import com.kshavrin.mymoney.core.datastore.CloudProvider
 import com.kshavrin.mymoney.core.domain.model.BackupFile
 import com.kshavrin.mymoney.core.sync.MigrationResolution
 import com.kshavrin.mymoney.core.sync.SyncTarget
+import com.kshavrin.mymoney.core.sync.shared.SharedRealtimeStatus
 import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceSummary
 import com.kshavrin.mymoney.core.sync.toCloudProvider
 import com.kshavrin.mymoney.core.ui.theme.Spacing
@@ -88,6 +92,17 @@ import com.kshavrin.mymoney.core.ui.theme.conflictLocalContainer
 import com.kshavrin.mymoney.core.ui.theme.conflictLocalContent
 import com.kshavrin.mymoney.core.ui.theme.conflictRemoteContainer
 import com.kshavrin.mymoney.core.ui.theme.conflictRemoteContent
+import com.kshavrin.mymoney.core.ui.theme.sharedSyncConnectedContainer
+import com.kshavrin.mymoney.core.ui.theme.sharedSyncConnectedContent
+import com.kshavrin.mymoney.core.ui.theme.sharedSyncErrorContainer
+import com.kshavrin.mymoney.core.ui.theme.sharedSyncErrorContent
+import com.kshavrin.mymoney.core.ui.theme.sharedSyncRetryingContainer
+import com.kshavrin.mymoney.core.ui.theme.sharedSyncRetryingContent
+import com.kshavrin.mymoney.core.ui.theme.sharedSyncSleepingContainer
+import com.kshavrin.mymoney.core.ui.theme.sharedSyncSleepingContent
+import com.kshavrin.mymoney.core.ui.theme.sharedSyncStartingContainer
+import com.kshavrin.mymoney.core.ui.theme.sharedSyncStartingContent
+import com.kshavrin.mymoney.core.ui.theme.sharedSyncStatusOutline
 import java.security.MessageDigest
 import java.security.SecureRandom
 import java.time.Instant
@@ -266,6 +281,23 @@ fun CloudSyncRoute(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
+    DisposableEffect(lifecycleOwner, viewModel) {
+        viewModel.onEvent(CloudSyncEvent.SharedRealtimeForegroundStarted)
+        val observer =
+            LifecycleEventObserver { _, event ->
+                when (event) {
+                    Lifecycle.Event.ON_START -> viewModel.onEvent(CloudSyncEvent.SharedRealtimeForegroundStarted)
+                    Lifecycle.Event.ON_STOP -> viewModel.onEvent(CloudSyncEvent.SharedRealtimeForegroundStopped)
+                    else -> Unit
+                }
+            }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            viewModel.onEvent(CloudSyncEvent.SharedRealtimeForegroundStopped)
+        }
+    }
+
     LaunchedEffect(viewModel) {
         viewModel.actions.collect { action ->
             when (action) {
@@ -419,13 +451,15 @@ fun CloudSyncContent(
                 isConnecting = state.isConnecting,
                 onEvent = onEvent,
             )
-            SharedCard(
-                state = state.shared,
-                otherProviderActive = state.binding != null && state.binding.provider != CloudProvider.Shared,
-                showInternalBackups = state.binding == null || state.binding.provider == CloudProvider.Shared,
-                isConnecting = state.isConnecting,
-                onEvent = onEvent,
-            )
+            if (state.shared.enabled) {
+                SharedCard(
+                    state = state.shared,
+                    otherProviderActive = state.binding != null && state.binding.provider != CloudProvider.Shared,
+                    showInternalBackups = state.binding == null || state.binding.provider == CloudProvider.Shared,
+                    isConnecting = state.isConnecting,
+                    onEvent = onEvent,
+                )
+            }
             state.errorBannerRes?.let { res ->
                 androidx.compose.foundation.layout.Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -565,6 +599,9 @@ private fun SharedCard(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            if (state.active) {
+                SharedRealtimeStatusCard(status = state.realtimeStatus, onEvent = onEvent)
+            }
             when {
                 otherProviderActive ->
                     Text(
@@ -636,6 +673,64 @@ private fun SharedCard(
                     enabled = !isConnecting,
                 ) {
                     Text(stringResource(R.string.sync_shared_recovery_backups))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SharedRealtimeStatusCard(
+    status: SharedRealtimeStatus,
+    onEvent: (CloudSyncEvent) -> Unit,
+) {
+    if (status == SharedRealtimeStatus.Inactive) return
+    val container =
+        when (status) {
+            SharedRealtimeStatus.Connected -> MaterialTheme.colorScheme.sharedSyncConnectedContainer
+            SharedRealtimeStatus.Starting -> MaterialTheme.colorScheme.sharedSyncStartingContainer
+            is SharedRealtimeStatus.Sleeping -> MaterialTheme.colorScheme.sharedSyncSleepingContainer
+            is SharedRealtimeStatus.Retrying -> MaterialTheme.colorScheme.sharedSyncRetryingContainer
+            SharedRealtimeStatus.Error -> MaterialTheme.colorScheme.sharedSyncErrorContainer
+            SharedRealtimeStatus.Inactive -> return
+        }
+    val content =
+        when (status) {
+            SharedRealtimeStatus.Connected -> MaterialTheme.colorScheme.sharedSyncConnectedContent
+            SharedRealtimeStatus.Starting -> MaterialTheme.colorScheme.sharedSyncStartingContent
+            is SharedRealtimeStatus.Sleeping -> MaterialTheme.colorScheme.sharedSyncSleepingContent
+            is SharedRealtimeStatus.Retrying -> MaterialTheme.colorScheme.sharedSyncRetryingContent
+            SharedRealtimeStatus.Error -> MaterialTheme.colorScheme.sharedSyncErrorContent
+            SharedRealtimeStatus.Inactive -> return
+        }
+    val statusText =
+        when (status) {
+            SharedRealtimeStatus.Connected -> stringResource(R.string.sync_shared_status_connected)
+            SharedRealtimeStatus.Starting -> stringResource(R.string.sync_shared_status_starting)
+            is SharedRealtimeStatus.Sleeping -> stringResource(R.string.sync_shared_status_sleeping)
+            is SharedRealtimeStatus.Retrying -> stringResource(R.string.sync_shared_status_retrying, status.retryAttempt)
+            SharedRealtimeStatus.Error -> stringResource(R.string.sync_shared_status_error)
+            SharedRealtimeStatus.Inactive -> return
+        }
+    Card(
+        modifier = Modifier.fillMaxWidth().testTag("cloud_sync_shared_realtime_status"),
+        colors = CardDefaults.cardColors(containerColor = container, contentColor = content),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.sharedSyncStatusOutline),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(Spacing.m),
+            verticalArrangement = Arrangement.spacedBy(Spacing.s),
+        ) {
+            Text(
+                text = statusText,
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            if (status == SharedRealtimeStatus.Error) {
+                OutlinedButton(
+                    modifier = Modifier.testTag("cloud_sync_shared_realtime_retry"),
+                    onClick = { onEvent(CloudSyncEvent.SharedRetryRealtimeClicked) },
+                ) {
+                    Text(stringResource(R.string.sync_shared_retry_realtime))
                 }
             }
         }

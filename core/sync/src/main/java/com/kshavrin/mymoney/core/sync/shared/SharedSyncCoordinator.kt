@@ -1,6 +1,8 @@
 package com.kshavrin.mymoney.core.sync.shared
 
 import com.kshavrin.mymoney.core.domain.sync.SharedConflict
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 
 data class SharedWorkspaceSummary(
     val id: String,
@@ -24,6 +26,9 @@ data class SharedWorkspaceOwnership(
  * the single active [com.kshavrin.mymoney.core.datastore.CloudBinding].
  */
 interface SharedSyncCoordinator {
+    val foregroundRealtimeStatus: StateFlow<SharedRealtimeStatus>
+        get() = defaultSharedRealtimeStatus
+
     fun isSignedIn(): Boolean
 
     fun accountEmail(): String?
@@ -61,6 +66,10 @@ interface SharedSyncCoordinator {
 
     suspend fun syncNow(): Result<Unit>
 
+    suspend fun startForegroundRealtime(): Result<Unit> = Result.success(Unit)
+
+    fun stopForegroundRealtime() = Unit
+
     suspend fun listConflicts(): Result<List<SharedConflict>>
 
     suspend fun resolveConflict(
@@ -75,3 +84,5 @@ interface SharedSyncCoordinator {
     suspend fun deleteWorkspace(): Result<Unit> =
         Result.failure(UnsupportedOperationException("Workspace deletion is not supported"))
 }
+
+private val defaultSharedRealtimeStatus = MutableStateFlow<SharedRealtimeStatus>(SharedRealtimeStatus.Inactive)

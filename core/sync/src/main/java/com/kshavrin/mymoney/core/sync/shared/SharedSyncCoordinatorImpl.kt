@@ -26,17 +26,28 @@ import com.kshavrin.mymoney.core.domain.sync.EntityKind
 import com.kshavrin.mymoney.core.domain.sync.SharedConflict
 import com.kshavrin.mymoney.core.domain.sync.SharedOperation
 import com.kshavrin.mymoney.core.network.shared.SharedAuth
+import com.kshavrin.mymoney.core.network.shared.SharedRealtime
+import com.kshavrin.mymoney.core.network.shared.SharedRealtimeEvent
 import com.kshavrin.mymoney.core.network.shared.SharedWorkspace
 import com.kshavrin.mymoney.core.network.shared.SharedWorkspaceApi
 import com.kshavrin.mymoney.core.network.shared.WorkspaceRole
 import com.kshavrin.mymoney.core.sync.SyncExecutionGate
 import com.kshavrin.mymoney.core.sync.SyncScheduler
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -51,6 +62,7 @@ class SharedSyncCoordinatorImpl
     @Inject
     constructor(
         private val auth: SharedAuth,
+        private val realtime: SharedRealtime,
         private val workspaceApi: SharedWorkspaceApi,
         private val journalRepository: SharedJournalRepository,
         private val backupRepository: BackupRepository,
@@ -71,6 +83,11 @@ class SharedSyncCoordinatorImpl
     ) : SharedSyncCoordinator {
         private val operationMutex = Mutex()
         private val restartRequiredAfterAdoptionRecovery = AtomicBoolean(false)
+        private val foregroundRealtimeScope = CoroutineScope(SupervisorJob() + dispatcher)
+        private val _foregroundRealtimeStatus = MutableStateFlow<SharedRealtimeStatus>(SharedRealtimeStatus.Inactive)
+        private var foregroundRealtimeJob: Job? = null
+
+        override val foregroundRealtimeStatus: StateFlow<SharedRealtimeStatus> = _foregroundRealtimeStatus
 
         override fun isSignedIn(): Boolean = auth.currentSession() != null
 
@@ -205,6 +222,32 @@ class SharedSyncCoordinatorImpl
                     clearSharedStateOnAuthFailure(result)
                 }
             }
+
+        override suspend fun startForegroundRealtime(): Result<Unit> =
+            withContext(dispatcher) {
+                try {
+                    foregroundRealtimeJob?.cancelAndJoin()
+                    foregroundRealtimeJob = null
+                    val workspaceId = requireActiveWorkspaceId()
+                    if (!sharedStore.isMembershipActive()) throw SyncException(SyncError.Auth)
+                    _foregroundRealtimeStatus.value = SharedRealtimeStatus.Starting
+                    foregroundRealtimeJob =
+                        foregroundRealtimeScope.launch {
+                            superviseForegroundRealtime(workspaceId)
+                        }
+                    Result.success(Unit)
+                } catch (failure: Throwable) {
+                    if (failure is CancellationException) throw failure
+                    _foregroundRealtimeStatus.value = SharedRealtimeStatus.Error
+                    Result.failure(failure)
+                }
+            }
+
+        override fun stopForegroundRealtime() {
+            foregroundRealtimeJob?.cancel()
+            foregroundRealtimeJob = null
+            _foregroundRealtimeStatus.value = SharedRealtimeStatus.Inactive
+        }
 
         override suspend fun listConflicts(): Result<List<SharedConflict>> =
             withContext(dispatcher) {
@@ -464,6 +507,52 @@ class SharedSyncCoordinatorImpl
             }
 
             if (deferredOperations.isNotEmpty()) throw SyncException(SyncError.Conflict)
+        }
+
+        private suspend fun superviseForegroundRealtime(workspaceId: String) {
+            var retryAttempt = 0
+            while (currentCoroutineContext().isActive) {
+                _foregroundRealtimeStatus.value =
+                    if (retryAttempt == 0) {
+                        SharedRealtimeStatus.Starting
+                    } else {
+                        SharedRealtimeStatus.Retrying(retryAttempt)
+                    }
+                try {
+                    syncNow().getOrThrow()
+                    val accessToken = auth.accessToken().getOrThrow()
+                    realtime.events(workspaceId, accessToken).collect { event ->
+                        when (event) {
+                            SharedRealtimeEvent.Connected -> {
+                                retryAttempt = 0
+                                _foregroundRealtimeStatus.value = SharedRealtimeStatus.Connected
+                            }
+
+                            SharedRealtimeEvent.OperationAvailable -> syncNow().getOrThrow()
+                            is SharedRealtimeEvent.Disconnected -> throw event.cause
+                        }
+                    }
+                    throw SharedRealtimeStreamFinishedException()
+                } catch (failure: Throwable) {
+                    if (failure is CancellationException) throw failure
+                    if (failure.isRealtimeTerminalFailure()) {
+                        _foregroundRealtimeStatus.value = SharedRealtimeStatus.Error
+                        return
+                    }
+                    retryAttempt += 1
+                    if (retryAttempt > FOREGROUND_REALTIME_MAX_RETRIES) {
+                        _foregroundRealtimeStatus.value = SharedRealtimeStatus.Error
+                        return
+                    }
+                    _foregroundRealtimeStatus.value =
+                        if (failure.isServerFailure()) {
+                            SharedRealtimeStatus.Sleeping(retryAttempt)
+                        } else {
+                            SharedRealtimeStatus.Retrying(retryAttempt)
+                        }
+                    delay(foregroundRealtimeBackoffMillis(retryAttempt))
+                }
+            }
         }
 
         private suspend fun applyPulledOperation(operation: SharedOperation): PullOperationResult =
@@ -753,6 +842,7 @@ class SharedSyncCoordinatorImpl
         private suspend fun revokeSharedLocalAccess(): List<Throwable> =
             withContext(NonCancellable) {
                 val failures = mutableListOf<Throwable>()
+                stopForegroundRealtime()
                 collectSharedLocalCleanupFailures(failures)
                 collectCleanupFailure(failures) { auth.signOut().getOrThrow() }
                 collectCleanupFailure(failures) { auth.clearLocalSession() }
@@ -854,6 +944,15 @@ class SharedSyncCoordinatorImpl
         private fun Result<*>.isAuthFailure(): Boolean =
             (exceptionOrNull() as? SyncException)?.syncError == SyncError.Auth
 
+        private fun Throwable.isServerFailure(): Boolean =
+            (this as? SyncException)?.syncError == SyncError.Server
+
+        private fun Throwable.isRealtimeTerminalFailure(): Boolean =
+            (this as? SyncException)?.syncError in setOf(SyncError.Auth, SyncError.Conflict)
+
+        private fun foregroundRealtimeBackoffMillis(retryAttempt: Int): Long =
+            FOREGROUND_REALTIME_BASE_BACKOFF_MILLIS shl (retryAttempt - 1)
+
         private suspend fun <T> clearSharedStateOnAuthFailure(result: Result<T>): Result<T> {
             if (result.isAuthFailure()) {
                 val cleanupFailures = revokeSharedLocalAccess()
@@ -867,6 +966,10 @@ class SharedSyncCoordinatorImpl
 
         private companion object {
             const val PAGE_SIZE = 100
+            const val FOREGROUND_REALTIME_MAX_RETRIES = 5
+            const val FOREGROUND_REALTIME_BASE_BACKOFF_MILLIS = 1_000L
             val CURRENCY_CODE_REGEX = Regex("^[A-Z]{3}$")
         }
     }
+
+private class SharedRealtimeStreamFinishedException : IllegalStateException()

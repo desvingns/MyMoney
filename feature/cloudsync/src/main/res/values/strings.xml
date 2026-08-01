@@ -60,6 +60,12 @@
     <string name="sync_shared_copy_invite">Copy code</string>
     <string name="sync_shared_invite_clip_label">Shared workspace invite code</string>
     <string name="sync_shared_sync_now">Sync now</string>
+    <string name="sync_shared_status_connected">Realtime connected</string>
+    <string name="sync_shared_status_starting">Connecting to shared sync</string>
+    <string name="sync_shared_status_sleeping">The shared server is starting. Your local changes are safe.</string>
+    <string name="sync_shared_status_retrying">Retrying shared sync (attempt %1$d)</string>
+    <string name="sync_shared_status_error">Realtime is unavailable. Scheduled and manual sync remain available.</string>
+    <string name="sync_shared_retry_realtime">Retry realtime</string>
     <string name="sync_shared_leave">Leave workspace</string>
     <string name="sync_shared_leave_title">Leave shared workspace?</string>
     <string name="sync_shared_leave_body">You will stop syncing with other members. The current shared data stays on this device as your personal copy.</string>

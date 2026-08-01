@@ -52,6 +52,9 @@ class RemoteConfigRepositoryImpl
         override fun gdriveSyncEnabled(): Boolean =
             syncForced() || (config?.getBoolean(KEY_GDRIVE_SYNC) ?: DEFAULT_GDRIVE_SYNC)
 
+        override fun sharedSyncEnabled(): Boolean =
+            BuildConfig.DEBUG && (syncForced() || (config?.getBoolean(KEY_SHARED_SYNC) ?: DEFAULT_SHARED_SYNC))
+
         // Debug builds may force sync on via -Psync.forceEnabled=true; release ignores it (DEBUG=false).
         private fun syncForced(): Boolean = BuildConfig.DEBUG && BuildConfig.SYNC_FORCE_ENABLED
 
@@ -69,6 +72,7 @@ class RemoteConfigRepositoryImpl
             const val KEY_BUDGET_MODE = "feature_budget_mode_enabled"
             const val KEY_DROPBOX_SYNC = "dropbox_sync_enabled"
             const val KEY_GDRIVE_SYNC = "gdrive_sync_enabled"
+            const val KEY_SHARED_SYNC = "shared_sync_enabled"
             const val KEY_MIN_SUPPORTED_VERSION_CODE = "min_supported_version_code"
             const val KEY_AESTHETIC_SOUND_PACK = "aesthetic_sound_pack"
 
@@ -76,6 +80,7 @@ class RemoteConfigRepositoryImpl
             const val DEFAULT_BUDGET_MODE = true
             const val DEFAULT_DROPBOX_SYNC = false
             const val DEFAULT_GDRIVE_SYNC = false
+            const val DEFAULT_SHARED_SYNC = false
             const val DEFAULT_MIN_SUPPORTED_VERSION_CODE = 1L
             const val DEFAULT_AESTHETIC_SOUND_PACK = "default"
         }

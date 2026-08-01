@@ -11,10 +11,8 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
@@ -82,34 +80,26 @@ class SupabaseSharedRealtime
                                 val message = runCatching { json.parseToJsonElement(text).jsonObject }.getOrNull() ?: return
                                 when (message["event"]?.jsonPrimitive?.content) {
                                     "phx_reply" -> {
+                                        if (message["ref"]?.jsonPrimitive?.content != CHANNEL_JOIN_REF) return
                                         val joined =
                                             message["payload"]
                                                 ?.jsonObject
                                                 ?.get("status")
                                                 ?.jsonPrimitive
                                                 ?.content == "ok"
-                                        if (!joined) {
-                                            close(SyncException(SyncError.Server))
-                                        }
-                                    }
-
-                                    "system" -> {
-                                        when (message.postgresChangesSubscriptionStatus()) {
-                                            POSTGRES_CHANGES_SUBSCRIBED ->
-                                                trySend(SharedRealtimeEvent.Connected)
-                                            POSTGRES_CHANGES_ERROR,
-                                            POSTGRES_CHANGES_TIMEOUT,
-                                            -> close(SyncException(SyncError.Server))
-                                        }
-                                    }
-
-                                    "postgres_changes" -> {
-                                        if (message.payloadContainsAuthorId()) {
-                                            close(SyncException(SyncError.Server))
+                                        if (joined) {
+                                            trySend(SharedRealtimeEvent.Connected)
                                         } else {
+                                            close(SyncException(SyncError.Server))
+                                        }
+                                    }
+
+                                    "broadcast" -> {
+                                        if (message.isOperationAvailableBroadcast()) {
                                             trySend(SharedRealtimeEvent.OperationAvailable)
                                         }
                                     }
+
                                     "phx_close", "phx_error" -> close(SyncException(SyncError.Server))
                                 }
                             }
@@ -142,28 +132,20 @@ class SupabaseSharedRealtime
             accessToken: String,
         ) =
             buildJsonObject {
-                put("topic", "realtime:public:operations")
+                put("topic", "realtime:${workspaceTopic(workspaceId)}")
                 put("event", "phx_join")
                 put("ref", CHANNEL_JOIN_REF)
                 put("join_ref", CHANNEL_JOIN_REF)
                 put("payload", buildJsonObject {
                     put("access_token", accessToken)
                     put("config", buildJsonObject {
-                        put("broadcast", buildJsonObject { put("self", false) })
-                        put("presence", buildJsonObject { put("key", "") })
-                        put("postgres_changes", buildJsonArray {
-                            add(
-                                buildJsonObject {
-                                    put("event", "INSERT")
-                                    put("schema", "public")
-                                    put("table", "operations")
-                                    put("filter", "workspace_id=eq.$workspaceId")
-                                    put("select", buildJsonArray {
-                                        GRANTED_OPERATION_COLUMNS.forEach { column -> add(JsonPrimitive(column)) }
-                                    })
-                                },
-                            )
+                        put("private", true)
+                        put("broadcast", buildJsonObject {
+                            put("ack", false)
+                            put("self", false)
                         })
+                        put("presence", buildJsonObject { put("enabled", false) })
+                        put("postgres_changes", buildJsonArray {})
                     })
                 })
             }
@@ -176,31 +158,17 @@ class SupabaseSharedRealtime
                 put("payload", buildJsonObject {})
             }
 
-        private fun kotlinx.serialization.json.JsonObject.payloadContainsAuthorId(): Boolean =
-            runCatching {
-                get("payload")
-                    ?.jsonObject
-                    ?.get("data")
-                    ?.jsonObject
-                    ?.let { data ->
-                        data["record"]?.jsonObject?.containsKey("author_id") == true ||
-                            data["old_record"]?.jsonObject?.containsKey("author_id") == true ||
-                            data["columns"]?.jsonArray?.any { column ->
-                                column.jsonObject["name"]?.jsonPrimitive?.content == "author_id"
-                            } == true
-                    } ?: false
-            }.getOrDefault(false)
+        private fun workspaceTopic(workspaceId: String) =
+            "workspace:$workspaceId:operations"
 
-        private fun kotlinx.serialization.json.JsonObject.postgresChangesSubscriptionStatus(): String? =
+        private fun kotlinx.serialization.json.JsonObject.isOperationAvailableBroadcast(): Boolean =
             runCatching {
                 get("payload")
                     ?.jsonObject
-                    ?.takeIf { payload ->
-                        payload["extension"]?.jsonPrimitive?.content == POSTGRES_CHANGES_EXTENSION
-                    }?.get("status")
+                    ?.get("event")
                     ?.jsonPrimitive
-                    ?.content
-            }.getOrNull()
+                    ?.content == OPERATION_AVAILABLE_EVENT
+            }.getOrDefault(false)
 
         private fun SupabaseConfig.realtimeUrl() =
             url
@@ -216,24 +184,7 @@ class SupabaseSharedRealtime
             const val CHANNEL_JOIN_REF = "1"
             const val INITIAL_HEARTBEAT_REF = 2L
             const val HEARTBEAT_INTERVAL_MILLIS = 25_000L
-            const val POSTGRES_CHANGES_EXTENSION = "postgres_changes"
-            const val POSTGRES_CHANGES_SUBSCRIBED = "ok"
-            const val POSTGRES_CHANGES_ERROR = "error"
-            const val POSTGRES_CHANGES_TIMEOUT = "timeout"
-            val GRANTED_OPERATION_COLUMNS =
-                listOf(
-                    "id",
-                    "workspace_id",
-                    "idempotency_key",
-                    "server_sequence",
-                    "base_sequence",
-                    "device_id",
-                    "entity_kind",
-                    "entity_id",
-                    "payload",
-                    "tombstone",
-                    "created_at",
-                )
+            const val OPERATION_AVAILABLE_EVENT = "operation_available"
         }
     }
 

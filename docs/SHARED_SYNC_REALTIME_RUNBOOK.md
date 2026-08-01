@@ -8,12 +8,19 @@ recovery path.
 ## Deploy
 
 1. Apply `supabase/migrations/0001_shared_workspaces.sql`,
-   `0002_shared_operations.sql`, and `0003_shared_realtime_security.sql` in order through the
-   Supabase SQL Editor for the intended project.
-2. Confirm that the `operations` table appears in the `supabase_realtime` publication.
-3. Set `supabase.url`, `supabase.anonKey`, and `supabase.googleWebClientId` only in local or CI
+   `0002_shared_operations.sql`, `0003_shared_realtime_security.sql`, and
+   `0004_private_workspace_realtime.sql` in order through the Supabase SQL Editor for the
+   intended project.
+2. In Supabase Dashboard > Project Settings > Realtime, disable **Allow public access** so only
+   private, RLS-authorized channels can join. This is required: the migration authorizes the
+   private workspace Broadcast topic, while the Dashboard setting prevents a legacy public topic
+   from being admitted at all.
+3. Confirm that `operations` is no longer in the `supabase_realtime` publication. Inserts now
+   invoke `notify_workspace_operation_available`, which sends an empty private Broadcast to
+   `workspace:<workspace-id>:operations` through `realtime.messages`.
+4. Set `supabase.url`, `supabase.anonKey`, and `supabase.googleWebClientId` only in local or CI
    secret configuration. Do not add them to versioned files.
-4. Enable the feature only in a debug/internal build with `-Psync.forceEnabled=true`, or set the
+5. Enable the feature only in a debug/internal build with `-Psync.forceEnabled=true`, or set the
    `shared_sync_enabled` Remote Config value for that debug/internal audience. Its bundled default
    is `false`; non-debug release/public builds hard-disable Shared sync.
 
@@ -29,9 +36,14 @@ identifiers, timestamp, request method, HTTP status, and response body redacted 
 3. With C's bearer token, attempt direct REST reads and writes for `operations`, `conflicts`,
    `workspaces`, and `workspace_members` scoped to A's workspace. Reads must return no rows and
    writes must be denied.
-4. Subscribe C to `realtime:public:operations` with A's workspace filter. It must receive no
-   join authorization and no operation notifications. A and B may each subscribe and receive
-   only their workspace's notifications.
+4. Attempt a `phx_join` as C for `realtime:workspace:<A-workspace-id>:operations` with
+   `payload.config.private=true`, Broadcast enabled, and C's bearer token. Assert that the join
+   reply is not `status=ok`, is followed by channel close, and emits neither `Connected` nor a
+   Broadcast event. This is a join-denial assertion, not a row-RLS assertion: C must never obtain
+   Realtime channel authorization. Repeat the attempt against the former
+   `realtime:public:operations` topic and assert that the private-only Realtime setting rejects it.
+   A and B may join only their workspace topic and receive an empty `operation_available`
+   Broadcast after an insert; their clients must then pull through `pull_operations`.
 5. With A or B, direct `operations` REST reads must not expose `author_id`; conflict attribution
    is available only through `list_pending_conflicts` in the conflict UI.
 

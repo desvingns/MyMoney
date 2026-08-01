@@ -36,6 +36,7 @@ import com.kshavrin.mymoney.core.sync.SyncScheduler
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
@@ -85,7 +86,9 @@ class SharedSyncCoordinatorImpl
         private val operationMutex = Mutex()
         private val restartRequiredAfterAdoptionRecovery = AtomicBoolean(false)
         private val foregroundRealtimeScope = CoroutineScope(SupervisorJob() + dispatcher)
+        private val foregroundRealtimeLock = Any()
         private val _foregroundRealtimeStatus = MutableStateFlow<SharedRealtimeStatus>(SharedRealtimeStatus.Inactive)
+        private var foregroundRealtimeGeneration = 0L
         private var foregroundRealtimeJob: Job? = null
 
         override val foregroundRealtimeStatus: StateFlow<SharedRealtimeStatus> = _foregroundRealtimeStatus
@@ -100,7 +103,19 @@ class SharedSyncCoordinatorImpl
         ): Result<Unit> =
             withContext(dispatcher) { auth.signInWithGoogle(googleIdToken, nonce).map { } }
 
-        override suspend fun signOut(): Result<Unit> = withContext(dispatcher) { auth.signOut() }
+        override suspend fun signOut(): Result<Unit> =
+            withContext(dispatcher) {
+                operationMutex.withLock {
+                    if (configStore.binding()?.provider == CloudProvider.Shared) {
+                        val cleanupFailures = revokeSharedLocalAccess()
+                        cleanupFailures.forEach(Throwable::reportToSentry)
+                        cleanupFailures.toResult()
+                    } else {
+                        stopForegroundRealtimeAndJoin()
+                        auth.signOut()
+                    }
+                }
+            }
 
         override suspend fun activeWorkspace(): SharedWorkspaceSummary? =
             withContext(dispatcher) {
@@ -226,28 +241,35 @@ class SharedSyncCoordinatorImpl
 
         override suspend fun startForegroundRealtime(): Result<Unit> =
             withContext(dispatcher) {
-                try {
-                    foregroundRealtimeJob?.cancelAndJoin()
-                    foregroundRealtimeJob = null
-                    val workspaceId = requireActiveWorkspaceId()
-                    if (!sharedStore.isMembershipActive()) throw SyncException(SyncError.Auth)
-                    _foregroundRealtimeStatus.value = SharedRealtimeStatus.Starting
-                    foregroundRealtimeJob =
-                        foregroundRealtimeScope.launch {
-                            superviseForegroundRealtime(workspaceId)
+                operationMutex.withLock {
+                    val (generation, previousJob) = beginForegroundRealtime()
+                    try {
+                        previousJob?.cancelAndJoin()
+                        val workspaceId = requireActiveWorkspaceId()
+                        if (!sharedStore.isMembershipActive()) throw SyncException(SyncError.Auth)
+                        if (!updateForegroundRealtimeStatus(generation, SharedRealtimeStatus.Starting)) {
+                            return@withLock Result.success(Unit)
                         }
-                    Result.success(Unit)
-                } catch (failure: Throwable) {
-                    if (failure is CancellationException) throw failure
-                    _foregroundRealtimeStatus.value = SharedRealtimeStatus.Error
-                    Result.failure(failure)
+                        val realtimeJob =
+                            foregroundRealtimeScope.launch(start = CoroutineStart.LAZY) {
+                                superviseForegroundRealtime(workspaceId, generation)
+                            }
+                        if (!installForegroundRealtimeJob(generation, realtimeJob)) {
+                            realtimeJob.cancel()
+                            return@withLock Result.success(Unit)
+                        }
+                        realtimeJob.start()
+                        Result.success(Unit)
+                    } catch (failure: Throwable) {
+                        if (failure is CancellationException) throw failure
+                        updateForegroundRealtimeStatus(generation, SharedRealtimeStatus.Error)
+                        Result.failure(failure)
+                    }
                 }
             }
 
         override fun stopForegroundRealtime() {
-            foregroundRealtimeJob?.cancel()
-            foregroundRealtimeJob = null
-            _foregroundRealtimeStatus.value = SharedRealtimeStatus.Inactive
+            invalidateForegroundRealtime()?.cancel()
         }
 
         override suspend fun listConflicts(): Result<List<SharedConflict>> =
@@ -403,6 +425,7 @@ class SharedSyncCoordinatorImpl
             withContext(NonCancellable) {
                 val recoveryFailures = mutableListOf<Throwable>()
                 collectRecoveryFailure(recoveryFailures) { remoteCompensation() }
+                collectRecoveryFailure(recoveryFailures) { stopForegroundRealtimeAndJoin() }
                 collectRecoveryFailure(recoveryFailures) { syncScheduler.disablePeriodicSync() }
                 collectRecoveryFailure(recoveryFailures) { configStore.clearBinding() }
                 collectRecoveryFailure(recoveryFailures) { sharedStore.clear() }
@@ -431,6 +454,7 @@ class SharedSyncCoordinatorImpl
         private suspend fun detachForLocalRestoreLocked() {
             val cleanupFailures = mutableListOf<Throwable>()
             withContext(NonCancellable) {
+                collectCleanupFailure(cleanupFailures) { stopForegroundRealtimeAndJoin() }
                 collectCleanupFailure(cleanupFailures) { syncScheduler.cancelAllSync().getOrThrow() }
                 collectCleanupFailure(cleanupFailures) { configStore.clearBinding() }
                 collectCleanupFailure(cleanupFailures) { sharedStore.clear() }
@@ -510,23 +534,35 @@ class SharedSyncCoordinatorImpl
             if (deferredOperations.isNotEmpty()) throw SyncException(SyncError.Conflict)
         }
 
-        private suspend fun superviseForegroundRealtime(workspaceId: String) {
+        private suspend fun superviseForegroundRealtime(
+            workspaceId: String,
+            generation: Long,
+        ) {
             var retryAttempt = 0
             while (currentCoroutineContext().isActive) {
-                _foregroundRealtimeStatus.value =
-                    if (retryAttempt == 0) {
-                        SharedRealtimeStatus.Starting
-                    } else {
-                        SharedRealtimeStatus.Retrying(retryAttempt)
-                    }
+                if (
+                    !updateForegroundRealtimeStatus(
+                        generation,
+                        if (retryAttempt == 0) {
+                            SharedRealtimeStatus.Starting
+                        } else {
+                            SharedRealtimeStatus.Retrying(retryAttempt)
+                        },
+                    )
+                ) {
+                    return
+                }
                 try {
                     syncNow().getOrThrow()
                     val accessToken = auth.accessToken().getOrThrow()
                     realtime.events(workspaceId, accessToken).collect { event ->
+                        if (!isForegroundRealtimeCurrent(generation)) throw CancellationException()
                         when (event) {
                             SharedRealtimeEvent.Connected -> {
                                 retryAttempt = 0
-                                _foregroundRealtimeStatus.value = SharedRealtimeStatus.Connected
+                                if (!updateForegroundRealtimeStatus(generation, SharedRealtimeStatus.Connected)) {
+                                    throw CancellationException()
+                                }
                             }
 
                             SharedRealtimeEvent.OperationAvailable -> syncNow().getOrThrow()
@@ -539,21 +575,27 @@ class SharedSyncCoordinatorImpl
                     if (failure.isRealtimeTerminalFailure()) {
                         clearSharedStateOnAuthFailure(Result.failure<Unit>(failure))
                         if ((failure as? SyncException)?.syncError != SyncError.Auth) {
-                            _foregroundRealtimeStatus.value = SharedRealtimeStatus.Error
+                            updateForegroundRealtimeStatus(generation, SharedRealtimeStatus.Error)
                         }
                         return
                     }
                     retryAttempt += 1
                     if (retryAttempt > FOREGROUND_REALTIME_MAX_RETRIES) {
-                        _foregroundRealtimeStatus.value = SharedRealtimeStatus.Error
+                        updateForegroundRealtimeStatus(generation, SharedRealtimeStatus.Error)
                         return
                     }
-                    _foregroundRealtimeStatus.value =
-                        if (failure.isServerFailure()) {
-                            SharedRealtimeStatus.Sleeping(retryAttempt)
-                        } else {
-                            SharedRealtimeStatus.Retrying(retryAttempt)
-                        }
+                    if (
+                        !updateForegroundRealtimeStatus(
+                            generation,
+                            if (failure.isServerFailure()) {
+                                SharedRealtimeStatus.Sleeping(retryAttempt)
+                            } else {
+                                SharedRealtimeStatus.Retrying(retryAttempt)
+                            },
+                        )
+                    ) {
+                        return
+                    }
                     delay(foregroundRealtimeBackoffMillis(retryAttempt))
                 }
             }
@@ -844,14 +886,75 @@ class SharedSyncCoordinatorImpl
         }
 
         private suspend fun revokeSharedLocalAccess(): List<Throwable> =
+            revokeSharedLocalAccess(currentCoroutineContext()[Job])
+
+        private suspend fun revokeSharedLocalAccess(currentJob: Job?): List<Throwable> =
             withContext(NonCancellable) {
                 val failures = mutableListOf<Throwable>()
-                stopForegroundRealtime()
+                collectCleanupFailure(failures) { stopForegroundRealtimeAndJoin(currentJob) }
                 collectSharedLocalCleanupFailures(failures)
                 collectCleanupFailure(failures) { auth.signOut().getOrThrow() }
                 collectCleanupFailure(failures) { auth.clearLocalSession() }
                 failures
             }
+
+        private fun beginForegroundRealtime(): Pair<Long, Job?> =
+            synchronized(foregroundRealtimeLock) {
+                foregroundRealtimeGeneration += 1
+                foregroundRealtimeGeneration to foregroundRealtimeJob.also { foregroundRealtimeJob = null }
+            }
+
+        private fun installForegroundRealtimeJob(
+            generation: Long,
+            job: Job,
+        ): Boolean =
+            synchronized(foregroundRealtimeLock) {
+                if (foregroundRealtimeGeneration != generation) {
+                    false
+                } else {
+                    foregroundRealtimeJob = job
+                    true
+                }
+            }
+
+        private fun invalidateForegroundRealtime(): Job? =
+            synchronized(foregroundRealtimeLock) {
+                foregroundRealtimeGeneration += 1
+                _foregroundRealtimeStatus.value = SharedRealtimeStatus.Inactive
+                foregroundRealtimeJob.also { foregroundRealtimeJob = null }
+            }
+
+        private suspend fun stopForegroundRealtimeAndJoin() {
+            stopForegroundRealtimeAndJoin(currentCoroutineContext()[Job])
+        }
+
+        private suspend fun stopForegroundRealtimeAndJoin(currentJob: Job?) {
+            val realtimeJob = invalidateForegroundRealtime() ?: return
+            realtimeJob.cancel()
+            if (realtimeJob != currentJob) realtimeJob.join()
+        }
+
+        private fun isForegroundRealtimeCurrent(generation: Long): Boolean =
+            synchronized(foregroundRealtimeLock) { foregroundRealtimeGeneration == generation }
+
+        private fun updateForegroundRealtimeStatus(
+            generation: Long,
+            status: SharedRealtimeStatus,
+        ): Boolean =
+            synchronized(foregroundRealtimeLock) {
+                if (foregroundRealtimeGeneration != generation) {
+                    false
+                } else {
+                    _foregroundRealtimeStatus.value = status
+                    true
+                }
+            }
+
+        private fun List<Throwable>.toResult(): Result<Unit> {
+            val primaryFailure = firstOrNull() ?: return Result.success(Unit)
+            drop(1).forEach(primaryFailure::addSuppressed)
+            return Result.failure(primaryFailure)
+        }
 
         private suspend fun collectSharedLocalCleanupFailures(failures: MutableList<Throwable>) {
             collectCleanupFailure(failures) { syncScheduler.disablePeriodicSync() }

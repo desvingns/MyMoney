@@ -88,10 +88,18 @@ class SupabaseSharedRealtime
                                                 ?.get("status")
                                                 ?.jsonPrimitive
                                                 ?.content == "ok"
-                                        if (joined) {
-                                            trySend(SharedRealtimeEvent.Connected)
-                                        } else {
+                                        if (!joined) {
                                             close(SyncException(SyncError.Server))
+                                        }
+                                    }
+
+                                    "system" -> {
+                                        when (message.postgresChangesSubscriptionStatus()) {
+                                            POSTGRES_CHANGES_SUBSCRIBED ->
+                                                trySend(SharedRealtimeEvent.Connected)
+                                            POSTGRES_CHANGES_ERROR,
+                                            POSTGRES_CHANGES_TIMEOUT,
+                                            -> close(SyncException(SyncError.Server))
                                         }
                                     }
 
@@ -183,6 +191,17 @@ class SupabaseSharedRealtime
                     } ?: false
             }.getOrDefault(false)
 
+        private fun kotlinx.serialization.json.JsonObject.postgresChangesSubscriptionStatus(): String? =
+            runCatching {
+                get("payload")
+                    ?.jsonObject
+                    ?.takeIf { payload ->
+                        payload["extension"]?.jsonPrimitive?.content == POSTGRES_CHANGES_EXTENSION
+                    }?.get("status")
+                    ?.jsonPrimitive
+                    ?.content
+            }.getOrNull()
+
         private fun SupabaseConfig.realtimeUrl() =
             url
                 .toHttpUrl()
@@ -197,6 +216,10 @@ class SupabaseSharedRealtime
             const val CHANNEL_JOIN_REF = "1"
             const val INITIAL_HEARTBEAT_REF = 2L
             const val HEARTBEAT_INTERVAL_MILLIS = 25_000L
+            const val POSTGRES_CHANGES_EXTENSION = "postgres_changes"
+            const val POSTGRES_CHANGES_SUBSCRIBED = "ok"
+            const val POSTGRES_CHANGES_ERROR = "error"
+            const val POSTGRES_CHANGES_TIMEOUT = "timeout"
             val GRANTED_OPERATION_COLUMNS =
                 listOf(
                     "id",

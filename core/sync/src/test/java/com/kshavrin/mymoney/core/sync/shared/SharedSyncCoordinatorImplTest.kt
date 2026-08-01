@@ -322,6 +322,20 @@ class SharedSyncCoordinatorImplTest {
             assertEquals(CloudProvider.Shared, configStore.current?.provider)
         }
 
+    @Test
+    fun `recoverRemoteWorkspace enables periodic sync after live adoption when auto sync is enabled`() =
+        runTest(dispatcher) {
+            auth.session = fakeSession()
+            workspaceApi.currentWorkspaceResult = Result.success(fakeWorkspace())
+            journalRepository.pullResults.add(Result.success(emptyList()))
+            appSettings.update { it.copy(autoSyncEnabled = true) }
+
+            val result = coordinator.recoverRemoteWorkspace(importLocalData = false)
+
+            assertTrue(result.isSuccess)
+            assertEquals(1, scheduler.enableCalls)
+        }
+
     // ── joinWorkspace ──────────────────────────────────────────────────────
 
     @Test
@@ -1235,10 +1249,13 @@ class SharedSyncCoordinatorImplTest {
     }
 
     private class FakeSyncScheduler : SyncScheduler {
+        var enableCalls = 0
         var disableCalls = 0
         var cancelAllCalls = 0
 
-        override fun enablePeriodicSync() = Unit
+        override fun enablePeriodicSync() {
+            enableCalls++
+        }
 
         override fun disablePeriodicSync() {
             disableCalls++

@@ -387,6 +387,9 @@ class SharedSyncCoordinatorImpl
                     accountLabel = workspace.name,
                 ),
             )
+            if (appSettings.settings.first().autoSyncEnabled) {
+                syncScheduler.enablePeriodicSync()
+            }
         }
 
         private suspend fun adoptWorkspaceWithRecovery(

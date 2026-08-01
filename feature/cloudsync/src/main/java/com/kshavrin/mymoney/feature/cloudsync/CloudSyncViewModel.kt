@@ -384,7 +384,7 @@ class CloudSyncViewModel
             generation: Long,
         ) {
             val sharedEnabled = remoteConfig.sharedSyncEnabled()
-            if (!sharedEnabled) sharedCoordinator.stopForegroundRealtime()
+            if (!sharedEnabled || !active) sharedCoordinator.stopForegroundRealtime()
             val workspace = if (active) sharedCoordinator.activeWorkspace() else null
             val ownership =
                 if (active) {
@@ -401,6 +401,7 @@ class CloudSyncViewModel
             if (generation != refreshGeneration) return
             val currentBinding = journalSyncConfig.binding()
             val stillActive = currentBinding?.provider == CloudProvider.Shared
+            if (!sharedEnabled || !stillActive) sharedCoordinator.stopForegroundRealtime()
             if (!active && stillActive) {
                 refresh()
                 return

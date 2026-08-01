@@ -34,6 +34,8 @@ import com.kshavrin.mymoney.core.domain.sync.SharedConflict
 import com.kshavrin.mymoney.core.domain.sync.SharedOperation
 import com.kshavrin.mymoney.core.network.shared.CreatedInvite
 import com.kshavrin.mymoney.core.network.shared.SharedAuth
+import com.kshavrin.mymoney.core.network.shared.SharedRealtime
+import com.kshavrin.mymoney.core.network.shared.SharedRealtimeEvent
 import com.kshavrin.mymoney.core.network.shared.SharedSession
 import com.kshavrin.mymoney.core.network.shared.SharedUser
 import com.kshavrin.mymoney.core.network.shared.SharedWorkspace
@@ -49,9 +51,11 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
@@ -87,6 +91,7 @@ class SharedSyncCoordinatorImplTest {
 
     private lateinit var db: MoneyDatabase
     private lateinit var auth: FakeSharedAuth
+    private lateinit var realtime: FakeSharedRealtime
     private lateinit var workspaceApi: FakeSharedWorkspaceApi
     private lateinit var journalRepository: FakeSharedJournalRepository
     private lateinit var backupRepository: FakeInternalBackupRepository
@@ -113,6 +118,7 @@ class SharedSyncCoordinatorImplTest {
                 .build()
 
         auth = FakeSharedAuth()
+        realtime = FakeSharedRealtime()
         workspaceApi = FakeSharedWorkspaceApi()
         journalRepository = FakeSharedJournalRepository()
         backupRepository = FakeInternalBackupRepository()
@@ -135,6 +141,7 @@ class SharedSyncCoordinatorImplTest {
     private fun createCoordinator() =
         SharedSyncCoordinatorImpl(
             auth = auth,
+            realtime = realtime,
             workspaceApi = workspaceApi,
             journalRepository = journalRepository,
             backupRepository = backupRepository,
@@ -771,6 +778,21 @@ class SharedSyncCoordinatorImplTest {
             assertEquals(listOf("/internal/backup-1.db"), backupRepository.importPaths)
         }
 
+    @Test
+    fun `foreground realtime stops its lifecycle collection when stopped`() =
+        runTest(dispatcher) {
+            auth.session = fakeSession()
+            configStore.current = CloudBinding(CloudProvider.Shared, "ws-1", "Budget")
+            sharedStore.membershipActive = true
+
+            assertTrue(coordinator.startForegroundRealtime().isSuccess)
+            assertEquals(SharedRealtimeStatus.Starting, coordinator.foregroundRealtimeStatus.value)
+
+            coordinator.stopForegroundRealtime()
+
+            assertEquals(SharedRealtimeStatus.Inactive, coordinator.foregroundRealtimeStatus.value)
+        }
+
     // ── resolveConflict ────────────────────────────────────────────────────
 
     @Test
@@ -911,6 +933,29 @@ class SharedSyncCoordinatorImplTest {
             clearLocalSessionCalls++
             session = null
         }
+    }
+
+    private class FakeSharedRealtime : SharedRealtime {
+        var eventsCalls = 0
+        var activeSubscriptions = 0
+        var workspaceId: String? = null
+        var accessToken: String? = null
+
+        override fun events(
+            workspaceId: String,
+            accessToken: String,
+        ): Flow<SharedRealtimeEvent> =
+            flow {
+                eventsCalls++
+                this@FakeSharedRealtime.workspaceId = workspaceId
+                this@FakeSharedRealtime.accessToken = accessToken
+                activeSubscriptions++
+                try {
+                    awaitCancellation()
+                } finally {
+                    activeSubscriptions--
+                }
+            }
     }
 
     private inner class FakeSharedWorkspaceApi : SharedWorkspaceApi {

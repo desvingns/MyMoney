@@ -2,13 +2,19 @@ package com.kshavrin.mymoney.core.network.shared
 
 import com.kshavrin.mymoney.core.common.exception.SyncError
 import com.kshavrin.mymoney.core.common.exception.SyncException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
@@ -38,6 +44,7 @@ class SupabaseSharedRealtime
                     close(SyncException(SyncError.Server))
                     return@callbackFlow
                 }
+                var heartbeatJob: Job? = null
                 val socket =
                     client.newWebSocket(
                         Request
@@ -53,7 +60,19 @@ class SupabaseSharedRealtime
                             ) {
                                 if (!webSocket.send(json.encodeToString(joinMessage(workspaceId, accessToken)))) {
                                     close(SyncException(SyncError.Server))
+                                    return
                                 }
+                                heartbeatJob =
+                                    launch {
+                                        var heartbeatRef = INITIAL_HEARTBEAT_REF
+                                        while (isActive) {
+                                            delay(HEARTBEAT_INTERVAL_MILLIS)
+                                            if (!webSocket.send(json.encodeToString(heartbeatMessage(heartbeatRef++)))) {
+                                                close(SyncException(SyncError.Server))
+                                                return@launch
+                                            }
+                                        }
+                                    }
                             }
 
                             override fun onMessage(
@@ -76,7 +95,13 @@ class SupabaseSharedRealtime
                                         }
                                     }
 
-                                    "postgres_changes" -> trySend(SharedRealtimeEvent.OperationAvailable)
+                                    "postgres_changes" -> {
+                                        if (message.payloadContainsAuthorId()) {
+                                            close(SyncException(SyncError.Server))
+                                        } else {
+                                            trySend(SharedRealtimeEvent.OperationAvailable)
+                                        }
+                                    }
                                     "phx_close", "phx_error" -> close(SyncException(SyncError.Server))
                                 }
                             }
@@ -98,7 +123,10 @@ class SupabaseSharedRealtime
                             }
                         },
                     )
-                awaitClose { socket.cancel() }
+                awaitClose {
+                    heartbeatJob?.cancel()
+                    socket.cancel()
+                }
             }
 
         private fun joinMessage(
@@ -108,7 +136,8 @@ class SupabaseSharedRealtime
             buildJsonObject {
                 put("topic", "realtime:public:operations")
                 put("event", "phx_join")
-                put("ref", "1")
+                put("ref", CHANNEL_JOIN_REF)
+                put("join_ref", CHANNEL_JOIN_REF)
                 put("payload", buildJsonObject {
                     put("access_token", accessToken)
                     put("config", buildJsonObject {
@@ -121,12 +150,38 @@ class SupabaseSharedRealtime
                                     put("schema", "public")
                                     put("table", "operations")
                                     put("filter", "workspace_id=eq.$workspaceId")
+                                    put("select", buildJsonArray {
+                                        GRANTED_OPERATION_COLUMNS.forEach { column -> add(JsonPrimitive(column)) }
+                                    })
                                 },
                             )
                         })
                     })
                 })
             }
+
+        private fun heartbeatMessage(reference: Long) =
+            buildJsonObject {
+                put("topic", "phoenix")
+                put("event", "heartbeat")
+                put("ref", reference.toString())
+                put("payload", buildJsonObject {})
+            }
+
+        private fun kotlinx.serialization.json.JsonObject.payloadContainsAuthorId(): Boolean =
+            runCatching {
+                get("payload")
+                    ?.jsonObject
+                    ?.get("data")
+                    ?.jsonObject
+                    ?.let { data ->
+                        data["record"]?.jsonObject?.containsKey("author_id") == true ||
+                            data["old_record"]?.jsonObject?.containsKey("author_id") == true ||
+                            data["columns"]?.jsonArray?.any { column ->
+                                column.jsonObject["name"]?.jsonPrimitive?.content == "author_id"
+                            } == true
+                    } ?: false
+            }.getOrDefault(false)
 
         private fun SupabaseConfig.realtimeUrl() =
             url
@@ -137,6 +192,26 @@ class SupabaseSharedRealtime
                 .addQueryParameter("apikey", anonKey)
                 .addQueryParameter("vsn", "1.0.0")
                 .build()
+
+        private companion object {
+            const val CHANNEL_JOIN_REF = "1"
+            const val INITIAL_HEARTBEAT_REF = 2L
+            const val HEARTBEAT_INTERVAL_MILLIS = 25_000L
+            val GRANTED_OPERATION_COLUMNS =
+                listOf(
+                    "id",
+                    "workspace_id",
+                    "idempotency_key",
+                    "server_sequence",
+                    "base_sequence",
+                    "device_id",
+                    "entity_kind",
+                    "entity_id",
+                    "payload",
+                    "tombstone",
+                    "created_at",
+                )
+        }
     }
 
 private class SharedRealtimeDisconnectedException : IllegalStateException()

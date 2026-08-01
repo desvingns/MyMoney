@@ -45,6 +45,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -536,7 +537,10 @@ class SharedSyncCoordinatorImpl
                 } catch (failure: Throwable) {
                     if (failure is CancellationException) throw failure
                     if (failure.isRealtimeTerminalFailure()) {
-                        _foregroundRealtimeStatus.value = SharedRealtimeStatus.Error
+                        clearSharedStateOnAuthFailure(Result.failure<Unit>(failure))
+                        if ((failure as? SyncException)?.syncError != SyncError.Auth) {
+                            _foregroundRealtimeStatus.value = SharedRealtimeStatus.Error
+                        }
                         return
                     }
                     retryAttempt += 1

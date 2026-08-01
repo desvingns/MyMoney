@@ -24,6 +24,7 @@ import com.kshavrin.mymoney.core.sync.toCloudProvider
 import com.kshavrin.mymoney.core.sync.toSyncTarget
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -72,6 +73,9 @@ class CloudSyncViewModel
         private var pendingMigration: PendingMigration? = null
         private var pendingMigrationAuthentication: SyncTarget? = null
         private var refreshGeneration = 0L
+        private var foregroundRealtimeGeneration = 0L
+        private var foregroundRealtimeActive = false
+        private var foregroundRealtimeStartJob: Job? = null
 
         init {
             refresh()
@@ -111,8 +115,8 @@ class CloudSyncViewModel
                 CloudSyncEvent.SharedCreateInviteClicked -> createSharedInvite()
                 CloudSyncEvent.SharedCopyInviteClicked -> copySharedInvite()
                 CloudSyncEvent.SharedSyncNowClicked -> sharedSyncNow()
-                CloudSyncEvent.SharedRealtimeForegroundStarted -> startForegroundRealtime()
-                CloudSyncEvent.SharedRealtimeForegroundStopped -> sharedCoordinator.stopForegroundRealtime()
+                CloudSyncEvent.SharedRealtimeForegroundStarted -> foregroundRealtimeStarted()
+                CloudSyncEvent.SharedRealtimeForegroundStopped -> foregroundRealtimeStopped()
                 CloudSyncEvent.SharedRetryRealtimeClicked -> restartForegroundRealtime()
                 CloudSyncEvent.SharedConflictsClicked -> openSharedConflicts()
                 is CloudSyncEvent.SharedResolveConflict -> resolveSharedConflict(event.conflictId, event.winnerOperationId)
@@ -580,15 +584,44 @@ class CloudSyncViewModel
         }
 
         private fun startForegroundRealtime() {
-            if (!remoteConfig.sharedSyncEnabled()) return
-            viewModelScope.launch {
-                if (journalSyncConfig.binding()?.provider == CloudProvider.Shared) {
-                    sharedCoordinator.startForegroundRealtime()
+            if (!foregroundRealtimeActive || !remoteConfig.sharedSyncEnabled()) return
+            val generation = ++foregroundRealtimeGeneration
+            foregroundRealtimeStartJob?.cancel()
+            foregroundRealtimeStartJob =
+                viewModelScope.launch {
+                    try {
+                        if (
+                            foregroundRealtimeActive &&
+                            generation == foregroundRealtimeGeneration &&
+                            journalSyncConfig.binding()?.provider == CloudProvider.Shared
+                        ) {
+                            sharedCoordinator.startForegroundRealtime()
+                        }
+                    } finally {
+                        if (generation == foregroundRealtimeGeneration) {
+                            foregroundRealtimeStartJob = null
+                        }
+                    }
                 }
-            }
+        }
+
+        private fun foregroundRealtimeStarted() {
+            foregroundRealtimeActive = true
+            startForegroundRealtime()
+        }
+
+        private fun foregroundRealtimeStopped() {
+            foregroundRealtimeActive = false
+            foregroundRealtimeGeneration += 1
+            foregroundRealtimeStartJob?.cancel()
+            foregroundRealtimeStartJob = null
+            sharedCoordinator.stopForegroundRealtime()
         }
 
         private fun restartForegroundRealtime() {
+            if (!foregroundRealtimeActive) return
+            foregroundRealtimeStartJob?.cancel()
+            foregroundRealtimeStartJob = null
             sharedCoordinator.stopForegroundRealtime()
             startForegroundRealtime()
         }

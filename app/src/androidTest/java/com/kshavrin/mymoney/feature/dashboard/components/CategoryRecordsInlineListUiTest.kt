@@ -16,7 +16,9 @@ import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
+import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.feature.dashboard.R
+import com.kshavrin.mymoney.test.assertTouchHeightIsAtLeast
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -58,6 +60,7 @@ class CategoryRecordsInlineListUiTest {
         composeTestRule
             .onNodeWithText("Coffee")
             .assertIsDisplayed()
+            .assertTouchHeightIsAtLeast(Spacing.minimumTouchTargetSize)
     }
 
     @Test

@@ -135,7 +135,7 @@ private fun CategoryRecordRow(
                 .fillMaxWidth()
                 .clickable(onClick = onClick)
                 .semantics(mergeDescendants = true) { contentDescription = recordDescription }
-                .heightIn(min = Spacing.dashboardInlineRecordRowHeight)
+                .heightIn(min = Spacing.minimumTouchTargetSize)
                 .padding(horizontal = Spacing.l, vertical = Spacing.s),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,

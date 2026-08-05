@@ -747,6 +747,51 @@ class DashboardViewModelTest {
         }
 
     @Test
+    fun `slice click in mixed currency AllAccounts ConvertTo mode expands records from every currency`() =
+        runTest {
+            val eurCard = account(id = 3L, name = "Euro card", isDefault = false, currencyId = eur.id)
+            accountRepository.seed(cash, eurCard)
+            currencyRepository.seed(usd, eur)
+            transactionRepository.seedCategoryGroups(cash.id, initialPeriod, categoryGroup(categoryId = 77L))
+            transactionRepository.seedCategoryGroups(eurCard.id, initialPeriod, categoryGroup(categoryId = 77L))
+            transactionRepository.seedTransactionsByPeriod(
+                cash.id,
+                initialPeriod,
+                transaction(id = 701L, categoryId = 77L, accountId = cash.id),
+            )
+            transactionRepository.seedTransactionsByPeriod(
+                eurCard.id,
+                initialPeriod,
+                transaction(id = 702L, categoryId = 77L, accountId = eurCard.id)
+                    .copy(
+                        currencyId = eur.id,
+                        occurredAt = Instant.parse("2026-04-15T12:00:00Z"),
+                    ),
+            )
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.AllAccountsTargetCurrencyChosen(usd.id))
+                runCurrent()
+                viewModel.onEvent(DashboardEvent.AllAccountsRatesConfirmed(mapOf(eur.id to BigDecimal("1.2"))))
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.SliceClicked(categoryId = 77L))
+                runCurrent()
+
+                val records = viewModel.state.value.expandedRecords
+                assertEquals(listOf(702L, 701L), records.map { it.id })
+                assertEquals(listOf(eur.id, usd.id), records.map { it.currencyId })
+                assertFalse(viewModel.state.value.expandedRecordsLoading)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
     fun `all accounts selection restores on init in Separate mode when no fold target was persisted`() =
         runTest {
             // D7: target currency is never remembered. A cold-started AllAccounts selection always

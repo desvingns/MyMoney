@@ -13,7 +13,6 @@ import com.kshavrin.mymoney.core.domain.model.BalanceSnapshot
 import com.kshavrin.mymoney.core.domain.model.Category
 import com.kshavrin.mymoney.core.domain.model.CategoryBalance
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
-import com.kshavrin.mymoney.core.domain.model.CategoryRecordGroup
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.DomainEvent
 import com.kshavrin.mymoney.core.domain.model.Money
@@ -1415,24 +1414,43 @@ class DashboardViewModel
                 clearExpandedCategory()
                 return
             }
-            val selection = _state.value.dashboardSelection
-            val period = _state.value.period
-            val source: (suspend () -> List<CategoryRecordGroup>) =
+            val state = _state.value
+            val selection = state.dashboardSelection
+            val period = state.period
+            val source: suspend () -> List<Transaction> =
                 when (selection) {
                     is DashboardSelection.SpecificAccount -> {
-                        { getCategoryRecords(selection.account.id, period, categoryId) }
+                        {
+                            getCategoryRecords(selection.account.id, period, categoryId)
+                                .firstOrNull { it.categoryId == categoryId }
+                                ?.transactions
+                                .orEmpty()
+                        }
                     }
                     is DashboardSelection.AllAccounts ->
                         when (val mode = selection.foldMode) {
                             is AllAccountsFoldMode.ConvertTo -> {
-                                {
-                                    getCategoryRecords.forAccounts(
-                                        _state.value.accounts,
-                                        mode.target,
-                                        period,
-                                        categoryId,
-                                    )
+                                val accountsByCurrency =
+                                    state.accounts
+                                        .filterNot { it.isArchived }
+                                        .groupBy { it.currencyId }
+                                val currenciesById = state.currencies.associateBy { it.id }
+                                val groupedSource: suspend () -> List<Transaction> = {
+                                    accountsByCurrency
+                                        .flatMap { (currencyId, accounts) ->
+                                            val sourceCurrency =
+                                                currenciesById[currencyId]
+                                                    ?: throw IllegalStateException(
+                                                        "Currency $currencyId is unavailable for active account records",
+                                                    )
+                                            getCategoryRecords
+                                                .forAccounts(accounts, sourceCurrency, period, categoryId)
+                                                .firstOrNull { it.categoryId == categoryId }
+                                                ?.transactions
+                                                .orEmpty()
+                                        }.sortedByDescending { it.occurredAt }
                                 }
+                                groupedSource
                             }
                             AllAccountsFoldMode.Separate -> return
                         }
@@ -1445,36 +1463,33 @@ class DashboardViewModel
                     expandedRecords = emptyList(),
                     expandedRecordsLoading = true,
                 )
-            categoryRecordsJob = viewModelScope.launch {
-                try {
-                    val records =
-                        source()
-                            .firstOrNull { it.categoryId == categoryId }
-                            ?.transactions
-                            .orEmpty()
-                    if (
-                        _state.value.expandedCategoryId == categoryId &&
-                            _state.value.period == period &&
-                            _state.value.dashboardSelection == selection
-                    ) {
-                        _state.value =
-                            _state.value.copy(
-                                expandedRecords = records,
-                                expandedRecordsLoading = false,
-                            )
-                    }
-                } catch (t: Throwable) {
-                    if (t is CancellationException) throw t
-                    t.reportToSentry()
-                    if (
-                        _state.value.expandedCategoryId == categoryId &&
-                            _state.value.period == period &&
-                            _state.value.dashboardSelection == selection
-                    ) {
-                        _state.value = _state.value.copy(expandedRecordsLoading = false)
+            categoryRecordsJob =
+                viewModelScope.launch {
+                    try {
+                        val records = source()
+                        if (
+                            _state.value.expandedCategoryId == categoryId &&
+                                _state.value.period == period &&
+                                _state.value.dashboardSelection == selection
+                        ) {
+                            _state.value =
+                                _state.value.copy(
+                                    expandedRecords = records,
+                                    expandedRecordsLoading = false,
+                                )
+                        }
+                    } catch (t: Throwable) {
+                        if (t is CancellationException) throw t
+                        t.reportToSentry()
+                        if (
+                            _state.value.expandedCategoryId == categoryId &&
+                                _state.value.period == period &&
+                                _state.value.dashboardSelection == selection
+                        ) {
+                            _state.value = _state.value.copy(expandedRecordsLoading = false)
+                        }
                     }
                 }
-            }
         }
 
         private fun clearExpandedCategory() {

@@ -2338,11 +2338,9 @@ class DashboardViewModelTest {
     // -------------------------------------------------------------------------
 
     @Test
-    fun `second slice click on same category reopens summary with same filter`() =
+    fun `second slice click on same category collapses inline records`() =
         runTest {
-            transactionRepository.seedCategoryGroups(cash.id, initialPeriod, categoryGroup(categoryId = 10L))
-
-            val (viewModel, store) = buildViewModel()
+                val (viewModel, store) = buildViewModel()
             try {
                 runCurrent()
 
@@ -2351,20 +2349,15 @@ class DashboardViewModelTest {
                 runCurrent()
                 assertEquals(
                     10L,
-                    viewModel.state.value.operationsSummary
-                        ?.categoryFilter,
+                    viewModel.state.value.expandedCategoryId,
                 )
 
                 // Second tap on the same id — reopens (no toggle/collapse in the new contract).
                 viewModel.onEvent(DashboardEvent.SliceClicked(categoryId = 10L))
                 runCurrent()
 
-                assertNotNull("summary must remain open after second tap on same category", viewModel.state.value.operationsSummary)
-                assertEquals(
-                    10L,
-                    viewModel.state.value.operationsSummary
-                        ?.categoryFilter,
-                )
+                assertNull(viewModel.state.value.expandedCategoryId)
+                assertTrue(viewModel.state.value.expandedRecords.isEmpty())
             } finally {
                 store.clear()
                 runCurrent()
@@ -2372,7 +2365,7 @@ class DashboardViewModelTest {
         }
 
     @Test
-    fun `tapping a different category while summary is open switches the category filter`() =
+    fun `tapping a different category switches the inline records`() =
         runTest {
             transactionRepository.seedCategoryGroups(
                 cash.id,
@@ -2389,19 +2382,16 @@ class DashboardViewModelTest {
                 runCurrent()
                 assertEquals(
                     10L,
-                    viewModel.state.value.operationsSummary
-                        ?.categoryFilter,
+                    viewModel.state.value.expandedCategoryId,
                 )
 
                 // Tap a different category — must switch filter.
                 viewModel.onEvent(DashboardEvent.SliceClicked(categoryId = 20L))
                 runCurrent()
 
-                assertNotNull("summary must remain open after switching category", viewModel.state.value.operationsSummary)
                 assertEquals(
                     20L,
-                    viewModel.state.value.operationsSummary
-                        ?.categoryFilter,
+                    viewModel.state.value.expandedCategoryId,
                 )
             } finally {
                 store.clear()
@@ -2410,7 +2400,7 @@ class DashboardViewModelTest {
         }
 
     @Test
-    fun `operationsSummary loading is true immediately after tap before the records coroutine completes`() =
+    fun `inline records loading is true immediately after tap before the records coroutine completes`() =
         runTest {
             // StandardTestDispatcher does not advance coroutines automatically — the launched
             // viewModelScope coroutine that fetches records is queued but not yet run after onEvent().
@@ -2422,22 +2412,47 @@ class DashboardViewModelTest {
                 viewModel.onEvent(DashboardEvent.SliceClicked(categoryId = 10L))
                 // Do NOT call runCurrent() here — the fetch coroutine has not yet executed.
 
-                val summary = viewModel.state.value.operationsSummary
-                assertNotNull("operationsSummary must be set immediately after SliceClicked", summary)
                 assertTrue(
                     "loading must be true while the fetch coroutine has not yet run",
-                    summary!!.loading,
+                    viewModel.state.value.expandedRecordsLoading,
                 )
-                assertEquals(10L, summary.categoryFilter)
+                assertEquals(10L, viewModel.state.value.expandedCategoryId)
 
                 // Advance scheduler — records arrive (empty, since no seeds), loading clears.
                 runCurrent()
 
                 assertFalse(
                     "loading must be false after the fetch coroutine completes",
-                    viewModel.state.value.operationsSummary
-                        ?.loading ?: false,
+                    viewModel.state.value.expandedRecordsLoading,
                 )
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `changing period clears expanded category records`() =
+        runTest {
+            transactionRepository.seedCategoryGroups(cash.id, initialPeriod, categoryGroup(categoryId = 10L))
+            transactionRepository.seedTransactionsByPeriod(
+                cash.id,
+                initialPeriod,
+                transaction(id = 1001L, categoryId = 10L, accountId = cash.id),
+            )
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+                viewModel.onEvent(DashboardEvent.SliceClicked(categoryId = 10L))
+                runCurrent()
+                assertEquals(10L, viewModel.state.value.expandedCategoryId)
+                assertEquals(listOf(1001L), viewModel.state.value.expandedRecords.map { it.id })
+
+                viewModel.onEvent(DashboardEvent.PeriodChanged(april))
+
+                assertNull(viewModel.state.value.expandedCategoryId)
+                assertTrue(viewModel.state.value.expandedRecords.isEmpty())
+                assertFalse(viewModel.state.value.expandedRecordsLoading)
             } finally {
                 store.clear()
                 runCurrent()
@@ -2502,8 +2517,8 @@ class DashboardViewModelTest {
             try {
                 runCurrent()
 
-                // Open the summary first.
-                viewModel.onEvent(DashboardEvent.SliceClicked(categoryId = 10L))
+                // Open the summary through the Aurora entry point.
+                viewModel.onEvent(DashboardEvent.ChartTapped)
                 runCurrent()
                 assertNotNull("pre-condition: summary must be open before RecordRowClicked", viewModel.state.value.operationsSummary)
 

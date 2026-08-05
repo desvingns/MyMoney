@@ -22,18 +22,23 @@ import com.kshavrin.mymoney.feature.dashboard.R
 @Composable
 fun CategoryTilesList(
     expenseTiles: List<CategoryTileItem>,
-    expandedCategoryId: Long?,
-    expandedRecords: List<Transaction>,
-    expandedRecordsLoading: Boolean,
-    currencies: List<Currency>,
     onTileClick: (Long) -> Unit,
-    onRecordRowClick: (Long) -> Unit,
     modifier: Modifier = Modifier,
+    expandedCategoryId: Long? = null,
+    expandedRecords: List<Transaction> = emptyList(),
+    expandedRecordsLoading: Boolean = false,
+    currencies: List<Currency> = emptyList(),
+    onRecordRowClick: (Long) -> Unit = {},
 ) {
     CategoryTilesContent(
         tiles = CategoryTiles(expenseTiles),
         onTileClick = onTileClick,
         modifier = modifier,
+        expandedCategoryId = expandedCategoryId,
+        expandedRecords = expandedRecords,
+        expandedRecordsLoading = expandedRecordsLoading,
+        currencies = currencies,
+        onRecordRowClick = onRecordRowClick,
     )
 }
 
@@ -42,6 +47,11 @@ private fun CategoryTilesContent(
     tiles: CategoryTiles,
     onTileClick: (Long) -> Unit,
     modifier: Modifier = Modifier,
+    expandedCategoryId: Long? = null,
+    expandedRecords: List<Transaction> = emptyList(),
+    expandedRecordsLoading: Boolean = false,
+    currencies: List<Currency> = emptyList(),
+    onRecordRowClick: (Long) -> Unit = {},
 ) {
     if (tiles.values.isEmpty()) {
         Box(

@@ -244,6 +244,13 @@ class ImportFocusColdStartRegressionTest {
                         observeBudgetAlertsUseCase = observeBudgetAlerts,
                         categoryRepository = categoryRepository,
                         journalSync = NoOpJournalSync(),
+                        getCategoryRecords =
+                            GetCategoryRecordsUseCase(
+                                accountRepository = accountRepository,
+                                currencyRepository = currencyRepository,
+                                transactionRepository = transactionRepository,
+                                defaultDispatcher = default,
+                            ),
                         getOperationsSummary =
                             GetOperationsSummaryUseCase(
                                 getCategoryRecords =

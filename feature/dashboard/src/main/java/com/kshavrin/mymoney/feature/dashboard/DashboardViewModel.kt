@@ -93,6 +93,8 @@ class DashboardViewModel
 
         private var recomputeJob: Job? = null
 
+        private var categoryRecordsJob: Job? = null
+
         // Best-effort background jobs that precompute the adjacent periods' render-state for the
         // swipe pager (SPEC 02). Cancelled and relaunched on every committed period/selection change
         // so a stale neighbor never surfaces (G9). Never run for [Period.All] (no neighbors, G13).
@@ -204,6 +206,8 @@ class DashboardViewModel
                         }
                     val period = resolvePeriod(focusPeriod, current.period, inputs.settings)
                     val chartConfig = inputs.settings.toChartConfig()
+                    val contextChanged = current.period != period || current.dashboardSelection != selection
+                    if (contextChanged) categoryRecordsJob?.cancel()
                     _state.value =
                         current.copy(
                             accounts = inputs.accounts,
@@ -212,6 +216,9 @@ class DashboardViewModel
                             dashboardSelection = selection,
                             isLoading = selection == null,
                             chartConfig = chartConfig,
+                            expandedCategoryId = if (contextChanged) null else current.expandedCategoryId,
+                            expandedRecords = if (contextChanged) emptyList() else current.expandedRecords,
+                            expandedRecordsLoading = if (contextChanged) false else current.expandedRecordsLoading,
                         )
                     selectBudgetAlerts()
                     recomputeBalance()
@@ -412,6 +419,7 @@ class DashboardViewModel
             period: Period,
             neighbor: PeriodPageState?,
         ) {
+            clearExpandedCategory()
             _state.value =
                 if (neighbor != null) {
                     _state.value.copy(
@@ -1025,6 +1033,7 @@ class DashboardViewModel
         fun onEvent(event: DashboardEvent) {
             when (event) {
                 is DashboardEvent.PeriodChanged -> {
+                    clearExpandedCategory()
                     _state.value = _state.value.copy(period = event.period)
                     restoredPersistedPeriod = true
                     clearImportFocus()
@@ -1049,6 +1058,7 @@ class DashboardViewModel
                 }
                 is DashboardEvent.AccountSelected -> {
                     val acc = _state.value.accounts.firstOrNull { it.id == event.accountId } ?: return
+                    clearExpandedCategory()
                     _state.value =
                         _state.value.copy(
                             dashboardSelection = DashboardSelection.SpecificAccount(acc),
@@ -1188,6 +1198,7 @@ class DashboardViewModel
         private fun applyAllAccountsSeparate() {
             pendingConvertTarget = null
             allAccountsRateOverrides = emptyMap()
+            clearExpandedCategory()
             _state.value =
                 _state.value.copy(
                     dashboardSelection = DashboardSelection.AllAccounts(AllAccountsFoldMode.Separate),
@@ -1249,6 +1260,7 @@ class DashboardViewModel
             val target = pendingConvertTarget ?: return
             pendingConvertTarget = null
             allAccountsRateOverrides = rateOverrides
+            clearExpandedCategory()
             _state.value =
                 _state.value.copy(
                     dashboardSelection = DashboardSelection.AllAccounts(AllAccountsFoldMode.ConvertTo(target)),
@@ -1400,12 +1412,7 @@ class DashboardViewModel
         private fun toggleExpandedCategory(categoryId: Long) {
             if (categoryId == OTHER_CATEGORY_ID) return
             if (categoryId == _state.value.expandedCategoryId) {
-                _state.value =
-                    _state.value.copy(
-                        expandedCategoryId = null,
-                        expandedRecords = emptyList(),
-                        expandedRecordsLoading = false,
-                    )
+                clearExpandedCategory()
                 return
             }
             val selection = _state.value.dashboardSelection
@@ -1431,20 +1438,25 @@ class DashboardViewModel
                         }
                     null -> return
                 }
+            clearExpandedCategory()
             _state.value =
                 _state.value.copy(
                     expandedCategoryId = categoryId,
                     expandedRecords = emptyList(),
                     expandedRecordsLoading = true,
                 )
-            viewModelScope.launch {
+            categoryRecordsJob = viewModelScope.launch {
                 try {
                     val records =
                         source()
                             .firstOrNull { it.categoryId == categoryId }
                             ?.transactions
                             .orEmpty()
-                    if (_state.value.expandedCategoryId == categoryId) {
+                    if (
+                        _state.value.expandedCategoryId == categoryId &&
+                            _state.value.period == period &&
+                            _state.value.dashboardSelection == selection
+                    ) {
                         _state.value =
                             _state.value.copy(
                                 expandedRecords = records,
@@ -1454,11 +1466,26 @@ class DashboardViewModel
                 } catch (t: Throwable) {
                     if (t is CancellationException) throw t
                     t.reportToSentry()
-                    if (_state.value.expandedCategoryId == categoryId) {
+                    if (
+                        _state.value.expandedCategoryId == categoryId &&
+                            _state.value.period == period &&
+                            _state.value.dashboardSelection == selection
+                    ) {
                         _state.value = _state.value.copy(expandedRecordsLoading = false)
                     }
                 }
             }
+        }
+
+        private fun clearExpandedCategory() {
+            categoryRecordsJob?.cancel()
+            categoryRecordsJob = null
+            _state.value =
+                _state.value.copy(
+                    expandedCategoryId = null,
+                    expandedRecords = emptyList(),
+                    expandedRecordsLoading = false,
+                )
         }
 
         private fun emit(action: DashboardAction) {

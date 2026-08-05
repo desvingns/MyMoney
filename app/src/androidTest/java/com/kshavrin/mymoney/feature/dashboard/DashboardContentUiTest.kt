@@ -45,6 +45,8 @@ import com.kshavrin.mymoney.core.domain.model.BalanceSnapshot
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.domain.model.Period
+import com.kshavrin.mymoney.core.domain.model.Transaction
+import com.kshavrin.mymoney.core.domain.model.TransactionKind
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.feature.dashboard.components.CHART_SETTINGS_SHEET_TAG
@@ -53,6 +55,7 @@ import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_AURORA_BALANC
 import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_AURORA_CARD_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_AURORA_EXPENSE_PILL_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_AURORA_INCOME_PILL_TAG
+import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_INLINE_RECORDS_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_CURRENCY_CARDS_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.OPERATIONS_SUMMARY_EMPTY_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.OPERATIONS_SUMMARY_SHEET_TAG
@@ -623,6 +626,45 @@ class DashboardContentUiTest {
 
         composeTestRule.runOnIdle {
             assertEquals(listOf(DashboardEvent.SliceClicked(42L)), capturedEvents)
+        }
+    }
+
+    @Test
+    fun `expanded category renders every inline transaction and row tap navigates`() {
+        val usd = usdCurrency()
+        val capturedEvents = mutableListOf<DashboardEvent>()
+        val tile = categoryTile(categoryId = 42L, label = "Groceries", currency = usd)
+        val records =
+            listOf(
+                dashboardTransaction(701L, 42L, "Lunch"),
+                dashboardTransaction(702L, 42L, "Coffee"),
+            )
+
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state =
+                        dashboardState(
+                            currency = usd,
+                            balanceSnapshot = balanceSnapshot(netAmount = "100", currency = usd),
+                            expenseTiles = listOf(tile),
+                            isLoading = false,
+                        ).copy(
+                            expandedCategoryId = 42L,
+                            expandedRecords = records,
+                        ),
+                    onEvent = { capturedEvents += it },
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithTag(DASHBOARD_INLINE_RECORDS_TAG).assertIsDisplayed()
+        composeTestRule.onNodeWithText("Lunch").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Coffee").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Lunch").performClick()
+
+        composeTestRule.runOnIdle {
+            assertTrue(capturedEvents.contains(DashboardEvent.RecordRowClicked(701L)))
         }
     }
 
@@ -2004,6 +2046,24 @@ class DashboardContentUiTest {
         colorHex = "#4CAF50",
         iconKey = "groceries",
     )
+
+    private fun dashboardTransaction(id: Long, categoryId: Long, note: String) =
+        Transaction(
+            id = id,
+            kind = TransactionKind.Expense,
+            amount = BigDecimal("10.00"),
+            currencyId = 1L,
+            accountId = 1L,
+            categoryId = categoryId,
+            note = note,
+            occurredAt = java.time.Instant.parse("2026-08-05T00:00:00Z"),
+            createdAt = java.time.Instant.parse("2026-08-05T00:00:00Z"),
+            updatedAt = java.time.Instant.parse("2026-08-05T00:00:00Z"),
+            isDeleted = false,
+            toAccountId = null,
+            toAmount = null,
+            exchangeRate = null,
+        )
 
     private fun usdCurrency() =
         Currency(

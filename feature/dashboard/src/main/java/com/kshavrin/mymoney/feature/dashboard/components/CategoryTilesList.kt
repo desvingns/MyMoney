@@ -13,6 +13,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import com.kshavrin.mymoney.core.domain.model.Currency
+import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.core.ui.theme.textSecondary
 import com.kshavrin.mymoney.feature.dashboard.R
@@ -20,7 +22,12 @@ import com.kshavrin.mymoney.feature.dashboard.R
 @Composable
 fun CategoryTilesList(
     expenseTiles: List<CategoryTileItem>,
+    expandedCategoryId: Long?,
+    expandedRecords: List<Transaction>,
+    expandedRecordsLoading: Boolean,
+    currencies: List<Currency>,
     onTileClick: (Long) -> Unit,
+    onRecordRowClick: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     CategoryTilesContent(
@@ -64,6 +71,14 @@ private fun CategoryTilesContent(
                     tile = tile,
                     onTileClick = onTileClick,
                 )
+                if (tile.categoryId == expandedCategoryId) {
+                    CategoryRecordsInlineList(
+                        records = expandedRecords,
+                        loading = expandedRecordsLoading,
+                        currencies = currencies,
+                        onRowClick = onRecordRowClick,
+                    )
+                }
             }
         }
     }

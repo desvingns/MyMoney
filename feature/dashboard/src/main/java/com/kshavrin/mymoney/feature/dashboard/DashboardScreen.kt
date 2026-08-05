@@ -55,6 +55,7 @@ import com.kshavrin.mymoney.core.common.money.MoneyFormatter
 import com.kshavrin.mymoney.core.designsystem.confetti.Confetti
 import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.domain.model.Period
+import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.ui.feedback.LocalHapticPlayer
 import com.kshavrin.mymoney.core.ui.feedback.LocalSoundPlayer
 import com.kshavrin.mymoney.core.ui.flow.CollectActions
@@ -398,6 +399,10 @@ private fun DashboardBodyPager(
         DashboardPage(
             pageState = pageState,
             interactive = !pagingEnabled || page == DASHBOARD_PAGER_CENTER_PAGE,
+            expandedCategoryId = state.expandedCategoryId,
+            expandedRecords = state.expandedRecords,
+            expandedRecordsLoading = state.expandedRecordsLoading,
+            currencies = state.currencies,
             chartConfig = state.chartConfig,
             overBudgetAmount = state.overBudgetAmount,
             onEvent = onEvent,
@@ -410,6 +415,10 @@ private fun DashboardBodyPager(
 private fun DashboardPage(
     pageState: PeriodPageState?,
     interactive: Boolean,
+    expandedCategoryId: Long?,
+    expandedRecords: List<Transaction>,
+    expandedRecordsLoading: Boolean,
+    currencies: List<com.kshavrin.mymoney.core.domain.model.Currency>,
     chartConfig: ChartConfig,
     overBudgetAmount: Money?,
     onEvent: (DashboardEvent) -> Unit,
@@ -486,8 +495,15 @@ private fun DashboardPage(
 
             CategoryTilesList(
                 expenseTiles = pageState.expenseTiles,
+                expandedCategoryId = if (interactive) expandedCategoryId else null,
+                expandedRecords = if (interactive) expandedRecords else emptyList(),
+                expandedRecordsLoading = if (interactive) expandedRecordsLoading else false,
+                currencies = currencies,
                 onTileClick = { categoryId ->
                     if (interactive) onEvent(DashboardEvent.SliceClicked(categoryId))
+                },
+                onRecordRowClick = { transactionId ->
+                    if (interactive) onEvent(DashboardEvent.RecordRowClicked(transactionId))
                 },
                 modifier = Modifier.padding(horizontal = Spacing.l),
             )

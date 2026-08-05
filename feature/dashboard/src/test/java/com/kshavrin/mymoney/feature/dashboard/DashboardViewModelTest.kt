@@ -700,10 +700,17 @@ class DashboardViewModelTest {
         }
 
     @Test
-    fun `slice click in AllAccounts ConvertTo mode opens operations summary filtered to that category`() =
+    fun `slice click in AllAccounts ConvertTo mode expands every category transaction inline`() =
         runTest {
             accountRepository.seed(cash)
             currencyRepository.seed(usd)
+            transactionRepository.seedCategoryGroups(cash.id, initialPeriod, categoryGroup(categoryId = 77L))
+            transactionRepository.seedTransactionsByPeriod(
+                cash.id,
+                initialPeriod,
+                transaction(id = 701L, categoryId = 77L, accountId = cash.id),
+                transaction(id = 702L, categoryId = 77L, accountId = cash.id),
+            )
 
             val (viewModel, store) = buildViewModel()
             val actions = mutableListOf<DashboardAction>()
@@ -724,9 +731,10 @@ class DashboardViewModelTest {
                 viewModel.onEvent(DashboardEvent.SliceClicked(categoryId = 77L))
                 runCurrent()
 
-                val summary = viewModel.state.value.operationsSummary
-                assertNotNull("operations summary must be open after SliceClicked in ConvertTo mode", summary)
-                assertEquals(77L, summary!!.categoryFilter)
+                assertEquals(77L, viewModel.state.value.expandedCategoryId)
+                assertEquals(listOf(701L, 702L), viewModel.state.value.expandedRecords.map { it.id })
+                assertFalse(viewModel.state.value.expandedRecordsLoading)
+                assertNull(viewModel.state.value.operationsSummary)
                 assertTrue(
                     "SliceClicked must not emit any one-shot action in ConvertTo mode; actions=$actions",
                     actions.isEmpty(),
@@ -2074,7 +2082,7 @@ class DashboardViewModelTest {
         }
 
     @Test
-    fun `slice click on a real category opens operations summary filtered to that category`() =
+    fun `slice click on a real category expands it without opening operations summary`() =
         runTest {
             val (viewModel, store) = buildViewModel()
             val actions = mutableListOf<DashboardAction>()
@@ -2090,9 +2098,9 @@ class DashboardViewModelTest {
 
                 runCurrent()
 
-                val summary = viewModel.state.value.operationsSummary
-                assertNotNull("operations summary must open after SliceClicked", summary)
-                assertEquals(77L, summary!!.categoryFilter)
+                assertEquals(77L, viewModel.state.value.expandedCategoryId)
+                assertFalse(viewModel.state.value.expandedRecordsLoading)
+                assertNull(viewModel.state.value.operationsSummary)
                 assertTrue(
                     "SliceClicked must not emit any one-shot action; actions=$actions",
                     actions.isEmpty(),
@@ -2215,7 +2223,7 @@ class DashboardViewModelTest {
         }
 
     @Test
-    fun `slice click on Year period opens filtered summary for that year`() =
+    fun `slice click on Year period expands records for that year`() =
         runTest {
             val yearPeriod = Period.Year(2026)
             transactionRepository.seedCategoryGroups(cash.id, yearPeriod, categoryGroup(categoryId = 42L))
@@ -2236,9 +2244,9 @@ class DashboardViewModelTest {
                 viewModel.onEvent(DashboardEvent.SliceClicked(categoryId = 42L))
                 runCurrent()
 
-                val summary = viewModel.state.value.operationsSummary
-                assertNotNull("operations summary must open after SliceClicked on Year period", summary)
-                assertEquals(42L, summary!!.categoryFilter)
+                assertEquals(42L, viewModel.state.value.expandedCategoryId)
+                assertFalse(viewModel.state.value.expandedRecordsLoading)
+                assertNull(viewModel.state.value.operationsSummary)
                 assertTrue(
                     "SliceClicked must not emit any one-shot action; actions=$actions",
                     actions.isEmpty(),
@@ -2251,7 +2259,7 @@ class DashboardViewModelTest {
         }
 
     @Test
-    fun `slice click on CustomRange period opens filtered summary for that range`() =
+    fun `slice click on CustomRange period expands records for that range`() =
         runTest {
             val customRange =
                 Period.CustomRange(
@@ -2276,9 +2284,9 @@ class DashboardViewModelTest {
                 viewModel.onEvent(DashboardEvent.SliceClicked(categoryId = 55L))
                 runCurrent()
 
-                val summary = viewModel.state.value.operationsSummary
-                assertNotNull("operations summary must open after SliceClicked on CustomRange period", summary)
-                assertEquals(55L, summary!!.categoryFilter)
+                assertEquals(55L, viewModel.state.value.expandedCategoryId)
+                assertFalse(viewModel.state.value.expandedRecordsLoading)
+                assertNull(viewModel.state.value.operationsSummary)
                 assertTrue(
                     "SliceClicked must not emit any one-shot action; actions=$actions",
                     actions.isEmpty(),
@@ -2902,6 +2910,7 @@ class DashboardViewModelTest {
                             observeBudgetAlertsUseCase = alerts,
                             categoryRepository = categoryRepository,
                             resolveRateUseCase = buildResolveRate(),
+                            getCategoryRecords = getCategoryRecordsGated,
                             getOperationsSummary =
                                 GetOperationsSummaryUseCase(
                                     getCategoryRecords = getCategoryRecordsGated,
@@ -3392,6 +3401,7 @@ class DashboardViewModelTest {
                         observeBudgetAlertsUseCase = alerts,
                         categoryRepository = categoryRepository,
                         resolveRateUseCase = buildResolveRate(),
+                        getCategoryRecords = getCategoryRecords,
                         getOperationsSummary = getOperationsSummary,
                         journalSync = journalSync,
                     ) as T
@@ -3461,6 +3471,7 @@ class DashboardViewModelTest {
                         observeBudgetAlertsUseCase = alerts,
                         categoryRepository = categoryRepository,
                         resolveRateUseCase = buildResolveRate(rateRepository),
+                        getCategoryRecords = getCategoryRecords,
                         getOperationsSummary = getOperationsSummary,
                         journalSync = journalSync,
                     ) as T
@@ -4840,6 +4851,7 @@ class DashboardViewModelTest {
                             observeBudgetAlertsUseCase = alerts,
                             categoryRepository = categoryRepository,
                             resolveRateUseCase = buildResolveRate(),
+                            getCategoryRecords = getCategoryRecordsGated,
                             getOperationsSummary =
                                 GetOperationsSummaryUseCase(
                                     getCategoryRecords = getCategoryRecordsGated,

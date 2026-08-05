@@ -13,6 +13,7 @@ import com.kshavrin.mymoney.core.domain.model.BalanceSnapshot
 import com.kshavrin.mymoney.core.domain.model.Category
 import com.kshavrin.mymoney.core.domain.model.CategoryBalance
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
+import com.kshavrin.mymoney.core.domain.model.CategoryRecordGroup
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.DomainEvent
 import com.kshavrin.mymoney.core.domain.model.Money
@@ -28,6 +29,7 @@ import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
 import com.kshavrin.mymoney.core.domain.time.PeriodArithmetic
 import com.kshavrin.mymoney.core.domain.usecase.BalanceCalculator
 import com.kshavrin.mymoney.core.domain.usecase.BalanceTrendCalculator
+import com.kshavrin.mymoney.core.domain.usecase.GetCategoryRecordsUseCase
 import com.kshavrin.mymoney.core.domain.usecase.GetOperationsSummaryUseCase
 import com.kshavrin.mymoney.core.domain.usecase.IntradayTrendCalculator
 import com.kshavrin.mymoney.core.domain.usecase.ObserveBudgetAlertsUseCase
@@ -73,6 +75,7 @@ class DashboardViewModel
         private val observeBudgetAlertsUseCase: ObserveBudgetAlertsUseCase,
         private val categoryRepository: CategoryRepository,
         private val resolveRateUseCase: ResolveRateUseCase,
+        private val getCategoryRecords: GetCategoryRecordsUseCase,
         private val getOperationsSummary: GetOperationsSummaryUseCase,
         private val journalSync: JournalSync,
     ) : ViewModel() {
@@ -1119,7 +1122,7 @@ class DashboardViewModel
                     emit(DashboardAction.NavigateAbout)
                 }
                 DashboardEvent.BalanceCardClicked -> openOperationsSummary(categoryId = null)
-                is DashboardEvent.SliceClicked -> openOperationsSummary(categoryId = event.categoryId)
+                is DashboardEvent.SliceClicked -> toggleExpandedCategory(categoryId = event.categoryId)
                 is DashboardEvent.RecordRowClicked -> {
                     _state.value = _state.value.copy(operationsSummary = null)
                     emit(DashboardAction.NavigateToTransactionDetail(event.transactionId))
@@ -1393,6 +1396,70 @@ class DashboardViewModel
                     }
                 null -> false
             }
+
+        private fun toggleExpandedCategory(categoryId: Long) {
+            if (categoryId == OTHER_CATEGORY_ID) return
+            if (categoryId == _state.value.expandedCategoryId) {
+                _state.value =
+                    _state.value.copy(
+                        expandedCategoryId = null,
+                        expandedRecords = emptyList(),
+                        expandedRecordsLoading = false,
+                    )
+                return
+            }
+            val selection = _state.value.dashboardSelection
+            val period = _state.value.period
+            val source: (suspend () -> List<CategoryRecordGroup>) =
+                when (selection) {
+                    is DashboardSelection.SpecificAccount -> {
+                        { getCategoryRecords(selection.account.id, period, categoryId) }
+                    }
+                    is DashboardSelection.AllAccounts ->
+                        when (val mode = selection.foldMode) {
+                            is AllAccountsFoldMode.ConvertTo -> {
+                                {
+                                    getCategoryRecords.forAccounts(
+                                        _state.value.accounts,
+                                        mode.target,
+                                        period,
+                                        categoryId,
+                                    )
+                                }
+                            }
+                            AllAccountsFoldMode.Separate -> return
+                        }
+                    null -> return
+                }
+            _state.value =
+                _state.value.copy(
+                    expandedCategoryId = categoryId,
+                    expandedRecords = emptyList(),
+                    expandedRecordsLoading = true,
+                )
+            viewModelScope.launch {
+                try {
+                    val records =
+                        source()
+                            .firstOrNull { it.categoryId == categoryId }
+                            ?.transactions
+                            .orEmpty()
+                    if (_state.value.expandedCategoryId == categoryId) {
+                        _state.value =
+                            _state.value.copy(
+                                expandedRecords = records,
+                                expandedRecordsLoading = false,
+                            )
+                    }
+                } catch (t: Throwable) {
+                    if (t is CancellationException) throw t
+                    t.reportToSentry()
+                    if (_state.value.expandedCategoryId == categoryId) {
+                        _state.value = _state.value.copy(expandedRecordsLoading = false)
+                    }
+                }
+            }
+        }
 
         private fun emit(action: DashboardAction) {
             viewModelScope.launch { _actions.emit(action) }

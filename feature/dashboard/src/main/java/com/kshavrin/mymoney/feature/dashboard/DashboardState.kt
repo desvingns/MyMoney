@@ -11,6 +11,7 @@ import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.domain.model.Period
 import com.kshavrin.mymoney.core.domain.model.SummaryRecord
+import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.domain.model.TrendPoint
 import com.kshavrin.mymoney.feature.dashboard.components.CategoryTileItem
 import com.kshavrin.mymoney.feature.dashboard.components.SummaryRecordCategoryDisplay
@@ -39,6 +40,9 @@ data class DashboardState(
     val overBudgetAmount: Money? = null,
     val isLoading: Boolean = true,
     val isRefreshing: Boolean = false,
+    val expandedCategoryId: Long? = null,
+    val expandedRecords: List<Transaction> = emptyList(),
+    val expandedRecordsLoading: Boolean = false,
     // Operations-summary drawer (SPEC 03): tapping the Aurora card or the balance opens it with no
     // filter; tapping a category tile opens it filtered to that category. Null while closed so the
     // open/loading/records state survives recomposition (the sheet is hosted off DashboardState, not

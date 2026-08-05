@@ -8,9 +8,14 @@ recovery path.
 ## Deploy
 
 1. Apply `supabase/migrations/0001_shared_workspaces.sql`,
-   `0002_shared_operations.sql`, `0003_shared_realtime_security.sql`, and
-   `0004_private_workspace_realtime.sql` in order through the Supabase SQL Editor for the
-   intended project.
+   `0002_shared_operations.sql`, `0003_shared_realtime_security.sql`,
+   `0004_private_workspace_realtime.sql`,
+   `20260802034601_realtime_function_grant_hardening.sql`,
+   `20260802034731_private_realtime_authorization_helper.sql`, and
+   `20260805130000_fix_private_realtime_read_authorization.sql` in order through the
+   Supabase SQL Editor for the intended project. The timestamped migrations are one-time
+   ledger entries: do not re-run the helper migration manually after it moves the function
+   into the `private` schema.
 2. In Supabase Dashboard > Project Settings > Realtime, disable **Allow public access** so only
    private, RLS-authorized channels can join. This is required: the migration authorizes the
    private workspace Broadcast topic, while the Dashboard setting prevents a legacy public topic

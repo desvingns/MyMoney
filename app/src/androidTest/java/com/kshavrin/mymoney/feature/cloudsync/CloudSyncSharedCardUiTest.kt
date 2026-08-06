@@ -11,6 +11,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.datastore.CloudBinding
 import com.kshavrin.mymoney.core.datastore.CloudProvider
+import com.kshavrin.mymoney.core.sync.shared.SharedRealtimeStatus
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -108,6 +109,44 @@ class CloudSyncSharedCardUiTest {
         composeTestRule.onNodeWithTag("cloud_sync_shared_sync_now").assertIsDisplayed()
         composeTestRule.onNodeWithTag("cloud_sync_shared_leave").assertIsDisplayed()
         composeTestRule.onNodeWithTag("cloud_sync_shared_conflicts").assertIsDisplayed()
+    }
+
+    @Test
+    fun `Shared card exposes realtime error retry action on device`() {
+        val events = mutableListOf<CloudSyncEvent>()
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                CloudSyncContent(
+                    state =
+                        CloudSyncState(
+                            binding = CloudBinding(CloudProvider.Shared, "ws-1", "Family Budget"),
+                            shared =
+                                SharedCardState(
+                                    signedIn = true,
+                                    active = true,
+                                    realtimeStatus = SharedRealtimeStatus.Error,
+                                ),
+                        ),
+                    onEvent = events::add,
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithTag("cloud_sync_shared_realtime_status")
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText(targetString(R.string.sync_shared_status_error))
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithTag("cloud_sync_shared_realtime_retry")
+            .assertIsDisplayed()
+            .assertIsEnabled()
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(CloudSyncEvent.SharedRetryRealtimeClicked), events)
+        }
     }
 
     private fun targetString(resourceId: Int): String =

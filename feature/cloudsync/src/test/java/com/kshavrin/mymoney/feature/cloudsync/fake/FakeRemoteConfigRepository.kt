@@ -5,6 +5,7 @@ import com.kshavrin.mymoney.core.domain.repository.RemoteConfigRepository
 class FakeRemoteConfigRepository(
     private var dropboxEnabled: Boolean = true,
     private var gdriveEnabled: Boolean = true,
+    private var sharedEnabled: Boolean = true,
 ) : RemoteConfigRepository {
     var refreshCount = 0
         private set
@@ -21,6 +22,8 @@ class FakeRemoteConfigRepository(
     override fun dropboxSyncEnabled(): Boolean = dropboxEnabled
 
     override fun gdriveSyncEnabled(): Boolean = gdriveEnabled
+
+    override fun sharedSyncEnabled(): Boolean = sharedEnabled
 
     override fun minSupportedVersionCode(): Long = 0L
 

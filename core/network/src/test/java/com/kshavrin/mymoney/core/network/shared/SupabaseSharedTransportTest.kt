@@ -34,6 +34,8 @@ class SupabaseSharedTransportTest {
     private lateinit var journalRpc: SupabaseSharedJournalRpc
     private lateinit var sessionStore: RecordingSessionStore
     private val clock = Clock.fixed(Instant.ofEpochSecond(1_700_000_000L), ZoneOffset.UTC)
+    private val validOperationJson =
+        """{"id":"operation-1","workspace_id":"workspace-1","author_id":"author-1","idempotency_key":"operation-1","server_sequence":5,"base_sequence":4,"device_id":"device-1","entity_kind":"transaction","entity_id":"transaction-1","payload":null,"tombstone":false,"created_at":"2026-07-29T12:00:00Z"}"""
 
     @Before
     fun setUp() {
@@ -328,6 +330,95 @@ class SupabaseSharedTransportTest {
 
             assertSyncError(result, SyncError.Auth)
             assertEquals(0, server.requestCount)
+        }
+
+    @Test
+    fun `membership denied direct workspace REST read maps to auth and exposes no rows`() =
+        runTest {
+            signIn()
+            server.enqueue(MockResponse().setResponseCode(403).setBody("forbidden"))
+
+            val result = workspaceRpc.currentWorkspace()
+
+            assertSyncError(result, SyncError.Auth)
+            val request = server.takeRequest()
+            assertEquals(
+                "/rest/v1/workspace_members?select=workspace:workspaces!inner(id,name,owner_id,created_at)&active=eq.true&limit=1",
+                request.path,
+            )
+            assertEquals("Bearer shared-access-token", request.getHeader("Authorization"))
+        }
+
+    @Test
+    fun `journal rpc decodes a single push operation returned in an array`() =
+        runTest {
+            signIn()
+            server.enqueue(MockResponse().setResponseCode(200).setBody("[$validOperationJson]"))
+
+            val result =
+                journalRpc.pushOperation(
+                    workspaceId = "workspace-1",
+                    idempotencyKey = "operation-1",
+                    baseSequence = 4,
+                    deviceId = "device-1",
+                    entityKind = "transaction",
+                    entityId = "transaction-1",
+                    payload = null,
+                    tombstone = false,
+                )
+
+            assertEquals("operation-1", result.getOrThrow().id)
+            assertEquals(5L, result.getOrThrow().serverSequence)
+            server.takeRequest()
+        }
+
+    @Test
+    fun `journal rpc decodes a single resolve conflict operation returned as an object`() =
+        runTest {
+            signIn()
+            server.enqueue(MockResponse().setResponseCode(200).setBody(validOperationJson))
+
+            val result = journalRpc.resolveConflict("conflict-1", "operation-1")
+
+            assertEquals("operation-1", result.getOrThrow().id)
+            assertEquals(5L, result.getOrThrow().serverSequence)
+            server.takeRequest()
+        }
+
+    @Test
+    fun `journal rpc rejects empty and multiple operation response arrays`() =
+        runTest {
+            signIn()
+            server.enqueue(MockResponse().setResponseCode(200).setBody("[]"))
+            server.enqueue(MockResponse().setResponseCode(200).setBody("[$validOperationJson,$validOperationJson]"))
+
+            val emptyResult =
+                journalRpc.pushOperation(
+                    workspaceId = "workspace-1",
+                    idempotencyKey = "operation-empty",
+                    baseSequence = 4,
+                    deviceId = "device-1",
+                    entityKind = "transaction",
+                    entityId = "transaction-1",
+                    payload = null,
+                    tombstone = false,
+                )
+            val multipleResult =
+                journalRpc.pushOperation(
+                    workspaceId = "workspace-1",
+                    idempotencyKey = "operation-multiple",
+                    baseSequence = 4,
+                    deviceId = "device-1",
+                    entityKind = "transaction",
+                    entityId = "transaction-1",
+                    payload = null,
+                    tombstone = false,
+                )
+
+            assertTrue(emptyResult.isFailure)
+            assertTrue(multipleResult.isFailure)
+            server.takeRequest()
+            server.takeRequest()
         }
 
     @Test

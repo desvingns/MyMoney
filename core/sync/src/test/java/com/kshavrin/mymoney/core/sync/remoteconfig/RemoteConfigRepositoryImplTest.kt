@@ -44,6 +44,11 @@ class RemoteConfigRepositoryImplTest {
     }
 
     @Test
+    fun `sharedSyncEnabled is disabled in the default build`() {
+        assertFalse(repository.sharedSyncEnabled())
+    }
+
+    @Test
     fun `minSupportedVersionCode returns in-app default 1`() {
         assertEquals(1L, repository.minSupportedVersionCode())
     }

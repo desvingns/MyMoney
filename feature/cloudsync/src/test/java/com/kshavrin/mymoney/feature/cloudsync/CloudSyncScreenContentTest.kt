@@ -10,6 +10,7 @@ import androidx.compose.ui.test.performScrollTo
 import com.kshavrin.mymoney.core.datastore.CloudBinding
 import com.kshavrin.mymoney.core.datastore.CloudProvider
 import com.kshavrin.mymoney.core.domain.model.BackupFile
+import com.kshavrin.mymoney.core.sync.shared.SharedRealtimeStatus
 import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceSummary
 import com.kshavrin.mymoney.core.sync.SyncTarget
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
@@ -85,6 +86,59 @@ class CloudSyncScreenContentTest {
         )
         composeTestRule.onNodeWithTag("cloud_sync_shared_sync_now").performScrollTo().assertIsDisplayed()
         composeTestRule.onNodeWithTag("cloud_sync_shared_leave").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun `active Shared card renders sleeping realtime status`() {
+        setContent(
+            CloudSyncState(
+                binding = CloudBinding(CloudProvider.Shared, "ws-1", "Budget"),
+                shared =
+                    SharedCardState(
+                        signedIn = true,
+                        active = true,
+                        workspaceName = "Budget",
+                        realtimeStatus = SharedRealtimeStatus.Sleeping(retryAttempt = 2),
+                    ),
+            ),
+        )
+
+        composeTestRule.onNodeWithTag("cloud_sync_shared_realtime_status").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText(str(R.string.sync_shared_status_sleeping)).assertIsDisplayed()
+    }
+
+    @Test
+    fun `realtime error status exposes retry action`() {
+        val events = mutableListOf<CloudSyncEvent>()
+        setContent(
+            CloudSyncState(
+                binding = CloudBinding(CloudProvider.Shared, "ws-1", "Budget"),
+                shared =
+                    SharedCardState(
+                        signedIn = true,
+                        active = true,
+                        realtimeStatus = SharedRealtimeStatus.Error,
+                    ),
+            ),
+            events::add,
+        )
+
+        composeTestRule.onNodeWithTag("cloud_sync_shared_realtime_retry").performScrollTo().performClick()
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(CloudSyncEvent.SharedRetryRealtimeClicked), events)
+        }
+    }
+
+    @Test
+    fun `inactive realtime status does not render a status card`() {
+        setContent(
+            CloudSyncState(
+                binding = CloudBinding(CloudProvider.Shared, "ws-1", "Budget"),
+                shared = SharedCardState(signedIn = true, active = true, realtimeStatus = SharedRealtimeStatus.Inactive),
+            ),
+        )
+
+        composeTestRule.onNodeWithTag("cloud_sync_shared_realtime_status").assertDoesNotExist()
     }
 
     @Test
@@ -470,8 +524,8 @@ class CloudSyncScreenContentTest {
         }
     }
 
-    private fun str(resId: Int): String =
+    private fun str(resId: Int, vararg args: Any): String =
         androidx.test.core.app.ApplicationProvider
             .getApplicationContext<android.content.Context>()
-            .getString(resId)
+            .getString(resId, *args)
 }

@@ -1,8 +1,10 @@
 package com.kshavrin.mymoney.core.network.shared
 
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -40,7 +42,7 @@ class SupabaseSharedJournalRpc
                         put("p_payload", payload ?: JsonNull)
                         put("p_tombstone", tombstone)
                     },
-            ) { response -> Json.decodeFromJsonElement(SharedOperationDto.serializer(), response.jsonObject) }
+            ) { response -> decodeSingleOperation(response) }
 
         override suspend fun pullOperations(
             workspaceId: String,
@@ -82,7 +84,17 @@ class SupabaseSharedJournalRpc
                         put("p_conflict_id", conflictId)
                         put("p_winner_operation_id", winnerOperationId)
                     },
-            ) { response -> Json.decodeFromJsonElement(SharedOperationDto.serializer(), response.jsonObject) }
+            ) { response -> decodeSingleOperation(response) }
+
+        private fun decodeSingleOperation(response: JsonElement): SharedOperationDto {
+            val operation =
+                when (response) {
+                    is JsonObject -> response
+                    is JsonArray -> response.singleOrNull() as? JsonObject
+                    else -> null
+                } ?: throw IllegalArgumentException("Expected exactly one operation response")
+            return Json.decodeFromJsonElement(SharedOperationDto.serializer(), operation)
+        }
 
         private suspend fun <T> rpc(
             name: String,

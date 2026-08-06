@@ -57,6 +57,21 @@ class DashboardBalancePanelColorsTest {
         assertEquals(Color(0xFFEF9A9A), DarkColors.dashboardBalancePanelContentNegative)
     }
 
+    @Test
+    fun `shared realtime tokens preserve semantic container and content pairings`() {
+        assertEquals(DarkColors.primaryContainer, DarkColors.sharedSyncConnectedContainer)
+        assertEquals(DarkColors.onPrimaryContainer, DarkColors.sharedSyncConnectedContent)
+        assertEquals(DarkColors.tertiaryContainer, DarkColors.sharedSyncStartingContainer)
+        assertEquals(DarkColors.onTertiaryContainer, DarkColors.sharedSyncStartingContent)
+        assertEquals(DarkColors.secondaryContainer, DarkColors.sharedSyncSleepingContainer)
+        assertEquals(DarkColors.onSecondaryContainer, DarkColors.sharedSyncSleepingContent)
+        assertEquals(DarkColors.surfaceVariant, DarkColors.sharedSyncRetryingContainer)
+        assertEquals(DarkColors.onSurfaceVariant, DarkColors.sharedSyncRetryingContent)
+        assertEquals(DarkColors.errorContainer, DarkColors.sharedSyncErrorContainer)
+        assertEquals(DarkColors.onErrorContainer, DarkColors.sharedSyncErrorContent)
+        assertEquals(DarkColors.outlineVariant, DarkColors.sharedSyncStatusOutline)
+    }
+
     private fun contrastRatio(
         foreground: Color,
         background: Color,

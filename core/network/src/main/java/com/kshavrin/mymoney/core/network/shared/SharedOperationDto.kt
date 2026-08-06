@@ -11,6 +11,7 @@ import java.time.Instant
 data class SharedOperationDto(
     @SerialName("id") val id: String,
     @SerialName("workspace_id") val workspaceId: String,
+    @SerialName("author_id") val authorId: String? = null,
     @SerialName("idempotency_key") val idempotencyKey: String,
     @SerialName("server_sequence") val serverSequence: Long,
     @SerialName("base_sequence") val baseSequence: Long,

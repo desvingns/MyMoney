@@ -389,15 +389,16 @@ class CloudSyncViewModel
         ) {
             val sharedEnabled = remoteConfig.sharedSyncEnabled()
             if (!sharedEnabled || !active) sharedCoordinator.stopForegroundRealtime()
-            val workspace = if (active) sharedCoordinator.activeWorkspace() else null
+            val canReadShared = sharedEnabled && active
+            val workspace = if (canReadShared) sharedCoordinator.activeWorkspace() else null
             val ownership =
-                if (active) {
+                if (canReadShared) {
                     sharedCoordinator.activeWorkspaceOwnership().getOrNull()
                 } else {
                     null
                 }
             val conflictCount =
-                if (active) {
+                if (canReadShared) {
                     sharedCoordinator.listConflicts().getOrNull()?.size ?: _state.value.shared.conflictCount
                 } else {
                     0

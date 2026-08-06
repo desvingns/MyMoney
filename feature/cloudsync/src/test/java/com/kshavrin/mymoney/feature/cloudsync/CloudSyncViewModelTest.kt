@@ -23,6 +23,7 @@ import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceSummary
 import com.kshavrin.mymoney.core.testing.fake.FakeAppSettingsRepository
 import com.kshavrin.mymoney.feature.cloudsync.fake.FakeRemoteConfigRepository
 import com.kshavrin.mymoney.feature.cloudsync.util.MainDispatcherRule
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -489,6 +490,69 @@ class CloudSyncViewModelTest {
             assertEquals(R.string.sync_shared_leave_first, vm.state.value.errorBannerRes)
         }
 
+    @Test
+    fun `disabled Shared gate does not perform remote reads for a persisted Shared binding`() =
+        runTest {
+            val config = Config(CloudBinding(CloudProvider.Shared, "ws-1", "Budget"))
+            val shared =
+                SharedCoordinator().apply {
+                    signedIn = true
+                    workspaceSummary = SharedWorkspaceSummary("ws-1", "Budget")
+                }
+            val remoteConfig = FakeRemoteConfigRepository(sharedEnabled = false)
+            val vm =
+                viewModel(
+                    SnapshotFake(),
+                    RecordingJournalSync(),
+                    config,
+                    Scheduler(),
+                    shared = shared,
+                    remoteConfig = remoteConfig,
+                )
+
+            runCurrent()
+
+            assertFalse(vm.state.value.shared.enabled)
+            assertEquals(0, shared.activeWorkspaceCalls)
+            assertEquals(0, shared.activeWorkspaceOwnershipCalls)
+            assertEquals(0, shared.listConflictsCalls)
+            assertTrue(shared.stopRealtimeCalls > 0)
+        }
+
+    @Test
+    fun `foreground realtime cannot start after lifecycle stop while shared setup is finishing`() =
+        runTest {
+            val config = Config(null)
+            val shared =
+                SharedCoordinator().apply {
+                    signedIn = true
+                    createGate = CompletableDeferred()
+                }
+            shared.onCreateWorkspace = { config.setForTest(CloudBinding(CloudProvider.Shared, "ws-new", "Budget")) }
+            val remoteConfig = FakeRemoteConfigRepository(sharedEnabled = true)
+            val vm =
+                viewModel(
+                    SnapshotFake(),
+                    RecordingJournalSync(),
+                    config,
+                    Scheduler(),
+                    shared = shared,
+                    remoteConfig = remoteConfig,
+                )
+
+            vm.onEvent(CloudSyncEvent.SharedSetupClicked)
+            runCurrent()
+            vm.onEvent(CloudSyncEvent.SharedCreateWorkspace("Budget"))
+            runCurrent()
+            vm.onEvent(CloudSyncEvent.SharedRealtimeForegroundStopped)
+            runCurrent()
+
+            shared.createGate?.complete(Unit)
+            runCurrent()
+
+            assertEquals(0, shared.startRealtimeCalls)
+        }
+
     private fun viewModel(
         snapshot: SnapshotSync,
         journal: JournalSync,
@@ -496,7 +560,8 @@ class CloudSyncViewModelTest {
         scheduler: Scheduler,
         backup: BackupRepository = BackupFake(),
         shared: SharedSyncCoordinator = SharedCoordinator(),
-    ) = CloudSyncViewModel(snapshot, journal, config, scheduler, FakeAppSettingsRepository(AppSettings(autoSyncEnabled = true)), backup, FakeRemoteConfigRepository(), shared)
+        remoteConfig: FakeRemoteConfigRepository = FakeRemoteConfigRepository(),
+    ) = CloudSyncViewModel(snapshot, journal, config, scheduler, FakeAppSettingsRepository(AppSettings(autoSyncEnabled = true)), backup, remoteConfig, shared)
 
     private class Config(
         private var current: CloudBinding?,
@@ -528,6 +593,10 @@ class CloudSyncViewModelTest {
 
         fun clearForTest() {
             current = null
+        }
+
+        fun setForTest(binding: CloudBinding) {
+            current = binding
         }
     }
 
@@ -631,7 +700,14 @@ class CloudSyncViewModelTest {
         var workspaceSummary: SharedWorkspaceSummary? = null
         var conflicts: List<SharedConflict> = emptyList()
         var createCalls = 0
+        var createGate: CompletableDeferred<Unit>? = null
+        var onCreateWorkspace: (() -> Unit)? = null
         var leaveCalls = 0
+        var startRealtimeCalls = 0
+        var stopRealtimeCalls = 0
+        var activeWorkspaceCalls = 0
+        var activeWorkspaceOwnershipCalls = 0
+        var listConflictsCalls = 0
         var lastJoinToken: String? = null
         var createInviteResult: Result<SharedWorkspaceInvite> = Result.failure(RuntimeException("unused"))
         var onCreateInvite: (() -> Unit)? = null
@@ -659,7 +735,15 @@ class CloudSyncViewModelTest {
 
         override suspend fun signOut() = Result.success(Unit)
 
-        override suspend fun activeWorkspace() = workspaceSummary
+        override suspend fun activeWorkspace(): SharedWorkspaceSummary? {
+            activeWorkspaceCalls++
+            return workspaceSummary
+        }
+
+        override suspend fun activeWorkspaceOwnership(): Result<com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceOwnership> {
+            activeWorkspaceOwnershipCalls++
+            return Result.success(com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceOwnership())
+        }
 
         override suspend fun discoverRemoteWorkspace(): Result<SharedWorkspaceSummary?> {
             discoverRemoteWorkspaceCalls++
@@ -677,6 +761,8 @@ class CloudSyncViewModelTest {
             importLocalData: Boolean,
         ): Result<SharedWorkspaceSummary> {
             createCalls++
+            createGate?.await()
+            onCreateWorkspace?.invoke()
             return Result.success(SharedWorkspaceSummary("ws-new", name))
         }
 
@@ -695,7 +781,19 @@ class CloudSyncViewModelTest {
 
         override suspend fun syncNow() = Result.success(Unit)
 
-        override suspend fun listConflicts(): Result<List<SharedConflict>> = Result.success(conflicts)
+        override suspend fun startForegroundRealtime(): Result<Unit> {
+            startRealtimeCalls++
+            return Result.success(Unit)
+        }
+
+        override fun stopForegroundRealtime() {
+            stopRealtimeCalls++
+        }
+
+        override suspend fun listConflicts(): Result<List<SharedConflict>> {
+            listConflictsCalls++
+            return Result.success(conflicts)
+        }
 
         override suspend fun resolveConflict(
             conflictId: String,

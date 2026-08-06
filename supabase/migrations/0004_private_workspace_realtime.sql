@@ -22,7 +22,8 @@ as $$
     );
 $$;
 
-revoke all on function public.can_receive_workspace_operation_notifications(text, uuid) from public;
+revoke all on function public.can_receive_workspace_operation_notifications(text, uuid)
+    from public, anon, authenticated;
 grant execute on function public.can_receive_workspace_operation_notifications(text, uuid) to authenticated;
 
 create policy realtime_workspace_members_receive_operation_notifications
@@ -55,7 +56,8 @@ begin
 end;
 $$;
 
-revoke all on function public.notify_workspace_operation_available() from public;
+revoke all on function public.notify_workspace_operation_available()
+    from public, anon, authenticated;
 
 create trigger operations_notify_workspace_operation_available
     after insert on public.operations

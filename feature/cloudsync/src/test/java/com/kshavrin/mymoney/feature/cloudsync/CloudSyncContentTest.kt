@@ -5,6 +5,7 @@ import com.kshavrin.mymoney.core.datastore.CloudBinding
 import com.kshavrin.mymoney.core.datastore.CloudProvider
 import com.kshavrin.mymoney.core.sync.MigrationResolution
 import com.kshavrin.mymoney.core.sync.SyncTarget
+import com.kshavrin.mymoney.core.sync.shared.SharedRealtimeStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -53,6 +54,7 @@ class CloudSyncContentTest {
         assertEquals(0, s.conflictCount)
         assertNull(s.accountEmail)
         assertNull(s.workspaceName)
+        assertEquals(SharedRealtimeStatus.Inactive, s.realtimeStatus)
     }
 
     @Test
@@ -102,5 +104,11 @@ class CloudSyncContentTest {
         val ev = CloudSyncEvent.SharedResolveConflict("c-1", "op-winner")
         assertEquals("c-1", ev.conflictId)
         assertEquals("op-winner", ev.winnerOperationId)
+    }
+
+    @Test
+    fun `foreground realtime lifecycle events remain distinct`() {
+        assertFalse(CloudSyncEvent.SharedRealtimeForegroundStarted == CloudSyncEvent.SharedRealtimeForegroundStopped)
+        assertFalse(CloudSyncEvent.SharedRealtimeForegroundStopped == CloudSyncEvent.SharedRetryRealtimeClicked)
     }
 }

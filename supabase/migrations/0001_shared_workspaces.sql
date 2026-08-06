@@ -167,7 +167,7 @@ create or replace function public.join_workspace(p_token text)
 as $$
 declare
     v_user uuid := auth.uid();
-    v_hash text := encode(digest(p_token, 'sha256'), 'hex');
+    v_hash text := encode(extensions.digest(p_token, 'sha256'::text), 'hex');
     v_invite public.workspace_invites;
     v_workspace public.workspaces;
     v_active_count integer;

@@ -63,9 +63,9 @@ sealed interface SharedDialog {
 
     data object Conflicts : SharedDialog
 
-    data object ConfirmLeave : SharedDialog
+    data object ConfirmDisconnect : SharedDialog
 
-    data object ConfirmWorkspaceDeletion : SharedDialog
+    data object ConfirmLeave : SharedDialog
 
     data object InternalBackups : SharedDialog
 

@@ -86,11 +86,15 @@ sealed interface CloudSyncEvent {
         val winnerOperationId: String,
     ) : CloudSyncEvent
 
+    data object SharedDisconnectClicked : CloudSyncEvent
+
+    data object SharedConfirmDisconnectKeepServerData : CloudSyncEvent
+
+    data object SharedConfirmDisconnectDeleteWorkspace : CloudSyncEvent
+
     data object SharedLeaveClicked : CloudSyncEvent
 
     data object SharedConfirmLeave : CloudSyncEvent
-
-    data object SharedConfirmWorkspaceDeletion : CloudSyncEvent
 
     data object SharedInternalBackupsClicked : CloudSyncEvent
 

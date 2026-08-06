@@ -120,18 +120,16 @@ class CloudSyncViewModel
                 CloudSyncEvent.SharedRetryRealtimeClicked -> restartForegroundRealtime()
                 CloudSyncEvent.SharedConflictsClicked -> openSharedConflicts()
                 is CloudSyncEvent.SharedResolveConflict -> resolveSharedConflict(event.conflictId, event.winnerOperationId)
+                CloudSyncEvent.SharedDisconnectClicked -> requestSharedDisconnect()
+                CloudSyncEvent.SharedConfirmDisconnectKeepServerData ->
+                    disconnectSharedDevice()
+                CloudSyncEvent.SharedConfirmDisconnectDeleteWorkspace -> deleteSharedWorkspace()
                 CloudSyncEvent.SharedLeaveClicked ->
                     _state.value =
                         _state.value.copy(
-                            sharedDialog =
-                                if (_state.value.shared.isSoleOwner) {
-                                    SharedDialog.ConfirmWorkspaceDeletion
-                                } else {
-                                    SharedDialog.ConfirmLeave
-                                },
+                            sharedDialog = SharedDialog.ConfirmLeave,
                         )
                 CloudSyncEvent.SharedConfirmLeave -> leaveSharedWorkspace()
-                CloudSyncEvent.SharedConfirmWorkspaceDeletion -> deleteSharedWorkspace()
                 CloudSyncEvent.SharedInternalBackupsClicked -> openInternalBackups()
                 is CloudSyncEvent.SharedInternalBackupRestoreClicked ->
                     requestInternalBackupRestore(event.backup)
@@ -667,6 +665,32 @@ class CloudSyncViewModel
                     reportAndShow(t)
                 } finally {
                     _state.value = _state.value.copy(isConnecting = false)
+                }
+            }
+        }
+
+        private fun requestSharedDisconnect() {
+            if (_state.value.shared.isSoleOwner) {
+                _state.value = _state.value.copy(sharedDialog = SharedDialog.ConfirmDisconnect)
+            } else {
+                disconnectSharedDevice()
+            }
+        }
+
+        private fun disconnectSharedDevice() {
+            viewModelScope.launch {
+                var detached = false
+                _state.value = _state.value.copy(isConnecting = true, errorBannerRes = null, sharedDialog = null)
+                try {
+                    sharedCoordinator.disconnectFromDevice().getOrThrow()
+                    detached = true
+                } catch (t: Throwable) {
+                    if (t is CancellationException) throw t
+                    reportAndShow(t)
+                } finally {
+                    _state.value = _state.value.copy(isConnecting = false)
+                    if (detached) _actions.emit(CloudSyncAction.ClearSharedGoogleCredentialState)
+                    refresh()
                 }
             }
         }

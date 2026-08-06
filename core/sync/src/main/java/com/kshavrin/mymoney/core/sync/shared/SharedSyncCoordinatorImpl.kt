@@ -221,21 +221,16 @@ class SharedSyncCoordinatorImpl
         override suspend fun syncNow(): Result<Unit> =
             withContext(dispatcher) {
                 operationMutex.withLock {
-                    val result =
-                        runCatching {
-                            val workspaceId = requireActiveWorkspaceId()
-                            // Forced-removal guard: if this device's membership is no longer active, detach the
-                            // shared binding (mirroring leave's local cleanup) so background sync stops and the
-                            // UI can surface an access-denied state, keeping the shared data as a personal copy.
-                            if (!sharedStore.isMembershipActive()) {
-                                throw SyncException(SyncError.Auth)
-                            }
-                            enqueueLocalChanges(workspaceId)
-                            publishPendingOperations(workspaceId)
-                            pullAndApply(workspaceId)
-                            appSettings.update { it.copy(lastSyncAt = clock.millis()) }
-                        }
-                    clearSharedStateOnAuthFailure(result)
+                    clearSharedStateOnAuthFailure(syncNowLocked())
+                }
+            }
+
+        override suspend fun disconnectFromDevice(): Result<Unit> =
+            withContext(dispatcher) {
+                operationMutex.withLock {
+                    val finalSync = syncNowLocked()
+                    if (finalSync.isFailure) return@withLock finalSync
+                    disconnectFromDeviceLocked()
                 }
             }
 
@@ -467,6 +462,31 @@ class SharedSyncCoordinatorImpl
             currentCoroutineContext().ensureActive()
             throwCleanupFailures(cleanupFailures)
         }
+
+        private suspend fun syncNowLocked(): Result<Unit> =
+            runCatching {
+                val workspaceId = requireActiveWorkspaceId()
+                if (!sharedStore.isMembershipActive()) {
+                    throw SyncException(SyncError.Auth)
+                }
+                enqueueLocalChanges(workspaceId)
+                publishPendingOperations(workspaceId)
+                pullAndApply(workspaceId)
+                appSettings.update { it.copy(lastSyncAt = clock.millis()) }
+            }
+
+        private suspend fun disconnectFromDeviceLocked(): Result<Unit> =
+            withContext(NonCancellable) {
+                val cleanupFailures = mutableListOf<Throwable>()
+                collectCleanupFailure(cleanupFailures) { stopForegroundRealtimeAndJoin() }
+                collectCleanupFailure(cleanupFailures) { syncScheduler.disablePeriodicSync() }
+                collectCleanupFailure(cleanupFailures) { configStore.clearBinding() }
+                collectCleanupFailure(cleanupFailures) { sharedStore.clear() }
+                collectCleanupFailure(cleanupFailures) { clearSharedOutbox() }
+                collectCleanupFailure(cleanupFailures) { auth.signOut().getOrThrow() }
+                collectCleanupFailure(cleanupFailures) { auth.clearLocalSession() }
+                cleanupFailures.toResult()
+            }
 
         private suspend fun ensureInternalBackupRestoreAllowed() {
             val binding = configStore.binding()

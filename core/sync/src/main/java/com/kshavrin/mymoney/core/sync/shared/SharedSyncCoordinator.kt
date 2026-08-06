@@ -66,6 +66,9 @@ interface SharedSyncCoordinator {
 
     suspend fun syncNow(): Result<Unit>
 
+    suspend fun disconnectFromDevice(): Result<Unit> =
+        Result.failure(UnsupportedOperationException("Device disconnect is not supported"))
+
     suspend fun startForegroundRealtime(): Result<Unit> = Result.success(Unit)
 
     fun stopForegroundRealtime() = Unit

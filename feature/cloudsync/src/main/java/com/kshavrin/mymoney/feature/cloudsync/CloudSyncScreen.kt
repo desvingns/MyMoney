@@ -29,6 +29,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -642,19 +643,20 @@ private fun SharedCard(
                         Text(stringResource(R.string.sync_shared_create_invite))
                     }
                     OutlinedButton(
-                        modifier = Modifier.testTag(SyncTarget.Shared.controlTag("leave")),
-                        onClick = { onEvent(CloudSyncEvent.SharedLeaveClicked) },
+                        modifier = Modifier.testTag(SyncTarget.Shared.controlTag("disconnect")),
+                        onClick = { onEvent(CloudSyncEvent.SharedDisconnectClicked) },
                         enabled = !isConnecting,
                     ) {
-                        Text(
-                            stringResource(
-                                if (state.isSoleOwner) {
-                                    R.string.sync_shared_delete_workspace
-                                } else {
-                                    R.string.sync_shared_leave
-                                },
-                            ),
-                        )
+                        Text(stringResource(R.string.sync_shared_disconnect))
+                    }
+                    if (!state.isSoleOwner) {
+                        OutlinedButton(
+                            modifier = Modifier.testTag(SyncTarget.Shared.controlTag("leave")),
+                            onClick = { onEvent(CloudSyncEvent.SharedLeaveClicked) },
+                            enabled = !isConnecting,
+                        ) {
+                            Text(stringResource(R.string.sync_shared_leave))
+                        }
                     }
                 }
                 else ->
@@ -759,6 +761,44 @@ private fun SharedDialogHost(
                 isConnecting = state.isConnecting,
                 onEvent = onEvent,
             )
+        SharedDialog.ConfirmDisconnect ->
+            AlertDialog(
+                onDismissRequest = { onEvent(CloudSyncEvent.SharedDialogDismissed) },
+                title = { Text(stringResource(R.string.sync_shared_disconnect_title)) },
+                text = { Text(stringResource(R.string.sync_shared_disconnect_body)) },
+                confirmButton = {
+                    Column(
+                        horizontalAlignment = Alignment.End,
+                        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+                    ) {
+                        TextButton(
+                            modifier = Modifier.testTag("cloud_sync_shared_disconnect_keep_server_data"),
+                            onClick = { onEvent(CloudSyncEvent.SharedConfirmDisconnectKeepServerData) },
+                        ) {
+                            Text(stringResource(R.string.sync_shared_disconnect_keep_server_data))
+                        }
+                        Button(
+                            modifier = Modifier.testTag("cloud_sync_shared_disconnect_delete_workspace"),
+                            onClick = { onEvent(CloudSyncEvent.SharedConfirmDisconnectDeleteWorkspace) },
+                            colors =
+                                ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.error,
+                                    contentColor = MaterialTheme.colorScheme.onError,
+                                ),
+                        ) {
+                            Text(stringResource(R.string.sync_shared_delete_workspace))
+                        }
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        modifier = Modifier.testTag("cloud_sync_shared_disconnect_cancel"),
+                        onClick = { onEvent(CloudSyncEvent.SharedDialogDismissed) },
+                    ) {
+                        Text(stringResource(R.string.sync_migration_cancel))
+                    }
+                },
+            )
         SharedDialog.ConfirmLeave ->
             AlertDialog(
                 onDismissRequest = { onEvent(CloudSyncEvent.SharedDialogDismissed) },
@@ -767,22 +807,6 @@ private fun SharedDialogHost(
                 confirmButton = {
                     Button(onClick = { onEvent(CloudSyncEvent.SharedConfirmLeave) }) {
                         Text(stringResource(R.string.sync_shared_leave))
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { onEvent(CloudSyncEvent.SharedDialogDismissed) }) {
-                        Text(stringResource(R.string.sync_migration_cancel))
-                    }
-                },
-            )
-        SharedDialog.ConfirmWorkspaceDeletion ->
-            AlertDialog(
-                onDismissRequest = { onEvent(CloudSyncEvent.SharedDialogDismissed) },
-                title = { Text(stringResource(R.string.sync_shared_delete_workspace_title)) },
-                text = { Text(stringResource(R.string.sync_shared_delete_workspace_body)) },
-                confirmButton = {
-                    Button(onClick = { onEvent(CloudSyncEvent.SharedConfirmWorkspaceDeletion) }) {
-                        Text(stringResource(R.string.sync_shared_delete_workspace))
                     }
                 },
                 dismissButton = {

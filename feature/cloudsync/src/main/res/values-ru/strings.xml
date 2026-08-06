@@ -66,6 +66,10 @@
     <string name="sync_shared_status_retrying">Повторное подключение к общей синхронизации (попытка %1$d)</string>
     <string name="sync_shared_status_error">Синхронизация в реальном времени недоступна. Плановая и ручная синхронизация остаются доступными.</string>
     <string name="sync_shared_retry_realtime">Повторить подключение</string>
+    <string name="sync_shared_disconnect">Отключить</string>
+    <string name="sync_shared_disconnect_title">Отключить общую синхронизацию?</string>
+    <string name="sync_shared_disconnect_body">Выполните синхронизацию и отключите только это устройство либо безвозвратно удалите пространство. Локальные данные останутся на этом устройстве.</string>
+    <string name="sync_shared_disconnect_keep_server_data">Сохранить данные на сервере</string>
     <string name="sync_shared_leave">Покинуть пространство</string>
     <string name="sync_shared_leave_title">Покинуть общее пространство?</string>
     <string name="sync_shared_leave_body">Синхронизация с другими участниками прекратится. Текущие общие данные останутся на этом устройстве как ваша личная копия.</string>

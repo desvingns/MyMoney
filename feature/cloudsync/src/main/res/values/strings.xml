@@ -66,6 +66,10 @@
     <string name="sync_shared_status_retrying">Retrying shared sync (attempt %1$d)</string>
     <string name="sync_shared_status_error">Realtime is unavailable. Scheduled and manual sync remain available.</string>
     <string name="sync_shared_retry_realtime">Retry realtime</string>
+    <string name="sync_shared_disconnect">Disconnect</string>
+    <string name="sync_shared_disconnect_title">Disconnect from shared sync?</string>
+    <string name="sync_shared_disconnect_body">Finish syncing and disconnect only this device, or permanently delete the workspace. Your local data stays on this device.</string>
+    <string name="sync_shared_disconnect_keep_server_data">Keep data on server</string>
     <string name="sync_shared_leave">Leave workspace</string>
     <string name="sync_shared_leave_title">Leave shared workspace?</string>
     <string name="sync_shared_leave_body">You will stop syncing with other members. The current shared data stays on this device as your personal copy.</string>

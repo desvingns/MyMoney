@@ -3,6 +3,19 @@
 Phase/release state authority: `docs/implementation_plan/PROGRESS.md` (do not restate it here).
 
 ## DONE (in progress — see BLOCKERS/NEXT, not closed)
+- 2026-08-06: Closed shared-backend-sync SPEC 04 and the standalone pgcrypto join bugfix.
+  Commits: `ea914537` (schema-qualified `extensions.digest` plus forward migration),
+  `716216fd` (Realtime/security/recovery hardening), and `a9c9a877` (separate device
+  disconnect and final-owner deletion flow). Scoped JVM verification is 370 passed / 0 failed /
+  0 skipped; the user confirmed the multi-user/device E2E and Pixel 8 invite-join fix.
+  All four shared-backend-sync child SPECs and the epic overview are now in `done/`.
+- 2026-08-05: Dashboard inline transaction records bugfix completed locally in commits
+  `0e7a7330`, `f4351442`, `3133773a`, `170586c9`. Restored category-tile expansion on the
+  dashboard, row navigation, period/selection stale-result guards, mixed-currency ConvertTo
+  grouping, and 48dp touch targets. Evidence: full MP runner 1954/0 with detekt/lint green,
+  focused mixed-currency JVM regression passed, and focused dashboard connected regression 1/1
+  on Pixel_5/API34. Final APK launch on Pixel 5 passed after forced KSP/Hilt regeneration.
+  Pixel 9 AVD exited before boot during repeat smoke; its final APK was not re-verified.
 - 2026-07-29: SPEC `shared-backend-sync-03-android-shared-mode` remains `active/` and unpushed.
   Codex resolved the original 9 failures (`c4eb0cd`), coordinator publish/lifecycle races
   (`94951044`), a durable isolated Shared outbox with Room 8→9 migration (`7c49472a`), JSON
@@ -105,34 +118,14 @@ Phase/release state authority: `docs/implementation_plan/PROGRESS.md` (do not re
   memories are mirrors.
 
 ## NEXT
-- (owner of the next session) **SPEC 03 is mid-flight, not a fresh start.** Read
-  `.claude/specs/active/shared-backend-sync-03-android-shared-mode.md` in full first — it has
-  the complete commit-by-commit history and exact remaining failures. In order:
-  1. Fix `SyncTargetTest`/`FactoryResetGatewayDetachTest` (easy, stale expectations vs. the new
-     `Shared` enum entry).
-  2. Diagnose and fix the 7 failing tests in `feature/cloudsync/src/test/.../CloudSyncScreenContentTest.kt`
-     (component-not-displayed / event-not-emitted for the Shared card's signed-out /
-     signed-in-no-workspace / active-workspace states, and the setup dialog's import-choice rows) —
-     read `CloudSyncScreen.kt`'s actual Shared-card composable against what the test looks up first.
-  3. Re-run the Runner (`mp-runner-android.sh false`), then the required independent-critic
-     semantic-review pass (risk route already flagged `independent_critic=true`), then Verifier,
-     then push per the auto-push override once Verifier passes clean.
-  - Separately (not blocking SPEC 03): confirm/apply `supabase/migrations/0002_shared_operations.sql`
-    via the Supabase Dashboard SQL Editor if not already done (only 0001 was confirmed applied as of
-    SPEC 02's close-out) before SPEC 03/04 need to exercise the operation API live.
-  - Fold into SPEC 04 (realtime-hardening-e2e): the deferred-hardening items logged in both
-    `.claude/specs/done/shared-backend-sync-02-operation-api-and-conflicts.md` (Supabase
-    default-grant column leak, non-atomic base_sequence read) and the SPEC 03 active file (FK-ref
-    causal-ordering assumption, forced-removal detection needs the real transport, soft-deleted
-    transactions not published on import).
-  - Also awaiting: manual deletion of the 6 logs in `archive/`.
+- No active MP SPEC remains. The shared-backend-sync epic overview, all four child SPECs, and the
+  standalone join bugfix are closed in `.claude/specs/done/`.
+- Optional housekeeping remains: manual deletion of the six archived root logs when convenient.
 
 ## OWNER
 - none (idle)
 
 ## BLOCKERS
-- none hard-blocking. SPEC 03 is red on 9 test failures (see NEXT) — resumable, not stuck; just
-  needs another session's diagnosis time. (Prior blocker — real Supabase project + Google OAuth
-  for SPEC 01 — was resolved 2026-07-28: project provisioned by the user in the EU/Ireland region,
-  credentials in `local.properties`. The 0002 migration still needs manual application before live
-  verification, tracked as a NEXT item, not a hard blocker on further schema/code work.)
+- none hard-blocking. The Supabase project is provisioned in the EU/Ireland region and the
+  shared-sync close-out was manually verified by the user. Public rollout remains disabled by the
+  experimental gate and the existing release/DevOps prerequisites remain tracked in `PROGRESS.md`.

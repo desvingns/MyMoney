@@ -1,7 +1,7 @@
 # Shared backend sync epic
 Epic: shared-backend-sync
 Order: 00 of 04
-Status: backlog
+Status: done
 Depends-on: review-2026-07-22-cloud-creds-setup
 Date: 2026-07-22
 
@@ -44,5 +44,6 @@ reuse Google Drive sharing and does not replace private Dropbox or Google Drive 
 
 ## Implementation links
 
-- commit: pending
-- files: pending
+- commits: child SPECs `shared-backend-sync-01-supabase-auth-workspaces`, `shared-backend-sync-02-operation-api-and-conflicts`, `shared-backend-sync-03-android-shared-mode`, and `shared-backend-sync-04-realtime-hardening-e2e`; final close-out commits `ea914537`, `716216fd`, `a9c9a877`.
+- files: `.claude/specs/done/shared-backend-sync-01-supabase-auth-workspaces.md`; `.claude/specs/done/shared-backend-sync-02-operation-api-and-conflicts.md`; `.claude/specs/done/shared-backend-sync-03-android-shared-mode.md`; `.claude/specs/done/shared-backend-sync-04-realtime-hardening-e2e.md`; `docs/SHARED_SYNC_REALTIME_RUNBOOK.md`.
+- verification: all four child SPECs are in `done/`; scoped JVM checks `370 passed / 0 failed / 0 skipped`; user-confirmed multi-user/device E2E on 2026-08-06.

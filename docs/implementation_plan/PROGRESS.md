@@ -8,6 +8,47 @@
 
 ## Current state
 
+- **2026-08-06 (Codex MP close-out, shared-backend-sync):** Closed SPEC 04 and the standalone
+  `join_workspace` pgcrypto bugfix after user-confirmed multi-user/device E2E and Pixel 8 invite
+  join verification. Commits: `ea914537`, `716216fd`, `a9c9a877`. Scoped JVM checks: 370 passed /
+  0 failed / 0 skipped. All four shared-backend-sync child SPECs plus the epic overview moved to
+  `.claude/specs/done/`; the experimental gate remains off for public/release defaults.
+
+- **2026-08-05 (Codex MP `--bugfix`, dashboard inline transaction records):** Reproduced the
+  dashboard showing only one aggregated `23 RSD` tile while August data existed on Pixel 5/API34
+  and Pixel 9/API37. Restored lazy inline category-record expansion with row navigation, safe
+  period/account stale-result invalidation, mixed-currency `AllAccounts.ConvertTo` grouping, and
+  48dp accessibility touch targets. Commits: `0e7a7330`, `f4351442`, `3133773a`, `170586c9`.
+  Final MP runner: 1954 passed / 0 failed / 0 skipped, detekt/lint green; focused connected
+  dashboard regression: 1 passed on Pixel 5/API34. Final APK launch on Pixel 5 is green after
+  forced KSP/Hilt regeneration; the Pixel 9 AVD exited before boot during the repeat smoke, so
+  its final APK launch was not re-verified in this session.
+
+- **2026-08-05 (Codex MP `--bugfix`, Shared Supabase sync):** Reproduced the stuck durable
+  outbox on Pixel 5/API34 and Pixel 9/API37: manual `Sync now` previously left the UI retrying
+  and did not advance completion. Fixed the RPC boundary so `push_operation` and
+  `resolve_conflict` decode either a single object or exactly one object in a JSON array, and
+  model the deployed `author_id` field as nullable (pull responses intentionally omit it).
+  Added MockWebServer regressions for both successful shapes and empty/ambiguous arrays. Network
+  test, reviewer script, final `assembleDebug -Psync.forceEnabled=true`, and device smoke on
+  Pixel 5/Pixel 9 are green; both devices show `Realtime connected` and updated `Last sync`.
+  The full `mp-runner-android.sh` exceeded its 244-second tool limit without returning its JSON;
+  the runner child processes were stopped after verification. OnePlus 11 was not attached to
+  host ADB, so its physical three-device path remains unverified.
+
+- **2026-08-05 (Codex Supabase, shared-backend-sync SPEC 04):** Applied the shared Realtime
+  migrations to project `shwzjlkhlpgbmzgnxhxi`: `shared_realtime_security` and
+  `private_workspace_realtime`. Post-check confirmed an empty `supabase_realtime` publication,
+  RLS on `operations`/`conflicts`/`realtime.messages`, no direct client writes, and no `author_id`
+  column access. A follow-up grant hardening migration removed explicit `anon`/`authenticated`
+  EXECUTE defaults; the authorization helper now lives in the unexposed `private` schema and
+  binds its user argument to `auth.uid()`. The private Realtime read policy was corrected for
+  Supabase's transient authorization row (`20260805130000_fix_private_realtime_read_authorization`);
+  remote migration history now has five entries. Pixel 5/API34 retry shows `Realtime connected`
+  and remains connected for 28 seconds; runner is 1875 passed / 0 failed with detekt/lint green.
+  The pre-existing duplicate `0003` filenames remain a CLI ordering hazard and need a separate
+  migration-history cleanup decision.
+
 - **2026-07-29 (Codex MP `--feature --next`, shared-backend-sync epic, SPEC 03 — BLOCKED,
   not closed):** Resumed and fixed the 9 red tests (`c4eb0cd`), Shared coordinator lifecycle/
   publish races (`94951044`), durable Shared outbox + Room 8→9 migration (`7c49472a`), JSON
@@ -56,21 +97,6 @@
   0 violations, runner 1771 JVM tests + detekt/lint green, full verifier pass. SPEC moved to
   `done/`; epic not yet complete (SPECs 03/04 remain in backlog), so feedback question and
   Telegram offer were both skipped per epic-scoped timing.
-
-- **2026-07-28 (Claude MP `--feature --next`, repo hygiene — review-2026-07 epic CLOSED):**
-  Completed SPEC `review-2026-07-35-repo-hygiene`, the epic's final slice, re-scoped after a
-  staleness pre-check (item (a) was already delivered: `.codex` strays committed `4115685d`,
-  `outputs/` ignored `a4e41e06`). (b) 6 root logs moved to git-ignored `archive/` (awaiting
-  manual deletion); (c) the stray "@ " commit-subject prefix root-caused to PowerShell
-  here-strings fed to Git Bash `git commit -m` (transient 2026-06-26 artifact, no versioned
-  source, history untouched) + local `.git/hooks/post-commit` null-byte probe fixed; (d) dead
-  no-arg `LockController.markUnlocked()` removed (`e7b9d1b5`) with 5 stale test refs migrated
-  (`30ed4fe1`, user-gated). Gates: reviewer pass, 1694 JVM tests + detekt + lint green, full
-  verifier pass. Epic completion review clean (34/35 in done/, SPEC 33 archived-deferred per its
-  own constraint); overview moved to done. Backlog now holds only the `shared-backend-sync`
-  epic, blocked on real Supabase provisioning (external-account gate; no Docker/CLI locally).
-
-
 
 ## Historical session log archives
 

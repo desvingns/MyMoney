@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="MyMoney account and data deletion request">
+  <link rel="canonical" href="https://desvingns.github.io/MyMoney/account-deletion/en/">
+  <title>MyMoney Account and Data Deletion</title>
+  <style>
+    :root { color-scheme: light dark; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.6; }
+    body { max-width: 54rem; margin: 0 auto; padding: 1.25rem 1rem 4rem; background: Canvas; color: CanvasText; }
+    h1, h2, h3 { line-height: 1.2; }
+    h1 { font-size: clamp(2rem, 8vw, 3.2rem); margin-bottom: .75rem; }
+    h2 { margin-top: 2rem; }
+    a { overflow-wrap: anywhere; }
+    .meta { color: color-mix(in srgb, CanvasText 65%, transparent); }
+    .notice, .steps, .scope { border: 1px solid color-mix(in srgb, CanvasText 20%, transparent); border-radius: 1rem; padding: 1rem 1.1rem; margin: 1.25rem 0; }
+    .notice { border-color: #b45309; background: color-mix(in srgb, #f59e0b 14%, Canvas); }
+    .cta { display: inline-block; margin: .5rem 0 1rem; padding: .85rem 1.1rem; border-radius: .7rem; background: #2563eb; color: white; font-weight: 700; text-decoration: none; }
+    .cta:focus-visible, a:focus-visible { outline: 3px solid #f59e0b; outline-offset: 3px; }
+    li { margin: .55rem 0; }
+    code { overflow-wrap: anywhere; }
+    footer { margin-top: 2.5rem; padding-top: 1rem; border-top: 1px solid color-mix(in srgb, CanvasText 20%, transparent); }
+    @media (min-width: 42rem) { body { padding: 3rem 1.5rem 5rem; } .notice, .steps, .scope { padding: 1.25rem 1.4rem; } }
+  </style>
+</head>
+<body>
+  <header>
+    <p class="meta"><a href="https://desvingns.github.io/MyMoney/privacy-policy/en/">MyMoney Privacy Policy</a> · <a href="https://desvingns.github.io/MyMoney/account-deletion/ru/">Русская версия</a></p>
+    <h1>MyMoney account and data deletion</h1>
+    <p class="meta">Developer: Kirill Shavrin · Last updated: August 7, 2026</p>
+  </header>
+
+  <div class="notice">
+    <h2>Important implementation note</h2>
+    <p>MyMoney does not currently provide a self-service account-deletion form or an automatic Supabase Auth user-deletion flow. This page therefore does not promise that an email request deletes an account automatically. Requests are reviewed manually by the developer, and the Supabase Auth user/profile deletion step remains a backend and operational blocker until it is implemented and verified.</p>
+  </div>
+
+  <p>Some compatible MyMoney builds include optional Shared workspaces. In those builds, users can sign in with Google OAuth through Supabase Auth. The current public/release default keeps that experimental feature disabled.</p>
+
+  <a class="cta" href="mailto:desvingns@gmail.com?subject=MyMoney%20account%20deletion%20request">Request account and data deletion</a>
+  <p>Or email <a href="mailto:desvingns@gmail.com?subject=MyMoney%20account%20deletion%20request">desvingns@gmail.com</a> with the subject <strong>MyMoney account deletion request</strong>.</p>
+
+  <section class="steps">
+    <h2>How to request deletion</h2>
+    <ol>
+      <li>Use the button above or send an email to <a href="mailto:desvingns@gmail.com?subject=MyMoney%20account%20deletion%20request">desvingns@gmail.com</a>.</li>
+      <li>Include the email address of the Google account used with MyMoney.</li>
+      <li>If relevant, include the workspace identifier. Do not include a password, OAuth token, access token, refresh token, or financial records.</li>
+      <li>We may ask for reasonable information needed to verify the request before processing it.</li>
+    </ol>
+  </section>
+
+  <h2>What the current implementation can remove</h2>
+  <div class="scope">
+    <ul>
+      <li><strong>Supabase Auth profile/user:</strong> not deleted automatically. The app has no service-side account-deletion endpoint; this is the primary blocker.</li>
+      <li><strong>Workspace membership:</strong> an editor can leave; a sole owner can delete the workspace.</li>
+      <li><strong>Invitations:</strong> workspace deletion cascades to workspace invites.</li>
+      <li><strong>Operations and related records:</strong> workspace deletion cascades to operations, conflicts, members and other workspace-linked records.</li>
+      <li><strong>Session and tokens:</strong> sign-out requests Supabase logout when possible and clears the locally stored access/refresh tokens. This is not the same as deleting the Supabase Auth user.</li>
+      <li><strong>Server-side Auth/session data:</strong> automatic deletion is not implemented; Supabase controls server-side session handling and retention until the account-deletion backend exists.</li>
+    </ul>
+    <p>The implemented workspace deletion is owner-only and the deployed SQL additionally permits it only for a sole owner. It is not a general account-deletion operation.</p>
+  </div>
+
+  <h2>Data on your device</h2>
+  <p>Signing out or disconnecting Shared workspaces clears the local workspace binding, synchronization state, outbox and local Supabase session. It does not by itself erase the Room database containing local financial data. To remove local data, use the app's factory-reset controls, clear the app's storage, or uninstall the app. Android backups, exported files and copies made by the user may require separate deletion.</p>
+
+  <h2>Google Drive and Dropbox copies</h2>
+  <p>Disconnecting Google Drive or Dropbox removes the local credential and synchronization binding, but the current app does not automatically delete already uploaded backup or journal files in those provider accounts. Delete those copies directly in Google Drive or Dropbox, and mention any known copy or account details in your request if you need help identifying them.</p>
+
+  <h2>Processing time and legal retention</h2>
+  <p>We aim to review a request and reply within 30 days. Requests may take longer if ownership must be verified or a provider-side action is required; we will explain the reason.</p>
+  <p>Information may be retained only when required by law or reasonably necessary for security, fraud prevention, dispute handling, or establishing, exercising or defending legal claims. Any retained information is limited to what is necessary and is deleted when the legal reason ends.</p>
+
+  <h2>Contact</h2>
+  <p>Developer: Kirill Shavrin<br>Email: <a href="mailto:desvingns@gmail.com?subject=MyMoney%20account%20deletion%20request">desvingns@gmail.com</a></p>
+
+  <footer>
+    <p><a href="https://desvingns.github.io/MyMoney/account-deletion/ru/">Русская версия</a> · <a href="https://desvingns.github.io/MyMoney/privacy-policy/en/">Privacy Policy</a></p>
+  </footer>
+</body>
+</html>

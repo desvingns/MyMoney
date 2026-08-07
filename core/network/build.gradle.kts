@@ -13,6 +13,10 @@ android {
     defaultConfig {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
+        val playInternalSyncEnabled =
+            providers.gradleProperty("sync.playInternalEnabled").orNull?.toBooleanStrictOrNull() ?: false
+        buildConfigField("boolean", "PLAY_INTERNAL_SYNC_ENABLED", playInternalSyncEnabled.toString())
+
         val localProperties =
             Properties().apply {
                 val localPropertiesFile = rootProject.file("local.properties")
@@ -21,15 +25,15 @@ android {
                 }
             }
         val supabaseUrl =
-            providers.gradleProperty("supabase.url").orNull
+            providers.gradleProperty("supabase.url").orNull?.takeUnless { it.isBlank() }
                 ?: localProperties.getProperty("supabase.url")?.takeUnless { it.isBlank() }
                 ?: "PLACEHOLDER_SUPABASE_URL"
         val supabaseAnonKey =
-            providers.gradleProperty("supabase.anonKey").orNull
+            providers.gradleProperty("supabase.anonKey").orNull?.takeUnless { it.isBlank() }
                 ?: localProperties.getProperty("supabase.anonKey")?.takeUnless { it.isBlank() }
                 ?: "PLACEHOLDER_SUPABASE_ANON_KEY"
         val supabaseGoogleWebClientId =
-            providers.gradleProperty("supabase.googleWebClientId").orNull
+            providers.gradleProperty("supabase.googleWebClientId").orNull?.takeUnless { it.isBlank() }
                 ?: localProperties.getProperty("supabase.googleWebClientId")?.takeUnless { it.isBlank() }
                 ?: "PLACEHOLDER_SUPABASE_GOOGLE_WEB_CLIENT_ID"
         buildConfigField("String", "SUPABASE_URL", "\"$supabaseUrl\"")

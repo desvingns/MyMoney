@@ -66,6 +66,48 @@ val hasReleaseSigningConfig =
 fun String.asBuildConfigString(): String =
     "\"${replace("\\", "\\\\").replace("\"", "\\\"")}\""
 
+val playInternalSyncEnabled =
+    providers.gradleProperty("sync.playInternalEnabled").orNull?.toBooleanStrictOrNull() ?: false
+
+fun Properties.runtimeValue(propertyName: String): String? =
+    providers.gradleProperty(propertyName).orNull?.takeUnless { it.isBlank() }
+        ?: getProperty(propertyName)?.takeUnless { it.isBlank() }
+
+fun String.isPlayInternalPlaceholder(): Boolean {
+    val normalized = trim()
+    val uppercase = normalized.uppercase()
+    return normalized.isBlank() ||
+        uppercase.startsWith("PLACEHOLDER_") ||
+        uppercase.startsWith("YOUR_") ||
+        uppercase in setOf("CHANGEME", "CHANGE_ME", "TODO", "REPLACE_ME") ||
+        uppercase.contains("YOUR_PROJECT")
+}
+
+fun requirePlayInternalRuntimeConfiguration() {
+    val requiredValues =
+        listOf(
+            "Dropbox app key" to localProperties.runtimeValue("dropbox.appKey").orEmpty(),
+            "Supabase URL" to localProperties.runtimeValue("supabase.url").orEmpty(),
+            "Supabase anon key" to localProperties.runtimeValue("supabase.anonKey").orEmpty(),
+            "Supabase Google web client ID" to localProperties.runtimeValue("supabase.googleWebClientId").orEmpty(),
+        )
+    requiredValues.forEach { (label, value) ->
+        check(!value.isPlayInternalPlaceholder()) {
+            "$label must be configured with a non-placeholder value when sync.playInternalEnabled=true."
+        }
+    }
+
+    val serviceRoleKey =
+        providers.gradleProperty("supabase.serviceRoleKey").orNull
+            ?: providers.gradleProperty("supabase.service_role_key").orNull
+            ?: localProperties.getProperty("supabase.serviceRoleKey")
+            ?: localProperties.getProperty("supabase.service_role_key")
+            ?: providers.environmentVariable("SUPABASE_SERVICE_ROLE_KEY").orNull
+    check(serviceRoleKey.isNullOrBlank()) {
+        "Supabase service-role keys must not be accepted or packaged in Android builds."
+    }
+}
+
 /*
  * Release versioning is derived from the checked-out Git history:
  * - Stable release tags are exactly vMAJOR.MINOR.PATCH. Other tags never affect a release.
@@ -189,6 +231,12 @@ fun isNonDebugPackagingTask(taskPath: String): Boolean {
     return isPackagingTask && !taskName.contains("debug")
 }
 
+fun isStagingPackagingTask(taskPath: String): Boolean =
+    isNonDebugPackagingTask(taskPath) && taskPath.substringAfterLast(':').contains("staging", ignoreCase = true)
+
+fun isReleasePackagingTask(taskPath: String): Boolean =
+    isNonDebugPackagingTask(taskPath) && taskPath.substringAfterLast(':').contains("release", ignoreCase = true)
+
 fun requireReleaseVersioning() {
     check(releaseVersioningReady) {
         "Non-debug packaging requires the highest valid vMAJOR.MINOR.PATCH tag at HEAD in complete Git history."
@@ -198,11 +246,23 @@ fun requireReleaseVersioning() {
 if (gradle.startParameter.taskNames.any(::isNonDebugPackagingTask)) {
     requireReleaseVersioning()
 }
+if (playInternalSyncEnabled && gradle.startParameter.taskNames.any(::isReleasePackagingTask)) {
+    error("sync.playInternalEnabled=true is supported only for the staging variant, never release packaging.")
+}
+if (playInternalSyncEnabled && gradle.startParameter.taskNames.any(::isStagingPackagingTask)) {
+    requirePlayInternalRuntimeConfiguration()
+}
 gradle.taskGraph.whenReady(
     object : Action<TaskExecutionGraph> {
         override fun execute(taskGraph: TaskExecutionGraph) {
             if (taskGraph.allTasks.any { isNonDebugPackagingTask(it.path) }) {
                 requireReleaseVersioning()
+            }
+            if (playInternalSyncEnabled && taskGraph.allTasks.any { isReleasePackagingTask(it.path) }) {
+                error("sync.playInternalEnabled=true is supported only for the staging variant, never release packaging.")
+            }
+            if (playInternalSyncEnabled && taskGraph.allTasks.any { isStagingPackagingTask(it.path) }) {
+                requirePlayInternalRuntimeConfiguration()
             }
         }
     },
@@ -230,6 +290,7 @@ android {
         testInstrumentationRunner = "com.kshavrin.mymoney.HiltTestRunner"
 
         buildConfigField("String", "SENTRY_DSN", sentryDsn.asBuildConfigString())
+        buildConfigField("boolean", "PLAY_INTERNAL_SYNC_ENABLED", playInternalSyncEnabled.toString())
         buildConfigField(
             "boolean",
             "HAS_FIREBASE",

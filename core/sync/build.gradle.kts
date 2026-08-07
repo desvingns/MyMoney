@@ -13,6 +13,10 @@ android {
     defaultConfig {
         testInstrumentationRunner = "com.kshavrin.mymoney.core.sync.HiltTestRunner"
 
+        val playInternalSyncEnabled =
+            providers.gradleProperty("sync.playInternalEnabled").orNull?.toBooleanStrictOrNull() ?: false
+        buildConfigField("boolean", "PLAY_INTERNAL_SYNC_ENABLED", playInternalSyncEnabled.toString())
+
         buildConfigField(
             "boolean",
             "HAS_FIREBASE",
@@ -27,7 +31,7 @@ android {
                 }
             }
         val dropboxAppKey =
-            providers.gradleProperty("dropbox.appKey").orNull
+            providers.gradleProperty("dropbox.appKey").orNull?.takeUnless { it.isBlank() }
                 ?: localProperties.getProperty("dropbox.appKey")?.takeUnless { it.isBlank() }
                 ?: "PLACEHOLDER_DROPBOX_APP_KEY"
         manifestPlaceholders["dropboxAppKey"] = dropboxAppKey

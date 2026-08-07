@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Запрос на удаление аккаунта и данных MyMoney">
+  <link rel="canonical" href="https://desvingns.github.io/MyMoney/account-deletion/ru/">
+  <title>Удаление аккаунта и данных MyMoney</title>
+  <style>
+    :root { color-scheme: light dark; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.6; }
+    body { max-width: 54rem; margin: 0 auto; padding: 1.25rem 1rem 4rem; background: Canvas; color: CanvasText; }
+    h1, h2, h3 { line-height: 1.2; }
+    h1 { font-size: clamp(2rem, 8vw, 3.2rem); margin-bottom: .75rem; }
+    h2 { margin-top: 2rem; }
+    a { overflow-wrap: anywhere; }
+    .meta { color: color-mix(in srgb, CanvasText 65%, transparent); }
+    .notice, .steps, .scope { border: 1px solid color-mix(in srgb, CanvasText 20%, transparent); border-radius: 1rem; padding: 1rem 1.1rem; margin: 1.25rem 0; }
+    .notice { border-color: #b45309; background: color-mix(in srgb, #f59e0b 14%, Canvas); }
+    .cta { display: inline-block; margin: .5rem 0 1rem; padding: .85rem 1.1rem; border-radius: .7rem; background: #2563eb; color: white; font-weight: 700; text-decoration: none; }
+    .cta:focus-visible, a:focus-visible { outline: 3px solid #f59e0b; outline-offset: 3px; }
+    li { margin: .55rem 0; }
+    code { overflow-wrap: anywhere; }
+    footer { margin-top: 2.5rem; padding-top: 1rem; border-top: 1px solid color-mix(in srgb, CanvasText 20%, transparent); }
+    @media (min-width: 42rem) { body { padding: 3rem 1.5rem 5rem; } .notice, .steps, .scope { padding: 1.25rem 1.4rem; } }
+  </style>
+</head>
+<body>
+  <header>
+    <p class="meta"><a href="https://desvingns.github.io/MyMoney/privacy-policy/ru/">Политика конфиденциальности MyMoney</a> · <a href="https://desvingns.github.io/MyMoney/account-deletion/en/">English version</a></p>
+    <h1>Удаление аккаунта и данных MyMoney</h1>
+    <p class="meta">Разработчик: Кирилл Шаврин · Дата обновления: 7 августа 2026 г.</p>
+  </header>
+
+  <div class="notice">
+    <h2>Важное замечание о реализации</h2>
+    <p>В MyMoney сейчас нет формы самостоятельного удаления аккаунта и автоматического процесса удаления пользователя Supabase Auth. Поэтому эта страница не обещает, что отправка письма автоматически удалит аккаунт. Запросы рассматриваются разработчиком вручную, а удаление пользователя/профиля Supabase Auth остаётся блокером backend-реализации и операционной проверки.</p>
+  </div>
+
+  <p>В некоторых совместимых сборках MyMoney доступна необязательная функция общих рабочих пространств. В таких сборках пользователи могут входить через Google OAuth с использованием Supabase Auth. В текущем публичном/release-варианте эта экспериментальная функция отключена по умолчанию.</p>
+
+  <a class="cta" href="mailto:desvingns@gmail.com?subject=MyMoney%20account%20deletion%20request">Запросить удаление аккаунта и данных</a>
+  <p>Или отправьте письмо на <a href="mailto:desvingns@gmail.com?subject=MyMoney%20account%20deletion%20request">desvingns@gmail.com</a> с темой <strong>MyMoney account deletion request</strong>.</p>
+
+  <section class="steps">
+    <h2>Как запросить удаление</h2>
+    <ol>
+      <li>Нажмите кнопку выше или напишите на адрес <a href="mailto:desvingns@gmail.com?subject=MyMoney%20account%20deletion%20request">desvingns@gmail.com</a>.</li>
+      <li>Укажите email Google-аккаунта, который использовался с MyMoney.</li>
+      <li>При необходимости укажите идентификатор рабочего пространства. Не отправляйте пароль, OAuth-токен, access-токен, refresh-токен или финансовые записи.</li>
+      <li>Для обработки мы можем запросить разумные сведения, необходимые для проверки принадлежности запроса.</li>
+    </ol>
+  </section>
+
+  <h2>Что может удалить текущая реализация</h2>
+  <div class="scope">
+    <ul>
+      <li><strong>Профиль/пользователь Supabase Auth:</strong> автоматически не удаляется. В приложении нет серверного endpoint для удаления аккаунта; это основной блокер.</li>
+      <li><strong>Членство в рабочем пространстве:</strong> редактор может выйти, а единственный владелец может удалить рабочее пространство.</li>
+      <li><strong>Приглашения:</strong> при удалении рабочего пространства приглашения удаляются каскадно.</li>
+      <li><strong>Операции и связанные записи:</strong> при удалении рабочего пространства каскадно удаляются операции, конфликты, участники и другие связанные записи.</li>
+      <li><strong>Сессия и токены:</strong> выход по возможности вызывает logout Supabase и очищает локально сохранённые access/refresh-токены. Это не равно удалению пользователя Supabase Auth.</li>
+      <li><strong>Серверные данные Auth/сессии:</strong> автоматическое удаление не реализовано; обработка и срок хранения серверной сессии контролируются Supabase до появления backend для удаления аккаунта.</li>
+    </ul>
+    <p>Реализованное удаление рабочего пространства доступно только владельцу, а применённая SQL-миграция дополнительно разрешает его только единственному владельцу. Это не операция общего удаления аккаунта.</p>
+  </div>
+
+  <h2>Данные на устройстве</h2>
+  <p>Выход или отключение общего рабочего пространства очищает локальную привязку, состояние синхронизации, очередь исходящих операций и локальную сессию Supabase. Само по себе это не удаляет Room-базу с локальными финансовыми данными. Для удаления данных на устройстве используйте сброс приложения, очистку хранилища или удаление приложения. Резервные копии Android, экспортированные файлы и копии, созданные пользователем, могут потребовать отдельного удаления.</p>
+
+  <h2>Копии Google Drive и Dropbox</h2>
+  <p>Отключение Google Drive или Dropbox удаляет локальные учётные данные и привязку синхронизации, но текущая версия приложения автоматически не удаляет уже загруженные резервные копии или журналы в аккаунтах этих провайдеров. Удалите такие копии непосредственно в Google Drive или Dropbox; если нужно помочь определить копию, укажите известные сведения в запросе.</p>
+
+  <h2>Срок обработки и законное хранение</h2>
+  <p>Мы стремимся рассмотреть запрос и ответить в течение 30 дней. Срок может увеличиться, если нужно подтвердить принадлежность аккаунта или выполнить действие у провайдера; мы объясним причину.</p>
+  <p>Информация может сохраняться только если это требуется законом или разумно необходимо для безопасности, предотвращения мошенничества, рассмотрения споров либо установления, осуществления или защиты юридических требований. Объём сохраняемой информации ограничивается необходимым, а после прекращения законной причины данные удаляются.</p>
+
+  <h2>Контакт</h2>
+  <p>Разработчик: Кирилл Шаврин<br>Email: <a href="mailto:desvingns@gmail.com?subject=MyMoney%20account%20deletion%20request">desvingns@gmail.com</a></p>
+
+  <footer>
+    <p><a href="https://desvingns.github.io/MyMoney/account-deletion/en/">English version</a> · <a href="https://desvingns.github.io/MyMoney/privacy-policy/ru/">Политика конфиденциальности</a></p>
+  </footer>
+</body>
+</html>

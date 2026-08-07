@@ -1,4 +1,4 @@
-name: Sync privacy policy to GitHub Pages
+name: Sync public legal pages to GitHub Pages
 
 on:
   push:
@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - "privacy-policy/**"
+      - "account-deletion/**"
       - ".github/workflows/privacy-policy-pages.yml"
   workflow_dispatch:
 
@@ -28,19 +29,23 @@ jobs:
       - name: Prepare isolated Pages content
         run: |
           mkdir -p "$RUNNER_TEMP/privacy-policy-pages/privacy-policy"
+          mkdir -p "$RUNNER_TEMP/privacy-policy-pages/account-deletion"
           cp -R privacy-policy/. "$RUNNER_TEMP/privacy-policy-pages/privacy-policy/"
+          cp -R account-deletion/. "$RUNNER_TEMP/privacy-policy-pages/account-deletion/"
 
       - name: Update the Pages branch
         run: |
           git fetch origin gh-pages
           git worktree add "$RUNNER_TEMP/gh-pages" origin/gh-pages
+          mkdir -p "$RUNNER_TEMP/gh-pages/privacy-policy" "$RUNNER_TEMP/gh-pages/account-deletion"
           cp -R "$RUNNER_TEMP/privacy-policy-pages/privacy-policy/." "$RUNNER_TEMP/gh-pages/privacy-policy/"
+          cp -R "$RUNNER_TEMP/privacy-policy-pages/account-deletion/." "$RUNNER_TEMP/gh-pages/account-deletion/"
           git -C "$RUNNER_TEMP/gh-pages" config user.name "github-actions[bot]"
           git -C "$RUNNER_TEMP/gh-pages" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git -C "$RUNNER_TEMP/gh-pages" add privacy-policy
+          git -C "$RUNNER_TEMP/gh-pages" add privacy-policy account-deletion
           if git -C "$RUNNER_TEMP/gh-pages" diff --cached --quiet; then
             echo "Pages content is already up to date."
           else
-            git -C "$RUNNER_TEMP/gh-pages" commit -m "docs: sync privacy policy pages"
+            git -C "$RUNNER_TEMP/gh-pages" commit -m "docs: sync public legal pages"
             git -C "$RUNNER_TEMP/gh-pages" push origin HEAD:gh-pages
           fi

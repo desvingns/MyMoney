@@ -235,7 +235,9 @@ fun isStagingPackagingTask(taskPath: String): Boolean =
     isNonDebugPackagingTask(taskPath) && taskPath.substringAfterLast(':').contains("staging", ignoreCase = true)
 
 fun isReleasePackagingTask(taskPath: String): Boolean =
-    isNonDebugPackagingTask(taskPath) && taskPath.substringAfterLast(':').contains("release", ignoreCase = true)
+    taskPath.startsWith(":app:") &&
+        isNonDebugPackagingTask(taskPath) &&
+        taskPath.substringAfterLast(':').contains("release", ignoreCase = true)
 
 fun requireReleaseVersioning() {
     check(releaseVersioningReady) {

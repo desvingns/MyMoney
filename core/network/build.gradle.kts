@@ -16,6 +16,8 @@ android {
         val playInternalSyncEnabled =
             providers.gradleProperty("sync.playInternalEnabled").orNull?.toBooleanStrictOrNull() ?: false
         buildConfigField("boolean", "PLAY_INTERNAL_SYNC_ENABLED", playInternalSyncEnabled.toString())
+        val syncForceEnabled = providers.gradleProperty("sync.forceEnabled").orNull == "true"
+        buildConfigField("boolean", "SYNC_FORCE_ENABLED", syncForceEnabled.toString())
 
         val localProperties =
             Properties().apply {

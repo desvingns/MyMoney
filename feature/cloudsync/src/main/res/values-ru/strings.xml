@@ -76,6 +76,11 @@
     <string name="sync_shared_delete_workspace">Удалить пространство</string>
     <string name="sync_shared_delete_workspace_title">Удалить это общее пространство?</string>
     <string name="sync_shared_delete_workspace_body">Вы единственный владелец. Удаление навсегда закроет общий доступ к пространству. Текущие данные останутся на этом устройстве как ваша личная копия.</string>
+    <string name="sync_shared_delete_account">Удалить аккаунт</string>
+    <string name="sync_shared_delete_account_title">Удалить ваш аккаунт?</string>
+    <string name="sync_shared_delete_account_body">Это навсегда удалит ваш аккаунт общей синхронизации и все связанные общие пространства. Локальные данные останутся на этом устройстве.</string>
+    <string name="sync_shared_delete_account_workspace_conflict">Перед удалением аккаунта покиньте активное рабочее пространство или удалите его, если вы единственный владелец.</string>
+    <string name="sync_shared_delete_account_error">Не удалось удалить аккаунт. Повторите попытку.</string>
     <string name="sync_shared_leave_first">Покиньте общее пространство перед сменой облачного провайдера.</string>
     <string name="sync_shared_review_conflicts">Разрешить конфликты (%1$d)</string>
     <string name="sync_shared_conflicts_title">Разрешение конфликтов</string>

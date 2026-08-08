@@ -1,12 +1,73 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Privacy policy</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="MyMoney Privacy Policy">
+  <link rel="canonical" href="https://desvingns.github.io/MyMoney/privacy-policy/en/">
+  <title>MyMoney Privacy Policy</title>
+  <style>
+    :root { color-scheme: light dark; font-family: system-ui, sans-serif; line-height: 1.6; }
+    body { max-width: 52rem; margin: 0 auto; padding: 2rem 1rem 4rem; }
+    h1, h2 { line-height: 1.2; }
+    a { overflow-wrap: anywhere; }
+    .meta { color: #666; }
+    @media (prefers-color-scheme: dark) { .meta { color: #aaa; } }
+  </style>
 </head>
 <body>
-    <h1>Privacy policy</h1>
-    <p>Placeholder — final text before launch.</p>
+  <header>
+    <h1>MyMoney Privacy Policy</h1>
+    <p class="meta">Last updated: August 7, 2026 · <a href="https://desvingns.github.io/MyMoney/privacy-policy/ru/">Русская версия</a></p>
+  </header>
+
+  <p>This Privacy Policy explains how MyMoney handles information in the Android application. MyMoney is a local-first money tracker developed by Kirill Shavrin.</p>
+
+  <h2>Developer and contact</h2>
+  <p>Developer: Kirill Shavrin<br>
+    Email: <a href="mailto:desvingns@gmail.com">desvingns@gmail.com</a></p>
+
+  <h2>Information stored on your device</h2>
+  <p>MyMoney stores its main data locally in the app's private storage. This can include accounts, currencies, exchange rates, categories, transactions, notes, budgets, recurring templates, goals, search history, synchronization journal and synchronization logs.</p>
+  <p>The app also stores settings such as language, theme, chart and display preferences, onboarding state, selected account and period, automatic-sync preference, timestamps, and a randomly generated installation/device identifier used to distinguish journal files during synchronization.</p>
+  <p>When you use the app lock, MyMoney stores a PIN hash and lockout state. When you connect an optional cloud provider, it stores the Dropbox refresh credential or Google Drive account email locally. Shared-workspace session fields, including account identifiers, email, access and refresh tokens, are stored in the encrypted secure store if that feature is enabled in a compatible build.</p>
+
+  <h2>How the app uses information</h2>
+  <p>MyMoney uses this information to display and calculate your finances, save your preferences, provide local backups and imports, run recurring and maintenance jobs, and perform synchronization only when the relevant feature is available and you choose to use it.</p>
+
+  <h2>Information sent over the network</h2>
+  <h3>Exchange-rate service</h3>
+  <p>When you request an exchange-rate refresh, the app requests the latest EUR-based rates from <a href="https://open.er-api.com/">open.er-api.com</a>. The request contains no transaction, account, category, note or other financial record from MyMoney. Returned rates are saved locally.</p>
+
+  <h3>Optional Dropbox and Google Drive synchronization</h3>
+  <p>Dropbox and Google Drive synchronization is opt-in. It requires a compatible build, the corresponding feature gate, and that you connect an account. Public/release defaults keep both providers disabled.</p>
+  <p>If you enable and use one of these providers, MyMoney uploads and downloads append-only journal files containing the records needed to synchronize your data, which may include transaction amounts and dates, notes, account and category names, currencies, budgets or other supported entities, timestamps, record identifiers and the locally generated device identifier. Dropbox uses its app folder; Google Drive uses the private <code>appDataFolder</code> area. MyMoney does not add end-to-end encryption to these journal files; the provider's account controls and transport security apply.</p>
+  <p>Disconnecting a provider removes its local credential and synchronization binding, but does not delete an already uploaded remote journal. Remote copies still require provider-side deletion; delete remote files from the corresponding provider account if you want them removed.</p>
+
+  <h3>Supabase Auth and Google OAuth</h3>
+  <p>Compatible builds may include an optional Shared workspace feature. When that feature is enabled, users can sign in with Google OAuth through Supabase Auth. The sign-in flow uses the <code>openid</code>, <code>email</code> and <code>profile</code> scopes; this Google sign-in does not request Google Drive access. Supabase receives the Google identity token and maintains the authentication user, session and account data under its own policies.</p>
+  <p>Shared workspace data may include a user identifier, email address, workspace membership, workspace invites, operations and conflict records. Public/release defaults keep Shared workspaces disabled. A compatible build may offer authenticated in-app account deletion only after the backend migration is deployed and the flow is end-to-end verified. Account deletion is safely blocked while the user has an active Shared workspace with other members. If a later release enables Shared workspaces, this Policy and the account-deletion process apply to that release.</p>
+
+  <h3>Error reporting with Sentry</h3>
+  <p>Sentry is used only when a release build is supplied a non-empty Sentry DSN. In that case, MyMoney may send error events, stack traces and technical app/device/runtime context needed to diagnose failures. Tracing, performance monitoring, profiling, automatic session tracking, screenshots, view-hierarchy attachments and Session Replay are disabled in the app configuration. Sentry's own privacy policy and retention rules also apply.</p>
+
+  <h3>Services not active in public/release defaults</h3>
+  <p>Firebase Remote Config is not enabled in public/release defaults. Shared workspace synchronization through Supabase remains disabled by default, but compatible builds may enable it only as described above.</p>
+
+  <h2>Backups and exports</h2>
+  <p>You can export a database backup or CSV through Android's file picker. Such files may contain your financial data and are written to the location you select. MyMoney does not upload these files by itself. The app's secure credentials and PIN hash are excluded from Android system backup; Android device-to-device transfer may include the local database and ordinary settings according to the device's backup rules.</p>
+
+  <h2>Retention and deletion</h2>
+  <p>Local data remains on the device until you delete it in the app, use the available reset controls, clear the app's storage, or uninstall the app, subject to Android and device-backup behavior. Provider copies and Sentry error events are controlled by the relevant provider's account and retention policies. For a Supabase account or shared-workspace deletion request, use the public <a href="https://desvingns.github.io/MyMoney/account-deletion/en/">MyMoney account and data deletion page</a>. A compatible build may offer authenticated in-app account deletion only after the backend migration is deployed and the flow is end-to-end verified; that migration has not been deployed or end-to-end verified for the public/release path, so the public page and email request remain the fallback/request path and requests are reviewed manually. Remote Dropbox and Google Drive copies still require provider-side deletion directly in the provider account.</p>
+
+  <h2>Security</h2>
+  <p>Room database data and ordinary preferences are stored locally in the app sandbox. Provider credentials, PIN data and shared-session tokens are stored with Android encrypted preferences backed by an Android Keystore master key. No security measure can guarantee absolute security, so keep exported backups and connected provider accounts protected.</p>
+
+  <h2>Changes to this Policy</h2>
+  <p>This Policy may be updated when MyMoney's data practices or enabled services change. The date at the top indicates the latest revision.</p>
+
+  <footer>
+    <p><a href="https://desvingns.github.io/MyMoney/privacy-policy/ru/">Русская версия</a> · <a href="https://desvingns.github.io/MyMoney/account-deletion/en/">Account and data deletion</a></p>
+  </footer>
 </body>
 </html>

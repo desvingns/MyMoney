@@ -86,6 +86,9 @@ interface SharedSyncCoordinator {
 
     suspend fun deleteWorkspace(): Result<Unit> =
         Result.failure(UnsupportedOperationException("Workspace deletion is not supported"))
+
+    suspend fun deleteAccount(): Result<Unit> =
+        Result.failure(UnsupportedOperationException("Account deletion is not supported"))
 }
 
 private val defaultSharedRealtimeStatus = MutableStateFlow<SharedRealtimeStatus>(SharedRealtimeStatus.Inactive)

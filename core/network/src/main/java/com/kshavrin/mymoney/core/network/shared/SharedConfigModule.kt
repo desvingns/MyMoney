@@ -19,6 +19,9 @@ object SharedConfigModule {
             url = BuildConfig.SUPABASE_URL,
             anonKey = BuildConfig.SUPABASE_ANON_KEY,
             googleWebClientId = BuildConfig.SUPABASE_GOOGLE_WEB_CLIENT_ID,
+            enabled =
+                BuildConfig.PLAY_INTERNAL_SYNC_ENABLED ||
+                    (BuildConfig.DEBUG && BuildConfig.SYNC_FORCE_ENABLED),
         )
 
     @Provides

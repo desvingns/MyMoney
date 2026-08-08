@@ -16,4 +16,7 @@ interface SharedWorkspaceApi {
     suspend fun leaveWorkspace(workspaceId: String): Result<Unit>
 
     suspend fun deleteWorkspace(workspaceId: String): Result<Unit>
+
+    suspend fun deleteAccount(): Result<Unit> =
+        Result.failure(UnsupportedOperationException("Account deletion is not supported"))
 }

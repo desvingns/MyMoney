@@ -76,6 +76,11 @@
     <string name="sync_shared_delete_workspace">Delete workspace</string>
     <string name="sync_shared_delete_workspace_title">Delete this shared workspace?</string>
     <string name="sync_shared_delete_workspace_body">You are the only owner. Deleting the workspace permanently removes its shared access. The current data stays on this device as your personal copy.</string>
+    <string name="sync_shared_delete_account">Delete account</string>
+    <string name="sync_shared_delete_account_title">Delete your account?</string>
+    <string name="sync_shared_delete_account_body">This permanently deletes your shared sync account and all associated shared workspaces. Your local data stays on this device.</string>
+    <string name="sync_shared_delete_account_workspace_conflict">Leave the active workspace, or delete it if you are its sole owner, before deleting your account.</string>
+    <string name="sync_shared_delete_account_error">Could not delete your account. Please try again.</string>
     <string name="sync_shared_leave_first">Leave the shared workspace before switching cloud providers.</string>
     <string name="sync_shared_review_conflicts">Review conflicts (%1$d)</string>
     <string name="sync_shared_conflicts_title">Resolve conflicts</string>

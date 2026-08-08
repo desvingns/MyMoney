@@ -75,6 +75,13 @@ class SupabaseSharedWorkspaceRpc
         override suspend fun deleteWorkspace(workspaceId: String): Result<Unit> =
             rpcUnit("delete_workspace", buildJsonObject { put("p_workspace_id", workspaceId) })
 
+        override suspend fun deleteAccount(): Result<Unit> =
+            rpcUnit(
+                name = "delete_my_account",
+                payload = buildJsonObject { },
+                mapAccountDeletionWorkspaceConflict = true,
+            )
+
         private suspend fun <T> rpc(
             name: String,
             payload: kotlinx.serialization.json.JsonObject,
@@ -93,6 +100,7 @@ class SupabaseSharedWorkspaceRpc
         private suspend fun rpcUnit(
             name: String,
             payload: kotlinx.serialization.json.JsonObject,
+            mapAccountDeletionWorkspaceConflict: Boolean = false,
         ): Result<Unit> =
             withAccessToken { accessToken ->
                 http
@@ -101,6 +109,7 @@ class SupabaseSharedWorkspaceRpc
                         payload = payload,
                         accessToken = accessToken,
                         mapMembershipDeniedToAuth = true,
+                        mapAccountDeletionWorkspaceConflict = mapAccountDeletionWorkspaceConflict,
                     ).map { Unit }
             }
 

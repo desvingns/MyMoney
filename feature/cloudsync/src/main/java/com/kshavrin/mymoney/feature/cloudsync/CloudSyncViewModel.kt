@@ -130,6 +130,9 @@ class CloudSyncViewModel
                             sharedDialog = SharedDialog.ConfirmLeave,
                         )
                 CloudSyncEvent.SharedConfirmLeave -> leaveSharedWorkspace()
+                CloudSyncEvent.SharedDeleteAccountClicked ->
+                    _state.value = _state.value.copy(sharedDialog = SharedDialog.ConfirmDeleteAccount)
+                CloudSyncEvent.SharedConfirmDeleteAccount -> deleteSharedAccount()
                 CloudSyncEvent.SharedInternalBackupsClicked -> openInternalBackups()
                 is CloudSyncEvent.SharedInternalBackupRestoreClicked ->
                     requestInternalBackupRestore(event.backup)
@@ -726,6 +729,31 @@ class CloudSyncViewModel
                 } finally {
                     _state.value = _state.value.copy(isConnecting = false)
                     if (detached) _actions.emit(CloudSyncAction.ClearSharedGoogleCredentialState)
+                    refresh()
+                }
+            }
+        }
+
+        private fun deleteSharedAccount() {
+            viewModelScope.launch {
+                var accountDeleted = false
+                _state.value = _state.value.copy(isConnecting = true, errorBannerRes = null, sharedDialog = null)
+                try {
+                    sharedCoordinator.deleteAccount().getOrThrow()
+                    accountDeleted = true
+                } catch (t: Throwable) {
+                    if (t is CancellationException) throw t
+                    t.reportToSentry()
+                    showError(
+                        if ((t as? SyncException)?.syncError == SyncError.Conflict) {
+                            R.string.sync_shared_delete_account_workspace_conflict
+                        } else {
+                            R.string.sync_shared_delete_account_error
+                        },
+                    )
+                } finally {
+                    _state.value = _state.value.copy(isConnecting = false)
+                    if (accountDeleted) _actions.emit(CloudSyncAction.ClearSharedGoogleCredentialState)
                     refresh()
                 }
             }

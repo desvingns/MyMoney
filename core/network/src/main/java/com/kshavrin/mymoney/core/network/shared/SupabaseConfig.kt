@@ -4,10 +4,12 @@ data class SupabaseConfig(
     val url: String,
     val anonKey: String,
     val googleWebClientId: String = "",
+    val enabled: Boolean = true,
 ) {
     val isConfigured: Boolean
         get() =
-            url.isNotBlank() &&
+            enabled &&
+                url.isNotBlank() &&
                 anonKey.isNotBlank() &&
                 !url.startsWith(PLACEHOLDER_PREFIX) &&
                 !anonKey.startsWith(PLACEHOLDER_PREFIX)

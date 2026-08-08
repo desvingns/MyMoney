@@ -31,6 +31,7 @@ class SupabaseHttpTransport
             accessToken: String? = null,
             mapBadRequestToAuth: Boolean = false,
             mapMembershipDeniedToAuth: Boolean = false,
+            mapAccountDeletionWorkspaceConflict: Boolean = false,
         ): Result<JsonElement> =
             execute(
                 Request
@@ -42,6 +43,7 @@ class SupabaseHttpTransport
                     .build(),
                 mapBadRequestToAuth,
                 mapMembershipDeniedToAuth,
+                mapAccountDeletionWorkspaceConflict,
             )
 
         suspend fun get(
@@ -62,6 +64,7 @@ class SupabaseHttpTransport
             request: Request,
             mapBadRequestToAuth: Boolean = false,
             mapMembershipDeniedToAuth: Boolean = false,
+            mapAccountDeletionWorkspaceConflict: Boolean = false,
         ): Result<JsonElement> {
             if (!config.isConfigured) return Result.failure(SyncException(SyncError.Server))
             return runCatching {
@@ -73,6 +76,7 @@ class SupabaseHttpTransport
                             responseBody = responseBody,
                             mapBadRequestToAuth = mapBadRequestToAuth,
                             mapMembershipDeniedToAuth = mapMembershipDeniedToAuth,
+                            mapAccountDeletionWorkspaceConflict = mapAccountDeletionWorkspaceConflict,
                         )
                     }
                     responseBody.takeIf(String::isNotBlank)?.let(json::parseToJsonElement) ?: JsonNull
@@ -92,6 +96,7 @@ private class SupabaseHttpException(
     val responseBody: String,
     val mapBadRequestToAuth: Boolean,
     val mapMembershipDeniedToAuth: Boolean,
+    val mapAccountDeletionWorkspaceConflict: Boolean,
 ) : Exception()
 
 private fun <T> Result<T>.mapFailure(): Result<T> =
@@ -108,6 +113,11 @@ private fun Throwable.toSyncException(): Throwable =
                     400 ->
                         if (mapMembershipDeniedToAuth && responseBody.hasSqlState42501()) {
                             SyncError.Auth
+                        } else if (
+                            mapAccountDeletionWorkspaceConflict &&
+                            responseBody.hasAccountDeletionWorkspaceConflict()
+                        ) {
+                            SyncError.Conflict
                         } else if (mapBadRequestToAuth) {
                             SyncError.Auth
                         } else {
@@ -129,6 +139,16 @@ private fun String.hasSqlState42501(): Boolean =
             .jsonObject["code"]
             ?.jsonPrimitive
             ?.content == "42501"
+    }.getOrDefault(false)
+
+private fun String.hasAccountDeletionWorkspaceConflict(): Boolean =
+    runCatching {
+        Json
+            .parseToJsonElement(this)
+            .jsonObject["message"]
+            ?.jsonPrimitive
+            ?.content
+            ?.startsWith("account deletion requires leaving or deleting the active workspace") == true
     }.getOrDefault(false)
 
 private fun SupabaseConfig.urlFor(path: String): String =

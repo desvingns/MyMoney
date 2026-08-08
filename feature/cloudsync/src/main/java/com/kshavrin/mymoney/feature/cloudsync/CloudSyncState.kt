@@ -67,6 +67,8 @@ sealed interface SharedDialog {
 
     data object ConfirmLeave : SharedDialog
 
+    data object ConfirmDeleteAccount : SharedDialog
+
     data object InternalBackups : SharedDialog
 
     data class ConfirmInternalBackupRestore(

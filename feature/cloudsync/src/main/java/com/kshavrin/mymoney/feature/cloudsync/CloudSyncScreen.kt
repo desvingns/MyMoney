@@ -668,6 +668,15 @@ private fun SharedCard(
                         Text(stringResource(R.string.sync_shared_setup))
                     }
             }
+            if (state.signedIn) {
+                OutlinedButton(
+                    modifier = Modifier.testTag(SyncTarget.Shared.controlTag("delete_account")),
+                    onClick = { onEvent(CloudSyncEvent.SharedDeleteAccountClicked) },
+                    enabled = !isConnecting,
+                ) {
+                    Text(stringResource(R.string.sync_shared_delete_account))
+                }
+            }
             if (showInternalBackups) {
                 OutlinedButton(
                     modifier = Modifier.testTag(SyncTarget.Shared.controlTag("backups")),
@@ -811,6 +820,35 @@ private fun SharedDialogHost(
                 },
                 dismissButton = {
                     TextButton(onClick = { onEvent(CloudSyncEvent.SharedDialogDismissed) }) {
+                        Text(stringResource(R.string.sync_migration_cancel))
+                    }
+                },
+            )
+        SharedDialog.ConfirmDeleteAccount ->
+            AlertDialog(
+                onDismissRequest = { onEvent(CloudSyncEvent.SharedDialogDismissed) },
+                title = { Text(stringResource(R.string.sync_shared_delete_account_title)) },
+                text = { Text(stringResource(R.string.sync_shared_delete_account_body)) },
+                confirmButton = {
+                    Button(
+                        modifier = Modifier.testTag("cloud_sync_shared_delete_account_confirm"),
+                        onClick = { onEvent(CloudSyncEvent.SharedConfirmDeleteAccount) },
+                        enabled = !state.isConnecting,
+                        colors =
+                            ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error,
+                                contentColor = MaterialTheme.colorScheme.onError,
+                            ),
+                    ) {
+                        Text(stringResource(R.string.sync_shared_delete_account))
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        modifier = Modifier.testTag("cloud_sync_shared_delete_account_cancel"),
+                        onClick = { onEvent(CloudSyncEvent.SharedDialogDismissed) },
+                        enabled = !state.isConnecting,
+                    ) {
                         Text(stringResource(R.string.sync_migration_cancel))
                     }
                 },

@@ -355,6 +355,17 @@ class SharedSyncCoordinatorImpl
                 }
             }
 
+        override suspend fun deleteAccount(): Result<Unit> =
+            withContext(dispatcher) {
+                operationMutex.withLock {
+                    runCatching {
+                        ensureSignedIn()
+                        workspaceApi.deleteAccount().getOrThrow()
+                        clearDeletedAccountLocalState()
+                    }
+                }
+            }
+
         private suspend fun adoptWorkspace(
             workspace: SharedWorkspace,
             importLocalData: Boolean,
@@ -910,6 +921,21 @@ class SharedSyncCoordinatorImpl
 
         private suspend fun revokeSharedLocalAccess(): List<Throwable> =
             revokeSharedLocalAccess(currentCoroutineContext()[Job])
+
+        private suspend fun clearDeletedAccountLocalState() {
+            val failures =
+                withContext(NonCancellable) {
+                    val cleanupFailures = mutableListOf<Throwable>()
+                    collectCleanupFailure(cleanupFailures) { stopForegroundRealtimeAndJoin() }
+                    if (configStore.binding()?.provider == CloudProvider.Shared) {
+                        collectSharedLocalCleanupFailures(cleanupFailures)
+                    }
+                    collectCleanupFailure(cleanupFailures) { auth.clearLocalSession() }
+                    cleanupFailures
+                }
+            failures.forEach(Throwable::reportToSentry)
+            throwCleanupFailures(failures)
+        }
 
         private suspend fun revokeSharedLocalAccess(currentJob: Job?): List<Throwable> =
             withContext(NonCancellable) {

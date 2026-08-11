@@ -100,7 +100,7 @@ class MainActivity : AppCompatActivity() {
                     secureWindowController.setSecure(SecureWindowSource.LockOverlay, secure)
                     initialLockOverlayStateApplied.set(true)
                 }
-            }
+        }
         enableEdgeToEdge()
         if (savedInstanceState == null) {
             showFactoryResetFailureIfNeeded()

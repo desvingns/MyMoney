@@ -1,7 +1,7 @@
-import java.math.BigInteger
-import java.util.Properties
 import org.gradle.api.Action
 import org.gradle.api.execution.TaskExecutionGraph
+import java.math.BigInteger
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.mymoney.android.application)
@@ -131,7 +131,12 @@ fun gitOutput(vararg arguments: String): String? =
                 isIgnoreExitValue = true
             }
         if (execution.result.get().exitValue == 0) {
-            execution.standardOutput.asText.get().trim().takeIf { it.isNotEmpty() }
+            execution
+                .standardOutput
+                .asText
+                .get()
+                .trim()
+                .takeIf { it.isNotEmpty() }
         } else {
             null
         }
@@ -139,6 +144,7 @@ fun gitOutput(vararg arguments: String): String? =
 
 val hasCompleteGitHistory = gitOutput("rev-parse", "--is-shallow-repository") == "false"
 val releaseTagPattern = Regex("""^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$""")
+
 fun validReleaseTags(rawTags: String?): List<String> =
     rawTags
         .orEmpty()
@@ -165,8 +171,14 @@ val validReleaseTagsAtHead =
     } else {
         emptyList()
     }
-fun releaseVersionPart(tag: String, group: Int): BigInteger =
-    BigInteger(releaseTagPattern.matchEntire(tag)!!.groupValues[group])
+
+fun releaseVersionPart(
+    tag: String,
+    group: Int,
+): BigInteger =
+    BigInteger(
+        releaseTagPattern.matchEntire(tag)!!.groupValues[group],
+    )
 
 fun latestReleaseTag(tags: List<String>): String? =
     tags.maxWithOrNull(

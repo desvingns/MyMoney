@@ -1440,9 +1440,7 @@ class DashboardViewModel
                                         .flatMap { (currencyId, accounts) ->
                                             val sourceCurrency =
                                                 currenciesById[currencyId]
-                                                    ?: throw IllegalStateException(
-                                                        "Currency $currencyId is unavailable for active account records",
-                                                    )
+                                                    ?: error("Currency $currencyId is unavailable for active account records")
                                             getCategoryRecords
                                                 .forAccounts(accounts, sourceCurrency, period, categoryId)
                                                 .firstOrNull { it.categoryId == categoryId }

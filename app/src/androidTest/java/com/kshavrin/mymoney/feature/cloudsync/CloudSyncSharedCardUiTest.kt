@@ -6,6 +6,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.datastore.CloudBinding
@@ -91,9 +92,18 @@ class CloudSyncSharedCardUiTest {
     fun `Shared card shows sync-now leave and optional conflicts button when Shared is active`() {
         setContent(state = sharedActiveState(conflictCount = 2))
 
-        composeTestRule.onNodeWithTag("cloud_sync_shared_sync_now").assertIsDisplayed()
-        composeTestRule.onNodeWithTag("cloud_sync_shared_leave").assertIsDisplayed()
-        composeTestRule.onNodeWithTag("cloud_sync_shared_conflicts").assertIsDisplayed()
+        composeTestRule
+            .onNodeWithTag("cloud_sync_shared_sync_now")
+            .performScrollTo()
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithTag("cloud_sync_shared_leave")
+            .performScrollTo()
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithTag("cloud_sync_shared_conflicts")
+            .performScrollTo()
+            .assertIsDisplayed()
     }
 
     @Test

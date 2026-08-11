@@ -453,17 +453,16 @@ jobs:
           # live here as separate sequential gradle invocations on the same AVD.
           # Each is bounded by a shell `timeout` so a single hung module is killed
           # (non-zero exit -> red build) instead of stalling the whole suite; later
-          # modules still run via `&&`-free sequencing under `set +e` reporting.
+          # modules still run via `&&`-free sequencing under POSIX `sh` reporting.
           script: |
-            set -o pipefail
             status=0
-            timeout 30m ./gradlew :app:connectedDebugAndroidTest $FIREBASE_ARGS --stacktrace || status=$?
-            timeout 20m ./gradlew :core:designsystem:connectedDebugAndroidTest $FIREBASE_ARGS --stacktrace || status=$?
-            timeout 20m ./gradlew :core:database:connectedDebugAndroidTest $FIREBASE_ARGS --stacktrace || status=$?
-            timeout 20m ./gradlew :core:datastore:connectedDebugAndroidTest $FIREBASE_ARGS --stacktrace || status=$?
-            timeout 20m ./gradlew :core:sync:connectedDebugAndroidTest $FIREBASE_ARGS --stacktrace || status=$?
-            timeout 20m ./gradlew :core:network:connectedDebugAndroidTest $FIREBASE_ARGS --stacktrace || status=$?
-            timeout 20m ./gradlew :feature:lockscreen:connectedDebugAndroidTest $FIREBASE_ARGS --stacktrace || status=$?
+            timeout 30m ./gradlew :app:connectedDebugAndroidTest $FIREBASE_ARGS --stacktrace || { rc=$?; if [ "$status" -eq 0 ]; then status=$rc; fi; }
+            timeout 20m ./gradlew :core:designsystem:connectedDebugAndroidTest $FIREBASE_ARGS --stacktrace || { rc=$?; if [ "$status" -eq 0 ]; then status=$rc; fi; }
+            timeout 20m ./gradlew :core:database:connectedDebugAndroidTest $FIREBASE_ARGS --stacktrace || { rc=$?; if [ "$status" -eq 0 ]; then status=$rc; fi; }
+            timeout 20m ./gradlew :core:datastore:connectedDebugAndroidTest $FIREBASE_ARGS --stacktrace || { rc=$?; if [ "$status" -eq 0 ]; then status=$rc; fi; }
+            timeout 20m ./gradlew :core:sync:connectedDebugAndroidTest $FIREBASE_ARGS --stacktrace || { rc=$?; if [ "$status" -eq 0 ]; then status=$rc; fi; }
+            timeout 20m ./gradlew :core:network:connectedDebugAndroidTest $FIREBASE_ARGS --stacktrace || { rc=$?; if [ "$status" -eq 0 ]; then status=$rc; fi; }
+            timeout 20m ./gradlew :feature:lockscreen:connectedDebugAndroidTest $FIREBASE_ARGS --stacktrace || { rc=$?; if [ "$status" -eq 0 ]; then status=$rc; fi; }
             exit $status
 
       - name: Upload connected test reports

@@ -23,7 +23,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.DatePickerDialog
@@ -55,6 +54,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kshavrin.mymoney.core.common.money.MoneyFormatter
@@ -298,9 +298,8 @@ fun DashboardContent(
         val validRange = startMillis != null && endMillis != null && startMillis <= endMillis
         val dateRangePaneTitle = stringResource(R.string.period_date_range)
 
-        BasicAlertDialog(
+        Dialog(
             onDismissRequest = { showPickDateRangePicker = false },
-            modifier = Modifier.fillMaxSize(),
             properties = DialogProperties(usePlatformDefaultWidth = false),
         ) {
             Surface(

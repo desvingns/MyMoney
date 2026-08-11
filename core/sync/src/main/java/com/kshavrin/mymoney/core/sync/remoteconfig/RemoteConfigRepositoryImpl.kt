@@ -47,13 +47,13 @@ class RemoteConfigRepositoryImpl
             config?.getBoolean(KEY_BUDGET_MODE) ?: DEFAULT_BUDGET_MODE
 
         override fun dropboxSyncEnabled(): Boolean =
-            BuildConfig.PLAY_INTERNAL_SYNC_ENABLED || syncForced()
+            BuildConfig.PLAY_INTERNAL_SYNC_ENABLED || BuildConfig.PLAY_RELEASE_SYNC_ENABLED || syncForced()
 
         override fun gdriveSyncEnabled(): Boolean =
-            BuildConfig.PLAY_INTERNAL_SYNC_ENABLED || syncForced()
+            BuildConfig.PLAY_INTERNAL_SYNC_ENABLED || BuildConfig.PLAY_RELEASE_SYNC_ENABLED || syncForced()
 
         override fun sharedSyncEnabled(): Boolean =
-            BuildConfig.PLAY_INTERNAL_SYNC_ENABLED || syncForced()
+            BuildConfig.PLAY_INTERNAL_SYNC_ENABLED || BuildConfig.PLAY_RELEASE_SYNC_ENABLED || syncForced()
 
         // Debug builds may force sync on via -Psync.forceEnabled=true; release ignores it (DEBUG=false).
         private fun syncForced(): Boolean = BuildConfig.DEBUG && BuildConfig.SYNC_FORCE_ENABLED

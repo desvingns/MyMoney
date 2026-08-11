@@ -16,6 +16,9 @@ android {
         val playInternalSyncEnabled =
             providers.gradleProperty("sync.playInternalEnabled").orNull?.toBooleanStrictOrNull() ?: false
         buildConfigField("boolean", "PLAY_INTERNAL_SYNC_ENABLED", playInternalSyncEnabled.toString())
+        val playReleaseSyncEnabled =
+            providers.gradleProperty("sync.playReleaseEnabled").orNull?.toBooleanStrictOrNull() ?: false
+        buildConfigField("boolean", "PLAY_RELEASE_SYNC_ENABLED", playReleaseSyncEnabled.toString())
 
         buildConfigField(
             "boolean",

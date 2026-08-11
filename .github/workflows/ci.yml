@@ -167,6 +167,30 @@ jobs:
             echo "No CI secret supplied: Dropbox app key stays on the placeholder."
           fi
 
+      - name: Materialize release cloud-sync configuration
+        shell: bash
+        env:
+          DROPBOX_APP_KEY: ${{ secrets.DROPBOX_APP_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_GOOGLE_WEB_CLIENT_ID: ${{ secrets.SUPABASE_GOOGLE_WEB_CLIENT_ID }}
+        run: |
+          missing=()
+          [[ -n "$DROPBOX_APP_KEY" ]] || missing+=(DROPBOX_APP_KEY)
+          [[ -n "$SUPABASE_URL" ]] || missing+=(SUPABASE_URL)
+          [[ -n "$SUPABASE_ANON_KEY" ]] || missing+=(SUPABASE_ANON_KEY)
+          [[ -n "$SUPABASE_GOOGLE_WEB_CLIENT_ID" ]] || missing+=(SUPABASE_GOOGLE_WEB_CLIENT_ID)
+          if (( ${#missing[@]} > 0 )); then
+            printf '::error::Missing release cloud-sync secrets: %s\n' "${missing[*]}"
+            exit 1
+          fi
+          {
+            printf 'dropbox.appKey=%s\n' "$DROPBOX_APP_KEY"
+            printf 'supabase.url=%s\n' "$SUPABASE_URL"
+            printf 'supabase.anonKey=%s\n' "$SUPABASE_ANON_KEY"
+            printf 'supabase.googleWebClientId=%s\n' "$SUPABASE_GOOGLE_WEB_CLIENT_ID"
+          } >> local.properties
+
       - name: Materialize Firebase config only when the OQ-9 secret is supplied
         shell: bash
         env:
@@ -210,7 +234,7 @@ jobs:
           } >> "$GITHUB_ENV"
 
       - name: Build signed release APK and AAB
-        run: ./gradlew :app:assembleRelease :app:bundleRelease $FIREBASE_ARGS --stacktrace
+        run: ./gradlew :app:assembleRelease :app:bundleRelease -Psync.playReleaseEnabled=true $FIREBASE_ARGS --stacktrace
 
       - name: Upload signed release APK
         uses: actions/upload-artifact@v4

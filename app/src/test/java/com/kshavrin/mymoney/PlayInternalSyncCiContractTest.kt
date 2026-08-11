@@ -27,21 +27,27 @@ class PlayInternalSyncCiContractTest {
             appText,
             listOf(
                 "providers.gradleProperty(\"sync.playInternalEnabled\").orNull?.toBooleanStrictOrNull() ?: false",
+                "providers.gradleProperty(\"sync.playReleaseEnabled\").orNull?.toBooleanStrictOrNull() ?: false",
                 "buildConfigField(\"boolean\", \"PLAY_INTERNAL_SYNC_ENABLED\", playInternalSyncEnabled.toString())",
+                "buildConfigField(\"boolean\", \"PLAY_RELEASE_SYNC_ENABLED\", playReleaseSyncEnabled.toString())",
             ),
         )
         assertContainsAll(
             syncText,
             listOf(
                 "providers.gradleProperty(\"sync.playInternalEnabled\").orNull?.toBooleanStrictOrNull() ?: false",
+                "providers.gradleProperty(\"sync.playReleaseEnabled\").orNull?.toBooleanStrictOrNull() ?: false",
                 "buildConfigField(\"boolean\", \"PLAY_INTERNAL_SYNC_ENABLED\", playInternalSyncEnabled.toString())",
+                "buildConfigField(\"boolean\", \"PLAY_RELEASE_SYNC_ENABLED\", playReleaseSyncEnabled.toString())",
             ),
         )
         assertContainsAll(
             networkText,
             listOf(
                 "providers.gradleProperty(\"sync.playInternalEnabled\").orNull?.toBooleanStrictOrNull() ?: false",
+                "providers.gradleProperty(\"sync.playReleaseEnabled\").orNull?.toBooleanStrictOrNull() ?: false",
                 "buildConfigField(\"boolean\", \"PLAY_INTERNAL_SYNC_ENABLED\", playInternalSyncEnabled.toString())",
+                "buildConfigField(\"boolean\", \"PLAY_RELEASE_SYNC_ENABLED\", playReleaseSyncEnabled.toString())",
             ),
         )
     }
@@ -58,11 +64,13 @@ class PlayInternalSyncCiContractTest {
                 "contains(\"staging\", ignoreCase = true)",
                 "contains(\"release\", ignoreCase = true)",
                 "if (playInternalSyncEnabled && gradle.startParameter.taskNames.any(::isReleasePackagingTask))",
-                "if (playInternalSyncEnabled && gradle.startParameter.taskNames.any(::isStagingPackagingTask))",
+                "if (playReleaseSyncEnabled && gradle.startParameter.taskNames.any(::isStagingPackagingTask))",
+                "if (syncEnabled && gradle.startParameter.taskNames.any(::isNonDebugPackagingTask))",
                 "gradle.taskGraph.whenReady(",
                 "taskGraph.allTasks.any { isReleasePackagingTask(it.path) }",
                 "taskGraph.allTasks.any { isStagingPackagingTask(it.path) }",
                 "sync.playInternalEnabled=true is supported only for the staging variant, never release packaging.",
+                "sync.playReleaseEnabled=true is supported only for release packaging.",
                 "\"Dropbox app key\" to",
                 "\"Supabase URL\" to",
                 "\"Supabase anon key\" to",
@@ -139,9 +147,9 @@ class PlayInternalSyncCiContractTest {
         )
         assertContainsAll(
             release,
-            listOf("run: ./gradlew :app:assembleRelease :app:bundleRelease \$FIREBASE_ARGS --stacktrace"),
+            listOf("run: ./gradlew :app:assembleRelease :app:bundleRelease -Psync.playReleaseEnabled=true \$FIREBASE_ARGS --stacktrace"),
         )
-        assertFalse("The ordinary release command must remain unflagged", release.contains("-Psync.playInternalEnabled=true"))
+        assertFalse("The release job must not use the staging-only flag", release.contains("-Psync.playInternalEnabled=true"))
     }
 
     private fun assertContainsAll(

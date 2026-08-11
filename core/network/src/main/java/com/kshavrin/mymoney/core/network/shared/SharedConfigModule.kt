@@ -21,6 +21,7 @@ object SharedConfigModule {
             googleWebClientId = BuildConfig.SUPABASE_GOOGLE_WEB_CLIENT_ID,
             enabled =
                 BuildConfig.PLAY_INTERNAL_SYNC_ENABLED ||
+                    BuildConfig.PLAY_RELEASE_SYNC_ENABLED ||
                     (BuildConfig.DEBUG && BuildConfig.SYNC_FORCE_ENABLED),
         )
 

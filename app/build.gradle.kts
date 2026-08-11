@@ -68,12 +68,15 @@ fun String.asBuildConfigString(): String =
 
 val playInternalSyncEnabled =
     providers.gradleProperty("sync.playInternalEnabled").orNull?.toBooleanStrictOrNull() ?: false
+val playReleaseSyncEnabled =
+    providers.gradleProperty("sync.playReleaseEnabled").orNull?.toBooleanStrictOrNull() ?: false
+val syncEnabled = playInternalSyncEnabled || playReleaseSyncEnabled
 
 fun Properties.runtimeValue(propertyName: String): String? =
     providers.gradleProperty(propertyName).orNull?.takeUnless { it.isBlank() }
         ?: getProperty(propertyName)?.takeUnless { it.isBlank() }
 
-fun String.isPlayInternalPlaceholder(): Boolean {
+fun String.isSyncRuntimePlaceholder(): Boolean {
     val normalized = trim()
     val uppercase = normalized.uppercase()
     return normalized.isBlank() ||
@@ -83,7 +86,7 @@ fun String.isPlayInternalPlaceholder(): Boolean {
         uppercase.contains("YOUR_PROJECT")
 }
 
-fun requirePlayInternalRuntimeConfiguration() {
+fun requireSyncRuntimeConfiguration() {
     val requiredValues =
         listOf(
             "Dropbox app key" to localProperties.runtimeValue("dropbox.appKey").orEmpty(),
@@ -92,8 +95,8 @@ fun requirePlayInternalRuntimeConfiguration() {
             "Supabase Google web client ID" to localProperties.runtimeValue("supabase.googleWebClientId").orEmpty(),
         )
     requiredValues.forEach { (label, value) ->
-        check(!value.isPlayInternalPlaceholder()) {
-            "$label must be configured with a non-placeholder value when sync.playInternalEnabled=true."
+        check(!value.isSyncRuntimePlaceholder()) {
+            "$label must be configured with a non-placeholder value when sync.playInternalEnabled=true or sync.playReleaseEnabled=true."
         }
     }
 
@@ -251,8 +254,11 @@ if (gradle.startParameter.taskNames.any(::isNonDebugPackagingTask)) {
 if (playInternalSyncEnabled && gradle.startParameter.taskNames.any(::isReleasePackagingTask)) {
     error("sync.playInternalEnabled=true is supported only for the staging variant, never release packaging.")
 }
-if (playInternalSyncEnabled && gradle.startParameter.taskNames.any(::isStagingPackagingTask)) {
-    requirePlayInternalRuntimeConfiguration()
+if (playReleaseSyncEnabled && gradle.startParameter.taskNames.any(::isStagingPackagingTask)) {
+    error("sync.playReleaseEnabled=true is supported only for release packaging.")
+}
+if (syncEnabled && gradle.startParameter.taskNames.any(::isNonDebugPackagingTask)) {
+    requireSyncRuntimeConfiguration()
 }
 gradle.taskGraph.whenReady(
     object : Action<TaskExecutionGraph> {
@@ -263,8 +269,11 @@ gradle.taskGraph.whenReady(
             if (playInternalSyncEnabled && taskGraph.allTasks.any { isReleasePackagingTask(it.path) }) {
                 error("sync.playInternalEnabled=true is supported only for the staging variant, never release packaging.")
             }
-            if (playInternalSyncEnabled && taskGraph.allTasks.any { isStagingPackagingTask(it.path) }) {
-                requirePlayInternalRuntimeConfiguration()
+            if (playReleaseSyncEnabled && taskGraph.allTasks.any { isStagingPackagingTask(it.path) }) {
+                error("sync.playReleaseEnabled=true is supported only for release packaging.")
+            }
+            if (syncEnabled && taskGraph.allTasks.any { isNonDebugPackagingTask(it.path) }) {
+                requireSyncRuntimeConfiguration()
             }
         }
     },
@@ -293,6 +302,7 @@ android {
 
         buildConfigField("String", "SENTRY_DSN", sentryDsn.asBuildConfigString())
         buildConfigField("boolean", "PLAY_INTERNAL_SYNC_ENABLED", playInternalSyncEnabled.toString())
+        buildConfigField("boolean", "PLAY_RELEASE_SYNC_ENABLED", playReleaseSyncEnabled.toString())
         buildConfigField(
             "boolean",
             "HAS_FIREBASE",

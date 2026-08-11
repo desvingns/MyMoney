@@ -2,6 +2,7 @@ package com.kshavrin.mymoney.feature.dashboard
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -22,7 +23,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DateRangePicker
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -50,6 +53,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.paneTitle
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kshavrin.mymoney.core.common.money.MoneyFormatter
 import com.kshavrin.mymoney.core.designsystem.confetti.Confetti
@@ -290,38 +296,59 @@ fun DashboardContent(
         val startMillis = pickerState.selectedStartDateMillis
         val endMillis = pickerState.selectedEndDateMillis
         val validRange = startMillis != null && endMillis != null && startMillis <= endMillis
+        val dateRangePaneTitle = stringResource(R.string.period_date_range)
 
-        DatePickerDialog(
+        BasicAlertDialog(
             onDismissRequest = { showPickDateRangePicker = false },
-            confirmButton = {
-                TextButton(
-                    enabled = validRange,
-                    onClick = {
-                        if (startMillis != null && endMillis != null && startMillis <= endMillis) {
-                            soundPlayer.play(SoundKey.SWIPE)
-                            hapticPlayer.fire(HapticKind.SOFT)
-                            onEvent(
-                                DashboardEvent.PeriodChanged(
-                                    Period.CustomRange(
-                                        start = materialPickerUtcMillisToLocalDate(startMillis),
-                                        end = materialPickerUtcMillisToLocalDate(endMillis),
-                                    ),
-                                ),
-                            )
-                            showPickDateRangePicker = false
+            modifier = Modifier.fillMaxSize(),
+            properties = DialogProperties(usePlatformDefaultWidth = false),
+        ) {
+            Surface(
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .semantics { paneTitle = dateRangePaneTitle },
+                color = DatePickerDefaults.colors().containerColor,
+            ) {
+                DateRangePicker(
+                    state = pickerState,
+                    modifier = Modifier.fillMaxSize(),
+                    title = {
+                        Row(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = Spacing.l),
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.s, Alignment.End),
+                        ) {
+                            TextButton(onClick = { showPickDateRangePicker = false }) {
+                                Text(stringResource(R.string.period_cancel))
+                            }
+                            TextButton(
+                                enabled = validRange,
+                                onClick = {
+                                    if (startMillis != null && endMillis != null && startMillis <= endMillis) {
+                                        soundPlayer.play(SoundKey.SWIPE)
+                                        hapticPlayer.fire(HapticKind.SOFT)
+                                        onEvent(
+                                            DashboardEvent.PeriodChanged(
+                                                Period.CustomRange(
+                                                    start = materialPickerUtcMillisToLocalDate(startMillis),
+                                                    end = materialPickerUtcMillisToLocalDate(endMillis),
+                                                ),
+                                            ),
+                                        )
+                                        showPickDateRangePicker = false
+                                    }
+                                },
+                            ) {
+                                Text(stringResource(R.string.period_apply))
+                            }
                         }
                     },
-                ) {
-                    Text(stringResource(R.string.period_apply))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showPickDateRangePicker = false }) {
-                    Text(stringResource(R.string.period_cancel))
-                }
-            },
-        ) {
-            DateRangePicker(state = pickerState)
+                    showModeToggle = false,
+                )
+            }
         }
     }
 

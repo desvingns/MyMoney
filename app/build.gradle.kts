@@ -234,6 +234,10 @@ val releaseVersioningReady =
 
 fun isNonDebugPackagingTask(taskPath: String): Boolean {
     val taskName = taskPath.substringAfterLast(':').lowercase()
+    val isAppTask =
+        !taskPath.contains(':') ||
+            taskPath.startsWith(":app:") ||
+            taskPath.startsWith("app:")
     val isPackagingTask =
         taskName == "build" ||
             taskName.startsWith("build") ||
@@ -243,7 +247,7 @@ fun isNonDebugPackagingTask(taskPath: String): Boolean {
             taskName.startsWith("bundle") ||
             taskName == "package" ||
             taskName.startsWith("package")
-    return isPackagingTask && !taskName.contains("debug")
+    return isAppTask && isPackagingTask && !taskName.contains("debug")
 }
 
 fun isStagingPackagingTask(taskPath: String): Boolean =

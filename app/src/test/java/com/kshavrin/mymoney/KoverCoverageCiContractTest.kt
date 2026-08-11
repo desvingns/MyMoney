@@ -8,6 +8,7 @@ import java.io.File
 class KoverCoverageCiContractTest {
     private val repositoryRoot = findRepositoryRoot()
     private val rootBuildFile = File(repositoryRoot, "build.gradle.kts")
+    private val appBuildFile = File(repositoryRoot, "app/build.gradle.kts")
     private val workflowFile = File(repositoryRoot, ".github/workflows/ci.yml")
 
     @Test
@@ -97,6 +98,26 @@ class KoverCoverageCiContractTest {
             ),
         )
         assertEquals(2, Regex("classes\\(koverGeneratedClasses\\)").findAll(rootBuild).count())
+    }
+
+    @Test
+    fun `release guards ignore library packaging tasks pulled into Kover task graph`() {
+        val nonDebugPackagingTask =
+            appBuildFile
+                .readText()
+                .substringAfter("fun isNonDebugPackagingTask(taskPath: String): Boolean {")
+                .substringBefore("fun isStagingPackagingTask")
+
+        assertContainsInOrder(
+            nonDebugPackagingTask,
+            listOf(
+                "val isAppTask =",
+                "!taskPath.contains(':') ||",
+                "taskPath.startsWith(\":app:\") ||",
+                "taskPath.startsWith(\"app:\")",
+                "return isAppTask && isPackagingTask && !taskName.contains(\"debug\")",
+            ),
+        )
     }
 
     @Test

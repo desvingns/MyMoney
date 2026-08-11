@@ -89,24 +89,7 @@ class CloudSyncSharedCardUiTest {
 
     @Test
     fun `Shared card shows sync-now leave and optional conflicts button when Shared is active`() {
-        composeTestRule.setContent {
-            MyMoneyTheme {
-                CloudSyncContent(
-                    state =
-                        CloudSyncState(
-                            binding = CloudBinding(CloudProvider.Shared, "ws-1", "Family Budget"),
-                            shared =
-                                SharedCardState(
-                                    signedIn = true,
-                                    active = true,
-                                    workspaceName = "Family Budget",
-                                    conflictCount = 2,
-                                ),
-                        ),
-                    onEvent = {},
-                )
-            }
-        }
+        setContent(state = sharedActiveState(conflictCount = 2))
 
         composeTestRule.onNodeWithTag("cloud_sync_shared_sync_now").assertIsDisplayed()
         composeTestRule.onNodeWithTag("cloud_sync_shared_leave").assertIsDisplayed()
@@ -116,23 +99,7 @@ class CloudSyncSharedCardUiTest {
     @Test
     fun `Shared card exposes realtime error retry action on device`() {
         val events = mutableListOf<CloudSyncEvent>()
-        composeTestRule.setContent {
-            MyMoneyTheme {
-                CloudSyncContent(
-                    state =
-                        CloudSyncState(
-                            binding = CloudBinding(CloudProvider.Shared, "ws-1", "Family Budget"),
-                            shared =
-                                SharedCardState(
-                                    signedIn = true,
-                                    active = true,
-                                    realtimeStatus = SharedRealtimeStatus.Error,
-                                ),
-                        ),
-                    onEvent = events::add,
-                )
-            }
-        }
+        setContent(state = sharedActiveState(realtimeStatus = SharedRealtimeStatus.Error), onEvent = events::add)
 
         composeTestRule
             .onNodeWithTag("cloud_sync_shared_realtime_status")
@@ -153,4 +120,31 @@ class CloudSyncSharedCardUiTest {
 
     private fun targetString(resourceId: Int): String =
         InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)
+
+    private fun setContent(
+        state: CloudSyncState,
+        onEvent: (CloudSyncEvent) -> Unit = {},
+    ) {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                CloudSyncContent(state = state, onEvent = onEvent)
+            }
+        }
+    }
+
+    private fun sharedActiveState(
+        conflictCount: Int = 0,
+        realtimeStatus: SharedRealtimeStatus = SharedRealtimeStatus.Inactive,
+    ) =
+        CloudSyncState(
+            binding = CloudBinding(CloudProvider.Shared, "ws-1", "Family Budget"),
+            shared =
+                SharedCardState(
+                    signedIn = true,
+                    active = true,
+                    workspaceName = "Family Budget",
+                    conflictCount = conflictCount,
+                    realtimeStatus = realtimeStatus,
+                ),
+        )
 }

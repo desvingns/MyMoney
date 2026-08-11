@@ -95,27 +95,11 @@ class CloudSyncContentUiTest {
 
     @Test
     fun `active Shared card exposes invite code copy and dismiss controls`() {
-        val events = mutableListOf<CloudSyncEvent>()
-        val renderedState =
-            mutableStateOf(
-                CloudSyncState(
-                    binding = CloudBinding(CloudProvider.Shared, "ws-1", "Budget"),
-                    shared = SharedCardState(signedIn = true, active = true, workspaceName = "Budget"),
-                ),
-            )
-        val onEvent: (CloudSyncEvent) -> Unit = { event ->
-            events += event
-            when (event) {
-                CloudSyncEvent.SharedCreateInviteClicked ->
-                    renderedState.value = CloudSyncState(sharedDialog = SharedDialog.Invite("invite-token"))
-                CloudSyncEvent.SharedDialogDismissed -> renderedState.value = CloudSyncState()
-                else -> Unit
-            }
-        }
+        val fixture = sharedInviteFixture()
 
         composeTestRule.setContent {
             MyMoneyTheme {
-                CloudSyncContent(state = renderedState.value, onEvent = onEvent)
+                CloudSyncContent(state = fixture.renderedState.value, onEvent = fixture.onEvent)
             }
         }
         composeTestRule
@@ -124,10 +108,10 @@ class CloudSyncContentUiTest {
             .assertIsDisplayed()
             .performClick()
         composeTestRule.runOnIdle {
-            assertEquals(listOf(CloudSyncEvent.SharedCreateInviteClicked), events)
+            assertEquals(listOf(CloudSyncEvent.SharedCreateInviteClicked), fixture.events)
         }
 
-        events.clear()
+        fixture.events.clear()
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText("invite-token").assertIsDisplayed()
         composeTestRule.onNodeWithText(targetString(R.string.sync_shared_copy_invite)).performClick()
@@ -135,7 +119,7 @@ class CloudSyncContentUiTest {
         composeTestRule.runOnIdle {
             assertEquals(
                 listOf(CloudSyncEvent.SharedCopyInviteClicked, CloudSyncEvent.SharedDialogDismissed),
-                events,
+                fixture.events,
             )
         }
     }
@@ -181,6 +165,33 @@ class CloudSyncContentUiTest {
     }
 
     private fun targetString(resourceId: Int): String = InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)
+
+    private fun sharedInviteFixture(): SharedInviteFixture {
+        val events = mutableListOf<CloudSyncEvent>()
+        val renderedState =
+            mutableStateOf(
+                CloudSyncState(
+                    binding = CloudBinding(CloudProvider.Shared, "ws-1", "Budget"),
+                    shared = SharedCardState(signedIn = true, active = true, workspaceName = "Budget"),
+                ),
+            )
+        val onEvent: (CloudSyncEvent) -> Unit = { event ->
+            events += event
+            when (event) {
+                CloudSyncEvent.SharedCreateInviteClicked ->
+                    renderedState.value = CloudSyncState(sharedDialog = SharedDialog.Invite("invite-token"))
+                CloudSyncEvent.SharedDialogDismissed -> renderedState.value = CloudSyncState()
+                else -> Unit
+            }
+        }
+        return SharedInviteFixture(renderedState, events, onEvent)
+    }
+
+    private data class SharedInviteFixture(
+        val renderedState: androidx.compose.runtime.MutableState<CloudSyncState>,
+        val events: MutableList<CloudSyncEvent>,
+        val onEvent: (CloudSyncEvent) -> Unit,
+    )
 
     private fun inviteViewModel() =
         CloudSyncViewModel(

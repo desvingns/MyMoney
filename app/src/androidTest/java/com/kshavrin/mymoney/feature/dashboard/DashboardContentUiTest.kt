@@ -332,30 +332,10 @@ class DashboardContentUiTest {
     @Test
     fun `pull to refresh gesture emits refresh requested`() {
         val capturedEvents = mutableListOf<DashboardEvent>()
-        val usd = usdCurrency()
-        val snapshot =
-            BalanceSnapshot(
-                income = Money(BigDecimal("120.00"), usd),
-                expense = Money(BigDecimal("20.00"), usd),
-                net = Money(BigDecimal("100.00"), usd),
-                byCategory = emptyList(),
-            )
-
-        composeTestRule.setContent {
-            MyMoneyTheme {
-                DashboardContent(
-                    state =
-                        dashboardState(
-                            currency = usd,
-                            balanceSnapshot = snapshot,
-                            periodNet = snapshot.net,
-                            expenseTiles = listOf(categoryTile(42L, "Groceries", usd)),
-                            isLoading = false,
-                        ),
-                    onEvent = { capturedEvents += it },
-                )
-            }
-        }
+        setDashboardContent(
+            state = refreshableDashboardState(),
+            onEvent = { capturedEvents += it },
+        )
 
         composeTestRule
             .onNodeWithTag(DASHBOARD_SCROLL_CONTENT_TAG)
@@ -563,30 +543,15 @@ class DashboardContentUiTest {
 
     @Test
     fun `trend balance card is displayed and ring is gone in normal mode`() {
-        val usd = usdCurrency()
-        val snapshot =
-            BalanceSnapshot(
-                income = Money(BigDecimal("20000.00"), usd),
-                expense = Money(BigDecimal("7654.33"), usd),
-                net = Money(BigDecimal("12345.67"), usd),
-                byCategory = emptyList(),
-            )
-
-        composeTestRule.setContent {
-            MyMoneyTheme {
-                DashboardContent(
-                    state =
-                        dashboardState(
-                            currency = usd,
-                            balanceSnapshot = snapshot,
-                            periodNet = snapshot.net,
-                            ringFraction = 0.62f,
-                            isLoading = false,
-                        ),
-                    onEvent = {},
-                )
-            }
-        }
+        setDashboardContent(
+            state =
+                snapshotDashboardState(
+                    income = "20000.00",
+                    expense = "7654.33",
+                    net = "12345.67",
+                    ringFraction = 0.62f,
+                ),
+        )
 
         composeTestRule
             .onNodeWithTag(DASHBOARD_TREND_CHART_TAG)
@@ -602,20 +567,16 @@ class DashboardContentUiTest {
         val capturedEvents = mutableListOf<DashboardEvent>()
         val tile = categoryTile(categoryId = 42L, label = "Groceries", currency = usd)
 
-        composeTestRule.setContent {
-            MyMoneyTheme {
-                DashboardContent(
-                    state =
-                        dashboardState(
-                            currency = usd,
-                            balanceSnapshot = balanceSnapshot(netAmount = "100", currency = usd),
-                            expenseTiles = listOf(tile),
-                            isLoading = false,
-                        ),
-                    onEvent = { capturedEvents += it },
-                )
-            }
-        }
+        setDashboardContent(
+            state =
+                dashboardState(
+                    currency = usd,
+                    balanceSnapshot = balanceSnapshot(netAmount = "100", currency = usd),
+                    expenseTiles = listOf(tile),
+                    isLoading = false,
+                ),
+            onEvent = { capturedEvents += it },
+        )
 
         composeTestRule
             .onNodeWithTag("category_tile_42")
@@ -631,32 +592,11 @@ class DashboardContentUiTest {
 
     @Test
     fun `expanded category renders every inline transaction and row tap navigates`() {
-        val usd = usdCurrency()
         val capturedEvents = mutableListOf<DashboardEvent>()
-        val tile = categoryTile(categoryId = 42L, label = "Groceries", currency = usd)
-        val records =
-            listOf(
-                dashboardTransaction(701L, 42L, "Lunch"),
-                dashboardTransaction(702L, 42L, "Coffee"),
-            )
-
-        composeTestRule.setContent {
-            MyMoneyTheme {
-                DashboardContent(
-                    state =
-                        dashboardState(
-                            currency = usd,
-                            balanceSnapshot = balanceSnapshot(netAmount = "100", currency = usd),
-                            expenseTiles = listOf(tile),
-                            isLoading = false,
-                        ).copy(
-                            expandedCategoryId = 42L,
-                            expandedRecords = records,
-                        ),
-                    onEvent = { capturedEvents += it },
-                )
-            }
-        }
+        setDashboardContent(
+            state = expandedCategoryDashboardState(),
+            onEvent = { capturedEvents += it },
+        )
 
         composeTestRule.onNodeWithTag(DASHBOARD_INLINE_RECORDS_TAG).assertIsDisplayed()
         composeTestRule.onNodeWithText("Lunch").assertIsDisplayed()
@@ -673,20 +613,15 @@ class DashboardContentUiTest {
         val usd = usdCurrency()
         val tiles = (1L..8L).map { categoryTile(it, "Category $it", usd) }
 
-        composeTestRule.setContent {
-            MyMoneyTheme {
-                DashboardContent(
-                    state =
-                        dashboardState(
-                            currency = usd,
-                            balanceSnapshot = balanceSnapshot(netAmount = "100", currency = usd),
-                            expenseTiles = tiles,
-                            isLoading = false,
-                        ),
-                    onEvent = {},
-                )
-            }
-        }
+        setDashboardContent(
+            state =
+                dashboardState(
+                    currency = usd,
+                    balanceSnapshot = balanceSnapshot(netAmount = "100", currency = usd),
+                    expenseTiles = tiles,
+                    isLoading = false,
+                ),
+        )
 
         repeat(3) {
             composeTestRule
@@ -703,18 +638,7 @@ class DashboardContentUiTest {
     @Test
     fun `right drawer rows display and emit their destination events`() {
         val capturedEvents = mutableListOf<DashboardEvent>()
-        // Search moved from toolbar into right drawer (this commit).
-        // Order: Search · Categories · Accounts · Goals · Currencies · Chart settings · Settings · About.
-        val drawerRows =
-            listOf(
-                RIGHT_DRAWER_SEARCH_TAG,
-                RIGHT_DRAWER_CATEGORIES_TAG,
-                RIGHT_DRAWER_ACCOUNTS_TAG,
-                RIGHT_DRAWER_CURRENCIES_TAG,
-                RIGHT_DRAWER_CHART_SETTINGS_TAG,
-                RIGHT_DRAWER_SETTINGS_TAG,
-                RIGHT_DRAWER_ABOUT_TAG,
-            )
+        val drawerRows = destinationDrawerRowTags()
 
         setStatefulDashboardContent(
             initialState = DashboardState(isLoading = false, rightDrawerOpen = true),
@@ -1245,57 +1169,7 @@ class DashboardContentUiTest {
 
     @Test
     fun `separate mode hides the donut ring and shows the currency cards container`() {
-        val usd = usdCurrency()
-        val eur =
-            Currency(
-                id = 2L,
-                code = "EUR",
-                symbol = "EUR",
-                name = "Euro",
-                decimalDigits = 2,
-                isActive = true,
-                sortOrder = 1,
-            )
-        val usdSnapshot =
-            BalanceSnapshot(
-                income = Money(BigDecimal("100.00"), usd),
-                expense = Money(BigDecimal("30.00"), usd),
-                net = Money(BigDecimal("70.00"), usd),
-                byCategory = emptyList(),
-            )
-        val eurSnapshot =
-            BalanceSnapshot(
-                income = Money(BigDecimal("50.00"), eur),
-                expense = Money(BigDecimal("20.00"), eur),
-                net = Money(BigDecimal("30.00"), eur),
-                byCategory = emptyList(),
-            )
-
-        composeTestRule.setContent {
-            MyMoneyTheme {
-                DashboardContent(
-                    state =
-                        DashboardState(
-                            currencies = listOf(usd, eur),
-                            dashboardSelection =
-                                DashboardSelection.AllAccounts(AllAccountsFoldMode.Separate),
-                            currencyCards =
-                                listOf(
-                                    CurrencyBalanceCard(
-                                        currency = usd,
-                                        snapshot = usdSnapshot,
-                                    ),
-                                    CurrencyBalanceCard(
-                                        currency = eur,
-                                        snapshot = eurSnapshot,
-                                    ),
-                                ),
-                            isLoading = false,
-                        ),
-                    onEvent = {},
-                )
-            }
-        }
+        setDashboardContent(state = separateModeDashboardState())
 
         // Donut must not be present in Separate mode (D6)
         composeTestRule
@@ -1310,57 +1184,7 @@ class DashboardContentUiTest {
 
     @Test
     fun `separate mode shows one card entry per currency`() {
-        val usd = usdCurrency()
-        val eur =
-            Currency(
-                id = 2L,
-                code = "EUR",
-                symbol = "EUR",
-                name = "Euro",
-                decimalDigits = 2,
-                isActive = true,
-                sortOrder = 1,
-            )
-        val usdSnapshot =
-            BalanceSnapshot(
-                income = Money(BigDecimal("100.00"), usd),
-                expense = Money(BigDecimal("30.00"), usd),
-                net = Money(BigDecimal("70.00"), usd),
-                byCategory = emptyList(),
-            )
-        val eurSnapshot =
-            BalanceSnapshot(
-                income = Money(BigDecimal("50.00"), eur),
-                expense = Money(BigDecimal("20.00"), eur),
-                net = Money(BigDecimal("30.00"), eur),
-                byCategory = emptyList(),
-            )
-
-        composeTestRule.setContent {
-            MyMoneyTheme {
-                DashboardContent(
-                    state =
-                        DashboardState(
-                            currencies = listOf(usd, eur),
-                            dashboardSelection =
-                                DashboardSelection.AllAccounts(AllAccountsFoldMode.Separate),
-                            currencyCards =
-                                listOf(
-                                    CurrencyBalanceCard(
-                                        currency = usd,
-                                        snapshot = usdSnapshot,
-                                    ),
-                                    CurrencyBalanceCard(
-                                        currency = eur,
-                                        snapshot = eurSnapshot,
-                                    ),
-                                ),
-                            isLoading = false,
-                        ),
-                    onEvent = {},
-                )
-            }
-        }
+        setDashboardContent(state = separateModeDashboardState())
 
         composeTestRule.onNodeWithText("USD").assertIsDisplayed()
         composeTestRule.onNodeWithText("EUR").assertIsDisplayed()
@@ -1368,30 +1192,7 @@ class DashboardContentUiTest {
 
     @Test
     fun `normal mode shows the trend chart and hides the currency cards container`() {
-        val usd = usdCurrency()
-        val snapshot =
-            BalanceSnapshot(
-                income = Money(BigDecimal("200.00"), usd),
-                expense = Money(BigDecimal("50.00"), usd),
-                net = Money(BigDecimal("150.00"), usd),
-                byCategory = emptyList(),
-            )
-
-        composeTestRule.setContent {
-            MyMoneyTheme {
-                DashboardContent(
-                    state =
-                        dashboardState(
-                            currency = usd,
-                            balanceSnapshot = snapshot,
-                            periodNet = snapshot.net,
-                            ringFraction = 0.75f,
-                            isLoading = false,
-                        ),
-                    onEvent = {},
-                )
-            }
-        }
+        setDashboardContent(state = snapshotDashboardState(ringFraction = 0.75f))
 
         composeTestRule
             .onNodeWithTag(DASHBOARD_TREND_CHART_TAG)
@@ -1490,29 +1291,10 @@ class DashboardContentUiTest {
     @Test
     fun `balance card click emits BalanceCardClicked event`() {
         val capturedEvents = mutableListOf<DashboardEvent>()
-        val usd = usdCurrency()
-        val snapshot =
-            BalanceSnapshot(
-                income = Money(BigDecimal("200.00"), usd),
-                expense = Money(BigDecimal("50.00"), usd),
-                net = Money(BigDecimal("150.00"), usd),
-                byCategory = emptyList(),
-            )
-
-        composeTestRule.setContent {
-            MyMoneyTheme {
-                DashboardContent(
-                    state =
-                        dashboardState(
-                            currency = usd,
-                            balanceSnapshot = snapshot,
-                            periodNet = snapshot.net,
-                            isLoading = false,
-                        ),
-                    onEvent = { capturedEvents += it },
-                )
-            }
-        }
+        setDashboardContent(
+            state = snapshotDashboardState(),
+            onEvent = { capturedEvents += it },
+        )
 
         composeTestRule
             .onNodeWithTag(DASHBOARD_TREND_CHART_TAG)
@@ -1528,45 +1310,7 @@ class DashboardContentUiTest {
 
     @Test
     fun `separate mode hides trend chart tag and shows currency cards`() {
-        val usd = usdCurrency()
-        val eur =
-            Currency(
-                id = 2L,
-                code = "EUR",
-                symbol = "EUR",
-                name = "Euro",
-                decimalDigits = 2,
-                isActive = true,
-                sortOrder = 1,
-            )
-
-        composeTestRule.setContent {
-            MyMoneyTheme {
-                DashboardContent(
-                    state =
-                        DashboardState(
-                            currencies = listOf(usd, eur),
-                            dashboardSelection =
-                                DashboardSelection.AllAccounts(AllAccountsFoldMode.Separate),
-                            currencyCards =
-                                listOf(
-                                    CurrencyBalanceCard(
-                                        currency = usd,
-                                        snapshot =
-                                            BalanceSnapshot(
-                                                income = Money(BigDecimal("100.00"), usd),
-                                                expense = Money(BigDecimal("30.00"), usd),
-                                                net = Money(BigDecimal("70.00"), usd),
-                                                byCategory = emptyList(),
-                                            ),
-                                    ),
-                                ),
-                            isLoading = false,
-                        ),
-                    onEvent = {},
-                )
-            }
-        }
+        setDashboardContent(state = separateModeDashboardState(cardCount = 1))
 
         composeTestRule
             .onAllNodesWithTag(DASHBOARD_TREND_CHART_TAG)
@@ -1582,14 +1326,6 @@ class DashboardContentUiTest {
 
     @Test
     fun `aurora card omits the legacy balance for period label in non-separate mode`() {
-        val usd = usdCurrency()
-        val snapshot =
-            BalanceSnapshot(
-                income = Money(BigDecimal("200.00"), usd),
-                expense = Money(BigDecimal("50.00"), usd),
-                net = Money(BigDecimal("150.00"), usd),
-                byCategory = emptyList(),
-            )
         val period = Period.All
         val removedLabel =
             InstrumentationRegistry.getInstrumentation().targetContext.getString(
@@ -1597,21 +1333,7 @@ class DashboardContentUiTest {
                 targetString(R.string.period_all),
             )
 
-        composeTestRule.setContent {
-            MyMoneyTheme {
-                DashboardContent(
-                    state =
-                        dashboardState(
-                            currency = usd,
-                            balanceSnapshot = snapshot,
-                            periodNet = snapshot.net,
-                            period = period,
-                            isLoading = false,
-                        ),
-                    onEvent = {},
-                )
-            }
-        }
+        setDashboardContent(state = snapshotDashboardState(period = period))
 
         composeTestRule
             .onNodeWithText(removedLabel)
@@ -1623,29 +1345,7 @@ class DashboardContentUiTest {
 
     @Test
     fun `aurora card spans nearly the full dashboard width and stays centered in non-separate mode`() {
-        val usd = usdCurrency()
-        val snapshot =
-            BalanceSnapshot(
-                income = Money(BigDecimal("200.00"), usd),
-                expense = Money(BigDecimal("50.00"), usd),
-                net = Money(BigDecimal("150.00"), usd),
-                byCategory = emptyList(),
-            )
-
-        composeTestRule.setContent {
-            MyMoneyTheme {
-                DashboardContent(
-                    state =
-                        dashboardState(
-                            currency = usd,
-                            balanceSnapshot = snapshot,
-                            periodNet = snapshot.net,
-                            isLoading = false,
-                        ),
-                    onEvent = {},
-                )
-            }
-        }
+        setDashboardContent(state = snapshotDashboardState())
 
         val rootBounds = composeTestRule.onRoot().fetchSemanticsNode().boundsInRoot
         val cardBounds = composeTestRule.onNodeWithTag(DASHBOARD_AURORA_CARD_TAG).fetchSemanticsNode().boundsInRoot
@@ -1692,45 +1392,7 @@ class DashboardContentUiTest {
 
     @Test
     fun `aurora card is absent in separate mode while per currency cards stay visible`() {
-        val usd = usdCurrency()
-        val eur =
-            Currency(
-                id = 2L,
-                code = "EUR",
-                symbol = "EUR",
-                name = "Euro",
-                decimalDigits = 2,
-                isActive = true,
-                sortOrder = 1,
-            )
-
-        composeTestRule.setContent {
-            MyMoneyTheme {
-                DashboardContent(
-                    state =
-                        DashboardState(
-                            currencies = listOf(usd, eur),
-                            dashboardSelection =
-                                DashboardSelection.AllAccounts(AllAccountsFoldMode.Separate),
-                            currencyCards =
-                                listOf(
-                                    CurrencyBalanceCard(
-                                        currency = usd,
-                                        snapshot =
-                                            BalanceSnapshot(
-                                                income = Money(BigDecimal("100.00"), usd),
-                                                expense = Money(BigDecimal("30.00"), usd),
-                                                net = Money(BigDecimal("70.00"), usd),
-                                                byCategory = emptyList(),
-                                            ),
-                                    ),
-                                ),
-                            isLoading = false,
-                        ),
-                    onEvent = {},
-                )
-            }
-        }
+        setDashboardContent(state = separateModeDashboardState(cardCount = 1))
 
         composeTestRule
             .onAllNodesWithTag(DASHBOARD_AURORA_CARD_TAG)
@@ -1750,29 +1412,10 @@ class DashboardContentUiTest {
     @Test
     fun `tapping trend chart area emits ChartTapped`() {
         val capturedEvents = mutableListOf<DashboardEvent>()
-        val usd = usdCurrency()
-        val snapshot =
-            BalanceSnapshot(
-                income = Money(BigDecimal("200.00"), usd),
-                expense = Money(BigDecimal("50.00"), usd),
-                net = Money(BigDecimal("150.00"), usd),
-                byCategory = emptyList(),
-            )
-
-        composeTestRule.setContent {
-            MyMoneyTheme {
-                DashboardContent(
-                    state =
-                        dashboardState(
-                            currency = usd,
-                            balanceSnapshot = snapshot,
-                            periodNet = snapshot.net,
-                            isLoading = false,
-                        ),
-                    onEvent = { capturedEvents += it },
-                )
-            }
-        }
+        setDashboardContent(
+            state = snapshotDashboardState(),
+            onEvent = { capturedEvents += it },
+        )
 
         composeTestRule
             .onNodeWithTag(DASHBOARD_TREND_CHART_TAG)
@@ -1813,29 +1456,7 @@ class DashboardContentUiTest {
 
     @Test
     fun `hidden chart hint strip is shown when chartConfig visible is false`() {
-        val usd = usdCurrency()
-        val snapshot =
-            BalanceSnapshot(
-                income = Money(BigDecimal("200.00"), usd),
-                expense = Money(BigDecimal("50.00"), usd),
-                net = Money(BigDecimal("150.00"), usd),
-                byCategory = emptyList(),
-            )
-
-        composeTestRule.setContent {
-            MyMoneyTheme {
-                DashboardContent(
-                    state =
-                        dashboardState(
-                            currency = usd,
-                            balanceSnapshot = snapshot,
-                            periodNet = snapshot.net,
-                            isLoading = false,
-                        ).copy(chartConfig = ChartConfig(visible = false)),
-                    onEvent = {},
-                )
-            }
-        }
+        setDashboardContent(state = snapshotDashboardState(chartConfig = ChartConfig(visible = false)))
 
         composeTestRule
             .onNodeWithTag(DASHBOARD_CHART_HIDDEN_HINT_TAG)
@@ -1847,29 +1468,7 @@ class DashboardContentUiTest {
 
     @Test
     fun `trend chart tag is present when chartConfig visible is true`() {
-        val usd = usdCurrency()
-        val snapshot =
-            BalanceSnapshot(
-                income = Money(BigDecimal("200.00"), usd),
-                expense = Money(BigDecimal("50.00"), usd),
-                net = Money(BigDecimal("150.00"), usd),
-                byCategory = emptyList(),
-            )
-
-        composeTestRule.setContent {
-            MyMoneyTheme {
-                DashboardContent(
-                    state =
-                        dashboardState(
-                            currency = usd,
-                            balanceSnapshot = snapshot,
-                            periodNet = snapshot.net,
-                            isLoading = false,
-                        ).copy(chartConfig = ChartConfig(visible = true)),
-                    onEvent = {},
-                )
-            }
-        }
+        setDashboardContent(state = snapshotDashboardState(chartConfig = ChartConfig(visible = true)))
 
         composeTestRule
             .onNodeWithTag(DASHBOARD_TREND_CHART_TAG)
@@ -1882,29 +1481,10 @@ class DashboardContentUiTest {
     @Test
     fun `tapping hidden chart hint strip emits ChartTapped`() {
         val capturedEvents = mutableListOf<DashboardEvent>()
-        val usd = usdCurrency()
-        val snapshot =
-            BalanceSnapshot(
-                income = Money(BigDecimal("200.00"), usd),
-                expense = Money(BigDecimal("50.00"), usd),
-                net = Money(BigDecimal("150.00"), usd),
-                byCategory = emptyList(),
-            )
-
-        composeTestRule.setContent {
-            MyMoneyTheme {
-                DashboardContent(
-                    state =
-                        dashboardState(
-                            currency = usd,
-                            balanceSnapshot = snapshot,
-                            periodNet = snapshot.net,
-                            isLoading = false,
-                        ).copy(chartConfig = ChartConfig(visible = false)),
-                    onEvent = { capturedEvents += it },
-                )
-            }
-        }
+        setDashboardContent(
+            state = snapshotDashboardState(chartConfig = ChartConfig(visible = false)),
+            onEvent = { capturedEvents += it },
+        )
 
         composeTestRule
             .onNodeWithTag(DASHBOARD_CHART_HIDDEN_HINT_TAG)
@@ -1990,6 +1570,149 @@ class DashboardContentUiTest {
             }
         }
         return { state }
+    }
+
+    private fun setDashboardContent(
+        state: DashboardState,
+        onEvent: (DashboardEvent) -> Unit = {},
+    ) {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(state = state, onEvent = onEvent)
+            }
+        }
+    }
+
+    private fun refreshableDashboardState(): DashboardState {
+        val currency = usdCurrency()
+        val snapshot =
+            BalanceSnapshot(
+                income = Money(BigDecimal("120.00"), currency),
+                expense = Money(BigDecimal("20.00"), currency),
+                net = Money(BigDecimal("100.00"), currency),
+                byCategory = emptyList(),
+            )
+        return dashboardState(
+            currency = currency,
+            balanceSnapshot = snapshot,
+            periodNet = snapshot.net,
+            expenseTiles = listOf(categoryTile(42L, "Groceries", currency)),
+            isLoading = false,
+        )
+    }
+
+    private fun snapshotDashboardState(
+        income: String = "200.00",
+        expense: String = "50.00",
+        net: String = "150.00",
+        period: Period = Period.Month(YearMonth.now()),
+        ringFraction: Float = 0f,
+        chartConfig: ChartConfig? = null,
+    ): DashboardState {
+        val currency = usdCurrency()
+        val snapshot =
+            BalanceSnapshot(
+                income = Money(BigDecimal(income), currency),
+                expense = Money(BigDecimal(expense), currency),
+                net = Money(BigDecimal(net), currency),
+                byCategory = emptyList(),
+            )
+        val state =
+            dashboardState(
+                currency = currency,
+                balanceSnapshot = snapshot,
+                period = period,
+                periodNet = snapshot.net,
+                ringFraction = ringFraction,
+                isLoading = false,
+            )
+        return chartConfig?.let { state.copy(chartConfig = it) } ?: state
+    }
+
+    private fun expandedCategoryDashboardState(): DashboardState {
+        val currency = usdCurrency()
+        return dashboardState(
+            currency = currency,
+            balanceSnapshot = balanceSnapshot(netAmount = "100", currency = currency),
+            expenseTiles = listOf(categoryTile(42L, "Groceries", currency)),
+            isLoading = false,
+        ).copy(
+            expandedCategoryId = 42L,
+            expandedRecords =
+                listOf(
+                    dashboardTransaction(701L, 42L, "Lunch"),
+                    dashboardTransaction(702L, 42L, "Coffee"),
+                ),
+        )
+    }
+
+    private fun foodAndTransportTiles(currency: Currency) =
+        listOf(
+            categoryTile(categoryId = 11L, label = "Food", currency = currency),
+            categoryTile(categoryId = 22L, label = "Transport", currency = currency),
+        )
+
+    private fun separateModeDashboardState(cardCount: Int = 2): DashboardState {
+        val usd = usdCurrency()
+        val eur =
+            Currency(
+                id = 2L,
+                code = "EUR",
+                symbol = "EUR",
+                name = "Euro",
+                decimalDigits = 2,
+                isActive = true,
+                sortOrder = 1,
+            )
+        val currencyCards =
+            listOf(
+                CurrencyBalanceCard(
+                    currency = usd,
+                    snapshot =
+                        BalanceSnapshot(
+                            income = Money(BigDecimal("100.00"), usd),
+                            expense = Money(BigDecimal("30.00"), usd),
+                            net = Money(BigDecimal("70.00"), usd),
+                            byCategory = emptyList(),
+                        ),
+                ),
+                CurrencyBalanceCard(
+                    currency = eur,
+                    snapshot =
+                        BalanceSnapshot(
+                            income = Money(BigDecimal("50.00"), eur),
+                            expense = Money(BigDecimal("20.00"), eur),
+                            net = Money(BigDecimal("30.00"), eur),
+                            byCategory = emptyList(),
+                        ),
+                ),
+            )
+        return DashboardState(
+            currencies = listOf(usd, eur),
+            dashboardSelection = DashboardSelection.AllAccounts(AllAccountsFoldMode.Separate),
+            currencyCards = currencyCards.take(cardCount),
+            isLoading = false,
+        )
+    }
+
+    private fun destinationDrawerRowTags() =
+        listOf(
+            RIGHT_DRAWER_SEARCH_TAG,
+            RIGHT_DRAWER_CATEGORIES_TAG,
+            RIGHT_DRAWER_ACCOUNTS_TAG,
+            RIGHT_DRAWER_CURRENCIES_TAG,
+            RIGHT_DRAWER_CHART_SETTINGS_TAG,
+            RIGHT_DRAWER_SETTINGS_TAG,
+            RIGHT_DRAWER_ABOUT_TAG,
+        )
+
+    private fun operationsSummaryDashboardState(operationsSummary: OperationsSummaryState?): DashboardState {
+        val currency = usdCurrency()
+        return dashboardState(
+            currency = currency,
+            balanceSnapshot = balanceSnapshot(netAmount = "100", currency = currency),
+            isLoading = false,
+        ).copy(operationsSummary = operationsSummary)
     }
 
     private fun tapDashboardScrim(xFraction: Float) {
@@ -2101,28 +1824,16 @@ class DashboardContentUiTest {
 
     @Test
     fun `operations summary sheet is shown when operationsSummary is not null`() {
-        val usd = usdCurrency()
-
-        composeTestRule.setContent {
-            MyMoneyTheme {
-                DashboardContent(
-                    state =
-                        dashboardState(
-                            currency = usd,
-                            balanceSnapshot = balanceSnapshot(netAmount = "100", currency = usd),
-                            isLoading = false,
-                        ).copy(
-                            operationsSummary =
-                                OperationsSummaryState(
-                                    categoryFilter = null,
-                                    records = emptyList(),
-                                    loading = false,
-                                ),
-                        ),
-                    onEvent = {},
-                )
-            }
-        }
+        setDashboardContent(
+            state =
+                operationsSummaryDashboardState(
+                    OperationsSummaryState(
+                        categoryFilter = null,
+                        records = emptyList(),
+                        loading = false,
+                    ),
+                ),
+        )
 
         composeTestRule
             .onNodeWithTag(OPERATIONS_SUMMARY_SHEET_TAG)
@@ -2154,28 +1865,16 @@ class DashboardContentUiTest {
 
     @Test
     fun `operations summary sheet shows empty state when records list is empty`() {
-        val usd = usdCurrency()
-
-        composeTestRule.setContent {
-            MyMoneyTheme {
-                DashboardContent(
-                    state =
-                        dashboardState(
-                            currency = usd,
-                            balanceSnapshot = balanceSnapshot(netAmount = "100", currency = usd),
-                            isLoading = false,
-                        ).copy(
-                            operationsSummary =
-                                OperationsSummaryState(
-                                    categoryFilter = null,
-                                    records = emptyList(),
-                                    loading = false,
-                                ),
-                        ),
-                    onEvent = {},
-                )
-            }
-        }
+        setDashboardContent(
+            state =
+                operationsSummaryDashboardState(
+                    OperationsSummaryState(
+                        categoryFilter = null,
+                        records = emptyList(),
+                        loading = false,
+                    ),
+                ),
+        )
 
         composeTestRule
             .onNodeWithTag(OPERATIONS_SUMMARY_EMPTY_TAG)
@@ -2188,20 +1887,16 @@ class DashboardContentUiTest {
         val capturedEvents = mutableListOf<DashboardEvent>()
         val tile = categoryTile(categoryId = 42L, label = "Groceries", currency = usd)
 
-        composeTestRule.setContent {
-            MyMoneyTheme {
-                DashboardContent(
-                    state =
-                        dashboardState(
-                            currency = usd,
-                            balanceSnapshot = balanceSnapshot(netAmount = "100", currency = usd),
-                            expenseTiles = listOf(tile),
-                            isLoading = false,
-                        ),
-                    onEvent = { capturedEvents += it },
-                )
-            }
-        }
+        setDashboardContent(
+            state =
+                dashboardState(
+                    currency = usd,
+                    balanceSnapshot = balanceSnapshot(netAmount = "100", currency = usd),
+                    expenseTiles = listOf(tile),
+                    isLoading = false,
+                ),
+            onEvent = { capturedEvents += it },
+        )
 
         composeTestRule
             .onNodeWithTag("category_tile_42")
@@ -2222,23 +1917,18 @@ class DashboardContentUiTest {
     fun `tapping a tile emits SliceClicked with that category id`() {
         val usd = usdCurrency()
         val capturedEvents = mutableListOf<DashboardEvent>()
-        val tile1 = categoryTile(categoryId = 11L, label = "Food", currency = usd)
-        val tile2 = categoryTile(categoryId = 22L, label = "Transport", currency = usd)
+        val tiles = foodAndTransportTiles(usd)
 
-        composeTestRule.setContent {
-            MyMoneyTheme {
-                DashboardContent(
-                    state =
-                        dashboardState(
-                            currency = usd,
-                            balanceSnapshot = balanceSnapshot(netAmount = "200", currency = usd),
-                            expenseTiles = listOf(tile1, tile2),
-                            isLoading = false,
-                        ),
-                    onEvent = { capturedEvents += it },
-                )
-            }
-        }
+        setDashboardContent(
+            state =
+                dashboardState(
+                    currency = usd,
+                    balanceSnapshot = balanceSnapshot(netAmount = "200", currency = usd),
+                    expenseTiles = tiles,
+                    isLoading = false,
+                ),
+            onEvent = { capturedEvents += it },
+        )
 
         composeTestRule
             .onNodeWithTag("category_tile_11")
@@ -2257,29 +1947,17 @@ class DashboardContentUiTest {
 
     @Test
     fun `operations summary sheet title uses category name when filtered`() {
-        val usd = usdCurrency()
-
-        composeTestRule.setContent {
-            MyMoneyTheme {
-                DashboardContent(
-                    state =
-                        dashboardState(
-                            currency = usd,
-                            balanceSnapshot = balanceSnapshot(netAmount = "100", currency = usd),
-                            isLoading = false,
-                        ).copy(
-                            operationsSummary =
-                                OperationsSummaryState(
-                                    categoryFilter = 55L,
-                                    categoryName = "Groceries",
-                                    records = emptyList(),
-                                    loading = false,
-                                ),
-                        ),
-                    onEvent = {},
-                )
-            }
-        }
+        setDashboardContent(
+            state =
+                operationsSummaryDashboardState(
+                    OperationsSummaryState(
+                        categoryFilter = 55L,
+                        categoryName = "Groceries",
+                        records = emptyList(),
+                        loading = false,
+                    ),
+                ),
+        )
 
         composeTestRule
             .onNodeWithTag(OPERATIONS_SUMMARY_SHEET_TAG)

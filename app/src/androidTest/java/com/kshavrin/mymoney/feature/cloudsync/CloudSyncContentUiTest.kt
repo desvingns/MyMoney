@@ -162,7 +162,14 @@ class CloudSyncContentUiTest {
 
         composeTestRule.runOnIdle {
             val clipboard = context.getSystemService(android.content.ClipboardManager::class.java)
-            assertEquals("invite-token", clipboard?.primaryClip?.getItemAt(0)?.text?.toString())
+            assertEquals(
+                "invite-token",
+                clipboard
+                    ?.primaryClip
+                    ?.getItemAt(0)
+                    ?.text
+                    ?.toString(),
+            )
         }
     }
 
@@ -192,7 +199,10 @@ class CloudSyncContentUiTest {
 
         override fun connectedTargets() = emptyList<SyncTarget>()
 
-        override fun connect(target: SyncTarget, payload: String) = Unit
+        override fun connect(
+            target: SyncTarget,
+            payload: String,
+        ) = Unit
 
         override fun disconnect(target: SyncTarget) = Unit
 
@@ -268,7 +278,10 @@ class CloudSyncContentUiTest {
 
         override suspend fun peerHighWaterMs(fileId: String) = 0L
 
-        override suspend fun setPeerHighWaterMs(fileId: String, modifiedAtMs: Long) = Unit
+        override suspend fun setPeerHighWaterMs(
+            fileId: String,
+            modifiedAtMs: Long,
+        ) = Unit
 
         override suspend fun isBootstrapDone() = true
 
@@ -284,15 +297,24 @@ class CloudSyncContentUiTest {
 
         override fun accountEmail() = "owner@example.com"
 
-        override suspend fun signIn(googleIdToken: String, nonce: String) = Result.success(Unit)
+        override suspend fun signIn(
+            googleIdToken: String,
+            nonce: String,
+        ) = Result.success(Unit)
 
         override suspend fun signOut() = Result.success(Unit)
 
         override suspend fun activeWorkspace() = SharedWorkspaceSummary("ws-1", "Budget")
 
-        override suspend fun createWorkspace(name: String, importLocalData: Boolean) = Result.success(SharedWorkspaceSummary("ws-1", name))
+        override suspend fun createWorkspace(
+            name: String,
+            importLocalData: Boolean,
+        ) = Result.success(SharedWorkspaceSummary("ws-1", name))
 
-        override suspend fun joinWorkspace(inviteToken: String, importLocalData: Boolean) = Result.success(SharedWorkspaceSummary("ws-1", "Budget"))
+        override suspend fun joinWorkspace(
+            inviteToken: String,
+            importLocalData: Boolean,
+        ) = Result.success(SharedWorkspaceSummary("ws-1", "Budget"))
 
         override suspend fun createInvite() = Result.success(SharedWorkspaceInvite("invite-token"))
 
@@ -300,7 +322,10 @@ class CloudSyncContentUiTest {
 
         override suspend fun listConflicts(): Result<List<SharedConflict>> = Result.success(emptyList())
 
-        override suspend fun resolveConflict(conflictId: String, winnerOperationId: String) = Result.success(Unit)
+        override suspend fun resolveConflict(
+            conflictId: String,
+            winnerOperationId: String,
+        ) = Result.success(Unit)
 
         override suspend fun leaveWorkspace() = Result.success(Unit)
     }

@@ -136,18 +136,27 @@ class SupabaseSharedRealtime
                 put("event", "phx_join")
                 put("ref", CHANNEL_JOIN_REF)
                 put("join_ref", CHANNEL_JOIN_REF)
-                put("payload", buildJsonObject {
-                    put("access_token", accessToken)
-                    put("config", buildJsonObject {
-                        put("private", true)
-                        put("broadcast", buildJsonObject {
-                            put("ack", false)
-                            put("self", false)
-                        })
-                        put("presence", buildJsonObject { put("enabled", false) })
-                        put("postgres_changes", buildJsonArray {})
-                    })
-                })
+                put(
+                    "payload",
+                    buildJsonObject {
+                        put("access_token", accessToken)
+                        put(
+                            "config",
+                            buildJsonObject {
+                                put("private", true)
+                                put(
+                                    "broadcast",
+                                    buildJsonObject {
+                                        put("ack", false)
+                                        put("self", false)
+                                    },
+                                )
+                                put("presence", buildJsonObject { put("enabled", false) })
+                                put("postgres_changes", buildJsonArray {})
+                            },
+                        )
+                    },
+                )
             }
 
         private fun heartbeatMessage(reference: Long) =

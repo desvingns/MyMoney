@@ -2,7 +2,6 @@ package com.kshavrin.mymoney.feature.cloudsync
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
-import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -29,7 +28,6 @@ import org.junit.runner.RunWith
  */
 @RunWith(AndroidJUnit4::class)
 class CloudSyncSharedCardUiTest {
-
     @get:Rule
     val composeTestRule = createComposeRule()
 
@@ -39,9 +37,10 @@ class CloudSyncSharedCardUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 CloudSyncContent(
-                    state = CloudSyncState(
-                        shared = SharedCardState(signedIn = false, active = false),
-                    ),
+                    state =
+                        CloudSyncState(
+                            shared = SharedCardState(signedIn = false, active = false),
+                        ),
                     onEvent = events::add,
                 )
             }
@@ -68,10 +67,11 @@ class CloudSyncSharedCardUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 CloudSyncContent(
-                    state = CloudSyncState(
-                        binding = CloudBinding(CloudProvider.Dropbox, "acct", "user@dropbox.com"),
-                        shared = SharedCardState(signedIn = true, active = false),
-                    ),
+                    state =
+                        CloudSyncState(
+                            binding = CloudBinding(CloudProvider.Dropbox, "acct", "user@dropbox.com"),
+                            shared = SharedCardState(signedIn = true, active = false),
+                        ),
                     onEvent = {},
                 )
             }
@@ -92,15 +92,17 @@ class CloudSyncSharedCardUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 CloudSyncContent(
-                    state = CloudSyncState(
-                        binding = CloudBinding(CloudProvider.Shared, "ws-1", "Family Budget"),
-                        shared = SharedCardState(
-                            signedIn = true,
-                            active = true,
-                            workspaceName = "Family Budget",
-                            conflictCount = 2,
+                    state =
+                        CloudSyncState(
+                            binding = CloudBinding(CloudProvider.Shared, "ws-1", "Family Budget"),
+                            shared =
+                                SharedCardState(
+                                    signedIn = true,
+                                    active = true,
+                                    workspaceName = "Family Budget",
+                                    conflictCount = 2,
+                                ),
                         ),
-                    ),
                     onEvent = {},
                 )
             }

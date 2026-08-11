@@ -55,8 +55,8 @@ import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_AURORA_BALANC
 import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_AURORA_CARD_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_AURORA_EXPENSE_PILL_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_AURORA_INCOME_PILL_TAG
-import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_INLINE_RECORDS_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_CURRENCY_CARDS_TAG
+import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_INLINE_RECORDS_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.OPERATIONS_SUMMARY_EMPTY_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.OPERATIONS_SUMMARY_SHEET_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_ABOUT_TAG
@@ -2047,7 +2047,11 @@ class DashboardContentUiTest {
         iconKey = "groceries",
     )
 
-    private fun dashboardTransaction(id: Long, categoryId: Long, note: String) =
+    private fun dashboardTransaction(
+        id: Long,
+        categoryId: Long,
+        note: String,
+    ) =
         Transaction(
             id = id,
             kind = TransactionKind.Expense,

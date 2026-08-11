@@ -24,8 +24,7 @@ class AppSettingsRepositoryImpl
                         settings = preferences.toAppSettings(),
                         revision = preferences[AppSettingsKeys.SETTINGS_REVISION] ?: 0L,
                     )
-                }
-                .distinctUntilChanged()
+                }.distinctUntilChanged()
 
         override val settings: Flow<AppSettings> =
             versionedSettings

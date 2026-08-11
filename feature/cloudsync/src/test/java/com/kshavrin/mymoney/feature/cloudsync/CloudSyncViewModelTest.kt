@@ -742,7 +742,10 @@ class CloudSyncViewModelTest {
 
         override suspend fun activeWorkspaceOwnership(): Result<com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceOwnership> {
             activeWorkspaceOwnershipCalls++
-            return Result.success(com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceOwnership())
+            return Result.success(
+                com.kshavrin.mymoney.core.sync.shared
+                    .SharedWorkspaceOwnership(),
+            )
         }
 
         override suspend fun discoverRemoteWorkspace(): Result<SharedWorkspaceSummary?> {

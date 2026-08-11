@@ -194,8 +194,10 @@ class LockController
                 activityStartSettingsGenerations[startId] ?: return
             val canonicalSettingsAreNewer =
                 settingsRevision > activitySettings.revision ||
-                    (settingsRevision == activitySettings.revision &&
-                        observedSettingsGeneration > activityStartSettingsGeneration)
+                    (
+                        settingsRevision == activitySettings.revision &&
+                            observedSettingsGeneration > activityStartSettingsGeneration
+                    )
             val resolvedSettings =
                 if (canonicalSettingsAreNewer) {
                     VersionedAppSettings(settings = settings, revision = settingsRevision)
@@ -205,9 +207,13 @@ class LockController
             val shouldUpdateCanonicalSettings =
                 !provisional &&
                     !canonicalSettingsAreNewer &&
-                    (activitySettings.revision > settingsRevision ||
-                        (activitySettings.revision == settingsRevision &&
-                            observedSettingsGeneration <= activityStartSettingsGeneration))
+                    (
+                        activitySettings.revision > settingsRevision ||
+                            (
+                                activitySettings.revision == settingsRevision &&
+                                    observedSettingsGeneration <= activityStartSettingsGeneration
+                            )
+                    )
             activityLockStates[startId]?.value = resolvedSettings.settings.biometricLockEnabled
             _shouldShowLock.value = activityLockStates.values.any { it.value }
             activityLockResolutionStates[startId]?.value = true

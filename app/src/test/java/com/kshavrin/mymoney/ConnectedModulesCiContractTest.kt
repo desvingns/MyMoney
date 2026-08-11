@@ -32,6 +32,33 @@ class ConnectedModulesCiContractTest {
     }
 
     @Test
+    fun `workflow cancels only superseded pull request runs within a stable group`() {
+        val topLevel = workflowFile.readText().substringBefore("\njobs:")
+
+        assertContainsInOrder(
+            topLevel,
+            listOf(
+                "concurrency:",
+                "  group: \${{ github.workflow }}-\${{ github.event.pull_request.number || github.ref }}",
+                "  cancel-in-progress: \${{ github.event_name == 'pull_request' }}",
+            ),
+        )
+    }
+
+    @Test
+    fun `connected job waits for jvm checks before starting emulator`() {
+        val connectedJob = workflowFile.readText().substringAfter("  connected:")
+
+        assertContainsInOrder(
+            connectedJob,
+            listOf(
+                "    needs: jvm",
+                "      - name: Run connected tests on API 34 emulator",
+            ),
+        )
+    }
+
+    @Test
     fun `connected reports upload even when a module fails`() {
         val text = workflowFile.readText()
         val uploadStep = text.substringAfter("      - name: Upload connected test reports")

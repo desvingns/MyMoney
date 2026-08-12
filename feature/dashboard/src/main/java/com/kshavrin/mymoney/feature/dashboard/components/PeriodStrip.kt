@@ -8,14 +8,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.DateRangePicker
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -77,31 +73,11 @@ fun PeriodStrip(
     }
 
     if (showRangePicker) {
-        val pickerState = rememberDateRangePickerState()
-        DatePickerDialog(
-            onDismissRequest = { showRangePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    val startMillis = pickerState.selectedStartDateMillis
-                    val endMillis = pickerState.selectedEndDateMillis
-                    if (startMillis != null && endMillis != null) {
-                        val start = materialPickerUtcMillisToLocalDate(startMillis)
-                        val end = materialPickerUtcMillisToLocalDate(endMillis)
-                        onPeriodChange(Period.CustomRange(start, end))
-                    }
-                    showRangePicker = false
-                }) {
-                    Text(stringResource(R.string.period_apply))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showRangePicker = false }) {
-                    Text(stringResource(R.string.period_cancel))
-                }
-            },
-        ) {
-            DateRangePicker(state = pickerState)
-        }
+        FullScreenDateRangePicker(
+            initialRange = null,
+            onApply = onPeriodChange,
+            onDismiss = { showRangePicker = false },
+        )
     }
 }
 

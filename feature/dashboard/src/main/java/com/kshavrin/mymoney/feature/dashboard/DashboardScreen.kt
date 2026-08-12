@@ -2,7 +2,6 @@ package com.kshavrin.mymoney.feature.dashboard
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -24,9 +23,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.DateRangePicker
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -37,7 +34,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -52,10 +48,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.paneTitle
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kshavrin.mymoney.core.common.money.MoneyFormatter
 import com.kshavrin.mymoney.core.designsystem.confetti.Confetti
@@ -77,6 +69,7 @@ import com.kshavrin.mymoney.feature.dashboard.components.ChartSettingsSheet
 import com.kshavrin.mymoney.feature.dashboard.components.CurrencyBalanceCardList
 import com.kshavrin.mymoney.feature.dashboard.components.DashboardDrawerOverlay
 import com.kshavrin.mymoney.feature.dashboard.components.DrawerSide
+import com.kshavrin.mymoney.feature.dashboard.components.FullScreenDateRangePicker
 import com.kshavrin.mymoney.feature.dashboard.components.LeftDrawerContent
 import com.kshavrin.mymoney.feature.dashboard.components.OperationsSummarySheet
 import com.kshavrin.mymoney.feature.dashboard.components.PeriodSwitcher
@@ -285,70 +278,15 @@ fun DashboardContent(
     }
 
     if (showPickDateRangePicker) {
-        val selectedRange = state.period as? Period.CustomRange
-        val pickerState =
-            rememberDateRangePickerState(
-                initialSelectedStartDateMillis =
-                    selectedRange?.start?.let(::localDateToMaterialPickerUtcMillis),
-                initialSelectedEndDateMillis =
-                    selectedRange?.end?.let(::localDateToMaterialPickerUtcMillis),
-            )
-        val startMillis = pickerState.selectedStartDateMillis
-        val endMillis = pickerState.selectedEndDateMillis
-        val validRange = startMillis != null && endMillis != null && startMillis <= endMillis
-        val dateRangePaneTitle = stringResource(R.string.period_date_range)
-
-        Dialog(
-            onDismissRequest = { showPickDateRangePicker = false },
-            properties = DialogProperties(usePlatformDefaultWidth = false),
-        ) {
-            Surface(
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .semantics { paneTitle = dateRangePaneTitle },
-                color = DatePickerDefaults.colors().containerColor,
-            ) {
-                DateRangePicker(
-                    state = pickerState,
-                    modifier = Modifier.fillMaxSize(),
-                    title = {
-                        Row(
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = Spacing.l),
-                            horizontalArrangement = Arrangement.spacedBy(Spacing.s, Alignment.End),
-                        ) {
-                            TextButton(onClick = { showPickDateRangePicker = false }) {
-                                Text(stringResource(R.string.period_cancel))
-                            }
-                            TextButton(
-                                enabled = validRange,
-                                onClick = {
-                                    if (startMillis != null && endMillis != null && startMillis <= endMillis) {
-                                        soundPlayer.play(SoundKey.SWIPE)
-                                        hapticPlayer.fire(HapticKind.SOFT)
-                                        onEvent(
-                                            DashboardEvent.PeriodChanged(
-                                                Period.CustomRange(
-                                                    start = materialPickerUtcMillisToLocalDate(startMillis),
-                                                    end = materialPickerUtcMillisToLocalDate(endMillis),
-                                                ),
-                                            ),
-                                        )
-                                        showPickDateRangePicker = false
-                                    }
-                                },
-                            ) {
-                                Text(stringResource(R.string.period_apply))
-                            }
-                        }
-                    },
-                    showModeToggle = false,
-                )
-            }
-        }
+        FullScreenDateRangePicker(
+            initialRange = state.period as? Period.CustomRange,
+            onApply = { range ->
+                soundPlayer.play(SoundKey.SWIPE)
+                hapticPlayer.fire(HapticKind.SOFT)
+                onEvent(DashboardEvent.PeriodChanged(range))
+            },
+            onDismiss = { showPickDateRangePicker = false },
+        )
     }
 
     if (state.chartSettingsSheetOpen) {

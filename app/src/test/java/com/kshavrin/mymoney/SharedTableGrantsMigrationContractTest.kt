@@ -34,6 +34,15 @@ class SharedTableGrantsMigrationContractTest {
         )
     }
 
+    @Test
+    fun `shared table grants migration contains no direct client writes`() {
+        assertFalse(
+            "Shared tables must not regain direct client writes",
+            Regex("(?i)grant\\s+(insert|update|delete|truncate)")
+                .containsMatchIn(migration.readText()),
+        )
+    }
+
     private companion object {
         fun findRepositoryRoot(): File {
             val start = File(requireNotNull(System.getProperty("user.dir"))).absoluteFile

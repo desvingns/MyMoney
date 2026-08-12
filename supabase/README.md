@@ -47,6 +47,38 @@ session. A user's stable identity is the Supabase user ID; email is display-only
 All writes go through `SECURITY DEFINER` RPCs; tables expose **only** SELECT policies scoped to
 active members, so a non-member cannot read another workspace via the REST/PostgREST API.
 
+## Plus entitlement and workspace billing
+
+`workspaces.payer_user_id` is the account whose entitlement controls the entire workspace. It is
+independent from `owner_id` so a future payment handoff only changes `payer_user_id`. The scheduled
+workspace billing refresh and the Google Play RTDN handler are the only paths that update the
+denormalized `billing_state`: `active` permits reads and writes, `grace` permits reads only, and
+`expired` blocks shared RPCs.
+
+Clients read their own effective entitlement only through `get_my_entitlement()`; direct access to
+`entitlements` is intentionally unavailable. Run the RPC in an authenticated client session:
+
+```sql
+select public.get_my_entitlement();
+```
+
+To grant an indefinite Plus entitlement to a whitelist account, run this as an administrator:
+
+```sql
+insert into public.entitlements (user_id, provider)
+values (:user_id, 'whitelist');
+```
+
+To revoke it, set `revoked_at` on that entitlement record:
+
+```sql
+update public.entitlements
+set revoked_at = now()
+where user_id = :user_id
+  and provider = 'whitelist'
+  and revoked_at is null;
+```
+
 ### RPCs
 
 | Function | Purpose |

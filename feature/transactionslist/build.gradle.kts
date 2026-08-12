@@ -30,6 +30,4 @@ dependencies {
     testImplementation(libs.turbine)
     testImplementation(project(":core:testing"))
     testImplementation(libs.robolectric)
-
-    debugImplementation(libs.androidx.compose.ui.test.manifest)
 }

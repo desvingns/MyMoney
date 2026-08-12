@@ -32,6 +32,4 @@ dependencies {
     testImplementation(libs.roborazzi)
     testImplementation(libs.roborazzi.compose)
     testImplementation(libs.roborazzi.junit.rule)
-
-    debugImplementation(libs.androidx.compose.ui.test.manifest)
 }

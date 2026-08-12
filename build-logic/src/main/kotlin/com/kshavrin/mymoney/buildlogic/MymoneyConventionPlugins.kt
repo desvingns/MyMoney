@@ -51,6 +51,7 @@ class MymoneyAndroidFeaturePlugin : Plugin<Project> {
             add("ksp", libs.findLibrary("hilt-compiler").get())
             add("testImplementation", libs.findLibrary("junit").get())
             add("testImplementation", libs.findLibrary("kotlinx-coroutines-test").get())
+            add("testImplementation", libs.findLibrary("androidx-compose-ui-test-manifest").get())
         }
         Unit
     }

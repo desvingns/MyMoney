@@ -1,28 +1,27 @@
 package com.kshavrin.mymoney.core.datastore
 
+import android.content.Context
+import android.content.ContextWrapper
 import android.content.SharedPreferences
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
+import com.kshavrin.mymoney.core.datastore.model.SecureSettings
+import com.kshavrin.mymoney.core.datastore.model.SecureSharedSession
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import java.io.File
 import java.nio.file.Files
 
-/**
- * JVM-level tests for [SecureStorageImpl] companion object methods.
- *
- * The lazy-init timing contract ("prefs not created until first access") is
- * covered in [SecureStorageTest] (androidTest) because all constructors
- * require an Android [android.content.Context] that is unavailable on the
- * JVM without Robolectric.
- */
+/** JVM-level tests for [SecureStorageImpl] companion and session methods. */
 class SecureStorageImplTest {
     private lateinit var tempFile: File
     private lateinit var dataStore: DataStore<Preferences>
@@ -87,6 +86,113 @@ class SecureStorageImplTest {
             assertTrue(settings.biometricLockEnabled)
         }
 
+    @Test
+    fun `shared session round trips all five fields`() {
+        val prefs = FakeSharedPreferences()
+        val storage = newStorage(prefs)
+        val session =
+            SecureSharedSession(
+                userId = "user-123",
+                userEmail = "user@example.com",
+                accessToken = "access-token",
+                refreshToken = "refresh-token",
+                accessTokenExpiresAtEpochSeconds = 1_725_000_000L,
+            )
+
+        storage.writeSharedSession(session)
+
+        assertEquals(session, storage.readSharedSession())
+    }
+
+    @Test
+    fun `incomplete shared session records return null`() {
+        val incompleteRecords =
+            listOf(
+                completeSharedSessionPrefs(missingKey = "shared_user_id"),
+                completeSharedSessionPrefs(missingKey = "shared_user_email"),
+                completeSharedSessionPrefs(missingKey = "shared_access_token"),
+                completeSharedSessionPrefs(missingKey = "shared_refresh_token"),
+                completeSharedSessionPrefs(missingKey = "shared_access_token_expires_at"),
+                completeSharedSessionPrefs(blankKey = "shared_user_email"),
+            )
+
+        incompleteRecords.forEachIndexed { index, prefs ->
+            assertNull("record $index should be rejected", newStorage(prefs).readSharedSession())
+        }
+    }
+
+    @Test
+    fun `clear shared session removes only shared values and preserves legacy secure values`() {
+        val prefs = FakeSharedPreferences()
+        val storage = newStorage(prefs)
+        storage.writeDropboxRefreshToken("legacy-dropbox")
+        storage.writeGdriveAccountEmail("legacy@example.com")
+        storage.writePinHash("legacy-pin-hash")
+        storage.writePinLockout(failedPinAttempts = 4, deadlineEpochMs = 1_725_000_100L)
+        storage.writeSharedSession(completeSecureSession())
+
+        storage.clearSharedSession()
+
+        assertNull(storage.readSharedSession())
+        assertEquals(
+            SecureSettings(
+                dropboxRefreshToken = "legacy-dropbox",
+                gdriveAccountEmail = "legacy@example.com",
+                pinHash = "legacy-pin-hash",
+                failedPinAttempts = 4,
+                pinLockoutDeadlineEpochMs = 1_725_000_100L,
+            ),
+            storage.read(),
+        )
+        assertEquals(
+            setOf(
+                "dropbox_refresh_token",
+                "gdrive_account_email",
+                "pin_hash",
+                "failed_pin_attempts",
+                "pin_lockout_deadline_epoch_ms",
+            ),
+            prefs.getAll().keys,
+        )
+    }
+
+    private fun newStorage(prefs: FakeSharedPreferences): SecureStorageImpl =
+        SecureStorageImpl(
+            context =
+                object : ContextWrapper(null) {
+                    override fun getApplicationContext(): Context = this
+                },
+            dataStore = dataStore,
+            ioDispatcher = Dispatchers.Unconfined,
+            prefsCreator = { _, _ -> prefs },
+        )
+
+    private fun completeSecureSession(): SecureSharedSession =
+        SecureSharedSession(
+            userId = "user-123",
+            userEmail = "user@example.com",
+            accessToken = "access-token",
+            refreshToken = "refresh-token",
+            accessTokenExpiresAtEpochSeconds = 1_725_000_000L,
+        )
+
+    private fun completeSharedSessionPrefs(
+        missingKey: String? = null,
+        blankKey: String? = null,
+    ): FakeSharedPreferences {
+        val values =
+            mutableMapOf<String, Any?>(
+                "shared_user_id" to "user-123",
+                "shared_user_email" to "user@example.com",
+                "shared_access_token" to "access-token",
+                "shared_refresh_token" to "refresh-token",
+                "shared_access_token_expires_at" to 1_725_000_000L,
+            )
+        missingKey?.let(values::remove)
+        blankKey?.let { values[it] = "" }
+        return FakeSharedPreferences(values)
+    }
+
     private fun invokeResetLockIfPinMissing(
         prefs: SharedPreferences,
         dataStore: DataStore<Preferences>,
@@ -111,131 +217,131 @@ class SecureStorageImplTest {
                 }
         method.invoke(companionInstance, prefs, dataStore, Dispatchers.Unconfined)
     }
+}
 
-    private class FakeSharedPreferences(
-        private val values: MutableMap<String, Any?> = mutableMapOf(),
-    ) : SharedPreferences {
-        override fun contains(key: String?): Boolean = values.containsKey(key)
+internal class FakeSharedPreferences(
+    private val values: MutableMap<String, Any?> = mutableMapOf(),
+) : SharedPreferences {
+    override fun contains(key: String?): Boolean = values.containsKey(key)
 
-        override fun getBoolean(
+    override fun getBoolean(
+        key: String?,
+        defValue: Boolean,
+    ): Boolean = values[key] as? Boolean ?: defValue
+
+    override fun getFloat(
+        key: String?,
+        defValue: Float,
+    ): Float = values[key] as? Float ?: defValue
+
+    override fun getInt(
+        key: String?,
+        defValue: Int,
+    ): Int = values[key] as? Int ?: defValue
+
+    override fun getLong(
+        key: String?,
+        defValue: Long,
+    ): Long = values[key] as? Long ?: defValue
+
+    override fun getString(
+        key: String?,
+        defValue: String?,
+    ): String? = values[key] as? String ?: defValue
+
+    @Suppress("UNCHECKED_CAST")
+    override fun getStringSet(
+        key: String?,
+        defValues: MutableSet<String>?,
+    ): MutableSet<String>? =
+        values[key] as? MutableSet<String> ?: defValues
+
+    override fun getAll(): MutableMap<String, *> = values.toMutableMap()
+
+    override fun edit(): SharedPreferences.Editor = Editor(values)
+
+    override fun registerOnSharedPreferenceChangeListener(listener: SharedPreferences.OnSharedPreferenceChangeListener?) = Unit
+
+    override fun unregisterOnSharedPreferenceChangeListener(listener: SharedPreferences.OnSharedPreferenceChangeListener?) = Unit
+
+    private class Editor(
+        private val values: MutableMap<String, Any?>,
+    ) : SharedPreferences.Editor {
+        private val pending = mutableMapOf<String, Any?>()
+        private var clearRequested = false
+
+        override fun putString(
             key: String?,
-            defValue: Boolean,
-        ): Boolean = values[key] as? Boolean ?: defValue
-
-        override fun getFloat(
-            key: String?,
-            defValue: Float,
-        ): Float = values[key] as? Float ?: defValue
-
-        override fun getInt(
-            key: String?,
-            defValue: Int,
-        ): Int = values[key] as? Int ?: defValue
-
-        override fun getLong(
-            key: String?,
-            defValue: Long,
-        ): Long = values[key] as? Long ?: defValue
-
-        override fun getString(
-            key: String?,
-            defValue: String?,
-        ): String? = values[key] as? String ?: defValue
-
-        @Suppress("UNCHECKED_CAST")
-        override fun getStringSet(
-            key: String?,
-            defValues: MutableSet<String>?,
-        ): MutableSet<String>? =
-            values[key] as? MutableSet<String> ?: defValues
-
-        override fun getAll(): MutableMap<String, *> = values.toMutableMap()
-
-        override fun edit(): SharedPreferences.Editor = Editor(values)
-
-        override fun registerOnSharedPreferenceChangeListener(listener: SharedPreferences.OnSharedPreferenceChangeListener?) = Unit
-
-        override fun unregisterOnSharedPreferenceChangeListener(listener: SharedPreferences.OnSharedPreferenceChangeListener?) = Unit
-
-        private class Editor(
-            private val values: MutableMap<String, Any?>,
-        ) : SharedPreferences.Editor {
-            private val pending = mutableMapOf<String, Any?>()
-            private var clearRequested = false
-
-            override fun putString(
-                key: String?,
-                value: String?,
-            ): SharedPreferences.Editor =
-                apply {
-                    pending[key.orEmpty()] = value
-                }
-
-            override fun putStringSet(
-                key: String?,
-                values: MutableSet<String>?,
-            ): SharedPreferences.Editor =
-                apply {
-                    pending[key.orEmpty()] = values
-                }
-
-            override fun putInt(
-                key: String?,
-                value: Int,
-            ): SharedPreferences.Editor =
-                apply {
-                    pending[key.orEmpty()] = value
-                }
-
-            override fun putLong(
-                key: String?,
-                value: Long,
-            ): SharedPreferences.Editor =
-                apply {
-                    pending[key.orEmpty()] = value
-                }
-
-            override fun putFloat(
-                key: String?,
-                value: Float,
-            ): SharedPreferences.Editor =
-                apply {
-                    pending[key.orEmpty()] = value
-                }
-
-            override fun putBoolean(
-                key: String?,
-                value: Boolean,
-            ): SharedPreferences.Editor =
-                apply {
-                    pending[key.orEmpty()] = value
-                }
-
-            override fun remove(key: String?): SharedPreferences.Editor =
-                apply {
-                    pending[key.orEmpty()] = null
-                }
-
-            override fun clear(): SharedPreferences.Editor =
-                apply {
-                    clearRequested = true
-                }
-
-            override fun commit(): Boolean {
-                apply()
-                return true
+            value: String?,
+        ): SharedPreferences.Editor =
+            apply {
+                pending[key.orEmpty()] = value
             }
 
-            override fun apply() {
-                if (clearRequested) {
-                    values.clear()
-                }
-                pending.forEach { (key, value) ->
-                    if (value == null) values.remove(key) else values[key] = value
-                }
-                pending.clear()
-                clearRequested = false
+        override fun putStringSet(
+            key: String?,
+            values: MutableSet<String>?,
+        ): SharedPreferences.Editor =
+            apply {
+                pending[key.orEmpty()] = values
             }
+
+        override fun putInt(
+            key: String?,
+            value: Int,
+        ): SharedPreferences.Editor =
+            apply {
+                pending[key.orEmpty()] = value
+            }
+
+        override fun putLong(
+            key: String?,
+            value: Long,
+        ): SharedPreferences.Editor =
+            apply {
+                pending[key.orEmpty()] = value
+            }
+
+        override fun putFloat(
+            key: String?,
+            value: Float,
+        ): SharedPreferences.Editor =
+            apply {
+                pending[key.orEmpty()] = value
+            }
+
+        override fun putBoolean(
+            key: String?,
+            value: Boolean,
+        ): SharedPreferences.Editor =
+            apply {
+                pending[key.orEmpty()] = value
+            }
+
+        override fun remove(key: String?): SharedPreferences.Editor =
+            apply {
+                pending[key.orEmpty()] = null
+            }
+
+        override fun clear(): SharedPreferences.Editor =
+            apply {
+                clearRequested = true
+            }
+
+        override fun commit(): Boolean {
+            apply()
+            return true
+        }
+
+        override fun apply() {
+            if (clearRequested) {
+                values.clear()
+            }
+            pending.forEach { (key, value) ->
+                if (value == null) values.remove(key) else values[key] = value
+            }
+            pending.clear()
+            clearRequested = false
         }
     }
 }

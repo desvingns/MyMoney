@@ -21,17 +21,17 @@ object EntitlementStateMachine {
     fun resolve(
         snapshot: EntitlementSnapshot?,
         now: Instant,
+        onInvalidSnapshot: (EntitlementSnapshot) -> Unit = {},
     ): UserEntitlement {
-        if (snapshot == null || snapshot.revokedAt != null) return UserEntitlement.Free
+        if (snapshot == null) return UserEntitlement.Free
 
-        val expiresAt = snapshot.expiresAt
-        if (
-            (expiresAt == null && snapshot.source != EntitlementSource.WHITELIST) ||
-            (expiresAt != null && !expiresAt.isAfter(snapshot.startsAt))
-        ) {
+        if (snapshot.hasInvalidExpiry()) {
+            onInvalidSnapshot(snapshot)
             return UserEntitlement.Free
         }
+        if (snapshot.revokedAt != null) return UserEntitlement.Free
 
+        val expiresAt = snapshot.expiresAt
         val graceEndsAt = expiresAt?.plus(graceDuration(snapshot.source))
         val state =
             when {
@@ -49,6 +49,25 @@ object EntitlementStateMachine {
             expiresAt = expiresAt,
             graceEndsAt = graceEndsAt,
         )
+    }
+
+    fun resolve(
+        snapshots: Collection<EntitlementSnapshot>,
+        now: Instant,
+        onInvalidSnapshot: (EntitlementSnapshot) -> Unit = {},
+    ): UserEntitlement {
+        var selected: UserEntitlement.Plus? = null
+
+        snapshots.forEach { snapshot ->
+            val candidate =
+                resolve(snapshot, now, onInvalidSnapshot) as? UserEntitlement.Plus ?: return@forEach
+            val current = selected
+            if (current == null || candidate.isPreferredOver(current)) {
+                selected = candidate
+            }
+        }
+
+        return selected ?: UserEntitlement.Free
     }
 
     fun warnings(
@@ -83,6 +102,40 @@ object EntitlementStateMachine {
 
     private fun graceDuration(source: EntitlementSource): Duration =
         if (source in subscriptionSources) subscriptionGraceDuration else Duration.ZERO
+
+    private fun EntitlementSnapshot.hasInvalidExpiry(): Boolean =
+        when (source) {
+            EntitlementSource.WHITELIST -> expiresAt != null
+            EntitlementSource.SUBSCRIPTION_MONTHLY,
+            EntitlementSource.SUBSCRIPTION_YEARLY,
+            EntitlementSource.AD_REWARD,
+            -> expiresAt == null || !expiresAt.isAfter(startsAt)
+        }
+
+    private fun UserEntitlement.Plus.isPreferredOver(other: UserEntitlement.Plus): Boolean {
+        val candidateGraceEndsAt = graceEndsAt
+        val selectedGraceEndsAt = other.graceEndsAt
+        if (candidateGraceEndsAt == null || selectedGraceEndsAt == null) {
+            if (candidateGraceEndsAt != selectedGraceEndsAt) return candidateGraceEndsAt == null
+        } else {
+            val graceComparison = candidateGraceEndsAt.compareTo(selectedGraceEndsAt)
+            if (graceComparison != 0) return graceComparison > 0
+        }
+
+        val sourcePriorityComparison = sourcePriority(source).compareTo(sourcePriority(other.source))
+        if (sourcePriorityComparison != 0) return sourcePriorityComparison > 0
+
+        val sourceComparison = source.name.compareTo(other.source.name)
+        if (sourceComparison != 0) return sourceComparison > 0
+
+        val startsAtComparison = startsAt.compareTo(other.startsAt)
+        if (startsAtComparison != 0) return startsAtComparison > 0
+
+        return state.compareTo(other.state) > 0
+    }
+
+    private fun sourcePriority(source: EntitlementSource): Int =
+        if (source in subscriptionSources) 1 else 0
 
     private fun Instant.isWithin(
         now: Instant,

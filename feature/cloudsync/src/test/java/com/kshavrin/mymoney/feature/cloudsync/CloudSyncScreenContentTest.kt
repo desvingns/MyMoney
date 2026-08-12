@@ -77,7 +77,7 @@ class CloudSyncScreenContentTest {
     // ── Shared card — active workspace ─────────────────────────────────────
 
     @Test
-    fun `Shared card shows sync-now and leave buttons when workspace is active`() {
+    fun `non-owner Shared card shows sync-now Disconnect and Leave buttons when workspace is active`() {
         setContent(
             CloudSyncState(
                 binding = CloudBinding(CloudProvider.Shared, "ws-1", "Budget"),
@@ -85,7 +85,21 @@ class CloudSyncScreenContentTest {
             ),
         )
         composeTestRule.onNodeWithTag("cloud_sync_shared_sync_now").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithTag("cloud_sync_shared_disconnect").performScrollTo().assertIsDisplayed()
         composeTestRule.onNodeWithTag("cloud_sync_shared_leave").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun `sole-owner Shared card shows disconnect and hides leave`() {
+        setContent(
+            CloudSyncState(
+                binding = CloudBinding(CloudProvider.Shared, "ws-1", "Budget"),
+                shared = SharedCardState(signedIn = true, active = true, isSoleOwner = true),
+            ),
+        )
+
+        composeTestRule.onNodeWithTag("cloud_sync_shared_disconnect").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithTag("cloud_sync_shared_leave").assertDoesNotExist()
     }
 
     @Test
@@ -301,6 +315,24 @@ class CloudSyncScreenContentTest {
         }
     }
 
+    @Test
+    fun `active Shared card disconnect button emits SharedDisconnectClicked`() {
+        val events = mutableListOf<CloudSyncEvent>()
+        setContent(
+            CloudSyncState(
+                binding = CloudBinding(CloudProvider.Shared, "ws-1", "Budget"),
+                shared = SharedCardState(signedIn = true, active = true),
+            ),
+            events::add,
+        )
+
+        composeTestRule.onNodeWithTag("cloud_sync_shared_disconnect").performScrollTo().performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(CloudSyncEvent.SharedDisconnectClicked), events)
+        }
+    }
+
     // ── SharedSetupDialog ──────────────────────────────────────────────────
 
     @Test
@@ -473,6 +505,37 @@ class CloudSyncScreenContentTest {
         composeTestRule.onNodeWithText(str(R.string.sync_shared_leave)).assertIsEnabled().performClick()
         composeTestRule.runOnIdle {
             assertEquals(listOf(CloudSyncEvent.SharedConfirmLeave), events)
+        }
+    }
+
+    @Test
+    fun `ConfirmDisconnect dialog shows keep and delete controls and emits events`() {
+        val events = mutableListOf<CloudSyncEvent>()
+        setContent(
+            CloudSyncState(sharedDialog = SharedDialog.ConfirmDisconnect),
+            events::add,
+        )
+
+        composeTestRule.onNodeWithText(str(R.string.sync_shared_disconnect_title)).assertIsDisplayed()
+        composeTestRule
+            .onNodeWithTag("cloud_sync_shared_disconnect_keep_server_data")
+            .assertIsDisplayed()
+            .performClick()
+        composeTestRule
+            .onNodeWithTag("cloud_sync_shared_disconnect_delete_workspace")
+            .assertIsDisplayed()
+            .assertIsEnabled()
+            .performClick()
+        composeTestRule.onNodeWithText(str(R.string.sync_shared_delete_workspace)).assertIsDisplayed()
+
+        composeTestRule.runOnIdle {
+            assertEquals(
+                listOf(
+                    CloudSyncEvent.SharedConfirmDisconnectKeepServerData,
+                    CloudSyncEvent.SharedConfirmDisconnectDeleteWorkspace,
+                ),
+                events,
+            )
         }
     }
 

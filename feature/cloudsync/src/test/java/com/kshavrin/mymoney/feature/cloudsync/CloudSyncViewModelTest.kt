@@ -19,6 +19,7 @@ import com.kshavrin.mymoney.core.sync.SyncScheduler
 import com.kshavrin.mymoney.core.sync.SyncTarget
 import com.kshavrin.mymoney.core.sync.shared.SharedSyncCoordinator
 import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceInvite
+import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceOwnership
 import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceSummary
 import com.kshavrin.mymoney.core.testing.fake.FakeAppSettingsRepository
 import com.kshavrin.mymoney.feature.cloudsync.fake.FakeRemoteConfigRepository
@@ -383,6 +384,98 @@ class CloudSyncViewModelTest {
         }
 
     @Test
+    fun `SharedDisconnectClicked for sole owner shows confirm-disconnect dialog`() =
+        runTest {
+            val shared =
+                SharedCoordinator().apply {
+                    workspaceOwnership = SharedWorkspaceOwnership(isOwner = true, isSoleOwner = true)
+                }
+            val vm =
+                viewModel(
+                    SnapshotFake(),
+                    RecordingJournalSync(),
+                    Config(CloudBinding(CloudProvider.Shared, "ws-1", "Budget")),
+                    Scheduler(),
+                    shared = shared,
+                )
+            runCurrent()
+
+            vm.onEvent(CloudSyncEvent.SharedDisconnectClicked)
+
+            assertEquals(SharedDialog.ConfirmDisconnect, vm.state.value.sharedDialog)
+            assertEquals(0, shared.disconnectCalls)
+        }
+
+    @Test
+    fun `keep server data disconnects the sole-owner device without deleting the workspace`() =
+        runTest {
+            val shared =
+                SharedCoordinator().apply {
+                    workspaceOwnership = SharedWorkspaceOwnership(isOwner = true, isSoleOwner = true)
+                }
+            val vm =
+                viewModel(
+                    SnapshotFake(),
+                    RecordingJournalSync(),
+                    Config(CloudBinding(CloudProvider.Shared, "ws-1", "Budget")),
+                    Scheduler(),
+                    shared = shared,
+            )
+            runCurrent()
+            vm.onEvent(CloudSyncEvent.SharedDisconnectClicked)
+
+            vm.actions.test {
+                vm.onEvent(CloudSyncEvent.SharedConfirmDisconnectKeepServerData)
+                assertEquals(CloudSyncAction.ClearSharedGoogleCredentialState, awaitItem())
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            assertEquals(1, shared.disconnectCalls)
+            assertEquals(0, shared.deleteCalls)
+        }
+
+    @Test
+    fun `delete workspace action delegates only to workspace deletion`() =
+        runTest {
+            val shared = SharedCoordinator()
+            val vm =
+                viewModel(
+                    SnapshotFake(),
+                    RecordingJournalSync(),
+                    Config(CloudBinding(CloudProvider.Shared, "ws-1", "Budget")),
+                    Scheduler(),
+                    shared = shared,
+                )
+
+            vm.onEvent(CloudSyncEvent.SharedConfirmDisconnectDeleteWorkspace)
+            runCurrent()
+
+            assertEquals(0, shared.disconnectCalls)
+            assertEquals(1, shared.deleteCalls)
+        }
+
+    @Test
+    fun `SharedDisconnectClicked for non-sole owner disconnects immediately`() =
+        runTest {
+            val shared = SharedCoordinator().apply { workspaceOwnership = SharedWorkspaceOwnership(isOwner = true) }
+            val vm =
+                viewModel(
+                    SnapshotFake(),
+                    RecordingJournalSync(),
+                    Config(CloudBinding(CloudProvider.Shared, "ws-1", "Budget")),
+                    Scheduler(),
+                    shared = shared,
+                )
+
+            runCurrent()
+            vm.onEvent(CloudSyncEvent.SharedDisconnectClicked)
+            runCurrent()
+
+            assertEquals(1, shared.disconnectCalls)
+            assertNull(vm.state.value.sharedDialog)
+        }
+
+    @Test
     fun `SharedConfirmLeave delegates to coordinator and clears isConnecting`() =
         runTest {
             val shared =
@@ -703,6 +796,8 @@ class CloudSyncViewModelTest {
         var createGate: CompletableDeferred<Unit>? = null
         var onCreateWorkspace: (() -> Unit)? = null
         var leaveCalls = 0
+        var disconnectCalls = 0
+        var deleteCalls = 0
         var startRealtimeCalls = 0
         var stopRealtimeCalls = 0
         var activeWorkspaceCalls = 0
@@ -720,6 +815,9 @@ class CloudSyncViewModelTest {
         var discoverRemoteWorkspaceCalls = 0
         var recoverRemoteWorkspaceCalls = 0
         var lastRecoveryImportLocalData = false
+        var workspaceOwnership = SharedWorkspaceOwnership()
+        var disconnectResult: Result<Unit> = Result.success(Unit)
+        var deleteResult: Result<Unit> = Result.success(Unit)
 
         override fun isSignedIn() = signedIn
 
@@ -740,9 +838,9 @@ class CloudSyncViewModelTest {
             return workspaceSummary
         }
 
-        override suspend fun activeWorkspaceOwnership(): Result<com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceOwnership> {
+        override suspend fun activeWorkspaceOwnership(): Result<SharedWorkspaceOwnership> {
             activeWorkspaceOwnershipCalls++
-            return Result.success(com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceOwnership())
+            return Result.success(workspaceOwnership)
         }
 
         override suspend fun discoverRemoteWorkspace(): Result<SharedWorkspaceSummary?> {
@@ -781,6 +879,11 @@ class CloudSyncViewModelTest {
 
         override suspend fun syncNow() = Result.success(Unit)
 
+        override suspend fun disconnectFromDevice(): Result<Unit> {
+            disconnectCalls++
+            return disconnectResult
+        }
+
         override suspend fun startForegroundRealtime(): Result<Unit> {
             startRealtimeCalls++
             return Result.success(Unit)
@@ -812,6 +915,11 @@ class CloudSyncViewModelTest {
         override suspend fun leaveWorkspace(): Result<Unit> {
             leaveCalls++
             return Result.success(Unit)
+        }
+
+        override suspend fun deleteWorkspace(): Result<Unit> {
+            deleteCalls++
+            return deleteResult
         }
     }
 

@@ -420,7 +420,7 @@ class CloudSyncViewModelTest {
                     Config(CloudBinding(CloudProvider.Shared, "ws-1", "Budget")),
                     Scheduler(),
                     shared = shared,
-            )
+                )
             runCurrent()
             vm.onEvent(CloudSyncEvent.SharedDisconnectClicked)
 

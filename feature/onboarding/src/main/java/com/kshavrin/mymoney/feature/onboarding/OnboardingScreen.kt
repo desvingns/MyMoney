@@ -78,7 +78,7 @@ fun OnboardingContent(
     coroutineScope: CoroutineScope,
     onGetStarted: () -> Unit,
 ) {
-    val isLastPage = currentPage == ONBOARDING_PAGE_COUNT - 1
+    val isLastPage = isLastOnboardingPage(currentPage)
     Column(
         modifier =
             Modifier
@@ -212,6 +212,9 @@ private fun PagerDotsIndicator(
         }
     }
 }
+
+internal fun isLastOnboardingPage(page: Int): Boolean =
+    page == ONBOARDING_PAGE_COUNT - 1
 
 private const val ONBOARDING_PAGE_COUNT = 4
 private const val ONBOARDING_PAGER_INDICATOR_TAG = "onboarding_pager_indicator"

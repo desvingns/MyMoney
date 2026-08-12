@@ -224,6 +224,45 @@ class GetOperationsSummaryUseCaseTest {
         }
 
     @Test
+    fun `sorts an operation before a transfer when timestamp and id are identical`() =
+        runTest {
+            seedCurrencies()
+            accountRepo.seed(account(primaryAccountId))
+            val tiedTimestamp = Instant.parse("2026-05-20T10:00:00Z")
+            transactionRepo.seedCategoryGroups(
+                primaryAccountId,
+                period,
+                categoryGroup(categoryFoodId, CategoryKind.Expense),
+            )
+            transactionRepo.seedPeriodTransactions(
+                primaryAccountId,
+                period,
+                transaction(
+                    id = 52L,
+                    occurredAt = tiedTimestamp,
+                    kind = TransactionKind.Expense,
+                    categoryId = categoryFoodId,
+                ),
+            )
+            transactionRepo.seedTransfers(
+                primaryAccountId,
+                period,
+                transferRow(
+                    id = 52L,
+                    occurredAt = tiedTimestamp,
+                ),
+            )
+
+            val result = useCase(primaryAccountId, period)
+
+            assertEquals(
+                listOf(SummaryRecord.Operation::class, SummaryRecord.Transfer::class),
+                result.map { it::class },
+            )
+            assertEquals(listOf(52L, 52L), result.map { it.id })
+        }
+
+    @Test
     fun `forAccounts includes active accounts and deduplicates internal transfers`() =
         runTest {
             seedCurrencies()

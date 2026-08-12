@@ -21,7 +21,7 @@
 | Background work | WorkManager 2.10 (Hilt integration) |
 | minSdkVersion / targetSdkVersion / compileSdkVersion | 31 / 36 / 36 |
 | Audience focus | "Gaming" — aesthetic-only gamification (animation, haptic, sound), no XP/streaks/achievements |
-| Monetization | Stripped — fully free, no IAP, no ads |
+| Monetization | Freemium — Plus subscription + "coffee" consumables + rewarded ads (ADR-0010; supersedes Q-B3) |
 | Cloud sync | Dropbox (PKCE) + Google Drive (appDataFolder scope) snapshot sync |
 | Crash reporting | Sentry (DSN to be re-issued) |
 | Feature flags | Firebase Remote Config (fetch 12 h) |
@@ -2027,17 +2027,17 @@ Manifest is much smaller than the original APK's 12. Each line is annotated with
 | `android.permission.ACCESS_NETWORK_STATE`         | KEEP        | (APK)                                                              |
 | `android.permission.USE_BIOMETRIC`                | KEEP        | (APK) — S16                                                        |
 | `android.permission.WAKE_LOCK`                    | KEEP        | (APK) — WorkManager                                                |
-| `com.android.vending.BILLING`                     | REMOVED     | (decision Q-B3) — no IAP                                            |
+| `com.android.vending.BILLING`                     | KEEP        | (ADR-0010) — Play Billing: Plus subscription + coffee consumables   |
 | `android.permission.USE_FINGERPRINT`              | REMOVED     | (decision) — superseded by USE_BIOMETRIC on minSdk 31              |
 | `android.permission.POST_NOTIFICATIONS`           | REMOVED     | (decision Q-D3) — no notifications                                 |
 | `android.permission.RECEIVE_BOOT_COMPLETED`       | REMOVED     | (decision) — WorkManager handles reboot persistence natively       |
 | `android.permission.FOREGROUND_SERVICE`           | REMOVED     | (decision) — no fg sync service                                    |
 | `android.permission.READ_PHONE_STATE`             | REMOVED     | (decision) — was telephony-aware analytics in original             |
-| `com.google.android.gms.permission.AD_ID`         | REMOVED     | (decision Q-B3) — no ads                                            |
+| `com.google.android.gms.permission.AD_ID`         | KEEP        | (ADR-0010) — merged by the Play Services Ads SDK (rewarded ads)     |
 | `com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE` | REMOVED | (decision) — was install-attribution                |
 | `android.permission.RECORD_AUDIO`                 | NOT ADDED   | (decision) — voice search uses RecognizerIntent (system app captures audio) |
 
-Final count: **4 manifest permissions** (down from 12).
+Final count: **6 manifest permissions** (down from 12).
 
 ### 8.3. Storage layout on disk
 
@@ -2107,7 +2107,7 @@ Final count: **4 manifest permissions** (down from 12).
 | ORM                     | Room + OrmLite legacy (APK)             | Room only (decision)                  |
 | Network                 | OkHttp3 (APK)                           | OkHttp 4.12 + Retrofit 2.11 (Q-E2)    |
 | Charting                | Custom + ? (likely MPAndroidChart or proprietary) | Pure Compose Canvas (decision) |
-| Monetization            | Google Play Billing 7.0 + ads + Premium IAP (APK) | None — fully free (Q-B3)    |
+| Monetization            | Google Play Billing 7.0 + ads + Premium IAP (APK) | Play Billing + rewarded ads — Plus subscription, coffee consumables (ADR-0010) |
 | Crash reporting         | Sentry (APK)                            | Sentry (kept; new DSN)                 |
 | Sync                    | Dropbox + Google Drive (APK)            | Dropbox + Google Drive (same)         |
 | Permissions             | 12 (APK)                                | 4 (decision)                          |
@@ -2379,7 +2379,8 @@ The following keys exist verbatim in the original APK and must be preserved (sem
 | `transfer_transaction_shortcut_short_label`| Transfer                                                                                                                      | Перевод                                                                                                                                         |
 | `dropbox_sync_text`                    | Lets you use Monefy on multiple devices and keep a shared ledger.                                                                  | Позволяет использовать Monefy на нескольких мобильных устройствах и вести общий учет финансов.                                                  |
 
-Keys to **rename or drop** in our re-impl (Premium-related, not applicable per Q-B3):
+Keys to **rename or drop** in our re-impl (Monefy's own Premium copy; MyMoney's paywall gets
+its own keys under ADR-0010, so the original names below are still dropped or rephrased):
 
 | APK key                            | Action                                                            |
 |------------------------------------|-------------------------------------------------------------------|
@@ -2769,7 +2770,7 @@ These six items require external accounts and live credentials; they are NOT des
 
 ### 14.4. Decisions worth flagging in the team kickoff
 
-- **No Premium IAP.** A clear product call (Q-B3 = free, no IAP, no ads). Confirm with stakeholders that this is the launch decision (not a phase-1 simplification).
+- **Freemium (ADR-0010, supersedes Q-B3).** Plus subscription (€1.99/mo, €12.99/yr with a 7-day trial on annual only), two repeatable "coffee" consumables (€1 / €5), and rewarded ads (5 views = 24 h Plus, granted only via AdMob SSV). Free keeps every local capability plus private Dropbox/GDrive backup; Plus sells shared Supabase workspace, backup version history, and the supporter badge. Not available to users in Russia — see ADR-0010 §"Regional constraints".
 - **Aesthetic gamification only.** No XP, streaks, achievements (Q-B4). Confirm scope; this defines what the "gaming audience" message means for marketing.
 - **minSdk 31.** Trades device coverage (~85 % vs ~95 % at minSdk 26) for cleaner code (no compat layers). Confirm with product.
 - **Custom donut chart.** Builds visual identity but is non-trivial work (~1 week with animations). If schedule slips, consider Vico or MPAndroidChart as fallback for v1.0 with custom rewrite in v1.1.

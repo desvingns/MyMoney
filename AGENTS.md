@@ -63,10 +63,12 @@ Plugins declared in `gradle/libs.versions.toml` only — never literal versions 
 :core:ui            :core:designsystem    :core:database
 :core:datastore     :core:network         :core:sync
 :core:domain        :core:common          :core:testing
+:core:billing       :core:ads
 :feature:onboarding         :feature:dashboard
 :feature:transaction        :feature:transactionslist
 :feature:settings           :feature:dictionaries
 :feature:cloudsync          :feature:lockscreen
+:feature:support
 ```
 
 Rule: `:feature:*` may depend on `:core:*` and `:domain`. Never `:feature:*` → `:feature:*`.

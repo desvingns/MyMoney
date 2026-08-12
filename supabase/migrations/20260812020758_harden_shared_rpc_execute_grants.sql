@@ -1,0 +1,23 @@
+revoke all on function public.is_active_member(uuid, uuid) from public, anon;
+revoke all on function public.create_workspace(text) from public, anon;
+revoke all on function public.create_invite(uuid, text) from public, anon;
+revoke all on function public.revoke_invite(uuid) from public, anon;
+revoke all on function public.join_workspace(text) from public, anon;
+revoke all on function public.leave_workspace(uuid) from public, anon;
+revoke all on function public.delete_workspace(uuid) from public, anon;
+revoke all on function public.push_operation(uuid, text, bigint, text, public.entity_kind, uuid, jsonb, boolean) from public, anon;
+revoke all on function public.pull_operations(uuid, bigint, integer) from public, anon;
+revoke all on function public.list_pending_conflicts(uuid) from public, anon;
+revoke all on function public.resolve_conflict(uuid, uuid) from public, anon;
+
+grant execute on function public.is_active_member(uuid, uuid) to authenticated;
+grant execute on function public.create_workspace(text) to authenticated;
+grant execute on function public.create_invite(uuid, text) to authenticated;
+grant execute on function public.revoke_invite(uuid) to authenticated;
+grant execute on function public.join_workspace(text) to authenticated;
+grant execute on function public.leave_workspace(uuid) to authenticated;
+grant execute on function public.delete_workspace(uuid) to authenticated;
+grant execute on function public.push_operation(uuid, text, bigint, text, public.entity_kind, uuid, jsonb, boolean) to authenticated;
+grant execute on function public.pull_operations(uuid, bigint, integer) to authenticated;
+grant execute on function public.list_pending_conflicts(uuid) to authenticated;
+grant execute on function public.resolve_conflict(uuid, uuid) to authenticated;

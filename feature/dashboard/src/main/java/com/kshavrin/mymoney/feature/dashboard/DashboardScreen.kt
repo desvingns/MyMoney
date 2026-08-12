@@ -24,7 +24,6 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.DateRangePicker
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -35,7 +34,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -71,6 +69,7 @@ import com.kshavrin.mymoney.feature.dashboard.components.ChartSettingsSheet
 import com.kshavrin.mymoney.feature.dashboard.components.CurrencyBalanceCardList
 import com.kshavrin.mymoney.feature.dashboard.components.DashboardDrawerOverlay
 import com.kshavrin.mymoney.feature.dashboard.components.DrawerSide
+import com.kshavrin.mymoney.feature.dashboard.components.FullScreenDateRangePicker
 import com.kshavrin.mymoney.feature.dashboard.components.LeftDrawerContent
 import com.kshavrin.mymoney.feature.dashboard.components.OperationsSummarySheet
 import com.kshavrin.mymoney.feature.dashboard.components.PeriodSwitcher
@@ -279,50 +278,15 @@ fun DashboardContent(
     }
 
     if (showPickDateRangePicker) {
-        val selectedRange = state.period as? Period.CustomRange
-        val pickerState =
-            rememberDateRangePickerState(
-                initialSelectedStartDateMillis =
-                    selectedRange?.start?.let(::localDateToMaterialPickerUtcMillis),
-                initialSelectedEndDateMillis =
-                    selectedRange?.end?.let(::localDateToMaterialPickerUtcMillis),
-            )
-        val startMillis = pickerState.selectedStartDateMillis
-        val endMillis = pickerState.selectedEndDateMillis
-        val validRange = startMillis != null && endMillis != null && startMillis <= endMillis
-
-        DatePickerDialog(
-            onDismissRequest = { showPickDateRangePicker = false },
-            confirmButton = {
-                TextButton(
-                    enabled = validRange,
-                    onClick = {
-                        if (startMillis != null && endMillis != null && startMillis <= endMillis) {
-                            soundPlayer.play(SoundKey.SWIPE)
-                            hapticPlayer.fire(HapticKind.SOFT)
-                            onEvent(
-                                DashboardEvent.PeriodChanged(
-                                    Period.CustomRange(
-                                        start = materialPickerUtcMillisToLocalDate(startMillis),
-                                        end = materialPickerUtcMillisToLocalDate(endMillis),
-                                    ),
-                                ),
-                            )
-                            showPickDateRangePicker = false
-                        }
-                    },
-                ) {
-                    Text(stringResource(R.string.period_apply))
-                }
+        FullScreenDateRangePicker(
+            initialRange = state.period as? Period.CustomRange,
+            onApply = { range ->
+                soundPlayer.play(SoundKey.SWIPE)
+                hapticPlayer.fire(HapticKind.SOFT)
+                onEvent(DashboardEvent.PeriodChanged(range))
             },
-            dismissButton = {
-                TextButton(onClick = { showPickDateRangePicker = false }) {
-                    Text(stringResource(R.string.period_cancel))
-                }
-            },
-        ) {
-            DateRangePicker(state = pickerState)
-        }
+            onDismiss = { showPickDateRangePicker = false },
+        )
     }
 
     if (state.chartSettingsSheetOpen) {

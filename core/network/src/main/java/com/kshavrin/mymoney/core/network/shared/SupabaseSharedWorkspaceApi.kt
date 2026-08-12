@@ -31,7 +31,7 @@ class SupabaseSharedWorkspaceApi
 
         override suspend fun leaveWorkspace(workspaceId: String): Result<Unit> = rpc.leaveWorkspace(workspaceId)
 
-    override suspend fun deleteWorkspace(workspaceId: String): Result<Unit> = rpc.deleteWorkspace(workspaceId)
+        override suspend fun deleteWorkspace(workspaceId: String): Result<Unit> = rpc.deleteWorkspace(workspaceId)
 
-    override suspend fun deleteAccount(): Result<Unit> = rpc.deleteAccount()
-}
+        override suspend fun deleteAccount(): Result<Unit> = rpc.deleteAccount()
+    }

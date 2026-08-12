@@ -13,7 +13,6 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
-import kotlinx.coroutines.yield
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,6 +20,7 @@ import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.yield
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -902,9 +902,10 @@ class LockControllerTest {
 
         override val settings: Flow<AppSettings> =
             flow {
-                val subscriptionIndex = synchronized(this@StartupRaceAppSettingsRepository) {
-                    subscriptionCount++
-                }
+                val subscriptionIndex =
+                    synchronized(this@StartupRaceAppSettingsRepository) {
+                        subscriptionCount++
+                    }
                 if (subscriptionIndex == 0) {
                     emit(AppSettings())
                     emit(collectorUpdate.await())
@@ -924,9 +925,10 @@ class LockControllerTest {
 
         override val versionedSettings: Flow<VersionedAppSettings> =
             flow {
-                val subscriptionIndex = synchronized(this@StaleDisabledEmissionAppSettingsRepository) {
-                    subscriptionCount++
-                }
+                val subscriptionIndex =
+                    synchronized(this@StaleDisabledEmissionAppSettingsRepository) {
+                        subscriptionCount++
+                    }
                 if (subscriptionIndex == 0) {
                     emit(
                         VersionedAppSettings(

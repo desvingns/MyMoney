@@ -1467,8 +1467,8 @@ class DashboardViewModel
                         val records = source()
                         if (
                             _state.value.expandedCategoryId == categoryId &&
-                                _state.value.period == period &&
-                                _state.value.dashboardSelection == selection
+                            _state.value.period == period &&
+                            _state.value.dashboardSelection == selection
                         ) {
                             _state.value =
                                 _state.value.copy(
@@ -1481,8 +1481,8 @@ class DashboardViewModel
                         t.reportToSentry()
                         if (
                             _state.value.expandedCategoryId == categoryId &&
-                                _state.value.period == period &&
-                                _state.value.dashboardSelection == selection
+                            _state.value.period == period &&
+                            _state.value.dashboardSelection == selection
                         ) {
                             _state.value = _state.value.copy(expandedRecordsLoading = false)
                         }

@@ -10,9 +10,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.yield
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.boolean
 import okhttp3.OkHttpClient
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
@@ -71,11 +71,17 @@ class SupabaseSharedRealtimeTest {
             server.enqueue(
                 MockResponse().withWebSocketUpgrade(
                     object : WebSocketListener() {
-                        override fun onOpen(webSocket: WebSocket, response: okhttp3.Response) {
+                        override fun onOpen(
+                            webSocket: WebSocket,
+                            response: okhttp3.Response,
+                        ) {
                             opened.complete(webSocket)
                         }
 
-                        override fun onMessage(webSocket: WebSocket, text: String) {
+                        override fun onMessage(
+                            webSocket: WebSocket,
+                            text: String,
+                        ) {
                             joinMessage.complete(text)
                         }
                     },
@@ -129,7 +135,10 @@ class SupabaseSharedRealtimeTest {
             server.enqueue(
                 MockResponse().withWebSocketUpgrade(
                     object : WebSocketListener() {
-                        override fun onOpen(webSocket: WebSocket, response: okhttp3.Response) {
+                        override fun onOpen(
+                            webSocket: WebSocket,
+                            response: okhttp3.Response,
+                        ) {
                             opened.complete(webSocket)
                         }
                     },
@@ -165,7 +174,10 @@ class SupabaseSharedRealtimeTest {
             server.enqueue(
                 MockResponse().withWebSocketUpgrade(
                     object : WebSocketListener() {
-                        override fun onOpen(webSocket: WebSocket, response: okhttp3.Response) {
+                        override fun onOpen(
+                            webSocket: WebSocket,
+                            response: okhttp3.Response,
+                        ) {
                             opened.complete(webSocket)
                         }
                     },

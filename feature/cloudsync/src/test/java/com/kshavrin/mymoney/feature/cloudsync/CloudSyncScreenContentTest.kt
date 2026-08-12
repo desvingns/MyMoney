@@ -10,9 +10,9 @@ import androidx.compose.ui.test.performScrollTo
 import com.kshavrin.mymoney.core.datastore.CloudBinding
 import com.kshavrin.mymoney.core.datastore.CloudProvider
 import com.kshavrin.mymoney.core.domain.model.BackupFile
+import com.kshavrin.mymoney.core.sync.SyncTarget
 import com.kshavrin.mymoney.core.sync.shared.SharedRealtimeStatus
 import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceSummary
-import com.kshavrin.mymoney.core.sync.SyncTarget
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -587,7 +587,10 @@ class CloudSyncScreenContentTest {
         }
     }
 
-    private fun str(resId: Int, vararg args: Any): String =
+    private fun str(
+        resId: Int,
+        vararg args: Any,
+    ): String =
         androidx.test.core.app.ApplicationProvider
             .getApplicationContext<android.content.Context>()
             .getString(resId, *args)

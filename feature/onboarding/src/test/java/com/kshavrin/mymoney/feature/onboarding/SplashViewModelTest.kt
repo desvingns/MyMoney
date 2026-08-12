@@ -13,6 +13,7 @@ import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
 import com.kshavrin.mymoney.core.domain.seed.InitialDataSeeder
 import com.kshavrin.mymoney.core.domain.transaction.TransactionRunner
 import com.kshavrin.mymoney.feature.onboarding.util.MainDispatcherRule
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -98,6 +99,29 @@ class SplashViewModelTest {
             assertEquals(23, currencyRepository.snapshot().size)
             assertEquals(1, accountRepository.snapshot().size)
             assertEquals(17, categoryRepository.snapshot().size)
+        }
+
+    @Test
+    fun `initialise preserves pending state when seeding is cancelled`() =
+        runTest {
+            val currencyRepository =
+                FakeCurrencyRepository().apply {
+                    observeAllFailure = CancellationException("cancelled")
+                }
+            val accountRepository = FakeAccountRepository()
+            val categoryRepository = FakeCategoryRepository()
+            val viewModel =
+                SplashViewModel(
+                    createSeeder(currencyRepository, accountRepository, categoryRepository),
+                )
+
+            viewModel.initialise()
+            advanceUntilIdle()
+
+            assertEquals(SplashDestination.Pending, viewModel.state.value.destination)
+            assertFalse(viewModel.state.value.seedFailed)
+            assertEquals(1, currencyRepository.observeAllCalls)
+            assertEquals(0, currencyRepository.upsertAllCalls)
         }
 
     private fun createSeeder(

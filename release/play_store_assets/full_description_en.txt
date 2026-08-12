@@ -1,0 +1,23 @@
+Keep a clear record of everyday money with MyMoney.
+
+MyMoney is a personal expense tracker for recording expenses, income, and transfers between your accounts. Add a record with an amount, category, date, account, currency, and note, then see your balance and spending at a glance.
+
+What you can do:
+• Track expenses and income in seconds.
+• Record transfers between accounts, including transfers between different currencies with an exchange rate.
+• Use day, week, month, year, all-time, or custom date-range views.
+• See spending by category in a donut chart, follow balance trends, and open the records behind a summary.
+• Search, filter, edit, and delete transactions. Undo a deletion during the available undo period.
+• Create and reorder categories, choose icons and colors, and manage accounts and currencies.
+• Set category budgets and see an in-app warning when spending goes over a budget.
+• Add recurring transactions for daily, weekly, monthly, or yearly entries.
+• Create savings goals and see calculated progress and dates.
+• Choose light, dark, or system theme. Use English or Russian. Turn sound and haptic feedback on or off.
+• Protect the app with biometric unlock and a fallback PIN when supported by your device.
+• Export or import a full database backup (.db) through the Android file picker.
+• Export transactions to CSV and import CSV records through the guided import flow.
+
+Storage and control:
+Your entries are stored in the app's local database on your device. You can choose a folder for database backups or a file for CSV export and import using Android's file picker. The standard build does not enable cloud synchronization by default. Optional network integrations, if available in a particular build, require their own account or configuration.
+
+MyMoney is a tracking tool. It does not connect to banks or provide banking, investment, lending, credit, payment, or other financial services.

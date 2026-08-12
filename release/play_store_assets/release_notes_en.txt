@@ -1,0 +1,7 @@
+Initial release:
+• Quick entry for expenses, income, and transfers.
+• Dashboard with balances, category spending, date periods, and trends.
+• Accounts, currencies, categories, budgets, recurring transactions, and savings goals.
+• Search, filters, editing, deletion with undo, and CSV import/export.
+• Local database backup and restore.
+• Light, dark, and system themes, English and Russian interface, sound and haptic settings, and app lock.

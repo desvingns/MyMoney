@@ -2,11 +2,11 @@ package com.kshavrin.mymoney.feature.cloudsync
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
-import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.datastore.CloudBinding
@@ -29,7 +29,6 @@ import org.junit.runner.RunWith
  */
 @RunWith(AndroidJUnit4::class)
 class CloudSyncSharedCardUiTest {
-
     @get:Rule
     val composeTestRule = createComposeRule()
 
@@ -39,9 +38,10 @@ class CloudSyncSharedCardUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 CloudSyncContent(
-                    state = CloudSyncState(
-                        shared = SharedCardState(signedIn = false, active = false),
-                    ),
+                    state =
+                        CloudSyncState(
+                            shared = SharedCardState(signedIn = false, active = false),
+                        ),
                     onEvent = events::add,
                 )
             }
@@ -68,10 +68,11 @@ class CloudSyncSharedCardUiTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 CloudSyncContent(
-                    state = CloudSyncState(
-                        binding = CloudBinding(CloudProvider.Dropbox, "acct", "user@dropbox.com"),
-                        shared = SharedCardState(signedIn = true, active = false),
-                    ),
+                    state =
+                        CloudSyncState(
+                            binding = CloudBinding(CloudProvider.Dropbox, "acct", "user@dropbox.com"),
+                            shared = SharedCardState(signedIn = true, active = false),
+                        ),
                     onEvent = {},
                 )
             }
@@ -89,48 +90,18 @@ class CloudSyncSharedCardUiTest {
 
     @Test
     fun `Shared card shows sync-now leave and optional conflicts button when Shared is active`() {
-        composeTestRule.setContent {
-            MyMoneyTheme {
-                CloudSyncContent(
-                    state = CloudSyncState(
-                        binding = CloudBinding(CloudProvider.Shared, "ws-1", "Family Budget"),
-                        shared = SharedCardState(
-                            signedIn = true,
-                            active = true,
-                            workspaceName = "Family Budget",
-                            conflictCount = 2,
-                        ),
-                    ),
-                    onEvent = {},
-                )
-            }
-        }
+        setContent(state = sharedActiveState(conflictCount = 2))
 
         composeTestRule.onNodeWithTag("cloud_sync_shared_sync_now").assertIsDisplayed()
-        composeTestRule.onNodeWithTag("cloud_sync_shared_leave").assertIsDisplayed()
-        composeTestRule.onNodeWithTag("cloud_sync_shared_conflicts").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("cloud_sync_shared_leave").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithTag("cloud_sync_shared_conflicts").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithTag("cloud_sync_shared_disconnect").performScrollTo().assertIsDisplayed()
     }
 
     @Test
     fun `Shared card exposes realtime error retry action on device`() {
         val events = mutableListOf<CloudSyncEvent>()
-        composeTestRule.setContent {
-            MyMoneyTheme {
-                CloudSyncContent(
-                    state =
-                        CloudSyncState(
-                            binding = CloudBinding(CloudProvider.Shared, "ws-1", "Family Budget"),
-                            shared =
-                                SharedCardState(
-                                    signedIn = true,
-                                    active = true,
-                                    realtimeStatus = SharedRealtimeStatus.Error,
-                                ),
-                        ),
-                    onEvent = events::add,
-                )
-            }
-        }
+        setContent(state = sharedActiveState(realtimeStatus = SharedRealtimeStatus.Error), onEvent = events::add)
 
         composeTestRule
             .onNodeWithTag("cloud_sync_shared_realtime_status")
@@ -151,4 +122,31 @@ class CloudSyncSharedCardUiTest {
 
     private fun targetString(resourceId: Int): String =
         InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)
+
+    private fun setContent(
+        state: CloudSyncState,
+        onEvent: (CloudSyncEvent) -> Unit = {},
+    ) {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                CloudSyncContent(state = state, onEvent = onEvent)
+            }
+        }
+    }
+
+    private fun sharedActiveState(
+        conflictCount: Int = 0,
+        realtimeStatus: SharedRealtimeStatus = SharedRealtimeStatus.Inactive,
+    ) =
+        CloudSyncState(
+            binding = CloudBinding(CloudProvider.Shared, "ws-1", "Family Budget"),
+            shared =
+                SharedCardState(
+                    signedIn = true,
+                    active = true,
+                    workspaceName = "Family Budget",
+                    conflictCount = conflictCount,
+                    realtimeStatus = realtimeStatus,
+                ),
+        )
 }

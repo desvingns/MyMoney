@@ -57,3 +57,6 @@ tool-local memories — tool-local copies remain historical snapshots.
   unstaged and the next commit records the rename alone (bit SPEC activation commit 4f0d2aaf,
   folded into the close commit). After `git mv` of a file you just edited, always `git add <dest>`
   and check `git status` before committing.
+## Connected services
+
+- Supabase MCP plugin is connected and available to both Codex and Claude for this project.

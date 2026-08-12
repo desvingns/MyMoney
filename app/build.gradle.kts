@@ -1,7 +1,7 @@
-import java.math.BigInteger
-import java.util.Properties
 import org.gradle.api.Action
 import org.gradle.api.execution.TaskExecutionGraph
+import java.math.BigInteger
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.mymoney.android.application)
@@ -68,12 +68,15 @@ fun String.asBuildConfigString(): String =
 
 val playInternalSyncEnabled =
     providers.gradleProperty("sync.playInternalEnabled").orNull?.toBooleanStrictOrNull() ?: false
+val playReleaseSyncEnabled =
+    providers.gradleProperty("sync.playReleaseEnabled").orNull?.toBooleanStrictOrNull() ?: false
+val syncEnabled = playInternalSyncEnabled || playReleaseSyncEnabled
 
 fun Properties.runtimeValue(propertyName: String): String? =
     providers.gradleProperty(propertyName).orNull?.takeUnless { it.isBlank() }
         ?: getProperty(propertyName)?.takeUnless { it.isBlank() }
 
-fun String.isPlayInternalPlaceholder(): Boolean {
+fun String.isSyncRuntimePlaceholder(): Boolean {
     val normalized = trim()
     val uppercase = normalized.uppercase()
     return normalized.isBlank() ||
@@ -83,7 +86,7 @@ fun String.isPlayInternalPlaceholder(): Boolean {
         uppercase.contains("YOUR_PROJECT")
 }
 
-fun requirePlayInternalRuntimeConfiguration() {
+fun requireSyncRuntimeConfiguration() {
     val requiredValues =
         listOf(
             "Dropbox app key" to localProperties.runtimeValue("dropbox.appKey").orEmpty(),
@@ -92,8 +95,8 @@ fun requirePlayInternalRuntimeConfiguration() {
             "Supabase Google web client ID" to localProperties.runtimeValue("supabase.googleWebClientId").orEmpty(),
         )
     requiredValues.forEach { (label, value) ->
-        check(!value.isPlayInternalPlaceholder()) {
-            "$label must be configured with a non-placeholder value when sync.playInternalEnabled=true."
+        check(!value.isSyncRuntimePlaceholder()) {
+            "$label must be configured with a non-placeholder value when sync.playInternalEnabled=true or sync.playReleaseEnabled=true."
         }
     }
 
@@ -128,7 +131,12 @@ fun gitOutput(vararg arguments: String): String? =
                 isIgnoreExitValue = true
             }
         if (execution.result.get().exitValue == 0) {
-            execution.standardOutput.asText.get().trim().takeIf { it.isNotEmpty() }
+            execution
+                .standardOutput
+                .asText
+                .get()
+                .trim()
+                .takeIf { it.isNotEmpty() }
         } else {
             null
         }
@@ -136,6 +144,7 @@ fun gitOutput(vararg arguments: String): String? =
 
 val hasCompleteGitHistory = gitOutput("rev-parse", "--is-shallow-repository") == "false"
 val releaseTagPattern = Regex("""^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$""")
+
 fun validReleaseTags(rawTags: String?): List<String> =
     rawTags
         .orEmpty()
@@ -162,8 +171,14 @@ val validReleaseTagsAtHead =
     } else {
         emptyList()
     }
-fun releaseVersionPart(tag: String, group: Int): BigInteger =
-    BigInteger(releaseTagPattern.matchEntire(tag)!!.groupValues[group])
+
+fun releaseVersionPart(
+    tag: String,
+    group: Int,
+): BigInteger =
+    BigInteger(
+        releaseTagPattern.matchEntire(tag)!!.groupValues[group],
+    )
 
 fun latestReleaseTag(tags: List<String>): String? =
     tags.maxWithOrNull(
@@ -219,6 +234,10 @@ val releaseVersioningReady =
 
 fun isNonDebugPackagingTask(taskPath: String): Boolean {
     val taskName = taskPath.substringAfterLast(':').lowercase()
+    val isAppTask =
+        !taskPath.contains(':') ||
+            taskPath.startsWith(":app:") ||
+            taskPath.startsWith("app:")
     val isPackagingTask =
         taskName == "build" ||
             taskName.startsWith("build") ||
@@ -228,7 +247,7 @@ fun isNonDebugPackagingTask(taskPath: String): Boolean {
             taskName.startsWith("bundle") ||
             taskName == "package" ||
             taskName.startsWith("package")
-    return isPackagingTask && !taskName.contains("debug")
+    return isAppTask && isPackagingTask && !taskName.contains("debug")
 }
 
 fun isStagingPackagingTask(taskPath: String): Boolean =
@@ -251,8 +270,11 @@ if (gradle.startParameter.taskNames.any(::isNonDebugPackagingTask)) {
 if (playInternalSyncEnabled && gradle.startParameter.taskNames.any(::isReleasePackagingTask)) {
     error("sync.playInternalEnabled=true is supported only for the staging variant, never release packaging.")
 }
-if (playInternalSyncEnabled && gradle.startParameter.taskNames.any(::isStagingPackagingTask)) {
-    requirePlayInternalRuntimeConfiguration()
+if (playReleaseSyncEnabled && gradle.startParameter.taskNames.any(::isStagingPackagingTask)) {
+    error("sync.playReleaseEnabled=true is supported only for release packaging.")
+}
+if (syncEnabled && gradle.startParameter.taskNames.any(::isNonDebugPackagingTask)) {
+    requireSyncRuntimeConfiguration()
 }
 gradle.taskGraph.whenReady(
     object : Action<TaskExecutionGraph> {
@@ -263,8 +285,11 @@ gradle.taskGraph.whenReady(
             if (playInternalSyncEnabled && taskGraph.allTasks.any { isReleasePackagingTask(it.path) }) {
                 error("sync.playInternalEnabled=true is supported only for the staging variant, never release packaging.")
             }
-            if (playInternalSyncEnabled && taskGraph.allTasks.any { isStagingPackagingTask(it.path) }) {
-                requirePlayInternalRuntimeConfiguration()
+            if (playReleaseSyncEnabled && taskGraph.allTasks.any { isStagingPackagingTask(it.path) }) {
+                error("sync.playReleaseEnabled=true is supported only for release packaging.")
+            }
+            if (syncEnabled && taskGraph.allTasks.any { isNonDebugPackagingTask(it.path) }) {
+                requireSyncRuntimeConfiguration()
             }
         }
     },
@@ -293,6 +318,7 @@ android {
 
         buildConfigField("String", "SENTRY_DSN", sentryDsn.asBuildConfigString())
         buildConfigField("boolean", "PLAY_INTERNAL_SYNC_ENABLED", playInternalSyncEnabled.toString())
+        buildConfigField("boolean", "PLAY_RELEASE_SYNC_ENABLED", playReleaseSyncEnabled.toString())
         buildConfigField(
             "boolean",
             "HAS_FIREBASE",

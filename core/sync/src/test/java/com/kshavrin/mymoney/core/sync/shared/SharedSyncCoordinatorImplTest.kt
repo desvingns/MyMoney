@@ -51,14 +51,14 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emitAll
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -491,6 +491,42 @@ class SharedSyncCoordinatorImplTest {
             configStore.current = null
             val result = coordinator.leaveWorkspace()
             assertTrue(result.isFailure)
+        }
+
+    @Test
+    fun `disconnectFromDevice keeps local binding when final sync fails`() =
+        runTest(dispatcher) {
+            auth.session = fakeSession()
+            configStore.current = CloudBinding(CloudProvider.Shared, "ws-1", "Budget")
+            sharedStore.membershipActive = true
+            journalRepository.pullResults.add(Result.failure(SyncException(SyncError.Network)))
+
+            val result = coordinator.disconnectFromDevice()
+
+            assertTrue(result.isFailure)
+            assertNotNull(configStore.current)
+            assertEquals(0, scheduler.disableCalls)
+            assertEquals(0, auth.signOutCalls)
+        }
+
+    @Test
+    fun `disconnectFromDevice clears local state without leaving or deleting workspace`() =
+        runTest(dispatcher) {
+            auth.session = fakeSession()
+            configStore.current = CloudBinding(CloudProvider.Shared, "ws-1", "Budget")
+            sharedStore.membershipActive = true
+            journalRepository.pullResults.add(Result.success(emptyList()))
+
+            val result = coordinator.disconnectFromDevice()
+
+            assertTrue(result.isSuccess)
+            assertNull(configStore.current)
+            assertTrue(sharedStore.cursorIsCleared)
+            assertEquals(1, scheduler.disableCalls)
+            assertEquals(1, auth.signOutCalls)
+            assertEquals(1, auth.clearLocalSessionCalls)
+            assertEquals(0, workspaceApi.leaveCalls)
+            assertEquals(0, workspaceApi.deleteCalls)
         }
 
     // ── syncNow forced-removal guard ───────────────────────────────────────
@@ -1081,6 +1117,8 @@ class SharedSyncCoordinatorImplTest {
         var createInviteResult: Result<CreatedInvite> = Result.failure(RuntimeException("unused"))
         var createInviteCalls = 0
         var lastCreateInviteWorkspaceId: String? = null
+        var leaveCalls = 0
+        var deleteCalls = 0
         var leaveFailure: Throwable? = null
         var currentWorkspaceResult: Result<SharedWorkspace?> = Result.success(null)
 
@@ -1089,6 +1127,7 @@ class SharedSyncCoordinatorImplTest {
         override suspend fun joinWorkspace(token: String) = joinResult
 
         override suspend fun leaveWorkspace(workspaceId: String): Result<Unit> {
+            leaveCalls++
             leaveFailure?.let { return Result.failure(it) }
             return Result.success(Unit)
         }
@@ -1105,7 +1144,10 @@ class SharedSyncCoordinatorImplTest {
 
         override suspend fun revokeInvite(inviteId: String) = Result.success(Unit)
 
-        override suspend fun deleteWorkspace(workspaceId: String) = Result.success(Unit)
+        override suspend fun deleteWorkspace(workspaceId: String): Result<Unit> {
+            deleteCalls++
+            return Result.success(Unit)
+        }
     }
 
     private inner class FakeSharedJournalRepository : SharedJournalRepository {

@@ -732,7 +732,11 @@ class DashboardViewModelTest {
                 runCurrent()
 
                 assertEquals(77L, viewModel.state.value.expandedCategoryId)
-                assertEquals(listOf(701L, 702L), viewModel.state.value.expandedRecords.map { it.id })
+                assertEquals(
+                    listOf(701L, 702L),
+                    viewModel.state.value.expandedRecords
+                        .map { it.id },
+                )
                 assertFalse(viewModel.state.value.expandedRecordsLoading)
                 assertNull(viewModel.state.value.operationsSummary)
                 assertTrue(
@@ -2385,7 +2389,7 @@ class DashboardViewModelTest {
     @Test
     fun `second slice click on same category collapses inline records`() =
         runTest {
-                val (viewModel, store) = buildViewModel()
+            val (viewModel, store) = buildViewModel()
             try {
                 runCurrent()
 
@@ -2402,7 +2406,10 @@ class DashboardViewModelTest {
                 runCurrent()
 
                 assertNull(viewModel.state.value.expandedCategoryId)
-                assertTrue(viewModel.state.value.expandedRecords.isEmpty())
+                assertTrue(
+                    viewModel.state.value.expandedRecords
+                        .isEmpty(),
+                )
             } finally {
                 store.clear()
                 runCurrent()
@@ -2491,12 +2498,19 @@ class DashboardViewModelTest {
                 viewModel.onEvent(DashboardEvent.SliceClicked(categoryId = 10L))
                 runCurrent()
                 assertEquals(10L, viewModel.state.value.expandedCategoryId)
-                assertEquals(listOf(1001L), viewModel.state.value.expandedRecords.map { it.id })
+                assertEquals(
+                    listOf(1001L),
+                    viewModel.state.value.expandedRecords
+                        .map { it.id },
+                )
 
                 viewModel.onEvent(DashboardEvent.PeriodChanged(april))
 
                 assertNull(viewModel.state.value.expandedCategoryId)
-                assertTrue(viewModel.state.value.expandedRecords.isEmpty())
+                assertTrue(
+                    viewModel.state.value.expandedRecords
+                        .isEmpty(),
+                )
                 assertFalse(viewModel.state.value.expandedRecordsLoading)
             } finally {
                 store.clear()

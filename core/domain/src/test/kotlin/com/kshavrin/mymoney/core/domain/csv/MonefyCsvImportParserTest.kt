@@ -122,6 +122,69 @@ class MonefyCsvImportParserTest {
     }
 
     @Test
+    fun `rejects a row with too few fields with its exact row message`() {
+        val csv = "$monefyHeader\n01/01/2020,Cash,Food,-1,USD"
+
+        val exception =
+            assertThrows(IOException::class.java) {
+                MonefyCsvImportParser.parseText(csv)
+            }
+
+        assertEquals("Invalid Monefy CSV row 2: expected 8 fields", exception.message)
+    }
+
+    @Test
+    fun `rejects a nonnumeric amount with its exact row message`() {
+        val csv = "$monefyHeader\n01/01/2020,Cash,Food,not-a-number,USD,not-a-number,USD,"
+
+        val exception =
+            assertThrows(IOException::class.java) {
+                MonefyCsvImportParser.parseText(csv)
+            }
+
+        assertEquals("Invalid Monefy CSV row 2: amount must be a number", exception.message)
+    }
+
+    @Test
+    fun `parses LF rows and maps escaped quotes in a description to a quote in the note`() {
+        val quotedDescription = "\"He said \"\"hello\"\"\""
+        val csv =
+            "$monefyHeader\n" +
+                "01/01/2020,Cash,Food,-1,USD,-1,USD,$quotedDescription\n" +
+                "02/01/2020,Cash,Food,2,USD,2,USD,plain"
+
+        val rows = MonefyCsvImportParser.parseText(csv).rows
+
+        assertEquals(2, rows.size)
+        assertEquals("He said \"hello\"", rows[0].note)
+        assertEquals("plain", rows[1].note)
+    }
+
+    @Test
+    fun `rejects an unexpected character after a closing quote`() {
+        val csv = "$monefyHeader\n01/01/2020,Cash,Food,-1,USD,-1,USD,\"note\"x"
+
+        val exception =
+            assertThrows(IOException::class.java) {
+                MonefyCsvImportParser.parseText(csv)
+            }
+
+        assertEquals("Unexpected character after quoted CSV field", exception.message)
+    }
+
+    @Test
+    fun `rejects an unexpected quote in an unquoted field`() {
+        val csv = "$monefyHeader\n01/01/2020,Cash,Food,-1,USD,-1,USD,plain\"note"
+
+        val exception =
+            assertThrows(IOException::class.java) {
+                MonefyCsvImportParser.parseText(csv)
+            }
+
+        assertEquals("Unexpected quote in CSV field", exception.message)
+    }
+
+    @Test
     fun `zero amount is rejected`() {
         val csv = "$monefyHeader\r\n29/09/2018,Наличные,Продукты,0,RUB,0,RUB,\r\n"
         assertThrows(IOException::class.java) {

@@ -28,15 +28,15 @@
   <header>
     <p class="meta"><a href="https://desvingns.github.io/MyMoney/privacy-policy/en/">MyMoney Privacy Policy</a> · <a href="https://desvingns.github.io/MyMoney/account-deletion/ru/">Русская версия</a></p>
     <h1>MyMoney account and data deletion</h1>
-    <p class="meta">Developer: Kirill Shavrin · Last updated: August 7, 2026</p>
+    <p class="meta">Developer: Kirill Shavrin · Last updated: August 11, 2026</p>
   </header>
 
   <div class="notice">
     <h2>Important implementation note</h2>
-    <p>Compatible MyMoney builds may offer an authenticated in-app account-deletion path only after the corresponding backend migration has been deployed and the flow has been end-to-end verified. That migration has not been deployed or end-to-end verified for the public/release path. Until then, this public page and the email request process remain the fallback; an email request does not itself automatically delete an account, and requests are reviewed manually by the developer.</p>
+    <p>The production Supabase migration for the authenticated deletion function <code>delete_my_account</code> has been deployed. The release build includes an authenticated in-app deletion path. It is blocked while the user has an active Shared workspace with other members; resolve that membership first. If the app is inaccessible, use this public page or the email request process; requests are reviewed manually by the developer.</p>
   </div>
 
-  <p>Some compatible MyMoney builds include optional Shared workspaces. In those builds, users can sign in with Google OAuth through Supabase Auth. Public/release defaults keep Shared workspaces disabled. A compatible build may offer the authenticated in-app deletion path only after the backend migration is deployed and the flow is end-to-end verified.</p>
+  <p>The release build includes optional Shared workspaces. Users can sign in with Google OAuth through Supabase Auth. Dropbox and Google Drive copies are controlled by the user's own provider accounts and are not removed automatically by account deletion.</p>
 
   <a class="cta" href="mailto:desvingns@gmail.com?subject=MyMoney%20account%20deletion%20request">Request account and data deletion</a>
   <p>Or email <a href="mailto:desvingns@gmail.com?subject=MyMoney%20account%20deletion%20request">desvingns@gmail.com</a> with the subject <strong>MyMoney account deletion request</strong>.</p>
@@ -54,15 +54,16 @@
   <h2>What the deletion process can remove</h2>
   <div class="scope">
     <ul>
-      <li><strong>Supabase Auth profile/user:</strong> an authenticated in-app path may request deletion in a compatible build only after the backend migration is deployed and the flow is end-to-end verified. Until then, use this public page or the email request path.</li>
+      <li><strong>Supabase Auth profile/user:</strong> the authenticated in-app path deletes the user's Supabase Auth user and related account data. A sole-owner workspace is deleted when allowed; a shared workspace with other members is not deleted.</li>
       <li><strong>Workspace membership:</strong> an editor can leave; a sole owner can delete the workspace.</li>
       <li><strong>Active Shared workspaces with other members:</strong> account deletion is blocked safely until the membership is resolved; it does not delete a shared workspace or other members' data.</li>
       <li><strong>Invitations:</strong> workspace deletion cascades to workspace invites.</li>
       <li><strong>Operations and related records:</strong> workspace deletion cascades to operations, conflicts, members and other workspace-linked records.</li>
-      <li><strong>Session and tokens:</strong> sign-out requests Supabase logout when possible and clears the locally stored access/refresh tokens. This is not the same as deleting the Supabase Auth user.</li>
-      <li><strong>Server-side Auth/session data:</strong> automatic deletion is not implemented; Supabase controls server-side session handling and retention until the account-deletion backend exists.</li>
+      <li><strong>Session and tokens:</strong> the deletion flow clears the locally stored Supabase access/refresh tokens and session binding.</li>
+      <li><strong>Dropbox and Google Drive copies:</strong> files already stored in the user's provider account remain there and require provider-side deletion.</li>
+      <li><strong>Local financial data:</strong> deleting the remote account does not erase the local Room database; use the app's factory reset, clear storage, or uninstall the app.</li>
     </ul>
-    <p>The workspace-deletion operation is owner-only and is restricted to a sole owner. The backend migration for the authenticated account-deletion path has not been deployed or end-to-end verified; this page therefore makes no claim that the in-app path is available in production or public/release builds.</p>
+    <p>The workspace-deletion operation is owner-only and is restricted to a sole owner. If the account has an active workspace with other members, leave it first; the deletion operation will not remove other members or their shared data.</p>
   </div>
 
   <h2>Data on your device</h2>

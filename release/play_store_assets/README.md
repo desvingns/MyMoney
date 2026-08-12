@@ -1,8 +1,8 @@
 # Play Store Assets
 
-Product owns the approved artwork and listing copy. These are placeholders for
-the internal-beta release package and must be replaced with reviewed assets
-before public publication.
+Product owns the approved artwork and listing copy for the first Play Console
+submission. Review the final screenshots and copy in Play Console before
+publishing the public release.
 
 ## Screenshots
 
@@ -24,5 +24,7 @@ Provide eight phone screenshots in the required Play Console dimensions:
 
 ## Listing Copy
 
-- `short_description.txt` - approved short description, maximum 80 characters.
-- `full_description.txt` - approved full description, maximum 4000 characters.
+- `short_description_en.txt` / `short_description_ru.txt` - short descriptions,
+  maximum 80 characters each.
+- `full_description_en.txt` / `full_description_ru.txt` - full descriptions,
+  maximum 4000 characters each.

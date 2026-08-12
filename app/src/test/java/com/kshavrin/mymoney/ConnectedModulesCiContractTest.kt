@@ -19,14 +19,41 @@ class ConnectedModulesCiContractTest {
             script,
             listOf(
                 "status=0",
-                "timeout 30m ./gradlew :app:connectedDebugAndroidTest \$FIREBASE_ARGS --stacktrace || status=\$?",
-                "timeout 20m ./gradlew :core:designsystem:connectedDebugAndroidTest \$FIREBASE_ARGS --stacktrace || status=\$?",
-                "timeout 20m ./gradlew :core:database:connectedDebugAndroidTest \$FIREBASE_ARGS --stacktrace || status=\$?",
-                "timeout 20m ./gradlew :core:datastore:connectedDebugAndroidTest \$FIREBASE_ARGS --stacktrace || status=\$?",
-                "timeout 20m ./gradlew :core:sync:connectedDebugAndroidTest \$FIREBASE_ARGS --stacktrace || status=\$?",
-                "timeout 20m ./gradlew :core:network:connectedDebugAndroidTest \$FIREBASE_ARGS --stacktrace || status=\$?",
-                "timeout 20m ./gradlew :feature:lockscreen:connectedDebugAndroidTest \$FIREBASE_ARGS --stacktrace || status=\$?",
+                "timeout 30m ./gradlew :app:connectedDebugAndroidTest \$FIREBASE_ARGS --stacktrace || { rc=\$?; if [ \"\$status\" -eq 0 ]; then status=\$rc; fi; }",
+                "timeout 20m ./gradlew :core:designsystem:connectedDebugAndroidTest \$FIREBASE_ARGS --stacktrace || { rc=\$?; if [ \"\$status\" -eq 0 ]; then status=\$rc; fi; }",
+                "timeout 20m ./gradlew :core:database:connectedDebugAndroidTest \$FIREBASE_ARGS --stacktrace || { rc=\$?; if [ \"\$status\" -eq 0 ]; then status=\$rc; fi; }",
+                "timeout 20m ./gradlew :core:datastore:connectedDebugAndroidTest \$FIREBASE_ARGS --stacktrace || { rc=\$?; if [ \"\$status\" -eq 0 ]; then status=\$rc; fi; }",
+                "timeout 20m ./gradlew :core:sync:connectedDebugAndroidTest \$FIREBASE_ARGS --stacktrace || { rc=\$?; if [ \"\$status\" -eq 0 ]; then status=\$rc; fi; }",
+                "timeout 20m ./gradlew :core:network:connectedDebugAndroidTest \$FIREBASE_ARGS --stacktrace || { rc=\$?; if [ \"\$status\" -eq 0 ]; then status=\$rc; fi; }",
+                "timeout 20m ./gradlew :feature:lockscreen:connectedDebugAndroidTest \$FIREBASE_ARGS --stacktrace || { rc=\$?; if [ \"\$status\" -eq 0 ]; then status=\$rc; fi; }",
                 "exit \$status",
+            ),
+        )
+    }
+
+    @Test
+    fun `workflow cancels only superseded pull request runs within a stable group`() {
+        val topLevel = workflowFile.readText().substringBefore("\njobs:")
+
+        assertContainsInOrder(
+            topLevel,
+            listOf(
+                "concurrency:",
+                "  group: \${{ github.workflow }}-\${{ github.event.pull_request.number || github.ref }}",
+                "  cancel-in-progress: \${{ github.event_name == 'pull_request' }}",
+            ),
+        )
+    }
+
+    @Test
+    fun `connected job waits for jvm checks before starting emulator`() {
+        val connectedJob = workflowFile.readText().substringAfter("  connected:")
+
+        assertContainsInOrder(
+            connectedJob,
+            listOf(
+                "    needs: jvm",
+                "      - name: Run connected tests on API 34 emulator",
             ),
         )
     }

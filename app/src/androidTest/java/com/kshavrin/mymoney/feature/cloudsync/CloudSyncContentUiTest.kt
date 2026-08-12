@@ -95,27 +95,11 @@ class CloudSyncContentUiTest {
 
     @Test
     fun `active Shared card exposes invite code copy and dismiss controls`() {
-        val events = mutableListOf<CloudSyncEvent>()
-        val renderedState =
-            mutableStateOf(
-                CloudSyncState(
-                    binding = CloudBinding(CloudProvider.Shared, "ws-1", "Budget"),
-                    shared = SharedCardState(signedIn = true, active = true, workspaceName = "Budget"),
-                ),
-            )
-        val onEvent: (CloudSyncEvent) -> Unit = { event ->
-            events += event
-            when (event) {
-                CloudSyncEvent.SharedCreateInviteClicked ->
-                    renderedState.value = CloudSyncState(sharedDialog = SharedDialog.Invite("invite-token"))
-                CloudSyncEvent.SharedDialogDismissed -> renderedState.value = CloudSyncState()
-                else -> Unit
-            }
-        }
+        val fixture = sharedInviteFixture()
 
         composeTestRule.setContent {
             MyMoneyTheme {
-                CloudSyncContent(state = renderedState.value, onEvent = onEvent)
+                CloudSyncContent(state = fixture.renderedState.value, onEvent = fixture.onEvent)
             }
         }
         composeTestRule
@@ -124,10 +108,10 @@ class CloudSyncContentUiTest {
             .assertIsDisplayed()
             .performClick()
         composeTestRule.runOnIdle {
-            assertEquals(listOf(CloudSyncEvent.SharedCreateInviteClicked), events)
+            assertEquals(listOf(CloudSyncEvent.SharedCreateInviteClicked), fixture.events)
         }
 
-        events.clear()
+        fixture.events.clear()
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText("invite-token").assertIsDisplayed()
         composeTestRule.onNodeWithText(targetString(R.string.sync_shared_copy_invite)).performClick()
@@ -135,7 +119,7 @@ class CloudSyncContentUiTest {
         composeTestRule.runOnIdle {
             assertEquals(
                 listOf(CloudSyncEvent.SharedCopyInviteClicked, CloudSyncEvent.SharedDialogDismissed),
-                events,
+                fixture.events,
             )
         }
     }
@@ -162,7 +146,14 @@ class CloudSyncContentUiTest {
 
         composeTestRule.runOnIdle {
             val clipboard = context.getSystemService(android.content.ClipboardManager::class.java)
-            assertEquals("invite-token", clipboard?.primaryClip?.getItemAt(0)?.text?.toString())
+            assertEquals(
+                "invite-token",
+                clipboard
+                    ?.primaryClip
+                    ?.getItemAt(0)
+                    ?.text
+                    ?.toString(),
+            )
         }
     }
 
@@ -174,6 +165,33 @@ class CloudSyncContentUiTest {
     }
 
     private fun targetString(resourceId: Int): String = InstrumentationRegistry.getInstrumentation().targetContext.getString(resourceId)
+
+    private fun sharedInviteFixture(): SharedInviteFixture {
+        val events = mutableListOf<CloudSyncEvent>()
+        val renderedState =
+            mutableStateOf(
+                CloudSyncState(
+                    binding = CloudBinding(CloudProvider.Shared, "ws-1", "Budget"),
+                    shared = SharedCardState(signedIn = true, active = true, workspaceName = "Budget"),
+                ),
+            )
+        val onEvent: (CloudSyncEvent) -> Unit = { event ->
+            events += event
+            when (event) {
+                CloudSyncEvent.SharedCreateInviteClicked ->
+                    renderedState.value = CloudSyncState(sharedDialog = SharedDialog.Invite("invite-token"))
+                CloudSyncEvent.SharedDialogDismissed -> renderedState.value = CloudSyncState()
+                else -> Unit
+            }
+        }
+        return SharedInviteFixture(renderedState, events, onEvent)
+    }
+
+    private data class SharedInviteFixture(
+        val renderedState: androidx.compose.runtime.MutableState<CloudSyncState>,
+        val events: MutableList<CloudSyncEvent>,
+        val onEvent: (CloudSyncEvent) -> Unit,
+    )
 
     private fun inviteViewModel() =
         CloudSyncViewModel(
@@ -192,7 +210,10 @@ class CloudSyncContentUiTest {
 
         override fun connectedTargets() = emptyList<SyncTarget>()
 
-        override fun connect(target: SyncTarget, payload: String) = Unit
+        override fun connect(
+            target: SyncTarget,
+            payload: String,
+        ) = Unit
 
         override fun disconnect(target: SyncTarget) = Unit
 
@@ -268,7 +289,10 @@ class CloudSyncContentUiTest {
 
         override suspend fun peerHighWaterMs(fileId: String) = 0L
 
-        override suspend fun setPeerHighWaterMs(fileId: String, modifiedAtMs: Long) = Unit
+        override suspend fun setPeerHighWaterMs(
+            fileId: String,
+            modifiedAtMs: Long,
+        ) = Unit
 
         override suspend fun isBootstrapDone() = true
 
@@ -284,15 +308,24 @@ class CloudSyncContentUiTest {
 
         override fun accountEmail() = "owner@example.com"
 
-        override suspend fun signIn(googleIdToken: String, nonce: String) = Result.success(Unit)
+        override suspend fun signIn(
+            googleIdToken: String,
+            nonce: String,
+        ) = Result.success(Unit)
 
         override suspend fun signOut() = Result.success(Unit)
 
         override suspend fun activeWorkspace() = SharedWorkspaceSummary("ws-1", "Budget")
 
-        override suspend fun createWorkspace(name: String, importLocalData: Boolean) = Result.success(SharedWorkspaceSummary("ws-1", name))
+        override suspend fun createWorkspace(
+            name: String,
+            importLocalData: Boolean,
+        ) = Result.success(SharedWorkspaceSummary("ws-1", name))
 
-        override suspend fun joinWorkspace(inviteToken: String, importLocalData: Boolean) = Result.success(SharedWorkspaceSummary("ws-1", "Budget"))
+        override suspend fun joinWorkspace(
+            inviteToken: String,
+            importLocalData: Boolean,
+        ) = Result.success(SharedWorkspaceSummary("ws-1", "Budget"))
 
         override suspend fun createInvite() = Result.success(SharedWorkspaceInvite("invite-token"))
 
@@ -300,7 +333,10 @@ class CloudSyncContentUiTest {
 
         override suspend fun listConflicts(): Result<List<SharedConflict>> = Result.success(emptyList())
 
-        override suspend fun resolveConflict(conflictId: String, winnerOperationId: String) = Result.success(Unit)
+        override suspend fun resolveConflict(
+            conflictId: String,
+            winnerOperationId: String,
+        ) = Result.success(Unit)
 
         override suspend fun leaveWorkspace() = Result.success(Unit)
     }

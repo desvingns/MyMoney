@@ -25,7 +25,10 @@ object EntitlementStateMachine {
         if (snapshot == null || snapshot.revokedAt != null) return UserEntitlement.Free
 
         val expiresAt = snapshot.expiresAt
-        if (expiresAt != null && !expiresAt.isAfter(snapshot.startsAt)) {
+        if (
+            (expiresAt == null && snapshot.source != EntitlementSource.WHITELIST) ||
+            (expiresAt != null && !expiresAt.isAfter(snapshot.startsAt))
+        ) {
             return UserEntitlement.Free
         }
 

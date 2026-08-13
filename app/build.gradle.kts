@@ -408,6 +408,7 @@ dependencies {
     implementation(project(":core:domain"))
     implementation(project(":core:common"))
     implementation(project(":core:billing"))
+    implementation(project(":core:ads"))
 
     implementation(project(":feature:onboarding"))
     implementation(project(":feature:dashboard"))

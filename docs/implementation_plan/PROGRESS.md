@@ -8,6 +8,8 @@
 
 ## Current state
 
+- **2026-08-13 (Codex MP `--feature --next`, support-hub-tip SPEC 01):** Corrected ADR-0010 and the authoritative TDD so the Supporter badge is a cosmetic reward for the first coffee purchase, not a Plus entitlement; removed the stale Plus claim from TDD §14.4 and corrected the permission-count row from 4 to 6. Developer commits `45e8103a` and `6852733c` were pushed to `main`; deterministic reviewer, semantic reviewer, tester, runner (`2007 passed / 0 failed / 0 skipped`), independent critic, and full verifier passed. No device or live Supabase evidence was applicable to this docs-only SPEC.
+
 - **2026-08-13 (Codex MP `--feature --next`, plus-subscription-gating SPEC 02):** Fixed four
   semantic blockers in the Supabase payer-entitlement migration: safe `create_invite` signature
   replacement, Google Play grace cutoff, direct entitlement-table revoke, and fail-closed initial

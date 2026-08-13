@@ -33,6 +33,8 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.util.concurrent.atomic.AtomicReference
 import javax.inject.Inject
@@ -50,6 +52,7 @@ class PlayBillingGateway
         @MainDispatcher private val mainDispatcher: CoroutineDispatcher,
     ) : BillingGateway {
         private val pendingPurchase = AtomicReference<PendingPurchase?>(null)
+        private val purchaseProcessingMutex = Mutex()
         private val purchasesUpdatedListener =
             PurchasesUpdatedListener { billingResult, purchases ->
                 applicationScope.launch(ioDispatcher) {
@@ -231,32 +234,33 @@ class PlayBillingGateway
             }
         }
 
-        private suspend fun processPurchase(purchase: Purchase): PurchaseOutcome {
-            return when (purchase.purchaseState) {
-                Purchase.PurchaseState.PENDING -> PurchaseOutcome.Pending
-                Purchase.PurchaseState.PURCHASED -> {
-                    if (!purchase.isAcknowledged) {
-                        val acknowledgeResult = billingClient.acknowledge(purchase.purchaseToken)
-                        if (acknowledgeResult.responseCode != BillingClient.BillingResponseCode.OK) {
-                            return acknowledgeResult.toPurchaseOutcome()
+        private suspend fun processPurchase(purchase: Purchase): PurchaseOutcome =
+            purchaseProcessingMutex.withLock {
+                when (purchase.purchaseState) {
+                    Purchase.PurchaseState.PENDING -> PurchaseOutcome.Pending
+                    Purchase.PurchaseState.PURCHASED -> {
+                        if (!purchase.isAcknowledged) {
+                            val acknowledgeResult = billingClient.acknowledge(purchase.purchaseToken)
+                            if (acknowledgeResult.responseCode != BillingClient.BillingResponseCode.OK) {
+                                return@withLock acknowledgeResult.toPurchaseOutcome()
+                            }
+                        }
+
+                        val consumeResult = billingClient.consume(purchase.purchaseToken)
+                        if (consumeResult.responseCode != BillingClient.BillingResponseCode.OK) {
+                            consumeResult.toPurchaseOutcome()
+                        } else {
+                            PurchaseOutcome.Purchased(
+                                productId = purchase.products.first { it in SUPPORT_PRODUCT_IDS },
+                                purchaseToken = purchase.purchaseToken,
+                                purchasedAtMillis = purchase.purchaseTime,
+                            )
                         }
                     }
 
-                    val consumeResult = billingClient.consume(purchase.purchaseToken)
-                    if (consumeResult.responseCode != BillingClient.BillingResponseCode.OK) {
-                        consumeResult.toPurchaseOutcome()
-                    } else {
-                        PurchaseOutcome.Purchased(
-                            productId = purchase.products.first { it in SUPPORT_PRODUCT_IDS },
-                            purchaseToken = purchase.purchaseToken,
-                            purchasedAtMillis = purchase.purchaseTime,
-                        )
-                    }
-                }
-
                 else -> PurchaseOutcome.Unavailable(UNSUPPORTED_PURCHASE_STATE_REASON)
+                }
             }
-        }
 
         private fun deliverToActivePurchase(outcome: PurchaseOutcome) {
             val currentPurchase = pendingPurchase.get() ?: return
@@ -293,26 +297,28 @@ class PlayBillingGateway
             when (this) {
                 BillingAvailability.Available -> PurchaseOutcome.Unavailable(UNKNOWN_AVAILABILITY_REASON)
                 BillingAvailability.UnavailableOnDevice -> PurchaseOutcome.Unavailable(BILLING_UNAVAILABLE_REASON)
+                BillingAvailability.ServiceUnavailable -> PurchaseOutcome.NetworkError
+                BillingAvailability.NetworkUnavailable -> PurchaseOutcome.NetworkError
                 BillingAvailability.UnavailableInRegion -> PurchaseOutcome.Unavailable(REGION_UNAVAILABLE_REASON)
+                is BillingAvailability.UnknownFailure -> PurchaseOutcome.Unavailable(responseCode.toString())
                 BillingAvailability.DisabledInBuild -> PurchaseOutcome.Unavailable(DISABLED_IN_BUILD_REASON)
             }
 
         private fun BillingResult.toAvailability(): BillingAvailability =
             when (responseCode) {
                 BillingClient.BillingResponseCode.BILLING_UNAVAILABLE -> BillingAvailability.UnavailableOnDevice
-                BillingClient.BillingResponseCode.SERVICE_UNAVAILABLE -> BillingAvailability.UnavailableOnDevice
-                else -> BillingAvailability.UnavailableOnDevice
+                BillingClient.BillingResponseCode.SERVICE_UNAVAILABLE -> BillingAvailability.ServiceUnavailable
+                BillingClient.BillingResponseCode.SERVICE_DISCONNECTED,
+                BillingClient.BillingResponseCode.NETWORK_ERROR,
+                -> BillingAvailability.NetworkUnavailable
+
+                else -> BillingAvailability.UnknownFailure(responseCode)
             }
 
         private fun BillingResult.toPurchaseOutcome(): PurchaseOutcome =
             when (responseCode) {
                 BillingClient.BillingResponseCode.USER_CANCELED -> PurchaseOutcome.Cancelled
-                BillingClient.BillingResponseCode.SERVICE_UNAVAILABLE,
-                BillingClient.BillingResponseCode.SERVICE_DISCONNECTED,
-                BillingClient.BillingResponseCode.NETWORK_ERROR,
-                -> PurchaseOutcome.NetworkError
-
-                else -> PurchaseOutcome.Unavailable(responseCode.toString())
+                else -> toAvailability().toPurchaseOutcome()
             }
 
         private fun Throwable.toPurchaseOutcome(): PurchaseOutcome =

@@ -138,7 +138,7 @@ class PlayInternalSyncCiContractTest {
                 "supabase.url=%s",
                 "supabase.anonKey=%s",
                 "supabase.googleWebClientId=%s",
-                "run: ./gradlew :app:bundleStaging -Psync.playInternalEnabled=true --stacktrace",
+                "run: ./gradlew :app:bundleStaging -Psync.playInternalEnabled=true -Pbilling.enabled=true --stacktrace",
             ),
         )
         assertFalse(
@@ -147,7 +147,7 @@ class PlayInternalSyncCiContractTest {
         )
         assertContainsAll(
             release,
-            listOf("run: ./gradlew :app:assembleRelease :app:bundleRelease -Psync.playReleaseEnabled=true \$FIREBASE_ARGS --stacktrace"),
+            listOf("run: ./gradlew :app:assembleRelease :app:bundleRelease -Psync.playReleaseEnabled=true -Pbilling.enabled=true \$FIREBASE_ARGS --stacktrace"),
         )
         assertFalse("The release job must not use the staging-only flag", release.contains("-Psync.playInternalEnabled=true"))
     }

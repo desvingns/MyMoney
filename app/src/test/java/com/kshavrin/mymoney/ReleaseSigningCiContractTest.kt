@@ -108,7 +108,7 @@ class ReleaseSigningCiContractTest {
                 "concurrency:",
                 "group: mymoney-release",
                 "cancel-in-progress: false",
-                "run: ./gradlew :app:assembleRelease :app:bundleRelease -Psync.playReleaseEnabled=true \$FIREBASE_ARGS --stacktrace",
+                "run: ./gradlew :app:assembleRelease :app:bundleRelease -Psync.playReleaseEnabled=true -Pbilling.enabled=true \$FIREBASE_ARGS --stacktrace",
                 "name: app-release.apk",
                 "path: app/build/outputs/apk/release/*.apk",
                 "name: app-release.aab",

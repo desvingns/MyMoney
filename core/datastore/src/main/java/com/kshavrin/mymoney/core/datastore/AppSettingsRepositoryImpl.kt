@@ -38,6 +38,9 @@ class AppSettingsRepositoryImpl
                 if (current.firstPositiveSeen && !next.firstPositiveSeen) {
                     throw IllegalStateException("firstPositiveSeen is monotonic — cannot flip true to false")
                 }
+                if (current.supporterBadgeEarned && !next.supporterBadgeEarned) {
+                    throw IllegalStateException("supporterBadgeEarned is monotonic - cannot flip true to false")
+                }
                 next.writeTo(prefs)
                 prefs[AppSettingsKeys.SETTINGS_REVISION] =
                     (prefs[AppSettingsKeys.SETTINGS_REVISION] ?: 0L) + 1L
@@ -47,11 +50,15 @@ class AppSettingsRepositoryImpl
         override suspend fun reset() {
             dataStore.edit { prefs ->
                 val deviceId = prefs[AppSettingsKeys.DEVICE_ID]
+                val supporterBadgeEarned = prefs[AppSettingsKeys.SUPPORTER_BADGE_EARNED] ?: false
+                val supportPurchaseCount = prefs[AppSettingsKeys.SUPPORT_PURCHASE_COUNT] ?: 0
                 val revision = (prefs[AppSettingsKeys.SETTINGS_REVISION] ?: 0L) + 1L
                 prefs.clear()
                 if (deviceId != null) {
                     prefs[AppSettingsKeys.DEVICE_ID] = deviceId
                 }
+                prefs[AppSettingsKeys.SUPPORTER_BADGE_EARNED] = supporterBadgeEarned
+                prefs[AppSettingsKeys.SUPPORT_PURCHASE_COUNT] = supportPurchaseCount
                 prefs[AppSettingsKeys.SETTINGS_REVISION] = revision
             }
         }
@@ -76,6 +83,8 @@ internal fun Preferences.toAppSettings(): AppSettings =
         autoSyncEnabled = this[AppSettingsKeys.AUTO_SYNC_ENABLED] ?: true,
         budgetModeEnabled = this[AppSettingsKeys.BUDGET_MODE_ENABLED] ?: true,
         firstPositiveSeen = this[AppSettingsKeys.FIRST_POSITIVE_SEEN] ?: false,
+        supporterBadgeEarned = this[AppSettingsKeys.SUPPORTER_BADGE_EARNED] ?: false,
+        supportPurchaseCount = this[AppSettingsKeys.SUPPORT_PURCHASE_COUNT] ?: 0,
         importFocusEpochMs = this[AppSettingsKeys.IMPORT_FOCUS_EPOCH_MS] ?: 0L,
         importFocusCurrencyId = this[AppSettingsKeys.IMPORT_FOCUS_CURRENCY_ID] ?: -1L,
         dashboardPeriodEpochMs = this[AppSettingsKeys.DASHBOARD_PERIOD_EPOCH_MS] ?: 0L,
@@ -117,6 +126,8 @@ internal fun AppSettings.writeTo(prefs: androidx.datastore.preferences.core.Muta
     prefs[AppSettingsKeys.AUTO_SYNC_ENABLED] = autoSyncEnabled
     prefs[AppSettingsKeys.BUDGET_MODE_ENABLED] = budgetModeEnabled
     prefs[AppSettingsKeys.FIRST_POSITIVE_SEEN] = firstPositiveSeen
+    prefs[AppSettingsKeys.SUPPORTER_BADGE_EARNED] = supporterBadgeEarned
+    prefs[AppSettingsKeys.SUPPORT_PURCHASE_COUNT] = supportPurchaseCount
     prefs[AppSettingsKeys.IMPORT_FOCUS_EPOCH_MS] = importFocusEpochMs
     prefs[AppSettingsKeys.IMPORT_FOCUS_CURRENCY_ID] = importFocusCurrencyId
     prefs[AppSettingsKeys.DASHBOARD_PERIOD_EPOCH_MS] = dashboardPeriodEpochMs

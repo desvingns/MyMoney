@@ -18,6 +18,8 @@ import com.kshavrin.mymoney.core.datastore.SecureStorage
 import com.kshavrin.mymoney.core.datastore.SecureStorageImpl
 import com.kshavrin.mymoney.core.datastore.SharedSyncStore
 import com.kshavrin.mymoney.core.datastore.SharedSyncStoreImpl
+import com.kshavrin.mymoney.core.datastore.supporter.SupporterRepositoryImpl
+import com.kshavrin.mymoney.core.domain.supporter.SupporterRepository
 import com.kshavrin.mymoney.core.domain.sync.DeviceIdProvider
 import com.kshavrin.mymoney.core.network.shared.SharedSessionStore
 import dagger.Binds
@@ -55,6 +57,10 @@ abstract class DataStoreBindings {
     @Binds
     @Singleton
     abstract fun bindAppSettingsRepository(impl: AppSettingsRepositoryImpl): AppSettingsRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindSupporterRepository(impl: SupporterRepositoryImpl): SupporterRepository
 
     @Binds
     @Singleton

@@ -60,7 +60,7 @@ class SupabaseSupporterApi
             http
                 .get(
                     path =
-                        "rest/v1/supporter_purchases?select=id&user_id=eq.$userId&purchase_token=eq.$purchaseToken",
+                        "rest/v1/supporter_purchases?select=id&user_id=eq.${userId.percentEncodeQueryValue()}&purchase_token=eq.${purchaseToken.percentEncodeQueryValue()}",
                     accessToken = accessToken,
                 ).mapCatching { response ->
                     response.jsonArray.isNotEmpty()
@@ -104,3 +104,27 @@ private fun String?.exactCount(): Int =
         ?.substringAfter('/', missingDelimiterValue = "")
         ?.toIntOrNull()
         ?: throw IllegalStateException("Missing exact Content-Range count")
+
+private fun String.percentEncodeQueryValue(): String =
+    buildString(length) {
+        toByteArray(Charsets.UTF_8).forEach { byte ->
+            val value = byte.toInt() and 0xFF
+            if (
+                value in 'A'.code..'Z'.code ||
+                value in 'a'.code..'z'.code ||
+                value in '0'.code..'9'.code ||
+                value == '-'.code ||
+                value == '.'.code ||
+                value == '_'.code ||
+                value == '~'.code
+            ) {
+                append(value.toChar())
+            } else {
+                append('%')
+                append(HEX_DIGITS[value ushr 4])
+                append(HEX_DIGITS[value and 0x0F])
+            }
+        }
+    }
+
+private const val HEX_DIGITS = "0123456789ABCDEF"

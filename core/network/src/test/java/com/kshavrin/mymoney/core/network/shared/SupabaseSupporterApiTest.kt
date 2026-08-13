@@ -80,6 +80,37 @@ class SupabaseSupporterApiTest {
         }
 
     @Test
+    fun `duplicate token verification encodes reserved owner and token values`() =
+        runTest {
+            val userId = "user+1/тест"
+            val purchaseToken = "token+/?&=токен"
+            server.enqueue(
+                MockResponse()
+                    .setResponseCode(409)
+                    .setBody(
+                        """{"code":"23505","message":"duplicate key value violates unique constraint \"supporter_purchases_purchase_token_key\"","details":"Key (purchase_token)=(purchase-token) already exists."}""",
+                    ),
+            )
+            server.enqueue(MockResponse().setResponseCode(200).setBody("[{\"id\":\"purchase-1\"}]"))
+
+            assertTrue(
+                api
+                    .postPurchase(
+                        userId = userId,
+                        outcome = purchasedOutcome(purchaseToken),
+                        accessToken = "access-token",
+                    ).isSuccess,
+            )
+
+            server.takeRequest()
+            val verification = server.takeRequest()
+            assertEquals(
+                "/rest/v1/supporter_purchases?select=id&user_id=eq.user%2B1%2F%D1%82%D0%B5%D1%81%D1%82&purchase_token=eq.token%2B%2F%3F%26%3D%D1%82%D0%BE%D0%BA%D0%B5%D0%BD",
+                verification.path,
+            )
+        }
+
+    @Test
     fun `duplicate token hidden by owner filter remains a conflict`() =
         runTest {
             server.enqueue(
@@ -195,10 +226,10 @@ class SupabaseSupporterApiTest {
             server.takeRequest()
         }
 
-    private fun purchasedOutcome() =
+    private fun purchasedOutcome(purchaseToken: String = "purchase-token") =
         PurchaseOutcome.Purchased(
             productId = "coffee_small",
-            purchaseToken = "purchase-token",
+            purchaseToken = purchaseToken,
             purchasedAtMillis = 1_724_256_789_000L,
         )
 }

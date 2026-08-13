@@ -57,13 +57,19 @@ class BillingWiringContractTest {
     }
 
     @Test
-    fun `app does not silently reconcile purchases during startup`() {
+    fun `app restores subscription purchases during startup`() {
         val appSource = file("app/src/main/java/com/kshavrin/mymoney/MyMoneyApp.kt").readText()
 
-        assertFalse(appSource.contains("BillingGateway"))
-        assertFalse(appSource.contains("billingGateway"))
-        assertFalse(appSource.contains("resolvePendingPurchasesOnOpen"))
-        assertFalse(appSource.contains("resolvePendingPurchases()"))
+        assertContainsInOrder(
+            appSource,
+            listOf(
+                "lateinit var billingGateway: Lazy<BillingGateway>",
+                "recoverSubscriptions()",
+                "private fun recoverSubscriptions()",
+                "applicationScope.launch(ioDispatcher)",
+                "billingGateway.get().resolveSubscriptionPurchases()",
+            ),
+        )
     }
 
     @Test

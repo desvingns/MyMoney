@@ -6,11 +6,14 @@ import com.android.billingclient.api.PurchasesUpdatedListener
 import com.kshavrin.mymoney.core.domain.billing.BillingAvailability
 import com.kshavrin.mymoney.core.domain.billing.PurchaseOutcome
 import com.kshavrin.mymoney.core.domain.billing.SupportProduct
+import com.kshavrin.mymoney.core.domain.model.UserEntitlement
+import com.kshavrin.mymoney.core.domain.repository.EntitlementRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withTimeout
@@ -251,6 +254,13 @@ class PlayBillingGatewayTest {
                 applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined),
                 ioDispatcher = Dispatchers.Unconfined,
                 mainDispatcher = Dispatchers.Unconfined,
+                plusSubscriptionClient = PlusSubscriptionClient(),
+                entitlementRepository =
+                    object : EntitlementRepository {
+                        override val entitlement = MutableStateFlow<UserEntitlement>(UserEntitlement.Free)
+
+                        override suspend fun refresh(): Result<Unit> = Result.success(Unit)
+                    },
             )
         return Fixture(gateway, factory)
     }

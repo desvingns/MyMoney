@@ -28,10 +28,15 @@ class SupporterRepositoryImpl
         override suspend fun recordPurchase(outcome: PurchaseOutcome.Purchased): Result<Unit> =
             runCatching {
                 appSettingsRepository.update { settings ->
-                    settings.copy(
-                        supporterBadgeEarned = true,
-                        supportPurchaseCount = settings.supportPurchaseCount + 1,
-                    )
+                    if (outcome.purchaseToken in settings.supporterPurchaseTokens) {
+                        settings
+                    } else {
+                        settings.copy(
+                            supporterBadgeEarned = true,
+                            supportPurchaseCount = settings.supportPurchaseCount + 1,
+                            supporterPurchaseTokens = settings.supporterPurchaseTokens + outcome.purchaseToken,
+                        )
+                    }
                 }
             }
 

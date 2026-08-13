@@ -4,6 +4,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 
 internal object AppSettingsKeys {
     val LANGUAGE = stringPreferencesKey("language")
@@ -25,6 +26,7 @@ internal object AppSettingsKeys {
     val FIRST_POSITIVE_SEEN = booleanPreferencesKey("first_positive_seen")
     val SUPPORTER_BADGE_EARNED = booleanPreferencesKey("supporter_badge_earned")
     val SUPPORT_PURCHASE_COUNT = intPreferencesKey("support_purchase_count")
+    val SUPPORTER_PURCHASE_TOKENS = stringSetPreferencesKey("supporter_purchase_tokens")
     val IMPORT_FOCUS_EPOCH_MS = longPreferencesKey("import_focus_epoch_ms")
     val IMPORT_FOCUS_CURRENCY_ID = longPreferencesKey("import_focus_currency_id")
     val DASHBOARD_PERIOD_EPOCH_MS = longPreferencesKey("dashboard_period_epoch_ms")

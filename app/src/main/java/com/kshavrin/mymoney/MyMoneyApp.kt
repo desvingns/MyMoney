@@ -7,6 +7,7 @@ import com.kshavrin.mymoney.core.common.di.IoDispatcher
 import com.kshavrin.mymoney.core.common.scope.ApplicationScope
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
 import com.kshavrin.mymoney.core.domain.billing.BillingGateway
+import com.kshavrin.mymoney.core.domain.supporter.SupporterSync
 import com.kshavrin.mymoney.core.domain.usecase.NormalizeLegacyUtcMidnightUseCase
 import com.kshavrin.mymoney.core.sync.JournalSync
 import com.kshavrin.mymoney.core.sync.WorkScheduler
@@ -41,6 +42,9 @@ class MyMoneyApp :
     lateinit var billingGateway: Lazy<BillingGateway>
 
     @Inject
+    lateinit var supporterSync: Lazy<SupporterSync>
+
+    @Inject
     lateinit var normalizeLegacyUtcMidnight: Lazy<NormalizeLegacyUtcMidnightUseCase>
 
     @Inject
@@ -64,6 +68,7 @@ class MyMoneyApp :
             workScheduler.get().scheduleDailyJobs()
         }
         recoverSubscriptions()
+        recoverSupporterPurchases()
         triggerJournalSyncOnOpen()
         initSentry()
         normalizeLegacyUtcMidnightDates()
@@ -104,6 +109,13 @@ class MyMoneyApp :
     private fun recoverSubscriptions() {
         applicationScope.launch(ioDispatcher) {
             billingGateway.get().resolveSubscriptionPurchases()
+        }
+    }
+
+    private fun recoverSupporterPurchases() {
+        applicationScope.launch(ioDispatcher) {
+            supporterSync.get().restore()
+            billingGateway.get().resolvePendingPurchases()
         }
     }
 

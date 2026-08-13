@@ -8,8 +8,8 @@ import androidx.datastore.preferences.preferencesDataStoreFile
 import com.kshavrin.mymoney.core.common.di.IoDispatcher
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepositoryImpl
-import com.kshavrin.mymoney.core.datastore.DeviceIdProviderImpl
 import com.kshavrin.mymoney.core.datastore.DataStoreEntitlementCache
+import com.kshavrin.mymoney.core.datastore.DeviceIdProviderImpl
 import com.kshavrin.mymoney.core.datastore.EncryptedSharedSessionStore
 import com.kshavrin.mymoney.core.datastore.EntitlementCache
 import com.kshavrin.mymoney.core.datastore.JournalSyncConfigStore
@@ -18,6 +18,8 @@ import com.kshavrin.mymoney.core.datastore.SecureStorage
 import com.kshavrin.mymoney.core.datastore.SecureStorageImpl
 import com.kshavrin.mymoney.core.datastore.SharedSyncStore
 import com.kshavrin.mymoney.core.datastore.SharedSyncStoreImpl
+import com.kshavrin.mymoney.core.datastore.supporter.SupporterPurchaseStore
+import com.kshavrin.mymoney.core.datastore.supporter.SupporterPurchaseStoreImpl
 import com.kshavrin.mymoney.core.datastore.supporter.SupporterRepositoryImpl
 import com.kshavrin.mymoney.core.domain.supporter.SupporterRepository
 import com.kshavrin.mymoney.core.domain.sync.DeviceIdProvider
@@ -61,6 +63,10 @@ abstract class DataStoreBindings {
     @Binds
     @Singleton
     abstract fun bindSupporterRepository(impl: SupporterRepositoryImpl): SupporterRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindSupporterPurchaseStore(impl: SupporterPurchaseStoreImpl): SupporterPurchaseStore
 
     @Binds
     @Singleton

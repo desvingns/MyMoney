@@ -1,6 +1,6 @@
 package com.kshavrin.mymoney.core.common.exception
 
-class SyncException(
+open class SyncException(
     val syncError: SyncError,
 ) : Exception()
 

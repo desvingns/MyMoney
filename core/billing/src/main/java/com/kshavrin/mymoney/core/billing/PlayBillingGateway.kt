@@ -25,6 +25,7 @@ import com.kshavrin.mymoney.core.domain.billing.BillingGateway
 import com.kshavrin.mymoney.core.domain.billing.PurchaseOutcome
 import com.kshavrin.mymoney.core.domain.billing.SupportProduct
 import com.kshavrin.mymoney.core.domain.repository.EntitlementRepository
+import com.kshavrin.mymoney.core.domain.supporter.SupporterSync
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -53,6 +54,7 @@ class PlayBillingGateway
         @MainDispatcher private val mainDispatcher: CoroutineDispatcher,
         private val plusSubscriptionClient: PlusSubscriptionClient,
         private val entitlementRepository: EntitlementRepository,
+        private val supporterSync: SupporterSync = NoOpSupporterSync,
     ) : BillingGateway {
         private val pendingPurchase = AtomicReference<PendingPurchase?>(null)
         private val billingConnectionMutex = Mutex()
@@ -368,16 +370,22 @@ class PlayBillingGateway
 
         private suspend fun processPurchase(purchase: Purchase): PurchaseOutcome =
             when {
-                containsSupportProduct(purchase) ->
-                    purchaseProcessor.process(
-                        PurchaseProcessingInput(
-                            productId = purchase.products.first { it in SUPPORT_PRODUCT_IDS },
-                            purchaseToken = purchase.purchaseToken,
-                            purchasedAtMillis = purchase.purchaseTime,
-                            state = purchase.purchaseState.toPurchaseProcessingState(),
-                            isAcknowledged = purchase.isAcknowledged,
-                        ),
-                    )
+                containsSupportProduct(purchase) -> {
+                    val outcome =
+                        purchaseProcessor.process(
+                            PurchaseProcessingInput(
+                                productId = purchase.products.first { it in SUPPORT_PRODUCT_IDS },
+                                purchaseToken = purchase.purchaseToken,
+                                purchasedAtMillis = purchase.purchaseTime,
+                                state = purchase.purchaseState.toPurchaseProcessingState(),
+                                isAcknowledged = purchase.isAcknowledged,
+                            ),
+                        )
+                    if (outcome is PurchaseOutcome.Purchased) {
+                        supporterSync.syncPurchase(outcome)
+                    }
+                    outcome
+                }
 
                 containsPlusProduct(purchase) -> processSubscriptionPurchase(purchase)
                 else -> PurchaseOutcome.Unavailable(UNSUPPORTED_PURCHASE_STATE_REASON)
@@ -488,6 +496,12 @@ class PlayBillingGateway
             const val REGION_UNAVAILABLE_REASON = "billing_unavailable_in_region"
         }
     }
+
+private object NoOpSupporterSync : SupporterSync {
+    override suspend fun syncPurchase(outcome: PurchaseOutcome.Purchased): Result<Unit> = Result.success(Unit)
+
+    override suspend fun restore(): Result<Unit> = Result.success(Unit)
+}
 
 internal class PurchaseOutcomeBridge {
     private val outcomes = Channel<PurchaseOutcome>(Channel.BUFFERED)

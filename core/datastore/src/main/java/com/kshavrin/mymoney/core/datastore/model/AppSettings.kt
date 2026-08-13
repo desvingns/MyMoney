@@ -20,6 +20,7 @@ data class AppSettings(
     val firstPositiveSeen: Boolean = false,
     val supporterBadgeEarned: Boolean = false,
     val supportPurchaseCount: Int = 0,
+    val supporterPurchaseTokens: Set<String> = emptySet(),
     val importFocusEpochMs: Long = 0L,
     val importFocusCurrencyId: Long = -1L,
     // Epoch-millis anchor (any instant within the month) of the last dashboard period the

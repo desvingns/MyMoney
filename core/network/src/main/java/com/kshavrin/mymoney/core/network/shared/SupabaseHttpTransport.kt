@@ -32,6 +32,7 @@ class SupabaseHttpTransport
             mapBadRequestToAuth: Boolean = false,
             mapMembershipDeniedToAuth: Boolean = false,
             mapAccountDeletionWorkspaceConflict: Boolean = false,
+            preservePostgrestConflict: Boolean = false,
         ): Result<JsonElement> =
             execute(
                 Request
@@ -44,6 +45,7 @@ class SupabaseHttpTransport
                 mapBadRequestToAuth,
                 mapMembershipDeniedToAuth,
                 mapAccountDeletionWorkspaceConflict,
+                preservePostgrestConflict,
             )
 
         suspend fun get(
@@ -65,6 +67,7 @@ class SupabaseHttpTransport
             mapBadRequestToAuth: Boolean = false,
             mapMembershipDeniedToAuth: Boolean = false,
             mapAccountDeletionWorkspaceConflict: Boolean = false,
+            preservePostgrestConflict: Boolean = false,
         ): Result<JsonElement> {
             if (!config.isConfigured) return Result.failure(SyncException(SyncError.Server))
             return runCatching {
@@ -77,6 +80,7 @@ class SupabaseHttpTransport
                             mapBadRequestToAuth = mapBadRequestToAuth,
                             mapMembershipDeniedToAuth = mapMembershipDeniedToAuth,
                             mapAccountDeletionWorkspaceConflict = mapAccountDeletionWorkspaceConflict,
+                            preservePostgrestConflict = preservePostgrestConflict,
                         )
                     }
                     responseBody.takeIf(String::isNotBlank)?.let(json::parseToJsonElement) ?: JsonNull
@@ -97,7 +101,12 @@ private class SupabaseHttpException(
     val mapBadRequestToAuth: Boolean,
     val mapMembershipDeniedToAuth: Boolean,
     val mapAccountDeletionWorkspaceConflict: Boolean,
+    val preservePostgrestConflict: Boolean,
 ) : Exception()
+
+internal class SupabasePostgrestConflictException(
+    val responseBody: String,
+) : SyncException(SyncError.Conflict)
 
 private fun <T> Result<T>.mapFailure(): Result<T> =
     exceptionOrNull()?.let { error -> Result.failure(error.toSyncException()) } ?: this
@@ -106,30 +115,36 @@ private fun Throwable.toSyncException(): Throwable =
     when (this) {
         is SyncException -> this
         is IOException -> SyncException(SyncError.Network)
-        is SupabaseHttpException ->
-            SyncException(
-                when (statusCode) {
-                    401, 403 -> SyncError.Auth
-                    400 ->
-                        if (mapMembershipDeniedToAuth && responseBody.hasSqlState42501()) {
-                            SyncError.Auth
-                        } else if (
-                            mapAccountDeletionWorkspaceConflict &&
-                            responseBody.hasAccountDeletionWorkspaceConflict()
-                        ) {
-                            SyncError.Conflict
-                        } else if (mapBadRequestToAuth) {
-                            SyncError.Auth
-                        } else {
-                            SyncError.Unknown
-                        }
-                    409 -> SyncError.Conflict
-                    429 -> SyncError.Quota
-                    in 500..599 -> SyncError.Server
-                    else -> SyncError.Unknown
-                },
-            )
+        is SupabaseHttpException -> toSyncException()
         else -> SyncException(SyncError.Unknown)
+    }
+
+private fun SupabaseHttpException.toSyncException(): Throwable =
+    if (statusCode == 409 && preservePostgrestConflict) {
+        SupabasePostgrestConflictException(responseBody)
+    } else {
+        SyncException(
+            when (statusCode) {
+                401, 403 -> SyncError.Auth
+                400 ->
+                    if (mapMembershipDeniedToAuth && responseBody.hasSqlState42501()) {
+                        SyncError.Auth
+                    } else if (
+                        mapAccountDeletionWorkspaceConflict &&
+                        responseBody.hasAccountDeletionWorkspaceConflict()
+                    ) {
+                        SyncError.Conflict
+                    } else if (mapBadRequestToAuth) {
+                        SyncError.Auth
+                    } else {
+                        SyncError.Unknown
+                    }
+                409 -> SyncError.Conflict
+                429 -> SyncError.Quota
+                in 500..599 -> SyncError.Server
+                else -> SyncError.Unknown
+            },
+        )
     }
 
 private fun String.hasSqlState42501(): Boolean =

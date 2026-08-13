@@ -106,8 +106,10 @@ class SharedSyncCoordinatorImpl
         ): Result<Unit> =
             withContext(dispatcher) {
                 val signInResult = auth.signInWithGoogle(googleIdToken, nonce)
-                if (signInResult.isSuccess) supporterSync.restore()
-                signInResult.map { }
+                signInResult.fold(
+                    onSuccess = { supporterSync.restore() },
+                    onFailure = Result.Companion::failure,
+                )
             }
 
         override suspend fun signOut(): Result<Unit> =

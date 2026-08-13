@@ -52,6 +52,7 @@ class AppSettingsRepositoryImpl
                 val deviceId = prefs[AppSettingsKeys.DEVICE_ID]
                 val supporterBadgeEarned = prefs[AppSettingsKeys.SUPPORTER_BADGE_EARNED] ?: false
                 val supportPurchaseCount = prefs[AppSettingsKeys.SUPPORT_PURCHASE_COUNT] ?: 0
+                val supporterPurchaseTokens = prefs[AppSettingsKeys.SUPPORTER_PURCHASE_TOKENS].orEmpty()
                 val revision = (prefs[AppSettingsKeys.SETTINGS_REVISION] ?: 0L) + 1L
                 prefs.clear()
                 if (deviceId != null) {
@@ -59,6 +60,7 @@ class AppSettingsRepositoryImpl
                 }
                 prefs[AppSettingsKeys.SUPPORTER_BADGE_EARNED] = supporterBadgeEarned
                 prefs[AppSettingsKeys.SUPPORT_PURCHASE_COUNT] = supportPurchaseCount
+                prefs[AppSettingsKeys.SUPPORTER_PURCHASE_TOKENS] = supporterPurchaseTokens
                 prefs[AppSettingsKeys.SETTINGS_REVISION] = revision
             }
         }
@@ -85,6 +87,7 @@ internal fun Preferences.toAppSettings(): AppSettings =
         firstPositiveSeen = this[AppSettingsKeys.FIRST_POSITIVE_SEEN] ?: false,
         supporterBadgeEarned = this[AppSettingsKeys.SUPPORTER_BADGE_EARNED] ?: false,
         supportPurchaseCount = this[AppSettingsKeys.SUPPORT_PURCHASE_COUNT] ?: 0,
+        supporterPurchaseTokens = this[AppSettingsKeys.SUPPORTER_PURCHASE_TOKENS].orEmpty(),
         importFocusEpochMs = this[AppSettingsKeys.IMPORT_FOCUS_EPOCH_MS] ?: 0L,
         importFocusCurrencyId = this[AppSettingsKeys.IMPORT_FOCUS_CURRENCY_ID] ?: -1L,
         dashboardPeriodEpochMs = this[AppSettingsKeys.DASHBOARD_PERIOD_EPOCH_MS] ?: 0L,
@@ -128,6 +131,7 @@ internal fun AppSettings.writeTo(prefs: androidx.datastore.preferences.core.Muta
     prefs[AppSettingsKeys.FIRST_POSITIVE_SEEN] = firstPositiveSeen
     prefs[AppSettingsKeys.SUPPORTER_BADGE_EARNED] = supporterBadgeEarned
     prefs[AppSettingsKeys.SUPPORT_PURCHASE_COUNT] = supportPurchaseCount
+    prefs[AppSettingsKeys.SUPPORTER_PURCHASE_TOKENS] = supporterPurchaseTokens
     prefs[AppSettingsKeys.IMPORT_FOCUS_EPOCH_MS] = importFocusEpochMs
     prefs[AppSettingsKeys.IMPORT_FOCUS_CURRENCY_ID] = importFocusCurrencyId
     prefs[AppSettingsKeys.DASHBOARD_PERIOD_EPOCH_MS] = dashboardPeriodEpochMs

@@ -1,10 +1,11 @@
 package com.kshavrin.mymoney.core.network.shared
 
-import com.kshavrin.mymoney.core.common.exception.SyncError
-import com.kshavrin.mymoney.core.common.exception.SyncException
 import com.kshavrin.mymoney.core.domain.billing.PurchaseOutcome
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import java.time.Instant
 import javax.inject.Inject
@@ -37,6 +38,7 @@ class SupabaseSupporterApi
                             put("purchased_at", Instant.ofEpochMilli(outcome.purchasedAtMillis).toString())
                         },
                     accessToken = accessToken,
+                    preservePostgrestConflict = true,
                 ).map { Unit }
                 .recoverCatching { failure ->
                     if (failure.isDuplicatePurchase()) Unit else throw failure
@@ -60,4 +62,17 @@ class SupabaseSupporterApi
     }
 
 private fun Throwable.isDuplicatePurchase(): Boolean =
-    (this as? SyncException)?.syncError == SyncError.Conflict
+    (this as? SupabasePostgrestConflictException)?.isDuplicatePurchaseTokenConflict() == true
+
+private fun SupabasePostgrestConflictException.isDuplicatePurchaseTokenConflict(): Boolean =
+    runCatching {
+        val error = Json.parseToJsonElement(responseBody).jsonObject
+        val code = error["code"]?.jsonPrimitive?.content
+        val message = error["message"]?.jsonPrimitive?.content.orEmpty()
+        val details = error["details"]?.jsonPrimitive?.content.orEmpty()
+        code == "23505" &&
+            (
+                message.contains("supporter_purchases_purchase_token_key") ||
+                    details.contains("Key (purchase_token)=")
+            )
+    }.getOrDefault(false)

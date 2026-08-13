@@ -134,6 +134,7 @@ androidx-benchmark-macro-junit4 = { group = "androidx.benchmark", name = "benchm
 androidx-test-uiautomator = { group = "androidx.test.uiautomator", name = "uiautomator", version.ref = "uiAutomator" }
 
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
+firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics" }
 firebase-config-ktx = { group = "com.google.firebase", name = "firebase-config-ktx" }
 
 sentry-android-core = { group = "io.sentry", name = "sentry-android-core", version.ref = "sentryAndroid" }

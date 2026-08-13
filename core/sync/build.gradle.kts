@@ -90,6 +90,7 @@ dependencies {
     implementation(libs.play.services.auth)
 
     implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.analytics)
     implementation(libs.firebase.config.ktx)
 
     implementation(libs.sentry.core)

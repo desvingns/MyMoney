@@ -43,6 +43,30 @@ class SupabaseReadmeContractTest {
         )
     }
 
+    @Test
+    fun `runbook documents server owned rewarded ad state`() {
+        val text = readme.readText().replace("\r\n", "\n")
+        val normalizedText = text.replace(Regex("\\s+"), " ")
+
+        assertContainsAll(
+            normalizedText,
+            listOf(
+                "## Rewarded-ad state",
+                "Clients read rewarded-ad progress only through `get_ad_reward_state()`",
+                "select public.get_ad_reward_state();",
+                "It returns `progress`, `required`, `frozen`, `frozenReason`, `plusActive`, `plusProvider`, and `plusExpiresAt` for `auth.uid()` only.",
+                "It has no parameters and no write side effects.",
+                "`counts_toward_reward = false`",
+                "`exclusion_reason = plus_active:<provider>`",
+                "Those rewards do not add to progress and cannot extend a 24-hour `admob_reward` entitlement.",
+            ),
+        )
+        assertFalse(
+            "The client runbook must not instruct a direct rewarded-ad table read",
+            Regex("(?is)select\\s+.*?from\\s+public\\.ad_rewards").containsMatchIn(text),
+        )
+    }
+
     private fun assertContainsAll(
         text: String,
         fragments: List<String>,

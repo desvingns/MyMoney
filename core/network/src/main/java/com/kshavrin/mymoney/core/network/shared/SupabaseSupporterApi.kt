@@ -3,6 +3,7 @@ package com.kshavrin.mymoney.core.network.shared
 import com.kshavrin.mymoney.core.domain.billing.PurchaseOutcome
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
@@ -25,23 +26,45 @@ class SupabaseSupporterApi
             userId: String,
             outcome: PurchaseOutcome.Purchased,
             accessToken: String,
-        ): Result<Unit> =
+        ): Result<Unit> {
+            val postResult =
+                http
+                    .post(
+                        path = "rest/v1/supporter_purchases",
+                        payload =
+                            buildJsonObject {
+                                put("user_id", userId)
+                                put("product_id", outcome.productId)
+                                put("purchase_token", outcome.purchaseToken)
+                                put("purchased_at", Instant.ofEpochMilli(outcome.purchasedAtMillis).toString())
+                            },
+                        accessToken = accessToken,
+                        preservePostgrestConflict = true,
+                    ).map { Unit }
+            val failure = postResult.exceptionOrNull() ?: return postResult
+            if (!failure.isDuplicatePurchase()) {
+                return postResult
+            }
+            return if (duplicateBelongsToUser(userId, outcome.purchaseToken, accessToken)) {
+                Result.success(Unit)
+            } else {
+                Result.failure(failure)
+            }
+        }
+
+        private suspend fun duplicateBelongsToUser(
+            userId: String,
+            purchaseToken: String,
+            accessToken: String,
+        ): Boolean =
             http
-                .post(
-                    path = "rest/v1/supporter_purchases",
-                    payload =
-                        buildJsonObject {
-                            put("user_id", userId)
-                            put("product_id", outcome.productId)
-                            put("purchase_token", outcome.purchaseToken)
-                            put("purchased_at", Instant.ofEpochMilli(outcome.purchasedAtMillis).toString())
-                        },
+                .get(
+                    path =
+                        "rest/v1/supporter_purchases?select=id&user_id=eq.$userId&purchase_token=eq.$purchaseToken",
                     accessToken = accessToken,
-                    preservePostgrestConflict = true,
-                ).map { Unit }
-                .recoverCatching { failure ->
-                    if (failure.isDuplicatePurchase()) Unit else throw failure
-                }
+                ).mapCatching { response ->
+                    response.jsonArray.isNotEmpty()
+                }.getOrDefault(false)
 
         suspend fun getState(
             userId: String,

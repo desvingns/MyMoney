@@ -2770,7 +2770,7 @@ These six items require external accounts and live credentials; they are NOT des
 
 ### 14.4. Decisions worth flagging in the team kickoff
 
-- **Freemium (ADR-0010, supersedes Q-B3).** Plus subscription (€1.99/mo, €12.99/yr with a 7-day trial on annual only), two repeatable "coffee" consumables (€1 / €5), and rewarded ads (5 views = 24 h Plus, granted only via AdMob SSV). Free keeps every local capability plus private Dropbox/GDrive backup; Plus sells shared Supabase workspace, backup version history, and the supporter badge. Not available to users in Russia — see ADR-0010 §"Regional constraints".
+- **Freemium (ADR-0010, supersedes Q-B3).** Plus subscription (€1.99/mo, €12.99/yr with a 7-day trial on annual only), two repeatable "coffee" consumables (€1 / €5), and rewarded ads (5 views = 24 h Plus, granted only via AdMob SSV). Free keeps every local capability plus private Dropbox/GDrive backup; Plus sells shared Supabase workspace and backup version history. The first coffee purchase awards a cosmetic Supporter badge; it is not an entitlement and does not unlock shared workspace. Not available to users in Russia — see ADR-0010 §"Regional constraints".
 - **Aesthetic gamification only.** No XP, streaks, achievements (Q-B4). Confirm scope; this defines what the "gaming audience" message means for marketing.
 - **minSdk 31.** Trades device coverage (~85 % vs ~95 % at minSdk 26) for cleaner code (no compat layers). Confirm with product.
 - **Custom donut chart.** Builds visual identity but is non-trivial work (~1 week with animations). If schedule slips, consider Vico or MPAndroidChart as fallback for v1.0 with custom rewrite in v1.1.

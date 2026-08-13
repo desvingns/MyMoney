@@ -71,6 +71,8 @@ val playInternalSyncEnabled =
 val playReleaseSyncEnabled =
     providers.gradleProperty("sync.playReleaseEnabled").orNull?.toBooleanStrictOrNull() ?: false
 val syncEnabled = playInternalSyncEnabled || playReleaseSyncEnabled
+val billingEnabled =
+    providers.gradleProperty("billing.enabled").orNull?.toBooleanStrictOrNull() ?: false
 
 fun Properties.runtimeValue(propertyName: String): String? =
     providers.gradleProperty(propertyName).orNull?.takeUnless { it.isBlank() }
@@ -319,6 +321,7 @@ android {
         buildConfigField("String", "SENTRY_DSN", sentryDsn.asBuildConfigString())
         buildConfigField("boolean", "PLAY_INTERNAL_SYNC_ENABLED", playInternalSyncEnabled.toString())
         buildConfigField("boolean", "PLAY_RELEASE_SYNC_ENABLED", playReleaseSyncEnabled.toString())
+        buildConfigField("boolean", "BILLING_ENABLED", billingEnabled.toString())
         buildConfigField(
             "boolean",
             "HAS_FIREBASE",
@@ -404,6 +407,7 @@ dependencies {
     implementation(project(":core:sync"))
     implementation(project(":core:domain"))
     implementation(project(":core:common"))
+    implementation(project(":core:billing"))
 
     implementation(project(":feature:onboarding"))
     implementation(project(":feature:dashboard"))

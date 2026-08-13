@@ -62,6 +62,23 @@ Clients read their own effective entitlement only through `get_my_entitlement()`
 select public.get_my_entitlement();
 ```
 
+## Rewarded-ad state
+
+Clients read rewarded-ad progress only through `get_ad_reward_state()` in an authenticated session:
+
+```sql
+select public.get_ad_reward_state();
+```
+
+It returns `progress`, `required`, `frozen`, `frozenReason`, `plusActive`, `plusProvider`, and
+`plusExpiresAt` for `auth.uid()` only. It has no parameters and no write side effects.
+
+When any non-revoked Plus entitlement is active at reward verification time, the verified AdMob
+reward is retained for support and transaction-id deduplication but stored with
+`counts_toward_reward = false` and `exclusion_reason = plus_active:<provider>`. Those rewards do
+not add to progress and cannot extend a 24-hour `admob_reward` entitlement. Counted rewards earned
+before Plus remains active are preserved until they are grouped into a reward entitlement.
+
 To grant an indefinite Plus entitlement to a whitelist account, run this as an administrator:
 
 ```sql

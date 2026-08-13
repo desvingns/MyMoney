@@ -2110,7 +2110,7 @@ Final count: **6 manifest permissions** (down from 12).
 | Monetization            | Google Play Billing 7.0 + ads + Premium IAP (APK) | Play Billing + rewarded ads — Plus subscription, coffee consumables (ADR-0010) |
 | Crash reporting         | Sentry (APK)                            | Sentry (kept; new DSN)                 |
 | Sync                    | Dropbox + Google Drive (APK)            | Dropbox + Google Drive (same)         |
-| Permissions             | 12 (APK)                                | 4 (decision)                          |
+| Permissions             | 12 (APK)                                | 6 (decision)                          |
 | APK size                | 23.1 MB (APK)                           | ≤ 15 MB target                         |
 | `minSdk`                | 21 (APK)                                | 31 (Q-D1)                              |
 

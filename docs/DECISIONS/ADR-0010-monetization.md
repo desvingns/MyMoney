@@ -61,11 +61,10 @@ Building an actual remote kill switch is separate work and is not decided by thi
 | Private backup to the user's own Dropbox / Google Drive | yes | yes |
 | Shared workspace on Supabase (multi-user / multi-device ledger) | no | yes |
 | Backup version history (multiple restorable snapshots) | no | yes |
-| Supporter badge | no | yes |
 
 Free is a complete money-tracking app, not a crippled trial. Nothing that works offline today
 moves behind the paywall — Plus only sells capabilities that cost the project money to run
-(Supabase) or that did not exist before (version history, badge).
+(Supabase) or that did not exist before (version history).
 
 ### D3 — Plus pricing
 
@@ -88,6 +87,10 @@ to a single base plan.
 Pure support purchases. They are **consumed immediately** on acknowledgement so they can be bought
 again. They grant no entitlement — buying coffee does not grant Plus, and Plus does not hide the
 coffee button.
+
+The first acknowledged purchase of any coffee SKU permanently awards a cosmetic Supporter badge.
+The badge is visible only to its owner in their app; it is not an entitlement, does not unlock
+Shared workspace, and has no effect on Plus. Plus neither grants nor hides the badge.
 
 ### D5 — Rewarded ads → temporary Plus
 
@@ -223,5 +226,7 @@ effectively unavailable. This is accepted, not worked around:
 
 - The exact shape of the entitlement record (a new Supabase table with RLS, or an extension of
   the existing profile row) and how the Google-account ↔ Supabase-user link is stored.
-- Whether the supporter badge is purely cosmetic in-app or visible to other members of a shared
-  workspace.
+
+## Amended 2026-08-12
+
+This amendment records the [support-hub-tip](../../.claude/specs/backlog/support-hub-tip-00-overview.md) decision that the Supporter badge is a coffee-purchase cosmetic, not a Plus capability.

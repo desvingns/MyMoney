@@ -36,6 +36,14 @@ as $$
       and entitlement.revoked_at is null
       and entitlement.starts_at <= now()
       and (entitlement.expires_at is null or entitlement.expires_at > entitlement.starts_at)
+      and (
+          entitlement.expires_at is null
+          or entitlement.expires_at > now()
+          or (
+              entitlement.provider = 'google_play'
+              and entitlement.expires_at + interval '7 days' > now()
+          )
+      )
     order by
         coalesce(
             entitlement.expires_at + case
@@ -112,9 +120,7 @@ begin
             case
                 when entitlement.source is null then 'expired'
                 when entitlement.google_play_state = 'SUBSCRIPTION_STATE_IN_GRACE_PERIOD'
-                    and entitlement.expires_at > now() then 'grace'
-                when entitlement.google_play_state = 'SUBSCRIPTION_STATE_IN_GRACE_PERIOD'
-                    then 'expired'
+                    then 'grace'
                 when entitlement.expires_at is null or entitlement.expires_at > now() then 'active'
                 when entitlement.source = 'google_play' then 'grace'
                 else 'expired'
@@ -122,7 +128,7 @@ begin
             case
                 when entitlement.source is null then null
                 when entitlement.google_play_state = 'SUBSCRIPTION_STATE_IN_GRACE_PERIOD'
-                    and entitlement.expires_at > now() then entitlement.expires_at
+                    then entitlement.expires_at
                 when entitlement.expires_at is null or entitlement.expires_at > now()
                     then entitlement.expires_at
                 when entitlement.source = 'google_play'
@@ -182,6 +188,10 @@ revoke all on function public.recompute_workspace_billing_state_from_rtdn() from
 grant execute on function public.get_my_entitlement() to authenticated;
 grant execute on function public.recompute_workspace_billing_state_from_rtdn() to service_role;
 
+revoke all on table public.entitlements from public, anon, authenticated;
+
+select private.recompute_workspace_billing_state();
+
 create extension if not exists pg_cron;
 
 do $$
@@ -236,7 +246,9 @@ begin
 end;
 $$;
 
-create or replace function public.create_invite(p_workspace_id uuid, p_token_hash text)
+drop function if exists public.create_invite(uuid, text);
+
+create function public.create_invite(p_workspace_id uuid, p_token_hash text)
     returns jsonb
     language plpgsql
     security definer

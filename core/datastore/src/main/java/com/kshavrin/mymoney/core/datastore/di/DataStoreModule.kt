@@ -9,7 +9,9 @@ import com.kshavrin.mymoney.core.common.di.IoDispatcher
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepositoryImpl
 import com.kshavrin.mymoney.core.datastore.DeviceIdProviderImpl
+import com.kshavrin.mymoney.core.datastore.DataStoreEntitlementCache
 import com.kshavrin.mymoney.core.datastore.EncryptedSharedSessionStore
+import com.kshavrin.mymoney.core.datastore.EntitlementCache
 import com.kshavrin.mymoney.core.datastore.JournalSyncConfigStore
 import com.kshavrin.mymoney.core.datastore.JournalSyncConfigStoreImpl
 import com.kshavrin.mymoney.core.datastore.SecureStorage
@@ -73,4 +75,8 @@ abstract class DataStoreBindings {
     @Binds
     @Singleton
     abstract fun bindSharedSyncStore(impl: SharedSyncStoreImpl): SharedSyncStore
+
+    @Binds
+    @Singleton
+    abstract fun bindEntitlementCache(impl: DataStoreEntitlementCache): EntitlementCache
 }

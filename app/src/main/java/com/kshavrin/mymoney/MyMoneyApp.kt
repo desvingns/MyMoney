@@ -6,6 +6,7 @@ import androidx.work.Configuration
 import com.kshavrin.mymoney.core.common.di.IoDispatcher
 import com.kshavrin.mymoney.core.common.scope.ApplicationScope
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
+import com.kshavrin.mymoney.core.domain.billing.BillingGateway
 import com.kshavrin.mymoney.core.domain.usecase.NormalizeLegacyUtcMidnightUseCase
 import com.kshavrin.mymoney.core.sync.JournalSync
 import com.kshavrin.mymoney.core.sync.WorkScheduler
@@ -37,6 +38,9 @@ class MyMoneyApp :
     lateinit var appSettingsRepository: Lazy<AppSettingsRepository>
 
     @Inject
+    lateinit var billingGateway: Lazy<BillingGateway>
+
+    @Inject
     lateinit var normalizeLegacyUtcMidnight: Lazy<NormalizeLegacyUtcMidnightUseCase>
 
     @Inject
@@ -59,6 +63,7 @@ class MyMoneyApp :
         applicationScope.launch(ioDispatcher) {
             workScheduler.get().scheduleDailyJobs()
         }
+        recoverSubscriptions()
         triggerJournalSyncOnOpen()
         initSentry()
         normalizeLegacyUtcMidnightDates()
@@ -93,6 +98,12 @@ class MyMoneyApp :
         applicationScope.launch(ioDispatcher) {
             runCatching { journalSync.get().syncNow() }
                 .onFailure { throwable -> Sentry.captureException(throwable) }
+        }
+    }
+
+    private fun recoverSubscriptions() {
+        applicationScope.launch(ioDispatcher) {
+            billingGateway.get().resolveSubscriptionPurchases()
         }
     }
 

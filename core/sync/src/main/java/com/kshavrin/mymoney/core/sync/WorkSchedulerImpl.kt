@@ -3,12 +3,14 @@ package com.kshavrin.mymoney.core.sync
 import android.content.Context
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
 import com.kshavrin.mymoney.core.datastore.JournalSyncConfigStore
 import com.kshavrin.mymoney.core.sync.worker.PruneDeletedWorker
 import com.kshavrin.mymoney.core.sync.worker.RecurringWorker
+import com.kshavrin.mymoney.core.sync.worker.EntitlementRefreshWorker
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
 import java.util.concurrent.TimeUnit
@@ -49,6 +51,20 @@ class WorkSchedulerImpl
                 PruneDeletedWorker.UNIQUE_PERIODIC,
                 ExistingPeriodicWorkPolicy.KEEP,
                 prune,
+            )
+
+            val entitlementRefresh =
+                PeriodicWorkRequestBuilder<EntitlementRefreshWorker>(PERIOD_HOURS, TimeUnit.HOURS)
+                    .setConstraints(
+                        Constraints
+                            .Builder()
+                            .setRequiredNetworkType(NetworkType.CONNECTED)
+                            .build(),
+                    ).build()
+            workManager.enqueueUniquePeriodicWork(
+                EntitlementRefreshWorker.UNIQUE_PERIODIC,
+                ExistingPeriodicWorkPolicy.KEEP,
+                entitlementRefresh,
             )
 
             val autoSyncEnabled = appSettings.settings.first().autoSyncEnabled

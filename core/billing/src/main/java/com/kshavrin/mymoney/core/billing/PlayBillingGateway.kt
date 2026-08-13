@@ -24,6 +24,7 @@ import com.kshavrin.mymoney.core.domain.billing.BillingAvailability
 import com.kshavrin.mymoney.core.domain.billing.BillingGateway
 import com.kshavrin.mymoney.core.domain.billing.PurchaseOutcome
 import com.kshavrin.mymoney.core.domain.billing.SupportProduct
+import com.kshavrin.mymoney.core.domain.repository.EntitlementRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -50,6 +51,8 @@ class PlayBillingGateway
         @ApplicationScope private val applicationScope: CoroutineScope,
         @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
         @MainDispatcher private val mainDispatcher: CoroutineDispatcher,
+        private val plusSubscriptionClient: PlusSubscriptionClient,
+        private val entitlementRepository: EntitlementRepository,
     ) : BillingGateway {
         private val pendingPurchase = AtomicReference<PendingPurchase?>(null)
         private val billingConnectionMutex = Mutex()
@@ -189,6 +192,122 @@ class PlayBillingGateway
                 }
             }
 
+        override fun querySubscriptions(): Result<List<SupportProduct>> =
+            if (!BuildConfig.BILLING_ENABLED) {
+                Result.success(emptyList())
+            } else {
+                runCatching {
+                    runBlocking(ioDispatcher) {
+                        availableClientOrThrow()
+                        plusSubscriptionClient
+                            .queryProductDetails(billingClient)
+                            .mapNotNull(plusSubscriptionClient::toSupportProduct)
+                    }
+                }
+            }
+
+        override fun launchSubscriptionFlow(productId: String): Flow<PurchaseOutcome> =
+            flow {
+                if (!BuildConfig.BILLING_ENABLED) {
+                    emit(PurchaseOutcome.Unavailable(DISABLED_IN_BUILD_REASON))
+                    return@flow
+                }
+
+                val availability = refreshAvailability()
+                if (availability != BillingAvailability.Available) {
+                    emit(availability.toPurchaseOutcome())
+                    return@flow
+                }
+
+                val activity = foregroundActivityProvider.currentActivity()
+                if (activity == null) {
+                    emit(PurchaseOutcome.Unavailable(NO_FOREGROUND_ACTIVITY_REASON))
+                    return@flow
+                }
+
+                val currentPurchase = PendingPurchase(productId, PurchaseOutcomeBridge())
+                if (!pendingPurchase.compareAndSet(null, currentPurchase)) {
+                    emit(PurchaseOutcome.Unavailable(BILLING_FLOW_IN_PROGRESS_REASON))
+                    return@flow
+                }
+
+                try {
+                    val productDetails =
+                        plusSubscriptionClient
+                            .queryProductDetails(billingClient)
+                            .firstOrNull { it.productId == productId }
+                    val offer = productDetails?.let(plusSubscriptionClient::offerFor)
+                    if (productDetails == null || offer == null) {
+                        pendingPurchase.compareAndSet(currentPurchase, null)
+                        emit(PurchaseOutcome.Unavailable(productId))
+                        return@flow
+                    }
+
+                    val startResult =
+                        withContext(mainDispatcher) {
+                            plusSubscriptionClient.launchBillingFlow(
+                                billingClient = billingClient,
+                                activity = activity,
+                                productDetails = productDetails,
+                                offer = offer,
+                            )
+                        }
+                    if (startResult.responseCode != BillingClient.BillingResponseCode.OK) {
+                        pendingPurchase.compareAndSet(currentPurchase, null)
+                        emit(startResult.toPurchaseOutcome())
+                        return@flow
+                    }
+                    while (true) {
+                        val outcome = currentPurchase.outcomes.awaitNext() ?: return@flow
+                        emit(outcome)
+                        if (outcome.isTerminal()) {
+                            return@flow
+                        }
+                    }
+                } catch (throwable: Throwable) {
+                    emit(throwable.toPurchaseOutcome())
+                } finally {
+                    pendingPurchase.compareAndSet(currentPurchase, null)
+                    currentPurchase.outcomes.close()
+                }
+            }
+
+        override suspend fun acknowledge(purchaseToken: String): Result<Unit> =
+            if (!BuildConfig.BILLING_ENABLED) {
+                Result.failure(IllegalStateException(DISABLED_IN_BUILD_REASON))
+            } else {
+                withContext(ioDispatcher) {
+                    runCatching { availableClientOrThrow() }
+                        .fold(
+                            onSuccess = { plusSubscriptionClient.acknowledge(billingClient, purchaseToken) },
+                            onFailure = Result.Companion::failure,
+                        )
+                }
+            }
+
+        override fun resolveSubscriptionPurchases(): Result<List<PurchaseOutcome>> =
+            if (!BuildConfig.BILLING_ENABLED) {
+                Result.success(emptyList())
+            } else {
+                runCatching {
+                    runBlocking(ioDispatcher) {
+                        val availability = refreshAvailability()
+                        if (availability != BillingAvailability.Available) {
+                            return@runBlocking emptyList()
+                        }
+
+                        plusSubscriptionClient
+                            .queryPurchases(billingClient)
+                            .map { purchase -> processSubscriptionPurchase(purchase, refreshAfterPurchase = false) }
+                            .also { purchases ->
+                                if (purchases.isNotEmpty()) {
+                                    entitlementRepository.refresh()
+                                }
+                            }
+                    }
+                }
+            }
+
         private suspend fun refreshAvailability(): BillingAvailability {
             when (val connection = awaitConnection()) {
                 ConnectionResult.Ready -> Unit
@@ -229,11 +348,11 @@ class PlayBillingGateway
         ) {
             when (billingResult.responseCode) {
                 BillingClient.BillingResponseCode.OK -> {
-                    val supportPurchases = purchases.orEmpty().filter(::containsSupportProduct)
-                    if (supportPurchases.isEmpty()) {
+                    val knownPurchases = purchases.orEmpty().filter(::containsKnownProduct)
+                    if (knownPurchases.isEmpty()) {
                         deliverToActivePurchase(PurchaseOutcome.Unavailable(EMPTY_PURCHASE_RESULT_REASON))
                     } else {
-                        supportPurchases.forEach { purchase ->
+                        knownPurchases.forEach { purchase ->
                             deliverToActivePurchase(processPurchase(purchase))
                         }
                     }
@@ -248,15 +367,33 @@ class PlayBillingGateway
         }
 
         private suspend fun processPurchase(purchase: Purchase): PurchaseOutcome =
-            purchaseProcessor.process(
-                PurchaseProcessingInput(
-                    productId = purchase.products.first { it in SUPPORT_PRODUCT_IDS },
-                    purchaseToken = purchase.purchaseToken,
-                    purchasedAtMillis = purchase.purchaseTime,
-                    state = purchase.purchaseState.toPurchaseProcessingState(),
-                    isAcknowledged = purchase.isAcknowledged,
-                ),
-            )
+            when {
+                containsSupportProduct(purchase) ->
+                    purchaseProcessor.process(
+                        PurchaseProcessingInput(
+                            productId = purchase.products.first { it in SUPPORT_PRODUCT_IDS },
+                            purchaseToken = purchase.purchaseToken,
+                            purchasedAtMillis = purchase.purchaseTime,
+                            state = purchase.purchaseState.toPurchaseProcessingState(),
+                            isAcknowledged = purchase.isAcknowledged,
+                        ),
+                    )
+
+                containsPlusProduct(purchase) -> processSubscriptionPurchase(purchase)
+                else -> PurchaseOutcome.Unavailable(UNSUPPORTED_PURCHASE_STATE_REASON)
+            }
+
+        private suspend fun processSubscriptionPurchase(
+            purchase: Purchase,
+            refreshAfterPurchase: Boolean = true,
+        ): PurchaseOutcome =
+            plusSubscriptionClient
+                .processPurchase(billingClient, purchase)
+                .also { outcome ->
+                    if (refreshAfterPurchase && outcome is PurchaseOutcome.Purchased) {
+                        entitlementRepository.refresh()
+                    }
+                }
 
         private fun deliverToActivePurchase(outcome: PurchaseOutcome) {
             val currentPurchase = pendingPurchase.get() ?: return
@@ -271,6 +408,12 @@ class PlayBillingGateway
 
         private fun containsSupportProduct(purchase: Purchase): Boolean =
             purchase.products.any { it in SUPPORT_PRODUCT_IDS }
+
+        private fun containsPlusProduct(purchase: Purchase): Boolean =
+            purchase.products.any { it in PlusSku.productIds }
+
+        private fun containsKnownProduct(purchase: Purchase): Boolean =
+            containsSupportProduct(purchase) || containsPlusProduct(purchase)
 
         private fun ProductDetails.toSupportProduct(): SupportProduct? =
             oneTimePurchaseOfferDetailsList
@@ -324,7 +467,7 @@ class PlayBillingGateway
             val purchasesList: List<Purchase>,
         )
 
-        private class BillingOperationException(
+        internal class BillingOperationException(
             val billingResult: BillingResult,
         ) : IllegalStateException(billingResult.debugMessage)
 

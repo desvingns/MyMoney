@@ -20,7 +20,7 @@ class FakeBillingGatewayTest {
     )
 
     @Test
-    fun `availability is a StateFlow and emits all four seeded states`() = runTest {
+    fun `availability is a StateFlow and emits every seeded state`() = runTest {
         val gateway = FakeBillingGateway()
         val availability = gateway.availability()
 
@@ -30,7 +30,10 @@ class FakeBillingGatewayTest {
 
             listOf(
                 BillingAvailability.UnavailableOnDevice,
+                BillingAvailability.ServiceUnavailable,
+                BillingAvailability.NetworkUnavailable,
                 BillingAvailability.UnavailableInRegion,
+                BillingAvailability.UnknownFailure(503),
                 BillingAvailability.DisabledInBuild,
                 BillingAvailability.Available,
             ).forEach { state ->

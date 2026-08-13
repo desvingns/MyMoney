@@ -7,16 +7,21 @@ import org.junit.Test
 
 class BillingContractsTest {
     @Test
-    fun `billing availability exposes four distinct states`() {
+    fun `billing availability exposes every distinct state`() {
         val states = listOf(
             BillingAvailability.Available,
             BillingAvailability.UnavailableOnDevice,
+            BillingAvailability.ServiceUnavailable,
+            BillingAvailability.NetworkUnavailable,
             BillingAvailability.UnavailableInRegion,
+            BillingAvailability.UnknownFailure(responseCode = 42),
             BillingAvailability.DisabledInBuild,
         )
 
-        assertEquals(4, states.toSet().size)
+        assertEquals(7, states.toSet().size)
         assertNotEquals(BillingAvailability.UnavailableOnDevice, BillingAvailability.UnavailableInRegion)
+        assertNotEquals(BillingAvailability.ServiceUnavailable, BillingAvailability.NetworkUnavailable)
+        assertNotEquals(BillingAvailability.NetworkUnavailable, BillingAvailability.UnknownFailure(42))
         assertNotEquals(BillingAvailability.UnavailableInRegion, BillingAvailability.DisabledInBuild)
     }
 

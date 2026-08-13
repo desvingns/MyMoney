@@ -8,6 +8,8 @@
 
 ## Current state
 
+- **2026-08-13 (Codex MP `--feature --next`, support-hub-tip SPEC 03):** Added the `:core:billing` Google Play Billing gateway for `coffee_small`/`coffee_large`, with disabled-by-default build gating, explicit availability mapping, acknowledge-then-consume processing, serialized connection setup, and a `PENDING`→`PURCHASED` foreground bridge. Startup reconciliation is deliberately left to SPEC-04/05 so no `Purchased` result is silently discarded before a supporter consumer exists. Reviewer, semantic reviewer, independent critic, verifier, and full runner passed: `2034 passed / 0 failed / 0 skipped`, detekt/lint green. Real Play Internal testing with `billing.enabled=true` remains an external prerequisite.
+
 - **2026-08-13 (Codex MP `--feature --next`, support-hub-tip SPEC 01):** Corrected ADR-0010 and the authoritative TDD so the Supporter badge is a cosmetic reward for the first coffee purchase, not a Plus entitlement; removed the stale Plus claim from TDD §14.4 and corrected the permission-count row from 4 to 6. Developer commits `45e8103a` and `6852733c` were pushed to `main`; deterministic reviewer, semantic reviewer, tester, runner (`2007 passed / 0 failed / 0 skipped`), independent critic, and full verifier passed. No device or live Supabase evidence was applicable to this docs-only SPEC.
 
 - **2026-08-13 (Codex MP `--feature --next`, plus-subscription-gating SPEC 02):** Fixed four
@@ -17,12 +19,6 @@
   runner: 2007 passed / 0 failed / 0 skipped, detekt/lint green; reviewer, semantic reviewer,
   independent critic, and full verifier passed. Live Supabase apply and two-account E2E remain a
   manual prerequisite because no connected Supabase CLI/project was available.
-
-- **2026-08-06 (Codex MP close-out, shared-backend-sync):** Closed SPEC 04 and the standalone
-  `join_workspace` pgcrypto bugfix after user-confirmed multi-user/device E2E and Pixel 8 invite
-  join verification. Commits: `ea914537`, `716216fd`, `a9c9a877`. Scoped JVM checks: 370 passed /
-  0 failed / 0 skipped. All four shared-backend-sync child SPECs plus the epic overview moved to
-  `.claude/specs/done/`; the experimental gate remains off for public/release defaults.
 
 - **2026-08-05 (Codex MP `--bugfix`, dashboard inline transaction records):** Reproduced the
   dashboard showing only one aggregated `23 RSD` tile while August data existed on Pixel 5/API34

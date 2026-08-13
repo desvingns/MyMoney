@@ -57,31 +57,22 @@ class BillingWiringContractTest {
     }
 
     @Test
-    fun `startup resolves only unfinished purchases and stays gated in disabled builds`() {
+    fun `app does not silently reconcile purchases during startup`() {
         val appSource = file("app/src/main/java/com/kshavrin/mymoney/MyMoneyApp.kt").readText()
-        val startup = methodBody(appSource, "private fun resolvePendingPurchasesOnOpen()")
 
-        assertContainsInOrder(
-            startup,
-            listOf(
-                "if (!BuildConfig.BILLING_ENABLED)",
-                "return",
-                "applicationScope.launch(ioDispatcher)",
-                "billingGateway",
-                "resolvePendingPurchases()",
-                "onFailure { throwable -> Sentry.captureException(throwable) }",
-            ),
-        )
-        assertFalse(startup.contains("products()"))
-        assertFalse(startup.contains("purchase("))
+        assertFalse(appSource.contains("BillingGateway"))
+        assertFalse(appSource.contains("billingGateway"))
+        assertFalse(appSource.contains("resolvePendingPurchasesOnOpen"))
+        assertFalse(appSource.contains("resolvePendingPurchases()"))
     }
 
     @Test
-    fun `Play gateway keeps startup query for cleanup and purchase processing serialized`() {
+    fun `Play gateway retains explicit cleanup and serializes purchase and connection processing`() {
         val source =
             file("core/billing/src/main/java/com/kshavrin/mymoney/core/billing/PlayBillingGateway.kt").readText()
         val pendingResolution = methodBody(source, "override fun resolvePendingPurchases()")
         val purchaseProcessing = methodBody(source, "private suspend fun processPurchase(")
+        val delivery = methodBody(source, "private fun deliverToActivePurchase(")
 
         assertContainsInOrder(
             pendingResolution,
@@ -95,6 +86,15 @@ class BillingWiringContractTest {
         )
         assertFalse(methodBody(source, "private suspend fun querySupportProductDetails()").contains("queryPurchases"))
         assertTrue(source.contains("private val processingMutex = Mutex()"))
+        assertContainsInOrder(
+            source,
+            listOf(
+                "private val billingConnectionMutex = Mutex()",
+                "private suspend fun awaitConnection(): ConnectionResult =",
+                "billingConnectionMutex.withLock {",
+                "billingClient.awaitConnection()",
+            ),
+        )
         assertTrue(source.contains("val SUPPORT_PRODUCT_IDS = setOf(\"coffee_small\", \"coffee_large\")"))
         assertContainsInOrder(
             source,
@@ -122,6 +122,23 @@ class BillingWiringContractTest {
                 "if (!purchase.isAcknowledged)",
                 "val acknowledgeResponseCode = acknowledge(purchase.purchaseToken)",
                 "val consumeResponseCode = consume(purchase.purchaseToken)",
+            ),
+        )
+        assertContainsInOrder(
+            delivery,
+            listOf(
+                "outcome is PurchaseOutcome.Purchased && outcome.productId != currentPurchase.productId",
+                "if (outcome.isTerminal() && !pendingPurchase.compareAndSet(currentPurchase, null))",
+                "currentPurchase.outcomes.emit(outcome)",
+            ),
+        )
+        assertContainsInOrder(
+            source,
+            listOf(
+                "class PurchaseOutcomeBridge",
+                "Channel<PurchaseOutcome>(Channel.BUFFERED)",
+                "outcome.isTerminal()",
+                "outcomes.close()",
             ),
         )
         assertTrue(source.contains("responseCode == BillingClient.BillingResponseCode.USER_CANCELED"))

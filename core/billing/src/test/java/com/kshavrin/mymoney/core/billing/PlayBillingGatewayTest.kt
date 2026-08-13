@@ -37,6 +37,24 @@ class PlayBillingGatewayTest {
     }
 
     @Test
+    fun `pending outcome keeps the bridge open for a later purchased outcome`() = runTest {
+        val bridge = PurchaseOutcomeBridge()
+        val purchased =
+            PurchaseOutcome.Purchased(
+                productId = "coffee_small",
+                purchaseToken = "purchase-token",
+                purchasedAtMillis = 1_723_456_789_000L,
+            )
+
+        bridge.emit(PurchaseOutcome.Pending)
+        assertEquals(PurchaseOutcome.Pending, bridge.awaitNext())
+
+        bridge.emit(purchased)
+        assertEquals(purchased, bridge.awaitNext())
+        assertEquals(null, bridge.awaitNext())
+    }
+
+    @Test
     fun `billing response codes map to distinct device service network and unknown availability`() {
         val cases =
             listOf(

@@ -25,9 +25,9 @@ import com.kshavrin.mymoney.core.domain.billing.BillingGateway
 import com.kshavrin.mymoney.core.domain.billing.PurchaseOutcome
 import com.kshavrin.mymoney.core.domain.billing.SupportProduct
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
@@ -52,6 +52,7 @@ class PlayBillingGateway
         @MainDispatcher private val mainDispatcher: CoroutineDispatcher,
     ) : BillingGateway {
         private val pendingPurchase = AtomicReference<PendingPurchase?>(null)
+        private val billingConnectionMutex = Mutex()
         private val purchaseProcessor =
             PurchaseProcessor(
                 acknowledge = { purchaseToken -> billingClient.acknowledge(purchaseToken).responseCode },
@@ -109,7 +110,7 @@ class PlayBillingGateway
                     return@flow
                 }
 
-                val currentPurchase = PendingPurchase(productId, CompletableDeferred())
+                val currentPurchase = PendingPurchase(productId, PurchaseOutcomeBridge())
                 if (!pendingPurchase.compareAndSet(null, currentPurchase)) {
                     emit(PurchaseOutcome.Unavailable(BILLING_FLOW_IN_PROGRESS_REASON))
                     return@flow
@@ -150,11 +151,18 @@ class PlayBillingGateway
                         emit(startResult.toPurchaseOutcome())
                         return@flow
                     }
-                    emit(currentPurchase.outcome.await())
+                    while (true) {
+                        val outcome = currentPurchase.outcomes.awaitNext() ?: return@flow
+                        emit(outcome)
+                        if (outcome.isTerminal()) {
+                            return@flow
+                        }
+                    }
                 } catch (throwable: Throwable) {
                     emit(throwable.toPurchaseOutcome())
                 } finally {
                     pendingPurchase.compareAndSet(currentPurchase, null)
+                    currentPurchase.outcomes.close()
                 }
             }
 
@@ -182,7 +190,7 @@ class PlayBillingGateway
             }
 
         private suspend fun refreshAvailability(): BillingAvailability {
-            when (val connection = billingClient.awaitConnection()) {
+            when (val connection = awaitConnection()) {
                 ConnectionResult.Ready -> Unit
                 is ConnectionResult.Failed -> return connection.billingResult.toAvailability()
             }
@@ -201,6 +209,11 @@ class PlayBillingGateway
             }
             return billingClient
         }
+
+        private suspend fun awaitConnection(): ConnectionResult =
+            billingConnectionMutex.withLock {
+                billingClient.awaitConnection()
+            }
 
         private suspend fun querySupportProductDetails(): List<ProductDetails> {
             val result = billingClient.querySupportProductDetails()
@@ -247,19 +260,13 @@ class PlayBillingGateway
 
         private fun deliverToActivePurchase(outcome: PurchaseOutcome) {
             val currentPurchase = pendingPurchase.get() ?: return
-            when (outcome) {
-                is PurchaseOutcome.Purchased -> {
-                    if (outcome.productId == currentPurchase.productId) {
-                        pendingPurchase.compareAndSet(currentPurchase, null)
-                        currentPurchase.outcome.complete(outcome)
-                    }
-                }
-
-                else -> {
-                    pendingPurchase.compareAndSet(currentPurchase, null)
-                    currentPurchase.outcome.complete(outcome)
-                }
+            if (outcome is PurchaseOutcome.Purchased && outcome.productId != currentPurchase.productId) {
+                return
             }
+            if (outcome.isTerminal() && !pendingPurchase.compareAndSet(currentPurchase, null)) {
+                return
+            }
+            currentPurchase.outcomes.emit(outcome)
         }
 
         private fun containsSupportProduct(purchase: Purchase): Boolean =
@@ -291,7 +298,7 @@ class PlayBillingGateway
 
         private data class PendingPurchase(
             val productId: String,
-            val outcome: CompletableDeferred<PurchaseOutcome>,
+            val outcomes: PurchaseOutcomeBridge,
         )
 
         internal sealed interface ConnectionResult {
@@ -338,6 +345,25 @@ class PlayBillingGateway
             const val REGION_UNAVAILABLE_REASON = "billing_unavailable_in_region"
         }
     }
+
+internal class PurchaseOutcomeBridge {
+    private val outcomes = Channel<PurchaseOutcome>(Channel.BUFFERED)
+
+    fun emit(outcome: PurchaseOutcome) {
+        outcomes.trySend(outcome)
+        if (outcome.isTerminal()) {
+            outcomes.close()
+        }
+    }
+
+    suspend fun awaitNext(): PurchaseOutcome? = outcomes.receiveCatching().getOrNull()
+
+    fun close() {
+        outcomes.close()
+    }
+}
+
+internal fun PurchaseOutcome.isTerminal(): Boolean = this !is PurchaseOutcome.Pending
 
 internal fun billingAvailabilityForCountryCode(countryCode: String?): BillingAvailability =
     if (countryCode.equals(PlayBillingGateway.RUSSIA_COUNTRY_CODE, ignoreCase = true)) {

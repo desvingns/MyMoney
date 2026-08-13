@@ -8,6 +8,14 @@
 
 ## Current state
 
+- **2026-08-13 (Codex MP `--feature --next`, plus-subscription-gating SPEC 02):** Fixed four
+  semantic blockers in the Supabase payer-entitlement migration: safe `create_invite` signature
+  replacement, Google Play grace cutoff, direct entitlement-table revoke, and fail-closed initial
+  workspace recompute. Commits: `c0fe820f`, `d84c8e55`, `d3cd11ac`, `aac728e8`. Final JVM/static
+  runner: 2007 passed / 0 failed / 0 skipped, detekt/lint green; reviewer, semantic reviewer,
+  independent critic, and full verifier passed. Live Supabase apply and two-account E2E remain a
+  manual prerequisite because no connected Supabase CLI/project was available.
+
 - **2026-08-06 (Codex MP close-out, shared-backend-sync):** Closed SPEC 04 and the standalone
   `join_workspace` pgcrypto bugfix after user-confirmed multi-user/device E2E and Pixel 8 invite
   join verification. Commits: `ea914537`, `716216fd`, `a9c9a877`. Scoped JVM checks: 370 passed /

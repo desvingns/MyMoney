@@ -35,7 +35,7 @@ class SupporterSyncImpl
                         .recordPurchase(
                             outcome = outcome,
                             ownerUserId = session?.user?.id,
-                        ).getOrElse { return@withLock Result.failure(it).reportFailure() }
+                        ).getOrElse { return@withLock Result.failure<Unit>(it).reportFailure() }
                     if (session == null) {
                         Result.success(Unit)
                     } else {

@@ -300,7 +300,7 @@ class PlayBillingGateway
                 BillingAvailability.ServiceUnavailable -> PurchaseOutcome.NetworkError
                 BillingAvailability.NetworkUnavailable -> PurchaseOutcome.NetworkError
                 BillingAvailability.UnavailableInRegion -> PurchaseOutcome.Unavailable(REGION_UNAVAILABLE_REASON)
-                is BillingAvailability.UnknownFailure -> PurchaseOutcome.Unavailable(responseCode.toString())
+                is BillingAvailability.UnknownFailure -> PurchaseOutcome.Unavailable(this.responseCode.toString())
                 BillingAvailability.DisabledInBuild -> PurchaseOutcome.Unavailable(DISABLED_IN_BUILD_REASON)
             }
 

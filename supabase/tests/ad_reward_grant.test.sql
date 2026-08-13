@@ -280,6 +280,7 @@ with execute_grantees as (
         on role.oid = privilege.grantee
     where procedure.oid = 'public.get_ad_reward_state()'::pg_catalog.regprocedure
       and privilege.privilege_type = 'EXECUTE'
+      and privilege.grantee <> procedure.proowner
 )
 select ok(
     coalesce(

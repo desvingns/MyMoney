@@ -73,6 +73,37 @@ class BillingWiringContractTest {
     }
 
     @Test
+    fun `app restores supporter purchases before resolving pending Play purchases`() {
+        val appSource = file("app/src/main/java/com/kshavrin/mymoney/MyMoneyApp.kt").readText()
+
+        assertContainsInOrder(
+            appSource,
+            listOf(
+                "lateinit var supporterSync: Lazy<SupporterSync>",
+                "recoverSupporterPurchases()",
+                "private fun recoverSupporterPurchases()",
+                "supporterSync.get().restore()",
+                "billingGateway.get().resolvePendingPurchases()",
+            ),
+        )
+    }
+
+    @Test
+    fun `supporter repository outbox and sync bindings are registered`() {
+        val dataStoreModule = file("core/datastore/src/main/java/com/kshavrin/mymoney/core/datastore/di/DataStoreModule.kt").readText()
+        val syncModule = file("core/sync/src/main/java/com/kshavrin/mymoney/core/sync/di/SyncModule.kt").readText()
+
+        assertContainsInOrder(
+            dataStoreModule,
+            listOf(
+                "abstract fun bindSupporterRepository(impl: SupporterRepositoryImpl): SupporterRepository",
+                "abstract fun bindSupporterPurchaseStore(impl: SupporterPurchaseStoreImpl): SupporterPurchaseStore",
+            ),
+        )
+        assertTrue(syncModule.contains("abstract fun bindSupporterSync(impl: SupporterSyncImpl): SupporterSync"))
+    }
+
+    @Test
     fun `Play gateway retains explicit cleanup and serializes purchase and connection processing`() {
         val source =
             file("core/billing/src/main/java/com/kshavrin/mymoney/core/billing/PlayBillingGateway.kt").readText()
@@ -117,6 +148,8 @@ class BillingWiringContractTest {
                 "PurchaseProcessingInput(",
                 "productId = purchase.products.first { it in SUPPORT_PRODUCT_IDS }",
                 "state = purchase.purchaseState.toPurchaseProcessingState()",
+                "if (outcome is PurchaseOutcome.Purchased)",
+                "supporterSync.syncPurchase(outcome)",
             ),
         )
         assertContainsInOrder(

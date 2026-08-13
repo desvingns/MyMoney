@@ -46,6 +46,7 @@ import com.kshavrin.mymoney.core.network.shared.WorkspaceRole
 import com.kshavrin.mymoney.core.sync.SyncExecutionGate
 import com.kshavrin.mymoney.core.sync.SyncScheduler
 import com.kshavrin.mymoney.core.testing.fake.FakeAppSettingsRepository
+import com.kshavrin.mymoney.core.testing.fake.FakeSupporterSync
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -106,6 +107,7 @@ class SharedSyncCoordinatorImplTest {
     private lateinit var transactionRepository: FakeTransactionRepository
     private lateinit var currencyRepository: FakeCurrencyRepository
     private lateinit var deviceIdProvider: DeviceIdProvider
+    private lateinit var supporterSync: FakeSupporterSync
 
     private lateinit var coordinator: SharedSyncCoordinatorImpl
 
@@ -132,6 +134,7 @@ class SharedSyncCoordinatorImplTest {
         categoryRepository = FakeCategoryRepository()
         transactionRepository = FakeTransactionRepository()
         currencyRepository = FakeCurrencyRepository()
+        supporterSync = FakeSupporterSync()
         deviceIdProvider =
             object : DeviceIdProvider {
                 override suspend fun deviceId() = "test-device"
@@ -161,6 +164,7 @@ class SharedSyncCoordinatorImplTest {
             database = db,
             clock = clock,
             dispatcher = dispatcher,
+            supporterSync = supporterSync,
         )
 
     @After
@@ -214,6 +218,19 @@ class SharedSyncCoordinatorImplTest {
 
             assertTrue(result.isFailure)
             assertEquals(SyncError.Auth, (result.exceptionOrNull() as SyncException).syncError)
+        }
+
+    @Test
+    fun `signIn propagates supporter restore failure after authentication succeeds`() =
+        runTest(dispatcher) {
+            auth.session = fakeSession()
+            val restoreFailure = SyncException(SyncError.Server)
+            supporterSync.restoreResult = Result.failure(restoreFailure)
+
+            val result = coordinator.signIn("google-id-token", "raw-nonce")
+
+            assertTrue(result.isFailure)
+            assertEquals(restoreFailure, result.exceptionOrNull())
         }
 
     @Test

@@ -40,6 +40,7 @@ class SupporterRepositoryImplTest {
                 SupporterState(badgeEarned = true, purchaseCount = 1),
                 repository.state().first(),
             )
+            assertEquals(setOf("token"), appSettingsRepository.current().supporterPurchaseTokens)
         }
 
     @Test
@@ -50,6 +51,7 @@ class SupporterRepositoryImplTest {
                     AppSettings(
                         supporterBadgeEarned = true,
                         supportPurchaseCount = 2,
+                        supporterPurchaseTokens = setOf("previous-token"),
                     ),
                 )
             val repository = SupporterRepositoryImpl(appSettingsRepository)
@@ -60,6 +62,32 @@ class SupporterRepositoryImplTest {
                 SupporterState(badgeEarned = true, purchaseCount = 3),
                 repository.state().first(),
             )
+            assertEquals(
+                setOf("previous-token", "token"),
+                appSettingsRepository.current().supporterPurchaseTokens,
+            )
+        }
+
+    @Test
+    fun `replaying the same purchase token does not increment the local count`() =
+        runTest {
+            val appSettingsRepository =
+                FakeAppSettingsRepository(
+                    AppSettings(
+                        supporterBadgeEarned = true,
+                        supportPurchaseCount = 2,
+                        supporterPurchaseTokens = setOf("token"),
+                    ),
+                )
+            val repository = SupporterRepositoryImpl(appSettingsRepository)
+
+            repository.recordPurchase(purchasedOutcome()).getOrThrow()
+
+            assertEquals(
+                SupporterState(badgeEarned = true, purchaseCount = 2),
+                repository.state().first(),
+            )
+            assertEquals(setOf("token"), appSettingsRepository.current().supporterPurchaseTokens)
         }
 
     @Test

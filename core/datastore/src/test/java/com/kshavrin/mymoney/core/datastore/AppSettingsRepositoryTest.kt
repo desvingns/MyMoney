@@ -5,6 +5,8 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.mutablePreferencesOf
 import com.kshavrin.mymoney.core.datastore.model.AppSettings
+import com.kshavrin.mymoney.core.datastore.supporter.SupporterPurchaseStoreImpl
+import com.kshavrin.mymoney.core.domain.billing.PurchaseOutcome
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -66,6 +68,7 @@ class AppSettingsRepositoryTest {
             assertEquals(false, settings.firstPositiveSeen)
             assertEquals(false, settings.supporterBadgeEarned)
             assertEquals(0, settings.supportPurchaseCount)
+            assertEquals(emptySet<String>(), settings.supporterPurchaseTokens)
             assertEquals(0L, settings.importFocusEpochMs)
             assertEquals(-1L, settings.importFocusCurrencyId)
             assertEquals(0L, settings.dashboardPeriodEpochMs)
@@ -104,6 +107,7 @@ class AppSettingsRepositoryTest {
                     firstPositiveSeen = true,
                     supporterBadgeEarned = true,
                     supportPurchaseCount = 3,
+                    supporterPurchaseTokens = setOf("token-a", "token-b"),
                     importFocusEpochMs = 1700000002000L,
                     importFocusCurrencyId = 9L,
                     dashboardPeriodEpochMs = 1772323200000L,
@@ -165,6 +169,7 @@ class AppSettingsRepositoryTest {
                 it.copy(
                     supporterBadgeEarned = true,
                     supportPurchaseCount = 7,
+                    supporterPurchaseTokens = setOf("token"),
                 )
             }
 
@@ -172,6 +177,7 @@ class AppSettingsRepositoryTest {
 
             assertEquals(true, preferences[AppSettingsKeys.SUPPORTER_BADGE_EARNED])
             assertEquals(7, preferences[AppSettingsKeys.SUPPORT_PURCHASE_COUNT])
+            assertEquals(setOf("token"), preferences[AppSettingsKeys.SUPPORTER_PURCHASE_TOKENS])
         }
 
     // Regression for the cold-start-only empty-dashboard bug: a Monefy import into a past month
@@ -310,6 +316,14 @@ class AppSettingsRepositoryTest {
     fun `reset clears stored settings while preserving device id and supporter state`() =
         runTest(UnconfinedTestDispatcher()) {
             val preservedDeviceId = DeviceIdProviderImpl(dataStore).deviceId()
+            val purchaseStore = SupporterPurchaseStoreImpl(dataStore)
+            val purchased =
+                PurchaseOutcome.Purchased(
+                    productId = "coffee_small",
+                    purchaseToken = "purchase-token",
+                    purchasedAtMillis = 1_723_456_789_000L,
+                )
+            purchaseStore.recordPurchase(purchased, ownerUserId = "user-1").getOrThrow()
             repository.update {
                 AppSettings(
                     language = "ru",
@@ -321,6 +335,7 @@ class AppSettingsRepositoryTest {
                     firstPositiveSeen = true,
                     supporterBadgeEarned = true,
                     supportPurchaseCount = 4,
+                    supporterPurchaseTokens = setOf("purchase-token"),
                     tzNormalizedAt = 789L,
                 )
             }
@@ -328,9 +343,14 @@ class AppSettingsRepositoryTest {
             repository.reset()
 
             assertEquals(
-                AppSettings(supporterBadgeEarned = true, supportPurchaseCount = 4),
+                AppSettings(
+                    supporterBadgeEarned = true,
+                    supportPurchaseCount = 4,
+                    supporterPurchaseTokens = setOf("purchase-token"),
+                ),
                 repository.settings.first(),
             )
+            assertEquals(listOf(purchased), purchaseStore.pendingPurchases("user-1").getOrThrow())
             assertEquals(preservedDeviceId, dataStore.data.first()[AppSettingsKeys.DEVICE_ID])
         }
 

@@ -61,6 +61,7 @@ class PlayBillingGateway
         private val purchaseProcessor =
             PurchaseProcessor(
                 acknowledge = { purchaseToken -> billingClient.acknowledge(purchaseToken).responseCode },
+                recordPurchase = supporterSync::recordPurchase,
                 consume = { purchaseToken -> billingClient.consume(purchaseToken).responseCode },
             )
         private val purchasesUpdatedListener =
@@ -498,6 +499,8 @@ class PlayBillingGateway
     }
 
 private object NoOpSupporterSync : SupporterSync {
+    override suspend fun recordPurchase(outcome: PurchaseOutcome.Purchased): Result<Unit> = Result.success(Unit)
+
     override suspend fun syncPurchase(outcome: PurchaseOutcome.Purchased): Result<Unit> = Result.success(Unit)
 
     override suspend fun restore(): Result<Unit> = Result.success(Unit)
@@ -579,6 +582,9 @@ internal enum class PurchaseProcessingState {
 internal class PurchaseProcessor(
     private val acknowledge: suspend (String) -> Int,
     private val consume: suspend (String) -> Int,
+    private val recordPurchase: suspend (PurchaseOutcome.Purchased) -> Result<Unit> = {
+        Result.success(Unit)
+    },
 ) {
     private val processingMutex = Mutex()
 
@@ -594,15 +600,21 @@ internal class PurchaseProcessor(
                         }
                     }
 
-                    val consumeResponseCode = consume(purchase.purchaseToken)
-                    if (consumeResponseCode != BillingClient.BillingResponseCode.OK) {
-                        purchaseOutcomeForResponseCode(consumeResponseCode)
-                    } else {
+                    val purchasedOutcome =
                         PurchaseOutcome.Purchased(
                             productId = purchase.productId,
                             purchaseToken = purchase.purchaseToken,
                             purchasedAtMillis = purchase.purchasedAtMillis,
                         )
+                    if (recordPurchase(purchasedOutcome).isFailure) {
+                        return@withLock PurchaseOutcome.NetworkError
+                    }
+
+                    val consumeResponseCode = consume(purchase.purchaseToken)
+                    if (consumeResponseCode != BillingClient.BillingResponseCode.OK) {
+                        purchaseOutcomeForResponseCode(consumeResponseCode)
+                    } else {
+                        purchasedOutcome
                     }
                 }
 

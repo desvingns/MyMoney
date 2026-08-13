@@ -27,15 +27,19 @@ class SupporterSyncImpl
     ) : SupporterSync {
         private val deliveryMutex = Mutex()
 
+        override suspend fun recordPurchase(outcome: PurchaseOutcome.Purchased): Result<Unit> =
+            withContext(dispatcher) {
+                deliveryMutex.withLock {
+                    recordPurchaseLocked(outcome).reportFailure()
+                }
+            }
+
         override suspend fun syncPurchase(outcome: PurchaseOutcome.Purchased): Result<Unit> =
             withContext(dispatcher) {
                 deliveryMutex.withLock {
+                    recordPurchaseLocked(outcome)
+                        .getOrElse { return@withLock Result.failure<Unit>(it).reportFailure() }
                     val session = auth.currentSession()
-                    supporterPurchaseStore
-                        .recordPurchase(
-                            outcome = outcome,
-                            ownerUserId = session?.user?.id,
-                        ).getOrElse { return@withLock Result.failure<Unit>(it).reportFailure() }
                     if (session == null) {
                         Result.success(Unit)
                     } else {
@@ -72,6 +76,12 @@ class SupporterSyncImpl
                     }.reportFailure()
                 }
             }
+
+        private suspend fun recordPurchaseLocked(outcome: PurchaseOutcome.Purchased): Result<Unit> =
+            supporterPurchaseStore.recordPurchase(
+                outcome = outcome,
+                ownerUserId = auth.currentSession()?.user?.id,
+            )
 
         private suspend fun deliverPendingPurchases(): Result<Unit> {
             val session = auth.currentSession() ?: return Result.success(Unit)

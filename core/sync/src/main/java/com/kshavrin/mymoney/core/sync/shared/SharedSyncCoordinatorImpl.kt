@@ -1140,6 +1140,8 @@ class SharedSyncCoordinatorImpl
 private class SharedRealtimeStreamFinishedException : IllegalStateException()
 
 private object NoOpSupporterSync : SupporterSync {
+    override suspend fun recordPurchase(outcome: PurchaseOutcome.Purchased): Result<Unit> = Result.success(Unit)
+
     override suspend fun syncPurchase(outcome: PurchaseOutcome.Purchased): Result<Unit> = Result.success(Unit)
 
     override suspend fun restore(): Result<Unit> = Result.success(Unit)

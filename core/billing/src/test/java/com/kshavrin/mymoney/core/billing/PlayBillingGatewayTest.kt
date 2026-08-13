@@ -163,6 +163,63 @@ class PlayBillingGatewayTest {
     }
 
     @Test
+    fun `supporter purchase is recorded before it is consumed`() = runTest {
+        val events = mutableListOf<String>()
+        val processor =
+            PurchaseProcessor(
+                acknowledge = { token ->
+                    events += "acknowledge:$token"
+                    BillingClient.BillingResponseCode.OK
+                },
+                recordPurchase = { outcome ->
+                    events += "record:${outcome.purchaseToken}"
+                    Result.success(Unit)
+                },
+                consume = { token ->
+                    events += "consume:$token"
+                    BillingClient.BillingResponseCode.OK
+                },
+            )
+
+        val outcome = processor.process(purchase(token = "record-first-token"))
+
+        assertTrue(outcome is PurchaseOutcome.Purchased)
+        assertEquals(
+            listOf(
+                "acknowledge:record-first-token",
+                "record:record-first-token",
+                "consume:record-first-token",
+            ),
+            events,
+        )
+    }
+
+    @Test
+    fun `supporter purchase record failure prevents consume`() = runTest {
+        val events = mutableListOf<String>()
+        val processor =
+            PurchaseProcessor(
+                acknowledge = { token ->
+                    events += "acknowledge:$token"
+                    BillingClient.BillingResponseCode.OK
+                },
+                recordPurchase = {
+                    events += "record"
+                    Result.failure(IllegalStateException("store unavailable"))
+                },
+                consume = { token ->
+                    events += "consume:$token"
+                    BillingClient.BillingResponseCode.OK
+                },
+            )
+
+        val outcome = processor.process(purchase(token = "record-failure-token"))
+
+        assertEquals(PurchaseOutcome.NetworkError, outcome)
+        assertEquals(listOf("acknowledge:record-failure-token", "record"), events)
+    }
+
+    @Test
     fun `acknowledge failure prevents consume`() = runTest {
         val events = mutableListOf<String>()
 

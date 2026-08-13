@@ -64,6 +64,8 @@ class AppSettingsRepositoryTest {
             assertEquals(true, settings.autoSyncEnabled)
             assertEquals(true, settings.budgetModeEnabled)
             assertEquals(false, settings.firstPositiveSeen)
+            assertEquals(false, settings.supporterBadgeEarned)
+            assertEquals(0, settings.supportPurchaseCount)
             assertEquals(0L, settings.importFocusEpochMs)
             assertEquals(-1L, settings.importFocusCurrencyId)
             assertEquals(0L, settings.dashboardPeriodEpochMs)
@@ -100,6 +102,8 @@ class AppSettingsRepositoryTest {
                     autoSyncEnabled = false,
                     budgetModeEnabled = false,
                     firstPositiveSeen = true,
+                    supporterBadgeEarned = true,
+                    supportPurchaseCount = 3,
                     importFocusEpochMs = 1700000002000L,
                     importFocusCurrencyId = 9L,
                     dashboardPeriodEpochMs = 1772323200000L,
@@ -150,7 +154,25 @@ class AppSettingsRepositoryTest {
         assertEquals(true, settings.chartShowGridlines)
         assertEquals(true, settings.chartShowLabels)
         assertEquals("by_sign", settings.chartColorRule)
+        assertEquals(false, settings.supporterBadgeEarned)
+        assertEquals(0, settings.supportPurchaseCount)
     }
+
+    @Test
+    fun `supporter fields are persisted in DataStore preferences`() =
+        runTest(UnconfinedTestDispatcher()) {
+            repository.update {
+                it.copy(
+                    supporterBadgeEarned = true,
+                    supportPurchaseCount = 7,
+                )
+            }
+
+            val preferences = dataStore.data.first()
+
+            assertEquals(true, preferences[AppSettingsKeys.SUPPORTER_BADGE_EARNED])
+            assertEquals(7, preferences[AppSettingsKeys.SUPPORT_PURCHASE_COUNT])
+        }
 
     // Regression for the cold-start-only empty-dashboard bug: a Monefy import into a past month
     // showed in-session but the dashboard was empty after a real process restart, because the
@@ -204,6 +226,27 @@ class AppSettingsRepositoryTest {
                 fail("firstPositiveSeen should not flip from true to false")
             } catch (_: IllegalStateException) {
             }
+    }
+
+    @Test
+    fun `supporter badge cannot be reset from true to false`() =
+        runTest(UnconfinedTestDispatcher()) {
+            repository.update {
+                it.copy(
+                    supporterBadgeEarned = true,
+                    supportPurchaseCount = 2,
+                )
+            }
+
+            try {
+                repository.update { it.copy(supporterBadgeEarned = false) }
+                fail("supporterBadgeEarned should not flip from true to false")
+            } catch (_: IllegalStateException) {
+            }
+
+            val settings = repository.settings.first()
+            assertEquals(true, settings.supporterBadgeEarned)
+            assertEquals(2, settings.supportPurchaseCount)
         }
 
     @Test
@@ -264,7 +307,7 @@ class AppSettingsRepositoryTest {
         }
 
     @Test
-    fun `reset clears stored settings including the monotonic flag while preserving device id`() =
+    fun `reset clears stored settings while preserving device id and supporter state`() =
         runTest(UnconfinedTestDispatcher()) {
             val preservedDeviceId = DeviceIdProviderImpl(dataStore).deviceId()
             repository.update {
@@ -276,14 +319,18 @@ class AppSettingsRepositoryTest {
                     lastSyncAt = 456L,
                     autoSyncEnabled = false,
                     firstPositiveSeen = true,
+                    supporterBadgeEarned = true,
+                    supportPurchaseCount = 4,
                     tzNormalizedAt = 789L,
                 )
             }
 
             repository.reset()
 
-            assertEquals(AppSettings(), repository.settings.first())
-            assertEquals(false, repository.settings.first().hideAppContentInRecents)
+            assertEquals(
+                AppSettings(supporterBadgeEarned = true, supportPurchaseCount = 4),
+                repository.settings.first(),
+            )
             assertEquals(preservedDeviceId, dataStore.data.first()[AppSettingsKeys.DEVICE_ID])
         }
 

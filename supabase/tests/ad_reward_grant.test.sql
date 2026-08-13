@@ -1,6 +1,6 @@
 begin;
 
-select plan(24);
+select plan(25);
 
 select ok(
     exists (
@@ -106,7 +106,7 @@ select ok(
         pg_catalog.position('insert into public.entitlements' in contract.grant_source)
     and contract.grant_source !~ 'update[[:space:]]+public\.entitlements'
     and contract.grant_source ~
-        'now\(\)[[:space:]]+\+[[:space:]]+interval[[:space:]]+''24 hours''',
+        $$'admob_reward',[[:space:]]*'admob_batch:'[[:space:]]*\|\|[[:space:]]*new\.id::text,[[:space:]]*now\(\),[[:space:]]*now\(\)[[:space:]]*\+[[:space:]]*interval[[:space:]]+'24 hours'$$,
     'an active ad-Plus returns before a new 24-hour entitlement can be granted'
 )
 from contract;
@@ -204,6 +204,34 @@ select ok(
         where procedure.oid = 'public.get_ad_reward_state()'::pg_catalog.regprocedure
     ), false),
     'get_ad_reward_state is read-only'
+);
+
+select ok(
+    coalesce((
+        select pg_catalog.position('return jsonb_build_object(' in procedure.prosrc) > 0
+            and pg_catalog.position($$'progress'$$ in procedure.prosrc) > 0
+            and pg_catalog.position($$'required'$$ in procedure.prosrc) > 0
+            and pg_catalog.position($$'frozen'$$ in procedure.prosrc) > 0
+            and pg_catalog.position($$'frozenReason'$$ in procedure.prosrc) > 0
+            and pg_catalog.position($$'plusActive'$$ in procedure.prosrc) > 0
+            and pg_catalog.position($$'plusProvider'$$ in procedure.prosrc) > 0
+            and pg_catalog.position($$'plusExpiresAt'$$ in procedure.prosrc) > 0
+            and pg_catalog.position($$'frozen', v_plus_provider is not null$$ in procedure.prosrc) > 0
+            and pg_catalog.position($$'plusActive', v_plus_provider is not null$$ in procedure.prosrc) > 0
+            and procedure.prosrc ~
+                $$'frozenReason',[[:space:]]*case[[:space:]]+when[[:space:]]+v_plus_provider[[:space:]]+is[[:space:]]+null[[:space:]]+then[[:space:]]+null[[:space:]]+else[[:space:]]+'plus_active:'[[:space:]]*\|\|[[:space:]]*v_plus_provider[[:space:]]+end$$
+            and procedure.prosrc ~
+                'entitlement\.starts_at[[:space:]]*<=[[:space:]]*now\(\)'
+            and procedure.prosrc ~
+                'entitlement\.expires_at[[:space:]]+is[[:space:]]+null[[:space:]]+or[[:space:]]+entitlement\.expires_at[[:space:]]*>[[:space:]]*now\(\)'
+            and procedure.prosrc ~
+                'reward\.entitlement_id[[:space:]]+is[[:space:]]+null'
+            and procedure.prosrc ~
+                'reward\.counts_toward_reward[[:space:]]*=[[:space:]]*true'
+        from pg_catalog.pg_proc as procedure
+        where procedure.oid = 'public.get_ad_reward_state()'::pg_catalog.regprocedure
+    ), false),
+    'get_ad_reward_state returns the complete self-scoped state and counts only eligible rewards'
 );
 
 select ok(

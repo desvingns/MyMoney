@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import com.kshavrin.mymoney.core.datastore.model.AppSettings
 import com.kshavrin.mymoney.core.datastore.model.VersionedAppSettings
+import com.kshavrin.mymoney.core.datastore.supporter.SupporterPurchaseStoreKeys
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -53,6 +54,7 @@ class AppSettingsRepositoryImpl
                 val supporterBadgeEarned = prefs[AppSettingsKeys.SUPPORTER_BADGE_EARNED] ?: false
                 val supportPurchaseCount = prefs[AppSettingsKeys.SUPPORT_PURCHASE_COUNT] ?: 0
                 val supporterPurchaseTokens = prefs[AppSettingsKeys.SUPPORTER_PURCHASE_TOKENS].orEmpty()
+                val pendingSupporterPurchases = prefs[SupporterPurchaseStoreKeys.PENDING_PURCHASES]
                 val revision = (prefs[AppSettingsKeys.SETTINGS_REVISION] ?: 0L) + 1L
                 prefs.clear()
                 if (deviceId != null) {
@@ -61,6 +63,9 @@ class AppSettingsRepositoryImpl
                 prefs[AppSettingsKeys.SUPPORTER_BADGE_EARNED] = supporterBadgeEarned
                 prefs[AppSettingsKeys.SUPPORT_PURCHASE_COUNT] = supportPurchaseCount
                 prefs[AppSettingsKeys.SUPPORTER_PURCHASE_TOKENS] = supporterPurchaseTokens
+                if (pendingSupporterPurchases != null) {
+                    prefs[SupporterPurchaseStoreKeys.PENDING_PURCHASES] = pendingSupporterPurchases
+                }
                 prefs[AppSettingsKeys.SETTINGS_REVISION] = revision
             }
         }

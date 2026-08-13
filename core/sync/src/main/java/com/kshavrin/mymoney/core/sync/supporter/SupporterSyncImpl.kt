@@ -30,12 +30,16 @@ class SupporterSyncImpl
         override suspend fun syncPurchase(outcome: PurchaseOutcome.Purchased): Result<Unit> =
             withContext(dispatcher) {
                 deliveryMutex.withLock {
-                    val enqueueResult = supporterPurchaseStore.enqueue(outcome)
-                    val localResult = supporterRepository.recordPurchase(outcome)
-                    when {
-                        localResult.isFailure -> Result.failure(localResult.exceptionOrNull()!!)
-                        enqueueResult.isFailure -> Result.failure(enqueueResult.exceptionOrNull()!!)
-                        else -> deliverPendingPurchases()
+                    val session = auth.currentSession()
+                    supporterPurchaseStore
+                        .recordPurchase(
+                            outcome = outcome,
+                            ownerUserId = session?.user?.id,
+                        ).getOrElse { return@withLock Result.failure(it).reportFailure() }
+                    if (session == null) {
+                        Result.success(Unit)
+                    } else {
+                        deliverPendingPurchases()
                     }.reportFailure()
                 }
             }
@@ -83,10 +87,10 @@ class SupporterSyncImpl
             accessToken: String,
         ): Result<Unit> =
             runCatching {
-                supporterPurchaseStore.pendingPurchases().getOrThrow().forEach { outcome ->
-                    supporterRepository.recordPurchase(outcome).getOrThrow()
+                val pendingPurchases = supporterPurchaseStore.pendingPurchases(userId).getOrThrow()
+                pendingPurchases.forEach { outcome ->
                     api.postPurchase(userId, outcome, accessToken).getOrThrow()
-                    supporterPurchaseStore.remove(outcome.purchaseToken).getOrThrow()
+                    supporterPurchaseStore.remove(userId, outcome.purchaseToken).getOrThrow()
                 }
             }
     }

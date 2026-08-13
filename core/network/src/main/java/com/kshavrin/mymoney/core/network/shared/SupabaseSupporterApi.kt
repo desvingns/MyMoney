@@ -3,7 +3,6 @@ package com.kshavrin.mymoney.core.network.shared
 import com.kshavrin.mymoney.core.domain.billing.PurchaseOutcome
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
@@ -49,11 +48,11 @@ class SupabaseSupporterApi
             accessToken: String,
         ): Result<RemoteSupporterState> =
             http
-                .get(
+                .getWithExactCount(
                     path = "rest/v1/supporter_purchases?select=id&user_id=eq.$userId",
                     accessToken = accessToken,
                 ).mapCatching { response ->
-                    val purchaseCount = response.jsonArray.size
+                    val purchaseCount = response.contentRange.exactCount()
                     RemoteSupporterState(
                         purchaseCount = purchaseCount,
                         badgeEarned = purchaseCount > 0,
@@ -76,3 +75,9 @@ private fun SupabasePostgrestConflictException.isDuplicatePurchaseTokenConflict(
                     details.contains("Key (purchase_token)=")
             )
     }.getOrDefault(false)
+
+private fun String?.exactCount(): Int =
+    this
+        ?.substringAfter('/', missingDelimiterValue = "")
+        ?.toIntOrNull()
+        ?: throw IllegalStateException("Missing exact Content-Range count")

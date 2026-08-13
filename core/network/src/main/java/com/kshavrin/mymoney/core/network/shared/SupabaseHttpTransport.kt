@@ -46,7 +46,7 @@ class SupabaseHttpTransport
                 mapMembershipDeniedToAuth,
                 mapAccountDeletionWorkspaceConflict,
                 preservePostgrestConflict,
-            )
+            ).map(SupabaseHttpResponse::body)
 
         suspend fun get(
             path: String,
@@ -60,6 +60,21 @@ class SupabaseHttpTransport
                     .header(AUTHORIZATION_HEADER, "Bearer $accessToken")
                     .get()
                     .build(),
+            ).map(SupabaseHttpResponse::body)
+
+        internal suspend fun getWithExactCount(
+            path: String,
+            accessToken: String,
+        ): Result<SupabaseHttpResponse> =
+            execute(
+                Request
+                    .Builder()
+                    .url(config.urlFor(path))
+                    .header(API_KEY_HEADER, config.anonKey)
+                    .header(AUTHORIZATION_HEADER, "Bearer $accessToken")
+                    .header(PREFER_HEADER, "count=exact")
+                    .get()
+                    .build(),
             )
 
         private fun execute(
@@ -68,7 +83,7 @@ class SupabaseHttpTransport
             mapMembershipDeniedToAuth: Boolean = false,
             mapAccountDeletionWorkspaceConflict: Boolean = false,
             preservePostgrestConflict: Boolean = false,
-        ): Result<JsonElement> {
+        ): Result<SupabaseHttpResponse> {
             if (!config.isConfigured) return Result.failure(SyncException(SyncError.Server))
             return runCatching {
                 client.newCall(request).execute().use { response ->
@@ -83,7 +98,10 @@ class SupabaseHttpTransport
                             preservePostgrestConflict = preservePostgrestConflict,
                         )
                     }
-                    responseBody.takeIf(String::isNotBlank)?.let(json::parseToJsonElement) ?: JsonNull
+                    SupabaseHttpResponse(
+                        body = responseBody.takeIf(String::isNotBlank)?.let(json::parseToJsonElement) ?: JsonNull,
+                        contentRange = response.header(CONTENT_RANGE_HEADER),
+                    )
                 }
             }.mapFailure()
         }
@@ -91,9 +109,16 @@ class SupabaseHttpTransport
         private companion object {
             const val API_KEY_HEADER = "apikey"
             const val AUTHORIZATION_HEADER = "Authorization"
+            const val CONTENT_RANGE_HEADER = "Content-Range"
+            const val PREFER_HEADER = "Prefer"
             val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
         }
     }
+
+internal data class SupabaseHttpResponse(
+    val body: JsonElement,
+    val contentRange: String?,
+)
 
 private class SupabaseHttpException(
     val statusCode: Int,

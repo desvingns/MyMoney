@@ -13,6 +13,7 @@ import com.kshavrin.mymoney.core.datastore.CloudBinding
 import com.kshavrin.mymoney.core.datastore.CloudProvider
 import com.kshavrin.mymoney.core.datastore.JournalSyncConfigStore
 import com.kshavrin.mymoney.core.datastore.SharedSyncStore
+import com.kshavrin.mymoney.core.domain.billing.PurchaseOutcome
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.repository.AccountRepository
 import com.kshavrin.mymoney.core.domain.repository.BackupRepository
@@ -21,6 +22,7 @@ import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
 import com.kshavrin.mymoney.core.domain.repository.SharedJournalRepository
 import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
 import com.kshavrin.mymoney.core.domain.seed.InitialDataSeeder
+import com.kshavrin.mymoney.core.domain.supporter.SupporterSync
 import com.kshavrin.mymoney.core.domain.sync.DeviceIdProvider
 import com.kshavrin.mymoney.core.domain.sync.EntityKind
 import com.kshavrin.mymoney.core.domain.sync.SharedConflict
@@ -82,6 +84,7 @@ class SharedSyncCoordinatorImpl
         private val database: MoneyDatabase,
         private val clock: Clock,
         @IoDispatcher private val dispatcher: CoroutineDispatcher,
+        private val supporterSync: SupporterSync = NoOpSupporterSync,
     ) : SharedSyncCoordinator {
         private val operationMutex = Mutex()
         private val restartRequiredAfterAdoptionRecovery = AtomicBoolean(false)
@@ -101,7 +104,11 @@ class SharedSyncCoordinatorImpl
             googleIdToken: String,
             nonce: String,
         ): Result<Unit> =
-            withContext(dispatcher) { auth.signInWithGoogle(googleIdToken, nonce).map { } }
+            withContext(dispatcher) {
+                val signInResult = auth.signInWithGoogle(googleIdToken, nonce)
+                if (signInResult.isSuccess) supporterSync.restore()
+                signInResult.map { }
+            }
 
         override suspend fun signOut(): Result<Unit> =
             withContext(dispatcher) {
@@ -1129,3 +1136,9 @@ class SharedSyncCoordinatorImpl
     }
 
 private class SharedRealtimeStreamFinishedException : IllegalStateException()
+
+private object NoOpSupporterSync : SupporterSync {
+    override suspend fun syncPurchase(outcome: PurchaseOutcome.Purchased): Result<Unit> = Result.success(Unit)
+
+    override suspend fun restore(): Result<Unit> = Result.success(Unit)
+}

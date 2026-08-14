@@ -18,6 +18,7 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import java.io.IOException
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
@@ -38,6 +39,7 @@ class SupabaseHttpTransport
             mapMembershipDeniedToAuth: Boolean = false,
             mapAccountDeletionWorkspaceConflict: Boolean = false,
             preservePostgrestConflict: Boolean = false,
+            callTimeoutMillis: Long? = null,
         ): Result<JsonElement> =
             execute(
                 Request
@@ -50,7 +52,8 @@ class SupabaseHttpTransport
                 mapBadRequestToAuth,
                 mapMembershipDeniedToAuth,
                 mapAccountDeletionWorkspaceConflict,
-                preservePostgrestConflict,
+                preservePostgrestConflict = preservePostgrestConflict,
+                callTimeoutMillis = callTimeoutMillis,
             ).map(SupabaseHttpResponse::body)
 
         suspend fun get(
@@ -88,10 +91,14 @@ class SupabaseHttpTransport
             mapMembershipDeniedToAuth: Boolean = false,
             mapAccountDeletionWorkspaceConflict: Boolean = false,
             preservePostgrestConflict: Boolean = false,
+            callTimeoutMillis: Long? = null,
         ): Result<SupabaseHttpResponse> {
             if (!config.isConfigured) return Result.failure(SyncException(SyncError.Server))
             return suspendCancellableCoroutine { continuation ->
                 val call = client.newCall(request)
+                callTimeoutMillis?.let { timeoutMillis ->
+                    call.timeout().timeout(timeoutMillis, TimeUnit.MILLISECONDS)
+                }
                 continuation.invokeOnCancellation { call.cancel() }
                 runCatching {
                     call.enqueue(

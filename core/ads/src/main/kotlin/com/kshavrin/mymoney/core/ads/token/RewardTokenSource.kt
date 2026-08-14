@@ -48,6 +48,7 @@ class SupabaseRewardTokenSource
                         path = "functions/v1/create-ad-reward-token",
                         payload = JsonObject(emptyMap()),
                         accessToken = accessToken,
+                        callTimeoutMillis = REWARD_TOKEN_CALL_TIMEOUT_MILLIS,
                     ).mapCatching { response ->
                         response.jsonObject.toRewardToken().copy(sessionUserId = session.user.id)
                     }
@@ -80,3 +81,5 @@ private fun JsonObject.toRewardToken(): RewardToken {
 
 private fun String.toRewardTokenExpiry(): Instant =
     toLongOrNull()?.let(Instant::ofEpochSecond) ?: Instant.parse(this)
+
+private const val REWARD_TOKEN_CALL_TIMEOUT_MILLIS = 10_000L

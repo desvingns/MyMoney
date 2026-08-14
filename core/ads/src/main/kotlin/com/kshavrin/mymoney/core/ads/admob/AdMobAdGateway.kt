@@ -173,7 +173,8 @@ class AdMobAdGateway
                     }
                     rewardedToken = null
                     when (val result = showAd(activity)) {
-                        is RewardedAdShowResult.Dismissed -> AdShowResult.Dismissed(rewardEarned = false)
+                        is RewardedAdShowResult.Dismissed ->
+                            AdShowResult.Dismissed(rewardEarned = result.rewardEarned)
                         is RewardedAdShowResult.Failed -> {
                             noFillStreak.reset()
                             showUnavailable(adErrorMapper.map(result.errorCode, result.errorMessage))
@@ -389,11 +390,16 @@ class GoogleMobileAdsRewardedClient
             val ad = rewardedAd ?: return RewardedAdShowResult.NotLoaded
             rewardedAd = null
             return suspendCancellableCoroutine { continuation ->
+                var watchedToCompletion = false
                 ad.fullScreenContentCallback =
                     object : FullScreenContentCallback() {
                         override fun onAdDismissedFullScreenContent() {
                             if (continuation.isActive) {
-                                continuation.resume(RewardedAdShowResult.Dismissed(rewardEarned = false))
+                                continuation.resume(
+                                    RewardedAdShowResult.Dismissed(
+                                        rewardEarned = watchedToCompletion,
+                                    ),
+                                )
                             }
                         }
 
@@ -407,9 +413,9 @@ class GoogleMobileAdsRewardedClient
                                 )
                             }
                         }
-                    }
+                }
                 runCatching {
-                    ad.show(activity) {}
+                    ad.show(activity) { watchedToCompletion = true }
                 }.onFailure { error ->
                     error.reportToSentry()
                     if (continuation.isActive) {

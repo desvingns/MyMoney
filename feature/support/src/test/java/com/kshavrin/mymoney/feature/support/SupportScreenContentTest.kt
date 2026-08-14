@@ -107,7 +107,7 @@ class SupportScreenContentTest {
     }
 
     @Test
-    fun `disabled build and region messages remain distinct and have no retry action`() {
+    fun `disabled build message is distinct and has no retry action`() {
         val supporterState = SupporterState(badgeEarned = true, purchaseCount = 3)
         setContent(
             state =
@@ -125,7 +125,11 @@ class SupportScreenContentTest {
         composeTestRule.onNodeWithText(string(R.string.support_retry)).assertDoesNotExist()
         composeTestRule.onNodeWithText(string(R.string.support_badge)).assertIsDisplayed()
         composeTestRule.onNodeWithText(string(R.string.support_gratitude_count, 3)).assertIsDisplayed()
+    }
 
+    @Test
+    fun `region message is distinct and has no retry action`() {
+        val supporterState = SupporterState(badgeEarned = true, purchaseCount = 3)
         setContent(
             state =
                 SupportState(
@@ -139,6 +143,9 @@ class SupportScreenContentTest {
             .performScrollTo()
             .assertIsDisplayed()
         composeTestRule.onNodeWithText(string(R.string.support_unavailable_build)).assertDoesNotExist()
+        composeTestRule.onNodeWithText(string(R.string.support_retry)).assertDoesNotExist()
+        composeTestRule.onNodeWithText(string(R.string.support_badge)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.support_gratitude_count, 3)).assertIsDisplayed()
     }
 
     @Test

@@ -2,6 +2,8 @@ package com.kshavrin.mymoney.core.ads.di
 
 import com.kshavrin.mymoney.core.ads.AdGateway
 import com.kshavrin.mymoney.core.ads.admob.AdMobAdGateway
+import com.kshavrin.mymoney.core.ads.admob.AdRuntimeConfig
+import com.kshavrin.mymoney.core.ads.admob.BuildConfigAdRuntimeConfig
 import com.kshavrin.mymoney.core.ads.admob.GoogleMobileAdsRewardedClient
 import com.kshavrin.mymoney.core.ads.admob.NoFillStreak
 import com.kshavrin.mymoney.core.ads.admob.RewardedAdClient
@@ -22,6 +24,10 @@ abstract class AdsModule {
     @Binds
     @Singleton
     abstract fun bindAdGateway(impl: AdMobAdGateway): AdGateway
+
+    @Binds
+    @Singleton
+    abstract fun bindAdRuntimeConfig(impl: BuildConfigAdRuntimeConfig): AdRuntimeConfig
 
     @Binds
     @Singleton

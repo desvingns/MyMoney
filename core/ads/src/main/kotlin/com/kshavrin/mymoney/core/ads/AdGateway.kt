@@ -34,6 +34,8 @@ sealed interface AdLoadResult {
 }
 
 sealed interface AdShowResult {
+    data object Unauthenticated : AdShowResult
+
     data class Dismissed(
         val rewardEarned: Boolean,
     ) : AdShowResult

@@ -1,11 +1,11 @@
 package com.kshavrin.mymoney
 
-import java.io.File
-import java.io.StringReader
-import java.util.Properties
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
+import java.io.StringReader
+import java.util.Properties
 
 class CoreAdsWiringContractTest {
     private val repositoryRoot = findRepositoryRoot()
@@ -63,9 +63,10 @@ class CoreAdsWiringContractTest {
     @Test
     fun `debug and release BuildConfig fields use test ids and external properties`() {
         val build = file("core/ads/build.gradle.kts").readText()
-        val gradleProperties = Properties().apply {
-            load(StringReader(file("gradle.properties").readText()))
-        }
+        val gradleProperties =
+            Properties().apply {
+                load(StringReader(file("gradle.properties").readText()))
+            }
 
         assertContainsInOrder(
             build,

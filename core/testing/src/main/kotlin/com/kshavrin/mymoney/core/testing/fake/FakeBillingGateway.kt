@@ -7,6 +7,9 @@ import com.kshavrin.mymoney.core.domain.billing.SupportProduct
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 
 class FakeBillingGateway : BillingGateway {
     private val availabilityState = MutableStateFlow<BillingAvailability>(BillingAvailability.Available)
@@ -14,7 +17,8 @@ class FakeBillingGateway : BillingGateway {
     private val pendingPurchasesResult = MutableStateFlow<Result<List<PurchaseOutcome>>>(Result.success(emptyList()))
     private val subscriptionsResult = MutableStateFlow<Result<List<SupportProduct>>>(Result.success(emptyList()))
     private val subscriptionPurchasesResult = MutableStateFlow<Result<List<PurchaseOutcome>>>(Result.success(emptyList()))
-    private val purchaseOutcomes = mutableMapOf<String, MutableStateFlow<PurchaseOutcome>>()
+    private val purchaseOutcomes = mutableMapOf<String, PurchaseOutcome>()
+    private val pendingPurchaseOutcomes = mutableMapOf<String, MutableStateFlow<PurchaseOutcome>>()
     private val subscriptionOutcomes = mutableMapOf<String, MutableStateFlow<PurchaseOutcome>>()
 
     override fun availability(): Flow<BillingAvailability> = availabilityState.asStateFlow()
@@ -22,10 +26,10 @@ class FakeBillingGateway : BillingGateway {
     override fun products(): Result<List<SupportProduct>> = productsResult.value
 
     override fun purchase(productId: String): Flow<PurchaseOutcome> =
-        purchaseOutcomes
-            .getOrPut(productId) {
-                MutableStateFlow(defaultPurchaseOutcome(productId))
-            }.asStateFlow()
+        when (val outcome = purchaseOutcomes[productId] ?: defaultPurchaseOutcome(productId)) {
+            PurchaseOutcome.Pending -> pendingPurchaseFlow(productId)
+            else -> flowOf(outcome)
+        }
 
     override fun resolvePendingPurchases(): Result<List<PurchaseOutcome>> = pendingPurchasesResult.value
 
@@ -57,7 +61,12 @@ class FakeBillingGateway : BillingGateway {
         productId: String,
         outcome: PurchaseOutcome,
     ) {
-        purchaseOutcomes.getOrPut(productId) { MutableStateFlow(outcome) }.value = outcome
+        purchaseOutcomes[productId] = outcome
+        if (outcome == PurchaseOutcome.Pending) {
+            pendingPurchaseOutcomes.getOrPut(productId) { MutableStateFlow(outcome) }.value = outcome
+        } else {
+            pendingPurchaseOutcomes[productId]?.value = outcome
+        }
     }
 
     fun seedPendingPurchases(vararg outcomes: PurchaseOutcome) {
@@ -90,6 +99,16 @@ class FakeBillingGateway : BillingGateway {
     fun seedSubscriptionPurchasesFailure(throwable: Throwable) {
         subscriptionPurchasesResult.value = Result.failure(throwable)
     }
+
+    private fun pendingPurchaseFlow(productId: String): Flow<PurchaseOutcome> =
+        flow {
+            pendingPurchaseOutcomes
+                .getOrPut(productId) { MutableStateFlow(PurchaseOutcome.Pending) }
+                .first { outcome ->
+                    emit(outcome)
+                    outcome != PurchaseOutcome.Pending
+                }
+        }
 
     private fun defaultPurchaseOutcome(productId: String): PurchaseOutcome =
         if (

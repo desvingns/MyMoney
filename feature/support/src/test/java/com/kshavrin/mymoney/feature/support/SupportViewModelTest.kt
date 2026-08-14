@@ -237,6 +237,32 @@ class SupportViewModelTest {
         }
 
     @Test
+    fun `terminal purchase completion permits the next purchase`() =
+        runTest {
+            val product = SupportProduct(COFFEE_SMALL_PRODUCT_ID, "Â£1.99", "Small")
+            val fixtures = fixtures(products = listOf(product), purchaseOutcome = PurchaseOutcome.Cancelled)
+            val viewModel = createViewModel(fixtures)
+            runCurrent()
+
+            viewModel.onEvent(SupportEvent.PurchaseClicked(product.id))
+            runCurrent()
+            viewModel.onEvent(SupportEvent.PurchaseClicked(product.id))
+            runCurrent()
+
+            assertFalse(viewModel.state.value.isPurchaseInProgress)
+            assertEquals(
+                listOf(
+                    AnalyticsEvent.SupportOpened,
+                    AnalyticsEvent.SupportPurchaseStarted(product.id),
+                    AnalyticsEvent.SupportPurchaseCompleted(product.id, "cancelled"),
+                    AnalyticsEvent.SupportPurchaseStarted(product.id),
+                    AnalyticsEvent.SupportPurchaseCompleted(product.id, "cancelled"),
+                ),
+                fixtures.analytics.events,
+            )
+        }
+
+    @Test
     fun `network purchase outcome shows retryable error without recording a supporter purchase`() =
         runTest {
             val product = SupportProduct(COFFEE_SMALL_PRODUCT_ID, "£1.99", "Small")

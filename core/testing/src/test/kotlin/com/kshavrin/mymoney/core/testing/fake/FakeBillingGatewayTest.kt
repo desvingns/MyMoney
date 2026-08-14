@@ -72,26 +72,7 @@ class FakeBillingGatewayTest {
         val gateway = FakeBillingGateway()
         gateway.seedProducts(product)
 
-        val outcome = gateway.purchase(product.id).first()
-
-        assertEquals(
-            PurchaseOutcome.Purchased(
-                productId = product.id,
-                purchaseToken = "${product.id}-purchase-token",
-                purchasedAtMillis = 0L,
-            ),
-            outcome,
-        )
-    }
-
-    @Test
-    fun `purchase is a StateFlow and emits a newly seeded cancellation`() = runTest {
-        val gateway = FakeBillingGateway()
-        gateway.seedProducts(product)
-        val purchase = gateway.purchase(product.id)
-
-        assertTrue(purchase is StateFlow<*>)
-        purchase.test {
+        gateway.purchase(product.id).test {
             assertEquals(
                 PurchaseOutcome.Purchased(
                     productId = product.id,
@@ -100,19 +81,32 @@ class FakeBillingGatewayTest {
                 ),
                 awaitItem(),
             )
-
-            gateway.seedPurchaseOutcome(product.id, PurchaseOutcome.Cancelled)
-
-            assertEquals(PurchaseOutcome.Cancelled, awaitItem())
+            awaitComplete()
         }
     }
 
     @Test
-    fun `purchase exposes every seeded outcome unchanged`() = runTest {
+    fun `pending purchase emits a newly seeded cancellation then completes`() = runTest {
+        val gateway = FakeBillingGateway()
+        gateway.seedProducts(product)
+        gateway.seedPurchaseOutcome(product.id, PurchaseOutcome.Pending)
+        val purchase = gateway.purchase(product.id)
+
+        purchase.test {
+            assertEquals(PurchaseOutcome.Pending, awaitItem())
+
+            gateway.seedPurchaseOutcome(product.id, PurchaseOutcome.Cancelled)
+
+            assertEquals(PurchaseOutcome.Cancelled, awaitItem())
+            awaitComplete()
+        }
+    }
+
+    @Test
+    fun `terminal purchase outcomes emit once then complete`() = runTest {
         val gateway = FakeBillingGateway()
         val outcomes = listOf(
             PurchaseOutcome.Purchased(product.id, "seeded-token", 42L),
-            PurchaseOutcome.Pending,
             PurchaseOutcome.Cancelled,
             PurchaseOutcome.NetworkError,
             PurchaseOutcome.Unavailable("region is unsupported"),
@@ -121,7 +115,10 @@ class FakeBillingGatewayTest {
         outcomes.forEach { expected ->
             gateway.seedPurchaseOutcome(product.id, expected)
 
-            assertEquals(expected, gateway.purchase(product.id).first())
+            gateway.purchase(product.id).test {
+                assertEquals(expected, awaitItem())
+                awaitComplete()
+            }
         }
     }
 

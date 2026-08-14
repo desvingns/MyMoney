@@ -244,7 +244,11 @@ class SupabaseSharedTransportTest {
             val restoringSession = executor.submit<SharedSession?> { restartedAuth.currentSession() }
             assertTrue(interleavingStore.firstReadStarted.await(1, TimeUnit.SECONDS))
 
-            val signingOut = executor.submit<Result<Unit>> { runBlocking { restartedAuth.signOut() } }
+            val signingOut =
+                executor.submit<Result<Unit>> {
+                    // mp-real-io: a real executor thread must block sign-out behind the restore read.
+                    runBlocking { restartedAuth.signOut() }
+                }
             assertFalse(interleavingStore.secondReadStarted.await(250, TimeUnit.MILLISECONDS))
 
             interleavingStore.allowFirstRead.countDown()
@@ -283,6 +287,7 @@ class SupabaseSharedTransportTest {
 
             val signingIn =
                 executor.submit<Result<SharedSession>> {
+                    // mp-real-io: a real executor thread must interleave the sign-in write with session restore.
                     runBlocking { restartedAuth.signInWithGoogle("google-id-token", "request-nonce") }
                 }
             assertTrue(server.takeRequest(1, TimeUnit.SECONDS) != null)
@@ -322,12 +327,14 @@ class SupabaseSharedTransportTest {
         try {
             val signingIn =
                 executor.submit<Result<SharedSession>> {
+                    // mp-real-io: a real executor thread must hold the sign-in write while reset is scheduled.
                     runBlocking { restartedAuth.signInWithGoogle("google-id-token", "request-nonce") }
                 }
             assertTrue(interleavingStore.writeStarted.await(1, TimeUnit.SECONDS))
 
             val resetting =
                 executor.submit<Unit> {
+                    // mp-real-io: a real executor thread must wait for the in-flight storage write before reset.
                     runBlocking { restartedAuth.resetLocalSession(interleavingStore::clearAll) }
                 }
             interleavingStore.allowWrite.countDown()

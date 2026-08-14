@@ -16,6 +16,7 @@ import com.kshavrin.mymoney.core.domain.supporter.SupporterRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -50,6 +51,8 @@ class SupportViewModel
         val actions: SharedFlow<SupportAction> = _actions.asSharedFlow()
 
         private var hasUnresolvedPendingPurchase = false
+        private var availabilityRefreshJob: Job? = null
+        private var availabilityRefreshGeneration = 0L
 
         init {
             log(AnalyticsEvent.SupportOpened)
@@ -87,16 +90,21 @@ class SupportViewModel
             viewModelScope.launch {
                 supportPurchaseReconciliationCoordinator.state.collect { reconciliationState ->
                     when (reconciliationState) {
-                        SupportPurchaseReconciliationState.Loading -> showLoading()
+                        SupportPurchaseReconciliationState.Loading -> {
+                            invalidateAvailabilityRefresh()
+                            showLoading()
+                        }
                         SupportPurchaseReconciliationState.Ready -> {
                             hasUnresolvedPendingPurchase = false
                             refreshBillingAvailability()
                         }
                         SupportPurchaseReconciliationState.Pending -> {
+                            invalidateAvailabilityRefresh()
                             hasUnresolvedPendingPurchase = true
                             showPendingPurchase()
                         }
                         SupportPurchaseReconciliationState.NetworkError -> {
+                            invalidateAvailabilityRefresh()
                             hasUnresolvedPendingPurchase = false
                             showNetworkError()
                         }
@@ -106,43 +114,73 @@ class SupportViewModel
         }
 
         private fun refreshBilling() {
+            if (_state.value.isPurchaseInProgress) return
             viewModelScope.launch {
                 supportPurchaseReconciliationCoordinator.reconcile()
             }
         }
 
         private fun refreshBillingAvailability() {
-            viewModelScope.launch {
-                try {
-                    applyAvailability(billingGateway.availability().first())
-                } catch (throwable: Throwable) {
-                    if (throwable is CancellationException) throw throwable
-                    throwable.reportToSentry()
-                    showNetworkError()
+            availabilityRefreshJob?.cancel()
+            val generation = ++availabilityRefreshGeneration
+            availabilityRefreshJob =
+                viewModelScope.launch {
+                    try {
+                        val availability = billingGateway.availability().first()
+                        if (isCurrentAvailabilityRefresh(generation)) {
+                            applyAvailability(availability, generation)
+                        }
+                    } catch (throwable: Throwable) {
+                        if (throwable is CancellationException) throw throwable
+                        throwable.reportToSentry()
+                        if (isCurrentAvailabilityRefresh(generation)) {
+                            showNetworkError()
+                        }
+                    }
                 }
-            }
         }
 
-        private suspend fun applyAvailability(availability: BillingAvailability) {
+        private fun invalidateAvailabilityRefresh() {
+            availabilityRefreshGeneration++
+            availabilityRefreshJob?.cancel()
+            availabilityRefreshJob = null
+        }
+
+        private fun isCurrentAvailabilityRefresh(generation: Long): Boolean =
+            generation == availabilityRefreshGeneration
+
+        private suspend fun applyAvailability(
+            availability: BillingAvailability,
+            generation: Long,
+        ) {
             when (availability) {
-                BillingAvailability.Available -> loadProducts()
+                BillingAvailability.Available -> loadProducts(generation)
                 BillingAvailability.NetworkUnavailable,
                 BillingAvailability.ServiceUnavailable,
-                -> showNetworkError()
+                -> if (isCurrentAvailabilityRefresh(generation)) showNetworkError()
 
                 BillingAvailability.DisabledInBuild ->
-                    showUnavailable(SupportUnavailableReason.DisabledInBuild)
+                    if (isCurrentAvailabilityRefresh(generation)) {
+                        showUnavailable(SupportUnavailableReason.DisabledInBuild)
+                    }
                 BillingAvailability.UnavailableOnDevice ->
-                    showUnavailable(SupportUnavailableReason.UnavailableOnDevice)
+                    if (isCurrentAvailabilityRefresh(generation)) {
+                        showUnavailable(SupportUnavailableReason.UnavailableOnDevice)
+                    }
                 BillingAvailability.UnavailableInRegion ->
-                    showUnavailable(SupportUnavailableReason.UnavailableInRegion)
+                    if (isCurrentAvailabilityRefresh(generation)) {
+                        showUnavailable(SupportUnavailableReason.UnavailableInRegion)
+                    }
                 is BillingAvailability.UnknownFailure ->
-                    showUnavailable(SupportUnavailableReason.Unavailable)
+                    if (isCurrentAvailabilityRefresh(generation)) {
+                        showUnavailable(SupportUnavailableReason.Unavailable)
+                    }
             }
         }
 
-        private suspend fun loadProducts() {
+        private suspend fun loadProducts(generation: Long) {
             val result = withContext(ioDispatcher) { billingGateway.products() }
+            if (!isCurrentAvailabilityRefresh(generation)) return
             result.fold(
                 onSuccess = ::showAvailableProducts,
                 onFailure = { throwable ->
@@ -182,6 +220,7 @@ class SupportViewModel
             }
             log(AnalyticsEvent.SupportPurchaseStarted(productId))
             viewModelScope.launch {
+                invalidateAvailabilityRefresh()
                 _state.value = _state.value.copy(isPurchaseInProgress = true)
                 var completionLogged = false
                 try {
@@ -244,6 +283,7 @@ class SupportViewModel
                 }
                 is PurchaseOutcome.Unavailable -> {
                     hasUnresolvedPendingPurchase = false
+                    _state.value = _state.value.copy(isPurchaseInProgress = false)
                     refreshBilling()
                 }
             }
@@ -278,7 +318,6 @@ class SupportViewModel
             _state.value =
                 _state.value.copy(
                     billingState = SupportBillingState.Pending,
-                    isPurchaseInProgress = false,
                 )
         }
 

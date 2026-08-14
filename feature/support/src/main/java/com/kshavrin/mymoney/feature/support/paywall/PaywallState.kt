@@ -40,5 +40,9 @@ sealed interface PaywallPurchaseState {
 
     data object InProgress : PaywallPurchaseState
 
+    data object ReconcilingEntitlement : PaywallPurchaseState
+
+    data object AwaitingEntitlement : PaywallPurchaseState
+
     data object Pending : PaywallPurchaseState
 }

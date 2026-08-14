@@ -51,4 +51,10 @@
     <string name="paywall_status_active">Подписка Plus активна</string>
     <string name="paywall_status_grace">Подписка Plus в льготном периоде</string>
     <string name="paywall_renews_on">Следующее списание: %1$s</string>
+    <string name="paywall_purchase_confirming">Подтверждаем доступ Plus…</string>
+    <string name="paywall_purchase_confirmation_pending">Покупка оформлена. Мы ещё подтверждаем ваш доступ Plus.</string>
+    <string name="paywall_status_reward_active">Временный доступ Plus активен</string>
+    <string name="paywall_status_whitelist_active">Доступ Plus активен</string>
+    <string name="paywall_status_local_only">Доступ Plus активен на этом устройстве</string>
+    <string name="paywall_access_ends_on">Доступ Plus заканчивается: %1$s</string>
 </resources>

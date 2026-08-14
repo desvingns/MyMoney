@@ -29,6 +29,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import com.kshavrin.mymoney.core.domain.model.EntitlementSource
 import com.kshavrin.mymoney.core.domain.model.EntitlementState
 import com.kshavrin.mymoney.core.domain.model.UserEntitlement
 import com.kshavrin.mymoney.core.ui.flow.CollectActions
@@ -305,6 +306,18 @@ private fun PaywallPlans(
                     style = MaterialTheme.typography.supportDescription,
                 )
 
+            PaywallPurchaseState.ReconcilingEntitlement ->
+                Text(
+                    text = stringResource(R.string.paywall_purchase_confirming),
+                    style = MaterialTheme.typography.supportDescription,
+                )
+
+            PaywallPurchaseState.AwaitingEntitlement ->
+                Text(
+                    text = stringResource(R.string.paywall_purchase_confirmation_pending),
+                    style = MaterialTheme.typography.supportDescription,
+                )
+
             PaywallPurchaseState.Pending ->
                 Text(
                     text = stringResource(R.string.paywall_purchase_pending),
@@ -359,12 +372,12 @@ private fun PlusStatusCard(entitlement: UserEntitlement.Plus) {
         contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
     ) {
         Text(
-            text = stringResource(entitlement.state.statusRes),
+            text = stringResource(entitlement.statusRes),
             style = MaterialTheme.typography.supportCardTitle,
         )
-        entitlement.expiresAt?.let { expiresAt ->
+        entitlement.statusDate()?.let { (labelRes, instant) ->
             Text(
-                text = stringResource(R.string.paywall_renews_on, formatRenewalDate(expiresAt)),
+                text = stringResource(labelRes, formatRenewalDate(instant)),
                 style = MaterialTheme.typography.supportDescription,
             )
         }
@@ -443,19 +456,30 @@ private val PaywallPlanId.iconContentDescriptionRes: Int
             PaywallPlanId.Yearly -> R.string.paywall_yearly_icon_content_description
         }
 
-private val EntitlementState.statusRes: Int
+private val UserEntitlement.Plus.statusRes: Int
     get() =
-        when (this) {
-            EntitlementState.TRIAL -> R.string.paywall_status_trial
-            EntitlementState.ACTIVE,
-            EntitlementState.LOCAL_ONLY,
-            -> R.string.paywall_status_active
-
-            EntitlementState.GRACE -> R.string.paywall_status_grace
-            EntitlementState.NONE,
-            EntitlementState.EXPIRED,
-            -> R.string.paywall_status_active
+        when {
+            source == EntitlementSource.AD_REWARD -> R.string.paywall_status_reward_active
+            source == EntitlementSource.WHITELIST -> R.string.paywall_status_whitelist_active
+            state == EntitlementState.TRIAL -> R.string.paywall_status_trial
+            state == EntitlementState.LOCAL_ONLY -> R.string.paywall_status_local_only
+            state == EntitlementState.GRACE -> R.string.paywall_status_grace
+            else -> R.string.paywall_status_active
         }
+
+private fun UserEntitlement.Plus.statusDate(): Pair<Int, Instant>? =
+    when {
+        state == EntitlementState.GRACE ->
+            graceEndsAt?.let { instant -> R.string.paywall_access_ends_on to instant }
+
+        source.isSubscription() && (state == EntitlementState.TRIAL || state == EntitlementState.ACTIVE) ->
+            expiresAt?.let { instant -> R.string.paywall_renews_on to instant }
+
+        else -> expiresAt?.let { instant -> R.string.paywall_access_ends_on to instant }
+    }
+
+private fun EntitlementSource.isSubscription(): Boolean =
+    this == EntitlementSource.SUBSCRIPTION_MONTHLY || this == EntitlementSource.SUBSCRIPTION_YEARLY
 
 private fun UserEntitlement.hasActivePlus(): Boolean =
     this is UserEntitlement.Plus && state != EntitlementState.NONE && state != EntitlementState.EXPIRED

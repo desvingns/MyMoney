@@ -7,6 +7,8 @@ import com.kshavrin.mymoney.core.common.exception.reportToSentry
 import com.kshavrin.mymoney.core.domain.billing.BillingAvailability
 import com.kshavrin.mymoney.core.domain.billing.BillingGateway
 import com.kshavrin.mymoney.core.domain.billing.PurchaseOutcome
+import com.kshavrin.mymoney.core.domain.model.EntitlementState
+import com.kshavrin.mymoney.core.domain.model.UserEntitlement
 import com.kshavrin.mymoney.core.domain.repository.EntitlementRepository
 import com.kshavrin.mymoney.feature.support.R
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -14,6 +16,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -23,6 +26,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
@@ -46,6 +51,7 @@ class PaywallViewModel
         val actions: SharedFlow<PaywallAction> = _actions.asSharedFlow()
 
         private var catalogRefreshJob: Job? = null
+        private val purchaseMutex = Mutex()
 
         init {
             observeEntitlement()
@@ -64,7 +70,20 @@ class PaywallViewModel
             viewModelScope.launch {
                 try {
                     entitlementRepository.entitlement.collect { entitlement ->
-                        _state.value = _state.value.copy(entitlement = entitlement)
+                        val currentState = _state.value
+                        _state.value =
+                            currentState.copy(
+                                entitlement = entitlement,
+                                purchaseState =
+                                    if (
+                                        entitlement.hasActivePlus() &&
+                                            currentState.purchaseState.isAwaitingEntitlement()
+                                    ) {
+                                        PaywallPurchaseState.Idle
+                                    } else {
+                                        currentState.purchaseState
+                                    },
+                            )
                     }
                 } catch (throwable: Throwable) {
                     if (throwable is CancellationException) throw throwable
@@ -138,35 +157,36 @@ class PaywallViewModel
         }
 
         private fun purchase(planId: PaywallPlanId) {
+            if (!purchaseMutex.tryLock()) return
             val currentState = _state.value
             if (
                 currentState.catalogState != PaywallCatalogState.Available ||
                     currentState.purchaseState != PaywallPurchaseState.Idle
             ) {
+                purchaseMutex.unlock()
                 return
             }
+            _state.value =
+                currentState.copy(
+                    purchaseState = PaywallPurchaseState.InProgress,
+                    errorMessageRes = null,
+                )
             viewModelScope.launch {
-                _state.value =
-                    _state.value.copy(
-                        purchaseState = PaywallPurchaseState.InProgress,
-                        errorMessageRes = null,
-                    )
                 try {
                     billingGateway.launchSubscriptionFlow(planId.productId).collect(::handlePurchaseOutcome)
                 } catch (throwable: Throwable) {
                     if (throwable is CancellationException) throw throwable
                     throwable.reportToSentry()
                     showPurchaseError()
+                } finally {
+                    purchaseMutex.unlock()
                 }
             }
         }
 
         private suspend fun handlePurchaseOutcome(outcome: PurchaseOutcome) {
             when (outcome) {
-                is PurchaseOutcome.Purchased -> {
-                    entitlementRepository.refresh().exceptionOrNull()?.reportToSentry()
-                    _state.value = _state.value.copy(purchaseState = PaywallPurchaseState.Idle)
-                }
+                is PurchaseOutcome.Purchased -> reconcileEntitlement()
 
                 PurchaseOutcome.Pending ->
                     _state.value = _state.value.copy(purchaseState = PaywallPurchaseState.Pending)
@@ -179,6 +199,44 @@ class PaywallViewModel
                     _state.value = _state.value.copy(purchaseState = PaywallPurchaseState.Idle)
                     refreshCatalog()
                 }
+            }
+        }
+
+        private suspend fun reconcileEntitlement() {
+            _state.value =
+                _state.value.copy(
+                    purchaseState = PaywallPurchaseState.ReconcilingEntitlement,
+                    errorMessageRes = null,
+                )
+            for (delayMillis in ENTITLEMENT_RECONCILIATION_DELAYS_MILLIS) {
+                refreshEntitlementForConfirmation()
+                if (completeReconciliationIfEntitled()) return
+                delay(delayMillis)
+            }
+            refreshEntitlementForConfirmation()
+            if (completeReconciliationIfEntitled()) return
+            _state.value = _state.value.copy(purchaseState = PaywallPurchaseState.AwaitingEntitlement)
+        }
+
+        private fun completeReconciliationIfEntitled(): Boolean {
+            val entitlement = entitlementRepository.entitlement.value
+            if (!entitlement.hasActivePlus()) return false
+            _state.value =
+                _state.value.copy(
+                    entitlement = entitlement,
+                    purchaseState = PaywallPurchaseState.Idle,
+                )
+            return true
+        }
+
+        private suspend fun refreshEntitlementForConfirmation() {
+            try {
+                withTimeoutOrNull(ENTITLEMENT_REFRESH_TIMEOUT_MILLIS) {
+                    entitlementRepository.refresh()
+                }?.exceptionOrNull()?.reportToSentry()
+            } catch (throwable: Throwable) {
+                if (throwable is CancellationException) throw throwable
+                throwable.reportToSentry()
             }
         }
 
@@ -199,3 +257,12 @@ class PaywallViewModel
                 )
         }
     }
+
+private fun UserEntitlement.hasActivePlus(): Boolean =
+    this is UserEntitlement.Plus && state != EntitlementState.NONE && state != EntitlementState.EXPIRED
+
+private fun PaywallPurchaseState.isAwaitingEntitlement(): Boolean =
+    this == PaywallPurchaseState.ReconcilingEntitlement || this == PaywallPurchaseState.AwaitingEntitlement
+
+private val ENTITLEMENT_RECONCILIATION_DELAYS_MILLIS = listOf(500L, 1_000L, 2_000L)
+private const val ENTITLEMENT_REFRESH_TIMEOUT_MILLIS = 10_000L

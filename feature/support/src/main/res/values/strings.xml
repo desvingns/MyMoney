@@ -51,4 +51,10 @@
     <string name="paywall_status_active">Your Plus subscription is active</string>
     <string name="paywall_status_grace">Your Plus subscription is in its grace period</string>
     <string name="paywall_renews_on">Next charge: %1$s</string>
+    <string name="paywall_purchase_confirming">Confirming your Plus access...</string>
+    <string name="paywall_purchase_confirmation_pending">Your purchase is complete. We are still confirming your Plus access.</string>
+    <string name="paywall_status_reward_active">Your temporary Plus access is active</string>
+    <string name="paywall_status_whitelist_active">Your Plus access is active</string>
+    <string name="paywall_status_local_only">Your Plus access is active on this device</string>
+    <string name="paywall_access_ends_on">Plus access ends: %1$s</string>
 </resources>

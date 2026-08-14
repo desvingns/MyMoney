@@ -1,5 +1,6 @@
 package com.kshavrin.mymoney.feature.support.paywall
 
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -40,14 +41,23 @@ class PaywallScreenContentTest {
 
     @Test
     fun `support and shared sync entry points keep one catalog but change title and intro`() {
-        setContent(entryPoint = PaywallEntryPoint.SupportSection, state = availableState())
+        val entryPoint = mutableStateOf(PaywallEntryPoint.SupportSection)
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                PaywallScreen(
+                    entryPoint = entryPoint.value,
+                    state = availableState(),
+                    onEvent = {},
+                )
+            }
+        }
 
         composeTestRule.onNodeWithText(string(R.string.paywall_title_support)).assertIsDisplayed()
         composeTestRule.onNodeWithText(string(R.string.paywall_intro_support)).performScrollTo().assertIsDisplayed()
         composeTestRule.onNodeWithText(string(R.string.paywall_monthly_title)).performScrollTo().assertIsDisplayed()
         composeTestRule.onNodeWithText(string(R.string.paywall_yearly_title)).performScrollTo().assertIsDisplayed()
 
-        setContent(entryPoint = PaywallEntryPoint.SharedSyncGate, state = availableState())
+        composeTestRule.runOnIdle { entryPoint.value = PaywallEntryPoint.SharedSyncGate }
 
         composeTestRule.onNodeWithText(string(R.string.paywall_title_shared_sync)).assertIsDisplayed()
         composeTestRule.onNodeWithText(string(R.string.paywall_intro_shared_sync)).performScrollTo().assertIsDisplayed()
@@ -60,12 +70,16 @@ class PaywallScreenContentTest {
         setContent(state = availableState(), onEvent = events::add)
 
         composeTestRule.onAllNodesWithText(string(R.string.paywall_monthly_fallback_price)).assertCountEquals(0)
-        composeTestRule.onNodeWithText("€1.99 / month").performScrollTo().assertIsDisplayed()
-        composeTestRule.onNodeWithText("€12.99 / year").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText("€2.49 / month").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText("€19.99 / year").performScrollTo().assertIsDisplayed()
         composeTestRule.onNodeWithText(string(R.string.paywall_yearly_trial)).performScrollTo().assertIsDisplayed()
         composeTestRule.onAllNodesWithText(string(R.string.paywall_select_plan)).assertCountEquals(2)
         composeTestRule.onAllNodesWithText(string(R.string.paywall_select_plan)).get(0).performClick()
-        composeTestRule.onAllNodesWithText(string(R.string.paywall_select_plan)).get(1).performClick()
+        composeTestRule
+            .onAllNodesWithText(string(R.string.paywall_select_plan))
+            .get(1)
+            .performScrollTo()
+            .performClick()
 
         composeTestRule.runOnIdle {
             assertEquals(
@@ -179,34 +193,37 @@ class PaywallScreenContentTest {
 
     @Test
     fun `reward and whitelist active sources use source-aware status copy`() {
-        setContent(
-            state =
-                availableState().copy(
-                    entitlement =
-                        UserEntitlement.Plus(
-                            source = EntitlementSource.AD_REWARD,
-                            state = EntitlementState.ACTIVE,
-                            startsAt = Instant.parse("2026-08-14T00:00:00Z"),
-                            expiresAt = null,
-                            graceEndsAt = null,
-                        ),
+        val entitlement =
+            mutableStateOf(
+                UserEntitlement.Plus(
+                    source = EntitlementSource.AD_REWARD,
+                    state = EntitlementState.ACTIVE,
+                    startsAt = Instant.parse("2026-08-14T00:00:00Z"),
+                    expiresAt = null,
+                    graceEndsAt = null,
                 ),
-        )
+            )
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                PaywallScreen(
+                    entryPoint = PaywallEntryPoint.SupportSection,
+                    state = availableState().copy(entitlement = entitlement.value),
+                    onEvent = {},
+                )
+            }
+        }
         composeTestRule.onNodeWithText(string(R.string.paywall_status_reward_active)).performScrollTo().assertIsDisplayed()
 
-        setContent(
-            state =
-                availableState().copy(
-                    entitlement =
-                        UserEntitlement.Plus(
-                            source = EntitlementSource.WHITELIST,
-                            state = EntitlementState.ACTIVE,
-                            startsAt = Instant.parse("2026-08-14T00:00:00Z"),
-                            expiresAt = null,
-                            graceEndsAt = null,
-                        ),
-                ),
-        )
+        composeTestRule.runOnIdle {
+            entitlement.value =
+                UserEntitlement.Plus(
+                    source = EntitlementSource.WHITELIST,
+                    state = EntitlementState.ACTIVE,
+                    startsAt = Instant.parse("2026-08-14T00:00:00Z"),
+                    expiresAt = null,
+                    graceEndsAt = null,
+                )
+        }
         composeTestRule.onNodeWithText(string(R.string.paywall_status_whitelist_active)).performScrollTo().assertIsDisplayed()
     }
 
@@ -256,8 +273,8 @@ class PaywallScreenContentTest {
             catalogState = PaywallCatalogState.Available,
             plans =
                 listOf(
-                    PaywallPlan(PaywallPlanId.Monthly, "€1.99 / month"),
-                    PaywallPlan(PaywallPlanId.Yearly, "€12.99 / year"),
+                    PaywallPlan(PaywallPlanId.Monthly, "€2.49 / month"),
+                    PaywallPlan(PaywallPlanId.Yearly, "€19.99 / year"),
                 ),
         )
 

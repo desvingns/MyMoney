@@ -130,6 +130,7 @@ class PaywallViewModelTest {
         val collector = launch {
             viewModel.actions.collect { action = it }
         }
+        runCurrent()
         viewModel.onEvent(PaywallEvent.BackClicked)
         runCurrent()
         collector.cancel()

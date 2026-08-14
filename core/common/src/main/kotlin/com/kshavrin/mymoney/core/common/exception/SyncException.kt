@@ -7,6 +7,7 @@ open class SyncException(
 enum class SyncError {
     Network,
     Auth,
+    EntitlementRequired,
     Quota,
     Conflict,
     Server,

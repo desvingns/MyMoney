@@ -267,6 +267,9 @@ fun MyMoneyNavHost(
         composable<Destinations.CloudSync> {
             com.kshavrin.mymoney.feature.cloudsync.CloudSyncRoute(
                 onBack = { navController.popBackStack() },
+                onOpenPaywall = { entryPoint ->
+                    navController.navigate(Destinations.Paywall(entryPoint))
+                },
             )
         }
         composable<Destinations.LockScreen> {

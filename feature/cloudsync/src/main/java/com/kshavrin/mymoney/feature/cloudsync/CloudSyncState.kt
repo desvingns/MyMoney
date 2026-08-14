@@ -3,9 +3,12 @@ package com.kshavrin.mymoney.feature.cloudsync
 import androidx.annotation.StringRes
 import com.kshavrin.mymoney.core.datastore.CloudBinding
 import com.kshavrin.mymoney.core.domain.model.BackupFile
+import com.kshavrin.mymoney.core.domain.model.EntitlementState
+import com.kshavrin.mymoney.core.domain.model.EntitlementWarning
 import com.kshavrin.mymoney.core.sync.SyncTarget
 import com.kshavrin.mymoney.core.sync.shared.SharedRealtimeStatus
 import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceSummary
+import java.time.Instant
 
 data class CloudSyncState(
     val binding: CloudBinding? = null,
@@ -47,10 +50,15 @@ data class SharedCardState(
     val enabled: Boolean = true,
     val signedIn: Boolean = false,
     val accountEmail: String? = null,
+    val entitlementState: EntitlementState = EntitlementState.NONE,
+    val entitlementGraceEndsAt: Instant? = null,
     val active: Boolean = false,
     val workspaceName: String? = null,
     val conflictCount: Int = 0,
+    val isWorkspaceOwner: Boolean = false,
     val isSoleOwner: Boolean = false,
+    val isWorkspaceReadOnly: Boolean = false,
+    val warning: EntitlementWarning? = null,
     val realtimeStatus: SharedRealtimeStatus = SharedRealtimeStatus.Inactive,
 )
 

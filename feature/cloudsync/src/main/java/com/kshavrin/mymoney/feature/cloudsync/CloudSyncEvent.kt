@@ -3,6 +3,7 @@ package com.kshavrin.mymoney.feature.cloudsync
 import com.kshavrin.mymoney.core.domain.model.BackupFile
 import com.kshavrin.mymoney.core.sync.MigrationResolution
 import com.kshavrin.mymoney.core.sync.SyncTarget
+import com.kshavrin.mymoney.core.ui.navigation.PaywallEntryPoint
 
 sealed interface CloudSyncEvent {
     data class ConnectClicked(
@@ -39,6 +40,14 @@ sealed interface CloudSyncEvent {
     data object CancelMigration : CloudSyncEvent
 
     data object DismissError : CloudSyncEvent
+
+    data object WarningDismissed : CloudSyncEvent
+
+    data object WarningActionClicked : CloudSyncEvent
+
+    data class PaywallRequested(
+        val entryPoint: PaywallEntryPoint,
+    ) : CloudSyncEvent
 
     data object BackClicked : CloudSyncEvent
 

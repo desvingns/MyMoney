@@ -45,7 +45,9 @@
     <string name="sync_shared_setup">Create or join a workspace</string>
     <string name="sync_shared_setup_title">Shared workspace</string>
     <string name="sync_shared_workspace_name">Workspace name (to create)</string>
+    <string name="sync_shared_create_owner_pays">You pay for Plus as this workspace’s owner.</string>
     <string name="sync_shared_invite_token">Invite code (to join)</string>
+    <string name="sync_shared_join_owner_pays">You do not need to pay for Plus. The workspace owner pays for it.</string>
     <string name="sync_shared_import_choice_title">Before joining</string>
     <string name="sync_shared_import_none">Do not import — replace my data with the shared data</string>
     <string name="sync_shared_import_publish">Import my current data into the workspace</string>
@@ -60,6 +62,15 @@
     <string name="sync_shared_copy_invite">Copy code</string>
     <string name="sync_shared_invite_clip_label">Shared workspace invite code</string>
     <string name="sync_shared_sync_now">Sync now</string>
+    <string name="sync_shared_warning_trial_title">Your Plus trial ends soon</string>
+    <string name="sync_shared_warning_trial_body">Your trial ends in 3 days. Renew Plus to keep your shared workspace active.</string>
+    <string name="sync_shared_warning_grace_title">Your workspace is in a grace period</string>
+    <string name="sync_shared_warning_grace_body">Renew Plus by %1$s to keep editing this workspace.</string>
+    <string name="sync_shared_warning_expiry_title">Plus access is ending</string>
+    <string name="sync_shared_warning_expiry_body">Renew Plus to keep using Shared.</string>
+    <string name="sync_shared_warning_renew">Renew Plus</string>
+    <string name="sync_shared_read_only_title">This workspace is read-only</string>
+    <string name="sync_shared_read_only_body">The workspace owner has not renewed Plus. You can view shared data, but syncing and invites are unavailable.</string>
     <string name="sync_shared_status_connected">Realtime connected</string>
     <string name="sync_shared_status_starting">Connecting to shared sync</string>
     <string name="sync_shared_status_sleeping">The shared server is starting. Your local changes are safe.</string>

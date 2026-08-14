@@ -9,7 +9,11 @@ import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
 import com.kshavrin.mymoney.core.datastore.CloudBinding
 import com.kshavrin.mymoney.core.datastore.CloudProvider
 import com.kshavrin.mymoney.core.datastore.JournalSyncConfigStore
+import com.kshavrin.mymoney.core.domain.model.EntitlementState
+import com.kshavrin.mymoney.core.domain.model.EntitlementWarning
+import com.kshavrin.mymoney.core.domain.model.UserEntitlement
 import com.kshavrin.mymoney.core.domain.repository.BackupRepository
+import com.kshavrin.mymoney.core.domain.repository.EntitlementRepository
 import com.kshavrin.mymoney.core.domain.repository.RemoteConfigRepository
 import com.kshavrin.mymoney.core.domain.sync.SharedConflict
 import com.kshavrin.mymoney.core.sync.JournalMigrationPreview
@@ -22,6 +26,7 @@ import com.kshavrin.mymoney.core.sync.shared.SharedRealtimeStatus
 import com.kshavrin.mymoney.core.sync.shared.SharedSyncCoordinator
 import com.kshavrin.mymoney.core.sync.toCloudProvider
 import com.kshavrin.mymoney.core.sync.toSyncTarget
+import com.kshavrin.mymoney.core.ui.navigation.PaywallEntryPoint
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -38,6 +43,8 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.time.Clock
+import java.time.Duration
 import javax.inject.Inject
 
 @HiltViewModel
@@ -52,6 +59,8 @@ class CloudSyncViewModel
         private val backupRepository: BackupRepository,
         private val remoteConfig: RemoteConfigRepository,
         private val sharedCoordinator: SharedSyncCoordinator,
+        private val entitlementRepository: EntitlementRepository? = null,
+        private val clock: Clock = Clock.systemUTC(),
     ) : ViewModel() {
         private val _state =
             MutableStateFlow(
@@ -76,10 +85,16 @@ class CloudSyncViewModel
         private var foregroundRealtimeGeneration = 0L
         private var foregroundRealtimeActive = false
         private var foregroundRealtimeStartJob: Job? = null
+        private var latestEntitlement: UserEntitlement = UserEntitlement.Free
+        private var serverEntitlementRequired = false
+        private var serverRejectionObservedBlockedState = false
 
         init {
+            latestEntitlement = entitlementRepository?.entitlement?.value ?: UserEntitlement.Free
+            applyEntitlement(latestEntitlement)
             refresh()
             observeSettings()
+            observeEntitlement()
             observeForegroundRealtimeStatus()
         }
 
@@ -99,6 +114,10 @@ class CloudSyncViewModel
                 is CloudSyncEvent.ConfirmMigration -> commitMigration(event.resolution)
                 CloudSyncEvent.CancelMigration -> cancelMigration()
                 CloudSyncEvent.DismissError -> _state.value = _state.value.copy(errorBannerRes = null)
+                CloudSyncEvent.WarningDismissed ->
+                    _state.value = _state.value.copy(shared = _state.value.shared.copy(warning = null))
+                CloudSyncEvent.WarningActionClicked -> requestPaywall()
+                is CloudSyncEvent.PaywallRequested -> requestPaywall(event.entryPoint)
                 CloudSyncEvent.BackClicked -> viewModelScope.launch { _actions.emit(CloudSyncAction.NavigateBack) }
                 CloudSyncEvent.SharedSignInClicked -> launchSharedSignIn()
                 is CloudSyncEvent.SharedSignInCompleted -> completeSharedSignIn(event.googleIdToken, event.nonce)
@@ -359,6 +378,7 @@ class CloudSyncViewModel
         }
 
         private fun refresh() {
+            applyEntitlement(latestEntitlement)
             val generation = ++refreshGeneration
             viewModelScope.launch {
                 val binding = journalSyncConfig.binding()
@@ -398,6 +418,12 @@ class CloudSyncViewModel
                 } else {
                     null
                 }
+            val access =
+                if (canReadShared) {
+                    sharedCoordinator.activeWorkspaceAccess().getOrNull()
+                } else {
+                    null
+                }
             val conflictCount =
                 if (canReadShared) {
                     sharedCoordinator.listConflicts().getOrNull()?.size ?: _state.value.shared.conflictCount
@@ -407,6 +433,8 @@ class CloudSyncViewModel
             if (generation != refreshGeneration) return
             val currentBinding = journalSyncConfig.binding()
             val stillActive = currentBinding?.provider == CloudProvider.Shared
+            val isWorkspaceReadOnly = stillActive && access?.isReadOnly == true
+            if (isWorkspaceReadOnly) sharedCoordinator.stopForegroundRealtime()
             if (!sharedEnabled || !stillActive) sharedCoordinator.stopForegroundRealtime()
             if (!active && stillActive) {
                 refresh()
@@ -429,7 +457,9 @@ class CloudSyncViewModel
                             active = stillActive,
                             workspaceName = if (stillActive) workspace?.name else null,
                             conflictCount = if (stillActive) conflictCount else 0,
+                            isWorkspaceOwner = stillActive && ownership?.isOwner == true,
                             isSoleOwner = stillActive && ownership?.isSoleOwner == true,
+                            isWorkspaceReadOnly = isWorkspaceReadOnly,
                             realtimeStatus =
                                 if (sharedEnabled && stillActive) {
                                     _state.value.shared.realtimeStatus
@@ -514,6 +544,10 @@ class CloudSyncViewModel
         }
 
         private fun createSharedWorkspace(name: String) {
+            if (isSharedWorkspaceCreationBlocked()) {
+                requestPaywall()
+                return
+            }
             runSharedSetup { sharedCoordinator.createWorkspace(name.trim(), _state.value.importLocalData) }
         }
 
@@ -527,6 +561,7 @@ class CloudSyncViewModel
         }
 
         private fun createSharedInvite() {
+            if (_state.value.shared.isWorkspaceReadOnly) return
             viewModelScope.launch {
                 _state.value = _state.value.copy(isConnecting = true, errorBannerRes = null, sharedDialog = null)
                 try {
@@ -571,6 +606,7 @@ class CloudSyncViewModel
         }
 
         private fun sharedSyncNow() {
+            if (_state.value.shared.isWorkspaceReadOnly) return
             viewModelScope.launch {
                 _state.value = _state.value.copy(isConnecting = true, errorBannerRes = null)
                 try {
@@ -586,7 +622,13 @@ class CloudSyncViewModel
         }
 
         private fun startForegroundRealtime() {
-            if (!foregroundRealtimeActive || !remoteConfig.sharedSyncEnabled()) return
+            if (
+                !foregroundRealtimeActive ||
+                    !remoteConfig.sharedSyncEnabled() ||
+                    _state.value.shared.isWorkspaceReadOnly
+            ) {
+                return
+            }
             val generation = ++foregroundRealtimeGeneration
             foregroundRealtimeStartJob?.cancel()
             foregroundRealtimeStartJob =
@@ -621,7 +663,7 @@ class CloudSyncViewModel
         }
 
         private fun restartForegroundRealtime() {
-            if (!foregroundRealtimeActive) return
+            if (!foregroundRealtimeActive || _state.value.shared.isWorkspaceReadOnly) return
             foregroundRealtimeStartJob?.cancel()
             foregroundRealtimeStartJob = null
             sharedCoordinator.stopForegroundRealtime()
@@ -652,6 +694,7 @@ class CloudSyncViewModel
             conflictId: String,
             winnerOperationId: String,
         ) {
+            if (_state.value.shared.isWorkspaceReadOnly) return
             viewModelScope.launch {
                 _state.value = _state.value.copy(isConnecting = true, errorBannerRes = null)
                 try {
@@ -866,6 +909,65 @@ class CloudSyncViewModel
             }
         }
 
+        private fun observeEntitlement() {
+            val repository = entitlementRepository ?: return
+            viewModelScope.launch {
+                try {
+                    repository.entitlement.collect { entitlement ->
+                        latestEntitlement = entitlement
+                        applyEntitlement(entitlement)
+                    }
+                } catch (t: Throwable) {
+                    if (t is CancellationException) throw t
+                    t.reportToSentry()
+                }
+            }
+        }
+
+        private fun applyEntitlement(entitlement: UserEntitlement) {
+            if (serverEntitlementRequired) {
+                if (entitlement.canCreateSharedWorkspace()) {
+                    if (serverRejectionObservedBlockedState) serverEntitlementRequired = false
+                } else {
+                    serverRejectionObservedBlockedState = true
+                }
+            }
+            _state.value =
+                _state.value.copy(
+                    shared =
+                        _state.value.shared.copy(
+                            entitlementState = entitlement.state(),
+                            entitlementGraceEndsAt =
+                                (entitlement as? UserEntitlement.Plus)?.graceEndsAt,
+                            warning = entitlement.warning(clock) ?: serverEntitlementWarning(),
+                        ),
+                )
+        }
+
+        private fun requestPaywall(entryPoint: PaywallEntryPoint = PaywallEntryPoint.SharedSyncGate) {
+            viewModelScope.launch { _actions.emit(CloudSyncAction.NavigateToPaywall(entryPoint)) }
+        }
+
+        private fun isSharedWorkspaceCreationBlocked(): Boolean = !latestEntitlement.canCreateSharedWorkspace()
+
+        private fun serverEntitlementWarning(): EntitlementWarning? =
+            EntitlementWarning.EXPIRY_IMMINENT_1D.takeIf { serverEntitlementRequired }
+
+        private fun showEntitlementWarning() {
+            serverEntitlementRequired = true
+            serverRejectionObservedBlockedState = !latestEntitlement.canCreateSharedWorkspace()
+            _state.value =
+                _state.value.copy(
+                    shared =
+                        _state.value.shared.copy(
+                            warning = latestEntitlement.warning(clock) ?: EntitlementWarning.EXPIRY_IMMINENT_1D,
+                        ),
+                )
+            viewModelScope.launch {
+                entitlementRepository?.refresh()?.exceptionOrNull()?.reportToSentry()
+            }
+        }
+
         private fun card(target: SyncTarget): TargetCardState =
             when (target) {
                 SyncTarget.Dropbox -> _state.value.dropbox
@@ -875,7 +977,12 @@ class CloudSyncViewModel
 
         private fun reportAndShow(t: Throwable) {
             t.reportToSentry()
-            showError(mapError((t as? SyncException)?.syncError ?: SyncError.Unknown))
+            val syncError = (t as? SyncException)?.syncError ?: SyncError.Unknown
+            if (syncError == SyncError.EntitlementRequired) {
+                showEntitlementWarning()
+            } else {
+                showError(mapError(syncError))
+            }
         }
 
         private fun showError(
@@ -889,6 +996,7 @@ class CloudSyncViewModel
             when (error) {
                 SyncError.Network -> R.string.sync_err_network
                 SyncError.Auth -> R.string.sync_err_auth
+                SyncError.EntitlementRequired -> R.string.sync_err_server
                 SyncError.Quota -> R.string.sync_err_quota
                 SyncError.Server -> R.string.sync_err_server
                 SyncError.Conflict -> R.string.sync_err_account_mismatch
@@ -906,3 +1014,38 @@ class CloudSyncViewModel
             @StringRes val errorRes: Int? = null,
         )
     }
+
+private fun UserEntitlement.state(): EntitlementState =
+    when (this) {
+        UserEntitlement.Free -> EntitlementState.NONE
+        is UserEntitlement.Plus -> state
+    }
+
+private fun UserEntitlement.canCreateSharedWorkspace(): Boolean =
+    this is UserEntitlement.Plus &&
+        (state == EntitlementState.TRIAL || state == EntitlementState.ACTIVE)
+
+private fun UserEntitlement.warning(clock: Clock): EntitlementWarning? =
+    (this as? UserEntitlement.Plus)?.let { entitlement ->
+        when {
+            entitlement.state == EntitlementState.GRACE &&
+                entitlement.graceEndsAt.isWithin(clock, Duration.ofDays(1)) ->
+                EntitlementWarning.EXPIRY_IMMINENT_1D
+
+            entitlement.state == EntitlementState.GRACE -> EntitlementWarning.GRACE_ENTERED
+            entitlement.state == EntitlementState.TRIAL &&
+                entitlement.expiresAt.isWithin(clock, Duration.ofDays(3)) ->
+                EntitlementWarning.TRIAL_ENDING_3D
+
+            else -> null
+        }
+    }
+
+private fun java.time.Instant?.isWithin(
+    clock: Clock,
+    threshold: Duration,
+): Boolean =
+    this != null &&
+        Duration.between(clock.instant(), this).let { remaining ->
+            remaining > Duration.ZERO && remaining <= threshold
+        }

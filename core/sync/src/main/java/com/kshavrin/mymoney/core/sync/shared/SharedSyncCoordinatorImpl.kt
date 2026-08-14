@@ -32,6 +32,7 @@ import com.kshavrin.mymoney.core.network.shared.SharedRealtime
 import com.kshavrin.mymoney.core.network.shared.SharedRealtimeEvent
 import com.kshavrin.mymoney.core.network.shared.SharedWorkspace
 import com.kshavrin.mymoney.core.network.shared.SharedWorkspaceApi
+import com.kshavrin.mymoney.core.network.shared.WorkspaceBillingState
 import com.kshavrin.mymoney.core.network.shared.WorkspaceRole
 import com.kshavrin.mymoney.core.sync.SyncExecutionGate
 import com.kshavrin.mymoney.core.sync.SyncScheduler
@@ -344,6 +345,15 @@ class SharedSyncCoordinatorImpl
                         isOwner = isOwner,
                         isSoleOwner = isOwner && members.size == 1,
                     )
+                }
+            }
+
+        override suspend fun activeWorkspaceAccess(): Result<SharedWorkspaceAccess> =
+            withContext(dispatcher) {
+                runCatching {
+                    ensureSignedIn()
+                    val workspace = workspaceApi.currentWorkspace().getOrThrow() ?: throw SyncException(SyncError.Auth)
+                    SharedWorkspaceAccess(isReadOnly = workspace.billingState == WorkspaceBillingState.Grace)
                 }
             }
 

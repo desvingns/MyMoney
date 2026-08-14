@@ -3,8 +3,10 @@ package com.kshavrin.mymoney.core.network.shared
 import com.kshavrin.mymoney.core.common.exception.SyncError
 import com.kshavrin.mymoney.core.common.exception.SyncException
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import java.time.Instant
 import javax.inject.Inject
@@ -25,7 +27,7 @@ class SupabaseSharedWorkspaceRpc
                 http
                     .get(
                         path =
-                            "rest/v1/workspace_members?select=workspace:workspaces!inner(id,name,owner_id,created_at)&active=eq.true&limit=1",
+                            "rest/v1/workspace_members?select=workspace:workspaces!inner(id,name,owner_id,created_at,billing_state,billing_state_until)&active=eq.true&limit=1",
                         accessToken = accessToken,
                     ).mapCatching { response ->
                         response.jsonArray
@@ -126,6 +128,13 @@ class SupabaseSharedWorkspaceRpc
                 name = value.requiredString("name"),
                 ownerId = value.requiredString("owner_id"),
                 createdAt = Instant.parse(value.requiredString("created_at")),
+                billingState =
+                    value["billing_state"]
+                        ?.jsonPrimitive
+                        ?.contentOrNull
+                        ?.toWorkspaceBillingState()
+                        ?: WorkspaceBillingState.Active,
+                billingStateUntil = value["billing_state_until"]?.jsonPrimitive?.contentOrNull?.let(Instant::parse),
             )
 
         private fun inviteFrom(value: kotlinx.serialization.json.JsonObject): WorkspaceInvite =
@@ -155,5 +164,13 @@ private fun String.toWorkspaceRole(): WorkspaceRole =
     when (this) {
         "owner" -> WorkspaceRole.Owner
         "editor" -> WorkspaceRole.Editor
+        else -> throw SyncException(SyncError.Server)
+    }
+
+private fun String.toWorkspaceBillingState(): WorkspaceBillingState =
+    when (this) {
+        "active" -> WorkspaceBillingState.Active
+        "grace" -> WorkspaceBillingState.Grace
+        "expired" -> WorkspaceBillingState.Expired
         else -> throw SyncException(SyncError.Server)
     }

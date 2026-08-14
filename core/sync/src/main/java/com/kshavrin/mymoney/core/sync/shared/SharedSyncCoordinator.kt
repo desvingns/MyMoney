@@ -18,6 +18,10 @@ data class SharedWorkspaceOwnership(
     val isSoleOwner: Boolean = false,
 )
 
+data class SharedWorkspaceAccess(
+    val isReadOnly: Boolean = false,
+)
+
 /**
  * Single orchestration entry point for Shared sync mode. Unlike the file-exchange
  * [com.kshavrin.mymoney.core.sync.JournalSync], Shared mode is a server-side operation log:
@@ -49,6 +53,9 @@ interface SharedSyncCoordinator {
 
     suspend fun activeWorkspaceOwnership(): Result<SharedWorkspaceOwnership> =
         Result.success(SharedWorkspaceOwnership())
+
+    suspend fun activeWorkspaceAccess(): Result<SharedWorkspaceAccess> =
+        Result.success(SharedWorkspaceAccess())
 
     fun consumeRestartRequiredAfterAdoptionRecovery(): Boolean = false
 

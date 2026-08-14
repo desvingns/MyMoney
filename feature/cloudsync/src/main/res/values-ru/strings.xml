@@ -45,7 +45,9 @@
     <string name="sync_shared_setup">Создать или присоединиться к пространству</string>
     <string name="sync_shared_setup_title">Общее пространство</string>
     <string name="sync_shared_workspace_name">Название пространства (для создания)</string>
+    <string name="sync_shared_create_owner_pays">Вы оплачиваете Plus как владелец этого пространства.</string>
     <string name="sync_shared_invite_token">Код приглашения (для входа)</string>
+    <string name="sync_shared_join_owner_pays">Вам не нужно платить за Plus. Его оплачивает владелец пространства.</string>
     <string name="sync_shared_import_choice_title">Перед присоединением</string>
     <string name="sync_shared_import_none">Не импортировать — заменить мои данные общими</string>
     <string name="sync_shared_import_publish">Импортировать мои текущие данные в пространство</string>
@@ -60,6 +62,15 @@
     <string name="sync_shared_copy_invite">Скопировать код</string>
     <string name="sync_shared_invite_clip_label">Код приглашения в общее пространство</string>
     <string name="sync_shared_sync_now">Синхронизировать</string>
+    <string name="sync_shared_warning_trial_title">Ваш пробный период Plus скоро закончится</string>
+    <string name="sync_shared_warning_trial_body">Пробный период закончится через 3 дня. Продлите Plus, чтобы общее пространство оставалось активным.</string>
+    <string name="sync_shared_warning_grace_title">Ваше пространство находится в льготном периоде</string>
+    <string name="sync_shared_warning_grace_body">Продлите Plus до %1$s, чтобы продолжить редактирование этого пространства.</string>
+    <string name="sync_shared_warning_expiry_title">Доступ Plus заканчивается</string>
+    <string name="sync_shared_warning_expiry_body">Продлите Plus, чтобы продолжать пользоваться общим пространством.</string>
+    <string name="sync_shared_warning_renew">Продлить Plus</string>
+    <string name="sync_shared_read_only_title">Это пространство доступно только для чтения</string>
+    <string name="sync_shared_read_only_body">Владелец пространства не продлил Plus. Вы можете просматривать общие данные, но синхронизация и приглашения недоступны.</string>
     <string name="sync_shared_status_connected">Синхронизация в реальном времени подключена</string>
     <string name="sync_shared_status_starting">Подключение к общей синхронизации</string>
     <string name="sync_shared_status_sleeping">Общий сервер запускается. Локальные изменения в сохранности.</string>

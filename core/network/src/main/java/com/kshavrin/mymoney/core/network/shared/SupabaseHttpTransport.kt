@@ -198,7 +198,9 @@ private fun Throwable.toSyncException(): Throwable =
     }
 
 private fun SupabaseHttpException.toSyncException(): Throwable =
-    if (statusCode == 409 && preservePostgrestConflict) {
+    if (responseBody.hasEntitlementRequired()) {
+        SyncException(SyncError.EntitlementRequired)
+    } else if (statusCode == 409 && preservePostgrestConflict) {
         SupabasePostgrestConflictException(responseBody)
     } else {
         SyncException(
@@ -232,6 +234,15 @@ private fun String.hasSqlState42501(): Boolean =
             .jsonObject["code"]
             ?.jsonPrimitive
             ?.content == "42501"
+    }.getOrDefault(false)
+
+private fun String.hasEntitlementRequired(): Boolean =
+    runCatching {
+        Json
+            .parseToJsonElement(this)
+            .jsonObject["message"]
+            ?.jsonPrimitive
+            ?.content == "entitlement_required"
     }.getOrDefault(false)
 
 private fun String.hasAccountDeletionWorkspaceConflict(): Boolean =

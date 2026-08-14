@@ -1,7 +1,13 @@
 package com.kshavrin.mymoney.feature.cloudsync
 
+import com.kshavrin.mymoney.core.ui.navigation.PaywallEntryPoint
+
 sealed interface CloudSyncAction {
     data object NavigateBack : CloudSyncAction
+
+    data class NavigateToPaywall(
+        val entryPoint: PaywallEntryPoint,
+    ) : CloudSyncAction
 
     data object LaunchDropboxAuth : CloudSyncAction
 

@@ -7,6 +7,12 @@ enum class WorkspaceRole {
     Editor,
 }
 
+enum class WorkspaceBillingState {
+    Active,
+    Grace,
+    Expired,
+}
+
 data class SharedUser(
     val id: String,
     val email: String,
@@ -17,6 +23,8 @@ data class SharedWorkspace(
     val name: String,
     val ownerId: String,
     val createdAt: Instant,
+    val billingState: WorkspaceBillingState = WorkspaceBillingState.Active,
+    val billingStateUntil: Instant? = null,
 )
 
 data class WorkspaceMember(

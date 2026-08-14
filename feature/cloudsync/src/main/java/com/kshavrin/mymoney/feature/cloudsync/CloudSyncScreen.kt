@@ -81,6 +81,8 @@ import com.google.api.services.drive.DriveScopes
 import com.kshavrin.mymoney.core.common.exception.reportToSentry
 import com.kshavrin.mymoney.core.datastore.CloudProvider
 import com.kshavrin.mymoney.core.domain.model.BackupFile
+import com.kshavrin.mymoney.core.domain.model.EntitlementState
+import com.kshavrin.mymoney.core.domain.model.EntitlementWarning
 import com.kshavrin.mymoney.core.sync.MigrationResolution
 import com.kshavrin.mymoney.core.sync.SyncTarget
 import com.kshavrin.mymoney.core.sync.shared.SharedRealtimeStatus
@@ -97,6 +99,10 @@ import com.kshavrin.mymoney.core.ui.theme.sharedSyncConnectedContainer
 import com.kshavrin.mymoney.core.ui.theme.sharedSyncConnectedContent
 import com.kshavrin.mymoney.core.ui.theme.sharedSyncErrorContainer
 import com.kshavrin.mymoney.core.ui.theme.sharedSyncErrorContent
+import com.kshavrin.mymoney.core.ui.theme.sharedSyncEntitlementWarningContainer
+import com.kshavrin.mymoney.core.ui.theme.sharedSyncEntitlementWarningContent
+import com.kshavrin.mymoney.core.ui.theme.sharedSyncReadOnlyContainer
+import com.kshavrin.mymoney.core.ui.theme.sharedSyncReadOnlyContent
 import com.kshavrin.mymoney.core.ui.theme.sharedSyncRetryingContainer
 import com.kshavrin.mymoney.core.ui.theme.sharedSyncRetryingContent
 import com.kshavrin.mymoney.core.ui.theme.sharedSyncSleepingContainer
@@ -104,6 +110,7 @@ import com.kshavrin.mymoney.core.ui.theme.sharedSyncSleepingContent
 import com.kshavrin.mymoney.core.ui.theme.sharedSyncStartingContainer
 import com.kshavrin.mymoney.core.ui.theme.sharedSyncStartingContent
 import com.kshavrin.mymoney.core.ui.theme.sharedSyncStatusOutline
+import com.kshavrin.mymoney.core.ui.navigation.PaywallEntryPoint
 import java.security.MessageDigest
 import java.security.SecureRandom
 import java.time.Instant
@@ -117,6 +124,7 @@ import com.kshavrin.mymoney.core.sync.BuildConfig as SyncBuildConfig
 @Composable
 fun CloudSyncRoute(
     onBack: () -> Unit,
+    onOpenPaywall: (PaywallEntryPoint) -> Unit = {},
     viewModel: CloudSyncViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -303,6 +311,7 @@ fun CloudSyncRoute(
         viewModel.actions.collect { action ->
             when (action) {
                 CloudSyncAction.NavigateBack -> onBack()
+                is CloudSyncAction.NavigateToPaywall -> onOpenPaywall(action.entryPoint)
                 CloudSyncAction.LaunchDropboxAuth -> {
                     if (SyncBuildConfig.DROPBOX_APP_KEY == DROPBOX_APP_KEY_PLACEHOLDER) {
                         viewModel.onEvent(CloudSyncEvent.AuthenticationFailed)
@@ -453,6 +462,13 @@ fun CloudSyncContent(
                 onEvent = onEvent,
             )
             if (state.shared.enabled) {
+                state.shared.warning?.let { warning ->
+                    SharedEntitlementWarningBanner(
+                        state = state.shared,
+                        warning = warning,
+                        onEvent = onEvent,
+                    )
+                }
                 SharedCard(
                     state = state.shared,
                     otherProviderActive = state.binding != null && state.binding.provider != CloudProvider.Shared,
@@ -601,7 +617,12 @@ private fun SharedCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             if (state.active) {
-                SharedRealtimeStatusCard(status = state.realtimeStatus, onEvent = onEvent)
+                if (state.isWorkspaceReadOnly) SharedReadOnlyBanner()
+                SharedRealtimeStatusCard(
+                    status = state.realtimeStatus,
+                    enabled = !state.isWorkspaceReadOnly,
+                    onEvent = onEvent,
+                )
             }
             when {
                 otherProviderActive ->
@@ -623,7 +644,7 @@ private fun SharedCard(
                         OutlinedButton(
                             modifier = Modifier.testTag(SyncTarget.Shared.controlTag("conflicts")),
                             onClick = { onEvent(CloudSyncEvent.SharedConflictsClicked) },
-                            enabled = !isConnecting,
+                            enabled = !isConnecting && !state.isWorkspaceReadOnly,
                         ) {
                             Text(stringResource(R.string.sync_shared_review_conflicts, state.conflictCount))
                         }
@@ -631,14 +652,14 @@ private fun SharedCard(
                     Button(
                         modifier = Modifier.testTag(SyncTarget.Shared.controlTag("sync_now")),
                         onClick = { onEvent(CloudSyncEvent.SharedSyncNowClicked) },
-                        enabled = !isConnecting,
+                        enabled = !isConnecting && !state.isWorkspaceReadOnly,
                     ) {
                         Text(stringResource(R.string.sync_shared_sync_now))
                     }
                     OutlinedButton(
                         modifier = Modifier.testTag(SyncTarget.Shared.controlTag("create_invite")),
                         onClick = { onEvent(CloudSyncEvent.SharedCreateInviteClicked) },
-                        enabled = !isConnecting,
+                        enabled = !isConnecting && !state.isWorkspaceReadOnly,
                     ) {
                         Text(stringResource(R.string.sync_shared_create_invite))
                     }
@@ -691,8 +712,86 @@ private fun SharedCard(
 }
 
 @Composable
+private fun SharedEntitlementWarningBanner(
+    state: SharedCardState,
+    warning: EntitlementWarning,
+    onEvent: (CloudSyncEvent) -> Unit,
+) {
+    val title =
+        when (warning) {
+            EntitlementWarning.TRIAL_ENDING_3D -> R.string.sync_shared_warning_trial_title
+            EntitlementWarning.GRACE_ENTERED -> R.string.sync_shared_warning_grace_title
+            EntitlementWarning.EXPIRY_IMMINENT_1D -> R.string.sync_shared_warning_expiry_title
+        }
+    val body =
+        when (warning) {
+            EntitlementWarning.TRIAL_ENDING_3D -> stringResource(R.string.sync_shared_warning_trial_body)
+            EntitlementWarning.GRACE_ENTERED ->
+                stringResource(
+                    R.string.sync_shared_warning_grace_body,
+                    state.entitlementGraceEndsAt?.let { formatTimestamp(it.toEpochMilli()) }.orEmpty(),
+                )
+
+            EntitlementWarning.EXPIRY_IMMINENT_1D -> stringResource(R.string.sync_shared_warning_expiry_body)
+        }
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.sharedSyncEntitlementWarningContainer,
+                contentColor = MaterialTheme.colorScheme.sharedSyncEntitlementWarningContent,
+            ),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(Spacing.m),
+            verticalArrangement = Arrangement.spacedBy(Spacing.s),
+        ) {
+            Text(stringResource(title), style = MaterialTheme.typography.titleSmall)
+            Text(body, style = MaterialTheme.typography.bodyMedium)
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
+                if (state.isWorkspaceOwner || (!state.active && state.entitlementState != EntitlementState.NONE)) {
+                    Button(onClick = { onEvent(CloudSyncEvent.WarningActionClicked) }) {
+                        Text(stringResource(R.string.sync_shared_warning_renew))
+                    }
+                }
+                TextButton(onClick = { onEvent(CloudSyncEvent.WarningDismissed) }) {
+                    Text(stringResource(R.string.sync_dismiss))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SharedReadOnlyBanner() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.sharedSyncReadOnlyContainer,
+                contentColor = MaterialTheme.colorScheme.sharedSyncReadOnlyContent,
+            ),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(Spacing.m),
+            verticalArrangement = Arrangement.spacedBy(Spacing.s),
+        ) {
+            Text(
+                text = stringResource(R.string.sync_shared_read_only_title),
+                style = MaterialTheme.typography.titleSmall,
+            )
+            Text(
+                text = stringResource(R.string.sync_shared_read_only_body),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
+    }
+}
+
+@Composable
 private fun SharedRealtimeStatusCard(
     status: SharedRealtimeStatus,
+    enabled: Boolean,
     onEvent: (CloudSyncEvent) -> Unit,
 ) {
     if (status == SharedRealtimeStatus.Inactive) return
@@ -740,6 +839,7 @@ private fun SharedRealtimeStatusCard(
                 OutlinedButton(
                     modifier = Modifier.testTag("cloud_sync_shared_realtime_retry"),
                     onClick = { onEvent(CloudSyncEvent.SharedRetryRealtimeClicked) },
+                    enabled = enabled,
                 ) {
                     Text(stringResource(R.string.sync_shared_retry_realtime))
                 }
@@ -982,12 +1082,20 @@ private fun SharedSetupDialog(
                     singleLine = true,
                     label = { Text(stringResource(R.string.sync_shared_workspace_name)) },
                 )
+                Text(
+                    text = stringResource(R.string.sync_shared_create_owner_pays),
+                    style = MaterialTheme.typography.bodySmall,
+                )
                 OutlinedTextField(
                     modifier = Modifier.fillMaxWidth().testTag("cloud_sync_shared_token"),
                     value = token,
                     onValueChange = { token = it },
                     singleLine = true,
                     label = { Text(stringResource(R.string.sync_shared_invite_token)) },
+                )
+                Text(
+                    text = stringResource(R.string.sync_shared_join_owner_pays),
+                    style = MaterialTheme.typography.bodySmall,
                 )
                 Text(
                     text = stringResource(R.string.sync_shared_import_choice_title),

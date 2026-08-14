@@ -5,17 +5,14 @@ import androidx.lifecycle.viewModelScope
 import com.kshavrin.mymoney.core.common.exception.SyncError
 import com.kshavrin.mymoney.core.common.exception.SyncException
 import com.kshavrin.mymoney.core.common.exception.reportToSentry
-import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
 import com.kshavrin.mymoney.core.datastore.CloudBinding
 import com.kshavrin.mymoney.core.datastore.CloudProvider
 import com.kshavrin.mymoney.core.datastore.JournalSyncConfigStore
 import com.kshavrin.mymoney.core.domain.model.EntitlementState
 import com.kshavrin.mymoney.core.domain.model.EntitlementWarning
 import com.kshavrin.mymoney.core.domain.model.UserEntitlement
-import com.kshavrin.mymoney.core.domain.repository.BackupRepository
-import com.kshavrin.mymoney.core.domain.repository.EntitlementRepository
-import com.kshavrin.mymoney.core.domain.repository.RemoteConfigRepository
 import com.kshavrin.mymoney.core.domain.sync.SharedConflict
+import com.kshavrin.mymoney.core.domain.usecase.ObserveEntitlementUseCase
 import com.kshavrin.mymoney.core.sync.JournalMigrationPreview
 import com.kshavrin.mymoney.core.sync.JournalSync
 import com.kshavrin.mymoney.core.sync.MigrationResolution
@@ -26,6 +23,8 @@ import com.kshavrin.mymoney.core.sync.shared.SharedRealtimeStatus
 import com.kshavrin.mymoney.core.sync.shared.SharedSyncCoordinator
 import com.kshavrin.mymoney.core.sync.toCloudProvider
 import com.kshavrin.mymoney.core.sync.toSyncTarget
+import com.kshavrin.mymoney.core.sync.usecase.CloudSyncBackupsUseCase
+import com.kshavrin.mymoney.core.sync.usecase.CloudSyncSettingsUseCase
 import com.kshavrin.mymoney.core.ui.navigation.PaywallEntryPoint
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
@@ -40,7 +39,6 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.Clock
@@ -55,19 +53,19 @@ class CloudSyncViewModel
         private val journalSync: JournalSync,
         private val journalSyncConfig: JournalSyncConfigStore,
         private val syncScheduler: SyncScheduler,
-        private val appSettings: AppSettingsRepository,
-        private val backupRepository: BackupRepository,
-        private val remoteConfig: RemoteConfigRepository,
+        private val cloudSyncSettings: CloudSyncSettingsUseCase,
+        private val cloudSyncBackups: CloudSyncBackupsUseCase,
         private val sharedCoordinator: SharedSyncCoordinator,
-        private val entitlementRepository: EntitlementRepository? = null,
+        private val observeEntitlement: ObserveEntitlementUseCase? = null,
         private val clock: Clock = Clock.systemUTC(),
     ) : ViewModel() {
+        private val availability = cloudSyncSettings.availability()
         private val _state =
             MutableStateFlow(
                 CloudSyncState(
-                    dropbox = TargetCardState(SyncTarget.Dropbox, enabled = remoteConfig.dropboxSyncEnabled()),
-                    drive = TargetCardState(SyncTarget.GoogleDrive, enabled = remoteConfig.gdriveSyncEnabled()),
-                    shared = SharedCardState(enabled = remoteConfig.sharedSyncEnabled()),
+                    dropbox = TargetCardState(SyncTarget.Dropbox, enabled = availability.dropboxEnabled),
+                    drive = TargetCardState(SyncTarget.GoogleDrive, enabled = availability.gdriveEnabled),
+                    shared = SharedCardState(enabled = availability.sharedEnabled),
                 ),
             )
         val state: StateFlow<CloudSyncState> = _state.asStateFlow()
@@ -90,7 +88,7 @@ class CloudSyncViewModel
         private var serverRejectionObservedBlockedState = false
 
         init {
-            latestEntitlement = entitlementRepository?.entitlement?.value ?: UserEntitlement.Free
+            latestEntitlement = observeEntitlement?.entitlement?.value ?: UserEntitlement.Free
             applyEntitlement(latestEntitlement)
             refresh()
             observeSettings()
@@ -242,7 +240,7 @@ class CloudSyncViewModel
             )
             try {
                 journalSync.syncNow()
-                if (appSettings.settings.first().autoSyncEnabled) syncScheduler.enablePeriodicSync()
+                if (cloudSyncSettings.isAutoSyncEnabled()) syncScheduler.enablePeriodicSync()
             } catch (t: Throwable) {
                 journalSyncConfig.clearBinding()
                 throw t
@@ -305,7 +303,7 @@ class CloudSyncViewModel
                 val pending = pendingMigration ?: return@launch
                 try {
                     _state.value = _state.value.copy(isConnecting = true, errorBannerRes = null)
-                    backupRepository.exportDb(treeUriString).getOrThrow()
+                    cloudSyncBackups.exportMigrationBackup(treeUriString).getOrThrow()
                     val preview = journalSync.previewMigration(pending.targetBinding.provider.toSyncTarget()).getOrThrow()
                     pendingMigration = pending.copy(preview = preview)
                     _state.value =
@@ -336,7 +334,7 @@ class CloudSyncViewModel
                     journalSyncConfig.setBinding(pending.targetBinding)
                     try {
                         journalSync.syncNow()
-                        if (appSettings.settings.first().autoSyncEnabled) syncScheduler.enablePeriodicSync()
+                        if (cloudSyncSettings.isAutoSyncEnabled()) syncScheduler.enablePeriodicSync()
                     } catch (t: Throwable) {
                         journalSyncConfig.setBinding(pending.sourceBinding)
                         throw t
@@ -408,7 +406,7 @@ class CloudSyncViewModel
             active: Boolean,
             generation: Long,
         ) {
-            val sharedEnabled = remoteConfig.sharedSyncEnabled()
+            val sharedEnabled = cloudSyncSettings.availability().sharedEnabled
             if (!sharedEnabled || !active) sharedCoordinator.stopForegroundRealtime()
             val canReadShared = sharedEnabled && active
             val workspace = if (canReadShared) sharedCoordinator.activeWorkspace() else null
@@ -624,7 +622,7 @@ class CloudSyncViewModel
         private fun startForegroundRealtime() {
             if (
                 !foregroundRealtimeActive ||
-                    !remoteConfig.sharedSyncEnabled() ||
+                    !cloudSyncSettings.availability().sharedEnabled ||
                     _state.value.shared.isWorkspaceReadOnly
             ) {
                 return
@@ -812,7 +810,7 @@ class CloudSyncViewModel
                 try {
                     _state.value =
                         _state.value.copy(
-                            internalBackups = backupRepository.listInternalBackups(),
+                            internalBackups = cloudSyncBackups.listInternalBackups(),
                             sharedDialog = SharedDialog.InternalBackups,
                         )
                 } catch (t: Throwable) {
@@ -901,19 +899,19 @@ class CloudSyncViewModel
 
         private fun observeSettings() {
             viewModelScope.launch {
-                appSettings.settings
+                cloudSyncSettings.observeLastSyncAt()
                     .catch { t -> reportAndShow(t) }
-                    .collect { settings ->
-                        _state.value = _state.value.copy(lastSyncAtMs = settings.lastSyncAt)
+                    .collect { lastSyncAt ->
+                        _state.value = _state.value.copy(lastSyncAtMs = lastSyncAt)
                     }
             }
         }
 
         private fun observeEntitlement() {
-            val repository = entitlementRepository ?: return
+            val useCase = observeEntitlement ?: return
             viewModelScope.launch {
                 try {
-                    repository.entitlement.collect { entitlement ->
+                    useCase.entitlement.collect { entitlement ->
                         latestEntitlement = entitlement
                         applyEntitlement(entitlement)
                     }
@@ -964,7 +962,7 @@ class CloudSyncViewModel
                         ),
                 )
             viewModelScope.launch {
-                entitlementRepository?.refresh()?.exceptionOrNull()?.reportToSentry()
+                observeEntitlement?.refresh()?.exceptionOrNull()?.reportToSentry()
             }
         }
 

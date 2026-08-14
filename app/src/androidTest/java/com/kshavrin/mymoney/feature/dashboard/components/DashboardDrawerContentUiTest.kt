@@ -12,6 +12,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.domain.model.Account
@@ -45,6 +46,7 @@ class DashboardDrawerContentUiTest {
                 R.string.right_drawer_currencies to DashboardEvent.CurrenciesClicked,
                 R.string.right_drawer_settings to DashboardEvent.SettingsClicked,
                 R.string.right_drawer_about to DashboardEvent.AboutClicked,
+                R.string.right_drawer_support to DashboardEvent.SupportClicked,
             )
 
         composeTestRule.setContent {
@@ -55,11 +57,12 @@ class DashboardDrawerContentUiTest {
 
         entries.forEach { (labelRes, _) ->
             drawerRow(labelRes)
+                .performScrollTo()
                 .assertIsDisplayed()
                 .assertIsEnabled()
         }
         entries.forEach { (labelRes, _) ->
-            drawerRow(labelRes).performClick()
+            drawerRow(labelRes).performScrollTo().performClick()
         }
 
         composeTestRule.runOnIdle {

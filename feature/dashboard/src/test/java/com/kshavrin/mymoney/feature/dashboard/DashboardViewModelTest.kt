@@ -2070,6 +2070,34 @@ class DashboardViewModelTest {
         }
 
     @Test
+    fun `support event closes drawers and emits support navigation`() =
+        runTest {
+            val (viewModel, store) = buildViewModel()
+            val actions = mutableListOf<DashboardAction>()
+            val collector =
+                backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+                    viewModel.actions.toList(actions)
+                }
+
+            try {
+                runCurrent()
+                viewModel.onEvent(DashboardEvent.RightDrawerToggled)
+                assertTrue(viewModel.state.value.rightDrawerOpen)
+
+                viewModel.onEvent(DashboardEvent.SupportClicked)
+                runCurrent()
+
+                assertFalse(viewModel.state.value.leftDrawerOpen)
+                assertFalse(viewModel.state.value.rightDrawerOpen)
+                assertEquals(listOf(DashboardAction.NavigateSupport), actions)
+            } finally {
+                collector.cancel()
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
     fun `balance card event opens unfiltered operations summary for specific account`() =
         runTest {
             val (viewModel, store) = buildViewModel()

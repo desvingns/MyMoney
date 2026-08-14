@@ -67,6 +67,7 @@ import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_CURRENCIES
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_FINANCIAL_GOALS_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_SEARCH_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_SETTINGS_TAG
+import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_SUPPORT_TAG
 import com.kshavrin.mymoney.test.assertTouchHeightIsAtLeast
 import com.kshavrin.mymoney.test.assertTouchWidthIsAtLeast
 import org.junit.Assert.assertEquals
@@ -649,12 +650,14 @@ class DashboardContentUiTest {
         drawerRows.forEach { tag ->
             composeTestRule
                 .onNodeWithTag(tag, useUnmergedTree = true)
+                .performScrollTo()
                 .assertIsDisplayed()
                 .assertHasClickAction()
         }
         drawerRows.forEach { tag ->
             composeTestRule
                 .onNodeWithTag(tag, useUnmergedTree = true)
+                .performScrollTo()
                 .performClick()
         }
 
@@ -668,6 +671,7 @@ class DashboardContentUiTest {
                     DashboardEvent.ChartSettingsClicked,
                     DashboardEvent.SettingsClicked,
                     DashboardEvent.AboutClicked,
+                    DashboardEvent.SupportClicked,
                 ),
                 capturedEvents,
             )
@@ -1704,6 +1708,7 @@ class DashboardContentUiTest {
             RIGHT_DRAWER_CHART_SETTINGS_TAG,
             RIGHT_DRAWER_SETTINGS_TAG,
             RIGHT_DRAWER_ABOUT_TAG,
+            RIGHT_DRAWER_SUPPORT_TAG,
         )
 
     private fun operationsSummaryDashboardState(operationsSummary: OperationsSummaryState?): DashboardState {

@@ -7,6 +7,27 @@ import org.junit.Test
 
 class BillingWiringContractTest {
     @Test
+    fun `support feature module is registered and wired into the app`() {
+        val settings = file("settings.gradle.kts").readText()
+        val app = file("app/build.gradle.kts").readText()
+        val support = file("feature/support/build.gradle.kts").readText()
+
+        assertTrue(settings.contains("include(\":feature:support\")"))
+        assertTrue(app.contains("implementation(project(\":feature:support\"))"))
+        assertContainsAll(
+            support,
+            listOf(
+                "alias(libs.plugins.mymoney.android.feature)",
+                "namespace = \"com.kshavrin.mymoney.feature.support\"",
+                "implementation(project(\":core:ui\"))",
+                "implementation(project(\":core:designsystem\"))",
+                "implementation(project(\":core:domain\"))",
+                "implementation(project(\":core:common\"))",
+            ),
+        )
+    }
+
+    @Test
     fun `billing module is registered and disabled by default`() {
         val settings = file("settings.gradle.kts").readText()
         val build = file("core/billing/build.gradle.kts").readText()
@@ -102,7 +123,15 @@ class BillingWiringContractTest {
                 "abstract fun bindSupporterPurchaseStore(impl: SupporterPurchaseStoreImpl): SupporterPurchaseStore",
             ),
         )
-        assertTrue(syncModule.contains("abstract fun bindSupporterSync(impl: SupporterSyncImpl): SupporterSync"))
+        assertContainsInOrder(
+            syncModule,
+            listOf(
+                "abstract fun bindSupporterSync(impl: SupporterSyncImpl): SupporterSync",
+                "abstract fun bindSupportPurchaseReconciliationCoordinator(",
+                "SupportPurchaseReconciliationCoordinatorImpl",
+                "): SupportPurchaseReconciliationCoordinator",
+            ),
+        )
     }
 
     @Test

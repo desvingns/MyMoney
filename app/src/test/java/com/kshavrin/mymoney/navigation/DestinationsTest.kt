@@ -132,6 +132,8 @@ class DestinationsTest {
                 source.contains("composable<Destinations.$destination>"),
             )
         }
+        assertTrue(source.contains("DashboardAction.NavigateSupport"))
+        assertTrue(source.contains("navController.navigate(Destinations.Support)"))
     }
 
     @Test

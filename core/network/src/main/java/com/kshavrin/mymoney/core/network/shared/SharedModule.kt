@@ -12,6 +12,10 @@ import javax.inject.Singleton
 abstract class SharedModule {
     @Binds
     @Singleton
+    abstract fun bindAuthSessionLifecycle(impl: DefaultAuthSessionLifecycle): AuthSessionLifecycle
+
+    @Binds
+    @Singleton
     abstract fun bindSharedAuth(impl: SupabaseSharedAuth): SharedAuth
 
     @Binds

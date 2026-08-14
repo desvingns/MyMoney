@@ -23,6 +23,7 @@ class SupabaseSharedAuth
         private val http: SupabaseHttpTransport,
         private val sessionStore: SharedSessionStore,
         private val clock: Clock,
+        private val authSessionLifecycle: AuthSessionLifecycle = NoOpAuthSessionLifecycle,
     ) : SharedAuth {
         @Volatile private var session: ActiveSession? = null
         private val sessionMutex = Mutex()
@@ -76,13 +77,18 @@ class SupabaseSharedAuth
                         mapBadRequestToAuth = true,
                     ).mapCatching { response ->
                         saveSession(response.jsonObject).session
+                    }.also { result ->
+                        if (result.isSuccess) authSessionLifecycle.invalidate()
                     }
             }
         }
 
         override suspend fun signOut(): Result<Unit> {
             return sessionMutex.withLock {
-                val active = cachedOrStoredSession() ?: return@withLock Result.success(Unit)
+                val active = cachedOrStoredSession() ?: run {
+                    authSessionLifecycle.invalidate()
+                    return@withLock Result.success(Unit)
+                }
                 try {
                     try {
                         http
@@ -107,15 +113,19 @@ class SupabaseSharedAuth
 
         override suspend fun resetLocalSession(clearSecrets: () -> Unit) {
             sessionMutex.withLock {
-                synchronized(sessionCacheLock) {
-                    resetInProgress = true
-                    sessionGeneration += 1
-                    try {
-                        clearSessionLocked()
-                        clearSecrets()
-                    } finally {
-                        resetInProgress = false
+                try {
+                    synchronized(sessionCacheLock) {
+                        resetInProgress = true
+                        sessionGeneration += 1
+                        try {
+                            clearSessionLocked()
+                            clearSecrets()
+                        } finally {
+                            resetInProgress = false
+                        }
                     }
+                } finally {
+                    authSessionLifecycle.invalidate()
                 }
             }
         }
@@ -154,6 +164,7 @@ class SupabaseSharedAuth
 
         private fun clearSession() {
             synchronized(sessionCacheLock) { clearSessionLocked() }
+            authSessionLifecycle.invalidate()
         }
 
         private fun clearSessionLocked() {

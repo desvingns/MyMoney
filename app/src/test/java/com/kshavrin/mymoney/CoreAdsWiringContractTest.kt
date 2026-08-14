@@ -128,6 +128,24 @@ class CoreAdsWiringContractTest {
     }
 
     @Test
+    fun `ads module binds the server reward repository and its bounded backoff`() {
+        val module = file("core/ads/src/main/kotlin/com/kshavrin/mymoney/core/ads/di/AdsModule.kt").readText()
+
+        assertContainsAll(
+            module,
+            listOf(
+                "import com.kshavrin.mymoney.core.ads.data.AdRewardBackoff",
+                "import com.kshavrin.mymoney.core.ads.data.SupabaseAdRewardRepository",
+                "import com.kshavrin.mymoney.core.domain.ads.AdRewardRepository",
+                "abstract fun bindAdRewardRepository(impl: SupabaseAdRewardRepository): AdRewardRepository",
+                "fun provideAdRewardBackoff(): AdRewardBackoff = AdRewardBackoff()",
+            ),
+        )
+        assertTrue(module.contains("@Binds\n    @Singleton\n    abstract fun bindAdRewardRepository"))
+        assertTrue(module.contains("@Provides\n        @Singleton\n        fun provideAdRewardBackoff"))
+    }
+
+    @Test
     fun `application startup does not initialize MobileAds or duplicate library manifest entries`() {
         val appManifest = file("app/src/main/AndroidManifest.xml").readText()
         val appSource = file("app/src/main/java/com/kshavrin/mymoney/MyMoneyApp.kt").readText()
@@ -151,14 +169,14 @@ class CoreAdsWiringContractTest {
         assertTrue(
             "MobileAds initialization must remain lazy behind the rewarded client",
             adMobSource.contains("private suspend fun initializeIfNeeded()") &&
-                adMobSource.contains("MobileAds.initialize(context) {}"),
+                adMobSource.contains("MobileAds.initialize(context) {"),
         )
         assertContainsInOrder(
             adMobSource,
             listOf(
                 "override suspend fun load(",
                 "initializeIfNeeded()",
-                "MobileAds.initialize(context) {}",
+                "MobileAds.initialize(context) {",
             ),
         )
         assertFalse(productionSources.any { it.path.endsWith("MyMoneyApp.kt") && it.readText().contains("MobileAds.initialize") })

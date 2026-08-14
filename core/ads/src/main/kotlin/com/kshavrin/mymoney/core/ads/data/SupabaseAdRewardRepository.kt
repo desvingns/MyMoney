@@ -8,6 +8,8 @@ import com.kshavrin.mymoney.core.domain.ads.AdRewardState
 import com.kshavrin.mymoney.core.domain.ads.ConfirmationOutcome
 import com.kshavrin.mymoney.core.domain.ads.FrozenReason
 import com.kshavrin.mymoney.core.network.shared.SharedAuth
+import com.kshavrin.mymoney.core.network.shared.AuthSessionLifecycle
+import com.kshavrin.mymoney.core.network.shared.NoOpAuthSessionLifecycle
 import com.kshavrin.mymoney.core.network.shared.SupabaseHttpTransport
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -18,6 +20,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.JsonElement
@@ -36,11 +40,17 @@ class SupabaseAdRewardRepository
         private val http: SupabaseHttpTransport,
         private val backoff: AdRewardBackoff,
         @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+        private val authSessionLifecycle: AuthSessionLifecycle = NoOpAuthSessionLifecycle,
     ) : AdRewardRepository {
         private val stateLock = Any()
+        private val refreshMutex = Mutex()
         private val mutableState = MutableStateFlow<AdRewardState?>(null)
         private var cachedSession: RewardSession? = null
         private var sessionGeneration = 0L
+
+        init {
+            authSessionLifecycle.addInvalidationListener(::invalidateSession)
+        }
 
         override val state: StateFlow<AdRewardState?> = mutableState.asStateFlow()
 
@@ -57,73 +67,75 @@ class SupabaseAdRewardRepository
 
         override suspend fun awaitConfirmation(previous: AdRewardState): ConfirmationOutcome {
             val session = confirmationSessionFor(previous) ?: return ConfirmationOutcome.PendingConfirmation
-            confirmationOutcome(previous, session)?.let { return it }
             return withTimeoutOrNull(backoff.maximumWaitMillis) {
                 awaitServerConfirmation(previous, session)
             } ?: ConfirmationOutcome.PendingConfirmation
         }
 
         private suspend fun refreshFor(expectedSession: RewardSession?): Result<AdRewardState> =
-            withContext(ioDispatcher) {
-                clearStateForInactiveSession()
-                val sessionBeforeAccessToken = expectedSession ?: currentSession()
-                if (sessionBeforeAccessToken == null) {
-                    return@withContext Result.failure(SyncException(SyncError.Auth))
-                }
-                if (!isCurrentSession(sessionBeforeAccessToken)) {
-                    clearStateFor(sessionBeforeAccessToken)
-                    return@withContext Result.failure(SyncException(SyncError.Auth))
-                }
-                val accessToken =
-                    auth
-                        .accessToken()
-                        .getOrElse { error ->
+            refreshMutex.withLock {
+                withContext(ioDispatcher) {
+                    clearStateForInactiveSession()
+                    val sessionBeforeAccessToken = expectedSession ?: currentSession()
+                    if (sessionBeforeAccessToken == null) {
+                        return@withContext Result.failure(SyncException(SyncError.Auth))
+                    }
+                    if (!isCurrentSession(sessionBeforeAccessToken)) {
+                        clearStateFor(sessionBeforeAccessToken)
+                        return@withContext Result.failure(SyncException(SyncError.Auth))
+                    }
+                    val accessToken =
+                        auth
+                            .accessToken()
+                            .getOrElse { error ->
+                                if (error is CancellationException) throw error
+                                if (error.isAuthFailure()) sessionBeforeAccessToken?.let(::clearStateFor)
+                                clearStateForInactiveSession()
+                                return@withContext Result.failure(error)
+                            }
+                    val session =
+                        currentSession(accessToken)
+                            ?: run {
+                                clearStateFor(sessionBeforeAccessToken)
+                                clearStateForInactiveSession()
+                                return@withContext Result.failure(SyncException(SyncError.Auth))
+                            }
+                    if (session != sessionBeforeAccessToken) {
+                        clearStateFor(sessionBeforeAccessToken)
+                        return@withContext Result.failure(SyncException(SyncError.Auth))
+                    }
+                    val result =
+                        http
+                            .post(
+                                path = "rest/v1/rpc/get_ad_reward_state",
+                                payload = JsonObject(emptyMap()),
+                                accessToken = accessToken,
+                                callTimeoutMillis = AD_REWARD_STATE_CALL_TIMEOUT_MILLIS,
+                            ).toAdRewardStateResult()
+                    result.fold(
+                        onSuccess = { refreshedState ->
+                            if (publishStateFor(session, refreshedState)) {
+                                Result.success(refreshedState)
+                            } else {
+                                clearStateFor(session)
+                                Result.failure(SyncException(SyncError.Auth))
+                            }
+                        },
+                        onFailure = { error ->
                             if (error is CancellationException) throw error
-                            if (error.isAuthFailure()) sessionBeforeAccessToken?.let(::clearStateFor)
+                            if (error.isAuthFailure()) clearStateFor(session)
                             clearStateForInactiveSession()
-                            return@withContext Result.failure(error)
-                        }
-                val session =
-                    currentSession(accessToken)
-                        ?: run {
-                            clearStateFor(sessionBeforeAccessToken)
-                            clearStateForInactiveSession()
-                            return@withContext Result.failure(SyncException(SyncError.Auth))
-                        }
-                if (session != sessionBeforeAccessToken) {
-                    clearStateFor(sessionBeforeAccessToken)
-                    return@withContext Result.failure(SyncException(SyncError.Auth))
+                            Result.failure(error)
+                        },
+                    )
                 }
-                val result =
-                    http
-                        .post(
-                        path = "rest/v1/rpc/get_ad_reward_state",
-                        payload = JsonObject(emptyMap()),
-                        accessToken = accessToken,
-                        callTimeoutMillis = AD_REWARD_STATE_CALL_TIMEOUT_MILLIS,
-                    ).toAdRewardStateResult()
-                result.fold(
-                    onSuccess = { refreshedState ->
-                        if (publishStateFor(session, refreshedState)) {
-                            Result.success(refreshedState)
-                        } else {
-                            clearStateFor(session)
-                            Result.failure(SyncException(SyncError.Auth))
-                        }
-                    },
-                    onFailure = { error ->
-                        if (error is CancellationException) throw error
-                        if (error.isAuthFailure()) clearStateFor(session)
-                        clearStateForInactiveSession()
-                        Result.failure(error)
-                    },
-                )
             }
 
         private suspend fun awaitServerConfirmation(
             previous: AdRewardState,
             session: RewardSession,
         ): ConfirmationOutcome {
+            confirmationOutcome(previous, session)?.let { return it }
             for (delayMillis in backoff.delaysMillis) {
                 delay(delayMillis)
                 confirmationOutcome(previous, session)?.let { return it }
@@ -168,7 +180,10 @@ class SupabaseAdRewardRepository
         private fun confirmationSessionFor(previous: AdRewardState): RewardSession? =
             synchronized(stateLock) {
                 val session = cachedSession ?: return@synchronized null
-                if (mutableState.value != previous || !isCurrentSession(session)) {
+                if (mutableState.value != previous) {
+                    return@synchronized null
+                }
+                if (!isCurrentSession(session)) {
                     clearStateForLocked(session)
                     return@synchronized null
                 }

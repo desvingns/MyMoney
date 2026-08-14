@@ -2,6 +2,9 @@ package com.kshavrin.mymoney.core.network.shared
 
 import com.kshavrin.mymoney.core.common.exception.SyncError
 import com.kshavrin.mymoney.core.common.exception.SyncException
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
@@ -33,6 +36,7 @@ class SupabaseSharedTransportTest {
     private lateinit var workspaceRpc: SupabaseSharedWorkspaceRpc
     private lateinit var journalRpc: SupabaseSharedJournalRpc
     private lateinit var sessionStore: RecordingSessionStore
+    private lateinit var authSessionLifecycle: RecordingAuthSessionLifecycle
     private val clock = Clock.fixed(Instant.ofEpochSecond(1_700_000_000L), ZoneOffset.UTC)
     private val validOperationJson =
         """{"id":"operation-1","workspace_id":"workspace-1","author_id":"author-1","idempotency_key":"operation-1","server_sequence":5,"base_sequence":4,"device_id":"device-1","entity_kind":"transaction","entity_id":"transaction-1","payload":null,"tombstone":false,"created_at":"2026-07-29T12:00:00Z"}"""
@@ -49,7 +53,8 @@ class SupabaseSharedTransportTest {
             )
         val http = SupabaseHttpTransport(config, OkHttpClient(), Json)
         sessionStore = RecordingSessionStore()
-        auth = SupabaseSharedAuth(config, http, sessionStore, clock)
+        authSessionLifecycle = RecordingAuthSessionLifecycle()
+        auth = SupabaseSharedAuth(config, http, sessionStore, clock, authSessionLifecycle)
         workspaceRpc = SupabaseSharedWorkspaceRpc(auth, http)
         journalRpc = SupabaseSharedJournalRpc(auth, http)
     }
@@ -83,6 +88,21 @@ class SupabaseSharedTransportTest {
             assertEquals("shared-access-token", session.accessToken)
             assertEquals(session, auth.currentSession())
             assertEquals("shared-refresh-token", sessionStore.session?.refreshToken)
+        }
+
+    @Test
+    fun `auth transitions invalidate registered session listeners`() =
+        runTest {
+            server.enqueue(MockResponse().setResponseCode(200).setBody(sessionResponse()))
+            auth.signInWithGoogle("google-id-token", "request-nonce").getOrThrow()
+            assertEquals(1, authSessionLifecycle.invalidationCount.get())
+
+            server.enqueue(MockResponse().setResponseCode(204))
+            auth.signOut().getOrThrow()
+            assertEquals(2, authSessionLifecycle.invalidationCount.get())
+
+            auth.resetLocalSession { }
+            assertEquals(3, authSessionLifecycle.invalidationCount.get())
         }
 
     @Test
@@ -359,6 +379,44 @@ class SupabaseSharedTransportTest {
         }
 
     @Test
+    fun `cancelling an in-flight post preserves caller cancellation`() =
+        runTest {
+            val config =
+                SupabaseConfig(
+                    url = server.url("/").toString().removeSuffix("/"),
+                    anonKey = "anon-key",
+                )
+            val http = SupabaseHttpTransport(config, OkHttpClient(), Json)
+            server.enqueue(
+                MockResponse()
+                    .setBodyDelay(5, TimeUnit.SECONDS)
+                    .setBody("{}"),
+            )
+
+            val request =
+                async(start = CoroutineStart.UNDISPATCHED) {
+                    http.post(
+                        path = "rest/v1/rpc/get_ad_reward_state",
+                        payload = buildJsonObject { },
+                        accessToken = "access-token",
+                    )
+                }
+            assertTrue(server.takeRequest(1, TimeUnit.SECONDS) != null)
+
+            request.cancel(CancellationException("caller cancelled"))
+            val thrown =
+                try {
+                    request.await()
+                    error("the cancelled request should not complete")
+                } catch (error: CancellationException) {
+                    error
+                }
+
+            assertEquals("caller cancelled", thrown.message)
+            assertFalse(thrown is SyncException)
+        }
+
+    @Test
     fun `membership denied direct workspace REST read maps to auth and exposes no rows`() =
         runTest {
             signIn()
@@ -631,6 +689,20 @@ class SupabaseSharedTransportTest {
 
         override fun clearSharedSession() {
             session = null
+        }
+    }
+
+    private class RecordingAuthSessionLifecycle : AuthSessionLifecycle {
+        private val listeners = java.util.concurrent.CopyOnWriteArrayList<() -> Unit>()
+        val invalidationCount = AtomicInteger()
+
+        override fun addInvalidationListener(listener: () -> Unit) {
+            listeners += listener
+        }
+
+        override fun invalidate() {
+            invalidationCount.incrementAndGet()
+            listeners.forEach { it() }
         }
     }
 

@@ -2,6 +2,7 @@ package com.kshavrin.mymoney.feature.support
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.kshavrin.mymoney.core.common.di.IoDispatcher
 import com.kshavrin.mymoney.core.common.exception.reportToSentry
 import com.kshavrin.mymoney.core.domain.analytics.AnalyticsEvent
 import com.kshavrin.mymoney.core.domain.analytics.AnalyticsGateway
@@ -12,6 +13,7 @@ import com.kshavrin.mymoney.core.domain.billing.SupportProduct
 import com.kshavrin.mymoney.core.domain.supporter.SupporterRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,6 +24,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
@@ -31,6 +34,7 @@ class SupportViewModel
         private val billingGateway: BillingGateway,
         private val supporterRepository: SupporterRepository,
         private val analyticsGateway: AnalyticsGateway,
+        @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     ) : ViewModel() {
         private val _state = MutableStateFlow(SupportState())
         val state: StateFlow<SupportState> = _state.asStateFlow()
@@ -47,8 +51,7 @@ class SupportViewModel
         init {
             log(AnalyticsEvent.SupportOpened)
             observeSupporterState()
-            observeBillingAvailability()
-            restorePendingPurchases()
+            initializeBilling()
         }
 
         fun onEvent(event: SupportEvent) {
@@ -72,10 +75,13 @@ class SupportViewModel
             }
         }
 
-        private fun observeBillingAvailability() {
+        private fun initializeBilling() {
             viewModelScope.launch {
+                val hasPendingPurchase = restorePendingPurchases()
                 try {
-                    billingGateway.availability().collect(::applyAvailability)
+                    billingGateway.availability().collect { availability ->
+                        applyAvailability(availability, preservePending = hasPendingPurchase)
+                    }
                 } catch (throwable: Throwable) {
                     if (throwable is CancellationException) throw throwable
                     throwable.reportToSentry()
@@ -96,9 +102,12 @@ class SupportViewModel
             }
         }
 
-        private fun applyAvailability(availability: BillingAvailability) {
+        private suspend fun applyAvailability(
+            availability: BillingAvailability,
+            preservePending: Boolean = false,
+        ) {
             when (availability) {
-                BillingAvailability.Available -> loadProducts()
+                BillingAvailability.Available -> loadProducts(preservePending)
                 BillingAvailability.NetworkUnavailable,
                 BillingAvailability.ServiceUnavailable,
                 -> showNetworkError()
@@ -114,10 +123,10 @@ class SupportViewModel
             }
         }
 
-        private fun loadProducts() {
-            val result = billingGateway.products()
+        private suspend fun loadProducts(preservePending: Boolean) {
+            val result = withContext(ioDispatcher) { billingGateway.products() }
             result.fold(
-                onSuccess = ::showAvailableProducts,
+                onSuccess = { products -> showAvailableProducts(products, preservePending) },
                 onFailure = { throwable ->
                     throwable.reportToSentry()
                     showNetworkError()
@@ -125,13 +134,18 @@ class SupportViewModel
             )
         }
 
-        private fun showAvailableProducts(products: List<SupportProduct>) {
+        private fun showAvailableProducts(
+            products: List<SupportProduct>,
+            preservePending: Boolean,
+        ) {
             val coffeeProducts =
                 products
                     .filter { product -> product.id == COFFEE_SMALL_PRODUCT_ID || product.id == COFFEE_LARGE_PRODUCT_ID }
                     .sortedBy { product -> productOrder(product.id) }
             if (coffeeProducts.isEmpty()) {
                 showUnavailable(SupportUnavailableReason.Unavailable)
+            } else if (preservePending || _state.value.billingState == SupportBillingState.Pending) {
+                _state.value = _state.value.copy(products = coffeeProducts, isPurchaseInProgress = false)
             } else {
                 _state.value =
                     _state.value.copy(
@@ -198,22 +212,24 @@ class SupportViewModel
             }
         }
 
-        private fun restorePendingPurchases() {
-            viewModelScope.launch {
-                val result = billingGateway.resolvePendingPurchases()
-                result.onFailure { throwable -> throwable.reportToSentry() }
-                result.getOrNull().orEmpty().forEach { outcome ->
-                    when (outcome) {
-                        is PurchaseOutcome.Purchased -> recordPurchase(outcome)
-                        PurchaseOutcome.Pending ->
-                            _state.value = _state.value.copy(billingState = SupportBillingState.Pending)
-                        PurchaseOutcome.NetworkError -> showNetworkError()
-                        PurchaseOutcome.Cancelled,
-                        is PurchaseOutcome.Unavailable,
-                        -> Unit
+        private suspend fun restorePendingPurchases(): Boolean {
+            val result = withContext(ioDispatcher) { billingGateway.resolvePendingPurchases() }
+            result.onFailure { throwable -> throwable.reportToSentry() }
+            var hasPendingPurchase = false
+            result.getOrNull().orEmpty().forEach { outcome ->
+                when (outcome) {
+                    is PurchaseOutcome.Purchased -> recordPurchase(outcome)
+                    PurchaseOutcome.Pending -> {
+                        hasPendingPurchase = true
+                        _state.value = _state.value.copy(billingState = SupportBillingState.Pending)
                     }
+                    PurchaseOutcome.NetworkError -> showNetworkError()
+                    PurchaseOutcome.Cancelled,
+                    is PurchaseOutcome.Unavailable,
+                    -> Unit
                 }
             }
+            return hasPendingPurchase
         }
 
         private suspend fun recordPurchase(outcome: PurchaseOutcome.Purchased): Boolean {

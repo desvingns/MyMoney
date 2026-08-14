@@ -108,6 +108,7 @@ class DestinationsTest {
             "TransactionDetail",
             "Search",
             "Settings",
+            "Support",
             "SettingsTheme",
             "SettingsLanguage",
             "SettingsAbout",

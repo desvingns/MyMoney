@@ -195,6 +195,7 @@ class SupportViewModel
                     if (!completionLogged) {
                         log(AnalyticsEvent.SupportPurchaseCompleted(productId, "network_error"))
                     }
+                    hasUnresolvedPendingPurchase = false
                     showNetworkError()
                 }
             }
@@ -225,7 +226,10 @@ class SupportViewModel
                         )
                 }
 
-                PurchaseOutcome.NetworkError -> showNetworkError()
+                PurchaseOutcome.NetworkError -> {
+                    hasUnresolvedPendingPurchase = false
+                    showNetworkError()
+                }
                 is PurchaseOutcome.Unavailable -> {
                     hasUnresolvedPendingPurchase = false
                     refreshBilling()

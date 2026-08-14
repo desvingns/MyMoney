@@ -205,11 +205,15 @@ class SupportViewModel
             when (outcome) {
                 is PurchaseOutcome.Purchased -> {
                     hasUnresolvedPendingPurchase = false
-                    _state.value =
-                        _state.value.copy(
-                            billingState = SupportBillingState.Available,
-                            isPurchaseInProgress = false,
-                        )
+                    if (supportPurchaseReconciliationCoordinator.recordPurchase(outcome).isSuccess) {
+                        _state.value =
+                            _state.value.copy(
+                                billingState = SupportBillingState.Available,
+                                isPurchaseInProgress = false,
+                            )
+                    } else {
+                        showNetworkError()
+                    }
                 }
 
                 PurchaseOutcome.Pending -> {

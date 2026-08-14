@@ -6,6 +6,7 @@ import com.kshavrin.mymoney.core.domain.billing.BillingGateway
 import com.kshavrin.mymoney.core.domain.billing.PurchaseOutcome
 import com.kshavrin.mymoney.core.domain.supporter.SupportPurchaseReconciliationCoordinator
 import com.kshavrin.mymoney.core.domain.supporter.SupportPurchaseReconciliationState
+import com.kshavrin.mymoney.core.domain.supporter.SupporterRepository
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,9 +22,12 @@ class SupportPurchaseReconciliationCoordinatorImpl
     @Inject
     constructor(
         private val billingGateway: BillingGateway,
+        private val supporterRepository: SupporterRepository,
         @IoDispatcher private val dispatcher: CoroutineDispatcher,
     ) : SupportPurchaseReconciliationCoordinator {
         private val reconciliationMutex = Mutex()
+        private val purchasePersistenceMutex = Mutex()
+        private val recordedPurchaseTokens = mutableSetOf<String>()
         private val _state =
             MutableStateFlow<SupportPurchaseReconciliationState>(
                 SupportPurchaseReconciliationState.Loading,
@@ -35,25 +39,40 @@ class SupportPurchaseReconciliationCoordinatorImpl
             withContext(dispatcher) {
                 reconciliationMutex.withLock {
                     _state.value = SupportPurchaseReconciliationState.Loading
-                    val state =
-                        billingGateway
-                            .resolvePendingPurchases()
-                            .fold(
-                                onSuccess = ::reconciliationState,
-                                onFailure = { throwable ->
-                                    throwable.reportToSentry()
-                                    SupportPurchaseReconciliationState.NetworkError
-                                },
-                            )
-                    _state.value = state
+                    val result = billingGateway.resolvePendingPurchases()
+                    result.exceptionOrNull()?.reportToSentry()
+                    val outcomes = result.getOrNull()
+                    _state.value =
+                        if (outcomes == null) {
+                            SupportPurchaseReconciliationState.NetworkError
+                        } else {
+                            reconciliationState(outcomes)
+                        }
                 }
             }
         }
 
-        private fun reconciliationState(
+        override suspend fun recordPurchase(outcome: PurchaseOutcome.Purchased): Result<Unit> =
+            withContext(dispatcher) {
+                purchasePersistenceMutex.withLock {
+                    if (outcome.purchaseToken in recordedPurchaseTokens) {
+                        return@withLock Result.success(Unit)
+                    }
+                    supporterRepository
+                        .recordPurchase(outcome)
+                        .onSuccess { recordedPurchaseTokens += outcome.purchaseToken }
+                        .onFailure(Throwable::reportToSentry)
+                }
+            }
+
+        private suspend fun reconciliationState(
             outcomes: List<PurchaseOutcome>,
         ): SupportPurchaseReconciliationState =
             when {
+                outcomes
+                    .filterIsInstance<PurchaseOutcome.Purchased>()
+                    .any { outcome -> recordPurchase(outcome).isFailure } ->
+                    SupportPurchaseReconciliationState.NetworkError
                 outcomes.any { outcome -> outcome == PurchaseOutcome.Pending } ->
                     SupportPurchaseReconciliationState.Pending
                 outcomes.any { outcome -> outcome == PurchaseOutcome.NetworkError } ->

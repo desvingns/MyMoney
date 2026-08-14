@@ -3,6 +3,12 @@ package com.kshavrin.mymoney.core.ui.navigation
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
+@Serializable
+enum class PaywallEntryPoint {
+    SupportSection,
+    SharedSyncGate,
+}
+
 object Destinations {
     @Serializable
     @SerialName("com.kshavrin.mymoney.navigation.Destinations.Decision")
@@ -66,6 +72,12 @@ object Destinations {
     @Serializable
     @SerialName("com.kshavrin.mymoney.navigation.Destinations.Support")
     data object Support
+
+    @Serializable
+    @SerialName("com.kshavrin.mymoney.navigation.Destinations.Paywall")
+    data class Paywall(
+        val entryPoint: PaywallEntryPoint = PaywallEntryPoint.SupportSection,
+    )
 
     @Serializable
     @SerialName("com.kshavrin.mymoney.navigation.Destinations.SettingsTheme")

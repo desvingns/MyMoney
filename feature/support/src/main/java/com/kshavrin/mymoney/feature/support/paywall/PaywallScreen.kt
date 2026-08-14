@@ -1,0 +1,466 @@
+package com.kshavrin.mymoney.feature.support.paywall
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.CreditCard
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import com.kshavrin.mymoney.core.domain.model.EntitlementState
+import com.kshavrin.mymoney.core.domain.model.UserEntitlement
+import com.kshavrin.mymoney.core.ui.flow.CollectActions
+import com.kshavrin.mymoney.core.ui.navigation.PaywallEntryPoint
+import com.kshavrin.mymoney.core.ui.theme.Spacing
+import com.kshavrin.mymoney.core.ui.theme.supportCard
+import com.kshavrin.mymoney.core.ui.theme.supportCardTitle
+import com.kshavrin.mymoney.core.ui.theme.supportDescription
+import com.kshavrin.mymoney.feature.support.R
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
+import java.util.Locale
+
+@Composable
+fun PaywallRoute(
+    entryPoint: PaywallEntryPoint,
+    onBack: () -> Unit,
+    viewModel: PaywallViewModel = androidx.hilt.navigation.compose.hiltViewModel(),
+) {
+    val state by viewModel.state.collectAsState()
+    CollectActions(flow = viewModel.actions, key = viewModel) { action ->
+        when (action) {
+            PaywallAction.NavigateBack -> onBack()
+        }
+    }
+    PaywallScreen(
+        entryPoint = entryPoint,
+        state = state,
+        onEvent = viewModel::onEvent,
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PaywallScreen(
+    entryPoint: PaywallEntryPoint,
+    state: PaywallState,
+    onEvent: (PaywallEvent) -> Unit,
+) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(entryPoint.titleRes)) },
+                navigationIcon = {
+                    IconButton(onClick = { onEvent(PaywallEvent.BackClicked) }) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.paywall_back),
+                        )
+                    }
+                },
+            )
+        },
+    ) { innerPadding ->
+        PaywallContent(
+            entryPoint = entryPoint,
+            state = state,
+            onEvent = onEvent,
+            modifier = Modifier.padding(innerPadding),
+        )
+    }
+}
+
+@Composable
+fun PaywallContent(
+    entryPoint: PaywallEntryPoint,
+    state: PaywallState,
+    onEvent: (PaywallEvent) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier =
+            modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(
+                    horizontal = Spacing.supportContentHorizontalPadding,
+                    vertical = Spacing.supportSectionGap,
+                ),
+        verticalArrangement = Arrangement.spacedBy(Spacing.supportSectionGap),
+    ) {
+        Text(
+            text = stringResource(entryPoint.introRes),
+            style = MaterialTheme.typography.supportDescription,
+        )
+        PaywallBenefitsCard()
+        FreeForeverCard()
+        WorkspacePayerCard()
+        if (state.entitlement.hasActivePlus()) {
+            PlusStatusCard(entitlement = state.entitlement as UserEntitlement.Plus)
+        } else {
+            PaywallCatalog(
+                state = state,
+                onEvent = onEvent,
+            )
+        }
+    }
+}
+
+@Composable
+fun PaywallSupportEntry(
+    onOpenPaywall: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.supportCard,
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+    ) {
+        Column(
+            modifier = Modifier.padding(Spacing.supportCardPadding),
+            verticalArrangement = Arrangement.spacedBy(Spacing.supportStatusGap),
+        ) {
+            Text(
+                text = stringResource(R.string.paywall_support_entry_title),
+                style = MaterialTheme.typography.supportCardTitle,
+            )
+            Text(
+                text = stringResource(R.string.paywall_support_entry_description),
+                style = MaterialTheme.typography.supportDescription,
+            )
+            Button(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = Spacing.supportActionMinHeight),
+                onClick = onOpenPaywall,
+            ) {
+                Text(stringResource(R.string.paywall_support_entry_action))
+            }
+        }
+    }
+}
+
+@Composable
+private fun PaywallBenefitsCard() {
+    PaywallCard {
+        Text(
+            text = stringResource(R.string.paywall_benefits_title),
+            style = MaterialTheme.typography.supportCardTitle,
+        )
+        Text(
+            text = stringResource(R.string.paywall_benefit_shared_workspace),
+            style = MaterialTheme.typography.supportDescription,
+        )
+        Text(
+            text = stringResource(R.string.paywall_benefit_backup_history),
+            style = MaterialTheme.typography.supportDescription,
+        )
+    }
+}
+
+@Composable
+private fun FreeForeverCard() {
+    PaywallCard(
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+    ) {
+        Text(
+            text = stringResource(R.string.paywall_free_forever_title),
+            style = MaterialTheme.typography.supportCardTitle,
+        )
+        Text(
+            text = stringResource(R.string.paywall_free_forever_description),
+            style = MaterialTheme.typography.supportDescription,
+        )
+    }
+}
+
+@Composable
+private fun WorkspacePayerCard() {
+    PaywallCard(
+        color = MaterialTheme.colorScheme.tertiaryContainer,
+        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+    ) {
+        Text(
+            text = stringResource(R.string.paywall_workspace_payer_title),
+            style = MaterialTheme.typography.supportCardTitle,
+        )
+        Text(
+            text = stringResource(R.string.paywall_workspace_payer_description),
+            style = MaterialTheme.typography.supportDescription,
+        )
+    }
+}
+
+@Composable
+private fun PaywallCatalog(
+    state: PaywallState,
+    onEvent: (PaywallEvent) -> Unit,
+) {
+    when (state.catalogState) {
+        PaywallCatalogState.Loading ->
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center,
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(Spacing.supportStatusGap),
+                ) {
+                    CircularProgressIndicator()
+                    Text(
+                        text = stringResource(R.string.paywall_prices_loading),
+                        style = MaterialTheme.typography.supportDescription,
+                    )
+                }
+            }
+
+        PaywallCatalogState.Available ->
+            PaywallPlans(
+                plans = state.plans,
+                purchaseState = state.purchaseState,
+                onEvent = onEvent,
+            )
+
+        PaywallCatalogState.UnavailableInRegion -> {
+            PaywallMessageCard(message = stringResource(R.string.paywall_region_unavailable))
+            PaywallPlans(plans = state.plans)
+        }
+
+        PaywallCatalogState.Unavailable -> {
+            PaywallMessageCard(message = stringResource(R.string.paywall_billing_unavailable))
+            PaywallPlans(plans = state.plans)
+        }
+
+        PaywallCatalogState.Error -> {
+            PaywallMessageCard(
+                message = stringResource(R.string.paywall_prices_error),
+                action = {
+                    TextButton(
+                        modifier = Modifier.heightIn(min = Spacing.supportActionMinHeight),
+                        onClick = { onEvent(PaywallEvent.RetryClicked) },
+                    ) {
+                        Text(stringResource(R.string.paywall_retry))
+                    }
+                },
+            )
+            PaywallPlans(plans = state.plans)
+        }
+    }
+    state.errorMessageRes?.let { messageRes ->
+        PaywallMessageCard(message = stringResource(messageRes))
+    }
+}
+
+@Composable
+private fun PaywallPlans(
+    plans: List<PaywallPlan>,
+    purchaseState: PaywallPurchaseState = PaywallPurchaseState.Idle,
+    onEvent: ((PaywallEvent) -> Unit)? = null,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.supportStatusGap)) {
+        plans.forEach { plan ->
+            PaywallPlanCard(
+                plan = plan,
+                onSelect =
+                    if (purchaseState == PaywallPurchaseState.Idle) {
+                        onEvent?.let { eventHandler ->
+                            { eventHandler(PaywallEvent.PlanSelected(plan.id)) }
+                        }
+                    } else {
+                        null
+                    },
+            )
+        }
+        when (purchaseState) {
+            PaywallPurchaseState.Idle -> Unit
+            PaywallPurchaseState.InProgress ->
+                Text(
+                    text = stringResource(R.string.paywall_purchase_processing),
+                    style = MaterialTheme.typography.supportDescription,
+                )
+
+            PaywallPurchaseState.Pending ->
+                Text(
+                    text = stringResource(R.string.paywall_purchase_pending),
+                    style = MaterialTheme.typography.supportDescription,
+                )
+        }
+    }
+}
+
+@Composable
+private fun PaywallPlanCard(
+    plan: PaywallPlan,
+    onSelect: (() -> Unit)?,
+) {
+    PaywallCard {
+        Icon(
+            imageVector = Icons.Outlined.CreditCard,
+            contentDescription = stringResource(plan.id.iconContentDescriptionRes),
+        )
+        Text(
+            text = stringResource(plan.id.titleRes),
+            style = MaterialTheme.typography.supportCardTitle,
+        )
+        Text(
+            text = plan.formattedPrice ?: stringResource(plan.id.fallbackPriceRes),
+            style = MaterialTheme.typography.supportDescription,
+        )
+        if (plan.id == PaywallPlanId.Yearly) {
+            Text(
+                text = stringResource(R.string.paywall_yearly_trial),
+                style = MaterialTheme.typography.supportDescription,
+            )
+        }
+        onSelect?.let { select ->
+            Button(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = Spacing.supportActionMinHeight),
+                onClick = select,
+            ) {
+                Text(stringResource(R.string.paywall_select_plan))
+            }
+        }
+    }
+}
+
+@Composable
+private fun PlusStatusCard(entitlement: UserEntitlement.Plus) {
+    PaywallCard(
+        color = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+    ) {
+        Text(
+            text = stringResource(entitlement.state.statusRes),
+            style = MaterialTheme.typography.supportCardTitle,
+        )
+        entitlement.expiresAt?.let { expiresAt ->
+            Text(
+                text = stringResource(R.string.paywall_renews_on, formatRenewalDate(expiresAt)),
+                style = MaterialTheme.typography.supportDescription,
+            )
+        }
+    }
+}
+
+@Composable
+private fun PaywallMessageCard(
+    message: String,
+    action: @Composable (() -> Unit)? = null,
+) {
+    PaywallCard(
+        color = MaterialTheme.colorScheme.tertiaryContainer,
+        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+    ) {
+        Text(
+            text = message,
+            style = MaterialTheme.typography.supportDescription,
+        )
+        action?.invoke()
+    }
+}
+
+@Composable
+private fun PaywallCard(
+    color: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.surfaceVariant,
+    contentColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    content: @Composable () -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.supportCard,
+        color = color,
+        contentColor = contentColor,
+    ) {
+        Column(
+            modifier = Modifier.padding(Spacing.supportCardPadding),
+            verticalArrangement = Arrangement.spacedBy(Spacing.supportStatusGap),
+            content = { content() },
+        )
+    }
+}
+
+private val PaywallEntryPoint.titleRes: Int
+    get() =
+        when (this) {
+            PaywallEntryPoint.SupportSection -> R.string.paywall_title_support
+            PaywallEntryPoint.SharedSyncGate -> R.string.paywall_title_shared_sync
+        }
+
+private val PaywallEntryPoint.introRes: Int
+    get() =
+        when (this) {
+            PaywallEntryPoint.SupportSection -> R.string.paywall_intro_support
+            PaywallEntryPoint.SharedSyncGate -> R.string.paywall_intro_shared_sync
+        }
+
+private val PaywallPlanId.titleRes: Int
+    get() =
+        when (this) {
+            PaywallPlanId.Monthly -> R.string.paywall_monthly_title
+            PaywallPlanId.Yearly -> R.string.paywall_yearly_title
+        }
+
+private val PaywallPlanId.fallbackPriceRes: Int
+    get() =
+        when (this) {
+            PaywallPlanId.Monthly -> R.string.paywall_monthly_fallback_price
+            PaywallPlanId.Yearly -> R.string.paywall_yearly_fallback_price
+        }
+
+private val PaywallPlanId.iconContentDescriptionRes: Int
+    get() =
+        when (this) {
+            PaywallPlanId.Monthly -> R.string.paywall_monthly_icon_content_description
+            PaywallPlanId.Yearly -> R.string.paywall_yearly_icon_content_description
+        }
+
+private val EntitlementState.statusRes: Int
+    get() =
+        when (this) {
+            EntitlementState.TRIAL -> R.string.paywall_status_trial
+            EntitlementState.ACTIVE,
+            EntitlementState.LOCAL_ONLY,
+            -> R.string.paywall_status_active
+
+            EntitlementState.GRACE -> R.string.paywall_status_grace
+            EntitlementState.NONE,
+            EntitlementState.EXPIRED,
+            -> R.string.paywall_status_active
+        }
+
+private fun UserEntitlement.hasActivePlus(): Boolean =
+    this is UserEntitlement.Plus && state != EntitlementState.NONE && state != EntitlementState.EXPIRED
+
+private fun formatRenewalDate(instant: Instant): String =
+    instant
+        .atZone(ZoneId.systemDefault())
+        .format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(Locale.getDefault()))

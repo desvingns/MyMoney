@@ -15,7 +15,9 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
 import com.kshavrin.mymoney.core.ui.navigation.Destinations
+import com.kshavrin.mymoney.core.ui.navigation.PaywallEntryPoint
 
 @Composable
 fun MyMoneyNavHost(
@@ -243,6 +245,22 @@ fun MyMoneyNavHost(
         }
         composable<Destinations.Support> {
             com.kshavrin.mymoney.feature.support.SupportRoute(
+                onBack = { navController.popBackStack() },
+                plusSlot = {
+                    com.kshavrin.mymoney.feature.support.paywall.PaywallSupportEntry(
+                        onOpenPaywall = {
+                            navController.navigate(
+                                Destinations.Paywall(PaywallEntryPoint.SupportSection),
+                            )
+                        },
+                    )
+                },
+            )
+        }
+        composable<Destinations.Paywall> { entry ->
+            val route = entry.toRoute<Destinations.Paywall>()
+            com.kshavrin.mymoney.feature.support.paywall.PaywallRoute(
+                entryPoint = route.entryPoint,
                 onBack = { navController.popBackStack() },
             )
         }

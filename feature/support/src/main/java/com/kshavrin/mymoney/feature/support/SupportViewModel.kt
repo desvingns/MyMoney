@@ -47,6 +47,7 @@ class SupportViewModel
         val actions: SharedFlow<SupportAction> = _actions.asSharedFlow()
 
         private val recordedPurchaseTokens = mutableSetOf<String>()
+        private var hasUnresolvedPendingPurchase = false
 
         init {
             log(AnalyticsEvent.SupportOpened)
@@ -92,8 +93,12 @@ class SupportViewModel
 
         private fun refreshBilling() {
             viewModelScope.launch {
+                val hasPendingPurchase = restorePendingPurchases()
                 try {
-                    applyAvailability(billingGateway.availability().first())
+                    applyAvailability(
+                        availability = billingGateway.availability().first(),
+                        preservePending = hasPendingPurchase,
+                    )
                 } catch (throwable: Throwable) {
                     if (throwable is CancellationException) throw throwable
                     throwable.reportToSentry()
@@ -144,7 +149,7 @@ class SupportViewModel
                     .sortedBy { product -> productOrder(product.id) }
             if (coffeeProducts.isEmpty()) {
                 showUnavailable(SupportUnavailableReason.Unavailable)
-            } else if (preservePending || _state.value.billingState == SupportBillingState.Pending) {
+            } else if (preservePending || hasUnresolvedPendingPurchase) {
                 _state.value = _state.value.copy(products = coffeeProducts, isPurchaseInProgress = false)
             } else {
                 _state.value =
@@ -168,11 +173,26 @@ class SupportViewModel
             log(AnalyticsEvent.SupportPurchaseStarted(productId))
             viewModelScope.launch {
                 _state.value = _state.value.copy(isPurchaseInProgress = true)
+                var completionLogged = false
                 try {
-                    billingGateway.purchase(productId).collect { outcome -> handlePurchaseOutcome(outcome) }
+                    billingGateway.purchase(productId).collect { outcome ->
+                        if (outcome != PurchaseOutcome.Pending && !completionLogged) {
+                            log(
+                                AnalyticsEvent.SupportPurchaseCompleted(
+                                    productId = productId,
+                                    outcome = outcome.analyticsOutcome(),
+                                ),
+                            )
+                            completionLogged = true
+                        }
+                        handlePurchaseOutcome(outcome)
+                    }
                 } catch (throwable: Throwable) {
                     if (throwable is CancellationException) throw throwable
                     throwable.reportToSentry()
+                    if (!completionLogged) {
+                        log(AnalyticsEvent.SupportPurchaseCompleted(productId, "network_error"))
+                    }
                     showNetworkError()
                 }
             }
@@ -181,55 +201,67 @@ class SupportViewModel
         private suspend fun handlePurchaseOutcome(outcome: PurchaseOutcome) {
             when (outcome) {
                 is PurchaseOutcome.Purchased -> {
+                    hasUnresolvedPendingPurchase = false
                     if (recordPurchase(outcome)) {
                         _state.value =
                             _state.value.copy(
                                 billingState = SupportBillingState.Available,
                                 isPurchaseInProgress = false,
                             )
-                        log(AnalyticsEvent.SupportPurchaseCompleted(outcome.productId, "purchased"))
                     } else {
                         showNetworkError()
                     }
                 }
 
-                PurchaseOutcome.Pending ->
-                    _state.value =
-                        _state.value.copy(
-                            billingState = SupportBillingState.Pending,
-                            isPurchaseInProgress = false,
-                        )
+                PurchaseOutcome.Pending -> {
+                    hasUnresolvedPendingPurchase = true
+                    showPendingPurchase()
+                }
 
-                PurchaseOutcome.Cancelled ->
+                PurchaseOutcome.Cancelled -> {
+                    hasUnresolvedPendingPurchase = false
                     _state.value =
                         _state.value.copy(
                             billingState = SupportBillingState.Available,
                             isPurchaseInProgress = false,
                         )
+                }
 
                 PurchaseOutcome.NetworkError -> showNetworkError()
-                is PurchaseOutcome.Unavailable -> refreshBilling()
+                is PurchaseOutcome.Unavailable -> {
+                    hasUnresolvedPendingPurchase = false
+                    refreshBilling()
+                }
             }
         }
 
         private suspend fun restorePendingPurchases(): Boolean {
             val result = withContext(ioDispatcher) { billingGateway.resolvePendingPurchases() }
-            result.onFailure { throwable -> throwable.reportToSentry() }
-            var hasPendingPurchase = false
-            result.getOrNull().orEmpty().forEach { outcome ->
+            result.onFailure { throwable ->
+                throwable.reportToSentry()
+                showNetworkError()
+            }
+            val outcomes = result.getOrNull().orEmpty()
+            val hasPendingOutcome = outcomes.any { outcome -> outcome == PurchaseOutcome.Pending }
+            val hasNetworkError = outcomes.any { outcome -> outcome == PurchaseOutcome.NetworkError }
+            if (hasPendingOutcome) {
+                hasUnresolvedPendingPurchase = true
+            } else if (!hasNetworkError && result.isSuccess) {
+                hasUnresolvedPendingPurchase = false
+            }
+            outcomes.forEach { outcome ->
                 when (outcome) {
                     is PurchaseOutcome.Purchased -> recordPurchase(outcome)
-                    PurchaseOutcome.Pending -> {
-                        hasPendingPurchase = true
-                        _state.value = _state.value.copy(billingState = SupportBillingState.Pending)
-                    }
-                    PurchaseOutcome.NetworkError -> showNetworkError()
+                    PurchaseOutcome.Pending,
+                    PurchaseOutcome.NetworkError,
                     PurchaseOutcome.Cancelled,
                     is PurchaseOutcome.Unavailable,
                     -> Unit
                 }
             }
-            return hasPendingPurchase
+            if (hasUnresolvedPendingPurchase) showPendingPurchase()
+            else if (hasNetworkError) showNetworkError()
+            return hasUnresolvedPendingPurchase
         }
 
         private suspend fun recordPurchase(outcome: PurchaseOutcome.Purchased): Boolean {
@@ -241,6 +273,10 @@ class SupportViewModel
         }
 
         private fun showUnavailable(reason: SupportUnavailableReason) {
+            if (hasUnresolvedPendingPurchase) {
+                showPendingPurchase()
+                return
+            }
             _state.value =
                 _state.value.copy(
                     billingState = SupportBillingState.Unavailable(reason),
@@ -250,9 +286,21 @@ class SupportViewModel
         }
 
         private fun showNetworkError() {
+            if (hasUnresolvedPendingPurchase) {
+                showPendingPurchase()
+                return
+            }
             _state.value =
                 _state.value.copy(
                     billingState = SupportBillingState.NetworkError,
+                    isPurchaseInProgress = false,
+                )
+        }
+
+        private fun showPendingPurchase() {
+            _state.value =
+                _state.value.copy(
+                    billingState = SupportBillingState.Pending,
                     isPurchaseInProgress = false,
                 )
         }
@@ -267,4 +315,13 @@ private fun productOrder(productId: String): Int =
         COFFEE_SMALL_PRODUCT_ID -> 0
         COFFEE_LARGE_PRODUCT_ID -> 1
         else -> Int.MAX_VALUE
+    }
+
+private fun PurchaseOutcome.analyticsOutcome(): String =
+    when (this) {
+        is PurchaseOutcome.Purchased -> "purchased"
+        PurchaseOutcome.Cancelled -> "cancelled"
+        PurchaseOutcome.NetworkError -> "network_error"
+        is PurchaseOutcome.Unavailable -> "unavailable"
+        PurchaseOutcome.Pending -> error("Pending purchases do not complete an attempt")
     }

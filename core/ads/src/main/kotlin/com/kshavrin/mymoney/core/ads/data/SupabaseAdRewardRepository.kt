@@ -57,6 +57,7 @@ class SupabaseAdRewardRepository
 
         override suspend fun awaitConfirmation(previous: AdRewardState): ConfirmationOutcome {
             val session = confirmationSessionFor(previous) ?: return ConfirmationOutcome.PendingConfirmation
+            confirmationOutcome(previous, session)?.let { return it }
             return withTimeoutOrNull(backoff.maximumWaitMillis) {
                 awaitServerConfirmation(previous, session)
             } ?: ConfirmationOutcome.PendingConfirmation
@@ -123,7 +124,6 @@ class SupabaseAdRewardRepository
             previous: AdRewardState,
             session: RewardSession,
         ): ConfirmationOutcome {
-            confirmationOutcome(previous, session)?.let { return it }
             for (delayMillis in backoff.delaysMillis) {
                 delay(delayMillis)
                 confirmationOutcome(previous, session)?.let { return it }

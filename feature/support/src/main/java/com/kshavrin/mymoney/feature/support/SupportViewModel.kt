@@ -51,6 +51,7 @@ class SupportViewModel
         val actions: SharedFlow<SupportAction> = _actions.asSharedFlow()
 
         private var hasUnresolvedPendingPurchase = false
+        private var isForegroundPurchaseActive = false
         private var availabilityRefreshJob: Job? = null
         private var availabilityRefreshGeneration = 0L
 
@@ -114,7 +115,7 @@ class SupportViewModel
         }
 
         private fun refreshBilling() {
-            if (_state.value.isPurchaseInProgress) return
+            if (isForegroundPurchaseActive) return
             viewModelScope.launch {
                 supportPurchaseReconciliationCoordinator.reconcile()
             }
@@ -214,15 +215,18 @@ class SupportViewModel
             if (
                 currentState.billingState != SupportBillingState.Available ||
                     currentState.isPurchaseInProgress ||
+                    isForegroundPurchaseActive ||
                     currentState.products.none { product -> product.id == productId }
             ) {
                 return
             }
             log(AnalyticsEvent.SupportPurchaseStarted(productId))
+            isForegroundPurchaseActive = true
+            invalidateAvailabilityRefresh()
             viewModelScope.launch {
-                invalidateAvailabilityRefresh()
                 _state.value = _state.value.copy(isPurchaseInProgress = true)
                 var completionLogged = false
+                var refreshBillingAfterPurchase = false
                 try {
                     billingGateway.purchase(productId).collect { outcome ->
                         if (outcome != PurchaseOutcome.Pending && !completionLogged) {
@@ -234,7 +238,8 @@ class SupportViewModel
                             )
                             completionLogged = true
                         }
-                        handlePurchaseOutcome(outcome)
+                        refreshBillingAfterPurchase =
+                            handlePurchaseOutcome(outcome) || refreshBillingAfterPurchase
                     }
                 } catch (throwable: Throwable) {
                     if (throwable is CancellationException) throw throwable
@@ -244,11 +249,16 @@ class SupportViewModel
                     }
                     hasUnresolvedPendingPurchase = false
                     showNetworkError()
+                } finally {
+                    isForegroundPurchaseActive = false
+                    if (refreshBillingAfterPurchase || hasUnresolvedPendingPurchase) {
+                        refreshBilling()
+                    }
                 }
             }
         }
 
-        private suspend fun handlePurchaseOutcome(outcome: PurchaseOutcome) {
+        private suspend fun handlePurchaseOutcome(outcome: PurchaseOutcome): Boolean =
             when (outcome) {
                 is PurchaseOutcome.Purchased -> {
                     hasUnresolvedPendingPurchase = false
@@ -261,11 +271,13 @@ class SupportViewModel
                     } else {
                         showNetworkError()
                     }
+                    false
                 }
 
                 PurchaseOutcome.Pending -> {
                     hasUnresolvedPendingPurchase = true
                     showPendingPurchase()
+                    false
                 }
 
                 PurchaseOutcome.Cancelled -> {
@@ -275,19 +287,20 @@ class SupportViewModel
                             billingState = SupportBillingState.Available,
                             isPurchaseInProgress = false,
                         )
+                    false
                 }
 
                 PurchaseOutcome.NetworkError -> {
                     hasUnresolvedPendingPurchase = false
                     showNetworkError()
+                    false
                 }
                 is PurchaseOutcome.Unavailable -> {
                     hasUnresolvedPendingPurchase = false
                     _state.value = _state.value.copy(isPurchaseInProgress = false)
-                    refreshBilling()
+                    true
                 }
             }
-        }
 
         private fun showUnavailable(reason: SupportUnavailableReason) {
             if (hasUnresolvedPendingPurchase) {
@@ -318,6 +331,7 @@ class SupportViewModel
             _state.value =
                 _state.value.copy(
                     billingState = SupportBillingState.Pending,
+                    isPurchaseInProgress = false,
                 )
         }
 

@@ -57,8 +57,13 @@ android {
 }
 
 dependencies {
+    implementation(project(":core:common"))
+    implementation(project(":core:network"))
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.hilt.android)
+    implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.serialization.json)
     implementation(libs.play.services.ads)
     implementation(libs.user.messaging.platform)
     ksp(libs.hilt.compiler)

@@ -1,6 +1,7 @@
 package com.kshavrin.mymoney.navigation
 
 import com.kshavrin.mymoney.core.ui.navigation.Destinations
+import com.kshavrin.mymoney.core.ui.navigation.PaywallEntryPoint
 import com.kshavrin.mymoney.feature.dashboard.DashboardAction
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -30,6 +31,14 @@ class DestinationsTest {
         assertEquals(Destinations.FinancialGoalEdit(-1L), Destinations.FinancialGoalEdit())
         assertEquals(Destinations.CurrencyEdit(-1L), Destinations.CurrencyEdit())
         assertEquals(Destinations.ImportWizard(""), Destinations.ImportWizard())
+        assertEquals(
+            Destinations.Paywall(PaywallEntryPoint.SupportSection),
+            Destinations.Paywall(),
+        )
+        assertEquals(
+            PaywallEntryPoint.SharedSyncGate,
+            Destinations.Paywall(PaywallEntryPoint.SharedSyncGate).entryPoint,
+        )
     }
 
     @Test
@@ -109,6 +118,7 @@ class DestinationsTest {
             "Search",
             "Settings",
             "Support",
+            "Paywall",
             "SettingsTheme",
             "SettingsLanguage",
             "SettingsAbout",

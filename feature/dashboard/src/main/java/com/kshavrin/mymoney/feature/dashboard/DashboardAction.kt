@@ -40,6 +40,8 @@ sealed interface DashboardAction {
 
     data object NavigateCurrencies : DashboardAction
 
+    data object NavigateSupport : DashboardAction
+
     data class NavigateToTransactionDetail(
         val transactionId: Long,
     ) : DashboardAction

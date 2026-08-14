@@ -80,6 +80,8 @@ fun MyMoneyNavHost(
                                 navController.navigate(Destinations.FinancialGoals)
                             com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateCurrencies ->
                                 navController.navigate(Destinations.CurrenciesList)
+                            com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateSupport ->
+                                navController.navigate(Destinations.Support)
                             com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateAbout ->
                                 navController.navigate(Destinations.Settings)
                             is com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateToTransactionDetail ->
@@ -236,6 +238,11 @@ fun MyMoneyNavHost(
                 onOpenCloudSync = { navController.navigate(Destinations.CloudSync) },
                 onOpenBiometricLock = { navController.navigate(Destinations.LockScreen) },
                 onOpenAbout = { navController.navigate(Destinations.SettingsAbout) },
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable<Destinations.Support> {
+            com.kshavrin.mymoney.feature.support.SupportRoute(
                 onBack = { navController.popBackStack() },
             )
         }

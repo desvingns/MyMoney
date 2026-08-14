@@ -1130,6 +1130,10 @@ class DashboardViewModel
                     closeDrawers()
                     emit(DashboardAction.NavigateAbout)
                 }
+                DashboardEvent.SupportClicked -> {
+                    closeDrawers()
+                    emit(DashboardAction.NavigateSupport)
+                }
                 DashboardEvent.BalanceCardClicked -> openOperationsSummary(categoryId = null)
                 is DashboardEvent.SliceClicked -> toggleExpandedCategory(categoryId = event.categoryId)
                 is DashboardEvent.RecordRowClicked -> {

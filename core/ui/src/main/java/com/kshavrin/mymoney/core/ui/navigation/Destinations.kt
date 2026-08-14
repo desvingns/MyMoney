@@ -64,6 +64,10 @@ object Destinations {
     data object Settings
 
     @Serializable
+    @SerialName("com.kshavrin.mymoney.navigation.Destinations.Support")
+    data object Support
+
+    @Serializable
     @SerialName("com.kshavrin.mymoney.navigation.Destinations.SettingsTheme")
     data object SettingsTheme
 

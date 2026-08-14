@@ -82,6 +82,7 @@
     <string name="right_drawer_currencies">Currencies</string>
     <string name="right_drawer_about">About</string>
     <string name="right_drawer_chart_settings">Chart settings</string>
+    <string name="right_drawer_support">Support the app</string>
 
     <string name="chart_settings_title">Chart settings</string>
     <string name="chart_settings_section_mode">Window</string>

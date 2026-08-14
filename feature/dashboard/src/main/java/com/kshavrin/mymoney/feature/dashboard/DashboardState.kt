@@ -271,6 +271,8 @@ sealed interface DashboardEvent {
 
     data object AboutClicked : DashboardEvent
 
+    data object SupportClicked : DashboardEvent
+
     data object BalanceCardClicked : DashboardEvent
 
     data class SliceClicked(

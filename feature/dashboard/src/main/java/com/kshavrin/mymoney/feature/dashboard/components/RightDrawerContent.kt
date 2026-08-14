@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ShowChart
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.Category
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Paid
@@ -99,6 +100,12 @@ fun RightDrawerContent(onEvent: (DashboardEvent) -> Unit) {
             onClick = { onEvent(DashboardEvent.AboutClicked) },
             testTag = RIGHT_DRAWER_ABOUT_TAG,
         )
+        RightDrawerItem(
+            label = stringResource(R.string.right_drawer_support),
+            icon = Icons.Outlined.FavoriteBorder,
+            onClick = { onEvent(DashboardEvent.SupportClicked) },
+            testTag = RIGHT_DRAWER_SUPPORT_TAG,
+        )
     }
 }
 
@@ -146,3 +153,4 @@ const val RIGHT_DRAWER_CURRENCIES_TAG = "right_drawer_currencies"
 const val RIGHT_DRAWER_SETTINGS_TAG = "right_drawer_settings"
 const val RIGHT_DRAWER_CHART_SETTINGS_TAG = "right_drawer_chart_settings"
 const val RIGHT_DRAWER_ABOUT_TAG = "right_drawer_about"
+const val RIGHT_DRAWER_SUPPORT_TAG = "right_drawer_support"

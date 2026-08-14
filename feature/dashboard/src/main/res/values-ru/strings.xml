@@ -82,6 +82,7 @@
     <string name="right_drawer_currencies">Валюты</string>
     <string name="right_drawer_about">О приложении</string>
     <string name="right_drawer_chart_settings">Настройки графика</string>
+    <string name="right_drawer_support">Поддержать проект</string>
 
     <string name="chart_settings_title">Настройки графика</string>
     <string name="chart_settings_section_mode">Окно</string>

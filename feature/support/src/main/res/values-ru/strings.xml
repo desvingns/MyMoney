@@ -1,0 +1,19 @@
+<resources>
+    <string name="support_title">Поддержать проект</string>
+    <string name="support_back">Назад</string>
+    <string name="support_description">MyMoney создаётся независимо. Чашка кофе помогает развивать приложение.</string>
+    <string name="support_coffee_title">Угостить кофе</string>
+    <string name="support_coffee_small">Маленький кофе · %1$s</string>
+    <string name="support_coffee_large">Большой кофе · %1$s</string>
+    <string name="support_coffee_price">Кофе · %1$s</string>
+    <string name="support_unavailable_build">Покупки отключены в этой сборке.</string>
+    <string name="support_unavailable_device">Покупки недоступны на этом устройстве.</string>
+    <string name="support_unavailable_region">Покупки недоступны в вашем регионе.</string>
+    <string name="support_unavailable">Покупки сейчас недоступны.</string>
+    <string name="support_pending">Ваша покупка обрабатывается.</string>
+    <string name="support_network_error">Не удалось связаться с Google Play. Попробуйте ещё раз.</string>
+    <string name="support_retry">Повторить</string>
+    <string name="support_badge">Supporter</string>
+    <string name="support_gratitude">Спасибо за поддержку MyMoney</string>
+    <string name="support_gratitude_count">Покупок кофе: %1$d</string>
+</resources>

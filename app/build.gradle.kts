@@ -418,6 +418,7 @@ dependencies {
     implementation(project(":feature:dictionaries"))
     implementation(project(":feature:cloudsync"))
     implementation(project(":feature:lockscreen"))
+    implementation(project(":feature:support"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)

@@ -1,0 +1,19 @@
+<resources>
+    <string name="support_title">Support the app</string>
+    <string name="support_back">Go back</string>
+    <string name="support_description">MyMoney is made independently. A coffee helps keep it growing.</string>
+    <string name="support_coffee_title">Buy me a coffee</string>
+    <string name="support_coffee_small">Small coffee · %1$s</string>
+    <string name="support_coffee_large">Large coffee · %1$s</string>
+    <string name="support_coffee_price">Coffee · %1$s</string>
+    <string name="support_unavailable_build">Purchases are disabled in this build.</string>
+    <string name="support_unavailable_device">Purchases aren’t available on this device.</string>
+    <string name="support_unavailable_region">Purchases aren’t available in your region.</string>
+    <string name="support_unavailable">Purchases aren’t available right now.</string>
+    <string name="support_pending">Your purchase is being processed.</string>
+    <string name="support_network_error">We couldn’t reach Google Play. Please try again.</string>
+    <string name="support_retry">Try again</string>
+    <string name="support_badge">Supporter</string>
+    <string name="support_gratitude">Thank you for supporting MyMoney</string>
+    <string name="support_gratitude_count">%1$d coffee purchases</string>
+</resources>

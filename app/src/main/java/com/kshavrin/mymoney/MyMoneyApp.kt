@@ -7,6 +7,7 @@ import com.kshavrin.mymoney.core.common.di.IoDispatcher
 import com.kshavrin.mymoney.core.common.scope.ApplicationScope
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
 import com.kshavrin.mymoney.core.domain.billing.BillingGateway
+import com.kshavrin.mymoney.core.domain.supporter.SupportPurchaseReconciliationCoordinator
 import com.kshavrin.mymoney.core.domain.supporter.SupporterSync
 import com.kshavrin.mymoney.core.domain.usecase.NormalizeLegacyUtcMidnightUseCase
 import com.kshavrin.mymoney.core.sync.JournalSync
@@ -43,6 +44,10 @@ class MyMoneyApp :
 
     @Inject
     lateinit var supporterSync: Lazy<SupporterSync>
+
+    @Inject
+    lateinit var supportPurchaseReconciliationCoordinator:
+        Lazy<SupportPurchaseReconciliationCoordinator>
 
     @Inject
     lateinit var normalizeLegacyUtcMidnight: Lazy<NormalizeLegacyUtcMidnightUseCase>
@@ -115,7 +120,7 @@ class MyMoneyApp :
     private fun recoverSupporterPurchases() {
         applicationScope.launch(ioDispatcher) {
             supporterSync.get().restore()
-            billingGateway.get().resolvePendingPurchases()
+            supportPurchaseReconciliationCoordinator.get().reconcile()
         }
     }
 

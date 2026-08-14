@@ -10,6 +10,8 @@ import com.kshavrin.mymoney.core.domain.billing.BillingAvailability
 import com.kshavrin.mymoney.core.domain.billing.BillingGateway
 import com.kshavrin.mymoney.core.domain.billing.PurchaseOutcome
 import com.kshavrin.mymoney.core.domain.billing.SupportProduct
+import com.kshavrin.mymoney.core.domain.supporter.SupportPurchaseReconciliationCoordinator
+import com.kshavrin.mymoney.core.domain.supporter.SupportPurchaseReconciliationState
 import com.kshavrin.mymoney.core.domain.supporter.SupporterRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
@@ -33,6 +35,7 @@ class SupportViewModel
     constructor(
         private val billingGateway: BillingGateway,
         private val supporterRepository: SupporterRepository,
+        private val supportPurchaseReconciliationCoordinator: SupportPurchaseReconciliationCoordinator,
         private val analyticsGateway: AnalyticsGateway,
         @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     ) : ViewModel() {
@@ -46,13 +49,12 @@ class SupportViewModel
             )
         val actions: SharedFlow<SupportAction> = _actions.asSharedFlow()
 
-        private val recordedPurchaseTokens = mutableSetOf<String>()
         private var hasUnresolvedPendingPurchase = false
 
         init {
             log(AnalyticsEvent.SupportOpened)
             observeSupporterState()
-            initializeBilling()
+            observePurchaseReconciliation()
         }
 
         fun onEvent(event: SupportEvent) {
@@ -76,29 +78,35 @@ class SupportViewModel
             }
         }
 
-        private fun initializeBilling() {
+        private fun observePurchaseReconciliation() {
             viewModelScope.launch {
-                val hasPendingPurchase = restorePendingPurchases()
-                try {
-                    billingGateway.availability().collect { availability ->
-                        applyAvailability(availability, preservePending = hasPendingPurchase)
+                supportPurchaseReconciliationCoordinator.state.collect { reconciliationState ->
+                    when (reconciliationState) {
+                        SupportPurchaseReconciliationState.Loading -> showLoading()
+                        SupportPurchaseReconciliationState.Ready -> {
+                            hasUnresolvedPendingPurchase = false
+                            refreshBillingAvailability()
+                        }
+                        SupportPurchaseReconciliationState.Pending -> {
+                            hasUnresolvedPendingPurchase = true
+                            showPendingPurchase()
+                        }
+                        SupportPurchaseReconciliationState.NetworkError -> showNetworkError()
                     }
-                } catch (throwable: Throwable) {
-                    if (throwable is CancellationException) throw throwable
-                    throwable.reportToSentry()
-                    showNetworkError()
                 }
             }
         }
 
         private fun refreshBilling() {
             viewModelScope.launch {
-                val hasPendingPurchase = restorePendingPurchases()
+                supportPurchaseReconciliationCoordinator.reconcile()
+            }
+        }
+
+        private fun refreshBillingAvailability() {
+            viewModelScope.launch {
                 try {
-                    applyAvailability(
-                        availability = billingGateway.availability().first(),
-                        preservePending = hasPendingPurchase,
-                    )
+                    applyAvailability(billingGateway.availability().first())
                 } catch (throwable: Throwable) {
                     if (throwable is CancellationException) throw throwable
                     throwable.reportToSentry()
@@ -107,12 +115,9 @@ class SupportViewModel
             }
         }
 
-        private suspend fun applyAvailability(
-            availability: BillingAvailability,
-            preservePending: Boolean = false,
-        ) {
+        private suspend fun applyAvailability(availability: BillingAvailability) {
             when (availability) {
-                BillingAvailability.Available -> loadProducts(preservePending)
+                BillingAvailability.Available -> loadProducts()
                 BillingAvailability.NetworkUnavailable,
                 BillingAvailability.ServiceUnavailable,
                 -> showNetworkError()
@@ -128,10 +133,10 @@ class SupportViewModel
             }
         }
 
-        private suspend fun loadProducts(preservePending: Boolean) {
+        private suspend fun loadProducts() {
             val result = withContext(ioDispatcher) { billingGateway.products() }
             result.fold(
-                onSuccess = { products -> showAvailableProducts(products, preservePending) },
+                onSuccess = ::showAvailableProducts,
                 onFailure = { throwable ->
                     throwable.reportToSentry()
                     showNetworkError()
@@ -139,17 +144,14 @@ class SupportViewModel
             )
         }
 
-        private fun showAvailableProducts(
-            products: List<SupportProduct>,
-            preservePending: Boolean,
-        ) {
+        private fun showAvailableProducts(products: List<SupportProduct>) {
             val coffeeProducts =
                 products
                     .filter { product -> product.id == COFFEE_SMALL_PRODUCT_ID || product.id == COFFEE_LARGE_PRODUCT_ID }
                     .sortedBy { product -> productOrder(product.id) }
             if (coffeeProducts.isEmpty()) {
                 showUnavailable(SupportUnavailableReason.Unavailable)
-            } else if (preservePending || hasUnresolvedPendingPurchase) {
+            } else if (hasUnresolvedPendingPurchase) {
                 _state.value = _state.value.copy(products = coffeeProducts, isPurchaseInProgress = false)
             } else {
                 _state.value =
@@ -202,15 +204,11 @@ class SupportViewModel
             when (outcome) {
                 is PurchaseOutcome.Purchased -> {
                     hasUnresolvedPendingPurchase = false
-                    if (recordPurchase(outcome)) {
-                        _state.value =
-                            _state.value.copy(
-                                billingState = SupportBillingState.Available,
-                                isPurchaseInProgress = false,
-                            )
-                    } else {
-                        showNetworkError()
-                    }
+                    _state.value =
+                        _state.value.copy(
+                            billingState = SupportBillingState.Available,
+                            isPurchaseInProgress = false,
+                        )
                 }
 
                 PurchaseOutcome.Pending -> {
@@ -233,43 +231,6 @@ class SupportViewModel
                     refreshBilling()
                 }
             }
-        }
-
-        private suspend fun restorePendingPurchases(): Boolean {
-            val result = withContext(ioDispatcher) { billingGateway.resolvePendingPurchases() }
-            result.onFailure { throwable ->
-                throwable.reportToSentry()
-                showNetworkError()
-            }
-            val outcomes = result.getOrNull().orEmpty()
-            val hasPendingOutcome = outcomes.any { outcome -> outcome == PurchaseOutcome.Pending }
-            val hasNetworkError = outcomes.any { outcome -> outcome == PurchaseOutcome.NetworkError }
-            if (hasPendingOutcome) {
-                hasUnresolvedPendingPurchase = true
-            } else if (!hasNetworkError && result.isSuccess) {
-                hasUnresolvedPendingPurchase = false
-            }
-            outcomes.forEach { outcome ->
-                when (outcome) {
-                    is PurchaseOutcome.Purchased -> recordPurchase(outcome)
-                    PurchaseOutcome.Pending,
-                    PurchaseOutcome.NetworkError,
-                    PurchaseOutcome.Cancelled,
-                    is PurchaseOutcome.Unavailable,
-                    -> Unit
-                }
-            }
-            if (hasUnresolvedPendingPurchase) showPendingPurchase()
-            else if (hasNetworkError) showNetworkError()
-            return hasUnresolvedPendingPurchase
-        }
-
-        private suspend fun recordPurchase(outcome: PurchaseOutcome.Purchased): Boolean {
-            if (!recordedPurchaseTokens.add(outcome.purchaseToken)) return true
-            val result = supporterRepository.recordPurchase(outcome)
-            result.exceptionOrNull()?.reportToSentry()
-            if (result.isFailure) recordedPurchaseTokens.remove(outcome.purchaseToken)
-            return result.isSuccess
         }
 
         private fun showUnavailable(reason: SupportUnavailableReason) {
@@ -301,6 +262,14 @@ class SupportViewModel
             _state.value =
                 _state.value.copy(
                     billingState = SupportBillingState.Pending,
+                    isPurchaseInProgress = false,
+                )
+        }
+
+        private fun showLoading() {
+            _state.value =
+                _state.value.copy(
+                    billingState = SupportBillingState.Loading,
                     isPurchaseInProgress = false,
                 )
         }

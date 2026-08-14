@@ -73,17 +73,19 @@ class BillingWiringContractTest {
     }
 
     @Test
-    fun `app restores supporter purchases before resolving pending Play purchases`() {
+    fun `app restores supporter purchases before starting shared Play reconciliation`() {
         val appSource = file("app/src/main/java/com/kshavrin/mymoney/MyMoneyApp.kt").readText()
 
         assertContainsInOrder(
             appSource,
             listOf(
                 "lateinit var supporterSync: Lazy<SupporterSync>",
+                "lateinit var supportPurchaseReconciliationCoordinator:",
+                "Lazy<SupportPurchaseReconciliationCoordinator>",
                 "recoverSupporterPurchases()",
                 "private fun recoverSupporterPurchases()",
                 "supporterSync.get().restore()",
-                "billingGateway.get().resolvePendingPurchases()",
+                "supportPurchaseReconciliationCoordinator.get().reconcile()",
             ),
         )
     }

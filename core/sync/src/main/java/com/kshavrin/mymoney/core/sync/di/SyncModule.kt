@@ -2,6 +2,7 @@ package com.kshavrin.mymoney.core.sync.di
 
 import com.kshavrin.mymoney.core.domain.repository.RemoteConfigRepository
 import com.kshavrin.mymoney.core.domain.reset.FactoryResetGateway
+import com.kshavrin.mymoney.core.domain.supporter.SupportPurchaseReconciliationCoordinator
 import com.kshavrin.mymoney.core.domain.supporter.SupporterSync
 import com.kshavrin.mymoney.core.sync.CloudSyncBackend
 import com.kshavrin.mymoney.core.sync.FactoryResetGatewayImpl
@@ -23,6 +24,7 @@ import com.kshavrin.mymoney.core.sync.gdrive.GoogleDriveRepository
 import com.kshavrin.mymoney.core.sync.remoteconfig.RemoteConfigRepositoryImpl
 import com.kshavrin.mymoney.core.sync.shared.SharedSyncCoordinator
 import com.kshavrin.mymoney.core.sync.shared.SharedSyncCoordinatorImpl
+import com.kshavrin.mymoney.core.sync.supporter.SupportPurchaseReconciliationCoordinatorImpl
 import com.kshavrin.mymoney.core.sync.supporter.SupporterSyncImpl
 import dagger.Binds
 import dagger.Module
@@ -85,4 +87,10 @@ abstract class SyncModule {
     @Binds
     @Singleton
     abstract fun bindSupporterSync(impl: SupporterSyncImpl): SupporterSync
+
+    @Binds
+    @Singleton
+    abstract fun bindSupportPurchaseReconciliationCoordinator(
+        impl: SupportPurchaseReconciliationCoordinatorImpl,
+    ): SupportPurchaseReconciliationCoordinator
 }

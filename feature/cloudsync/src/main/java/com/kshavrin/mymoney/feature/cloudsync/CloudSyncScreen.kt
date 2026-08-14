@@ -462,13 +462,15 @@ fun CloudSyncContent(
                 onEvent = onEvent,
             )
             if (state.shared.enabled) {
-                state.shared.warning?.let { warning ->
-                    SharedEntitlementWarningBanner(
-                        state = state.shared,
-                        warning = warning,
-                        onEvent = onEvent,
-                    )
-                }
+                state.shared.warning
+                    ?.takeIf { !state.shared.active || state.shared.isWorkspaceOwner }
+                    ?.let { warning ->
+                        SharedEntitlementWarningBanner(
+                            state = state.shared,
+                            warning = warning,
+                            onEvent = onEvent,
+                        )
+                    }
                 SharedCard(
                     state = state.shared,
                     otherProviderActive = state.binding != null && state.binding.provider != CloudProvider.Shared,
@@ -617,7 +619,7 @@ private fun SharedCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             if (state.active) {
-                if (state.isWorkspaceReadOnly) SharedReadOnlyBanner()
+                if (state.isWorkspaceReadOnly) SharedReadOnlyBanner(state.isWorkspaceAccessKnown)
                 SharedRealtimeStatusCard(
                     status = state.realtimeStatus,
                     enabled = !state.isWorkspaceReadOnly,
@@ -763,7 +765,9 @@ private fun SharedEntitlementWarningBanner(
 }
 
 @Composable
-private fun SharedReadOnlyBanner() {
+private fun SharedReadOnlyBanner(
+    isWorkspaceAccessKnown: Boolean,
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors =
@@ -777,11 +781,25 @@ private fun SharedReadOnlyBanner() {
             verticalArrangement = Arrangement.spacedBy(Spacing.s),
         ) {
             Text(
-                text = stringResource(R.string.sync_shared_read_only_title),
+                text =
+                    stringResource(
+                        if (isWorkspaceAccessKnown) {
+                            R.string.sync_shared_read_only_title
+                        } else {
+                            R.string.sync_shared_read_only_unavailable_title
+                        },
+                    ),
                 style = MaterialTheme.typography.titleSmall,
             )
             Text(
-                text = stringResource(R.string.sync_shared_read_only_body),
+                text =
+                    stringResource(
+                        if (isWorkspaceAccessKnown) {
+                            R.string.sync_shared_read_only_body
+                        } else {
+                            R.string.sync_shared_read_only_unavailable_body
+                        },
+                    ),
                 style = MaterialTheme.typography.bodyMedium,
             )
         }
@@ -801,6 +819,7 @@ private fun SharedRealtimeStatusCard(
             SharedRealtimeStatus.Starting -> MaterialTheme.colorScheme.sharedSyncStartingContainer
             is SharedRealtimeStatus.Sleeping -> MaterialTheme.colorScheme.sharedSyncSleepingContainer
             is SharedRealtimeStatus.Retrying -> MaterialTheme.colorScheme.sharedSyncRetryingContainer
+            SharedRealtimeStatus.EntitlementRequired -> MaterialTheme.colorScheme.sharedSyncErrorContainer
             SharedRealtimeStatus.Error -> MaterialTheme.colorScheme.sharedSyncErrorContainer
             SharedRealtimeStatus.Inactive -> return
         }
@@ -810,6 +829,7 @@ private fun SharedRealtimeStatusCard(
             SharedRealtimeStatus.Starting -> MaterialTheme.colorScheme.sharedSyncStartingContent
             is SharedRealtimeStatus.Sleeping -> MaterialTheme.colorScheme.sharedSyncSleepingContent
             is SharedRealtimeStatus.Retrying -> MaterialTheme.colorScheme.sharedSyncRetryingContent
+            SharedRealtimeStatus.EntitlementRequired -> MaterialTheme.colorScheme.sharedSyncErrorContent
             SharedRealtimeStatus.Error -> MaterialTheme.colorScheme.sharedSyncErrorContent
             SharedRealtimeStatus.Inactive -> return
         }
@@ -819,6 +839,7 @@ private fun SharedRealtimeStatusCard(
             SharedRealtimeStatus.Starting -> stringResource(R.string.sync_shared_status_starting)
             is SharedRealtimeStatus.Sleeping -> stringResource(R.string.sync_shared_status_sleeping)
             is SharedRealtimeStatus.Retrying -> stringResource(R.string.sync_shared_status_retrying, status.retryAttempt)
+            SharedRealtimeStatus.EntitlementRequired -> stringResource(R.string.sync_shared_status_error)
             SharedRealtimeStatus.Error -> stringResource(R.string.sync_shared_status_error)
             SharedRealtimeStatus.Inactive -> return
         }

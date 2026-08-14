@@ -71,6 +71,8 @@
     <string name="sync_shared_warning_renew">Renew Plus</string>
     <string name="sync_shared_read_only_title">This workspace is read-only</string>
     <string name="sync_shared_read_only_body">The workspace owner has not renewed Plus. You can view shared data, but syncing and invites are unavailable.</string>
+    <string name="sync_shared_read_only_unavailable_title">Shared access is unavailable</string>
+    <string name="sync_shared_read_only_unavailable_body">We cannot confirm this workspace’s subscription state. Syncing and invites stay unavailable until access is verified.</string>
     <string name="sync_shared_status_connected">Realtime connected</string>
     <string name="sync_shared_status_starting">Connecting to shared sync</string>
     <string name="sync_shared_status_sleeping">The shared server is starting. Your local changes are safe.</string>

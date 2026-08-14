@@ -41,6 +41,7 @@ import com.kshavrin.mymoney.core.network.shared.SharedUser
 import com.kshavrin.mymoney.core.network.shared.SharedWorkspace
 import com.kshavrin.mymoney.core.network.shared.SharedWorkspaceApi
 import com.kshavrin.mymoney.core.network.shared.WorkspaceInvite
+import com.kshavrin.mymoney.core.network.shared.WorkspaceBillingState
 import com.kshavrin.mymoney.core.network.shared.WorkspaceMember
 import com.kshavrin.mymoney.core.network.shared.WorkspaceRole
 import com.kshavrin.mymoney.core.sync.SyncExecutionGate
@@ -351,6 +352,43 @@ class SharedSyncCoordinatorImplTest {
 
             assertTrue(result.isSuccess)
             assertEquals(1, scheduler.enableCalls)
+        }
+
+    @Test
+    fun `active workspace access propagates server Grace state and deadline`() =
+        runTest(dispatcher) {
+            auth.session = fakeSession()
+            val graceEndsAt = clock.instant().plusSeconds(86_400)
+            workspaceApi.currentWorkspaceResult =
+                Result.success(
+                    fakeWorkspace(
+                        billingState = WorkspaceBillingState.Grace,
+                        billingStateUntil = graceEndsAt,
+                    ),
+                )
+
+            val access = coordinator.activeWorkspaceAccess().getOrThrow()
+
+            assertEquals(SharedWorkspaceBillingState.Grace, access.billingState)
+            assertEquals(graceEndsAt, access.billingStateUntil)
+            assertTrue(access.isReadOnly)
+        }
+
+    @Test
+    fun `active workspace access propagates cancellation`() =
+        runTest(dispatcher) {
+            auth.session = fakeSession()
+            workspaceApi.currentWorkspaceResult = Result.failure(CancellationException("screen closed"))
+
+            val cancellation =
+                try {
+                    coordinator.activeWorkspaceAccess()
+                    error("access cancellation should propagate")
+                } catch (failure: CancellationException) {
+                    failure
+                }
+
+            assertEquals("screen closed", cancellation.message)
         }
 
     // ── joinWorkspace ──────────────────────────────────────────────────────
@@ -933,6 +971,28 @@ class SharedSyncCoordinatorImplTest {
         }
 
     @Test
+    fun `entitlement rejection ends realtime without detaching the shared workspace`() =
+        runTest(dispatcher) {
+            auth.session = fakeSession()
+            configStore.current = CloudBinding(CloudProvider.Shared, "ws-1", "Budget")
+            sharedStore.membershipActive = true
+            realtime.eventsFlow =
+                flow {
+                    emit(SharedRealtimeEvent.Disconnected(SyncException(SyncError.EntitlementRequired)))
+                }
+
+            assertTrue(coordinator.startForegroundRealtime().isSuccess)
+
+            assertEquals(
+                SharedRealtimeStatus.EntitlementRequired,
+                coordinator.foregroundRealtimeStatus.first { it == SharedRealtimeStatus.EntitlementRequired },
+            )
+            assertEquals(CloudProvider.Shared, configStore.current?.provider)
+            assertEquals(0, scheduler.disableCalls)
+            assertEquals(1, realtime.eventsCalls)
+        }
+
+    @Test
     fun `realtime transient failures stop after bounded retries with error status`() =
         runTest(dispatcher) {
             auth.session = fakeSession()
@@ -973,8 +1033,17 @@ class SharedSyncCoordinatorImplTest {
     private fun fakeWorkspace(
         id: String = "ws-1",
         name: String = "Budget",
+        billingState: WorkspaceBillingState = WorkspaceBillingState.Active,
+        billingStateUntil: Instant? = null,
     ) =
-        SharedWorkspace(id = id, name = name, ownerId = "user-1", createdAt = clock.instant())
+        SharedWorkspace(
+            id = id,
+            name = name,
+            ownerId = "user-1",
+            createdAt = clock.instant(),
+            billingState = billingState,
+            billingStateUntil = billingStateUntil,
+        )
 
     private fun fakeCreatedInvite(token: String) =
         CreatedInvite(

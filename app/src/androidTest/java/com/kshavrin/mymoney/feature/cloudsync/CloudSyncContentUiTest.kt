@@ -18,9 +18,12 @@ import com.kshavrin.mymoney.core.datastore.CloudProvider
 import com.kshavrin.mymoney.core.datastore.JournalSyncConfigStore
 import com.kshavrin.mymoney.core.datastore.model.AppSettings
 import com.kshavrin.mymoney.core.domain.model.BackupFile
+import com.kshavrin.mymoney.core.domain.model.UserEntitlement
 import com.kshavrin.mymoney.core.domain.repository.BackupRepository
+import com.kshavrin.mymoney.core.domain.repository.EntitlementRepository
 import com.kshavrin.mymoney.core.domain.repository.RemoteConfigRepository
 import com.kshavrin.mymoney.core.domain.sync.SharedConflict
+import com.kshavrin.mymoney.core.domain.usecase.ObserveEntitlementUseCase
 import com.kshavrin.mymoney.core.sync.CloudAccountIdentity
 import com.kshavrin.mymoney.core.sync.JournalSync
 import com.kshavrin.mymoney.core.sync.MigrationResolution
@@ -30,8 +33,11 @@ import com.kshavrin.mymoney.core.sync.SyncTarget
 import com.kshavrin.mymoney.core.sync.shared.SharedSyncCoordinator
 import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceInvite
 import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceSummary
+import com.kshavrin.mymoney.core.sync.usecase.CloudSyncBackupsUseCase
+import com.kshavrin.mymoney.core.sync.usecase.CloudSyncSettingsUseCase
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -199,10 +205,10 @@ class CloudSyncContentUiTest {
             journalSync = EmptyJournalSync(),
             journalSyncConfig = SharedConfigStore(),
             syncScheduler = EmptySyncScheduler(),
-            appSettings = EmptyAppSettingsRepository(),
-            backupRepository = EmptyBackupRepository(),
-            remoteConfig = EmptyRemoteConfigRepository(),
+            cloudSyncSettings = CloudSyncSettingsUseCase(EmptyAppSettingsRepository(), EmptyRemoteConfigRepository()),
+            cloudSyncBackups = CloudSyncBackupsUseCase(EmptyBackupRepository()),
             sharedCoordinator = InviteCoordinator(),
+            observeEntitlement = ObserveEntitlementUseCase(EmptyEntitlementRepository()),
         )
 
     private class EmptySnapshotSync : SnapshotSync {
@@ -269,9 +275,17 @@ class CloudSyncContentUiTest {
 
         override fun gdriveSyncEnabled() = false
 
+        override fun sharedSyncEnabled() = true
+
         override fun minSupportedVersionCode() = 0L
 
         override fun aestheticSoundPack() = ""
+    }
+
+    private class EmptyEntitlementRepository : EntitlementRepository {
+        override val entitlement = MutableStateFlow<UserEntitlement>(UserEntitlement.Free)
+
+        override suspend fun refresh(): Result<Unit> = Result.success(Unit)
     }
 
     private class SharedConfigStore : JournalSyncConfigStore {

@@ -7,6 +7,7 @@ import com.kshavrin.mymoney.core.domain.model.EntitlementState
 import com.kshavrin.mymoney.core.domain.model.EntitlementWarning
 import com.kshavrin.mymoney.core.sync.SyncTarget
 import com.kshavrin.mymoney.core.sync.shared.SharedRealtimeStatus
+import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceBillingState
 import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceSummary
 import java.time.Instant
 
@@ -57,6 +58,9 @@ data class SharedCardState(
     val conflictCount: Int = 0,
     val isWorkspaceOwner: Boolean = false,
     val isSoleOwner: Boolean = false,
+    val workspaceBillingState: SharedWorkspaceBillingState? = null,
+    val workspaceBillingStateUntil: Instant? = null,
+    val isWorkspaceAccessKnown: Boolean = false,
     val isWorkspaceReadOnly: Boolean = false,
     val warning: EntitlementWarning? = null,
     val realtimeStatus: SharedRealtimeStatus = SharedRealtimeStatus.Inactive,

@@ -15,5 +15,7 @@ sealed interface SharedRealtimeStatus {
         val retryAttempt: Int,
     ) : SharedRealtimeStatus
 
+    data object EntitlementRequired : SharedRealtimeStatus
+
     data object Error : SharedRealtimeStatus
 }

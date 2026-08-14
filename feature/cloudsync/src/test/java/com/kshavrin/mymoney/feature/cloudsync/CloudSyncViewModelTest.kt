@@ -8,8 +8,14 @@ import com.kshavrin.mymoney.core.datastore.CloudProvider
 import com.kshavrin.mymoney.core.datastore.JournalSyncConfigStore
 import com.kshavrin.mymoney.core.datastore.model.AppSettings
 import com.kshavrin.mymoney.core.domain.model.BackupFile
+import com.kshavrin.mymoney.core.domain.model.EntitlementSource
+import com.kshavrin.mymoney.core.domain.model.EntitlementState
+import com.kshavrin.mymoney.core.domain.model.EntitlementWarning
+import com.kshavrin.mymoney.core.domain.model.UserEntitlement
 import com.kshavrin.mymoney.core.domain.repository.BackupRepository
+import com.kshavrin.mymoney.core.domain.repository.EntitlementRepository
 import com.kshavrin.mymoney.core.domain.sync.SharedConflict
+import com.kshavrin.mymoney.core.domain.usecase.ObserveEntitlementUseCase
 import com.kshavrin.mymoney.core.sync.CloudAccountIdentity
 import com.kshavrin.mymoney.core.sync.JournalMigrationPreview
 import com.kshavrin.mymoney.core.sync.JournalSync
@@ -18,21 +24,30 @@ import com.kshavrin.mymoney.core.sync.SnapshotSync
 import com.kshavrin.mymoney.core.sync.SyncScheduler
 import com.kshavrin.mymoney.core.sync.SyncTarget
 import com.kshavrin.mymoney.core.sync.shared.SharedSyncCoordinator
+import com.kshavrin.mymoney.core.sync.shared.SharedRealtimeStatus
+import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceAccess
+import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceBillingState
 import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceInvite
 import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceOwnership
 import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceSummary
+import com.kshavrin.mymoney.core.sync.usecase.CloudSyncBackupsUseCase
+import com.kshavrin.mymoney.core.sync.usecase.CloudSyncSettingsUseCase
 import com.kshavrin.mymoney.core.testing.fake.FakeAppSettingsRepository
 import com.kshavrin.mymoney.feature.cloudsync.fake.FakeRemoteConfigRepository
 import com.kshavrin.mymoney.feature.cloudsync.util.MainDispatcherRule
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
 
 class CloudSyncViewModelTest {
     @get:Rule val dispatcherRule = MainDispatcherRule()
@@ -646,6 +661,123 @@ class CloudSyncViewModelTest {
             assertEquals(0, shared.startRealtimeCalls)
         }
 
+    @Test
+    fun `server Grace overrides a stale active entitlement with warning and read only state`() =
+        runTest {
+            val graceEndsAt = Instant.ofEpochSecond(1_700_172_800L)
+            val shared =
+                SharedCoordinator().apply {
+                    workspaceAccessResult =
+                        Result.success(
+                            SharedWorkspaceAccess(
+                                billingState = SharedWorkspaceBillingState.Grace,
+                                billingStateUntil = graceEndsAt,
+                            ),
+                        )
+                    workspaceOwnership = SharedWorkspaceOwnership(isOwner = true)
+                }
+
+            val vm =
+                viewModel(
+                    SnapshotFake(),
+                    RecordingJournalSync(),
+                    Config(CloudBinding(CloudProvider.Shared, "ws-1", "Budget")),
+                    Scheduler(),
+                    shared = shared,
+                )
+            runCurrent()
+
+            assertTrue(vm.state.value.shared.isWorkspaceReadOnly)
+            assertTrue(vm.state.value.shared.isWorkspaceAccessKnown)
+            assertEquals(SharedWorkspaceBillingState.Grace, vm.state.value.shared.workspaceBillingState)
+            assertEquals(graceEndsAt, vm.state.value.shared.entitlementGraceEndsAt)
+            assertEquals(EntitlementWarning.GRACE_ENTERED, vm.state.value.shared.warning)
+        }
+
+    @Test
+    fun `unknown workspace access fails closed while retaining the existing shared binding`() =
+        runTest {
+            val shared =
+                SharedCoordinator().apply {
+                    workspaceAccessResult = Result.failure(SyncException(SyncError.Network))
+                }
+
+            val vm =
+                viewModel(
+                    SnapshotFake(),
+                    RecordingJournalSync(),
+                    Config(CloudBinding(CloudProvider.Shared, "ws-1", "Budget")),
+                    Scheduler(),
+                    shared = shared,
+                )
+            runCurrent()
+
+            assertTrue(vm.state.value.shared.isWorkspaceReadOnly)
+            assertFalse(vm.state.value.shared.isWorkspaceAccessKnown)
+            assertEquals(CloudProvider.Shared, vm.state.value.binding?.provider)
+        }
+
+    @Test
+    fun `realtime entitlement rejection refreshes server access and shows the same warning`() =
+        runTest {
+            val shared = SharedCoordinator()
+            val vm =
+                viewModel(
+                    SnapshotFake(),
+                    RecordingJournalSync(),
+                    Config(CloudBinding(CloudProvider.Shared, "ws-1", "Budget")),
+                    Scheduler(),
+                    shared = shared,
+                )
+            runCurrent()
+            val stopsBeforeRejection = shared.stopRealtimeCalls
+            shared.workspaceAccessResult =
+                Result.success(
+                    SharedWorkspaceAccess(
+                        billingState = SharedWorkspaceBillingState.Grace,
+                        billingStateUntil = Instant.ofEpochSecond(1_700_172_800L),
+                    ),
+                )
+
+            shared.emitRealtimeStatus(SharedRealtimeStatus.EntitlementRequired)
+            runCurrent()
+
+            assertEquals(EntitlementWarning.GRACE_ENTERED, vm.state.value.shared.warning)
+            assertTrue(vm.state.value.shared.isWorkspaceReadOnly)
+            assertTrue(shared.stopRealtimeCalls > stopsBeforeRejection)
+        }
+
+    @Test
+    fun `read-only participant warning action does not navigate to paywall`() =
+        runTest {
+            val shared =
+                SharedCoordinator().apply {
+                    workspaceAccessResult =
+                        Result.success(
+                            SharedWorkspaceAccess(
+                                billingState = SharedWorkspaceBillingState.Grace,
+                                billingStateUntil = Instant.ofEpochSecond(1_700_172_800L),
+                            ),
+                        )
+                    workspaceOwnership = SharedWorkspaceOwnership(isOwner = false)
+                }
+            val vm =
+                viewModel(
+                    SnapshotFake(),
+                    RecordingJournalSync(),
+                    Config(CloudBinding(CloudProvider.Shared, "ws-1", "Budget")),
+                    Scheduler(),
+                    shared = shared,
+                )
+            runCurrent()
+
+            vm.actions.test {
+                vm.onEvent(CloudSyncEvent.WarningActionClicked)
+                expectNoEvents()
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
     private fun viewModel(
         snapshot: SnapshotSync,
         journal: JournalSync,
@@ -654,7 +786,24 @@ class CloudSyncViewModelTest {
         backup: BackupRepository = BackupFake(),
         shared: SharedSyncCoordinator = SharedCoordinator(),
         remoteConfig: FakeRemoteConfigRepository = FakeRemoteConfigRepository(),
-    ) = CloudSyncViewModel(snapshot, journal, config, scheduler, FakeAppSettingsRepository(AppSettings(autoSyncEnabled = true)), backup, remoteConfig, shared)
+        entitlement: EntitlementRepository = EntitlementFake(),
+        clock: Clock = Clock.fixed(Instant.ofEpochSecond(1_700_000_000L), ZoneOffset.UTC),
+    ) =
+        CloudSyncViewModel(
+            snapshotSync = snapshot,
+            journalSync = journal,
+            journalSyncConfig = config,
+            syncScheduler = scheduler,
+            cloudSyncSettings =
+                CloudSyncSettingsUseCase(
+                    FakeAppSettingsRepository(AppSettings(autoSyncEnabled = true)),
+                    remoteConfig,
+                ),
+            cloudSyncBackups = CloudSyncBackupsUseCase(backup),
+            sharedCoordinator = shared,
+            observeEntitlement = ObserveEntitlementUseCase(entitlement),
+            clock = clock,
+        )
 
     private class Config(
         private var current: CloudBinding?,
@@ -788,6 +937,21 @@ class CloudSyncViewModelTest {
         override suspend fun listInternalBackups(): List<BackupFile> = internalBackups
     }
 
+    private class EntitlementFake(
+        initial: UserEntitlement =
+            UserEntitlement.Plus(
+                source = EntitlementSource.SUBSCRIPTION_MONTHLY,
+                state = EntitlementState.ACTIVE,
+                startsAt = Instant.EPOCH,
+                expiresAt = null,
+                graceEndsAt = null,
+            ),
+    ) : EntitlementRepository {
+        override val entitlement = MutableStateFlow(initial)
+
+        override suspend fun refresh(): Result<Unit> = Result.success(Unit)
+    }
+
     private inner class SharedCoordinator : SharedSyncCoordinator {
         var signedIn = false
         var workspaceSummary: SharedWorkspaceSummary? = null
@@ -816,8 +980,12 @@ class CloudSyncViewModelTest {
         var recoverRemoteWorkspaceCalls = 0
         var lastRecoveryImportLocalData = false
         var workspaceOwnership = SharedWorkspaceOwnership()
+        var workspaceAccessResult: Result<SharedWorkspaceAccess> = Result.success(SharedWorkspaceAccess())
         var disconnectResult: Result<Unit> = Result.success(Unit)
         var deleteResult: Result<Unit> = Result.success(Unit)
+        private val realtimeStatus = MutableStateFlow<SharedRealtimeStatus>(SharedRealtimeStatus.Inactive)
+
+        override val foregroundRealtimeStatus = realtimeStatus
 
         override fun isSignedIn() = signedIn
 
@@ -842,6 +1010,8 @@ class CloudSyncViewModelTest {
             activeWorkspaceOwnershipCalls++
             return Result.success(workspaceOwnership)
         }
+
+        override suspend fun activeWorkspaceAccess(): Result<SharedWorkspaceAccess> = workspaceAccessResult
 
         override suspend fun discoverRemoteWorkspace(): Result<SharedWorkspaceSummary?> {
             discoverRemoteWorkspaceCalls++
@@ -891,6 +1061,10 @@ class CloudSyncViewModelTest {
 
         override fun stopForegroundRealtime() {
             stopRealtimeCalls++
+        }
+
+        fun emitRealtimeStatus(status: SharedRealtimeStatus) {
+            realtimeStatus.value = status
         }
 
         override suspend fun listConflicts(): Result<List<SharedConflict>> {

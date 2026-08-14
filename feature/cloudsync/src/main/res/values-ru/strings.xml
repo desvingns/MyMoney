@@ -71,6 +71,8 @@
     <string name="sync_shared_warning_renew">Продлить Plus</string>
     <string name="sync_shared_read_only_title">Это пространство доступно только для чтения</string>
     <string name="sync_shared_read_only_body">Владелец пространства не продлил Plus. Вы можете просматривать общие данные, но синхронизация и приглашения недоступны.</string>
+    <string name="sync_shared_read_only_unavailable_title">Доступ к общему пространству недоступен</string>
+    <string name="sync_shared_read_only_unavailable_body">Не удалось подтвердить статус подписки пространства. Синхронизация и приглашения останутся недоступны, пока доступ не будет проверен.</string>
     <string name="sync_shared_status_connected">Синхронизация в реальном времени подключена</string>
     <string name="sync_shared_status_starting">Подключение к общей синхронизации</string>
     <string name="sync_shared_status_sleeping">Общий сервер запускается. Локальные изменения в сохранности.</string>

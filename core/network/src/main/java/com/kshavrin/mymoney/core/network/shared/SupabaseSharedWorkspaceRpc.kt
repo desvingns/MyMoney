@@ -122,20 +122,26 @@ class SupabaseSharedWorkspaceRpc
             return request(accessToken)
         }
 
-        private fun workspaceFrom(value: kotlinx.serialization.json.JsonObject): SharedWorkspace =
-            SharedWorkspace(
+        private fun workspaceFrom(value: kotlinx.serialization.json.JsonObject): SharedWorkspace {
+            val billingState =
+                value["billing_state"]
+                    ?.jsonPrimitive
+                    ?.contentOrNull
+                    ?.toWorkspaceBillingState()
+                    ?: throw SyncException(SyncError.Server)
+            val billingStateUntil = value["billing_state_until"]?.jsonPrimitive?.contentOrNull?.let(Instant::parse)
+            if (billingState == WorkspaceBillingState.Grace && billingStateUntil == null) {
+                throw SyncException(SyncError.Server)
+            }
+            return SharedWorkspace(
                 id = value.requiredString("id"),
                 name = value.requiredString("name"),
                 ownerId = value.requiredString("owner_id"),
                 createdAt = Instant.parse(value.requiredString("created_at")),
-                billingState =
-                    value["billing_state"]
-                        ?.jsonPrimitive
-                        ?.contentOrNull
-                        ?.toWorkspaceBillingState()
-                        ?: WorkspaceBillingState.Active,
-                billingStateUntil = value["billing_state_until"]?.jsonPrimitive?.contentOrNull?.let(Instant::parse),
+                billingState = billingState,
+                billingStateUntil = billingStateUntil,
             )
+        }
 
         private fun inviteFrom(value: kotlinx.serialization.json.JsonObject): WorkspaceInvite =
             WorkspaceInvite(

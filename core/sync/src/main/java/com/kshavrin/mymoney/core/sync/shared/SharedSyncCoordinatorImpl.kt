@@ -350,10 +350,18 @@ class SharedSyncCoordinatorImpl
 
         override suspend fun activeWorkspaceAccess(): Result<SharedWorkspaceAccess> =
             withContext(dispatcher) {
-                runCatching {
+                try {
                     ensureSignedIn()
                     val workspace = workspaceApi.currentWorkspace().getOrThrow() ?: throw SyncException(SyncError.Auth)
-                    SharedWorkspaceAccess(isReadOnly = workspace.billingState == WorkspaceBillingState.Grace)
+                    Result.success(
+                        SharedWorkspaceAccess(
+                            billingState = workspace.billingState.toSharedWorkspaceBillingState(),
+                            billingStateUntil = workspace.billingStateUntil,
+                        ),
+                    )
+                } catch (failure: Throwable) {
+                    if (failure is CancellationException) throw failure
+                    Result.failure(failure)
                 }
             }
 
@@ -625,6 +633,10 @@ class SharedSyncCoordinatorImpl
                     throw SharedRealtimeStreamFinishedException()
                 } catch (failure: Throwable) {
                     if (failure is CancellationException) throw failure
+                    if (failure.isEntitlementRequiredFailure()) {
+                        updateForegroundRealtimeStatus(generation, SharedRealtimeStatus.EntitlementRequired)
+                        return
+                    }
                     if (failure.isRealtimeTerminalFailure()) {
                         clearSharedStateOnAuthFailure(Result.failure<Unit>(failure))
                         if ((failure as? SyncException)?.syncError != SyncError.Auth) {
@@ -1125,6 +1137,9 @@ class SharedSyncCoordinatorImpl
         private fun Throwable.isRealtimeTerminalFailure(): Boolean =
             (this as? SyncException)?.syncError in setOf(SyncError.Auth, SyncError.Conflict)
 
+        private fun Throwable.isEntitlementRequiredFailure(): Boolean =
+            (this as? SyncException)?.syncError == SyncError.EntitlementRequired
+
         private fun foregroundRealtimeBackoffMillis(retryAttempt: Int): Long =
             FOREGROUND_REALTIME_BASE_BACKOFF_MILLIS shl (retryAttempt - 1)
 
@@ -1148,6 +1163,13 @@ class SharedSyncCoordinatorImpl
     }
 
 private class SharedRealtimeStreamFinishedException : IllegalStateException()
+
+private fun WorkspaceBillingState.toSharedWorkspaceBillingState(): SharedWorkspaceBillingState =
+    when (this) {
+        WorkspaceBillingState.Active -> SharedWorkspaceBillingState.Active
+        WorkspaceBillingState.Grace -> SharedWorkspaceBillingState.Grace
+        WorkspaceBillingState.Expired -> SharedWorkspaceBillingState.Expired
+    }
 
 private object NoOpSupporterSync : SupporterSync {
     override suspend fun recordPurchase(outcome: PurchaseOutcome.Purchased): Result<Unit> = Result.success(Unit)

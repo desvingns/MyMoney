@@ -11,6 +11,7 @@ import com.kshavrin.mymoney.core.datastore.CloudBinding
 import com.kshavrin.mymoney.core.datastore.CloudProvider
 import com.kshavrin.mymoney.core.domain.model.BackupFile
 import com.kshavrin.mymoney.core.sync.SyncTarget
+import com.kshavrin.mymoney.core.domain.model.EntitlementWarning
 import com.kshavrin.mymoney.core.sync.shared.SharedRealtimeStatus
 import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceSummary
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
@@ -100,6 +101,31 @@ class CloudSyncScreenContentTest {
 
         composeTestRule.onNodeWithTag("cloud_sync_shared_disconnect").performScrollTo().assertIsDisplayed()
         composeTestRule.onNodeWithTag("cloud_sync_shared_leave").assertDoesNotExist()
+    }
+
+    @Test
+    fun `read-only participant does not see renewal messaging`() {
+        setContent(
+            CloudSyncState(
+                binding = CloudBinding(CloudProvider.Shared, "ws-1", "Budget"),
+                shared =
+                    SharedCardState(
+                        signedIn = true,
+                        active = true,
+                        isWorkspaceOwner = false,
+                        isWorkspaceReadOnly = true,
+                        isWorkspaceAccessKnown = true,
+                        warning = EntitlementWarning.GRACE_ENTERED,
+                    ),
+            ),
+        )
+
+        composeTestRule
+            .onNodeWithText(str(R.string.sync_shared_read_only_body))
+            .performScrollTo()
+            .assertIsDisplayed()
+        composeTestRule.onNodeWithText(str(R.string.sync_shared_warning_grace_title)).assertDoesNotExist()
+        composeTestRule.onNodeWithText(str(R.string.sync_shared_warning_renew)).assertDoesNotExist()
     }
 
     @Test

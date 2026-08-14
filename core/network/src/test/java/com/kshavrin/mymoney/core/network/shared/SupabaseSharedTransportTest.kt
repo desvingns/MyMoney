@@ -160,7 +160,7 @@ class SupabaseSharedTransportTest {
             val restartedRpc = SupabaseSharedWorkspaceRpc(restartedAuth, SupabaseHttpTransport(config, OkHttpClient(), Json))
             server.enqueue(
                 MockResponse().setResponseCode(200).setBody(
-                    """{"id":"workspace-1","name":"Budget","owner_id":"user-1","created_at":"2026-07-29T12:00:00Z"}""",
+                    workspaceResponse(),
                 ),
             )
 
@@ -185,7 +185,7 @@ class SupabaseSharedTransportTest {
             server.enqueue(MockResponse().setResponseCode(200).setBody(sessionResponse("refreshed-access-token", "rotated-refresh-token")))
             server.enqueue(
                 MockResponse().setResponseCode(200).setBody(
-                    """{"id":"workspace-1","name":"Budget","owner_id":"user-1","created_at":"2026-07-29T12:00:00Z"}""",
+                    workspaceResponse(),
                 ),
             )
 
@@ -353,6 +353,20 @@ class SupabaseSharedTransportTest {
         }
 
     @Test
+    fun `workspace RPC maps server entitlement required to its typed sync error`() =
+        runTest {
+            signIn()
+            server.enqueue(
+                MockResponse().setResponseCode(403).setBody("{\"message\":\"entitlement_required\"}"),
+            )
+
+            val result = workspaceRpc.createWorkspace("Budget")
+
+            assertSyncError(result, SyncError.EntitlementRequired)
+            server.takeRequest()
+        }
+
+    @Test
     fun `post applies a per-call deadline and maps the timeout to network`() =
         runTest {
             val config =
@@ -427,10 +441,25 @@ class SupabaseSharedTransportTest {
             assertSyncError(result, SyncError.Auth)
             val request = server.takeRequest()
             assertEquals(
-                "/rest/v1/workspace_members?select=workspace:workspaces!inner(id,name,owner_id,created_at)&active=eq.true&limit=1",
+                "/rest/v1/workspace_members?select=workspace:workspaces!inner(id,name,owner_id,created_at,billing_state,billing_state_until)&active=eq.true&limit=1",
                 request.path,
             )
             assertEquals("Bearer shared-access-token", request.getHeader("Authorization"))
+        }
+
+    @Test
+    fun `current workspace fails closed when the server omits billing state`() =
+        runTest {
+            signIn()
+            server.enqueue(
+                MockResponse().setResponseCode(200).setBody(
+                    """[{"workspace":{"id":"workspace-1","name":"Budget","owner_id":"user-1","created_at":"2026-07-29T12:00:00Z"}}]""",
+                ),
+            )
+
+            val result = workspaceRpc.currentWorkspace()
+
+            assertSyncError(result, SyncError.Server)
         }
 
     @Test
@@ -511,7 +540,7 @@ class SupabaseSharedTransportTest {
             signIn()
             server.enqueue(
                 MockResponse().setResponseCode(200).setBody(
-                    """{"id":"workspace-1","name":"Budget","owner_id":"user-1","created_at":"2026-07-29T12:00:00Z"}""",
+                    workspaceResponse(),
                 ),
             )
 
@@ -780,4 +809,7 @@ class SupabaseSharedTransportTest {
         val exception = result.exceptionOrNull() as? SyncException
         assertEquals(expected, exception?.syncError)
     }
+
+    private fun workspaceResponse(): String =
+        """{"id":"workspace-1","name":"Budget","owner_id":"user-1","created_at":"2026-07-29T12:00:00Z","billing_state":"active","billing_state_until":null}"""
 }

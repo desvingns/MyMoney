@@ -3,6 +3,7 @@ package com.kshavrin.mymoney.core.sync.shared
 import com.kshavrin.mymoney.core.domain.sync.SharedConflict
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import java.time.Instant
 
 data class SharedWorkspaceSummary(
     val id: String,
@@ -18,9 +19,19 @@ data class SharedWorkspaceOwnership(
     val isSoleOwner: Boolean = false,
 )
 
+enum class SharedWorkspaceBillingState {
+    Active,
+    Grace,
+    Expired,
+}
+
 data class SharedWorkspaceAccess(
-    val isReadOnly: Boolean = false,
-)
+    val billingState: SharedWorkspaceBillingState = SharedWorkspaceBillingState.Active,
+    val billingStateUntil: Instant? = null,
+) {
+    val isReadOnly: Boolean
+        get() = billingState != SharedWorkspaceBillingState.Active
+}
 
 /**
  * Single orchestration entry point for Shared sync mode. Unlike the file-exchange

@@ -30,10 +30,13 @@ import com.kshavrin.mymoney.core.common.exception.reportToSentry
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -97,9 +100,9 @@ class AdMobAdGateway
                     return@withLock unavailable(AdAvailability.ConsentRequired)
                 }
 
-                clearPendingRewarded()
-                mutableAvailability.value = AdAvailability.Loading
                 try {
+                    clearPendingRewarded()
+                    mutableAvailability.value = AdAvailability.Loading
                     withTimeout(REWARDED_LOAD_TIMEOUT_MILLIS) {
                         val token =
                             rewardTokenSource.requestToken().getOrElse { error ->
@@ -126,10 +129,15 @@ class AdMobAdGateway
                             }
                         }
                     }
-                } catch (_: TimeoutCancellationException) {
+                } catch (error: TimeoutCancellationException) {
+                    if (!currentCoroutineContext().isActive) {
+                        throw error
+                    }
                     noFillStreak.reset()
                     clearPendingRewarded()
                     unavailable(AdAvailability.Offline)
+                } finally {
+                    clearCancelledOperation()
                 }
             }
 
@@ -139,41 +147,45 @@ class AdMobAdGateway
                     noFillStreak.reset()
                     return@withLock showUnavailable(AdAvailability.Disabled)
                 }
-                val token = rewardedToken
-                if (token == null || !token.expiresAt.isAfter(clock.instant())) {
-                    noFillStreak.reset()
-                    clearPendingRewarded()
-                    return@withLock showUnavailable(AdAvailability.NoFill)
-                }
-
-                val currentSessionUserId =
-                    rewardTokenSource.currentSessionUserId().getOrElse { error ->
+                try {
+                    val token = rewardedToken
+                    if (token == null || !token.expiresAt.isAfter(clock.instant())) {
                         noFillStreak.reset()
                         clearPendingRewarded()
-                        return@withLock showAuthenticationFailure(error)
-                    }
-                if (token.sessionUserId != null && currentSessionUserId != token.sessionUserId) {
-                    noFillStreak.reset()
-                    clearPendingRewarded()
-                    return@withLock showUnauthenticated()
-                }
-                if (!token.expiresAt.isAfter(clock.instant())) {
-                    noFillStreak.reset()
-                    clearPendingRewarded()
-                    return@withLock showUnavailable(AdAvailability.NoFill)
-                }
-                rewardedToken = null
-                when (val result = showAd(activity)) {
-                    is RewardedAdShowResult.Dismissed -> AdShowResult.Dismissed(rewardEarned = false)
-                    is RewardedAdShowResult.Failed -> {
-                        noFillStreak.reset()
-                        showUnavailable(adErrorMapper.map(result.errorCode, result.errorMessage))
+                        return@withLock showUnavailable(AdAvailability.NoFill)
                     }
 
-                    RewardedAdShowResult.NotLoaded -> {
+                    val currentSessionUserId =
+                        rewardTokenSource.currentSessionUserId().getOrElse { error ->
+                            noFillStreak.reset()
+                            clearPendingRewarded()
+                            return@withLock showAuthenticationFailure(error)
+                        }
+                    if (token.sessionUserId != null && currentSessionUserId != token.sessionUserId) {
                         noFillStreak.reset()
-                        showUnavailable(AdAvailability.NoFill)
+                        clearPendingRewarded()
+                        return@withLock showUnauthenticated()
                     }
+                    if (!token.expiresAt.isAfter(clock.instant())) {
+                        noFillStreak.reset()
+                        clearPendingRewarded()
+                        return@withLock showUnavailable(AdAvailability.NoFill)
+                    }
+                    rewardedToken = null
+                    when (val result = showAd(activity)) {
+                        is RewardedAdShowResult.Dismissed -> AdShowResult.Dismissed(rewardEarned = false)
+                        is RewardedAdShowResult.Failed -> {
+                            noFillStreak.reset()
+                            showUnavailable(adErrorMapper.map(result.errorCode, result.errorMessage))
+                        }
+
+                        RewardedAdShowResult.NotLoaded -> {
+                            noFillStreak.reset()
+                            showUnavailable(AdAvailability.NoFill)
+                        }
+                    }
+                } finally {
+                    clearCancelledOperation()
                 }
             }
 
@@ -243,6 +255,16 @@ class AdMobAdGateway
         private suspend fun clearPendingRewarded() {
             rewardedToken = null
             withContext(mainDispatcher) { rewardedAdClient.clear() }
+        }
+
+        private suspend fun clearCancelledOperation() {
+            if (currentCoroutineContext().isActive) return
+            withContext(NonCancellable + mainDispatcher) {
+                rewardedToken = null
+                runCatching { rewardedAdClient.clear() }.onFailure(Throwable::reportToSentry)
+                noFillStreak.reset()
+                mutableAvailability.value = AdAvailability.NoFill
+            }
         }
 
         private suspend fun loadAd(

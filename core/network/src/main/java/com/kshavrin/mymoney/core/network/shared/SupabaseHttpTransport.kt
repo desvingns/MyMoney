@@ -2,6 +2,7 @@ package com.kshavrin.mymoney.core.network.shared
 
 import com.kshavrin.mymoney.core.common.exception.SyncError
 import com.kshavrin.mymoney.core.common.exception.SyncException
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
@@ -9,13 +10,17 @@ import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import okhttp3.Call
+import okhttp3.Callback
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
 import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.coroutines.resume
 
 @Singleton
 class SupabaseHttpTransport
@@ -77,7 +82,7 @@ class SupabaseHttpTransport
                     .build(),
             )
 
-        private fun execute(
+        private suspend fun execute(
             request: Request,
             mapBadRequestToAuth: Boolean = false,
             mapMembershipDeniedToAuth: Boolean = false,
@@ -85,25 +90,62 @@ class SupabaseHttpTransport
             preservePostgrestConflict: Boolean = false,
         ): Result<SupabaseHttpResponse> {
             if (!config.isConfigured) return Result.failure(SyncException(SyncError.Server))
-            return runCatching {
-                client.newCall(request).execute().use { response ->
-                    val responseBody = response.body?.string().orEmpty()
-                    if (!response.isSuccessful) {
-                        throw SupabaseHttpException(
-                            statusCode = response.code,
-                            responseBody = responseBody,
-                            mapBadRequestToAuth = mapBadRequestToAuth,
-                            mapMembershipDeniedToAuth = mapMembershipDeniedToAuth,
-                            mapAccountDeletionWorkspaceConflict = mapAccountDeletionWorkspaceConflict,
-                            preservePostgrestConflict = preservePostgrestConflict,
-                        )
-                    }
-                    SupabaseHttpResponse(
-                        body = responseBody.takeIf(String::isNotBlank)?.let(json::parseToJsonElement) ?: JsonNull,
-                        contentRange = response.header(CONTENT_RANGE_HEADER),
+            return suspendCancellableCoroutine { continuation ->
+                val call = client.newCall(request)
+                continuation.invokeOnCancellation { call.cancel() }
+                runCatching {
+                    call.enqueue(
+                        object : Callback {
+                            override fun onFailure(
+                                call: Call,
+                                error: IOException,
+                            ) {
+                                if (continuation.isActive) {
+                                    continuation.resume(Result.failure<SupabaseHttpResponse>(error).mapFailure())
+                                }
+                            }
+
+                            override fun onResponse(
+                                call: Call,
+                                response: Response,
+                            ) {
+                                val result =
+                                    runCatching {
+                                        response.use {
+                                            val responseBody = response.body?.string().orEmpty()
+                                            if (!response.isSuccessful) {
+                                                throw SupabaseHttpException(
+                                                    statusCode = response.code,
+                                                    responseBody = responseBody,
+                                                    mapBadRequestToAuth = mapBadRequestToAuth,
+                                                    mapMembershipDeniedToAuth = mapMembershipDeniedToAuth,
+                                                    mapAccountDeletionWorkspaceConflict =
+                                                        mapAccountDeletionWorkspaceConflict,
+                                                    preservePostgrestConflict = preservePostgrestConflict,
+                                                )
+                                            }
+                                            SupabaseHttpResponse(
+                                                body =
+                                                    responseBody
+                                                        .takeIf(String::isNotBlank)
+                                                        ?.let(json::parseToJsonElement)
+                                                        ?: JsonNull,
+                                                contentRange = response.header(CONTENT_RANGE_HEADER),
+                                            )
+                                        }
+                                    }.mapFailure()
+                                if (continuation.isActive) {
+                                    continuation.resume(result)
+                                }
+                            }
+                        },
                     )
+                }.onFailure { error ->
+                    if (continuation.isActive) {
+                        continuation.resume(Result.failure<SupabaseHttpResponse>(error).mapFailure())
+                    }
                 }
-            }.mapFailure()
+            }
         }
 
         private companion object {

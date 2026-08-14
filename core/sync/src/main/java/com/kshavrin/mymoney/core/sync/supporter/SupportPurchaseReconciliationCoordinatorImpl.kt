@@ -36,8 +36,9 @@ class SupportPurchaseReconciliationCoordinatorImpl
         override val state: StateFlow<SupportPurchaseReconciliationState> = _state.asStateFlow()
 
         override suspend fun reconcile() {
-            withContext(dispatcher) {
-                reconciliationMutex.withLock {
+            if (!reconciliationMutex.tryLock()) return
+            try {
+                withContext(dispatcher) {
                     _state.value = SupportPurchaseReconciliationState.Loading
                     val result = billingGateway.resolvePendingPurchases()
                     result.exceptionOrNull()?.reportToSentry()
@@ -49,6 +50,8 @@ class SupportPurchaseReconciliationCoordinatorImpl
                             reconciliationState(outcomes)
                         }
                 }
+            } finally {
+                reconciliationMutex.unlock()
             }
         }
 

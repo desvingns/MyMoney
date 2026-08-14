@@ -55,6 +55,11 @@ class SupportViewModel
             log(AnalyticsEvent.SupportOpened)
             observeSupporterState()
             observePurchaseReconciliation()
+            refreshBilling()
+        }
+
+        fun onScreenResumed() {
+            refreshBilling()
         }
 
         fun onEvent(event: SupportEvent) {
@@ -91,7 +96,10 @@ class SupportViewModel
                             hasUnresolvedPendingPurchase = true
                             showPendingPurchase()
                         }
-                        SupportPurchaseReconciliationState.NetworkError -> showNetworkError()
+                        SupportPurchaseReconciliationState.NetworkError -> {
+                            hasUnresolvedPendingPurchase = false
+                            showNetworkError()
+                        }
                     }
                 }
             }

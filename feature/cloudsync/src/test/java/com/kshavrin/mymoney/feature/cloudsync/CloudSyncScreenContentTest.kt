@@ -182,6 +182,30 @@ class CloudSyncScreenContentTest {
     }
 
     @Test
+    fun `entitlement rejection shows the warning without a technical realtime card`() {
+        setContent(
+            CloudSyncState(
+                binding = CloudBinding(CloudProvider.Shared, "ws-1", "Budget"),
+                shared =
+                    SharedCardState(
+                        signedIn = true,
+                        active = true,
+                        isWorkspaceOwner = true,
+                        isWorkspaceReadOnly = true,
+                        warning = EntitlementWarning.GRACE_ENTERED,
+                        realtimeStatus = SharedRealtimeStatus.EntitlementRequired,
+                    ),
+            ),
+        )
+
+        composeTestRule
+            .onNodeWithText(str(R.string.sync_shared_warning_grace_title))
+            .performScrollTo()
+            .assertIsDisplayed()
+        composeTestRule.onNodeWithTag("cloud_sync_shared_realtime_status").assertDoesNotExist()
+    }
+
+    @Test
     fun `Shared card shows create-invite button only for an active workspace`() {
         setContent(
             CloudSyncState(

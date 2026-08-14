@@ -42,6 +42,8 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.time.Clock
 import java.time.Duration
 import javax.inject.Inject
@@ -81,6 +83,8 @@ class CloudSyncViewModel
         private var pendingMigration: PendingMigration? = null
         private var pendingMigrationAuthentication: SyncTarget? = null
         private var refreshGeneration = 0L
+        private var refreshJob: Job? = null
+        private val refreshMutex = Mutex()
         private var foregroundRealtimeGeneration = 0L
         private var foregroundRealtimeActive = false
         private var foregroundRealtimeStartJob: Job? = null
@@ -378,28 +382,32 @@ class CloudSyncViewModel
         private fun refresh() {
             applyEntitlement(latestEntitlement)
             val generation = ++refreshGeneration
-            viewModelScope.launch {
-                val binding = journalSyncConfig.binding()
-                val dropbox = verifiedCard(_state.value.dropbox)
-                val drive = verifiedCard(_state.value.drive)
-                val activeError =
-                    when (binding?.provider) {
-                        CloudProvider.Dropbox -> dropbox.errorRes
-                        CloudProvider.GoogleDrive -> drive.errorRes
-                        CloudProvider.Shared -> null
-                        null -> null
+            refreshJob?.cancel()
+            refreshJob =
+                viewModelScope.launch {
+                    refreshMutex.withLock {
+                        val binding = journalSyncConfig.binding()
+                        val dropbox = verifiedCard(_state.value.dropbox)
+                        val drive = verifiedCard(_state.value.drive)
+                        val activeError =
+                            when (binding?.provider) {
+                                CloudProvider.Dropbox -> dropbox.errorRes
+                                CloudProvider.GoogleDrive -> drive.errorRes
+                                CloudProvider.Shared -> null
+                                null -> null
+                            }
+                        if (generation != refreshGeneration) return@launch
+                        _state.value =
+                            _state.value.copy(
+                                binding = binding,
+                                dropbox = dropbox.card,
+                                drive = drive.card,
+                                requiresProviderChoice = binding == null && dropbox.card.connected && drive.card.connected,
+                                errorBannerRes = activeError ?: _state.value.errorBannerRes,
+                            )
+                        refreshShared(binding?.provider == CloudProvider.Shared, generation)
                     }
-                if (generation != refreshGeneration) return@launch
-                _state.value =
-                    _state.value.copy(
-                        binding = binding,
-                        dropbox = dropbox.card,
-                        drive = drive.card,
-                        requiresProviderChoice = binding == null && dropbox.card.connected && drive.card.connected,
-                        errorBannerRes = activeError ?: _state.value.errorBannerRes,
-                    )
-                refreshShared(binding?.provider == CloudProvider.Shared, generation)
-            }
+                }
         }
 
         private suspend fun refreshShared(
@@ -500,19 +508,27 @@ class CloudSyncViewModel
                                 },
                         ),
                 )
+            if (sharedEnabled && stillActive && !isWorkspaceReadOnly && foregroundRealtimeActive) {
+                startForegroundRealtime()
+            }
         }
 
         private fun observeForegroundRealtimeStatus() {
             viewModelScope.launch {
                 sharedCoordinator.foregroundRealtimeStatus.collect { status ->
-                    _state.value =
-                        _state.value.copy(
-                            shared = _state.value.shared.copy(realtimeStatus = status),
-                        )
                     if (status == SharedRealtimeStatus.EntitlementRequired) {
+                        _state.value =
+                            _state.value.copy(
+                                shared = _state.value.shared.copy(realtimeStatus = SharedRealtimeStatus.Inactive),
+                            )
                         markServerEntitlementRequired()
                         sharedCoordinator.stopForegroundRealtime()
                         refresh()
+                    } else {
+                        _state.value =
+                            _state.value.copy(
+                                shared = _state.value.shared.copy(realtimeStatus = status),
+                            )
                     }
                 }
             }
@@ -636,7 +652,6 @@ class CloudSyncViewModel
                         }
                     } else {
                         refresh()
-                        startForegroundRealtime()
                     }
                 }
             }
@@ -659,10 +674,13 @@ class CloudSyncViewModel
         }
 
         private fun startForegroundRealtime() {
+            val shared = _state.value.shared
             if (
                 !foregroundRealtimeActive ||
                     !cloudSyncSettings.availability().sharedEnabled ||
-                    _state.value.shared.isWorkspaceReadOnly
+                    !shared.active ||
+                    !shared.isWorkspaceAccessKnown ||
+                    shared.isWorkspaceReadOnly
             ) {
                 return
             }
@@ -671,10 +689,14 @@ class CloudSyncViewModel
             foregroundRealtimeStartJob =
                 viewModelScope.launch {
                     try {
+                        val currentShared = _state.value.shared
                         if (
                             foregroundRealtimeActive &&
                             generation == foregroundRealtimeGeneration &&
-                            journalSyncConfig.binding()?.provider == CloudProvider.Shared
+                            journalSyncConfig.binding()?.provider == CloudProvider.Shared &&
+                            currentShared.active &&
+                            currentShared.isWorkspaceAccessKnown &&
+                            !currentShared.isWorkspaceReadOnly
                         ) {
                             sharedCoordinator.startForegroundRealtime()
                         }
@@ -700,7 +722,14 @@ class CloudSyncViewModel
         }
 
         private fun restartForegroundRealtime() {
-            if (!foregroundRealtimeActive || _state.value.shared.isWorkspaceReadOnly) return
+            if (
+                !foregroundRealtimeActive ||
+                    !_state.value.shared.active ||
+                    !_state.value.shared.isWorkspaceAccessKnown ||
+                    _state.value.shared.isWorkspaceReadOnly
+            ) {
+                return
+            }
             foregroundRealtimeStartJob?.cancel()
             foregroundRealtimeStartJob = null
             sharedCoordinator.stopForegroundRealtime()
@@ -951,8 +980,10 @@ class CloudSyncViewModel
             viewModelScope.launch {
                 try {
                     useCase.entitlement.collect { entitlement ->
+                        val changed = latestEntitlement != entitlement
                         latestEntitlement = entitlement
                         applyEntitlement(entitlement)
+                        if (changed) refresh()
                     }
                 } catch (t: Throwable) {
                     if (t is CancellationException) throw t

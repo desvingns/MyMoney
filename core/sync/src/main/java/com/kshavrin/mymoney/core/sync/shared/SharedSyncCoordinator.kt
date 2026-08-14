@@ -65,8 +65,7 @@ interface SharedSyncCoordinator {
     suspend fun activeWorkspaceOwnership(): Result<SharedWorkspaceOwnership> =
         Result.success(SharedWorkspaceOwnership())
 
-    suspend fun activeWorkspaceAccess(): Result<SharedWorkspaceAccess> =
-        Result.success(SharedWorkspaceAccess())
+    suspend fun activeWorkspaceAccess(): Result<SharedWorkspaceAccess>
 
     fun consumeRestartRequiredAfterAdoptionRecovery(): Boolean = false
 

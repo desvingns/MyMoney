@@ -375,6 +375,18 @@ class SharedSyncCoordinatorImplTest {
         }
 
     @Test
+    fun `active workspace access rejects a missing server workspace`() =
+        runTest(dispatcher) {
+            auth.session = fakeSession()
+            workspaceApi.currentWorkspaceResult = Result.success(null)
+
+            val result = coordinator.activeWorkspaceAccess()
+
+            assertTrue(result.isFailure)
+            assertEquals(SyncError.Auth, (result.exceptionOrNull() as? SyncException)?.syncError)
+        }
+
+    @Test
     fun `active workspace access propagates cancellation`() =
         runTest(dispatcher) {
             auth.session = fakeSession()

@@ -168,6 +168,82 @@ class SupabaseSharedRealtimeTest {
         }
 
     @Test
+    fun `join entitlement rejection closes the stream with the typed entitlement error`() =
+        runBlocking {
+            val opened = CompletableFuture<WebSocket>()
+            server.enqueue(
+                MockResponse().withWebSocketUpgrade(
+                    object : WebSocketListener() {
+                        override fun onOpen(
+                            webSocket: WebSocket,
+                            response: okhttp3.Response,
+                        ) {
+                            opened.complete(webSocket)
+                        }
+                    },
+                ),
+            )
+            val realtime = configuredRealtime()
+            val failure = CompletableFuture<Throwable>()
+            val collection =
+                launch(Dispatchers.Default) {
+                    runCatching { realtime.events("workspace-1", "access-token").collect() }
+                        .onFailure(failure::complete)
+                }
+
+            try {
+                yield()
+                val socket = opened.awaitSocket(failure)
+                checkNotNull(server.takeRequest(2, TimeUnit.SECONDS))
+                socket.send(
+                    """{"event":"phx_reply","ref":"1","payload":{"status":"error","response":{"message":"entitlement_required"}}}""",
+                )
+
+                val error = failure.get(2, TimeUnit.SECONDS) as SyncException
+                assertEquals(SyncError.EntitlementRequired, error.syncError)
+            } finally {
+                collection.cancelAndJoin()
+            }
+        }
+
+    @Test
+    fun `realtime entitlement phx error closes the stream with the typed entitlement error`() =
+        runBlocking {
+            val opened = CompletableFuture<WebSocket>()
+            server.enqueue(
+                MockResponse().withWebSocketUpgrade(
+                    object : WebSocketListener() {
+                        override fun onOpen(
+                            webSocket: WebSocket,
+                            response: okhttp3.Response,
+                        ) {
+                            opened.complete(webSocket)
+                        }
+                    },
+                ),
+            )
+            val realtime = configuredRealtime()
+            val failure = CompletableFuture<Throwable>()
+            val collection =
+                launch(Dispatchers.Default) {
+                    runCatching { realtime.events("workspace-1", "access-token").collect() }
+                        .onFailure(failure::complete)
+                }
+
+            try {
+                yield()
+                val socket = opened.awaitSocket(failure)
+                checkNotNull(server.takeRequest(2, TimeUnit.SECONDS))
+                socket.send("""{"event":"phx_error","payload":{"message":"entitlement_required"}}""")
+
+                val error = failure.get(2, TimeUnit.SECONDS) as SyncException
+                assertEquals(SyncError.EntitlementRequired, error.syncError)
+            } finally {
+                collection.cancelAndJoin()
+            }
+        }
+
+    @Test
     fun `malformed messages and unknown events do not create false operation notifications`() =
         runBlocking {
             val opened = CompletableFuture<WebSocket>()

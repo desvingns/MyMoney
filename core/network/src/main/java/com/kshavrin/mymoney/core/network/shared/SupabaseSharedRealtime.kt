@@ -11,6 +11,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
@@ -81,16 +82,15 @@ class SupabaseSharedRealtime
                                 when (message["event"]?.jsonPrimitive?.content) {
                                     "phx_reply" -> {
                                         if (message["ref"]?.jsonPrimitive?.content != CHANNEL_JOIN_REF) return
+                                        val payload = message["payload"] as? JsonObject
                                         val joined =
-                                            message["payload"]
-                                                ?.jsonObject
-                                                ?.get("status")
-                                                ?.jsonPrimitive
-                                                ?.content == "ok"
+                                            runCatching {
+                                                payload?.get("status")?.jsonPrimitive?.content == "ok"
+                                            }.getOrDefault(false)
                                         if (joined) {
                                             trySend(SharedRealtimeEvent.Connected)
                                         } else {
-                                            close(SyncException(SyncError.Server))
+                                            close(payload.entitlementRequiredError())
                                         }
                                     }
 
@@ -100,7 +100,12 @@ class SupabaseSharedRealtime
                                         }
                                     }
 
-                                    "phx_close", "phx_error" -> close(SyncException(SyncError.Server))
+                                    "phx_close" -> close(SyncException(SyncError.Server))
+
+                                    "phx_error" ->
+                                        close(
+                                            (message["payload"] as? JsonObject).entitlementRequiredError(),
+                                        )
                                 }
                             }
 
@@ -170,13 +175,32 @@ class SupabaseSharedRealtime
         private fun workspaceTopic(workspaceId: String) =
             "workspace:$workspaceId:operations"
 
-        private fun kotlinx.serialization.json.JsonObject.isOperationAvailableBroadcast(): Boolean =
+        private fun JsonObject.isOperationAvailableBroadcast(): Boolean =
             runCatching {
                 get("payload")
                     ?.jsonObject
                     ?.get("event")
                     ?.jsonPrimitive
                     ?.content == OPERATION_AVAILABLE_EVENT
+            }.getOrDefault(false)
+
+        private fun JsonObject?.entitlementRequiredError(): SyncException =
+            SyncException(
+                if (this?.containsEntitlementRequired() == true) {
+                    SyncError.EntitlementRequired
+                } else {
+                    SyncError.Server
+                },
+            )
+
+        private fun JsonObject.containsEntitlementRequired(): Boolean =
+            runCatching {
+                sequenceOf("message", "code", "reason")
+                    .mapNotNull { key -> get(key)?.jsonPrimitive?.content }
+                    .any { value -> value == ENTITLEMENT_REQUIRED } ||
+                    sequenceOf("response", "error")
+                        .mapNotNull { key -> get(key)?.jsonObject }
+                        .any { nested -> nested.containsEntitlementRequired() }
             }.getOrDefault(false)
 
         private fun SupabaseConfig.realtimeUrl() =
@@ -193,6 +217,7 @@ class SupabaseSharedRealtime
             const val INITIAL_HEARTBEAT_REF = 2L
             const val HEARTBEAT_INTERVAL_MILLIS = 25_000L
             const val OPERATION_AVAILABLE_EVENT = "operation_available"
+            const val ENTITLEMENT_REQUIRED = "entitlement_required"
         }
     }
 

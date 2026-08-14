@@ -812,16 +812,17 @@ private fun SharedRealtimeStatusCard(
     enabled: Boolean,
     onEvent: (CloudSyncEvent) -> Unit,
 ) {
-    if (status == SharedRealtimeStatus.Inactive) return
+    if (status == SharedRealtimeStatus.Inactive || status == SharedRealtimeStatus.EntitlementRequired) return
     val container =
         when (status) {
             SharedRealtimeStatus.Connected -> MaterialTheme.colorScheme.sharedSyncConnectedContainer
             SharedRealtimeStatus.Starting -> MaterialTheme.colorScheme.sharedSyncStartingContainer
             is SharedRealtimeStatus.Sleeping -> MaterialTheme.colorScheme.sharedSyncSleepingContainer
             is SharedRealtimeStatus.Retrying -> MaterialTheme.colorScheme.sharedSyncRetryingContainer
-            SharedRealtimeStatus.EntitlementRequired -> MaterialTheme.colorScheme.sharedSyncErrorContainer
             SharedRealtimeStatus.Error -> MaterialTheme.colorScheme.sharedSyncErrorContainer
-            SharedRealtimeStatus.Inactive -> return
+            SharedRealtimeStatus.Inactive,
+            SharedRealtimeStatus.EntitlementRequired,
+            -> return
         }
     val content =
         when (status) {
@@ -829,9 +830,10 @@ private fun SharedRealtimeStatusCard(
             SharedRealtimeStatus.Starting -> MaterialTheme.colorScheme.sharedSyncStartingContent
             is SharedRealtimeStatus.Sleeping -> MaterialTheme.colorScheme.sharedSyncSleepingContent
             is SharedRealtimeStatus.Retrying -> MaterialTheme.colorScheme.sharedSyncRetryingContent
-            SharedRealtimeStatus.EntitlementRequired -> MaterialTheme.colorScheme.sharedSyncErrorContent
             SharedRealtimeStatus.Error -> MaterialTheme.colorScheme.sharedSyncErrorContent
-            SharedRealtimeStatus.Inactive -> return
+            SharedRealtimeStatus.Inactive,
+            SharedRealtimeStatus.EntitlementRequired,
+            -> return
         }
     val statusText =
         when (status) {
@@ -839,9 +841,10 @@ private fun SharedRealtimeStatusCard(
             SharedRealtimeStatus.Starting -> stringResource(R.string.sync_shared_status_starting)
             is SharedRealtimeStatus.Sleeping -> stringResource(R.string.sync_shared_status_sleeping)
             is SharedRealtimeStatus.Retrying -> stringResource(R.string.sync_shared_status_retrying, status.retryAttempt)
-            SharedRealtimeStatus.EntitlementRequired -> stringResource(R.string.sync_shared_status_error)
             SharedRealtimeStatus.Error -> stringResource(R.string.sync_shared_status_error)
-            SharedRealtimeStatus.Inactive -> return
+            SharedRealtimeStatus.Inactive,
+            SharedRealtimeStatus.EntitlementRequired,
+            -> return
         }
     Card(
         modifier = Modifier.fillMaxWidth().testTag("cloud_sync_shared_realtime_status"),

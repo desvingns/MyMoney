@@ -32,6 +32,7 @@ import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceOwnership
 import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceSummary
 import com.kshavrin.mymoney.core.sync.usecase.CloudSyncBackupsUseCase
 import com.kshavrin.mymoney.core.sync.usecase.CloudSyncSettingsUseCase
+import com.kshavrin.mymoney.core.ui.navigation.PaywallEntryPoint
 import com.kshavrin.mymoney.core.testing.fake.FakeAppSettingsRepository
 import com.kshavrin.mymoney.feature.cloudsync.fake.FakeRemoteConfigRepository
 import com.kshavrin.mymoney.feature.cloudsync.util.MainDispatcherRule
@@ -288,13 +289,52 @@ class CloudSyncViewModelTest {
         }
 
     @Test
-    fun `SharedJoinWorkspace trims invite token before delegating`() =
+    fun `Free owner creation opens paywall without creating a workspace`() =
         runTest {
             val shared = SharedCoordinator().apply { signedIn = true }
-            val vm = viewModel(SnapshotFake(), RecordingJournalSync(), Config(null), Scheduler(), shared = shared)
-            vm.onEvent(CloudSyncEvent.SharedSetupClicked)
-            vm.onEvent(CloudSyncEvent.SharedJoinWorkspace("  invite-abc  "))
-            runCurrent()
+            val vm =
+                viewModel(
+                    SnapshotFake(),
+                    RecordingJournalSync(),
+                    Config(null),
+                    Scheduler(),
+                    shared = shared,
+                    entitlement = EntitlementFake(UserEntitlement.Free),
+                )
+
+            vm.actions.test {
+                vm.onEvent(CloudSyncEvent.SharedCreateWorkspace("My Budget"))
+                assertEquals(
+                    CloudSyncAction.NavigateToPaywall(PaywallEntryPoint.SharedSyncGate),
+                    awaitItem(),
+                )
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            assertEquals(0, shared.createCalls)
+        }
+
+    @Test
+    fun `Free participant joins a foreign workspace without opening paywall`() =
+        runTest {
+            val shared = SharedCoordinator().apply { signedIn = true }
+            val vm =
+                viewModel(
+                    SnapshotFake(),
+                    RecordingJournalSync(),
+                    Config(null),
+                    Scheduler(),
+                    shared = shared,
+                    entitlement = EntitlementFake(UserEntitlement.Free),
+                )
+
+            vm.actions.test {
+                vm.onEvent(CloudSyncEvent.SharedJoinWorkspace("  invite-abc  "))
+                runCurrent()
+                expectNoEvents()
+                cancelAndIgnoreRemainingEvents()
+            }
+
             assertEquals("invite-abc", shared.lastJoinToken)
         }
 
@@ -715,6 +755,9 @@ class CloudSyncViewModelTest {
             assertTrue(vm.state.value.shared.isWorkspaceReadOnly)
             assertFalse(vm.state.value.shared.isWorkspaceAccessKnown)
             assertEquals(CloudProvider.Shared, vm.state.value.binding?.provider)
+            vm.onEvent(CloudSyncEvent.SharedRealtimeForegroundStarted)
+            runCurrent()
+            assertEquals(0, shared.startRealtimeCalls)
         }
 
     @Test
@@ -745,6 +788,49 @@ class CloudSyncViewModelTest {
             assertEquals(EntitlementWarning.GRACE_ENTERED, vm.state.value.shared.warning)
             assertTrue(vm.state.value.shared.isWorkspaceReadOnly)
             assertTrue(shared.stopRealtimeCalls > stopsBeforeRejection)
+        }
+
+    @Test
+    fun `entitlement restoration refreshes server access and restarts active realtime`() =
+        runTest {
+            val entitlement = EntitlementFake(plusEntitlement(EntitlementState.GRACE))
+            val shared =
+                SharedCoordinator().apply {
+                    workspaceAccessResult =
+                        Result.success(
+                            SharedWorkspaceAccess(
+                                billingState = SharedWorkspaceBillingState.Grace,
+                                billingStateUntil = Instant.ofEpochSecond(1_700_172_800L),
+                            ),
+                        )
+                    workspaceOwnership = SharedWorkspaceOwnership(isOwner = true)
+                }
+            val vm =
+                viewModel(
+                    SnapshotFake(),
+                    RecordingJournalSync(),
+                    Config(CloudBinding(CloudProvider.Shared, "ws-1", "Budget")),
+                    Scheduler(),
+                    shared = shared,
+                    entitlement = entitlement,
+                )
+            runCurrent()
+            vm.onEvent(CloudSyncEvent.SharedRealtimeForegroundStarted)
+            runCurrent()
+            assertEquals(0, shared.startRealtimeCalls)
+
+            shared.emitRealtimeStatus(SharedRealtimeStatus.EntitlementRequired)
+            runCurrent()
+            val accessCallsBeforeRestoration = shared.activeWorkspaceAccessCalls
+            shared.workspaceAccessResult =
+                Result.success(SharedWorkspaceAccess(billingState = SharedWorkspaceBillingState.Active))
+            entitlement.entitlement.value = plusEntitlement(EntitlementState.ACTIVE)
+            runCurrent()
+
+            assertTrue(shared.activeWorkspaceAccessCalls > accessCallsBeforeRestoration)
+            assertFalse(vm.state.value.shared.isWorkspaceReadOnly)
+            assertEquals(SharedWorkspaceBillingState.Active, vm.state.value.shared.workspaceBillingState)
+            assertTrue(shared.startRealtimeCalls > 0)
         }
 
     @Test
@@ -952,6 +1038,15 @@ class CloudSyncViewModelTest {
         override suspend fun refresh(): Result<Unit> = Result.success(Unit)
     }
 
+    private fun plusEntitlement(state: EntitlementState) =
+        UserEntitlement.Plus(
+            source = EntitlementSource.SUBSCRIPTION_MONTHLY,
+            state = state,
+            startsAt = Instant.EPOCH,
+            expiresAt = null,
+            graceEndsAt = null,
+        )
+
     private inner class SharedCoordinator : SharedSyncCoordinator {
         var signedIn = false
         var workspaceSummary: SharedWorkspaceSummary? = null
@@ -966,6 +1061,7 @@ class CloudSyncViewModelTest {
         var stopRealtimeCalls = 0
         var activeWorkspaceCalls = 0
         var activeWorkspaceOwnershipCalls = 0
+        var activeWorkspaceAccessCalls = 0
         var listConflictsCalls = 0
         var lastJoinToken: String? = null
         var createInviteResult: Result<SharedWorkspaceInvite> = Result.failure(RuntimeException("unused"))
@@ -980,7 +1076,8 @@ class CloudSyncViewModelTest {
         var recoverRemoteWorkspaceCalls = 0
         var lastRecoveryImportLocalData = false
         var workspaceOwnership = SharedWorkspaceOwnership()
-        var workspaceAccessResult: Result<SharedWorkspaceAccess> = Result.success(SharedWorkspaceAccess())
+        var workspaceAccessResult: Result<SharedWorkspaceAccess> =
+            Result.success(SharedWorkspaceAccess(billingState = SharedWorkspaceBillingState.Active))
         var disconnectResult: Result<Unit> = Result.success(Unit)
         var deleteResult: Result<Unit> = Result.success(Unit)
         private val realtimeStatus = MutableStateFlow<SharedRealtimeStatus>(SharedRealtimeStatus.Inactive)
@@ -1011,7 +1108,10 @@ class CloudSyncViewModelTest {
             return Result.success(workspaceOwnership)
         }
 
-        override suspend fun activeWorkspaceAccess(): Result<SharedWorkspaceAccess> = workspaceAccessResult
+        override suspend fun activeWorkspaceAccess(): Result<SharedWorkspaceAccess> {
+            activeWorkspaceAccessCalls++
+            return workspaceAccessResult
+        }
 
         override suspend fun discoverRemoteWorkspace(): Result<SharedWorkspaceSummary?> {
             discoverRemoteWorkspaceCalls++

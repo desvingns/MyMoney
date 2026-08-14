@@ -31,6 +31,8 @@ import com.kshavrin.mymoney.core.sync.SnapshotSync
 import com.kshavrin.mymoney.core.sync.SyncScheduler
 import com.kshavrin.mymoney.core.sync.SyncTarget
 import com.kshavrin.mymoney.core.sync.shared.SharedSyncCoordinator
+import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceAccess
+import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceBillingState
 import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceInvite
 import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceSummary
 import com.kshavrin.mymoney.core.sync.usecase.CloudSyncBackupsUseCase
@@ -330,6 +332,9 @@ class CloudSyncContentUiTest {
         override suspend fun signOut() = Result.success(Unit)
 
         override suspend fun activeWorkspace() = SharedWorkspaceSummary("ws-1", "Budget")
+
+        override suspend fun activeWorkspaceAccess() =
+            Result.success(SharedWorkspaceAccess(billingState = SharedWorkspaceBillingState.Active))
 
         override suspend fun createWorkspace(
             name: String,

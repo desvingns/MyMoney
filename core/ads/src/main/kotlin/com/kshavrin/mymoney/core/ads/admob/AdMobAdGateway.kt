@@ -29,6 +29,7 @@ import com.kshavrin.mymoney.core.common.exception.SyncException
 import com.kshavrin.mymoney.core.common.exception.reportToSentry
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.TimeoutCancellationException
@@ -46,6 +47,7 @@ import java.time.Clock
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 @Singleton
 class AdMobAdGateway
@@ -67,25 +69,53 @@ class AdMobAdGateway
                 if (adRuntimeConfig.adsEnabled) AdAvailability.ConsentRequired else AdAvailability.Disabled,
             )
         private var consentResult: ConsentResult? = null
+        private var consentRefresh: CompletableDeferred<ConsentResult>? = null
         private var rewardedToken: RewardToken? = null
+        private var rewardedConsent: ConsentResult? = null
 
-        override suspend fun ensureConsent(activity: Activity): ConsentResult =
-            consentMutex.withLock {
-                if (!adRuntimeConfig.adsEnabled) {
-                    mutableAvailability.value = AdAvailability.Disabled
-                    return@withLock ConsentResult.Unavailable
-                }
-
-                consentResult?.let { return@withLock it }
-                val result = withContext(mainDispatcher) { consentGateway.ensureConsent(activity) }
-                if (result.canRequestAds()) {
-                    consentResult = result
-                    mutableAvailability.value = AdAvailability.Available
-                } else {
-                    mutableAvailability.value = AdAvailability.ConsentRequired
-                }
-                result
+        override suspend fun ensureConsent(activity: Activity): ConsentResult {
+            if (!adRuntimeConfig.adsEnabled) {
+                mutableAvailability.value = AdAvailability.Disabled
+                return ConsentResult.Unavailable
             }
+
+            val refresh =
+                consentMutex.withLock {
+                    val existing = consentRefresh
+                    if (existing != null) {
+                        existing to false
+                    } else {
+                        CompletableDeferred<ConsentResult>().also { consentRefresh = it } to true
+                    }
+                }
+            if (!refresh.second) {
+                return refresh.first.await()
+            }
+
+            try {
+                val result = withContext(mainDispatcher) { consentGateway.ensureConsent(activity) }
+                consentResult = result
+                mutableAvailability.value =
+                    if (result.canRequestAds()) {
+                        AdAvailability.Available
+                    } else {
+                        AdAvailability.ConsentRequired
+                    }
+                refresh.first.complete(result)
+                return result
+            } catch (error: Throwable) {
+                refresh.first.completeExceptionally(error)
+                throw error
+            } finally {
+                withContext(NonCancellable) {
+                    consentMutex.withLock {
+                        if (consentRefresh === refresh.first) {
+                            consentRefresh = null
+                        }
+                    }
+                }
+            }
+        }
 
         override suspend fun loadRewarded(): AdLoadResult =
             operationMutex.withLock {
@@ -94,6 +124,14 @@ class AdMobAdGateway
                     return@withLock unavailable(AdAvailability.Disabled)
                 }
 
+                if (
+                    mutableAvailability.value == AdAvailability.RegionUnavailable ||
+                    noFillStreak.isRegionUnavailable()
+                ) {
+                    return@withLock unavailable(AdAvailability.RegionUnavailable)
+                }
+
+                awaitConsentRefresh()
                 val consent = consentMutex.withLock { consentResult }
                 if (consent == null || !consent.canRequestAds()) {
                     noFillStreak.reset()
@@ -117,6 +155,7 @@ class AdMobAdGateway
                             RewardedAdLoadResult.Loaded -> {
                                 noFillStreak.reset()
                                 rewardedToken = token
+                                rewardedConsent = consent
                                 mutableAvailability.value = AdAvailability.Available
                                 AdLoadResult.Loaded
                             }
@@ -153,6 +192,21 @@ class AdMobAdGateway
                         noFillStreak.reset()
                         clearPendingRewarded()
                         return@withLock showUnavailable(AdAvailability.NoFill)
+                    }
+
+                    val refreshedConsent = ensureConsent(activity)
+                    if (!refreshedConsent.canRequestAds()) {
+                        noFillStreak.reset()
+                        clearPendingRewarded()
+                        return@withLock showUnavailable(AdAvailability.ConsentRequired)
+                    }
+                    if (
+                        refreshedConsent.requiresNonPersonalizedAds() &&
+                        rewardedConsent?.requiresNonPersonalizedAds() != true
+                    ) {
+                        noFillStreak.reset()
+                        clearPendingRewarded()
+                        return@withLock showUnavailable(AdAvailability.ConsentRequired)
                     }
 
                     val currentSessionUserId =
@@ -255,6 +309,7 @@ class AdMobAdGateway
 
         private suspend fun clearPendingRewarded() {
             rewardedToken = null
+            rewardedConsent = null
             withContext(mainDispatcher) { rewardedAdClient.clear() }
         }
 
@@ -262,10 +317,16 @@ class AdMobAdGateway
             if (currentCoroutineContext().isActive) return
             withContext(NonCancellable + mainDispatcher) {
                 rewardedToken = null
+                rewardedConsent = null
                 runCatching { rewardedAdClient.clear() }.onFailure(Throwable::reportToSentry)
                 noFillStreak.reset()
                 mutableAvailability.value = AdAvailability.NoFill
             }
+        }
+
+        private suspend fun awaitConsentRefresh() {
+            val refresh = consentMutex.withLock { consentRefresh }
+            refresh?.await()
         }
 
         private suspend fun loadAd(
@@ -359,7 +420,10 @@ class GoogleMobileAdsRewardedClient
                     adRequest(nonPersonalized),
                     object : RewardedAdLoadCallback() {
                         override fun onAdLoaded(ad: RewardedAd) {
-                            if (continuation.isActive) {
+                            if (!continuation.isActive) {
+                                return
+                            }
+                            try {
                                 ad.setServerSideVerificationOptions(
                                     ServerSideVerificationOptions
                                         .Builder()
@@ -367,7 +431,22 @@ class GoogleMobileAdsRewardedClient
                                         .build(),
                                 )
                                 rewardedAd = ad
-                                continuation.resume(RewardedAdLoadResult.Loaded)
+                                if (continuation.isActive) {
+                                    runCatching { continuation.resume(RewardedAdLoadResult.Loaded) }
+                                }
+                            } catch (error: Throwable) {
+                                rewardedAd = null
+                                error.reportToSentry()
+                                if (continuation.isActive) {
+                                    runCatching {
+                                        continuation.resume(
+                                            RewardedAdLoadResult.Failed(
+                                                errorCode = UNKNOWN_SDK_ERROR_CODE,
+                                                errorMessage = error.message,
+                                            ),
+                                        )
+                                    }
+                                }
                             }
                         }
 
@@ -436,10 +515,25 @@ class GoogleMobileAdsRewardedClient
 
         private suspend fun initializeIfNeeded() {
             initializationMutex.withLock {
-                if (!initialized) {
-                    MobileAds.initialize(context) {}
-                    initialized = true
+                if (initialized) {
+                    return
                 }
+                withTimeout(MOBILE_ADS_INITIALIZATION_TIMEOUT_MILLIS) {
+                    suspendCancellableCoroutine<Unit> { continuation ->
+                        try {
+                            MobileAds.initialize(context) {
+                                if (continuation.isActive) {
+                                    runCatching { continuation.resume(Unit) }
+                                }
+                            }
+                        } catch (error: Throwable) {
+                            if (continuation.isActive) {
+                                runCatching { continuation.resumeWithException(error) }
+                            }
+                        }
+                    }
+                }
+                initialized = true
             }
         }
 
@@ -457,6 +551,7 @@ class GoogleMobileAdsRewardedClient
     }
 
 private const val REWARDED_LOAD_TIMEOUT_MILLIS = 20_000L
+private const val MOBILE_ADS_INITIALIZATION_TIMEOUT_MILLIS = 10_000L
 private const val NON_PERSONALIZED_ADS_KEY = "npa"
 private const val UNKNOWN_SDK_ERROR_CODE = -1
 private const val UNKNOWN_SHOW_ERROR_CODE = -1

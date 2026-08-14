@@ -16,6 +16,8 @@ class NoFillStreak(
         return consecutiveNoFillCount >= threshold
     }
 
+    fun isRegionUnavailable(): Boolean = consecutiveNoFillCount >= threshold
+
     fun reset() {
         consecutiveNoFillCount = 0
     }

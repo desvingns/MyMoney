@@ -8,9 +8,9 @@ import com.kshavrin.mymoney.core.network.shared.SupabaseHttpTransport
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -69,18 +69,31 @@ class SupabaseRewardTokenSource
 
 private fun JsonObject.toRewardToken(): RewardToken {
     val customData =
-        this["custom_data"]?.jsonPrimitive?.contentOrNull?.takeIf(String::isNotBlank)
-            ?: error("Missing rewarded ad custom_data")
-    val expiresAt =
-        this["expires_at"]
-            ?.jsonPrimitive
+        (this["custom_data"] as? JsonPrimitive)
+            ?.takeIf { it.isString }
             ?.contentOrNull
-            ?.toRewardTokenExpiry()
-            ?: error("Missing rewarded ad expires_at")
+            ?.takeIf(String::isNotBlank)
+            ?: error("Missing rewarded ad custom_data")
+    val expiresAtValue = this["expires_at"] as? JsonPrimitive ?: error("Missing rewarded ad expires_at")
+    val expiresAt =
+        if (expiresAtValue.isString) {
+            runCatching { Instant.parse(expiresAtValue.content) }
+                .getOrElse { error("Invalid rewarded ad expires_at") }
+        } else {
+            expiresAtValue.content.toLongOrNull()?.toRewardTokenExpiry()
+                ?: error("Invalid rewarded ad expires_at")
+        }
     return RewardToken(customData = customData, expiresAt = expiresAt)
 }
 
-private fun String.toRewardTokenExpiry(): Instant =
-    toLongOrNull()?.let(Instant::ofEpochSecond) ?: Instant.parse(this)
+private fun Long.toRewardTokenExpiry(): Instant =
+    runCatching {
+        if (this >= EPOCH_MILLIS_THRESHOLD || this <= -EPOCH_MILLIS_THRESHOLD) {
+            Instant.ofEpochMilli(this)
+        } else {
+            Instant.ofEpochSecond(this)
+        }
+    }.getOrElse { error("Invalid rewarded ad expires_at") }
 
 private const val REWARD_TOKEN_CALL_TIMEOUT_MILLIS = 10_000L
+private const val EPOCH_MILLIS_THRESHOLD = 1_000_000_000_000L

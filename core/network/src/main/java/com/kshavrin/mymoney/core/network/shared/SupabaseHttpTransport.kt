@@ -2,7 +2,9 @@ package com.kshavrin.mymoney.core.network.shared
 
 import com.kshavrin.mymoney.core.common.exception.SyncError
 import com.kshavrin.mymoney.core.common.exception.SyncException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
@@ -187,8 +189,10 @@ private fun <T> Result<T>.mapFailure(): Result<T> =
 
 private fun Throwable.toSyncException(): Throwable =
     when (this) {
+        is CancellationException -> this
         is SyncException -> this
         is IOException -> SyncException(SyncError.Network)
+        is SerializationException -> SyncException(SyncError.Server)
         is SupabaseHttpException -> toSyncException()
         else -> SyncException(SyncError.Unknown)
     }

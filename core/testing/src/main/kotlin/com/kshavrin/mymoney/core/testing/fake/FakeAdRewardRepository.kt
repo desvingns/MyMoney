@@ -13,6 +13,8 @@ class FakeAdRewardRepository(
     private val rewardState = MutableStateFlow(initialState)
     private var refreshResult: Result<AdRewardState>? = initialState?.let(Result.Companion::success)
     private var confirmationOutcome: ConfirmationOutcome = ConfirmationOutcome.PendingConfirmation
+    private var sessionGeneration = 0L
+    private var stateSessionGeneration = 0L
 
     override val state: StateFlow<AdRewardState?> = rewardState.asStateFlow()
 
@@ -21,15 +23,30 @@ class FakeAdRewardRepository(
             refreshResult
                 ?: rewardState.value?.let(Result.Companion::success)
                 ?: Result.failure(IllegalStateException("No ad reward state has been seeded."))
-        result.onSuccess { refreshedState -> rewardState.value = refreshedState }
+        result.onSuccess { refreshedState ->
+            rewardState.value = refreshedState
+            stateSessionGeneration = sessionGeneration
+        }
         return result
     }
 
-    override suspend fun awaitConfirmation(previous: AdRewardState): ConfirmationOutcome = confirmationOutcome
+    override fun invalidateSession() {
+        sessionGeneration += 1
+        rewardState.value = null
+        refreshResult = null
+    }
+
+    override suspend fun awaitConfirmation(previous: AdRewardState): ConfirmationOutcome =
+        if (rewardState.value == previous && stateSessionGeneration == sessionGeneration) {
+            confirmationOutcome
+        } else {
+            ConfirmationOutcome.PendingConfirmation
+        }
 
     fun seedState(state: AdRewardState?) {
         rewardState.value = state
         refreshResult = state?.let(Result.Companion::success)
+        stateSessionGeneration = sessionGeneration
     }
 
     fun seedRefreshResult(result: Result<AdRewardState>) {

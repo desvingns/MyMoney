@@ -39,18 +39,40 @@ class SupabaseAdRewardRepository
     ) : AdRewardRepository {
         private val stateLock = Any()
         private val mutableState = MutableStateFlow<AdRewardState?>(null)
-        private val exposedState = mutableState.asStateFlow()
         private var cachedSession: RewardSession? = null
+        private var sessionGeneration = 0L
 
-        override val state: StateFlow<AdRewardState?>
-            get() {
-                clearStateForInactiveSession()
-                return exposedState
+        override val state: StateFlow<AdRewardState?> = mutableState.asStateFlow()
+
+        override fun invalidateSession() {
+            synchronized(stateLock) {
+                sessionGeneration += 1
+                cachedSession = null
+                mutableState.value = null
             }
+        }
 
         override suspend fun refresh(): Result<AdRewardState> =
+            refreshFor(expectedSession = null)
+
+        override suspend fun awaitConfirmation(previous: AdRewardState): ConfirmationOutcome {
+            val session = confirmationSessionFor(previous) ?: return ConfirmationOutcome.PendingConfirmation
+            return withTimeoutOrNull(backoff.maximumWaitMillis) {
+                awaitServerConfirmation(previous, session)
+            } ?: ConfirmationOutcome.PendingConfirmation
+        }
+
+        private suspend fun refreshFor(expectedSession: RewardSession?): Result<AdRewardState> =
             withContext(ioDispatcher) {
-                val sessionBeforeAccessToken = currentSession()
+                clearStateForInactiveSession()
+                val sessionBeforeAccessToken = expectedSession ?: currentSession()
+                if (sessionBeforeAccessToken == null) {
+                    return@withContext Result.failure(SyncException(SyncError.Auth))
+                }
+                if (!isCurrentSession(sessionBeforeAccessToken)) {
+                    clearStateFor(sessionBeforeAccessToken)
+                    return@withContext Result.failure(SyncException(SyncError.Auth))
+                }
                 val accessToken =
                     auth
                         .accessToken()
@@ -63,9 +85,14 @@ class SupabaseAdRewardRepository
                 val session =
                     currentSession(accessToken)
                         ?: run {
+                            clearStateFor(sessionBeforeAccessToken)
                             clearStateForInactiveSession()
                             return@withContext Result.failure(SyncException(SyncError.Auth))
                         }
+                if (session != sessionBeforeAccessToken) {
+                    clearStateFor(sessionBeforeAccessToken)
+                    return@withContext Result.failure(SyncException(SyncError.Auth))
+                }
                 val result =
                     http
                         .post(
@@ -92,30 +119,36 @@ class SupabaseAdRewardRepository
                 )
             }
 
-        override suspend fun awaitConfirmation(previous: AdRewardState): ConfirmationOutcome =
-            withTimeoutOrNull(backoff.maximumWaitMillis) {
-                awaitServerConfirmation(previous)
-            } ?: ConfirmationOutcome.PendingConfirmation
-
-        private suspend fun awaitServerConfirmation(previous: AdRewardState): ConfirmationOutcome {
-            confirmationOutcome(previous)?.let { return it }
+        private suspend fun awaitServerConfirmation(
+            previous: AdRewardState,
+            session: RewardSession,
+        ): ConfirmationOutcome {
+            confirmationOutcome(previous, session)?.let { return it }
             for (delayMillis in backoff.delaysMillis) {
                 delay(delayMillis)
-                confirmationOutcome(previous)?.let { return it }
+                confirmationOutcome(previous, session)?.let { return it }
             }
             return ConfirmationOutcome.PendingConfirmation
         }
 
-        private suspend fun confirmationOutcome(previous: AdRewardState): ConfirmationOutcome? {
-            val refreshed = refresh()
+        private suspend fun confirmationOutcome(
+            previous: AdRewardState,
+            session: RewardSession,
+        ): ConfirmationOutcome? {
+            if (!isCurrentSession(session)) {
+                clearStateFor(session)
+                return ConfirmationOutcome.PendingConfirmation
+            }
+            val refreshed = refreshFor(session)
             val current = refreshed.getOrNull()
-            if (current != null) {
+            if (current != null && isCurrentSession(session)) {
                 return when {
                     !previous.plusActive && current.plusActive -> ConfirmationOutcome.PlusGranted(current)
                     current.progress > previous.progress -> ConfirmationOutcome.ProgressIncreased(current)
                     else -> null
                 }
             }
+            if (current != null) clearStateFor(session)
             return if (refreshed.isAuthFailure()) ConfirmationOutcome.PendingConfirmation else null
         }
 
@@ -123,12 +156,29 @@ class SupabaseAdRewardRepository
             auth
                 .currentSession()
                 ?.takeIf { session -> session.user.id.isNotBlank() && (accessToken == null || session.accessToken == accessToken) }
-                ?.let { session -> RewardSession(userId = session.user.id, accessToken = session.accessToken) }
+                ?.let { session ->
+                    RewardSession(
+                        userId = session.user.id,
+                        generation = synchronized(stateLock) { sessionGeneration },
+                    )
+                }
+
+        private fun isCurrentSession(session: RewardSession): Boolean = currentSession() == session
+
+        private fun confirmationSessionFor(previous: AdRewardState): RewardSession? =
+            synchronized(stateLock) {
+                val session = cachedSession ?: return@synchronized null
+                if (mutableState.value != previous || !isCurrentSession(session)) {
+                    clearStateForLocked(session)
+                    return@synchronized null
+                }
+                session
+            }
 
         private fun clearStateForInactiveSession() {
             synchronized(stateLock) {
                 cachedSession
-                    ?.takeIf { it != currentSession() }
+                    ?.takeIf { !isCurrentSession(it) }
                     ?.let(::clearStateForLocked)
             }
         }
@@ -164,7 +214,7 @@ class SupabaseAdRewardRepository
 
 private data class RewardSession(
     val userId: String,
-    val accessToken: String,
+    val generation: Long,
 )
 
 private fun Result<JsonElement>.toAdRewardStateResult(): Result<AdRewardState> =

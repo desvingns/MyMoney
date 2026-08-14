@@ -13,6 +13,7 @@ import com.kshavrin.mymoney.core.datastore.CloudBinding
 import com.kshavrin.mymoney.core.datastore.CloudProvider
 import com.kshavrin.mymoney.core.datastore.JournalSyncConfigStore
 import com.kshavrin.mymoney.core.datastore.SharedSyncStore
+import com.kshavrin.mymoney.core.domain.ads.AdRewardRepository
 import com.kshavrin.mymoney.core.domain.billing.PurchaseOutcome
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.repository.AccountRepository
@@ -85,6 +86,7 @@ class SharedSyncCoordinatorImpl
         private val clock: Clock,
         @IoDispatcher private val dispatcher: CoroutineDispatcher,
         private val supporterSync: SupporterSync = NoOpSupporterSync,
+        private val adRewardRepository: AdRewardRepository? = null,
     ) : SharedSyncCoordinator {
         private val operationMutex = Mutex()
         private val restartRequiredAfterAdoptionRecovery = AtomicBoolean(false)
@@ -105,6 +107,7 @@ class SharedSyncCoordinatorImpl
             nonce: String,
         ): Result<Unit> =
             withContext(dispatcher) {
+                invalidateAdRewardSession()
                 val signInResult = auth.signInWithGoogle(googleIdToken, nonce)
                 signInResult.fold(
                     onSuccess = { supporterSync.restore() },
@@ -115,6 +118,7 @@ class SharedSyncCoordinatorImpl
         override suspend fun signOut(): Result<Unit> =
             withContext(dispatcher) {
                 operationMutex.withLock {
+                    invalidateAdRewardSession()
                     if (configStore.binding()?.provider == CloudProvider.Shared) {
                         val cleanupFailures = revokeSharedLocalAccess()
                         cleanupFailures.forEach(Throwable::reportToSentry)
@@ -477,6 +481,7 @@ class SharedSyncCoordinatorImpl
                 collectCleanupFailure(cleanupFailures) { configStore.clearBinding() }
                 collectCleanupFailure(cleanupFailures) { sharedStore.clear() }
                 collectCleanupFailure(cleanupFailures) { clearSharedOutbox() }
+                invalidateAdRewardSession()
                 collectCleanupFailure(cleanupFailures) { auth.clearLocalSession() }
             }
             currentCoroutineContext().ensureActive()
@@ -503,6 +508,7 @@ class SharedSyncCoordinatorImpl
                 collectCleanupFailure(cleanupFailures) { configStore.clearBinding() }
                 collectCleanupFailure(cleanupFailures) { sharedStore.clear() }
                 collectCleanupFailure(cleanupFailures) { clearSharedOutbox() }
+                invalidateAdRewardSession()
                 collectCleanupFailure(cleanupFailures) { auth.signOut().getOrThrow() }
                 collectCleanupFailure(cleanupFailures) { auth.clearLocalSession() }
                 cleanupFailures.toResult()
@@ -939,6 +945,7 @@ class SharedSyncCoordinatorImpl
                     if (configStore.binding()?.provider == CloudProvider.Shared) {
                         collectSharedLocalCleanupFailures(cleanupFailures)
                     }
+                    invalidateAdRewardSession()
                     collectCleanupFailure(cleanupFailures) { auth.clearLocalSession() }
                     cleanupFailures
                 }
@@ -951,6 +958,7 @@ class SharedSyncCoordinatorImpl
                 val failures = mutableListOf<Throwable>()
                 collectCleanupFailure(failures) { stopForegroundRealtimeAndJoin(currentJob) }
                 collectSharedLocalCleanupFailures(failures)
+                invalidateAdRewardSession()
                 collectCleanupFailure(failures) { auth.signOut().getOrThrow() }
                 collectCleanupFailure(failures) { auth.clearLocalSession() }
                 failures
@@ -994,6 +1002,10 @@ class SharedSyncCoordinatorImpl
 
         private fun isForegroundRealtimeCurrent(generation: Long): Boolean =
             synchronized(foregroundRealtimeLock) { foregroundRealtimeGeneration == generation }
+
+        private fun invalidateAdRewardSession() {
+            adRewardRepository?.invalidateSession()
+        }
 
         private fun updateForegroundRealtimeStatus(
             generation: Long,

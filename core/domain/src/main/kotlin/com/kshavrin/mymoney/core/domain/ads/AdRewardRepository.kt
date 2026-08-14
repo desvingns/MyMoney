@@ -5,6 +5,8 @@ import kotlinx.coroutines.flow.StateFlow
 interface AdRewardRepository {
     val state: StateFlow<AdRewardState?>
 
+    fun invalidateSession()
+
     suspend fun refresh(): Result<AdRewardState>
 
     suspend fun awaitConfirmation(previous: AdRewardState): ConfirmationOutcome

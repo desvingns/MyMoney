@@ -256,6 +256,7 @@ class MymoneyBuildConfigurationContractTest {
             linkedMapOf(
                 "app/build.gradle.kts" to "mymoney.android.application",
                 "core/common/build.gradle.kts" to "mymoney.jvm.library",
+                "core/ads/build.gradle.kts" to "mymoney.android.library",
                 "core/database/build.gradle.kts" to "mymoney.android.library",
                 "core/datastore/build.gradle.kts" to "mymoney.android.library",
                 "core/designsystem/build.gradle.kts" to "mymoney.android.library",

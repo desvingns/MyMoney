@@ -131,6 +131,7 @@ class CoreAdsWiringContractTest {
     fun `application startup does not initialize MobileAds or duplicate library manifest entries`() {
         val appManifest = file("app/src/main/AndroidManifest.xml").readText()
         val appSource = file("app/src/main/java/com/kshavrin/mymoney/MyMoneyApp.kt").readText()
+        val adMobSource = file("core/ads/src/main/kotlin/com/kshavrin/mymoney/core/ads/admob/AdMobAdGateway.kt").readText()
         val productionSources =
             listOf(
                 file("app/src/main"),
@@ -147,10 +148,20 @@ class CoreAdsWiringContractTest {
         assertFalse(appSource.contains("MobileAdsInitProvider"))
         assertFalse(appManifest.contains("com.google.android.gms.permission.AD_ID"))
         assertFalse(appManifest.contains("com.google.android.gms.ads.APPLICATION_ID"))
-        assertFalse(
-            "MobileAds initialization must remain absent from app and core ads production sources",
-            productionSources.any { it.readText().contains("MobileAds.initialize") },
+        assertTrue(
+            "MobileAds initialization must remain lazy behind the rewarded client",
+            adMobSource.contains("private suspend fun initializeIfNeeded()") &&
+                adMobSource.contains("MobileAds.initialize(context) {}"),
         )
+        assertContainsInOrder(
+            adMobSource,
+            listOf(
+                "override suspend fun load(",
+                "initializeIfNeeded()",
+                "MobileAds.initialize(context) {}",
+            ),
+        )
+        assertFalse(productionSources.any { it.path.endsWith("MyMoneyApp.kt") && it.readText().contains("MobileAds.initialize") })
     }
 
     @Test

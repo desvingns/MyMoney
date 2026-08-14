@@ -67,4 +67,9 @@ dependencies {
     implementation(libs.play.services.ads)
     implementation(libs.user.messaging.platform)
     ksp(libs.hilt.compiler)
+
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.okhttp)
+    testImplementation(libs.okhttp.mockwebserver)
 }

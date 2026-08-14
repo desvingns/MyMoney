@@ -333,6 +333,32 @@ class SupabaseSharedTransportTest {
         }
 
     @Test
+    fun `post applies a per-call deadline and maps the timeout to network`() =
+        runTest {
+            val config =
+                SupabaseConfig(
+                    url = server.url("/").toString().removeSuffix("/"),
+                    anonKey = "anon-key",
+                )
+            val http = SupabaseHttpTransport(config, OkHttpClient(), Json)
+            server.enqueue(
+                MockResponse()
+                    .setBodyDelay(500, TimeUnit.MILLISECONDS)
+                    .setBody("{}"),
+            )
+
+            val result =
+                http.post(
+                    path = "functions/v1/create-ad-reward-token",
+                    payload = buildJsonObject { },
+                    callTimeoutMillis = 50,
+                )
+
+            assertSyncError(result, SyncError.Network)
+            assertTrue(server.takeRequest(1, TimeUnit.SECONDS) != null)
+        }
+
+    @Test
     fun `membership denied direct workspace REST read maps to auth and exposes no rows`() =
         runTest {
             signIn()

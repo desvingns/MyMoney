@@ -103,7 +103,7 @@ private fun String?.exactCount(): Int =
     this
         ?.substringAfter('/', missingDelimiterValue = "")
         ?.toIntOrNull()
-        ?: throw IllegalStateException("Missing exact Content-Range count")
+        ?: error("Missing exact Content-Range count")
 
 private fun String.percentEncodeQueryValue(): String =
     buildString(length) {

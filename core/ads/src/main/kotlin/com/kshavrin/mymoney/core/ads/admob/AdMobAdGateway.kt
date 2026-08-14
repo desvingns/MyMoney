@@ -413,7 +413,7 @@ class GoogleMobileAdsRewardedClient
                                 )
                             }
                         }
-                }
+                    }
                 runCatching {
                     ad.show(activity) { watchedToCompletion = true }
                 }.onFailure { error ->

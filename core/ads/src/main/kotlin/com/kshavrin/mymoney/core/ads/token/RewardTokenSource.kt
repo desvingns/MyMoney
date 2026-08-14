@@ -68,14 +68,15 @@ class SupabaseRewardTokenSource
     }
 
 private fun JsonObject.toRewardToken(): RewardToken {
-    val customData = this["custom_data"]?.jsonPrimitive?.contentOrNull?.takeIf(String::isNotBlank)
-        ?: throw IllegalStateException("Missing rewarded ad custom_data")
+    val customData =
+        this["custom_data"]?.jsonPrimitive?.contentOrNull?.takeIf(String::isNotBlank)
+            ?: error("Missing rewarded ad custom_data")
     val expiresAt =
         this["expires_at"]
             ?.jsonPrimitive
             ?.contentOrNull
             ?.toRewardTokenExpiry()
-            ?: throw IllegalStateException("Missing rewarded ad expires_at")
+            ?: error("Missing rewarded ad expires_at")
     return RewardToken(customData = customData, expiresAt = expiresAt)
 }
 

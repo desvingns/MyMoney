@@ -49,6 +49,7 @@ class SupabaseSharedRealtimeTest {
 
     @Test
     fun `unconfigured realtime closes with server error without opening a socket`() =
+        // mp-real-io: The callbackFlow shutdown path must run on a real coroutine.
         runBlocking {
             val realtime =
                 SupabaseSharedRealtime(
@@ -65,6 +66,7 @@ class SupabaseSharedRealtimeTest {
 
     @Test
     fun `join authorizes a private workspace topic and broadcasts only operation hints`() =
+        // mp-real-io: MockWebServer callbacks and queue assertions use real executor threads.
         runBlocking {
             val opened = CompletableFuture<WebSocket>()
             val joinMessage = CompletableFuture<String>()
@@ -130,6 +132,7 @@ class SupabaseSharedRealtimeTest {
 
     @Test
     fun `join rejection closes the stream and a wrong reply ref is ignored`() =
+        // mp-real-io: MockWebServer callbacks and queue assertions use real executor threads.
         runBlocking {
             val opened = CompletableFuture<WebSocket>()
             server.enqueue(
@@ -169,6 +172,7 @@ class SupabaseSharedRealtimeTest {
 
     @Test
     fun `join entitlement rejection closes the stream with the typed entitlement error`() =
+        // mp-real-io: MockWebServer callbacks and queue assertions use real executor threads.
         runBlocking {
             val opened = CompletableFuture<WebSocket>()
             server.enqueue(
@@ -208,6 +212,7 @@ class SupabaseSharedRealtimeTest {
 
     @Test
     fun `realtime entitlement phx error closes the stream with the typed entitlement error`() =
+        // mp-real-io: MockWebServer callbacks and queue assertions use real executor threads.
         runBlocking {
             val opened = CompletableFuture<WebSocket>()
             server.enqueue(
@@ -245,6 +250,7 @@ class SupabaseSharedRealtimeTest {
 
     @Test
     fun `malformed messages and unknown events do not create false operation notifications`() =
+        // mp-real-io: MockWebServer callbacks and queue assertions use real executor threads.
         runBlocking {
             val opened = CompletableFuture<WebSocket>()
             server.enqueue(

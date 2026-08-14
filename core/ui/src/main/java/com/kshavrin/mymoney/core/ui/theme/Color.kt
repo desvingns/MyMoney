@@ -480,6 +480,18 @@ val ColorScheme.sharedSyncErrorContent: Color
 val ColorScheme.sharedSyncStatusOutline: Color
     get() = outlineVariant
 
+val ColorScheme.sharedSyncEntitlementWarningContainer: Color
+    get() = wizardOrphanWarningContainer
+
+val ColorScheme.sharedSyncEntitlementWarningContent: Color
+    get() = wizardOrphanWarningContent
+
+val ColorScheme.sharedSyncReadOnlyContainer: Color
+    get() = surfaceVariant
+
+val ColorScheme.sharedSyncReadOnlyContent: Color
+    get() = onSurfaceVariant
+
 // Support screen — the purchase card stays neutral so unavailable billing does not
 // compete with the explanatory copy or the supporter result below it.
 val ColorScheme.supportPurchaseCardContainer: Color

@@ -342,3 +342,18 @@ val Typography.dashboardAuroraBalanceValueCompact: TextStyle
             letterSpacing = (-1).sp,
             lineHeight = 30.sp,
         )
+
+val Typography.supportDescription: TextStyle
+    get() = bodyLarge
+
+val Typography.supportCardTitle: TextStyle
+    get() = titleLarge
+
+val Typography.supportStatusMessage: TextStyle
+    get() = bodyMedium
+
+val Typography.supporterBadgeLabel: TextStyle
+    get() = labelLarge
+
+val Typography.supporterGratitudeCount: TextStyle
+    get() = titleMedium

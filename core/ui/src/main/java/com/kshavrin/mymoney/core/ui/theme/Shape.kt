@@ -45,3 +45,9 @@ val Shapes.dashboardAuroraCard: Shape
 // Used for both income (↑) and expense (↓) pill containers.
 val Shapes.dashboardAuroraPill: Shape
     get() = RoundedCornerShape(20.dp)
+
+val Shapes.supportCard: Shape
+    get() = large
+
+val Shapes.supporterBadge: Shape
+    get() = extraLarge

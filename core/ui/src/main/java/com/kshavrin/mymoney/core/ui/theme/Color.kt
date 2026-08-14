@@ -479,3 +479,48 @@ val ColorScheme.sharedSyncErrorContent: Color
 
 val ColorScheme.sharedSyncStatusOutline: Color
     get() = outlineVariant
+
+// Support screen — the purchase card stays neutral so unavailable billing does not
+// compete with the explanatory copy or the supporter result below it.
+val ColorScheme.supportPurchaseCardContainer: Color
+    get() = surface
+
+val ColorScheme.supportPurchaseCardContent: Color
+    get() = onSurface
+
+val ColorScheme.supportPurchaseCardOutline: Color
+    get() = outlineVariant
+
+// Billing availability is informational rather than an error. The screen keeps its
+// introduction and supporter result visible while the purchase block explains the state.
+val ColorScheme.supportUnavailableContainer: Color
+    get() = surfaceVariant
+
+val ColorScheme.supportUnavailableContent: Color
+    get() = onSurfaceVariant
+
+// A pending purchase needs a distinct, non-destructive status treatment while the
+// billing flow completes.
+val ColorScheme.supportPendingContainer: Color
+    get() = tertiaryContainer
+
+val ColorScheme.supportPendingContent: Color
+    get() = onTertiaryContainer
+
+val ColorScheme.supportNetworkErrorContainer: Color
+    get() = errorContainer
+
+val ColorScheme.supportNetworkErrorContent: Color
+    get() = onErrorContainer
+
+val ColorScheme.supporterBadgeContainer: Color
+    get() = primaryContainer
+
+val ColorScheme.supporterBadgeContent: Color
+    get() = onPrimaryContainer
+
+val ColorScheme.supporterGratitudeContainer: Color
+    get() = secondaryContainer
+
+val ColorScheme.supporterGratitudeContent: Color
+    get() = onSecondaryContainer

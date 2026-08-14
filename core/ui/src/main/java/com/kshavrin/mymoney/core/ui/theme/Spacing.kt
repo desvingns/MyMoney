@@ -203,4 +203,10 @@ object Spacing {
     // dashboardAuroraInnerPanelTopFeather: tiny fade for the TOP edge only so the opaque panel
     // reaches near the card top, above the balance number, leaving the number fully inside.
     val dashboardAuroraInnerPanelTopFeather = 3.dp
+
+    val supportContentHorizontalPadding = 16.dp
+    val supportSectionGap = 24.dp
+    val supportCardPadding = 16.dp
+    val supportStatusGap = 12.dp
+    val supportActionMinHeight = 48.dp
 }

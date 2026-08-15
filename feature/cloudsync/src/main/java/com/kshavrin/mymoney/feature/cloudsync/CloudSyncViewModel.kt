@@ -1148,7 +1148,6 @@ class CloudSyncViewModel
                             serverEntitlementRequiredFromParticipantJoin = false
                         }
                         applyEntitlement(entitlement)
-                        reconcileLocalOnlyTransition()
                         if (changed) refresh()
                     }
                 } catch (t: Throwable) {
@@ -1266,15 +1265,19 @@ class CloudSyncViewModel
             if (localOnlyTransitionJob?.isActive == true) return
             localOnlyTransitionJob =
                 viewModelScope.launch {
+                    var reattached = false
                     _state.value = _state.value.copy(isConnecting = true, errorBannerRes = null)
                     try {
                         sharedCoordinator.reattachAfterEntitlementRestored().getOrThrow()
+                        reattached = true
                     } catch (t: Throwable) {
                         if (t is CancellationException) throw t
                         reportAndShow(t)
                     } finally {
                         _state.value = _state.value.copy(isConnecting = false)
-                        refresh()
+                        if (reattached) {
+                            refresh()
+                        }
                     }
                 }
         }

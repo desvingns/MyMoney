@@ -8,6 +8,24 @@
 
 ## Current state
 
+- **2026-08-16 (Claude MP `--feature --next`, support-rewarded-ads SPEC 06):** Shipped the
+  monetization privacy-policy Advertising block and `app-ads.txt`. Draft Block 4 applied verbatim
+  to both app-asset policies and both GitHub Pages copies (EN/RU), «Last updated» moved to
+  2026-08-16 in both locales; new `privacy-policy/app-ads.txt` carries the real publisher line
+  (`pub-2270788427402644`, from the recorded AdMob console setup); `privacy-policy-pages.yml`
+  now also deploys `app-ads.txt` to the gh-pages branch root; the draft marks only Block 4
+  applied and records the residual manual step (domain-root `desvingns.github.io/app-ads.txt`
+  lives in the separate Pages repo). New `PrivacyPolicyAdvertisingContractTest` pins block
+  presence, date parity, asset↔Pages equality, the publisher line, and the workflow root copy.
+  Commits `5bb342a4`, `0d49d0d6` pushed to `main`. Size gate `warn` (16 cells); risk route
+  high → powerful developer + semantic review + independent critic + full verifier, all green
+  first pass (0 findings, coverage 16/16 both semantic passes); deterministic reviewer 0
+  violations; full runner `2256 passed / 0 failed / 0 skipped`, detekt/lint green. SPEC moved
+  to `done/`. Epic `support-rewarded-ads` NOT complete — SPEC 05 remains in `backlog/` (blocked
+  on the `plus-subscription-gating` epic), so the feedback question and Telegram offer are
+  skipped per epic-scoped timing. Remaining human items: place `app-ads.txt` at the domain root
+  in the `desvingns.github.io` repo, Play Console «Contains ads» flag + Data safety form.
+
 - **2026-08-15 (Claude MP `--feature --next`, plus-subscription-gating SPEC 06):** Completed the
   `Expired → LocalOnly` state transition — resumed from a prior Codex session's handoff (stopped
   after a 3rd semantic-review blocker-pass, `mp-architect` PREFLIGHT verdict `PATCH ALLOWED`).
@@ -28,122 +46,12 @@
 
 - **2026-08-15 (Codex MP `--feature --next`, plus-subscription-gating SPEC 05):** Completed Cloud sync Shared Plus gating, owner/participant paywall semantics, owner-pays copy, trial/Grace/expiry warnings, read-only participant behavior, server-authoritative `entitlement_required` mapping across HTTP/RPC/realtime, fail-closed auth/membership cleanup, entitlement restoration, EN/RU strings, and Supabase billing-column grants. SPEC moved to `done/`. Commits: `08ec42be`, `fdb88364`, `070ca33e`, `83347850`, `090c4f26`, `e31728ce`, `a74ed6ea`, `afc52d65`, `b7ac3d4b`, `a9f2dee8`, `fb9adff5`, `a3a8311c`, `c5611a88`, `ac6f7534`, `8fc58ad2`, `bb7ac5f3`. Scoped runner: `547 passed / 0 failed / 0 skipped`; full runner: `2219 passed / 0 failed / 0 skipped`; detekt/lint green; explicit `:core:domain:test :core:sync:test` green; deterministic reviewer, semantic review, independent critic, and full verifier passed. Device manual checklist remains follow-up because this SPEC is not an explicit visual task and no device gate was required.
 
-- **2026-08-14 (Codex MP `--feature --next`, support-hub-tip SPEC 07):** Added `:feature:support` with the Support drawer route, EN/RU UI, empty ad/Plus insertion slots, coffee purchase states, supporter badge/gratitude, analytics, and serialized purchase reconciliation wiring. Added unit, Compose, navigation, billing-contract, coordinator, drawer, and Android UI coverage; terminal fake billing flows now complete while pending remains controllable. SPEC moved to `done/`. Commits: `1234da3e`, `1f73545d`, `f6635d8d`, `1fe3fcca`, `4ab874fb`, `e9ded25e`, `517c8ad8`, `2b787f60`, `6e69bb3d`, `ac098924`, `d8e65eb2`, `0671cbe2`, `98bea1c1`, `a2ca9229`. Reviewer, semantic review, independent critic, and full verifier passed; Pixel 5/API 34 boot gate was confirmed. Feature-scoped Support tests passed; the repo-wide runner was executed twice and its two Support-test failures were repaired afterward, with no third full runner per contract. Protected Supabase paths were not changed.
-
-- **2026-08-14 (Codex MP `--feature --next`, support-rewarded-ads SPEC 04):** Added the server-authoritative `AdRewardState`/`AdRewardRepository` domain contract, strict `get_ad_reward_state` RPC mapping, bounded cancellable confirmation polling, serialized refresh publication, auth-session lifecycle invalidation, Hilt wiring, transport error normalization, fakes, and regression coverage. SPEC moved to `done/`. Commits: `ceaf30c7`, `453b01c1`, `4e4bf17d`, `32d43396`, `e1b9711b`, `726734e4`. Final full runner: `2131 passed / 0 failed / 0 skipped`, detekt/lint green; semantic review and verifier passed with no findings. No device run was applicable; Supabase protected paths were not changed.
-
-- **2026-08-14 (Codex MP `--feature --next`, support-rewarded-ads SPEC 03):** Added the `:core:ads` AdGateway with lazy serialized UMP consent, AdMob rewarded loading/showing, fresh authenticated SSV token acquisition, strict token/expiry validation, non-personalized fallback, centralized in-memory NO_FILL/RegionUnavailable state, bounded cancellation-safe HTTP/SDK operations, and deterministic terminal results. Added fake-based unit coverage plus stale build/transport contract updates. Commits: `bb71373e`, `082bbbbd`, `ee32a69f`, `ac7055cf`, `7d4189ee`, `4714cd8d`, `e440e9ec`; SPEC moved to `done/`. Reviewer, semantic reviewer, independent critic, full Verifier, scoped Gradle/Hilt checks, and final JVM evidence passed (`3753 passed / 0 failed / 0 errors / 0 skipped`; post-Hilt scoped XML `263/0/0/0`). Project-wide baseline detekt/lint/ktlint issues remain outside this SPEC; no device run was applicable.
-
-- **2026-08-14 (Codex MP `--feature --next`, support-rewarded-ads SPEC 02):** Added the `:core:ads` build/data scaffold: module registration, centralized AdMob/UMP dependencies, AD_ID and AdMob application metadata, debug test identifiers with ads disabled, release Gradle/local-property placeholders, and no startup SDK initialization. Added build-wiring regression contracts and stale-test coverage. Commits: `1cc54df2`, `0f39e8e3`, `baf72e5f`; SPEC moved to `done/`. Reviewer, semantic reviewer, independent critic, full Verifier, scoped debug/release builds, and final Runner passed (`2077 passed / 0 failed / 0 skipped`, detekt/lint green). Project-wide detekt/ktlint/Kover still reports pre-existing failures outside this SPEC; real AdMob IDs and external console/UMP setup remain manual release prerequisites.
-
-- **2026-08-14 (Codex MP `--feature --next`, support-hub-tip SPEC 06):** Added domain-only typed `AnalyticsGateway` with `SupportOpened`/`SupportPurchaseStarted`/`SupportPurchaseCompleted`, lazy Firebase adapter gated by `HAS_FIREBASE`, no-op DI fallback, Firebase catalog/build wiring, `FakeAnalyticsGateway`, and regression coverage. Commits: `24e17bac`, `3ced475e`. Reviewer, semantic reviewer, independent critic, and Verifier passed. Final full JVM suite: `2071 passed / 0 failed / 0 errors / 0 skipped` across 176 XML files; focused `core:testing` 19/0/0 and `core:sync` 147/0/0. Project-wide detekt/ktlint reports only pre-existing failures outside changed files. Firebase DebugView/release-like enabled smoke remains manual; disabled no-op path is statically/focused verified.
-
-- **2026-08-14 (Codex MP `--feature --next`, support-hub-tip SPEC 05):** Added the Supabase `supporter_purchases` journal, own-row RLS and supporter trigger, durable owner-scoped authenticated outbox, anonymous local-only behavior, exact-count restore, same-user duplicate verification with encoded filters, and Play Billing persistence before consume. SPEC is complete. Commits: `2d525f41`, `7110ac42`, `353cbb56`, `f728fe59`, `891699c0`, `a14fbe88`, `67b98cdf`, `07a0bb5a`. Reviewer, semantic reviewer, independent critic, verifier, and full Runner passed (`2069 passed / 0 failed / 0 skipped`, detekt/lint green). Live Supabase migration application and Play Internal purchase smoke remain manual checklist items.
-
-- **2026-08-13 (Codex MP `--feature --next`, support-hub-tip SPEC 04):** Added monotonic local SupporterRepository state with DataStore-backed badge/count fields, `max` server merge semantics, Hilt binding, fake repository, and regression coverage for purchased/pending/default/merge paths. Developer `4f10deee`; test/board close-out `30e265cb`. Reviewer, semantic reviewer, full Runner (`2041 passed / 0 failed / 0 skipped`, detekt/lint green), and Verifier passed. Plus paywall SPEC 04 remains queued until its external `support-hub-tip-07` dependency creates `:feature:support`.
-
-- **2026-08-13 (Codex MP `--feature --next`, plus-subscription-gating SPEC 03):** Closed the Plus subscription billing and server-authoritative entitlement flow. Added monthly/yearly Play Billing offers (yearly-only free-trial offer), acknowledge-without-consume subscription handling, startup restore, Supabase entitlement RPC client, DataStore cache, and daily WorkManager refresh. Updated stale billing wiring fixtures. Commits: `977778d8`, `50bdfbdb`, `770cc089`; SPEC moved to `done/`. Deterministic reviewer passed; full runner: `2034 passed / 0 failed / 0 skipped`, detekt/lint green. Live Play Console product/base-plan/RTDN setup remains the documented external prerequisite.
-
-- **2026-08-13 (Codex MP `--feature --next`, support-hub-tip SPEC 03):** Added the `:core:billing` Google Play Billing gateway for `coffee_small`/`coffee_large`, with disabled-by-default build gating, explicit availability mapping, acknowledge-then-consume processing, serialized connection setup, and a `PENDING`→`PURCHASED` foreground bridge. Startup reconciliation is deliberately left to SPEC-04/05 so no `Purchased` result is silently discarded before a supporter consumer exists. Reviewer, semantic reviewer, independent critic, verifier, and full runner passed: `2034 passed / 0 failed / 0 skipped`, detekt/lint green. Real Play Internal testing with `billing.enabled=true` remains an external prerequisite.
-
-- **2026-08-13 (Codex MP `--feature --next`, support-hub-tip SPEC 01):** Corrected ADR-0010 and the authoritative TDD so the Supporter badge is a cosmetic reward for the first coffee purchase, not a Plus entitlement; removed the stale Plus claim from TDD §14.4 and corrected the permission-count row from 4 to 6. Developer commits `45e8103a` and `6852733c` were pushed to `main`; deterministic reviewer, semantic reviewer, tester, runner (`2007 passed / 0 failed / 0 skipped`), independent critic, and full verifier passed. No device or live Supabase evidence was applicable to this docs-only SPEC.
-
-- **2026-08-13 (Codex MP `--feature --next`, plus-subscription-gating SPEC 02):** Fixed four
-  semantic blockers in the Supabase payer-entitlement migration: safe `create_invite` signature
-  replacement, Google Play grace cutoff, direct entitlement-table revoke, and fail-closed initial
-  workspace recompute. Commits: `c0fe820f`, `d84c8e55`, `d3cd11ac`, `aac728e8`. Final JVM/static
-  runner: 2007 passed / 0 failed / 0 skipped, detekt/lint green; reviewer, semantic reviewer,
-  independent critic, and full verifier passed. Live Supabase apply and two-account E2E remain a
-  manual prerequisite because no connected Supabase CLI/project was available.
-
-- **2026-08-05 (Codex MP `--bugfix`, dashboard inline transaction records):** Reproduced the
-  dashboard showing only one aggregated `23 RSD` tile while August data existed on Pixel 5/API34
-  and Pixel 9/API37. Restored lazy inline category-record expansion with row navigation, safe
-  period/account stale-result invalidation, mixed-currency `AllAccounts.ConvertTo` grouping, and
-  48dp accessibility touch targets. Commits: `0e7a7330`, `f4351442`, `3133773a`, `170586c9`.
-  Final MP runner: 1954 passed / 0 failed / 0 skipped, detekt/lint green; focused connected
-  dashboard regression: 1 passed on Pixel 5/API34. Final APK launch on Pixel 5 is green after
-  forced KSP/Hilt regeneration; the Pixel 9 AVD exited before boot during the repeat smoke, so
-  its final APK launch was not re-verified in this session.
-
-- **2026-08-05 (Codex MP `--bugfix`, Shared Supabase sync):** Reproduced the stuck durable
-  outbox on Pixel 5/API34 and Pixel 9/API37: manual `Sync now` previously left the UI retrying
-  and did not advance completion. Fixed the RPC boundary so `push_operation` and
-  `resolve_conflict` decode either a single object or exactly one object in a JSON array, and
-  model the deployed `author_id` field as nullable (pull responses intentionally omit it).
-  Added MockWebServer regressions for both successful shapes and empty/ambiguous arrays. Network
-  test, reviewer script, final `assembleDebug -Psync.forceEnabled=true`, and device smoke on
-  Pixel 5/Pixel 9 are green; both devices show `Realtime connected` and updated `Last sync`.
-  The full `mp-runner-android.sh` exceeded its 244-second tool limit without returning its JSON;
-  the runner child processes were stopped after verification. OnePlus 11 was not attached to
-  host ADB, so its physical three-device path remains unverified.
-
-- **2026-08-05 (Codex Supabase, shared-backend-sync SPEC 04):** Applied the shared Realtime
-  migrations to project `shwzjlkhlpgbmzgnxhxi`: `shared_realtime_security` and
-  `private_workspace_realtime`. Post-check confirmed an empty `supabase_realtime` publication,
-  RLS on `operations`/`conflicts`/`realtime.messages`, no direct client writes, and no `author_id`
-  column access. A follow-up grant hardening migration removed explicit `anon`/`authenticated`
-  EXECUTE defaults; the authorization helper now lives in the unexposed `private` schema and
-  binds its user argument to `auth.uid()`. The private Realtime read policy was corrected for
-  Supabase's transient authorization row (`20260805130000_fix_private_realtime_read_authorization`);
-  remote migration history now has five entries. Pixel 5/API34 retry shows `Realtime connected`
-  and remains connected for 28 seconds; runner is 1875 passed / 0 failed with detekt/lint green.
-  The pre-existing duplicate `0003` filenames remain a CLI ordering hazard and need a separate
-  migration-history cleanup decision.
-
-- **2026-07-29 (Codex MP `--feature --next`, shared-backend-sync epic, SPEC 03 — BLOCKED,
-  not closed):** Resumed and fixed the 9 red tests (`c4eb0cd`), Shared coordinator lifecycle/
-  publish races (`94951044`), durable Shared outbox + Room 8→9 migration (`7c49472a`), JSON
-  canonicalization (`80f2923c` + `c73051ed` tests), and scheduler cancellation on detach
-  (`5bf10b1e`). Latest deterministic reviewer is clean; Runner is **1860 passed / 0 failed**
-  with detekt/lint OK; `CloudSyncSharedCardUiTest` on Pixel_5/API34 is **3 passed / 0 failed**.
-  SPEC remains in `active/`, unpushed: independent critic confirms its Google sign-in acceptance
-  is non-functional because `LaunchSharedGoogleSignIn` deliberately emits failure and
-  `local.properties` lacks a Google OAuth server client ID. This requires a real Credential
-  Manager/Supabase Auth integration and external OAuth configuration; do not close/push/move the
-  SPEC until that is authorized and verified. Keep documented SPEC 04 deferrals separate.
-
-> Last three session entries are repeated here for fast startup. Full history is archived below.
-
-- **2026-07-29 (Claude MP `--feature --next`, shared-backend-sync epic, SPEC 03 — IN PROGRESS,
-  not closed):** SPEC `shared-backend-sync-03-android-shared-mode` (Android Shared sync mode:
-  Google sign-in, join/create workspace, import/no-import choice, internal backups,
-  conflict-resolution UI, leave/removal) is still in `.claude/specs/active/`, NOT pushed. Five
-  semantic-review fix rounds landed real correctness fixes (leave/join ordering + races,
-  cross-device entity identity moved from local Room Long id to the entity's own `uuid` column,
-  Transaction FK-ref uuid remapping, currency-code portability, archived-account publishing,
-  private Dropbox/GDrive-journal leak prevention) — see the SPEC file's "Implementation links"
-  for the full commit-by-commit history. Runner is currently RED with 9 real test failures (2
-  easy stale-test updates in `SyncTargetTest`/`FactoryResetGatewayDetachTest`; 7 undiagnosed
-  failures in the new `CloudSyncScreenContentTest`, root cause not yet known). Stopped
-  deliberately after many fix rounds — full resume plan is in the SPEC file and
-  `.ai/handoff.md`. Do not restart from scratch; read the SPEC file's notes first.
-
-- **2026-07-28 (Claude MP `--feature --next`, shared-backend-sync epic, SPEC 02):** Completed
-  SPEC `shared-backend-sync-02-operation-api-and-conflicts` (commits `82f8d6f2` feat,
-  `f132bdc6`+`8b3e0a78` fixes, `c81a5f11` tests; pushed to `main`). Added SQL migration
-  `supabase/migrations/0002_shared_operations.sql` (append-only `operations` + `conflicts`
-  tables, RLS, 4 SECURITY DEFINER RPCs: `push_operation`/`pull_operations`/
-  `list_pending_conflicts`/`resolve_conflict`) plus `:core:domain` (SharedOperation,
-  SharedConflict, SharedJournalRepository) and `:core:network` (DTOs, SharedJournalRpc
-  transport seam, SupabaseSharedJournalApi) Kotlin contracts. Semantic review caught 2
-  blockers (non-atomic push idempotency racing under concurrent retries; `author_id` leaking
-  through `pull_operations`' `select *`, violating the "attribution only in conflict UI"
-  constraint) — both fixed (`INSERT ... ON CONFLICT DO NOTHING RETURNING`; explicit
-  column-list SELECT + `authorId` moved to the conflict-only DTOs) and re-verified clean.
-  Independent critic passed (risk downgraded high→standard) with 2 non-blocking hardening
-  findings logged in the SPEC file's "Deferred hardening" section for SPEC 04 to pick up:
-  default Supabase table grants let a client bypass the RPC's column allowlist via direct
-  PostgREST SELECT (RLS restricts rows, not columns); a non-atomic `base_sequence` MAX-scan
-  in `resolve_conflict` (metadata-only staleness, cursor ordering unaffected). Gates: reviewer
-  0 violations, runner 1771 JVM tests + detekt/lint green, full verifier pass. SPEC moved to
-  `done/`; epic not yet complete (SPECs 03/04 remain in backlog), so feedback question and
-  Telegram offer were both skipped per epic-scoped timing.
 
 ## Historical session log archives
 
 Read archives on demand only; do not bulk-load them during normal MP startup.
 
+- `log/2026-08.md` - August 2026 session entries.
 - `log/2026-07.md` - July 2026 session entries.
 - `log/2026-06.md` - June 2026 session entries.
 - `log/2026-05.md` - May 2026 session entries.
@@ -240,6 +148,7 @@ Long-form historical session entries moved verbatim to monthly archives:
 - `log/2026-05.md`
 - `log/2026-06.md`
 - `log/2026-07.md`
+- `log/2026-08.md`
 - `log/legacy.md`
 
 For new MP closeout, add a short bullet to `## Current state` above. When it falls out of the last-three window, move it to the matching archive instead of growing this file again.

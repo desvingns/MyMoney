@@ -23,6 +23,8 @@ import com.kshavrin.mymoney.core.sync.MigrationResolution
 import com.kshavrin.mymoney.core.sync.SnapshotSync
 import com.kshavrin.mymoney.core.sync.SyncScheduler
 import com.kshavrin.mymoney.core.sync.SyncTarget
+import com.kshavrin.mymoney.core.sync.shared.LocalOnlyReason
+import com.kshavrin.mymoney.core.sync.shared.LocalOnlyState
 import com.kshavrin.mymoney.core.sync.shared.SharedSyncCoordinator
 import com.kshavrin.mymoney.core.sync.shared.SharedRealtimeStatus
 import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceAccess
@@ -794,6 +796,93 @@ class CloudSyncViewModelTest {
         }
 
     @Test
+    fun `killswitch persists local only and reattaches when the gate lifts`() =
+        runTest {
+            val shared = SharedCoordinator()
+            val remoteConfig = FakeRemoteConfigRepository(sharedEnabled = false)
+            val vm =
+                viewModel(
+                    SnapshotFake(),
+                    RecordingJournalSync(),
+                    Config(CloudBinding(CloudProvider.Shared, "ws-1", "Budget")),
+                    Scheduler(),
+                    shared = shared,
+                    remoteConfig = remoteConfig,
+                )
+
+            runCurrent()
+
+            assertEquals(listOf(LocalOnlyReason.RemoteKillswitch), shared.detachReasons)
+            assertTrue(vm.state.value.shared.isLocalOnly)
+            assertEquals(LocalOnlyReason.RemoteKillswitch, vm.state.value.shared.localOnlyReason)
+            assertEquals(0, shared.activeWorkspaceAccessCalls)
+
+            remoteConfig.setSharedEnabledForTest(true)
+            vm.onEvent(CloudSyncEvent.SharedRealtimeForegroundStarted)
+            runCurrent()
+
+            assertEquals(1, shared.reattachCalls)
+            assertFalse(vm.state.value.shared.isLocalOnly)
+            assertTrue(shared.startRealtimeCalls > 0)
+        }
+
+    @Test
+    fun `expired participant stays attached while the owner paid workspace is active`() =
+        runTest {
+            val shared =
+                SharedCoordinator().apply {
+                    workspaceAccessResult =
+                        Result.success(SharedWorkspaceAccess(SharedWorkspaceBillingState.Active))
+                    workspaceOwnership = SharedWorkspaceOwnership(isOwner = false)
+                }
+            val subscriptionVm =
+                viewModel(
+                    SnapshotFake(),
+                    RecordingJournalSync(),
+                    Config(CloudBinding(CloudProvider.Shared, "ws-1", "Budget")),
+                    Scheduler(),
+                    shared = shared,
+                    entitlement = EntitlementFake(plusEntitlement(EntitlementState.EXPIRED)),
+                )
+
+            runCurrent()
+
+            assertTrue(subscriptionVm.state.value.shared.active)
+            assertFalse(subscriptionVm.state.value.shared.isWorkspaceReadOnly)
+            assertTrue(shared.detachReasons.isEmpty())
+
+            val adShared =
+                SharedCoordinator().apply {
+                    workspaceAccessResult =
+                        Result.success(SharedWorkspaceAccess(SharedWorkspaceBillingState.Active))
+                    workspaceOwnership = SharedWorkspaceOwnership(isOwner = false)
+                }
+            val adVm =
+                viewModel(
+                    SnapshotFake(),
+                    RecordingJournalSync(),
+                    Config(CloudBinding(CloudProvider.Shared, "ws-1", "Budget")),
+                    Scheduler(),
+                    shared = adShared,
+                    entitlement =
+                        EntitlementFake(
+                            UserEntitlement.Plus(
+                                source = EntitlementSource.AD_REWARD,
+                                state = EntitlementState.EXPIRED,
+                                startsAt = Instant.EPOCH,
+                                expiresAt = Instant.EPOCH,
+                                graceEndsAt = null,
+                            ),
+                        ),
+                )
+
+            runCurrent()
+
+            assertTrue(adShared.detachReasons.isEmpty())
+            assertNull(adVm.state.value.sharedDialog)
+        }
+
+    @Test
     fun `foreground realtime cannot start after lifecycle stop while shared setup is finishing`() =
         runTest {
             val config = Config(null)
@@ -1347,6 +1436,8 @@ class CloudSyncViewModelTest {
         var activeWorkspaceOwnershipCalls = 0
         var activeWorkspaceAccessCalls = 0
         var listConflictsCalls = 0
+        var reattachCalls = 0
+        val detachReasons = mutableListOf<LocalOnlyReason>()
         var lastJoinToken: String? = null
         var createInviteResult: Result<SharedWorkspaceInvite> = Result.failure(RuntimeException("unused"))
         var onCreateInvite: (() -> Unit)? = null
@@ -1367,6 +1458,7 @@ class CloudSyncViewModelTest {
         var joinResult: Result<SharedWorkspaceSummary> = Result.success(SharedWorkspaceSummary("ws-joined", "Joined"))
         var disconnectResult: Result<Unit> = Result.success(Unit)
         var deleteResult: Result<Unit> = Result.success(Unit)
+        var localOnlyState: LocalOnlyState? = null
         private val realtimeStatus = MutableStateFlow<SharedRealtimeStatus>(SharedRealtimeStatus.Inactive)
 
         override val foregroundRealtimeStatus = realtimeStatus
@@ -1397,7 +1489,21 @@ class CloudSyncViewModelTest {
 
         override suspend fun activeWorkspaceAccess(): Result<SharedWorkspaceAccess> {
             activeWorkspaceAccessCalls++
-            return workspaceAccessResult
+            return localOnlyState?.let { Result.success(SharedWorkspaceAccess(localOnly = it)) } ?: workspaceAccessResult
+        }
+
+        override suspend fun currentLocalOnlyState(): LocalOnlyState? = localOnlyState
+
+        override suspend fun detachToLocalOnly(reason: LocalOnlyReason): Result<Unit> {
+            detachReasons += reason
+            localOnlyState = LocalOnlyState(reason = reason, since = Instant.EPOCH)
+            return Result.success(Unit)
+        }
+
+        override suspend fun reattachAfterEntitlementRestored(): Result<Unit> {
+            reattachCalls++
+            localOnlyState = null
+            return Result.success(Unit)
         }
 
         override suspend fun discoverRemoteWorkspace(): Result<SharedWorkspaceSummary?> {

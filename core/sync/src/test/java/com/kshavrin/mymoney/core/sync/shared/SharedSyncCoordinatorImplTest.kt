@@ -1030,6 +1030,64 @@ class SharedSyncCoordinatorImplTest {
         }
 
     @Test
+    fun `detach to local only joins realtime and cancels every sync path`() =
+        runTest(dispatcher) {
+            auth.session = fakeSession()
+            configStore.current = CloudBinding(CloudProvider.Shared, "ws-1", "Budget")
+            sharedStore.membershipActive = true
+
+            assertTrue(coordinator.startForegroundRealtime().isSuccess)
+            realtime.awaitActiveSubscriptions(1)
+
+            assertTrue(coordinator.detachToLocalOnly(LocalOnlyReason.EntitlementExpired).isSuccess)
+
+            realtime.awaitActiveSubscriptions(0)
+            assertNotNull(sharedStore.localOnly)
+            assertEquals(SharedRealtimeStatus.Inactive, coordinator.foregroundRealtimeStatus.value)
+            assertEquals(1, scheduler.cancelAllCalls)
+        }
+
+    @Test
+    fun `detach to local only propagates cancellation before persisting the gate`() =
+        runTest(dispatcher) {
+            configStore.current = CloudBinding(CloudProvider.Shared, "ws-1", "Budget")
+            backupRepository.internalBackupFailure = CancellationException("screen closed")
+
+            try {
+                coordinator.detachToLocalOnly(LocalOnlyReason.EntitlementExpired)
+                error("Expected CancellationException")
+            } catch (_: CancellationException) {
+            }
+
+            assertNull(sharedStore.localOnly)
+            assertEquals(0, scheduler.cancelAllCalls)
+        }
+
+    @Test
+    fun `reattach keeps local only persisted until the ordered sync succeeds`() =
+        runTest(dispatcher) {
+            auth.session = fakeSession()
+            configStore.current = CloudBinding(CloudProvider.Shared, "ws-1", "Budget")
+            sharedStore.membershipActive = true
+            sharedStore.localOnly =
+                com.kshavrin.mymoney.core.datastore.SharedLocalOnlyState(
+                    reason = LocalOnlyReason.EntitlementExpired.name,
+                    sinceEpochMs = clock.millis(),
+                )
+            journalRepository.pullResults.add(Result.failure(SyncException(SyncError.Network)))
+
+            assertTrue(coordinator.reattachAfterEntitlementRestored().isFailure)
+            assertNotNull(sharedStore.localOnly)
+            assertEquals(0, scheduler.enableCalls)
+
+            journalRepository.pullResults.add(Result.success(emptyList()))
+
+            assertTrue(coordinator.reattachAfterEntitlementRestored().isSuccess)
+            assertNull(sharedStore.localOnly)
+            assertEquals(1, scheduler.enableCalls)
+        }
+
+    @Test
     fun `realtime startup membership rejection revokes the shared binding`() =
         runTest(dispatcher) {
             auth.session = fakeSession()
@@ -1499,6 +1557,7 @@ class SharedSyncCoordinatorImplTest {
     private inner class FakeSharedSyncStore : SharedSyncStore {
         var cursor = 0L
         var membershipActive = true
+        var localOnly: com.kshavrin.mymoney.core.datastore.SharedLocalOnlyState? = null
         var cursorIsCleared = false
         var onSetMembershipActive: ((Boolean) -> Unit)? = null
 
@@ -1515,9 +1574,27 @@ class SharedSyncCoordinatorImplTest {
             onSetMembershipActive?.invoke(active)
         }
 
+        override suspend fun localOnlyState() = localOnly
+
+        override suspend fun setLocalOnly(
+            reason: String,
+            sinceEpochMs: Long,
+        ) {
+            localOnly =
+                com.kshavrin.mymoney.core.datastore.SharedLocalOnlyState(
+                    reason = reason,
+                    sinceEpochMs = sinceEpochMs,
+                )
+        }
+
+        override suspend fun clearLocalOnly() {
+            localOnly = null
+        }
+
         override suspend fun clear() {
             cursor = 0L
             membershipActive = false
+            localOnly = null
             cursorIsCleared = true
         }
     }

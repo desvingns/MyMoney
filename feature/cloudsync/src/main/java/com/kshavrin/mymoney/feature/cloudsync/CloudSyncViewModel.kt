@@ -425,6 +425,12 @@ class CloudSyncViewModel
             generation: Long,
         ) {
             val sharedEnabled = cloudSyncSettings.availability().sharedEnabled
+            val persistedLocalOnly =
+                if (!sharedEnabled && active) {
+                    sharedCoordinator.currentLocalOnlyState()
+                } else {
+                    null
+                }
             val accessResult =
                 if (sharedEnabled && active) {
                     sharedCoordinator.activeWorkspaceAccess()
@@ -434,6 +440,20 @@ class CloudSyncViewModel
             if (generation != refreshGeneration) return
             val currentBinding = journalSyncConfig.binding()
             val stillActive = currentBinding?.provider == CloudProvider.Shared
+            if (stillActive && !sharedEnabled) {
+                if (persistedLocalOnly != null) {
+                    publishLocalOnlySharedState(
+                        binding = checkNotNull(currentBinding),
+                        sharedEnabled = false,
+                        localOnly = persistedLocalOnly,
+                    )
+                } else {
+                    publishRemoteKillswitchPendingState(checkNotNull(currentBinding))
+                    detachToLocalOnly(LocalOnlyReason.RemoteKillswitch)
+                }
+                sharedCoordinator.stopForegroundRealtime()
+                return
+            }
             val access = accessResult?.getOrNull()
             if (stillActive && access == null) {
                 if (accessResult?.exceptionOrNull().isEntitlementRequired()) {
@@ -577,6 +597,29 @@ class CloudSyncViewModel
                     binding = binding,
                     errorBannerRes = _state.value.errorBannerRes,
                     shared = shared,
+                )
+        }
+
+        private fun publishRemoteKillswitchPendingState(binding: CloudBinding) {
+            val previousShared = _state.value.shared
+            _state.value =
+                _state.value.copy(
+                    binding = binding,
+                    shared =
+                        previousShared.copy(
+                            enabled = false,
+                            signedIn = sharedCoordinator.isSignedIn(),
+                            accountEmail = sharedCoordinator.accountEmail(),
+                            active = true,
+                            workspaceName = previousShared.workspaceName ?: binding.accountLabel,
+                            isWorkspaceReadOnly = true,
+                            isLocalOnly = false,
+                            localOnlyReason = null,
+                            localOnlySince = null,
+                            warning = null,
+                            isParticipantJoinEntitlementRefusal = false,
+                            realtimeStatus = SharedRealtimeStatus.Inactive,
+                        ),
                 )
         }
 
@@ -819,7 +862,7 @@ class CloudSyncViewModel
 
         private fun foregroundRealtimeStarted() {
             foregroundRealtimeActive = true
-            startForegroundRealtime()
+            refresh()
         }
 
         private fun foregroundRealtimeStopped() {
@@ -1129,12 +1172,22 @@ class CloudSyncViewModel
             val shared = _state.value.shared
             if (_state.value.binding?.provider != CloudProvider.Shared) return
             if (shared.isLocalOnly) {
+                clearAdPlusExpiryDialog()
                 if (
-                    shared.localOnlyReason != LocalOnlyReason.RemoteKillswitch &&
-                    latestEntitlement.canUseSharedWorkspace()
+                    shared.enabled &&
+                    (latestEntitlement.canUseSharedWorkspace() || shared.hasOwnerPaidParticipantAccess())
                 ) {
                     reattachAfterEntitlementRestored()
                 }
+                return
+            }
+            if (shared.workspaceBillingState == SharedWorkspaceBillingState.Expired) {
+                clearAdPlusExpiryDialog()
+                detachToLocalOnly(LocalOnlyReason.EntitlementExpired)
+                return
+            }
+            if (!shared.isWorkspaceAccessKnown || !shared.isWorkspaceOwner) {
+                clearAdPlusExpiryDialog()
                 return
             }
             val entitlement = latestEntitlement as? UserEntitlement.Plus
@@ -1144,14 +1197,18 @@ class CloudSyncViewModel
                 } else {
                     detachToLocalOnly(LocalOnlyReason.EntitlementExpired)
                 }
-            } else if (shared.workspaceBillingState == SharedWorkspaceBillingState.Expired) {
-                detachToLocalOnly(LocalOnlyReason.EntitlementExpired)
             }
         }
 
         private fun showAdPlusExpiryDialog() {
             if (_state.value.sharedDialog is SharedDialog.AdPlusExpired) return
             _state.value = _state.value.copy(sharedDialog = SharedDialog.AdPlusExpired)
+        }
+
+        private fun clearAdPlusExpiryDialog() {
+            if (_state.value.sharedDialog is SharedDialog.AdPlusExpired) {
+                _state.value = _state.value.copy(sharedDialog = null)
+            }
         }
 
         private fun declineAdPlusExpiry() {
@@ -1315,6 +1372,12 @@ private fun UserEntitlement.canUseSharedWorkspace(): Boolean =
 
 private fun SharedCardState.canWrite(): Boolean =
     active && isWorkspaceAccessKnown && !isWorkspaceReadOnly
+
+private fun SharedCardState.hasOwnerPaidParticipantAccess(): Boolean =
+    active &&
+        isWorkspaceAccessKnown &&
+        !isWorkspaceOwner &&
+        workspaceBillingState == SharedWorkspaceBillingState.Active
 
 private fun UserEntitlement.graceEndsAt() = (this as? UserEntitlement.Plus)?.graceEndsAt
 

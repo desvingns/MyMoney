@@ -253,11 +253,25 @@ class SharedSyncCoordinatorImpl
                 operationMutex.withLock {
                     if (sharedStore.localOnlyState() != null) return@withLock Result.success(Unit)
                     if (configStore.binding()?.provider != CloudProvider.Shared) return@withLock Result.success(Unit)
-                    runCatching {
+                    try {
                         backupRepository.createInternalBackup().getOrThrow()
-                        sharedStore.setLocalOnly(reason.name, clock.millis())
-                        stopForegroundRealtimeAndJoin()
-                        syncScheduler.disablePeriodicSync()
+                        currentCoroutineContext().ensureActive()
+                    } catch (failure: Throwable) {
+                        if (failure is CancellationException) throw failure
+                        return@withLock Result.failure(failure)
+                    }
+                    try {
+                        withContext(NonCancellable) {
+                            val teardownFailures = mutableListOf<Throwable>()
+                            sharedStore.setLocalOnly(reason.name, clock.millis())
+                            collectCleanupFailure(teardownFailures) { stopForegroundRealtimeAndJoin() }
+                            collectCleanupFailure(teardownFailures) { syncScheduler.cancelAllSync().getOrThrow() }
+                            teardownFailures.toResult().getOrThrow()
+                        }
+                        Result.success(Unit)
+                    } catch (failure: Throwable) {
+                        if (failure is CancellationException) throw failure
+                        Result.failure(failure)
                     }
                 }
             }
@@ -267,14 +281,23 @@ class SharedSyncCoordinatorImpl
                 val reattachResult =
                     operationMutex.withLock {
                         if (sharedStore.localOnlyState() == null) return@withLock Result.success(Unit)
-                        runCatching {
+                        try {
+                            ensureSignedIn()
                             requireActiveWorkspaceId()
                             if (!sharedStore.isMembershipActive()) throw SyncException(SyncError.Auth)
-                            sharedStore.clearLocalOnly()
-                            if (appSettings.settings.first().autoSyncEnabled) {
-                                syncScheduler.enablePeriodicSync()
+                            val shouldEnablePeriodicSync = appSettings.settings.first().autoSyncEnabled
+                            syncNowLocked(allowLocalOnly = true).getOrThrow()
+                            currentCoroutineContext().ensureActive()
+                            withContext(NonCancellable) {
+                                if (shouldEnablePeriodicSync) {
+                                    syncScheduler.enablePeriodicSync()
+                                }
+                                sharedStore.clearLocalOnly()
                             }
-                            syncNowLocked().getOrThrow()
+                            Result.success(Unit)
+                        } catch (failure: Throwable) {
+                            if (failure is CancellationException) throw failure
+                            Result.failure(failure)
                         }
                     }
                 if (reattachResult.isFailure) reattachResult else startForegroundRealtime()
@@ -393,11 +416,11 @@ class SharedSyncCoordinatorImpl
             withContext(dispatcher) {
                 val result =
                     try {
-                        sharedStore.localOnlyState()?.let { localOnly ->
+                        currentLocalOnlyState()?.let { localOnly ->
                             return@withContext Result.success(
                                 SharedWorkspaceAccess(
                                     billingState = SharedWorkspaceBillingState.Expired,
-                                    localOnly = localOnly.toLocalOnlyState(),
+                                    localOnly = localOnly,
                                 ),
                             )
                         }
@@ -421,6 +444,11 @@ class SharedSyncCoordinatorImpl
                 } else {
                     result
                 }
+            }
+
+        override suspend fun currentLocalOnlyState(): LocalOnlyState? =
+            withContext(dispatcher) {
+                sharedStore.localOnlyState()?.toLocalOnlyState()
             }
 
         override fun consumeRestartRequiredAfterAdoptionRecovery(): Boolean =
@@ -566,9 +594,9 @@ class SharedSyncCoordinatorImpl
             throwCleanupFailures(cleanupFailures)
         }
 
-        private suspend fun syncNowLocked(): Result<Unit> =
+        private suspend fun syncNowLocked(allowLocalOnly: Boolean = false): Result<Unit> =
             runCatching {
-                ensureNotInLocalOnlyMode()
+                if (!allowLocalOnly) ensureNotInLocalOnlyMode()
                 val workspaceId = requireActiveWorkspaceId()
                 if (!sharedStore.isMembershipActive()) {
                     throw SyncException(SyncError.Auth)

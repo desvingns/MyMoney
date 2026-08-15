@@ -25,6 +25,10 @@ class FakeRemoteConfigRepository(
 
     override fun sharedSyncEnabled(): Boolean = sharedEnabled
 
+    fun setSharedEnabledForTest(enabled: Boolean) {
+        sharedEnabled = enabled
+    }
+
     override fun minSupportedVersionCode(): Long = 0L
 
     override fun aestheticSoundPack(): String = "default"

@@ -988,6 +988,46 @@ class CloudSyncViewModelTest {
             }
         }
 
+    @Test
+    fun `active participant retains a manual sync error when their warning is not visible`() =
+        runTest {
+            val entitlement =
+                EntitlementFake(
+                    UserEntitlement.Plus(
+                        source = EntitlementSource.SUBSCRIPTION_MONTHLY,
+                        state = EntitlementState.GRACE,
+                        startsAt = Instant.EPOCH,
+                        expiresAt = null,
+                        graceEndsAt = Instant.ofEpochSecond(1_700_172_800L),
+                    ),
+                )
+            val shared =
+                SharedCoordinator().apply {
+                    workspaceOwnership = SharedWorkspaceOwnership(isOwner = false)
+                    syncNowResult = Result.failure(SyncException(SyncError.Network))
+                }
+            val vm =
+                viewModel(
+                    SnapshotFake(),
+                    RecordingJournalSync(),
+                    Config(CloudBinding(CloudProvider.Shared, "ws-1", "Budget")),
+                    Scheduler(),
+                    shared = shared,
+                    entitlement = entitlement,
+                )
+            runCurrent()
+
+            assertEquals(EntitlementWarning.GRACE_ENTERED, vm.state.value.shared.warning)
+            assertFalse(vm.state.value.shared.isWorkspaceOwner)
+            assertFalse(vm.state.value.shared.isWorkspaceReadOnly)
+
+            vm.onEvent(CloudSyncEvent.SharedSyncNowClicked)
+            runCurrent()
+
+            assertEquals(EntitlementWarning.GRACE_ENTERED, vm.state.value.shared.warning)
+            assertEquals(R.string.sync_err_network, vm.state.value.errorBannerRes)
+        }
+
     private fun viewModel(
         snapshot: SnapshotSync,
         journal: JournalSync,
@@ -1202,6 +1242,7 @@ class CloudSyncViewModelTest {
         var workspaceOwnership = SharedWorkspaceOwnership()
         var workspaceAccessResult: Result<SharedWorkspaceAccess> =
             Result.success(SharedWorkspaceAccess(billingState = SharedWorkspaceBillingState.Active))
+        var syncNowResult: Result<Unit> = Result.success(Unit)
         var createResult: Result<SharedWorkspaceSummary> = Result.success(SharedWorkspaceSummary("ws-new", "Created"))
         var joinResult: Result<SharedWorkspaceSummary> = Result.success(SharedWorkspaceSummary("ws-joined", "Joined"))
         var disconnectResult: Result<Unit> = Result.success(Unit)
@@ -1273,7 +1314,7 @@ class CloudSyncViewModelTest {
             return createInviteResult
         }
 
-        override suspend fun syncNow() = Result.success(Unit)
+        override suspend fun syncNow() = syncNowResult
 
         override suspend fun disconnectFromDevice(): Result<Unit> {
             disconnectCalls++

@@ -463,7 +463,7 @@ fun CloudSyncContent(
             )
             if (state.shared.enabled) {
                 state.shared.warning
-                    ?.takeIf { !state.shared.active || state.shared.isWorkspaceOwner }
+                    ?.takeIf { state.shared.showsEntitlementWarning() }
                     ?.let { warning ->
                         SharedEntitlementWarningBanner(
                             state = state.shared,
@@ -480,7 +480,7 @@ fun CloudSyncContent(
                 )
             }
             state.errorBannerRes
-                ?.takeIf { state.shared.warning == null }
+                ?.takeIf { !state.shared.showsEntitlementWarning() }
                 ?.let { res ->
                 androidx.compose.foundation.layout.Row(
                     modifier = Modifier.fillMaxWidth(),

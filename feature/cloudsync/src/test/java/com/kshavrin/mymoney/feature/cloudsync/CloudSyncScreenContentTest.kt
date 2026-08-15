@@ -251,6 +251,27 @@ class CloudSyncScreenContentTest {
     }
 
     @Test
+    fun `hidden participant warning does not suppress a generic error banner`() {
+        setContent(
+            CloudSyncState(
+                binding = CloudBinding(CloudProvider.Shared, "ws-1", "Budget"),
+                errorBannerRes = R.string.sync_err_network,
+                shared =
+                    SharedCardState(
+                        signedIn = true,
+                        active = true,
+                        isWorkspaceOwner = false,
+                        isWorkspaceAccessKnown = true,
+                        warning = EntitlementWarning.GRACE_ENTERED,
+                    ),
+            ),
+        )
+
+        composeTestRule.onNodeWithText(str(R.string.sync_shared_warning_grace_title)).assertDoesNotExist()
+        composeTestRule.onNodeWithText(str(R.string.sync_err_network)).performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
     fun `Shared card shows create-invite button only for an active workspace`() {
         setContent(
             CloudSyncState(
@@ -462,6 +483,8 @@ class CloudSyncScreenContentTest {
         composeTestRule.onNodeWithTag("cloud_sync_shared_import_publish").assertIsDisplayed()
         composeTestRule.onNodeWithTag("cloud_sync_shared_name").assertIsDisplayed()
         composeTestRule.onNodeWithTag("cloud_sync_shared_token").assertIsDisplayed()
+        composeTestRule.onNodeWithText(str(R.string.sync_shared_create_owner_pays)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(str(R.string.sync_shared_join_owner_pays)).assertIsDisplayed()
     }
 
     @Test

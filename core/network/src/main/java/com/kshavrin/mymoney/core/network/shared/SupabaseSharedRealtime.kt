@@ -93,7 +93,7 @@ class SupabaseSharedRealtime
                                         if (joined) {
                                             trySend(SharedRealtimeEvent.Connected)
                                         } else {
-                                            close(message.entitlementRequiredError())
+                                            close(payload.entitlementRequiredError())
                                         }
                                     }
 
@@ -103,9 +103,9 @@ class SupabaseSharedRealtime
                                         }
                                     }
 
-                                    "phx_close" -> close(message.entitlementRequiredError())
+                                    "phx_close" -> close(message["payload"].entitlementRequiredError())
 
-                                    "phx_error" -> close(message.entitlementRequiredError())
+                                    "phx_error" -> close(message["payload"].entitlementRequiredError())
                                 }
                             }
 
@@ -195,12 +195,10 @@ class SupabaseSharedRealtime
 
         private fun JsonElement?.containsEntitlementRequired(): Boolean =
             when (this) {
+                is JsonPrimitive -> content == ENTITLEMENT_REQUIRED
                 is JsonObject ->
                     entries.any { (key, value) ->
-                        (key in ENTITLEMENT_ERROR_KEYS &&
-                            value is JsonPrimitive &&
-                            value.content == ENTITLEMENT_REQUIRED) ||
-                            value.containsEntitlementRequired()
+                        key in ENTITLEMENT_ERROR_KEYS && value.containsEntitlementRequired()
                     }
 
                 is JsonArray -> any { it.containsEntitlementRequired() }
@@ -222,7 +220,7 @@ class SupabaseSharedRealtime
             const val HEARTBEAT_INTERVAL_MILLIS = 25_000L
             const val OPERATION_AVAILABLE_EVENT = "operation_available"
             const val ENTITLEMENT_REQUIRED = "entitlement_required"
-            val ENTITLEMENT_ERROR_KEYS = setOf("message", "code", "reason", "error")
+            val ENTITLEMENT_ERROR_KEYS = setOf("message", "code", "reason", "error", "response")
         }
     }
 

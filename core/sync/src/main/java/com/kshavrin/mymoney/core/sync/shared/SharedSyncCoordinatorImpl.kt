@@ -239,7 +239,7 @@ class SharedSyncCoordinatorImpl
             withContext(dispatcher) {
                 operationMutex.withLock {
                     val finalSync = syncNowLocked()
-                    if (finalSync.isFailure) return@withLock finalSync
+                    if (finalSync.isFailure) return@withLock clearSharedStateOnAuthFailure(finalSync)
                     disconnectFromDeviceLocked()
                 }
             }
@@ -350,18 +350,27 @@ class SharedSyncCoordinatorImpl
 
         override suspend fun activeWorkspaceAccess(): Result<SharedWorkspaceAccess> =
             withContext(dispatcher) {
-                try {
-                    ensureSignedIn()
-                    val workspace = workspaceApi.currentWorkspace().getOrThrow() ?: throw SyncException(SyncError.Auth)
-                    Result.success(
-                        SharedWorkspaceAccess(
-                            billingState = workspace.billingState.toSharedWorkspaceBillingState(),
-                            billingStateUntil = workspace.billingStateUntil,
-                        ),
-                    )
-                } catch (failure: Throwable) {
-                    if (failure is CancellationException) throw failure
-                    Result.failure(failure)
+                val result =
+                    try {
+                        ensureSignedIn()
+                        if (!sharedStore.isMembershipActive()) throw SyncException(SyncError.Auth)
+                        val workspace = workspaceApi.currentWorkspace().getOrThrow() ?: throw SyncException(SyncError.Auth)
+                        Result.success(
+                            SharedWorkspaceAccess(
+                                billingState = workspace.billingState.toSharedWorkspaceBillingState(),
+                                billingStateUntil = workspace.billingStateUntil,
+                            ),
+                        )
+                    } catch (failure: Throwable) {
+                        if (failure is CancellationException) throw failure
+                        Result.failure(failure)
+                    }
+                if (result.isAuthFailure()) {
+                    executionGate.withExclusive {
+                        operationMutex.withLock { clearSharedStateOnAuthFailure(result) }
+                    }
+                } else {
+                    result
                 }
             }
 

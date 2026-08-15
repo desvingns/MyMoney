@@ -66,6 +66,9 @@ data class SharedCardState(
     val realtimeStatus: SharedRealtimeStatus = SharedRealtimeStatus.Inactive,
 )
 
+internal fun SharedCardState.showsEntitlementWarning(): Boolean =
+    warning != null && (!active || isWorkspaceOwner)
+
 sealed interface SharedDialog {
     data object Setup : SharedDialog
 

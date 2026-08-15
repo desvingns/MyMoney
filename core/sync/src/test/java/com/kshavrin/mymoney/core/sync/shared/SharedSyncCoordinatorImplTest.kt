@@ -378,12 +378,53 @@ class SharedSyncCoordinatorImplTest {
     fun `active workspace access rejects a missing server workspace`() =
         runTest(dispatcher) {
             auth.session = fakeSession()
+            configStore.current = CloudBinding(CloudProvider.Shared, "ws-1", "Budget")
+            sharedStore.membershipActive = true
             workspaceApi.currentWorkspaceResult = Result.success(null)
 
             val result = coordinator.activeWorkspaceAccess()
 
             assertTrue(result.isFailure)
             assertEquals(SyncError.Auth, (result.exceptionOrNull() as? SyncException)?.syncError)
+            assertNull(configStore.current)
+            assertTrue(sharedStore.cursorIsCleared)
+            assertEquals(1, scheduler.disableCalls)
+            assertEquals(1, auth.signOutCalls)
+        }
+
+    @Test
+    fun `active workspace access keeps local binding for a transient failure`() =
+        runTest(dispatcher) {
+            auth.session = fakeSession()
+            configStore.current = CloudBinding(CloudProvider.Shared, "ws-1", "Budget")
+            sharedStore.membershipActive = true
+            workspaceApi.currentWorkspaceResult = Result.failure(SyncException(SyncError.Network))
+
+            val result = coordinator.activeWorkspaceAccess()
+
+            assertTrue(result.isFailure)
+            assertEquals(SyncError.Network, (result.exceptionOrNull() as? SyncException)?.syncError)
+            assertNotNull(configStore.current)
+            assertTrue(!sharedStore.cursorIsCleared)
+            assertEquals(0, scheduler.disableCalls)
+            assertEquals(0, auth.signOutCalls)
+        }
+
+    @Test
+    fun `active workspace access revokes local state when membership is no longer active`() =
+        runTest(dispatcher) {
+            auth.session = fakeSession()
+            configStore.current = CloudBinding(CloudProvider.Shared, "ws-1", "Budget")
+            sharedStore.membershipActive = false
+
+            val result = coordinator.activeWorkspaceAccess()
+
+            assertTrue(result.isFailure)
+            assertEquals(SyncError.Auth, (result.exceptionOrNull() as? SyncException)?.syncError)
+            assertNull(configStore.current)
+            assertTrue(sharedStore.cursorIsCleared)
+            assertEquals(1, scheduler.disableCalls)
+            assertEquals(1, auth.signOutCalls)
         }
 
     @Test
@@ -574,6 +615,24 @@ class SharedSyncCoordinatorImplTest {
             assertNotNull(configStore.current)
             assertEquals(0, scheduler.disableCalls)
             assertEquals(0, auth.signOutCalls)
+        }
+
+    @Test
+    fun `disconnectFromDevice revokes local access when final sync is rejected for auth`() =
+        runTest(dispatcher) {
+            auth.session = fakeSession()
+            configStore.current = CloudBinding(CloudProvider.Shared, "ws-1", "Budget")
+            sharedStore.membershipActive = true
+            journalRepository.pullResults.add(Result.failure(SyncException(SyncError.Auth)))
+
+            val result = coordinator.disconnectFromDevice()
+
+            assertTrue(result.isFailure)
+            assertEquals(SyncError.Auth, (result.exceptionOrNull() as? SyncException)?.syncError)
+            assertNull(configStore.current)
+            assertTrue(sharedStore.cursorIsCleared)
+            assertEquals(1, scheduler.disableCalls)
+            assertEquals(1, auth.signOutCalls)
         }
 
     @Test

@@ -380,6 +380,51 @@ class CloudSyncViewModelTest {
         }
 
     @Test
+    fun `server entitlement refusal clears after a confirmed Plus restoration before setup`() =
+        runTest {
+            val entitlement =
+                EntitlementFake(
+                    UserEntitlement.Plus(
+                        source = EntitlementSource.SUBSCRIPTION_MONTHLY,
+                        state = EntitlementState.TRIAL,
+                        startsAt = Instant.EPOCH,
+                        expiresAt = Instant.ofEpochSecond(1_700_172_800L),
+                        graceEndsAt = null,
+                    ),
+                )
+            val shared =
+                SharedCoordinator().apply {
+                    signedIn = true
+                    createResult = Result.failure(SyncException(SyncError.EntitlementRequired))
+                }
+            val vm =
+                viewModel(
+                    SnapshotFake(),
+                    RecordingJournalSync(),
+                    Config(null),
+                    Scheduler(),
+                    shared = shared,
+                    entitlement = entitlement,
+                )
+            runCurrent()
+
+            vm.onEvent(CloudSyncEvent.SharedSetupClicked)
+            runCurrent()
+            vm.onEvent(CloudSyncEvent.SharedCreateWorkspace("My Budget"))
+            runCurrent()
+            assertEquals(EntitlementWarning.EXPIRY_IMMINENT_1D, vm.state.value.shared.warning)
+
+            entitlement.entitlement.value = plusEntitlement(EntitlementState.ACTIVE)
+            runCurrent()
+            vm.onEvent(CloudSyncEvent.SharedSetupClicked)
+            runCurrent()
+
+            assertEquals(EntitlementState.ACTIVE, vm.state.value.shared.entitlementState)
+            assertNull(vm.state.value.shared.warning)
+            assertEquals(SharedDialog.Setup, vm.state.value.sharedDialog)
+        }
+
+    @Test
     fun `server entitlement refusal while joining preserves warning through setup refresh and opens paywall`() =
         runTest {
             val entitlement = EntitlementFake(plusEntitlement(EntitlementState.ACTIVE))
@@ -1025,6 +1070,46 @@ class CloudSyncViewModelTest {
             runCurrent()
 
             assertEquals(EntitlementWarning.GRACE_ENTERED, vm.state.value.shared.warning)
+            assertEquals(R.string.sync_err_network, vm.state.value.errorBannerRes)
+        }
+
+    @Test
+    fun `owner retains a transient sync error alongside a visible entitlement warning`() =
+        runTest {
+            val entitlement =
+                EntitlementFake(
+                    UserEntitlement.Plus(
+                        source = EntitlementSource.SUBSCRIPTION_MONTHLY,
+                        state = EntitlementState.TRIAL,
+                        startsAt = Instant.EPOCH,
+                        expiresAt = Instant.ofEpochSecond(1_700_172_800L),
+                        graceEndsAt = null,
+                    ),
+                )
+            val shared =
+                SharedCoordinator().apply {
+                    workspaceOwnership = SharedWorkspaceOwnership(isOwner = true)
+                    syncNowResult = Result.failure(SyncException(SyncError.Network))
+                }
+            val vm =
+                viewModel(
+                    SnapshotFake(),
+                    RecordingJournalSync(),
+                    Config(CloudBinding(CloudProvider.Shared, "ws-1", "Budget")),
+                    Scheduler(),
+                    shared = shared,
+                    entitlement = entitlement,
+                )
+            runCurrent()
+
+            assertEquals(EntitlementWarning.TRIAL_ENDING_3D, vm.state.value.shared.warning)
+            assertTrue(vm.state.value.shared.isWorkspaceOwner)
+            assertFalse(vm.state.value.shared.isWorkspaceReadOnly)
+
+            vm.onEvent(CloudSyncEvent.SharedSyncNowClicked)
+            runCurrent()
+
+            assertEquals(EntitlementWarning.TRIAL_ENDING_3D, vm.state.value.shared.warning)
             assertEquals(R.string.sync_err_network, vm.state.value.errorBannerRes)
         }
 

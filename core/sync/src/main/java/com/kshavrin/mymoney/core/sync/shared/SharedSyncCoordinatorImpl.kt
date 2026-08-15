@@ -267,8 +267,13 @@ class SharedSyncCoordinatorImpl
                         Result.success(Unit)
                     } catch (failure: Throwable) {
                         if (failure is CancellationException) throw failure
-                        updateForegroundRealtimeStatus(generation, SharedRealtimeStatus.Error)
-                        Result.failure(failure)
+                        val result = Result.failure<Unit>(failure)
+                        if (result.isAuthFailure()) {
+                            clearSharedStateOnAuthFailure(result)
+                        } else {
+                            updateForegroundRealtimeStatus(generation, SharedRealtimeStatus.Error)
+                            result
+                        }
                     }
                 }
             }

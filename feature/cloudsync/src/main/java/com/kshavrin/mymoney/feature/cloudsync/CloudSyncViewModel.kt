@@ -403,9 +403,7 @@ class CloudSyncViewModel
                                 dropbox = dropbox.card,
                                 drive = drive.card,
                                 requiresProviderChoice = binding == null && dropbox.card.connected && drive.card.connected,
-                                errorBannerRes =
-                                    (activeError ?: _state.value.errorBannerRes)
-                                        .takeIf { !_state.value.shared.showsEntitlementWarning() },
+                                errorBannerRes = activeError ?: _state.value.errorBannerRes,
                             )
                         refreshShared(binding?.provider == CloudProvider.Shared, generation)
                     }
@@ -485,7 +483,7 @@ class CloudSyncViewModel
             _state.value =
                 _state.value.copy(
                     binding = verifiedBinding,
-                    errorBannerRes = _state.value.errorBannerRes.takeIf { !shared.showsEntitlementWarning() },
+                    errorBannerRes = _state.value.errorBannerRes,
                     sharedDialog =
                         _state.value.sharedDialog,
                     shared = shared,
@@ -521,7 +519,7 @@ class CloudSyncViewModel
             _state.value =
                 _state.value.copy(
                     binding = binding,
-                    errorBannerRes = _state.value.errorBannerRes.takeIf { !shared.showsEntitlementWarning() },
+                    errorBannerRes = _state.value.errorBannerRes,
                     shared = shared,
                 )
         }
@@ -552,7 +550,7 @@ class CloudSyncViewModel
             _state.value =
                 _state.value.copy(
                     binding = binding,
-                    errorBannerRes = _state.value.errorBannerRes.takeIf { !shared.showsEntitlementWarning() },
+                    errorBannerRes = _state.value.errorBannerRes,
                     sharedDialog =
                         if (_state.value.sharedDialog is SharedDialog.Invite) {
                             null
@@ -1021,6 +1019,9 @@ class CloudSyncViewModel
                     useCase.entitlement.collect { entitlement ->
                         val changed = latestEntitlement != entitlement
                         latestEntitlement = entitlement
+                        if (changed) {
+                            serverEntitlementRequired = false
+                        }
                         applyEntitlement(entitlement)
                         if (changed) refresh()
                     }
@@ -1047,7 +1048,7 @@ class CloudSyncViewModel
                 )
             _state.value =
                 _state.value.copy(
-                    errorBannerRes = _state.value.errorBannerRes.takeIf { !updatedShared.showsEntitlementWarning() },
+                    errorBannerRes = _state.value.errorBannerRes,
                     shared = updatedShared,
                 )
         }
@@ -1118,9 +1119,7 @@ class CloudSyncViewModel
         private fun showError(
             @StringRes error: Int,
         ) {
-            if (!_state.value.shared.showsEntitlementWarning()) {
-                _state.value = _state.value.copy(errorBannerRes = error)
-            }
+            _state.value = _state.value.copy(errorBannerRes = error)
         }
 
         @StringRes

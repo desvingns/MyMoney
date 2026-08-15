@@ -480,7 +480,6 @@ fun CloudSyncContent(
                 )
             }
             state.errorBannerRes
-                ?.takeIf { !state.shared.showsEntitlementWarning() }
                 ?.let { res ->
                 androidx.compose.foundation.layout.Row(
                     modifier = Modifier.fillMaxWidth(),

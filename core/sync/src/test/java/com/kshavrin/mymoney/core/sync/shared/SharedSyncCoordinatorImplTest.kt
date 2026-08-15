@@ -977,6 +977,25 @@ class SharedSyncCoordinatorImplTest {
         }
 
     @Test
+    fun `realtime startup membership rejection revokes the shared binding`() =
+        runTest(dispatcher) {
+            auth.session = fakeSession()
+            configStore.current = CloudBinding(CloudProvider.Shared, "ws-1", "Budget")
+            sharedStore.membershipActive = false
+
+            val result = coordinator.startForegroundRealtime()
+
+            assertTrue(result.isFailure)
+            assertEquals(SyncError.Auth, (result.exceptionOrNull() as? SyncException)?.syncError)
+            assertNull(configStore.current)
+            assertTrue(sharedStore.cursorIsCleared)
+            assertEquals(1, scheduler.disableCalls)
+            assertEquals(1, auth.signOutCalls)
+            assertEquals(SharedRealtimeStatus.Inactive, coordinator.foregroundRealtimeStatus.value)
+            assertEquals(0, realtime.eventsCalls)
+        }
+
+    @Test
     fun `foreground realtime reconciles every operation hint through the durable sync path`() =
         runTest(dispatcher) {
             auth.session = fakeSession()
@@ -1020,6 +1039,8 @@ class SharedSyncCoordinatorImplTest {
                 coordinator.foregroundRealtimeStatus.first { it == SharedRealtimeStatus.Sleeping(1) },
             )
             assertEquals(1, realtime.eventsCalls)
+            assertNotNull(configStore.current)
+            assertEquals(0, scheduler.disableCalls)
             coordinator.stopForegroundRealtime()
         }
 

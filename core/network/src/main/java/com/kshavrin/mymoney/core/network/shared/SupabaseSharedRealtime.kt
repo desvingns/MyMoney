@@ -11,10 +11,8 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
@@ -186,24 +184,12 @@ class SupabaseSharedRealtime
 
         private fun JsonElement?.entitlementRequiredError(): SyncException =
             SyncException(
-                if (containsEntitlementRequired()) {
+                if (isEntitlementRequiredPayload()) {
                     SyncError.EntitlementRequired
                 } else {
                     SyncError.Server
                 },
             )
-
-        private fun JsonElement?.containsEntitlementRequired(): Boolean =
-            when (this) {
-                is JsonPrimitive -> content == ENTITLEMENT_REQUIRED
-                is JsonObject ->
-                    entries.any { (key, value) ->
-                        key in ENTITLEMENT_ERROR_KEYS && value.containsEntitlementRequired()
-                    }
-
-                is JsonArray -> any { it.containsEntitlementRequired() }
-                else -> false
-            }
 
         private fun SupabaseConfig.realtimeUrl() =
             url
@@ -219,8 +205,6 @@ class SupabaseSharedRealtime
             const val INITIAL_HEARTBEAT_REF = 2L
             const val HEARTBEAT_INTERVAL_MILLIS = 25_000L
             const val OPERATION_AVAILABLE_EVENT = "operation_available"
-            const val ENTITLEMENT_REQUIRED = "entitlement_required"
-            val ENTITLEMENT_ERROR_KEYS = setOf("message", "code", "reason", "error", "response")
         }
     }
 

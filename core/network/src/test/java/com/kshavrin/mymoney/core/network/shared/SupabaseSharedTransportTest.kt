@@ -374,6 +374,37 @@ class SupabaseSharedTransportTest {
         }
 
     @Test
+    fun `workspace RPC maps primitive and nested exact entitlement payloads to the typed error`() =
+        runTest {
+            signIn()
+            listOf(
+                "\"entitlement_required\"",
+                "{\"response\":{\"reason\":{\"code\":\"entitlement_required\"}}}",
+            ).forEach { responseBody ->
+                server.enqueue(MockResponse().setResponseCode(403).setBody(responseBody))
+
+                assertSyncError(workspaceRpc.createWorkspace("Budget"), SyncError.EntitlementRequired)
+                server.takeRequest()
+            }
+        }
+
+    @Test
+    fun `workspace RPC keeps entitlement near misses as generic server errors`() =
+        runTest {
+            signIn()
+            listOf(
+                "\"entitlement_required_extra\"",
+                "{\"response\":{\"reason\":\"entitlement_required_extra\"}}",
+                "{\"details\":{\"error\":\"entitlement_required\"}}",
+            ).forEach { responseBody ->
+                server.enqueue(MockResponse().setResponseCode(500).setBody(responseBody))
+
+                assertSyncError(workspaceRpc.createWorkspace("Budget"), SyncError.Server)
+                server.takeRequest()
+            }
+        }
+
+    @Test
     fun `post applies a per-call deadline and maps the timeout to network`() =
         runTest {
             val config =

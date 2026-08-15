@@ -227,7 +227,7 @@ class CloudSyncScreenContentTest {
     }
 
     @Test
-    fun `entitlement warning suppresses a pre-existing generic error banner`() {
+    fun `visible entitlement warning keeps a generic error banner`() {
         setContent(
             CloudSyncState(
                 binding = CloudBinding(CloudProvider.Shared, "ws-1", "Budget"),
@@ -247,7 +247,7 @@ class CloudSyncScreenContentTest {
             .onNodeWithText(str(R.string.sync_shared_warning_grace_title))
             .performScrollTo()
             .assertIsDisplayed()
-        composeTestRule.onNodeWithText(str(R.string.sync_err_server)).assertDoesNotExist()
+        composeTestRule.onNodeWithText(str(R.string.sync_err_server)).performScrollTo().assertIsDisplayed()
     }
 
     @Test

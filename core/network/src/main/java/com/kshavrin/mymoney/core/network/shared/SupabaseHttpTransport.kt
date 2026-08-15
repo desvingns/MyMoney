@@ -240,9 +240,7 @@ private fun String.hasEntitlementRequired(): Boolean =
     runCatching {
         Json
             .parseToJsonElement(this)
-            .jsonObject["message"]
-            ?.jsonPrimitive
-            ?.content == "entitlement_required"
+            .isEntitlementRequiredPayload()
     }.getOrDefault(false)
 
 private fun String.hasAccountDeletionWorkspaceConflict(): Boolean =

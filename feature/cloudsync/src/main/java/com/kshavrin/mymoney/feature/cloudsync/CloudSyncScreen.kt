@@ -479,7 +479,9 @@ fun CloudSyncContent(
                     onEvent = onEvent,
                 )
             }
-            state.errorBannerRes?.let { res ->
+            state.errorBannerRes
+                ?.takeIf { state.shared.warning == null }
+                ?.let { res ->
                 androidx.compose.foundation.layout.Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -600,6 +602,7 @@ private fun SharedCard(
     isConnecting: Boolean,
     onEvent: (CloudSyncEvent) -> Unit,
 ) {
+    val isWriteAllowed = state.isWorkspaceAccessKnown && !state.isWorkspaceReadOnly
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(Spacing.l),
@@ -619,10 +622,10 @@ private fun SharedCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             if (state.active) {
-                if (state.isWorkspaceReadOnly) SharedReadOnlyBanner(state.isWorkspaceAccessKnown)
+                if (!isWriteAllowed) SharedReadOnlyBanner(state.isWorkspaceAccessKnown)
                 SharedRealtimeStatusCard(
                     status = state.realtimeStatus,
-                    enabled = !state.isWorkspaceReadOnly,
+                    enabled = isWriteAllowed,
                     onEvent = onEvent,
                 )
             }
@@ -646,7 +649,7 @@ private fun SharedCard(
                         OutlinedButton(
                             modifier = Modifier.testTag(SyncTarget.Shared.controlTag("conflicts")),
                             onClick = { onEvent(CloudSyncEvent.SharedConflictsClicked) },
-                            enabled = !isConnecting && !state.isWorkspaceReadOnly,
+                            enabled = !isConnecting && isWriteAllowed,
                         ) {
                             Text(stringResource(R.string.sync_shared_review_conflicts, state.conflictCount))
                         }
@@ -654,14 +657,14 @@ private fun SharedCard(
                     Button(
                         modifier = Modifier.testTag(SyncTarget.Shared.controlTag("sync_now")),
                         onClick = { onEvent(CloudSyncEvent.SharedSyncNowClicked) },
-                        enabled = !isConnecting && !state.isWorkspaceReadOnly,
+                        enabled = !isConnecting && isWriteAllowed,
                     ) {
                         Text(stringResource(R.string.sync_shared_sync_now))
                     }
                     OutlinedButton(
                         modifier = Modifier.testTag(SyncTarget.Shared.controlTag("create_invite")),
                         onClick = { onEvent(CloudSyncEvent.SharedCreateInviteClicked) },
-                        enabled = !isConnecting && !state.isWorkspaceReadOnly,
+                        enabled = !isConnecting && isWriteAllowed,
                     ) {
                         Text(stringResource(R.string.sync_shared_create_invite))
                     }

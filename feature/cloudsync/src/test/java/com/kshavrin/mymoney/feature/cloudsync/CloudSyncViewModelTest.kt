@@ -761,6 +761,48 @@ class CloudSyncViewModelTest {
         }
 
     @Test
+    fun `writable access failure clears stale server state until a fresh Active access restores it`() =
+        runTest {
+            val entitlement = EntitlementFake()
+            val shared = SharedCoordinator()
+            val vm =
+                viewModel(
+                    SnapshotFake(),
+                    RecordingJournalSync(),
+                    Config(CloudBinding(CloudProvider.Shared, "ws-1", "Budget")),
+                    Scheduler(),
+                    shared = shared,
+                    entitlement = entitlement,
+                )
+            runCurrent()
+            vm.onEvent(CloudSyncEvent.SharedRealtimeForegroundStarted)
+            runCurrent()
+            val realtimeStartsBeforeFailure = shared.startRealtimeCalls
+            val realtimeStopsBeforeFailure = shared.stopRealtimeCalls
+
+            shared.workspaceAccessResult = Result.failure(SyncException(SyncError.Network))
+            vm.onEvent(CloudSyncEvent.SharedSyncNowClicked)
+            runCurrent()
+
+            assertFalse(vm.state.value.shared.isWorkspaceAccessKnown)
+            assertTrue(vm.state.value.shared.isWorkspaceReadOnly)
+            assertNull(vm.state.value.shared.workspaceBillingState)
+            assertNull(vm.state.value.shared.workspaceBillingStateUntil)
+            assertEquals(SharedRealtimeStatus.Inactive, vm.state.value.shared.realtimeStatus)
+            assertEquals(CloudProvider.Shared, vm.state.value.binding?.provider)
+            assertTrue(shared.stopRealtimeCalls > realtimeStopsBeforeFailure)
+
+            shared.workspaceAccessResult = Result.success(SharedWorkspaceAccess(SharedWorkspaceBillingState.Active))
+            entitlement.entitlement.value = plusEntitlement(EntitlementState.TRIAL)
+            runCurrent()
+
+            assertTrue(vm.state.value.shared.isWorkspaceAccessKnown)
+            assertFalse(vm.state.value.shared.isWorkspaceReadOnly)
+            assertEquals(SharedWorkspaceBillingState.Active, vm.state.value.shared.workspaceBillingState)
+            assertTrue(shared.startRealtimeCalls > realtimeStartsBeforeFailure)
+        }
+
+    @Test
     fun `realtime entitlement rejection refreshes server access and shows the same warning`() =
         runTest {
             val shared = SharedCoordinator()

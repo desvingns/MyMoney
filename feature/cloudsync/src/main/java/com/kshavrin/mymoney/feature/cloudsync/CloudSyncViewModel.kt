@@ -403,7 +403,9 @@ class CloudSyncViewModel
                                 dropbox = dropbox.card,
                                 drive = drive.card,
                                 requiresProviderChoice = binding == null && dropbox.card.connected && drive.card.connected,
-                                errorBannerRes = activeError ?: _state.value.errorBannerRes,
+                                errorBannerRes =
+                                    (activeError ?: _state.value.errorBannerRes)
+                                        .takeIf { _state.value.shared.warning == null },
                             )
                         refreshShared(binding?.provider == CloudProvider.Shared, generation)
                     }
@@ -415,61 +417,124 @@ class CloudSyncViewModel
             generation: Long,
         ) {
             val sharedEnabled = cloudSyncSettings.availability().sharedEnabled
-            if (!sharedEnabled || !active) sharedCoordinator.stopForegroundRealtime()
-            val canReadShared = sharedEnabled && active
-            val workspace = if (canReadShared) sharedCoordinator.activeWorkspace() else null
-            val ownership =
-                if (canReadShared) {
-                    sharedCoordinator.activeWorkspaceOwnership().getOrNull()
-                } else {
-                    null
-                }
             val accessResult =
-                if (canReadShared) {
+                if (sharedEnabled && active) {
                     sharedCoordinator.activeWorkspaceAccess()
                 } else {
                     null
                 }
-            val access = accessResult?.getOrNull()
-            val conflictCount =
-                if (canReadShared) {
-                    sharedCoordinator.listConflicts().getOrNull()?.size ?: _state.value.shared.conflictCount
-                } else {
-                    0
-                }
             if (generation != refreshGeneration) return
             val currentBinding = journalSyncConfig.binding()
             val stillActive = currentBinding?.provider == CloudProvider.Shared
-            val previousShared = _state.value.shared
-            val accessFailure = accessResult?.exceptionOrNull()
-            if (accessFailure.isEntitlementRequired()) markServerEntitlementRequired()
-            if (access?.billingState == SharedWorkspaceBillingState.Active) {
+            val access = accessResult?.getOrNull()
+            if (stillActive && access == null) {
+                if (accessResult?.exceptionOrNull().isEntitlementRequired()) {
+                    serverEntitlementRequired = true
+                }
+                publishSharedAccessDenied(checkNotNull(currentBinding), sharedEnabled)
+                sharedCoordinator.stopForegroundRealtime()
+                if (!active) refresh()
+                return
+            }
+            if (!stillActive) {
+                publishInactiveSharedState(currentBinding, sharedEnabled)
+                sharedCoordinator.stopForegroundRealtime()
+                return
+            }
+            checkNotNull(access)
+            if (access.billingState == SharedWorkspaceBillingState.Active) {
                 serverEntitlementRequired = false
             }
-            val hasKnownWorkspaceAccess = access != null || previousShared.isWorkspaceAccessKnown
-            val workspaceBillingState =
-                access?.billingState ?: previousShared.workspaceBillingState.takeIf { previousShared.isWorkspaceAccessKnown }
-            val workspaceBillingStateUntil =
-                access?.billingStateUntil ?: previousShared.workspaceBillingStateUntil.takeIf { previousShared.isWorkspaceAccessKnown }
-            val isWorkspaceReadOnly =
-                stillActive &&
-                    when {
-                        access != null -> access.isReadOnly || serverEntitlementRequired
-                        previousShared.isWorkspaceAccessKnown ->
-                            previousShared.isWorkspaceReadOnly || serverEntitlementRequired
-                        else -> true
-                    }
-            if (isWorkspaceReadOnly) sharedCoordinator.stopForegroundRealtime()
-            if (!sharedEnabled || !stillActive) sharedCoordinator.stopForegroundRealtime()
-            if (!active && stillActive) {
+            val workspace = sharedCoordinator.activeWorkspace()
+            val ownership = sharedCoordinator.activeWorkspaceOwnership().getOrNull()
+            val conflictCount = sharedCoordinator.listConflicts().getOrNull()?.size ?: _state.value.shared.conflictCount
+            if (generation != refreshGeneration) return
+            val verifiedBinding = journalSyncConfig.binding()
+            if (verifiedBinding?.provider != CloudProvider.Shared) {
                 refresh()
                 return
             }
+            val isWorkspaceReadOnly = access.isReadOnly || serverEntitlementRequired
+            val warning = sharedEntitlementWarning(access.billingState, access.billingStateUntil)
             _state.value =
                 _state.value.copy(
-                    binding = currentBinding,
+                    binding = verifiedBinding,
+                    errorBannerRes = _state.value.errorBannerRes.takeIf { warning == null },
                     sharedDialog =
-                        if (!stillActive && _state.value.sharedDialog is SharedDialog.Invite) {
+                        _state.value.sharedDialog,
+                    shared =
+                        _state.value.shared.copy(
+                            enabled = sharedEnabled,
+                            signedIn = sharedCoordinator.isSignedIn(),
+                            accountEmail = sharedCoordinator.accountEmail(),
+                            active = true,
+                            workspaceName = workspace?.name ?: verifiedBinding.accountLabel,
+                            conflictCount = conflictCount,
+                            isWorkspaceOwner = ownership?.isOwner == true,
+                            isSoleOwner = ownership?.isSoleOwner == true,
+                            workspaceBillingState = access.billingState,
+                            workspaceBillingStateUntil = access.billingStateUntil,
+                            isWorkspaceAccessKnown = true,
+                            isWorkspaceReadOnly = isWorkspaceReadOnly,
+                            entitlementGraceEndsAt =
+                                access.billingStateUntil
+                                    ?.takeIf { access.billingState == SharedWorkspaceBillingState.Grace }
+                                    ?: latestEntitlement.graceEndsAt(),
+                            warning = warning,
+                            realtimeStatus =
+                                if (!isWorkspaceReadOnly) {
+                                    _state.value.shared.realtimeStatus
+                                } else {
+                                    SharedRealtimeStatus.Inactive
+                                },
+                        ),
+                )
+            if (isWorkspaceReadOnly) {
+                sharedCoordinator.stopForegroundRealtime()
+            } else if (sharedEnabled && foregroundRealtimeActive) {
+                startForegroundRealtime()
+            }
+        }
+
+        private fun publishSharedAccessDenied(
+            binding: CloudBinding,
+            sharedEnabled: Boolean,
+        ) {
+            val previousShared = _state.value.shared
+            val warning = sharedEntitlementWarning()
+            _state.value =
+                _state.value.copy(
+                    binding = binding,
+                    errorBannerRes = _state.value.errorBannerRes.takeIf { warning == null },
+                    shared =
+                        previousShared.copy(
+                            enabled = sharedEnabled,
+                            signedIn = sharedCoordinator.isSignedIn(),
+                            accountEmail = sharedCoordinator.accountEmail(),
+                            active = true,
+                            workspaceName = previousShared.workspaceName ?: binding.accountLabel,
+                            workspaceBillingState = null,
+                            workspaceBillingStateUntil = null,
+                            isWorkspaceAccessKnown = false,
+                            isWorkspaceReadOnly = true,
+                            entitlementGraceEndsAt = latestEntitlement.graceEndsAt(),
+                            warning = warning,
+                            realtimeStatus = SharedRealtimeStatus.Inactive,
+                        ),
+                )
+        }
+
+        private fun publishInactiveSharedState(
+            binding: CloudBinding?,
+            sharedEnabled: Boolean,
+        ) {
+            val warning = latestEntitlement.warning(clock)
+            _state.value =
+                _state.value.copy(
+                    binding = binding,
+                    errorBannerRes = _state.value.errorBannerRes.takeIf { warning == null },
+                    sharedDialog =
+                        if (_state.value.sharedDialog is SharedDialog.Invite) {
                             null
                         } else {
                             _state.value.sharedDialog
@@ -479,52 +544,29 @@ class CloudSyncViewModel
                             enabled = sharedEnabled,
                             signedIn = sharedCoordinator.isSignedIn(),
                             accountEmail = sharedCoordinator.accountEmail(),
-                            active = stillActive,
-                            workspaceName = if (stillActive) workspace?.name else null,
-                            conflictCount = if (stillActive) conflictCount else 0,
-                            isWorkspaceOwner =
-                                stillActive &&
-                                    (ownership?.isOwner ?: previousShared.isWorkspaceOwner),
-                            isSoleOwner =
-                                stillActive &&
-                                    (ownership?.isSoleOwner ?: previousShared.isSoleOwner),
-                            workspaceBillingState = if (stillActive) workspaceBillingState else null,
-                            workspaceBillingStateUntil = if (stillActive) workspaceBillingStateUntil else null,
-                            isWorkspaceAccessKnown = stillActive && hasKnownWorkspaceAccess,
-                            isWorkspaceReadOnly = isWorkspaceReadOnly,
-                            entitlementGraceEndsAt =
-                                workspaceBillingStateUntil
-                                    ?.takeIf { workspaceBillingState == SharedWorkspaceBillingState.Grace }
-                                    ?: latestEntitlement.graceEndsAt(),
-                            warning =
-                                workspaceBillingState.warning(workspaceBillingStateUntil, clock)
-                                    ?: latestEntitlement.warning(clock)
-                                    ?: serverEntitlementWarning(),
-                            realtimeStatus =
-                                if (sharedEnabled && stillActive) {
-                                    _state.value.shared.realtimeStatus
-                                } else {
-                                    SharedRealtimeStatus.Inactive
-                                },
+                            active = false,
+                            workspaceName = null,
+                            conflictCount = 0,
+                            isWorkspaceOwner = false,
+                            isSoleOwner = false,
+                            workspaceBillingState = null,
+                            workspaceBillingStateUntil = null,
+                            isWorkspaceAccessKnown = false,
+                            isWorkspaceReadOnly = false,
+                            entitlementGraceEndsAt = latestEntitlement.graceEndsAt(),
+                            warning = warning,
+                            realtimeStatus = SharedRealtimeStatus.Inactive,
                         ),
                 )
-            if (sharedEnabled && stillActive && !isWorkspaceReadOnly && foregroundRealtimeActive) {
-                startForegroundRealtime()
-            }
         }
 
         private fun observeForegroundRealtimeStatus() {
             viewModelScope.launch {
                 sharedCoordinator.foregroundRealtimeStatus.collect { status ->
                     if (status == SharedRealtimeStatus.EntitlementRequired) {
-                        _state.value =
-                            _state.value.copy(
-                                shared = _state.value.shared.copy(realtimeStatus = SharedRealtimeStatus.Inactive),
-                            )
                         markServerEntitlementRequired()
-                        sharedCoordinator.stopForegroundRealtime()
                         refresh()
-                    } else {
+                    } else if (_state.value.shared.canWrite()) {
                         _state.value =
                             _state.value.copy(
                                 shared = _state.value.shared.copy(realtimeStatus = status),
@@ -614,7 +656,7 @@ class CloudSyncViewModel
         }
 
         private fun createSharedInvite() {
-            if (_state.value.shared.isWorkspaceReadOnly) return
+            if (!_state.value.shared.canWrite()) return
             viewModelScope.launch {
                 _state.value = _state.value.copy(isConnecting = true, errorBannerRes = null, sharedDialog = null)
                 try {
@@ -658,7 +700,7 @@ class CloudSyncViewModel
         }
 
         private fun sharedSyncNow() {
-            if (_state.value.shared.isWorkspaceReadOnly) return
+            if (!_state.value.shared.canWrite()) return
             viewModelScope.launch {
                 _state.value = _state.value.copy(isConnecting = true, errorBannerRes = null)
                 try {
@@ -678,9 +720,7 @@ class CloudSyncViewModel
             if (
                 !foregroundRealtimeActive ||
                     !cloudSyncSettings.availability().sharedEnabled ||
-                    !shared.active ||
-                    !shared.isWorkspaceAccessKnown ||
-                    shared.isWorkspaceReadOnly
+                    !shared.canWrite()
             ) {
                 return
             }
@@ -694,9 +734,7 @@ class CloudSyncViewModel
                             foregroundRealtimeActive &&
                             generation == foregroundRealtimeGeneration &&
                             journalSyncConfig.binding()?.provider == CloudProvider.Shared &&
-                            currentShared.active &&
-                            currentShared.isWorkspaceAccessKnown &&
-                            !currentShared.isWorkspaceReadOnly
+                            currentShared.canWrite()
                         ) {
                             sharedCoordinator.startForegroundRealtime()
                         }
@@ -724,9 +762,7 @@ class CloudSyncViewModel
         private fun restartForegroundRealtime() {
             if (
                 !foregroundRealtimeActive ||
-                    !_state.value.shared.active ||
-                    !_state.value.shared.isWorkspaceAccessKnown ||
-                    _state.value.shared.isWorkspaceReadOnly
+                    !_state.value.shared.canWrite()
             ) {
                 return
             }
@@ -760,7 +796,7 @@ class CloudSyncViewModel
             conflictId: String,
             winnerOperationId: String,
         ) {
-            if (_state.value.shared.isWorkspaceReadOnly) return
+            if (!_state.value.shared.canWrite()) return
             viewModelScope.launch {
                 _state.value = _state.value.copy(isConnecting = true, errorBannerRes = null)
                 try {
@@ -993,22 +1029,21 @@ class CloudSyncViewModel
         }
 
         private fun applyEntitlement(entitlement: UserEntitlement) {
+            val shared = _state.value.shared
+            val warning = sharedEntitlementWarning(shared.workspaceBillingState, shared.workspaceBillingStateUntil)
             _state.value =
                 _state.value.copy(
+                    errorBannerRes = _state.value.errorBannerRes.takeIf { warning == null },
                     shared =
-                        _state.value.shared.copy(
+                        shared.copy(
                             entitlementState = entitlement.state(),
                             entitlementGraceEndsAt =
-                                _state.value.shared.workspaceBillingStateUntil
+                                shared.workspaceBillingStateUntil
                                     ?.takeIf {
-                                        _state.value.shared.workspaceBillingState == SharedWorkspaceBillingState.Grace
+                                        shared.workspaceBillingState == SharedWorkspaceBillingState.Grace
                                     }
                                     ?: entitlement.graceEndsAt(),
-                            warning =
-                                _state.value.shared.workspaceBillingState.warning(
-                                    _state.value.shared.workspaceBillingStateUntil,
-                                    clock,
-                                ) ?: entitlement.warning(clock) ?: serverEntitlementWarning(),
+                            warning = warning,
                         ),
                 )
         }
@@ -1023,6 +1058,14 @@ class CloudSyncViewModel
         private fun serverEntitlementWarning(): EntitlementWarning? =
             EntitlementWarning.EXPIRY_IMMINENT_1D.takeIf { serverEntitlementRequired }
 
+        private fun sharedEntitlementWarning(
+            billingState: SharedWorkspaceBillingState? = null,
+            billingStateUntil: java.time.Instant? = null,
+        ): EntitlementWarning? =
+            billingState.warning(billingStateUntil, clock)
+                ?: serverEntitlementWarning()
+                ?: latestEntitlement.warning(clock)
+
         private fun showEntitlementWarning() {
             markServerEntitlementRequired()
             viewModelScope.launch {
@@ -1032,13 +1075,23 @@ class CloudSyncViewModel
 
         private fun markServerEntitlementRequired() {
             serverEntitlementRequired = true
-            if (_state.value.shared.active) {
-                _state.value =
-                    _state.value.copy(
-                        shared = _state.value.shared.copy(isWorkspaceReadOnly = true),
-                    )
-            }
-            applyEntitlement(latestEntitlement)
+            val shared = _state.value.shared
+            val warning = sharedEntitlementWarning()
+            _state.value =
+                _state.value.copy(
+                    errorBannerRes = null,
+                    shared =
+                        shared.copy(
+                            workspaceBillingState = if (shared.active) null else shared.workspaceBillingState,
+                            workspaceBillingStateUntil = if (shared.active) null else shared.workspaceBillingStateUntil,
+                            isWorkspaceAccessKnown = if (shared.active) false else shared.isWorkspaceAccessKnown,
+                            isWorkspaceReadOnly = if (shared.active) true else shared.isWorkspaceReadOnly,
+                            entitlementGraceEndsAt = latestEntitlement.graceEndsAt(),
+                            warning = warning,
+                            realtimeStatus = if (shared.active) SharedRealtimeStatus.Inactive else shared.realtimeStatus,
+                        ),
+                )
+            if (shared.active) sharedCoordinator.stopForegroundRealtime()
         }
 
         private fun card(target: SyncTarget): TargetCardState =
@@ -1061,7 +1114,9 @@ class CloudSyncViewModel
         private fun showError(
             @StringRes error: Int,
         ) {
-            _state.value = _state.value.copy(errorBannerRes = error)
+            if (_state.value.shared.warning == null) {
+                _state.value = _state.value.copy(errorBannerRes = error)
+            }
         }
 
         @StringRes
@@ -1097,6 +1152,9 @@ private fun UserEntitlement.state(): EntitlementState =
 private fun UserEntitlement.canCreateSharedWorkspace(): Boolean =
     this is UserEntitlement.Plus &&
         (state == EntitlementState.TRIAL || state == EntitlementState.ACTIVE)
+
+private fun SharedCardState.canWrite(): Boolean =
+    active && isWorkspaceAccessKnown && !isWorkspaceReadOnly
 
 private fun UserEntitlement.graceEndsAt() = (this as? UserEntitlement.Plus)?.graceEndsAt
 

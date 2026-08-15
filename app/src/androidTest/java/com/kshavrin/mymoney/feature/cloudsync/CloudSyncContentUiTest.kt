@@ -180,7 +180,13 @@ class CloudSyncContentUiTest {
             mutableStateOf(
                 CloudSyncState(
                     binding = CloudBinding(CloudProvider.Shared, "ws-1", "Budget"),
-                    shared = SharedCardState(signedIn = true, active = true, workspaceName = "Budget"),
+                    shared =
+                        SharedCardState(
+                            signedIn = true,
+                            active = true,
+                            isWorkspaceAccessKnown = true,
+                            workspaceName = "Budget",
+                        ),
                 ),
             )
         val onEvent: (CloudSyncEvent) -> Unit = { event ->

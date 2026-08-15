@@ -82,7 +82,13 @@ class CloudSyncScreenContentTest {
         setContent(
             CloudSyncState(
                 binding = CloudBinding(CloudProvider.Shared, "ws-1", "Budget"),
-                shared = SharedCardState(signedIn = true, active = true, workspaceName = "Budget"),
+                shared =
+                    SharedCardState(
+                        signedIn = true,
+                        active = true,
+                        isWorkspaceAccessKnown = true,
+                        workspaceName = "Budget",
+                    ),
             ),
         )
         composeTestRule.onNodeWithTag("cloud_sync_shared_sync_now").performScrollTo().assertIsDisplayed()
@@ -95,7 +101,13 @@ class CloudSyncScreenContentTest {
         setContent(
             CloudSyncState(
                 binding = CloudBinding(CloudProvider.Shared, "ws-1", "Budget"),
-                shared = SharedCardState(signedIn = true, active = true, isSoleOwner = true),
+                shared =
+                    SharedCardState(
+                        signedIn = true,
+                        active = true,
+                        isWorkspaceAccessKnown = true,
+                        isSoleOwner = true,
+                    ),
             ),
         )
 
@@ -137,6 +149,7 @@ class CloudSyncScreenContentTest {
                     SharedCardState(
                         signedIn = true,
                         active = true,
+                        isWorkspaceAccessKnown = true,
                         workspaceName = "Budget",
                         realtimeStatus = SharedRealtimeStatus.Sleeping(retryAttempt = 2),
                     ),
@@ -157,6 +170,7 @@ class CloudSyncScreenContentTest {
                     SharedCardState(
                         signedIn = true,
                         active = true,
+                        isWorkspaceAccessKnown = true,
                         realtimeStatus = SharedRealtimeStatus.Error,
                     ),
             ),
@@ -174,7 +188,13 @@ class CloudSyncScreenContentTest {
         setContent(
             CloudSyncState(
                 binding = CloudBinding(CloudProvider.Shared, "ws-1", "Budget"),
-                shared = SharedCardState(signedIn = true, active = true, realtimeStatus = SharedRealtimeStatus.Inactive),
+                shared =
+                    SharedCardState(
+                        signedIn = true,
+                        active = true,
+                        isWorkspaceAccessKnown = true,
+                        realtimeStatus = SharedRealtimeStatus.Inactive,
+                    ),
             ),
         )
 
@@ -191,6 +211,7 @@ class CloudSyncScreenContentTest {
                         signedIn = true,
                         active = true,
                         isWorkspaceOwner = true,
+                        isWorkspaceAccessKnown = false,
                         isWorkspaceReadOnly = true,
                         warning = EntitlementWarning.GRACE_ENTERED,
                         realtimeStatus = SharedRealtimeStatus.EntitlementRequired,
@@ -206,11 +227,41 @@ class CloudSyncScreenContentTest {
     }
 
     @Test
+    fun `entitlement warning suppresses a pre-existing generic error banner`() {
+        setContent(
+            CloudSyncState(
+                binding = CloudBinding(CloudProvider.Shared, "ws-1", "Budget"),
+                errorBannerRes = R.string.sync_err_server,
+                shared =
+                    SharedCardState(
+                        signedIn = true,
+                        active = true,
+                        isWorkspaceOwner = true,
+                        isWorkspaceAccessKnown = true,
+                        warning = EntitlementWarning.GRACE_ENTERED,
+                    ),
+            ),
+        )
+
+        composeTestRule
+            .onNodeWithText(str(R.string.sync_shared_warning_grace_title))
+            .performScrollTo()
+            .assertIsDisplayed()
+        composeTestRule.onNodeWithText(str(R.string.sync_err_server)).assertDoesNotExist()
+    }
+
+    @Test
     fun `Shared card shows create-invite button only for an active workspace`() {
         setContent(
             CloudSyncState(
                 binding = CloudBinding(CloudProvider.Shared, "ws-1", "Budget"),
-                shared = SharedCardState(signedIn = true, active = true, workspaceName = "Budget"),
+                shared =
+                    SharedCardState(
+                        signedIn = true,
+                        active = true,
+                        isWorkspaceAccessKnown = true,
+                        workspaceName = "Budget",
+                    ),
             ),
         )
         composeTestRule.onNodeWithTag("cloud_sync_shared_create_invite").performScrollTo().assertIsDisplayed()
@@ -230,7 +281,7 @@ class CloudSyncScreenContentTest {
         setContent(
             CloudSyncState(
                 binding = CloudBinding(CloudProvider.Shared, "ws-1", "Budget"),
-                shared = SharedCardState(signedIn = true, active = true),
+                shared = SharedCardState(signedIn = true, active = true, isWorkspaceAccessKnown = true),
             ),
             events::add,
         )
@@ -248,7 +299,7 @@ class CloudSyncScreenContentTest {
         setContent(
             CloudSyncState(
                 binding = CloudBinding(CloudProvider.Shared, "ws-1", "Budget"),
-                shared = SharedCardState(signedIn = true, active = true),
+                shared = SharedCardState(signedIn = true, active = true, isWorkspaceAccessKnown = true),
             ),
             events::add,
         )
@@ -332,7 +383,13 @@ class CloudSyncScreenContentTest {
         setContent(
             CloudSyncState(
                 binding = CloudBinding(CloudProvider.Shared, "ws-1", "Budget"),
-                shared = SharedCardState(signedIn = true, active = true, conflictCount = 3),
+                shared =
+                    SharedCardState(
+                        signedIn = true,
+                        active = true,
+                        isWorkspaceAccessKnown = true,
+                        conflictCount = 3,
+                    ),
             ),
         )
         composeTestRule.onNodeWithTag("cloud_sync_shared_conflicts").performScrollTo().assertIsDisplayed()
@@ -343,7 +400,13 @@ class CloudSyncScreenContentTest {
         setContent(
             CloudSyncState(
                 binding = CloudBinding(CloudProvider.Shared, "ws-1", "Budget"),
-                shared = SharedCardState(signedIn = true, active = true, conflictCount = 0),
+                shared =
+                    SharedCardState(
+                        signedIn = true,
+                        active = true,
+                        isWorkspaceAccessKnown = true,
+                        conflictCount = 0,
+                    ),
             ),
         )
         composeTestRule.onNodeWithTag("cloud_sync_shared_conflicts").assertDoesNotExist()
@@ -355,7 +418,7 @@ class CloudSyncScreenContentTest {
         setContent(
             CloudSyncState(
                 binding = CloudBinding(CloudProvider.Shared, "ws-1", "Budget"),
-                shared = SharedCardState(signedIn = true, active = true),
+                shared = SharedCardState(signedIn = true, active = true, isWorkspaceAccessKnown = true),
             ),
             events::add,
         )
@@ -371,7 +434,7 @@ class CloudSyncScreenContentTest {
         setContent(
             CloudSyncState(
                 binding = CloudBinding(CloudProvider.Shared, "ws-1", "Budget"),
-                shared = SharedCardState(signedIn = true, active = true),
+                shared = SharedCardState(signedIn = true, active = true, isWorkspaceAccessKnown = true),
             ),
             events::add,
         )
@@ -467,7 +530,7 @@ class CloudSyncScreenContentTest {
         setContent(
             CloudSyncState(
                 binding = CloudBinding(CloudProvider.Shared, "ws-1", "Budget"),
-                shared = SharedCardState(signedIn = true, active = true),
+                shared = SharedCardState(signedIn = true, active = true, isWorkspaceAccessKnown = true),
                 sharedDialog = SharedDialog.Conflicts,
                 conflicts =
                     listOf(
@@ -500,7 +563,7 @@ class CloudSyncScreenContentTest {
         setContent(
             CloudSyncState(
                 binding = CloudBinding(CloudProvider.Shared, "ws-1", "Budget"),
-                shared = SharedCardState(signedIn = true, active = true),
+                shared = SharedCardState(signedIn = true, active = true, isWorkspaceAccessKnown = true),
                 sharedDialog = SharedDialog.Conflicts,
                 conflicts =
                     listOf(
@@ -598,7 +661,7 @@ class CloudSyncScreenContentTest {
                 binding = CloudBinding(CloudProvider.Shared, "ws-1", "Budget"),
                 dropbox = TargetCardState(SyncTarget.Dropbox, enabled = true, connected = true),
                 drive = TargetCardState(SyncTarget.GoogleDrive, enabled = true, connected = true),
-                shared = SharedCardState(signedIn = true, active = true),
+                shared = SharedCardState(signedIn = true, active = true, isWorkspaceAccessKnown = true),
             ),
         )
         // Switch buttons appear (not connect/use-connected) because Shared is active
@@ -615,7 +678,7 @@ class CloudSyncScreenContentTest {
         setContent(
             CloudSyncState(
                 binding = CloudBinding(CloudProvider.Shared, "ws-1", "Budget"),
-                shared = SharedCardState(signedIn = true, active = true),
+                shared = SharedCardState(signedIn = true, active = true, isWorkspaceAccessKnown = true),
                 sharedDialog = null,
                 conflicts = emptyList(),
             ),

@@ -186,7 +186,10 @@ class PaywallViewModel
 
         private suspend fun handlePurchaseOutcome(outcome: PurchaseOutcome) {
             when (outcome) {
-                is PurchaseOutcome.Purchased -> reconcileEntitlement()
+                is PurchaseOutcome.Purchased -> {
+                    _actions.emit(PaywallAction.RequestNotificationPermission)
+                    reconcileEntitlement()
+                }
 
                 PurchaseOutcome.Pending ->
                     _state.value = _state.value.copy(purchaseState = PaywallPurchaseState.Pending)

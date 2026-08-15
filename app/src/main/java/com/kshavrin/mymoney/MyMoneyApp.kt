@@ -12,6 +12,7 @@ import com.kshavrin.mymoney.core.domain.supporter.SupporterSync
 import com.kshavrin.mymoney.core.domain.usecase.NormalizeLegacyUtcMidnightUseCase
 import com.kshavrin.mymoney.core.sync.JournalSync
 import com.kshavrin.mymoney.core.sync.WorkScheduler
+import com.kshavrin.mymoney.core.sync.notification.MyMoneyNotificationChannels
 import dagger.Lazy
 import dagger.hilt.android.HiltAndroidApp
 import io.sentry.Sentry
@@ -69,6 +70,7 @@ class MyMoneyApp :
 
     override fun onCreate() {
         super.onCreate()
+        MyMoneyNotificationChannels.registerAll(this)
         applicationScope.launch(ioDispatcher) {
             workScheduler.get().scheduleDailyJobs()
         }

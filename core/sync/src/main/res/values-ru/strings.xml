@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="notification_channel_subscription_name">Подписка</string>
+
+    <string name="notification_trial_ending_title">Пробный период скоро закончится</string>
+    <string name="notification_trial_ending_body">Бесплатный пробный период закончится через 3 дня. Оформите подписку, чтобы сохранить облачную синхронизацию и общие пространства.</string>
+
+    <string name="notification_grace_entered_title">Проблема с оплатой подписки</string>
+    <string name="notification_grace_entered_body">Не удалось продлить подписку. Обновите способ оплаты, чтобы сохранить доступ к Plus.</string>
+
+    <string name="notification_expiry_imminent_title">Доступ Plus отключится завтра</string>
+    <string name="notification_expiry_imminent_body">Льготный период закончится завтра. Продлите подписку, чтобы не потерять облачную синхронизацию.</string>
+</resources>

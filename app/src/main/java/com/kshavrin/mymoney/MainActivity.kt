@@ -17,6 +17,7 @@ import com.kshavrin.mymoney.core.ui.feedback.LocalHapticPlayer
 import com.kshavrin.mymoney.core.ui.feedback.LocalSoundPlayer
 import com.kshavrin.mymoney.core.ui.haptic.HapticKind
 import com.kshavrin.mymoney.core.ui.haptic.HapticPlayer
+import com.kshavrin.mymoney.core.sync.notification.EntitlementNotifications
 import com.kshavrin.mymoney.core.ui.restart.EXTRA_RESET_HAD_FAILURES
 import com.kshavrin.mymoney.core.ui.sound.SoundKey
 import com.kshavrin.mymoney.core.ui.sound.SoundPlayer
@@ -106,6 +107,7 @@ class MainActivity : AppCompatActivity() {
             showFactoryResetFailureIfNeeded()
         }
         val shortcutDestination = resolveShortcutDestination(intent)
+        val openPaywall = intent?.getBooleanExtra(EntitlementNotifications.EXTRA_OPEN_PAYWALL, false) == true
         setContent {
             val themeMode by themeViewModel.themeMode.collectAsStateWithLifecycle()
             val locked by activityLockState.collectAsStateWithLifecycle()
@@ -116,7 +118,10 @@ class MainActivity : AppCompatActivity() {
                     LocalSecureWindowController provides secureWindowController,
                 ) {
                     Box {
-                        MyMoneyNavHost(shortcutDestination = shortcutDestination)
+                        MyMoneyNavHost(
+                            shortcutDestination = shortcutDestination,
+                            openPaywall = openPaywall,
+                        )
                         if (locked) {
                             LockOverlay(
                                 onUnlocked = { lockController.markUnlocked(activityStartId) },

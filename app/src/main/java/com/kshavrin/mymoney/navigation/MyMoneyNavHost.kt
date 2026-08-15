@@ -23,6 +23,7 @@ import com.kshavrin.mymoney.core.ui.navigation.PaywallEntryPoint
 fun MyMoneyNavHost(
     navController: NavHostController = rememberNavController(),
     shortcutDestination: ShortcutDestination? = null,
+    openPaywall: Boolean = false,
 ) {
     NavHost(
         navController = navController,
@@ -32,6 +33,7 @@ fun MyMoneyNavHost(
             DecisionRouter(
                 navController = navController,
                 shortcutDestination = shortcutDestination,
+                openPaywall = openPaywall,
             )
         }
         composable<Destinations.Splash> {
@@ -326,6 +328,7 @@ fun MyMoneyNavHost(
 private fun DecisionRouter(
     navController: NavHostController,
     shortcutDestination: ShortcutDestination? = null,
+    openPaywall: Boolean = false,
 ) {
     val viewModel: DecisionRouterViewModel = hiltViewModel()
     val state by viewModel.state.collectAsState()
@@ -345,6 +348,9 @@ private fun DecisionRouter(
                     ShortcutDestination.AddIncome -> navController.navigate(Destinations.AddIncome)
                     ShortcutDestination.Transfer -> navController.navigate(Destinations.Transfer)
                     null -> Unit
+                }
+                if (openPaywall) {
+                    navController.navigate(Destinations.Paywall(PaywallEntryPoint.SupportSection))
                 }
             }
         }

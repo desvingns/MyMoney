@@ -1,5 +1,6 @@
 package com.kshavrin.mymoney.core.sync.di
 
+import com.kshavrin.mymoney.core.domain.notification.EntitlementNotifier
 import com.kshavrin.mymoney.core.domain.repository.RemoteConfigRepository
 import com.kshavrin.mymoney.core.domain.reset.FactoryResetGateway
 import com.kshavrin.mymoney.core.domain.supporter.SupportPurchaseReconciliationCoordinator
@@ -21,6 +22,7 @@ import com.kshavrin.mymoney.core.sync.gdrive.AuthorizationClientDriveAuthorizer
 import com.kshavrin.mymoney.core.sync.gdrive.GoogleDriveAuthorizer
 import com.kshavrin.mymoney.core.sync.gdrive.GoogleDriveJournalBackend
 import com.kshavrin.mymoney.core.sync.gdrive.GoogleDriveRepository
+import com.kshavrin.mymoney.core.sync.notification.EntitlementNotifierImpl
 import com.kshavrin.mymoney.core.sync.remoteconfig.RemoteConfigRepositoryImpl
 import com.kshavrin.mymoney.core.sync.shared.SharedSyncCoordinator
 import com.kshavrin.mymoney.core.sync.shared.SharedSyncCoordinatorImpl
@@ -93,4 +95,8 @@ abstract class SyncModule {
     abstract fun bindSupportPurchaseReconciliationCoordinator(
         impl: SupportPurchaseReconciliationCoordinatorImpl,
     ): SupportPurchaseReconciliationCoordinator
+
+    @Binds
+    @Singleton
+    abstract fun bindEntitlementNotifier(impl: EntitlementNotifierImpl): EntitlementNotifier
 }

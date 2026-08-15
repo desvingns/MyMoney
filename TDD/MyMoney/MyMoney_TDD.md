@@ -2029,7 +2029,7 @@ Manifest is much smaller than the original APK's 12. Each line is annotated with
 | `android.permission.WAKE_LOCK`                    | KEEP        | (APK) — WorkManager                                                |
 | `com.android.vending.BILLING`                     | KEEP        | (ADR-0010) — Play Billing: Plus subscription + coffee consumables   |
 | `android.permission.USE_FINGERPRINT`              | REMOVED     | (decision) — superseded by USE_BIOMETRIC on minSdk 31              |
-| `android.permission.POST_NOTIFICATIONS`           | REMOVED     | (decision Q-D3) — no notifications                                 |
+| `android.permission.POST_NOTIFICATIONS`           | KEEP        | (ADR-0010 / plus-subscription-gating) — subscription expiry warnings |
 | `android.permission.RECEIVE_BOOT_COMPLETED`       | REMOVED     | (decision) — WorkManager handles reboot persistence natively       |
 | `android.permission.FOREGROUND_SERVICE`           | REMOVED     | (decision) — no fg sync service                                    |
 | `android.permission.READ_PHONE_STATE`             | REMOVED     | (decision) — was telephony-aware analytics in original             |
@@ -2037,7 +2037,7 @@ Manifest is much smaller than the original APK's 12. Each line is annotated with
 | `com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE` | REMOVED | (decision) — was install-attribution                |
 | `android.permission.RECORD_AUDIO`                 | NOT ADDED   | (decision) — voice search uses RecognizerIntent (system app captures audio) |
 
-Final count: **6 manifest permissions** (down from 12).
+Final count: **7 manifest permissions** (down from 12).
 
 ### 8.3. Storage layout on disk
 
@@ -2110,7 +2110,7 @@ Final count: **6 manifest permissions** (down from 12).
 | Monetization            | Google Play Billing 7.0 + ads + Premium IAP (APK) | Play Billing + rewarded ads — Plus subscription, coffee consumables (ADR-0010) |
 | Crash reporting         | Sentry (APK)                            | Sentry (kept; new DSN)                 |
 | Sync                    | Dropbox + Google Drive (APK)            | Dropbox + Google Drive (same)         |
-| Permissions             | 12 (APK)                                | 6 (decision)                          |
+| Permissions             | 12 (APK)                                | 7 (decision)                          |
 | APK size                | 23.1 MB (APK)                           | ≤ 15 MB target                         |
 | `minSdk`                | 21 (APK)                                | 31 (Q-D1)                              |
 

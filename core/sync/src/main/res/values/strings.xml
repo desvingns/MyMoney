@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="notification_channel_subscription_name">Subscription</string>
+
+    <string name="notification_trial_ending_title">Trial ending soon</string>
+    <string name="notification_trial_ending_body">Your free trial ends in 3 days. Subscribe to keep cloud sync and shared workspaces.</string>
+
+    <string name="notification_grace_entered_title">Subscription payment issue</string>
+    <string name="notification_grace_entered_body">We couldn\'t renew your subscription. Update your payment method to keep Plus access.</string>
+
+    <string name="notification_expiry_imminent_title">Plus access ends tomorrow</string>
+    <string name="notification_expiry_imminent_body">Your grace period ends tomorrow. Renew now to avoid losing cloud sync.</string>
+</resources>

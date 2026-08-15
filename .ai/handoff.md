@@ -3,6 +3,28 @@
 Phase/release state authority: `docs/implementation_plan/PROGRESS.md` (do not restate it here).
 
 ## DONE (in progress — see BLOCKERS/NEXT, not closed)
+- 2026-08-15: Closed `plus-subscription-gating-06-local-only-transition` (Claude MP `--feature
+  --next`, resumed from a handoff left by a prior Codex session that stopped after a 3rd
+  semantic-review blocker-pass and an `mp-architect` PREFLIGHT verdict of `PATCH ALLOWED`).
+  Three more repair cycles landed real fixes: fail-closed auth/role-recovery while LocalOnly
+  (never `clearBinding`/`sharedStore.clear`/`clearSharedOutbox`), coordinator-owned
+  snapshot→durable-commit→teardown ordering for all three `LocalOnlyReason`s (the
+  `RemoteKillswitch` path was missed in the first fix and caught by a second semantic-review
+  pass), a fail-safe `Unknown` tri-state role default, and — found independently by the
+  routed independent critic — a TOCTOU race between the realtime supervisor's auth-failure
+  cleanup and `detachToLocalOnly`'s DataStore commit (closed with `operationMutex.withLock`).
+  Commits `b4335959`, `2a708a9a`, `ef2e10e8` pushed to `main` (`8f330a96..ef2e10e8`). Final full runner: 2248 passed / 0 failed / 0 skipped, detekt/lint
+  green; deterministic reviewer 0 violations at every cycle; full Verifier passed. Three
+  non-blocking findings (a teardown-failure return/commit mismatch, a test that doesn't
+  actually prove the auth-race mutex is load-bearing, an untriaged `SyncError.Conflict`
+  status question) are logged under "Deferred hardening" in the SPEC file, now in `done/`.
+  Epic `plus-subscription-gating` is NOT complete — SPECs 07-10 remain in `backlog/`.
+- 2026-08-14: Closed `support-rewarded-ads-03-ad-gateway-admob` locally in commits
+  `bb71373e`, `082bbbbd`, `ee32a69f`, `ac7055cf`, `7d4189ee`, `4714cd8d`, and
+  `e440e9ec`. Added the AdMob/UMP gateway, authenticated SSV token flow, bounded
+  cancellation-safe loading, process-local no-fill state, and focused fake-based tests.
+  Full verifier passed; final JVM evidence is 3753/0/0/0, with a post-Hilt scoped sanity
+  check at 263/0/0/0. The next slice remains queued in the same epic.
 - 2026-08-06: Closed shared-backend-sync SPEC 04 and the standalone pgcrypto join bugfix.
   Commits: `ea914537` (schema-qualified `extensions.digest` plus forward migration),
   `716216fd` (Realtime/security/recovery hardening), and `a9c9a877` (separate device
@@ -113,13 +135,26 @@ Phase/release state authority: `docs/implementation_plan/PROGRESS.md` (do not re
   collapsed to `@AGENTS.md` + Claude-only deltas (host device testing, token
   workflow, /mp plugin notes, auto-push policy, memory paths).
 
+## 2026-08-12 MONETIZATION BACKEND CLOSE-OUT
+- Codex completed the server-side monetization foundation for `com.kshavrin.mymoney`: Supabase schema/RLS, whitelist, one-time activation-code path, Google Play API/RTDN via Pub/Sub + OIDC, AdMob SSV with idempotency, and Firebase Analytics project setup.
+- Supabase Edge Functions are deployed and active; `admob-ssv` is version 10 after handling AdMob's signed dummy URL-verification callback without granting rewards. No secret values are stored in this handoff.
+- The backend is ready for Android implementation. Next client contract: authenticated call to `create-ad-reward-token`, pass returned `custom_data` into the rewarded ad request, and send Play purchase tokens to `bind-google-play-purchase`.
+- Android production code was intentionally not changed. Actual rewarded-ad end-to-end testing remains deferred until the client supplies signed `custom_data`.
+
 ## DECISIONS
 - `.ai/memory/MEMORY.md` is the shared durable memory for both tools; tool-local
   memories are mirrors.
 
 ## NEXT
-- No active MP SPEC remains. The shared-backend-sync epic overview, all four child SPECs, and the
-  standalone join bugfix are closed in `.claude/specs/done/`.
+- No active MP SPEC remains. `plus-subscription-gating-06-local-only-transition` is closed
+  (2026-08-15). The epic's remaining backlog items are SPECs 07 (entitlement notifications), 08
+  (monetization analytics events), 09 (Shared killswitch + release flip), 10 (privacy policy
+  monetization update) — `--feature --next` will pick up SPEC 07 next.
+- Three deferred-hardening follow-ups logged in the now-`done/` SPEC 06 file, none blocking:
+  a `detachToLocalOnly` teardown-failure return/commit mismatch (self-healing via the realtime
+  supervisor's next sync attempt), a regression test that doesn't actually prove the
+  AUTH-RACE-001 mutex fix is load-bearing under real concurrency, and an untriaged
+  `SyncError.Conflict`-while-LocalOnly status question.
 - Optional housekeeping remains: manual deletion of the six archived root logs when convenient.
 
 ## OWNER

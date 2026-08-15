@@ -425,7 +425,7 @@ class CloudSyncViewModelTest {
         }
 
     @Test
-    fun `server entitlement refusal while joining preserves warning through setup refresh and opens paywall`() =
+    fun `server entitlement refusal while joining preserves warning without exposing paywall`() =
         runTest {
             val entitlement = EntitlementFake(plusEntitlement(EntitlementState.ACTIVE))
             val shared =
@@ -453,14 +453,13 @@ class CloudSyncViewModelTest {
                 assertEquals(EntitlementState.ACTIVE, vm.state.value.shared.entitlementState)
                 assertEquals(EntitlementWarning.EXPIRY_IMMINENT_1D, vm.state.value.shared.warning)
                 assertFalse(vm.state.value.shared.active)
+                assertTrue(vm.state.value.shared.isParticipantJoinEntitlementRefusal)
                 assertEquals(SharedDialog.Setup, vm.state.value.sharedDialog)
                 assertNull(vm.state.value.errorBannerRes)
 
                 vm.onEvent(CloudSyncEvent.WarningActionClicked)
-                assertEquals(
-                    CloudSyncAction.NavigateToPaywall(PaywallEntryPoint.SharedSyncGate),
-                    awaitItem(),
-                )
+                vm.onEvent(CloudSyncEvent.PaywallRequested(PaywallEntryPoint.SharedSyncGate))
+                expectNoEvents()
                 cancelAndIgnoreRemainingEvents()
             }
         }
@@ -1110,6 +1109,42 @@ class CloudSyncViewModelTest {
             runCurrent()
 
             assertEquals(EntitlementWarning.TRIAL_ENDING_3D, vm.state.value.shared.warning)
+            assertEquals(R.string.sync_err_network, vm.state.value.errorBannerRes)
+        }
+
+    @Test
+    fun `entitlement refusal warning preserves an existing generic error banner`() =
+        runTest {
+            val shared =
+                SharedCoordinator().apply {
+                    workspaceOwnership = SharedWorkspaceOwnership(isOwner = true)
+                    syncNowResult = Result.failure(SyncException(SyncError.Network))
+                }
+            val vm =
+                viewModel(
+                    SnapshotFake(),
+                    RecordingJournalSync(),
+                    Config(CloudBinding(CloudProvider.Shared, "ws-1", "Budget")),
+                    Scheduler(),
+                    shared = shared,
+                )
+            runCurrent()
+
+            vm.onEvent(CloudSyncEvent.SharedSyncNowClicked)
+            runCurrent()
+            assertEquals(R.string.sync_err_network, vm.state.value.errorBannerRes)
+
+            shared.workspaceAccessResult =
+                Result.success(
+                    SharedWorkspaceAccess(
+                        billingState = SharedWorkspaceBillingState.Grace,
+                        billingStateUntil = Instant.ofEpochSecond(1_700_172_800L),
+                    ),
+                )
+            shared.emitRealtimeStatus(SharedRealtimeStatus.EntitlementRequired)
+            runCurrent()
+
+            assertEquals(EntitlementWarning.GRACE_ENTERED, vm.state.value.shared.warning)
             assertEquals(R.string.sync_err_network, vm.state.value.errorBannerRes)
         }
 

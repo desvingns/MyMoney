@@ -54,6 +54,7 @@ class CloudSyncContentTest {
         assertEquals(0, s.conflictCount)
         assertNull(s.accountEmail)
         assertNull(s.workspaceName)
+        assertFalse(s.isParticipantJoinEntitlementRefusal)
         assertEquals(SharedRealtimeStatus.Inactive, s.realtimeStatus)
     }
 

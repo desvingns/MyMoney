@@ -428,6 +428,59 @@ class SharedSyncCoordinatorImplTest {
         }
 
     @Test
+    fun `active workspace ownership revokes local state when auth is lost`() =
+        runTest(dispatcher) {
+            auth.session = null
+            configStore.current = CloudBinding(CloudProvider.Shared, "ws-1", "Budget")
+
+            val result = coordinator.activeWorkspaceOwnership()
+
+            assertTrue(result.isFailure)
+            assertEquals(SyncError.Auth, (result.exceptionOrNull() as? SyncException)?.syncError)
+            assertNull(configStore.current)
+            assertTrue(sharedStore.cursorIsCleared)
+            assertEquals(1, scheduler.disableCalls)
+            assertEquals(1, auth.signOutCalls)
+        }
+
+    @Test
+    fun `active workspace ownership revokes local state when membership lookup reports auth loss`() =
+        runTest(dispatcher) {
+            auth.session = fakeSession()
+            configStore.current = CloudBinding(CloudProvider.Shared, "ws-1", "Budget")
+            workspaceApi.listMembersResult = Result.failure(SyncException(SyncError.Auth))
+
+            val result = coordinator.activeWorkspaceOwnership()
+
+            assertTrue(result.isFailure)
+            assertEquals(SyncError.Auth, (result.exceptionOrNull() as? SyncException)?.syncError)
+            assertNull(configStore.current)
+            assertTrue(sharedStore.cursorIsCleared)
+            assertEquals(1, scheduler.disableCalls)
+            assertEquals(1, auth.signOutCalls)
+        }
+
+    @Test
+    fun `active workspace ownership retains local binding for transient network and server failures`() =
+        runTest(dispatcher) {
+            for (error in listOf(SyncError.Network, SyncError.Server)) {
+                auth.session = fakeSession()
+                configStore.current = CloudBinding(CloudProvider.Shared, "ws-1", "Budget")
+                sharedStore.cursorIsCleared = false
+                workspaceApi.listMembersResult = Result.failure(SyncException(error))
+
+                val result = coordinator.activeWorkspaceOwnership()
+
+                assertTrue(result.isFailure)
+                assertEquals(error, (result.exceptionOrNull() as? SyncException)?.syncError)
+                assertNotNull(configStore.current)
+                assertTrue(!sharedStore.cursorIsCleared)
+                assertEquals(0, scheduler.disableCalls)
+                assertEquals(0, auth.signOutCalls)
+            }
+        }
+
+    @Test
     fun `active workspace access propagates cancellation`() =
         runTest(dispatcher) {
             auth.session = fakeSession()
@@ -1299,6 +1352,7 @@ class SharedSyncCoordinatorImplTest {
         var deleteCalls = 0
         var leaveFailure: Throwable? = null
         var currentWorkspaceResult: Result<SharedWorkspace?> = Result.success(null)
+        var listMembersResult: Result<List<WorkspaceMember>> = Result.success(emptyList())
 
         override suspend fun createWorkspace(name: String) = createResult
 
@@ -1312,7 +1366,7 @@ class SharedSyncCoordinatorImplTest {
 
         override suspend fun currentWorkspace() = currentWorkspaceResult
 
-        override suspend fun listMembers(workspaceId: String) = Result.success(emptyList<WorkspaceMember>())
+        override suspend fun listMembers(workspaceId: String) = listMembersResult
 
         override suspend fun createInvite(workspaceId: String): Result<CreatedInvite> {
             createInviteCalls++

@@ -2,6 +2,7 @@ package com.kshavrin.mymoney.feature.cloudsync
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -137,6 +138,24 @@ class CloudSyncScreenContentTest {
             .performScrollTo()
             .assertIsDisplayed()
         composeTestRule.onNodeWithText(str(R.string.sync_shared_warning_grace_title)).assertDoesNotExist()
+        composeTestRule.onNodeWithText(str(R.string.sync_shared_warning_renew)).assertDoesNotExist()
+        composeTestRule.onNodeWithTag("cloud_sync_shared_sync_now").performScrollTo().assertIsNotEnabled()
+        composeTestRule.onNodeWithTag("cloud_sync_shared_create_invite").performScrollTo().assertIsNotEnabled()
+    }
+
+    @Test
+    fun `participant join refusal hides renewal action before workspace activation`() {
+        setContent(
+            CloudSyncState(
+                shared =
+                    SharedCardState(
+                        signedIn = true,
+                        warning = EntitlementWarning.EXPIRY_IMMINENT_1D,
+                        isParticipantJoinEntitlementRefusal = true,
+                    ),
+            ),
+        )
+
         composeTestRule.onNodeWithText(str(R.string.sync_shared_warning_renew)).assertDoesNotExist()
     }
 

@@ -18,7 +18,7 @@
 <body>
   <header>
     <h1>MyMoney Privacy Policy</h1>
-    <p class="meta">Last updated: August 11, 2026 · <a href="https://desvingns.github.io/MyMoney/privacy-policy/ru/">Русская версия</a></p>
+    <p class="meta">Last updated: August 16, 2026 · <a href="https://desvingns.github.io/MyMoney/privacy-policy/ru/">Русская версия</a></p>
   </header>
 
   <p>This Privacy Policy explains how MyMoney handles information in the Android application. MyMoney is a local-first money tracker developed by Kirill Shavrin.</p>
@@ -53,6 +53,9 @@
 
   <h3>Services and feature flags</h3>
   <p>Firebase Remote Config is not enabled in this release. Dropbox, Google Drive and Supabase are included in the release artifact, but they transmit data only after you connect and use the corresponding feature.</p>
+
+  <h3>Advertising (Google AdMob)</h3>
+  <p>MyMoney shows <strong>rewarded ads only</strong> — an ad never appears unless you deliberately start one to earn temporary Plus access. There are no banner, interstitial or app-open ads. When you start a rewarded ad, the Google Mobile Ads SDK collects your device's advertising ID (<code>com.google.android.gms.permission.AD_ID</code>) and technical device and request context, and may use them to select and measure the ad. Google's own advertising policies apply. The reward itself is confirmed to MyMoney's backend by Google through server-side verification; the confirmation carries an opaque identifier tied to your account, not your financial records. No transaction, account, category, note or other financial record from MyMoney is ever sent to Google's advertising services. Ads are not served in every region; where they are unavailable, the rest of the app is unaffected.</p>
 
   <h2>Backups and exports</h2>
   <p>You can export a database backup or CSV through Android's file picker. Such files may contain your financial data and are written to the location you select. MyMoney does not upload these files by itself. The app's secure credentials and PIN hash are excluded from Android system backup; Android device-to-device transfer may include the local database and ordinary settings according to the device's backup rules.</p>

@@ -340,16 +340,13 @@ class SharedSyncCoordinatorImpl
 
         override suspend fun activeWorkspaceOwnership(): Result<SharedWorkspaceOwnership> =
             withContext(dispatcher) {
-                runCatching {
-                    val workspaceId = requireActiveWorkspaceId()
-                    val userId = auth.currentSession()?.user?.id ?: throw SyncException(SyncError.Auth)
-                    val members = workspaceApi.listMembers(workspaceId).getOrThrow().filter { it.active }
-                    val ownMembership = members.firstOrNull { it.userId == userId }
-                    val isOwner = ownMembership?.role == WorkspaceRole.Owner
-                    SharedWorkspaceOwnership(
-                        isOwner = isOwner,
-                        isSoleOwner = isOwner && members.size == 1,
-                    )
+                val result = activeWorkspaceOwnershipResult()
+                if (result.isAuthFailure()) {
+                    executionGate.withExclusive {
+                        operationMutex.withLock { clearSharedStateOnAuthFailure(result) }
+                    }
+                } else {
+                    result
                 }
             }
 
@@ -385,14 +382,21 @@ class SharedSyncCoordinatorImpl
         override suspend fun deleteWorkspace(): Result<Unit> =
             withContext(dispatcher) {
                 operationMutex.withLock {
-                    runCatching {
-                        val workspaceId = requireActiveWorkspaceId()
-                        val ownership = activeWorkspaceOwnership().getOrThrow()
-                        if (!ownership.isSoleOwner) throw SyncException(SyncError.Conflict)
-                        val backup = backupRepository.createInternalBackup()
-                        val serverDelete = runCatching { workspaceApi.deleteWorkspace(workspaceId).getOrThrow() }
-                        completeRemoteWorkspaceExit(backup, serverDelete)
+                    val result =
+                        runCatching {
+                            val workspaceId = requireActiveWorkspaceId()
+                            val ownership = activeWorkspaceOwnershipResult().getOrThrow()
+                            if (!ownership.isSoleOwner) throw SyncException(SyncError.Conflict)
+                            val backup = backupRepository.createInternalBackup()
+                            val serverDelete = runCatching { workspaceApi.deleteWorkspace(workspaceId).getOrThrow() }
+                            completeRemoteWorkspaceExit(backup, serverDelete)
+                        }
+                    result.exceptionOrNull()?.let { failure ->
+                        if (failure is CancellationException) throw failure
                     }
+                    clearSharedStateOnAuthFailure(
+                        result,
+                    )
                 }
             }
 
@@ -1134,6 +1138,24 @@ class SharedSyncCoordinatorImpl
         private suspend fun ensureNoActiveBinding() {
             if (configStore.binding() != null) throw SyncException(SyncError.Conflict)
         }
+
+        private suspend fun activeWorkspaceOwnershipResult(): Result<SharedWorkspaceOwnership> =
+            try {
+                val workspaceId = requireActiveWorkspaceId()
+                val userId = auth.currentSession()?.user?.id ?: throw SyncException(SyncError.Auth)
+                val members = workspaceApi.listMembers(workspaceId).getOrThrow().filter { it.active }
+                val ownMembership = members.firstOrNull { it.userId == userId }
+                val isOwner = ownMembership?.role == WorkspaceRole.Owner
+                Result.success(
+                    SharedWorkspaceOwnership(
+                        isOwner = isOwner,
+                        isSoleOwner = isOwner && members.size == 1,
+                    ),
+                )
+            } catch (failure: Throwable) {
+                if (failure is CancellationException) throw failure
+                Result.failure(failure)
+            }
 
         private suspend fun requireActiveWorkspaceId(): String =
             configStore

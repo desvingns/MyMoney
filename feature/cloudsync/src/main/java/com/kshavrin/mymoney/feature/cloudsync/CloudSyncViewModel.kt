@@ -90,6 +90,7 @@ class CloudSyncViewModel
         private var foregroundRealtimeStartJob: Job? = null
         private var latestEntitlement: UserEntitlement = UserEntitlement.Free
         private var serverEntitlementRequired = false
+        private var serverEntitlementRequiredFromParticipantJoin = false
 
         init {
             latestEntitlement = observeEntitlement?.entitlement?.value ?: UserEntitlement.Free
@@ -428,6 +429,7 @@ class CloudSyncViewModel
             if (stillActive && access == null) {
                 if (accessResult?.exceptionOrNull().isEntitlementRequired()) {
                     serverEntitlementRequired = true
+                    serverEntitlementRequiredFromParticipantJoin = false
                 }
                 publishSharedAccessDenied(checkNotNull(currentBinding), sharedEnabled)
                 sharedCoordinator.stopForegroundRealtime()
@@ -440,9 +442,8 @@ class CloudSyncViewModel
                 return
             }
             checkNotNull(access)
-            if (access.billingState == SharedWorkspaceBillingState.Active) {
-                serverEntitlementRequired = false
-            }
+            serverEntitlementRequired = false
+            serverEntitlementRequiredFromParticipantJoin = false
             val workspace = sharedCoordinator.activeWorkspace()
             val ownership = sharedCoordinator.activeWorkspaceOwnership().getOrNull()
             val conflictCount = sharedCoordinator.listConflicts().getOrNull()?.size ?: _state.value.shared.conflictCount
@@ -473,6 +474,7 @@ class CloudSyncViewModel
                             ?.takeIf { access.billingState == SharedWorkspaceBillingState.Grace }
                             ?: latestEntitlement.graceEndsAt(),
                     warning = warning,
+                    isParticipantJoinEntitlementRefusal = false,
                     realtimeStatus =
                         if (!isWorkspaceReadOnly) {
                             _state.value.shared.realtimeStatus
@@ -514,6 +516,7 @@ class CloudSyncViewModel
                     isWorkspaceReadOnly = true,
                     entitlementGraceEndsAt = latestEntitlement.graceEndsAt(),
                     warning = warning,
+                    isParticipantJoinEntitlementRefusal = serverEntitlementRequiredFromParticipantJoin,
                     realtimeStatus = SharedRealtimeStatus.Inactive,
                 )
             _state.value =
@@ -545,6 +548,7 @@ class CloudSyncViewModel
                     isWorkspaceReadOnly = false,
                     entitlementGraceEndsAt = latestEntitlement.graceEndsAt(),
                     warning = warning,
+                    isParticipantJoinEntitlementRefusal = serverEntitlementRequiredFromParticipantJoin,
                     realtimeStatus = SharedRealtimeStatus.Inactive,
                 )
             _state.value =
@@ -640,6 +644,11 @@ class CloudSyncViewModel
         }
 
         private fun createSharedWorkspace(name: String) {
+            serverEntitlementRequiredFromParticipantJoin = false
+            _state.value =
+                _state.value.copy(
+                    shared = _state.value.shared.copy(isParticipantJoinEntitlementRefusal = false),
+                )
             if (isSharedWorkspaceCreationBlocked()) {
                 requestPaywall()
                 return
@@ -648,7 +657,9 @@ class CloudSyncViewModel
         }
 
         private fun joinSharedWorkspace(inviteToken: String) {
-            runSharedSetup { sharedCoordinator.joinWorkspace(inviteToken.trim(), _state.value.importLocalData) }
+            runSharedSetup(isParticipantJoin = true) {
+                sharedCoordinator.joinWorkspace(inviteToken.trim(), _state.value.importLocalData)
+            }
         }
 
         private fun recoverRemoteWorkspace() {
@@ -678,7 +689,10 @@ class CloudSyncViewModel
             viewModelScope.launch { _actions.emit(CloudSyncAction.CopySharedInvite(invite.token)) }
         }
 
-        private fun runSharedSetup(block: suspend () -> Result<*>) {
+        private fun runSharedSetup(
+            isParticipantJoin: Boolean = false,
+            block: suspend () -> Result<*>,
+        ) {
             viewModelScope.launch {
                 _state.value = _state.value.copy(isConnecting = true, errorBannerRes = null)
                 try {
@@ -686,7 +700,7 @@ class CloudSyncViewModel
                     _state.value = _state.value.copy(sharedDialog = null)
                 } catch (t: Throwable) {
                     if (t is CancellationException) throw t
-                    reportAndShow(t)
+                    reportAndShow(t, isParticipantJoin)
                 } finally {
                     _state.value = _state.value.copy(isConnecting = false)
                     if (sharedCoordinator.consumeRestartRequiredAfterAdoptionRecovery()) {
@@ -1021,6 +1035,7 @@ class CloudSyncViewModel
                         latestEntitlement = entitlement
                         if (changed) {
                             serverEntitlementRequired = false
+                            serverEntitlementRequiredFromParticipantJoin = false
                         }
                         applyEntitlement(entitlement)
                         if (changed) refresh()
@@ -1054,6 +1069,7 @@ class CloudSyncViewModel
         }
 
         private fun requestPaywall(entryPoint: PaywallEntryPoint = PaywallEntryPoint.SharedSyncGate) {
+            if (_state.value.shared.isParticipantJoinEntitlementRefusal) return
             if (_state.value.shared.active && !_state.value.shared.isWorkspaceOwner) return
             viewModelScope.launch { _actions.emit(CloudSyncAction.NavigateToPaywall(entryPoint)) }
         }
@@ -1071,20 +1087,20 @@ class CloudSyncViewModel
                 ?: serverEntitlementWarning()
                 ?: latestEntitlement.warning(clock)
 
-        private fun showEntitlementWarning() {
-            markServerEntitlementRequired()
+        private fun showEntitlementWarning(isParticipantJoin: Boolean = false) {
+            markServerEntitlementRequired(isParticipantJoin)
             viewModelScope.launch {
                 observeEntitlement?.refresh()?.exceptionOrNull()?.reportToSentry()
             }
         }
 
-        private fun markServerEntitlementRequired() {
+        private fun markServerEntitlementRequired(isParticipantJoin: Boolean = false) {
             serverEntitlementRequired = true
+            serverEntitlementRequiredFromParticipantJoin = isParticipantJoin
             val shared = _state.value.shared
             val warning = sharedEntitlementWarning()
             _state.value =
                 _state.value.copy(
-                    errorBannerRes = null,
                     shared =
                         shared.copy(
                             workspaceBillingState = if (shared.active) null else shared.workspaceBillingState,
@@ -1093,6 +1109,7 @@ class CloudSyncViewModel
                             isWorkspaceReadOnly = if (shared.active) true else shared.isWorkspaceReadOnly,
                             entitlementGraceEndsAt = latestEntitlement.graceEndsAt(),
                             warning = warning,
+                            isParticipantJoinEntitlementRefusal = isParticipantJoin,
                             realtimeStatus = if (shared.active) SharedRealtimeStatus.Inactive else shared.realtimeStatus,
                         ),
                 )
@@ -1106,11 +1123,14 @@ class CloudSyncViewModel
                 SyncTarget.Shared -> error("Shared mode does not use the file-exchange provider card flow")
             }
 
-        private fun reportAndShow(t: Throwable) {
+        private fun reportAndShow(
+            t: Throwable,
+            isParticipantJoin: Boolean = false,
+        ) {
             t.reportToSentry()
             val syncError = (t as? SyncException)?.syncError ?: SyncError.Unknown
             if (syncError == SyncError.EntitlementRequired) {
-                showEntitlementWarning()
+                showEntitlementWarning(isParticipantJoin)
             } else {
                 showError(mapError(syncError))
             }

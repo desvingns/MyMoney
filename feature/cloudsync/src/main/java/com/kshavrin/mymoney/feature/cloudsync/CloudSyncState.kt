@@ -63,11 +63,12 @@ data class SharedCardState(
     val isWorkspaceAccessKnown: Boolean = false,
     val isWorkspaceReadOnly: Boolean = false,
     val warning: EntitlementWarning? = null,
+    val isParticipantJoinEntitlementRefusal: Boolean = false,
     val realtimeStatus: SharedRealtimeStatus = SharedRealtimeStatus.Inactive,
 )
 
 internal fun SharedCardState.showsEntitlementWarning(): Boolean =
-    warning != null && (!active || isWorkspaceOwner)
+    warning != null && !isParticipantJoinEntitlementRefusal && (!active || isWorkspaceOwner)
 
 sealed interface SharedDialog {
     data object Setup : SharedDialog

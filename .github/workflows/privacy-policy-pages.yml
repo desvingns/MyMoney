@@ -40,9 +40,15 @@ jobs:
           mkdir -p "$RUNNER_TEMP/gh-pages/privacy-policy" "$RUNNER_TEMP/gh-pages/account-deletion"
           cp -R "$RUNNER_TEMP/privacy-policy-pages/privacy-policy/." "$RUNNER_TEMP/gh-pages/privacy-policy/"
           cp -R "$RUNNER_TEMP/privacy-policy-pages/account-deletion/." "$RUNNER_TEMP/gh-pages/account-deletion/"
+          # app-ads.txt also goes to the project-site root (/<repo>/app-ads.txt) so it is
+          # reachable without the privacy-policy/ prefix. NOTE: the AdMob crawler fetches
+          # app-ads.txt from the DOMAIN root (https://desvingns.github.io/app-ads.txt), which
+          # is served by the separate desvingns.github.io Pages repo — that root copy must be
+          # placed there manually; this step only covers the project subpath site.
+          cp privacy-policy/app-ads.txt "$RUNNER_TEMP/gh-pages/app-ads.txt"
           git -C "$RUNNER_TEMP/gh-pages" config user.name "github-actions[bot]"
           git -C "$RUNNER_TEMP/gh-pages" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git -C "$RUNNER_TEMP/gh-pages" add privacy-policy account-deletion
+          git -C "$RUNNER_TEMP/gh-pages" add privacy-policy account-deletion app-ads.txt
           if git -C "$RUNNER_TEMP/gh-pages" diff --cached --quiet; then
             echo "Pages content is already up to date."
           else

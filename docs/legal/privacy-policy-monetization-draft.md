@@ -1,6 +1,6 @@
 # Privacy-policy draft blocks — monetization (ADR-0010)
 
-- Status: Draft, not published
+- Status: Block 4 (Advertising) applied 2026-08-16; Blocks 1–3 remain draft, not published
 - Date: 2026-08-12
 - Governing decision: [ADR-0010](../DECISIONS/ADR-0010-monetization.md)
 
@@ -24,7 +24,7 @@ to the date of whichever release applies a block.
 | [Purchases](#block-1--purchases-google-play-billing) | `support-hub-tip` | Play Billing: subscription + coffee consumables |
 | [Firebase](#block-2--firebase-services) | `support-hub-tip` | Remote Config (and Analytics, if added) |
 | [Shared workspace wording](#block-3--shared-workspace-wording-fixes) | `plus-subscription-gating` | Drops "compatible builds" hedging once shared sync is on for everyone |
-| [Advertising](#block-4--advertising-google-admob) | `support-rewarded-ads` | AdMob rewarded ads, advertising ID, SSV |
+| [Advertising](#block-4--advertising-google-admob) | `support-rewarded-ads` (applied 2026-08-16) | AdMob rewarded ads, advertising ID, SSV |
 
 ---
 
@@ -178,6 +178,16 @@ RU:
 Epic: **`support-rewarded-ads`**. Insert as a new `<h3>` under "Information sent over the
 network". Do not apply before the Google Mobile Ads SDK is actually in the build — until then the
 app collects no advertising ID.
+
+> **Applied 2026-08-16** in the `support-rewarded-ads` release: both locales (app assets and
+> GitHub Pages copies) carry this block verbatim and the `Last updated` date moved to
+> 2026-08-16. `privacy-policy/app-ads.txt`
+> (`google.com, pub-2270788427402644, DIRECT, f08c47fec0942fa0`) was added in the same commit and
+> the Pages workflow now also copies it to the project-site root
+> (`/MyMoney/app-ads.txt`). Residual manual step: the AdMob crawler fetches `app-ads.txt` from the
+> domain root (`https://desvingns.github.io/app-ads.txt`), which is served by the separate
+> `desvingns.github.io` Pages repository — that root copy is placed there manually and cannot be
+> deployed from this repo.
 
 ```html
 <h3>Advertising (Google AdMob)</h3>

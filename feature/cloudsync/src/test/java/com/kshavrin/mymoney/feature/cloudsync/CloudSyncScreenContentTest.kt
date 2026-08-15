@@ -11,8 +11,9 @@ import androidx.compose.ui.test.performScrollTo
 import com.kshavrin.mymoney.core.datastore.CloudBinding
 import com.kshavrin.mymoney.core.datastore.CloudProvider
 import com.kshavrin.mymoney.core.domain.model.BackupFile
-import com.kshavrin.mymoney.core.sync.SyncTarget
 import com.kshavrin.mymoney.core.domain.model.EntitlementWarning
+import com.kshavrin.mymoney.core.sync.SyncTarget
+import com.kshavrin.mymoney.core.sync.shared.LocalOnlyReason
 import com.kshavrin.mymoney.core.sync.shared.SharedRealtimeStatus
 import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceSummary
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
@@ -498,6 +499,7 @@ class CloudSyncScreenContentTest {
                         signedIn = true,
                         active = true,
                         isLocalOnly = true,
+                        localOnlyReason = LocalOnlyReason.RemoteKillswitch,
                         isWorkspaceAccessKnown = true,
                         isWorkspaceReadOnly = true,
                     ),
@@ -506,6 +508,10 @@ class CloudSyncScreenContentTest {
         )
 
         composeTestRule.onNodeWithText(str(R.string.sync_shared_local_only_title)).performScrollTo().assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText(str(R.string.sync_shared_local_only_killswitch_body))
+            .performScrollTo()
+            .assertIsDisplayed()
         composeTestRule.onNodeWithTag("cloud_sync_shared_sync_now").performScrollTo().assertIsNotEnabled()
         composeTestRule.onNodeWithTag("cloud_sync_shared_create_invite").performScrollTo().assertIsNotEnabled()
         composeTestRule.onNodeWithTag("cloud_sync_shared_backups").performScrollTo().performClick()
@@ -513,6 +519,72 @@ class CloudSyncScreenContentTest {
         composeTestRule.runOnIdle {
             assertEquals(listOf(CloudSyncEvent.SharedInternalBackupsClicked), events)
         }
+    }
+
+    @Test
+    fun `local only copy identifies whether the owner or participant must restore access`() {
+        setContent(
+            CloudSyncState(
+                binding = CloudBinding(CloudProvider.Shared, "ws-1", "Budget"),
+                shared =
+                    SharedCardState(
+                        signedIn = true,
+                        active = true,
+                        isLocalOnly = true,
+                        localOnlyReason = LocalOnlyReason.EntitlementExpired,
+                        isWorkspaceOwner = true,
+                        isWorkspaceOwnershipKnown = true,
+                    ),
+            ),
+        )
+
+        composeTestRule
+            .onNodeWithText(str(R.string.sync_shared_local_only_owner_body))
+            .performScrollTo()
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun `participant local only copy does not tell them to renew Plus`() {
+        setContent(
+            CloudSyncState(
+                binding = CloudBinding(CloudProvider.Shared, "ws-1", "Budget"),
+                shared =
+                    SharedCardState(
+                        signedIn = true,
+                        active = true,
+                        isLocalOnly = true,
+                        localOnlyReason = LocalOnlyReason.EntitlementExpired,
+                        isWorkspaceOwnershipKnown = true,
+                    ),
+            ),
+        )
+
+        composeTestRule
+            .onNodeWithText(str(R.string.sync_shared_local_only_participant_body))
+            .performScrollTo()
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun `local only copy remains neutral until workspace ownership is known`() {
+        setContent(
+            CloudSyncState(
+                binding = CloudBinding(CloudProvider.Shared, "ws-1", "Budget"),
+                shared =
+                    SharedCardState(
+                        signedIn = true,
+                        active = true,
+                        isLocalOnly = true,
+                        localOnlyReason = LocalOnlyReason.EntitlementExpired,
+                    ),
+            ),
+        )
+
+        composeTestRule
+            .onNodeWithText(str(R.string.sync_shared_local_only_body))
+            .performScrollTo()
+            .assertIsDisplayed()
     }
 
     // ── SharedSetupDialog ──────────────────────────────────────────────────

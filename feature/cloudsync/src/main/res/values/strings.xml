@@ -41,7 +41,10 @@
     <string name="sync_shared_active">Shared workspace: %1$s</string>
     <string name="sync_shared_local_only_active">Shared workspace paused locally: %1$s</string>
     <string name="sync_shared_local_only_title">Shared sync is paused</string>
-    <string name="sync_shared_local_only_body">Your data is safe on this device. Changes will be sent after you renew Plus. A safety snapshot is available in Safety backups.</string>
+    <string name="sync_shared_local_only_body">Your data is safe on this device. Changes remain local while Shared access is unavailable. A safety snapshot is available in Safety backups.</string>
+    <string name="sync_shared_local_only_owner_body">Your data is safe on this device. Restore your Plus access before local changes can sync to this workspace. A safety snapshot is available in Safety backups.</string>
+    <string name="sync_shared_local_only_participant_body">Your data is safe on this device. The workspace owner must restore Shared access before local changes can sync. A safety snapshot is available in Safety backups.</string>
+    <string name="sync_shared_local_only_killswitch_body">Your data is safe on this device. Shared sync is unavailable, so changes remain local. A safety snapshot is available in Safety backups.</string>
     <string name="sync_shared_local_only_backups">View safety backups</string>
     <string name="sync_shared_other_provider_active">Disconnect Dropbox or Google Drive before using a shared workspace.</string>
     <string name="sync_shared_sign_in">Sign in with Google</string>

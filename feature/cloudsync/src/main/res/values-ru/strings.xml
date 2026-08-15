@@ -41,7 +41,10 @@
     <string name="sync_shared_active">Общее пространство: %1$s</string>
     <string name="sync_shared_local_only_active">Локальный режим для пространства: %1$s</string>
     <string name="sync_shared_local_only_title">Совместная синхронизация приостановлена</string>
-    <string name="sync_shared_local_only_body">Все данные остаются на этом устройстве. Накопленные изменения отправятся после продления Plus. Снимок доступен в разделе «Резервные копии».</string>
+    <string name="sync_shared_local_only_body">Все данные остаются на этом устройстве. Пока общий доступ недоступен, изменения остаются локальными. Снимок доступен в разделе «Резервные копии».</string>
+    <string name="sync_shared_local_only_owner_body">Все данные остаются на этом устройстве. Восстановите свой доступ Plus, прежде чем локальные изменения смогут синхронизироваться с этим пространством. Снимок доступен в разделе «Резервные копии».</string>
+    <string name="sync_shared_local_only_participant_body">Все данные остаются на этом устройстве. Владелец пространства должен восстановить общий доступ, прежде чем локальные изменения смогут синхронизироваться. Снимок доступен в разделе «Резервные копии».</string>
+    <string name="sync_shared_local_only_killswitch_body">Все данные остаются на этом устройстве. Совместная синхронизация сейчас недоступна, поэтому изменения остаются локальными. Снимок доступен в разделе «Резервные копии».</string>
     <string name="sync_shared_local_only_backups">Открыть резервные копии</string>
     <string name="sync_shared_other_provider_active">Отключите Dropbox или Google Drive перед использованием общего пространства.</string>
     <string name="sync_shared_sign_in">Войти через Google</string>

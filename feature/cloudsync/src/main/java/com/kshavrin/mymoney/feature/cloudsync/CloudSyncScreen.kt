@@ -85,6 +85,7 @@ import com.kshavrin.mymoney.core.domain.model.EntitlementState
 import com.kshavrin.mymoney.core.domain.model.EntitlementWarning
 import com.kshavrin.mymoney.core.sync.MigrationResolution
 import com.kshavrin.mymoney.core.sync.SyncTarget
+import com.kshavrin.mymoney.core.sync.shared.LocalOnlyReason
 import com.kshavrin.mymoney.core.sync.shared.SharedRealtimeStatus
 import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceSummary
 import com.kshavrin.mymoney.core.sync.toCloudProvider
@@ -631,7 +632,7 @@ private fun SharedCard(
             )
             if (state.active) {
                 if (state.isLocalOnly) {
-                    SharedLocalOnlyBanner(onEvent)
+                    SharedLocalOnlyBanner(state, onEvent)
                 } else {
                     if (!isWriteAllowed) SharedReadOnlyBanner(state.isWorkspaceAccessKnown)
                     SharedRealtimeStatusCard(
@@ -730,6 +731,7 @@ private fun SharedCard(
 
 @Composable
 private fun SharedLocalOnlyBanner(
+    state: SharedCardState,
     onEvent: (CloudSyncEvent) -> Unit,
 ) {
     Card(
@@ -749,7 +751,7 @@ private fun SharedLocalOnlyBanner(
                 style = MaterialTheme.typography.titleSmall,
             )
             Text(
-                text = stringResource(R.string.sync_shared_local_only_body),
+                text = stringResource(state.localOnlyBodyRes()),
                 style = MaterialTheme.typography.bodyMedium,
             )
             TextButton(onClick = { onEvent(CloudSyncEvent.SharedInternalBackupsClicked) }) {
@@ -758,6 +760,20 @@ private fun SharedLocalOnlyBanner(
         }
     }
 }
+
+private fun SharedCardState.localOnlyBodyRes(): Int =
+    when (localOnlyReason) {
+        LocalOnlyReason.RemoteKillswitch -> R.string.sync_shared_local_only_killswitch_body
+        LocalOnlyReason.EntitlementExpired,
+        LocalOnlyReason.AdRewardWindowEnded ->
+            when {
+                isWorkspaceOwnershipKnown && isWorkspaceOwner -> R.string.sync_shared_local_only_owner_body
+                isWorkspaceOwnershipKnown -> R.string.sync_shared_local_only_participant_body
+                else -> R.string.sync_shared_local_only_body
+            }
+
+        null -> R.string.sync_shared_local_only_body
+    }
 
 @Composable
 private fun SharedEntitlementWarningBanner(

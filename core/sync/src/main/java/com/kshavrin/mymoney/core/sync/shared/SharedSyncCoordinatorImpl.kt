@@ -295,6 +295,12 @@ class SharedSyncCoordinatorImpl
                             if (workspace.billingState != WorkspaceBillingState.Active) {
                                 throw SyncException(SyncError.EntitlementRequired)
                             }
+                            // A freshly authenticated, server-verified active membership is required before
+                            // LocalOnly may lift. An Unknown role (absent/unverifiable self-membership) must
+                            // never push/pull or clear LocalOnly/outbox — fail closed and keep accumulating.
+                            if (activeWorkspaceOwnershipResult().getOrThrow().role == SharedWorkspaceRole.Unknown) {
+                                throw SyncException(SyncError.Auth)
+                            }
                             val accessContext = sharedStore.workspaceAccessContext()
                             sharedStore.setWorkspaceAccessContext(
                                 billingState = workspace.billingState.name,
@@ -1254,11 +1260,18 @@ class SharedSyncCoordinatorImpl
                 val userId = auth.currentSession()?.user?.id ?: throw SyncException(SyncError.Auth)
                 val members = workspaceApi.listMembers(workspaceId).getOrThrow().filter { it.active }
                 val ownMembership = members.firstOrNull { it.userId == userId }
-                val isOwner = ownMembership?.role == WorkspaceRole.Owner
+                val role =
+                    when {
+                        ownMembership == null -> SharedWorkspaceRole.Unknown
+                        ownMembership.role == WorkspaceRole.Owner -> SharedWorkspaceRole.VerifiedOwner
+                        else -> SharedWorkspaceRole.VerifiedParticipant
+                    }
+                val isOwner = role == SharedWorkspaceRole.VerifiedOwner
                 Result.success(
                     SharedWorkspaceOwnership(
                         isOwner = isOwner,
                         isSoleOwner = isOwner && members.size == 1,
+                        role = role,
                     ),
                 )
             } catch (failure: Throwable) {
@@ -1300,13 +1313,33 @@ class SharedSyncCoordinatorImpl
 
         private suspend fun <T> clearSharedStateOnAuthFailure(result: Result<T>): Result<T> {
             if (result.isAuthFailure()) {
-                val cleanupFailures = revokeSharedLocalAccess()
+                val cleanupFailures =
+                    if (sharedStore.localOnlyState() != null) {
+                        // Fail-closed while LocalOnly: an auth failure or an unverifiable role must NEVER
+                        // destroy the workspace binding, the sync cursor, or the accumulated outbox — those
+                        // are exactly the data LocalOnly exists to protect until the subscription returns.
+                        // Only stop transport/jobs and invalidate the local auth token.
+                        stopTransportOnAuthFailureUnderLocalOnly()
+                    } else {
+                        revokeSharedLocalAccess()
+                    }
                 cleanupFailures.forEach(Throwable::reportToSentry)
                 result.exceptionOrNull()?.let { authFailure ->
                     cleanupFailures.forEach(authFailure::addSuppressed)
                 }
             }
             return result
+        }
+
+        private suspend fun stopTransportOnAuthFailureUnderLocalOnly(): List<Throwable> {
+            val currentJob = currentCoroutineContext()[Job]
+            return withContext(NonCancellable) {
+                val failures = mutableListOf<Throwable>()
+                collectCleanupFailure(failures) { stopForegroundRealtimeAndJoin(currentJob) }
+                collectCleanupFailure(failures) { syncScheduler.cancelAllSync().getOrThrow() }
+                collectCleanupFailure(failures) { auth.clearLocalSession() }
+                failures
+            }
         }
 
         private companion object {

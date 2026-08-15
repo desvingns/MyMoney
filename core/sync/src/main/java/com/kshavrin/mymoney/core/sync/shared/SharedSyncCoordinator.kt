@@ -14,10 +14,28 @@ data class SharedWorkspaceInvite(
     val token: String,
 )
 
+/**
+ * Server-verified membership role for the active Shared workspace.
+ *
+ * [Unknown] means the current signed-in user has no confirmable active self-membership on the
+ * server (absent or unverifiable). It must never be collapsed into [VerifiedParticipant]: an
+ * unverifiable member may not push/pull, reattach, or clear LocalOnly/outbox state.
+ */
+enum class SharedWorkspaceRole {
+    VerifiedOwner,
+    VerifiedParticipant,
+    Unknown,
+}
+
 data class SharedWorkspaceOwnership(
     val isOwner: Boolean = false,
     val isSoleOwner: Boolean = false,
-)
+    val role: SharedWorkspaceRole =
+        if (isOwner) SharedWorkspaceRole.VerifiedOwner else SharedWorkspaceRole.VerifiedParticipant,
+) {
+    val isRoleVerified: Boolean
+        get() = role != SharedWorkspaceRole.Unknown
+}
 
 enum class SharedWorkspaceBillingState {
     Active,

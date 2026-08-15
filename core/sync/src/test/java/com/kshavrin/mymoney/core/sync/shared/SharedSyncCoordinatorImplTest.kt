@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.kshavrin.mymoney.core.common.exception.SyncError
 import com.kshavrin.mymoney.core.common.exception.SyncException
 import com.kshavrin.mymoney.core.database.MoneyDatabase
+import com.kshavrin.mymoney.core.database.entity.SharedPendingOperationEntity
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepositoryImpl
 import com.kshavrin.mymoney.core.datastore.CloudBinding
@@ -1070,6 +1071,7 @@ class SharedSyncCoordinatorImplTest {
             configStore.current = CloudBinding(CloudProvider.Shared, "ws-1", "Budget")
             sharedStore.membershipActive = true
             workspaceApi.currentWorkspaceResult = Result.success(fakeWorkspace())
+            workspaceApi.listMembersResult = Result.success(listOf(fakeMember(role = WorkspaceRole.Owner)))
             sharedStore.localOnly =
                 com.kshavrin.mymoney.core.datastore.SharedLocalOnlyState(
                     reason = LocalOnlyReason.EntitlementExpired.name,
@@ -1102,6 +1104,7 @@ class SharedSyncCoordinatorImplTest {
                     isWorkspaceOwner = false,
                 )
             workspaceApi.currentWorkspaceResult = Result.success(fakeWorkspace(billingState = WorkspaceBillingState.Expired))
+            workspaceApi.listMembersResult = Result.success(listOf(fakeMember(role = WorkspaceRole.Editor)))
 
             val beforeOwnerRenewal = coordinator.reattachAfterEntitlementRestored()
 
@@ -1110,10 +1113,94 @@ class SharedSyncCoordinatorImplTest {
             assertNotNull(sharedStore.localOnly)
 
             workspaceApi.currentWorkspaceResult = Result.success(fakeWorkspace(billingState = WorkspaceBillingState.Active))
+            workspaceApi.listMembersResult = Result.success(listOf(fakeMember(role = WorkspaceRole.Editor)))
             journalRepository.pullResults.add(Result.success(emptyList()))
 
             assertTrue(coordinator.reattachAfterEntitlementRestored().isSuccess)
             assertNull(sharedStore.localOnly)
+        }
+
+    @Test
+    fun `auth failure while local only preserves reason binding cursor and every outbox row`() =
+        runTest(dispatcher) {
+            // No session → any auth-triggered cleanup path must fail closed while LocalOnly is durable.
+            auth.session = null
+            configStore.current = CloudBinding(CloudProvider.Shared, "ws-1", "Budget")
+            sharedStore.membershipActive = true
+            sharedStore.cursor = 42L
+            sharedStore.localOnly =
+                com.kshavrin.mymoney.core.datastore.SharedLocalOnlyState(
+                    reason = LocalOnlyReason.EntitlementExpired.name,
+                    sinceEpochMs = clock.millis(),
+                )
+            db.sharedOutboxDao().insertPending(pendingOutboxRow())
+
+            val result = coordinator.activeWorkspaceOwnership()
+
+            assertTrue(result.isFailure)
+            assertEquals(SyncError.Auth, (result.exceptionOrNull() as? SyncException)?.syncError)
+            // Nothing destructive ran: LocalOnly, binding, cursor and the outbox are all preserved.
+            assertNotNull(sharedStore.localOnly)
+            assertEquals(LocalOnlyReason.EntitlementExpired.name, sharedStore.localOnly?.reason)
+            assertNotNull(configStore.current)
+            assertEquals(CloudProvider.Shared, configStore.current?.provider)
+            assertTrue(!sharedStore.cursorIsCleared)
+            assertEquals(42L, sharedStore.cursor)
+            assertEquals(1, db.sharedOutboxDao().pendingForWorkspace("ws-1").size)
+            assertEquals(0, scheduler.disableCalls)
+        }
+
+    @Test
+    fun `unknown role blocks reattach without touching local only outbox or the sync path`() =
+        runTest(dispatcher) {
+            auth.session = fakeSession()
+            configStore.current = CloudBinding(CloudProvider.Shared, "ws-1", "Budget")
+            sharedStore.membershipActive = true
+            sharedStore.localOnly =
+                com.kshavrin.mymoney.core.datastore.SharedLocalOnlyState(
+                    reason = LocalOnlyReason.EntitlementExpired.name,
+                    sinceEpochMs = clock.millis(),
+                )
+            workspaceApi.currentWorkspaceResult = Result.success(fakeWorkspace(billingState = WorkspaceBillingState.Active))
+            // Server lists an active membership for a different user only → own role is Unknown.
+            workspaceApi.listMembersResult = Result.success(listOf(fakeMember(userId = "someone-else")))
+            db.sharedOutboxDao().insertPending(pendingOutboxRow())
+
+            val result = coordinator.reattachAfterEntitlementRestored()
+
+            assertTrue(result.isFailure)
+            assertEquals(SyncError.Auth, (result.exceptionOrNull() as? SyncException)?.syncError)
+            assertNotNull(sharedStore.localOnly)
+            assertEquals(1, db.sharedOutboxDao().pendingForWorkspace("ws-1").size)
+            assertEquals(0, journalRepository.pushCalls)
+            assertEquals(0, journalRepository.pullCalls)
+            assertEquals(0, scheduler.enableCalls)
+        }
+
+    @Test
+    fun `snapshot failure during detach leaves the attached realtime state fully intact`() =
+        runTest(dispatcher) {
+            auth.session = fakeSession()
+            configStore.current = CloudBinding(CloudProvider.Shared, "ws-1", "Budget")
+            sharedStore.membershipActive = true
+
+            assertTrue(coordinator.startForegroundRealtime().isSuccess)
+            realtime.awaitActiveSubscriptions(1)
+
+            backupRepository.internalBackupFailure = RuntimeException("disk full")
+
+            val result = coordinator.detachToLocalOnly(LocalOnlyReason.EntitlementExpired)
+
+            assertTrue(result.isFailure)
+            assertEquals("disk full", result.exceptionOrNull()?.message)
+            // No durable commit, no teardown: LocalOnly absent, sync not cancelled, realtime still live.
+            assertNull(sharedStore.localOnly)
+            assertEquals(0, scheduler.cancelAllCalls)
+            assertEquals(1, realtime.activeSubscriptions)
+            assertTrue(coordinator.foregroundRealtimeStatus.value != SharedRealtimeStatus.Inactive)
+
+            coordinator.stopForegroundRealtime()
+            realtime.awaitActiveSubscriptions(0)
         }
 
     @Test
@@ -1261,6 +1348,33 @@ class SharedSyncCoordinatorImplTest {
 
     private fun fakeSession(email: String = "test@example.com") =
         SharedSession(user = SharedUser(id = "user-1", email = email), accessToken = "token")
+
+    private fun fakeMember(
+        userId: String = "user-1",
+        role: WorkspaceRole = WorkspaceRole.Owner,
+        active: Boolean = true,
+    ) = WorkspaceMember(
+        userId = userId,
+        email = "test@example.com",
+        role = role,
+        joinedAt = clock.instant(),
+        active = active,
+    )
+
+    private fun pendingOutboxRow(
+        idempotencyKey: String = "pending-key-1",
+        workspaceId: String = "ws-1",
+    ) = SharedPendingOperationEntity(
+        idempotencyKey = idempotencyKey,
+        workspaceId = workspaceId,
+        baseSequence = 0L,
+        deviceId = "test-device",
+        entityKind = EntityKind.Account.name,
+        entityId = "pending-account-uuid",
+        payload = "{}",
+        tombstone = false,
+        createdAt = clock.millis(),
+    )
 
     private fun fakeWorkspace(
         id: String = "ws-1",

@@ -478,6 +478,7 @@ class CloudSyncViewModel
                         sharedCoordinator
                             .activeWorkspaceOwnership()
                             .getOrNull()
+                            ?.takeIf { it.isRoleVerified }
                             ?.let { ownership -> localOnly.copy(isWorkspaceOwner = ownership.isOwner) }
                             ?: localOnly
                     } else {
@@ -521,7 +522,7 @@ class CloudSyncViewModel
                     workspaceName = workspace?.name ?: verifiedBinding.accountLabel,
                     conflictCount = conflictCount,
                     isWorkspaceOwner = ownership?.isOwner == true,
-                    isWorkspaceOwnershipKnown = ownership != null,
+                    isWorkspaceOwnershipKnown = ownership?.isRoleVerified == true,
                     isSoleOwner = ownership?.isSoleOwner == true,
                     workspaceBillingState = access.billingState,
                     workspaceBillingStateUntil = access.billingStateUntil,
@@ -1266,17 +1267,11 @@ class CloudSyncViewModel
             localOnlyTransitionJob =
                 viewModelScope.launch {
                     var detached = false
-                    _state.value =
-                        _state.value.copy(
-                            isConnecting = true,
-                            errorBannerRes = null,
-                            shared =
-                                _state.value.shared.copy(
-                                    isWorkspaceReadOnly = true,
-                                    realtimeStatus = SharedRealtimeStatus.Inactive,
-                                ),
-                        )
-                    sharedCoordinator.stopForegroundRealtime()
+                    // The coordinator owns the whole transition ordering: cancellable snapshot → durable
+                    // LocalOnly commit → teardown (stop realtime / block sync). The ViewModel must NOT flip
+                    // read-only or tear down realtime here — if the snapshot fails or is cancelled the prior
+                    // attached state must stay fully intact instead of leaving a disconnected half-state.
+                    _state.value = _state.value.copy(isConnecting = true, errorBannerRes = null)
                     try {
                         sharedCoordinator.detachToLocalOnly(reason).getOrThrow()
                         detached = true

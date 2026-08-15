@@ -30,8 +30,10 @@ enum class SharedWorkspaceRole {
 data class SharedWorkspaceOwnership(
     val isOwner: Boolean = false,
     val isSoleOwner: Boolean = false,
-    val role: SharedWorkspaceRole =
-        if (isOwner) SharedWorkspaceRole.VerifiedOwner else SharedWorkspaceRole.VerifiedParticipant,
+    // Fail-safe default: a role is Unknown until the coordinator explicitly proves a server-verified
+    // membership. Never infer VerifiedParticipant/VerifiedOwner from isOwner — an unverified member
+    // constructed without an explicit role must not slip past the Unknown-blocks-reattach guard.
+    val role: SharedWorkspaceRole = SharedWorkspaceRole.Unknown,
 ) {
     val isRoleVerified: Boolean
         get() = role != SharedWorkspaceRole.Unknown
@@ -95,7 +97,7 @@ interface SharedSyncCoordinator {
         Result.failure(UnsupportedOperationException("Remote workspace recovery is not supported"))
 
     suspend fun activeWorkspaceOwnership(): Result<SharedWorkspaceOwnership> =
-        Result.success(SharedWorkspaceOwnership())
+        Result.success(SharedWorkspaceOwnership(role = SharedWorkspaceRole.Unknown))
 
     suspend fun currentLocalOnlyState(): LocalOnlyState? = null
 

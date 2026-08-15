@@ -1204,6 +1204,14 @@ class SharedSyncCoordinatorImplTest {
         }
 
     @Test
+    fun `default constructed workspace ownership role is Unknown not a verified participant`() {
+        val ownership = SharedWorkspaceOwnership()
+
+        assertEquals(SharedWorkspaceRole.Unknown, ownership.role)
+        assertTrue(!ownership.isRoleVerified)
+    }
+
+    @Test
     fun `realtime startup membership rejection revokes the shared binding`() =
         runTest(dispatcher) {
             auth.session = fakeSession()

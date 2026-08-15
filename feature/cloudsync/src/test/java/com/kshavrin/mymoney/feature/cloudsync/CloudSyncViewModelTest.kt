@@ -31,6 +31,7 @@ import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceAccess
 import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceBillingState
 import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceInvite
 import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceOwnership
+import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceRole
 import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceSummary
 import com.kshavrin.mymoney.core.sync.usecase.CloudSyncBackupsUseCase
 import com.kshavrin.mymoney.core.sync.usecase.CloudSyncSettingsUseCase
@@ -571,7 +572,7 @@ class CloudSyncViewModelTest {
         runTest {
             val shared =
                 SharedCoordinator().apply {
-                    workspaceOwnership = SharedWorkspaceOwnership(isOwner = true, isSoleOwner = true)
+                    workspaceOwnership = SharedWorkspaceOwnership(isOwner = true, isSoleOwner = true, role = SharedWorkspaceRole.VerifiedOwner)
                 }
             val vm =
                 viewModel(
@@ -594,7 +595,7 @@ class CloudSyncViewModelTest {
         runTest {
             val shared =
                 SharedCoordinator().apply {
-                    workspaceOwnership = SharedWorkspaceOwnership(isOwner = true, isSoleOwner = true)
+                    workspaceOwnership = SharedWorkspaceOwnership(isOwner = true, isSoleOwner = true, role = SharedWorkspaceRole.VerifiedOwner)
                 }
             val vm =
                 viewModel(
@@ -640,7 +641,7 @@ class CloudSyncViewModelTest {
     @Test
     fun `SharedDisconnectClicked for non-sole owner disconnects immediately`() =
         runTest {
-            val shared = SharedCoordinator().apply { workspaceOwnership = SharedWorkspaceOwnership(isOwner = true) }
+            val shared = SharedCoordinator().apply { workspaceOwnership = SharedWorkspaceOwnership(isOwner = true, role = SharedWorkspaceRole.VerifiedOwner) }
             val vm =
                 viewModel(
                     SnapshotFake(),
@@ -827,7 +828,7 @@ class CloudSyncViewModelTest {
         }
 
     @Test
-    fun `snapshot failure during RemoteKillswitch detach stays read only without retrying`() =
+    fun `RemoteKillswitch detach does not pre-flip UI or realtime before coordinator success`() =
         runTest {
             val shared =
                 SharedCoordinator().apply {
@@ -845,9 +846,13 @@ class CloudSyncViewModelTest {
 
             runCurrent()
 
+            // The coordinator owns the ordering: on a failed snapshot nothing is torn down. The prior
+            // (read-write, realtime-untouched) state must remain, so a scheduled sync never fires against
+            // an uncommitted-LocalOnly workspace and hits the destructive auth-failure cleanup path.
             assertEquals(listOf(LocalOnlyReason.RemoteKillswitch), shared.detachReasons)
             assertFalse(vm.state.value.shared.isLocalOnly)
-            assertTrue(vm.state.value.shared.isWorkspaceReadOnly)
+            assertFalse(vm.state.value.shared.isWorkspaceReadOnly)
+            assertEquals(0, shared.stopRealtimeCalls)
             assertEquals(R.string.sync_err_network, vm.state.value.errorBannerRes)
 
             runCurrent()
@@ -862,7 +867,7 @@ class CloudSyncViewModelTest {
                 SharedCoordinator().apply {
                     workspaceAccessResult =
                         Result.success(SharedWorkspaceAccess(SharedWorkspaceBillingState.Active))
-                    workspaceOwnership = SharedWorkspaceOwnership(isOwner = false)
+                    workspaceOwnership = SharedWorkspaceOwnership(isOwner = false, role = SharedWorkspaceRole.VerifiedParticipant)
                 }
             val subscriptionVm =
                 viewModel(
@@ -884,7 +889,7 @@ class CloudSyncViewModelTest {
                 SharedCoordinator().apply {
                     workspaceAccessResult =
                         Result.success(SharedWorkspaceAccess(SharedWorkspaceBillingState.Active))
-                    workspaceOwnership = SharedWorkspaceOwnership(isOwner = false)
+                    workspaceOwnership = SharedWorkspaceOwnership(isOwner = false, role = SharedWorkspaceRole.VerifiedParticipant)
                 }
             val adVm =
                 viewModel(
@@ -961,7 +966,7 @@ class CloudSyncViewModelTest {
                             since = Instant.EPOCH,
                             workspaceBillingState = SharedWorkspaceBillingState.Expired,
                         )
-                    workspaceOwnership = SharedWorkspaceOwnership(isOwner = false)
+                    workspaceOwnership = SharedWorkspaceOwnership(isOwner = false, role = SharedWorkspaceRole.VerifiedParticipant)
                 }
             val vm =
                 viewModel(
@@ -995,7 +1000,7 @@ class CloudSyncViewModelTest {
                 SharedCoordinator().apply {
                     workspaceAccessResult =
                         Result.success(SharedWorkspaceAccess(SharedWorkspaceBillingState.Expired))
-                    workspaceOwnership = SharedWorkspaceOwnership(isOwner = true)
+                    workspaceOwnership = SharedWorkspaceOwnership(isOwner = true, role = SharedWorkspaceRole.VerifiedOwner)
                 }
             val vm =
                 viewModel(
@@ -1074,7 +1079,7 @@ class CloudSyncViewModelTest {
                                 billingStateUntil = graceEndsAt,
                             ),
                         )
-                    workspaceOwnership = SharedWorkspaceOwnership(isOwner = true)
+                    workspaceOwnership = SharedWorkspaceOwnership(isOwner = true, role = SharedWorkspaceRole.VerifiedOwner)
                 }
 
             val vm =
@@ -1205,7 +1210,7 @@ class CloudSyncViewModelTest {
                                 billingStateUntil = Instant.ofEpochSecond(1_700_172_800L),
                             ),
                         )
-                    workspaceOwnership = SharedWorkspaceOwnership(isOwner = true)
+                    workspaceOwnership = SharedWorkspaceOwnership(isOwner = true, role = SharedWorkspaceRole.VerifiedOwner)
                 }
             val vm =
                 viewModel(
@@ -1247,7 +1252,7 @@ class CloudSyncViewModelTest {
                                 billingStateUntil = Instant.ofEpochSecond(1_700_172_800L),
                             ),
                         )
-                    workspaceOwnership = SharedWorkspaceOwnership(isOwner = false)
+                    workspaceOwnership = SharedWorkspaceOwnership(isOwner = false, role = SharedWorkspaceRole.VerifiedParticipant)
                 }
             val vm =
                 viewModel(
@@ -1281,7 +1286,7 @@ class CloudSyncViewModelTest {
                 )
             val shared =
                 SharedCoordinator().apply {
-                    workspaceOwnership = SharedWorkspaceOwnership(isOwner = false)
+                    workspaceOwnership = SharedWorkspaceOwnership(isOwner = false, role = SharedWorkspaceRole.VerifiedParticipant)
                     syncNowResult = Result.failure(SyncException(SyncError.Network))
                 }
             val vm =
@@ -1321,7 +1326,7 @@ class CloudSyncViewModelTest {
                 )
             val shared =
                 SharedCoordinator().apply {
-                    workspaceOwnership = SharedWorkspaceOwnership(isOwner = true)
+                    workspaceOwnership = SharedWorkspaceOwnership(isOwner = true, role = SharedWorkspaceRole.VerifiedOwner)
                     syncNowResult = Result.failure(SyncException(SyncError.Network))
                 }
             val vm =
@@ -1351,7 +1356,7 @@ class CloudSyncViewModelTest {
         runTest {
             val shared =
                 SharedCoordinator().apply {
-                    workspaceOwnership = SharedWorkspaceOwnership(isOwner = true)
+                    workspaceOwnership = SharedWorkspaceOwnership(isOwner = true, role = SharedWorkspaceRole.VerifiedOwner)
                     syncNowResult = Result.failure(SyncException(SyncError.Network))
                 }
             val vm =
@@ -1595,7 +1600,7 @@ class CloudSyncViewModelTest {
         var discoverRemoteWorkspaceCalls = 0
         var recoverRemoteWorkspaceCalls = 0
         var lastRecoveryImportLocalData = false
-        var workspaceOwnership = SharedWorkspaceOwnership()
+        var workspaceOwnership = SharedWorkspaceOwnership(role = SharedWorkspaceRole.VerifiedParticipant)
         var workspaceAccessResult: Result<SharedWorkspaceAccess> =
             Result.success(SharedWorkspaceAccess(billingState = SharedWorkspaceBillingState.Active))
         var syncNowResult: Result<Unit> = Result.success(Unit)

@@ -447,11 +447,14 @@ class CloudSyncViewModel
                         sharedEnabled = false,
                         localOnly = persistedLocalOnly,
                     )
+                    sharedCoordinator.stopForegroundRealtime()
                 } else {
-                    publishRemoteKillswitchPendingState(checkNotNull(currentBinding))
+                    // Let the coordinator own the whole ordering (cancellable snapshot → durable commit →
+                    // teardown) for the killswitch reason too. Pre-flipping read-only / stopping realtime
+                    // here would leave a disconnected half-state on snapshot failure — with LocalOnly never
+                    // committed, a scheduled sync could then hit the destructive auth-failure cleanup path.
                     detachToLocalOnly(LocalOnlyReason.RemoteKillswitch)
                 }
-                sharedCoordinator.stopForegroundRealtime()
                 return
             }
             val access = accessResult?.getOrNull()
@@ -625,29 +628,6 @@ class CloudSyncViewModel
                     binding = binding,
                     errorBannerRes = _state.value.errorBannerRes,
                     shared = shared,
-                )
-        }
-
-        private fun publishRemoteKillswitchPendingState(binding: CloudBinding) {
-            val previousShared = _state.value.shared
-            _state.value =
-                _state.value.copy(
-                    binding = binding,
-                    shared =
-                        previousShared.copy(
-                            enabled = false,
-                            signedIn = sharedCoordinator.isSignedIn(),
-                            accountEmail = sharedCoordinator.accountEmail(),
-                            active = true,
-                            workspaceName = previousShared.workspaceName ?: binding.accountLabel,
-                            isWorkspaceReadOnly = true,
-                            isLocalOnly = false,
-                            localOnlyReason = null,
-                            localOnlySince = null,
-                            warning = null,
-                            isParticipantJoinEntitlementRefusal = false,
-                            realtimeStatus = SharedRealtimeStatus.Inactive,
-                        ),
                 )
         }
 

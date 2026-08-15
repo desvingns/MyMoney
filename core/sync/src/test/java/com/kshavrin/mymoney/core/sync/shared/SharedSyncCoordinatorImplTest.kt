@@ -1204,6 +1204,55 @@ class SharedSyncCoordinatorImplTest {
         }
 
     @Test
+    fun `detachToLocalOnly is idempotent when already in local only mode`() =
+        runTest(dispatcher) {
+            configStore.current = CloudBinding(CloudProvider.Shared, "ws-1", "Budget")
+            sharedStore.localOnly =
+                com.kshavrin.mymoney.core.datastore.SharedLocalOnlyState(
+                    reason = LocalOnlyReason.EntitlementExpired.name,
+                    sinceEpochMs = clock.millis(),
+                )
+
+            val result = coordinator.detachToLocalOnly(LocalOnlyReason.EntitlementExpired)
+
+            assertTrue(result.isSuccess)
+            assertEquals(0, backupRepository.internalBackupCalls)
+            assertEquals(0, scheduler.cancelAllCalls)
+        }
+
+    @Test
+    fun `detachToLocalOnly returns success immediately when no Shared binding is active`() =
+        runTest(dispatcher) {
+            configStore.current = null
+
+            val result = coordinator.detachToLocalOnly(LocalOnlyReason.EntitlementExpired)
+
+            assertTrue(result.isSuccess)
+            assertEquals(0, backupRepository.internalBackupCalls)
+            assertNull(sharedStore.localOnly)
+            assertEquals(0, scheduler.cancelAllCalls)
+        }
+
+    @Test
+    fun `detachToLocalOnly commits local only flag before teardown and returns failure when teardown throws`() =
+        runTest(dispatcher) {
+            // Documents the known inconsistency window: setLocalOnly runs inside NonCancellable before
+            // stopForegroundRealtimeAndJoin / cancelAllSync. A teardown failure after the commit
+            // propagates as Result.failure — but the LocalOnly gate IS already durable. Callers must
+            // surface the error without assuming LocalOnly was rolled back; the binding and outbox are
+            // still protected by the committed gate.
+            configStore.current = CloudBinding(CloudProvider.Shared, "ws-1", "Budget")
+            scheduler.cancelAllFailure = RuntimeException("WorkManager cancel threw")
+
+            val result = coordinator.detachToLocalOnly(LocalOnlyReason.EntitlementExpired)
+
+            assertNotNull("LocalOnly must be committed even when teardown fails", sharedStore.localOnly)
+            assertEquals(LocalOnlyReason.EntitlementExpired.name, sharedStore.localOnly?.reason)
+            assertTrue("Method must surface the teardown failure", result.isFailure)
+            assertEquals("WorkManager cancel threw", result.exceptionOrNull()?.message)
+        }
+
+    @Test
     fun `default constructed workspace ownership role is Unknown not a verified participant`() {
         val ownership = SharedWorkspaceOwnership()
 
@@ -1295,6 +1344,48 @@ class SharedSyncCoordinatorImplTest {
             assertEquals(1, auth.signOutCalls)
             assertEquals(SharedRealtimeStatus.Inactive, coordinator.foregroundRealtimeStatus.value)
             assertEquals(1, realtime.eventsCalls)
+        }
+
+    @Test
+    fun `realtime auth failure racing a local only commit preserves binding cursor and outbox`() =
+        runTest(dispatcher) {
+            auth.session = fakeSession()
+            configStore.current = CloudBinding(CloudProvider.Shared, "ws-1", "Budget")
+            sharedStore.membershipActive = true
+            sharedStore.cursor = 7L
+            // The realtime supervisor connects, then reports a terminal Auth loss only AFTER a concurrent
+            // detachToLocalOnly() commit has landed — the exact TOCTOU window. Its cleanup must observe the
+            // committed LocalOnly under the lock and stay non-destructive.
+            val localOnlyCommitted = CompletableDeferred<Unit>()
+            realtime.eventsFlow =
+                flow {
+                    emit(SharedRealtimeEvent.Connected)
+                    localOnlyCommitted.await()
+                    emit(SharedRealtimeEvent.Disconnected(SyncException(SyncError.Auth)))
+                }
+
+            assertTrue(coordinator.startForegroundRealtime().isSuccess)
+            coordinator.foregroundRealtimeStatus.first { it == SharedRealtimeStatus.Connected }
+
+            db.sharedOutboxDao().insertPending(pendingOutboxRow())
+            sharedStore.localOnly =
+                com.kshavrin.mymoney.core.datastore.SharedLocalOnlyState(
+                    reason = LocalOnlyReason.EntitlementExpired.name,
+                    sinceEpochMs = clock.millis(),
+                )
+            localOnlyCommitted.complete(Unit)
+
+            coordinator.foregroundRealtimeStatus.first { it == SharedRealtimeStatus.Inactive }
+
+            // Nothing destructive ran: LocalOnly, cursor, binding and every outbox row survive intact.
+            assertNotNull(sharedStore.localOnly)
+            assertEquals(LocalOnlyReason.EntitlementExpired.name, sharedStore.localOnly?.reason)
+            assertEquals(7L, sharedStore.cursor)
+            assertTrue(!sharedStore.cursorIsCleared)
+            assertNotNull(configStore.current)
+            assertEquals(CloudProvider.Shared, configStore.current?.provider)
+            assertEquals(1, db.sharedOutboxDao().pendingForWorkspace("ws-1").size)
+            assertEquals(0, scheduler.disableCalls)
         }
 
     @Test
@@ -1772,6 +1863,7 @@ class SharedSyncCoordinatorImplTest {
         var enableCalls = 0
         var disableCalls = 0
         var cancelAllCalls = 0
+        var cancelAllFailure: Throwable? = null
 
         override fun enablePeriodicSync() {
             enableCalls++
@@ -1783,6 +1875,7 @@ class SharedSyncCoordinatorImplTest {
 
         override suspend fun cancelAllSync(): Result<Unit> {
             cancelAllCalls++
+            cancelAllFailure?.let { return Result.failure(it) }
             return Result.success(Unit)
         }
 

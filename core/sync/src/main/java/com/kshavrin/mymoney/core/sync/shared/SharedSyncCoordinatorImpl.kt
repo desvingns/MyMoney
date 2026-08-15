@@ -767,7 +767,14 @@ class SharedSyncCoordinatorImpl
                         return
                     }
                     if (failure.isRealtimeTerminalFailure()) {
-                        clearSharedStateOnAuthFailure(Result.failure<Unit>(failure))
+                        // Serialize the terminal-failure cleanup under operationMutex so the LocalOnly read
+                        // inside clearSharedStateOnAuthFailure and the destructive-vs-non-destructive branch
+                        // are atomic against a concurrent detachToLocalOnly() DataStore commit. Every other
+                        // caller already holds this lock; without it a real IoDispatcher thread could read
+                        // localOnly==null, then have the commit land, then still wipe binding/cursor/outbox.
+                        operationMutex.withLock {
+                            clearSharedStateOnAuthFailure(Result.failure<Unit>(failure))
+                        }
                         if ((failure as? SyncException)?.syncError != SyncError.Auth) {
                             updateForegroundRealtimeStatus(generation, SharedRealtimeStatus.Error)
                         }

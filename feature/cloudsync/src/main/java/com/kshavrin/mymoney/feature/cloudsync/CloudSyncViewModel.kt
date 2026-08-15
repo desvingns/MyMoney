@@ -473,10 +473,27 @@ class CloudSyncViewModel
             checkNotNull(access)
             val localOnly = access.localOnly
             if (localOnly != null) {
+                val localOnlyWithRecoveredOwnership =
+                    if (localOnly.isWorkspaceOwner == null && sharedCoordinator.isSignedIn()) {
+                        sharedCoordinator
+                            .activeWorkspaceOwnership()
+                            .getOrNull()
+                            ?.let { ownership -> localOnly.copy(isWorkspaceOwner = ownership.isOwner) }
+                            ?: localOnly
+                    } else {
+                        localOnly
+                    }
+                if (generation != refreshGeneration) return
+                val verifiedLocalOnlyBinding = journalSyncConfig.binding()
+                if (verifiedLocalOnlyBinding?.provider != CloudProvider.Shared) {
+                    publishInactiveSharedState(verifiedLocalOnlyBinding, sharedEnabled)
+                    sharedCoordinator.stopForegroundRealtime()
+                    return
+                }
                 publishLocalOnlySharedState(
-                    binding = checkNotNull(currentBinding),
+                    binding = verifiedLocalOnlyBinding,
                     sharedEnabled = sharedEnabled,
-                    localOnly = localOnly,
+                    localOnly = localOnlyWithRecoveredOwnership,
                 )
                 sharedCoordinator.stopForegroundRealtime()
                 reconcileLocalOnlyTransition()
@@ -1248,15 +1265,29 @@ class CloudSyncViewModel
             if (localOnlyTransitionJob?.isActive == true) return
             localOnlyTransitionJob =
                 viewModelScope.launch {
-                    _state.value = _state.value.copy(isConnecting = true, errorBannerRes = null)
+                    var detached = false
+                    _state.value =
+                        _state.value.copy(
+                            isConnecting = true,
+                            errorBannerRes = null,
+                            shared =
+                                _state.value.shared.copy(
+                                    isWorkspaceReadOnly = true,
+                                    realtimeStatus = SharedRealtimeStatus.Inactive,
+                                ),
+                        )
+                    sharedCoordinator.stopForegroundRealtime()
                     try {
                         sharedCoordinator.detachToLocalOnly(reason).getOrThrow()
+                        detached = true
                     } catch (t: Throwable) {
                         if (t is CancellationException) throw t
                         reportAndShow(t)
                     } finally {
                         _state.value = _state.value.copy(isConnecting = false)
-                        refresh()
+                        if (detached) {
+                            refresh()
+                        }
                     }
                 }
         }

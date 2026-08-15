@@ -827,6 +827,35 @@ class CloudSyncViewModelTest {
         }
 
     @Test
+    fun `snapshot failure during RemoteKillswitch detach stays read only without retrying`() =
+        runTest {
+            val shared =
+                SharedCoordinator().apply {
+                    detachResult = Result.failure(SyncException(SyncError.Network))
+                }
+            val vm =
+                viewModel(
+                    SnapshotFake(),
+                    RecordingJournalSync(),
+                    Config(CloudBinding(CloudProvider.Shared, "ws-1", "Budget")),
+                    Scheduler(),
+                    shared = shared,
+                    remoteConfig = FakeRemoteConfigRepository(sharedEnabled = false),
+                )
+
+            runCurrent()
+
+            assertEquals(listOf(LocalOnlyReason.RemoteKillswitch), shared.detachReasons)
+            assertFalse(vm.state.value.shared.isLocalOnly)
+            assertTrue(vm.state.value.shared.isWorkspaceReadOnly)
+            assertEquals(R.string.sync_err_network, vm.state.value.errorBannerRes)
+
+            runCurrent()
+
+            assertEquals(listOf(LocalOnlyReason.RemoteKillswitch), shared.detachReasons)
+        }
+
+    @Test
     fun `expired participant stays attached while the owner paid workspace is active`() =
         runTest {
             val shared =
@@ -918,6 +947,44 @@ class CloudSyncViewModelTest {
             runCurrent()
 
             assertEquals(2, shared.reattachCalls)
+            assertFalse(vm.state.value.shared.isLocalOnly)
+        }
+
+    @Test
+    fun `unknown local only participant reattaches after authenticated role recovery`() =
+        runTest {
+            val shared =
+                SharedCoordinator().apply {
+                    localOnlyState =
+                        LocalOnlyState(
+                            reason = LocalOnlyReason.EntitlementExpired,
+                            since = Instant.EPOCH,
+                            workspaceBillingState = SharedWorkspaceBillingState.Expired,
+                        )
+                    workspaceOwnership = SharedWorkspaceOwnership(isOwner = false)
+                }
+            val vm =
+                viewModel(
+                    SnapshotFake(),
+                    RecordingJournalSync(),
+                    Config(CloudBinding(CloudProvider.Shared, "ws-1", "Budget")),
+                    Scheduler(),
+                    shared = shared,
+                    entitlement = EntitlementFake(UserEntitlement.Free),
+                )
+
+            runCurrent()
+
+            assertEquals(0, shared.activeWorkspaceOwnershipCalls)
+            assertEquals(0, shared.reattachCalls)
+            assertTrue(vm.state.value.shared.isLocalOnly)
+
+            shared.signedIn = true
+            vm.onEvent(CloudSyncEvent.SharedRealtimeForegroundStarted)
+            runCurrent()
+
+            assertTrue(shared.activeWorkspaceOwnershipCalls > 0)
+            assertEquals(1, shared.reattachCalls)
             assertFalse(vm.state.value.shared.isLocalOnly)
         }
 
@@ -1537,6 +1604,7 @@ class CloudSyncViewModelTest {
         var disconnectResult: Result<Unit> = Result.success(Unit)
         var deleteResult: Result<Unit> = Result.success(Unit)
         var localOnlyState: LocalOnlyState? = null
+        var detachResult: Result<Unit> = Result.success(Unit)
         var reattachResult: Result<Unit> = Result.success(Unit)
         private val realtimeStatus = MutableStateFlow<SharedRealtimeStatus>(SharedRealtimeStatus.Inactive)
 
@@ -1575,14 +1643,16 @@ class CloudSyncViewModelTest {
 
         override suspend fun detachToLocalOnly(reason: LocalOnlyReason): Result<Unit> {
             detachReasons += reason
-            localOnlyState =
-                LocalOnlyState(
-                    reason = reason,
-                    since = Instant.EPOCH,
-                    workspaceBillingState = workspaceAccessResult.getOrNull()?.billingState,
-                    isWorkspaceOwner = workspaceOwnership.isOwner,
-                )
-            return Result.success(Unit)
+            if (detachResult.isSuccess) {
+                localOnlyState =
+                    LocalOnlyState(
+                        reason = reason,
+                        since = Instant.EPOCH,
+                        workspaceBillingState = workspaceAccessResult.getOrNull()?.billingState,
+                        isWorkspaceOwner = workspaceOwnership.isOwner,
+                    )
+            }
+            return detachResult
         }
 
         override suspend fun reattachAfterEntitlementRestored(): Result<Unit> {

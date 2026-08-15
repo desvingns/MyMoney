@@ -528,7 +528,7 @@ class CloudSyncViewModel
             binding: CloudBinding?,
             sharedEnabled: Boolean,
         ) {
-            val warning = latestEntitlement.warning(clock)
+            val warning = sharedEntitlementWarning()
             _state.value =
                 _state.value.copy(
                     binding = binding,

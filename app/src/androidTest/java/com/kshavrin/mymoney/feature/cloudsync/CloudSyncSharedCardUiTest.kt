@@ -144,6 +144,7 @@ class CloudSyncSharedCardUiTest {
                 SharedCardState(
                     signedIn = true,
                     active = true,
+                    isWorkspaceAccessKnown = true,
                     workspaceName = "Family Budget",
                     conflictCount = conflictCount,
                     realtimeStatus = realtimeStatus,

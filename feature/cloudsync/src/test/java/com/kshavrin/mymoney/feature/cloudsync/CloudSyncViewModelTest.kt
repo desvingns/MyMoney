@@ -339,6 +339,88 @@ class CloudSyncViewModelTest {
         }
 
     @Test
+    fun `server entitlement refusal while creating preserves warning through setup refresh and opens paywall`() =
+        runTest {
+            val entitlement = EntitlementFake(plusEntitlement(EntitlementState.ACTIVE))
+            val shared =
+                SharedCoordinator().apply {
+                    signedIn = true
+                    createResult = Result.failure(SyncException(SyncError.EntitlementRequired))
+                }
+            val vm =
+                viewModel(
+                    SnapshotFake(),
+                    RecordingJournalSync(),
+                    Config(null),
+                    Scheduler(),
+                    shared = shared,
+                    entitlement = entitlement,
+                )
+            runCurrent()
+            vm.onEvent(CloudSyncEvent.SharedSetupClicked)
+            runCurrent()
+
+            vm.actions.test {
+                vm.onEvent(CloudSyncEvent.SharedCreateWorkspace("My Budget"))
+                runCurrent()
+
+                assertEquals(EntitlementState.ACTIVE, vm.state.value.shared.entitlementState)
+                assertEquals(EntitlementWarning.EXPIRY_IMMINENT_1D, vm.state.value.shared.warning)
+                assertFalse(vm.state.value.shared.active)
+                assertEquals(SharedDialog.Setup, vm.state.value.sharedDialog)
+                assertNull(vm.state.value.errorBannerRes)
+
+                vm.onEvent(CloudSyncEvent.WarningActionClicked)
+                assertEquals(
+                    CloudSyncAction.NavigateToPaywall(PaywallEntryPoint.SharedSyncGate),
+                    awaitItem(),
+                )
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `server entitlement refusal while joining preserves warning through setup refresh and opens paywall`() =
+        runTest {
+            val entitlement = EntitlementFake(plusEntitlement(EntitlementState.ACTIVE))
+            val shared =
+                SharedCoordinator().apply {
+                    signedIn = true
+                    joinResult = Result.failure(SyncException(SyncError.EntitlementRequired))
+                }
+            val vm =
+                viewModel(
+                    SnapshotFake(),
+                    RecordingJournalSync(),
+                    Config(null),
+                    Scheduler(),
+                    shared = shared,
+                    entitlement = entitlement,
+                )
+            runCurrent()
+            vm.onEvent(CloudSyncEvent.SharedSetupClicked)
+            runCurrent()
+
+            vm.actions.test {
+                vm.onEvent(CloudSyncEvent.SharedJoinWorkspace("invite-abc"))
+                runCurrent()
+
+                assertEquals(EntitlementState.ACTIVE, vm.state.value.shared.entitlementState)
+                assertEquals(EntitlementWarning.EXPIRY_IMMINENT_1D, vm.state.value.shared.warning)
+                assertFalse(vm.state.value.shared.active)
+                assertEquals(SharedDialog.Setup, vm.state.value.sharedDialog)
+                assertNull(vm.state.value.errorBannerRes)
+
+                vm.onEvent(CloudSyncEvent.WarningActionClicked)
+                assertEquals(
+                    CloudSyncAction.NavigateToPaywall(PaywallEntryPoint.SharedSyncGate),
+                    awaitItem(),
+                )
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
     fun `SharedCreateInviteClicked shows the one-time code returned by the coordinator`() =
         runTest {
             val shared =
@@ -1120,6 +1202,8 @@ class CloudSyncViewModelTest {
         var workspaceOwnership = SharedWorkspaceOwnership()
         var workspaceAccessResult: Result<SharedWorkspaceAccess> =
             Result.success(SharedWorkspaceAccess(billingState = SharedWorkspaceBillingState.Active))
+        var createResult: Result<SharedWorkspaceSummary> = Result.success(SharedWorkspaceSummary("ws-new", "Created"))
+        var joinResult: Result<SharedWorkspaceSummary> = Result.success(SharedWorkspaceSummary("ws-joined", "Joined"))
         var disconnectResult: Result<Unit> = Result.success(Unit)
         var deleteResult: Result<Unit> = Result.success(Unit)
         private val realtimeStatus = MutableStateFlow<SharedRealtimeStatus>(SharedRealtimeStatus.Inactive)
@@ -1173,7 +1257,7 @@ class CloudSyncViewModelTest {
             createCalls++
             createGate?.await()
             onCreateWorkspace?.invoke()
-            return Result.success(SharedWorkspaceSummary("ws-new", name))
+            return createResult.map { it.copy(name = name) }
         }
 
         override suspend fun joinWorkspace(
@@ -1181,7 +1265,7 @@ class CloudSyncViewModelTest {
             importLocalData: Boolean,
         ): Result<SharedWorkspaceSummary> {
             lastJoinToken = inviteToken
-            return Result.success(SharedWorkspaceSummary("ws-joined", "Joined"))
+            return joinResult
         }
 
         override suspend fun createInvite(): Result<SharedWorkspaceInvite> {

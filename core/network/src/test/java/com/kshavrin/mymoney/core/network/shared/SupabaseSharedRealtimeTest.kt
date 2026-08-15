@@ -239,7 +239,45 @@ class SupabaseSharedRealtimeTest {
                 yield()
                 val socket = opened.awaitSocket(failure)
                 checkNotNull(server.takeRequest(2, TimeUnit.SECONDS))
-                socket.send("""{"event":"phx_error","payload":{"message":"entitlement_required"}}""")
+                socket.send("""{"event":"phx_error","payload":{"error":"entitlement_required"}}""")
+
+                val error = failure.get(2, TimeUnit.SECONDS) as SyncException
+                assertEquals(SyncError.EntitlementRequired, error.syncError)
+            } finally {
+                collection.cancelAndJoin()
+            }
+        }
+
+    @Test
+    fun `realtime entitlement phx close closes the stream with the typed entitlement error`() =
+        // mp-real-io: MockWebServer callbacks and queue assertions use real executor threads.
+        runBlocking {
+            val opened = CompletableFuture<WebSocket>()
+            server.enqueue(
+                MockResponse().withWebSocketUpgrade(
+                    object : WebSocketListener() {
+                        override fun onOpen(
+                            webSocket: WebSocket,
+                            response: okhttp3.Response,
+                        ) {
+                            opened.complete(webSocket)
+                        }
+                    },
+                ),
+            )
+            val realtime = configuredRealtime()
+            val failure = CompletableFuture<Throwable>()
+            val collection =
+                launch(Dispatchers.Default) {
+                    runCatching { realtime.events("workspace-1", "access-token").collect() }
+                        .onFailure(failure::complete)
+                }
+
+            try {
+                yield()
+                val socket = opened.awaitSocket(failure)
+                checkNotNull(server.takeRequest(2, TimeUnit.SECONDS))
+                socket.send("""{"event":"phx_close","payload":{"reason":{"error":"entitlement_required"}}}""")
 
                 val error = failure.get(2, TimeUnit.SECONDS) as SyncException
                 assertEquals(SyncError.EntitlementRequired, error.syncError)

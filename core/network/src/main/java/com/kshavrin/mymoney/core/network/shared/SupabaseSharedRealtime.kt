@@ -11,7 +11,10 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
@@ -90,7 +93,7 @@ class SupabaseSharedRealtime
                                         if (joined) {
                                             trySend(SharedRealtimeEvent.Connected)
                                         } else {
-                                            close(payload.entitlementRequiredError())
+                                            close(message.entitlementRequiredError())
                                         }
                                     }
 
@@ -100,12 +103,9 @@ class SupabaseSharedRealtime
                                         }
                                     }
 
-                                    "phx_close" -> close(SyncException(SyncError.Server))
+                                    "phx_close" -> close(message.entitlementRequiredError())
 
-                                    "phx_error" ->
-                                        close(
-                                            (message["payload"] as? JsonObject).entitlementRequiredError(),
-                                        )
+                                    "phx_error" -> close(message.entitlementRequiredError())
                                 }
                             }
 
@@ -184,24 +184,28 @@ class SupabaseSharedRealtime
                     ?.content == OPERATION_AVAILABLE_EVENT
             }.getOrDefault(false)
 
-        private fun JsonObject?.entitlementRequiredError(): SyncException =
+        private fun JsonElement?.entitlementRequiredError(): SyncException =
             SyncException(
-                if (this?.containsEntitlementRequired() == true) {
+                if (containsEntitlementRequired()) {
                     SyncError.EntitlementRequired
                 } else {
                     SyncError.Server
                 },
             )
 
-        private fun JsonObject.containsEntitlementRequired(): Boolean =
-            runCatching {
-                sequenceOf("message", "code", "reason")
-                    .mapNotNull { key -> get(key)?.jsonPrimitive?.content }
-                    .any { value -> value == ENTITLEMENT_REQUIRED } ||
-                    sequenceOf("response", "error")
-                        .mapNotNull { key -> get(key)?.jsonObject }
-                        .any { nested -> nested.containsEntitlementRequired() }
-            }.getOrDefault(false)
+        private fun JsonElement?.containsEntitlementRequired(): Boolean =
+            when (this) {
+                is JsonObject ->
+                    entries.any { (key, value) ->
+                        (key in ENTITLEMENT_ERROR_KEYS &&
+                            value is JsonPrimitive &&
+                            value.content == ENTITLEMENT_REQUIRED) ||
+                            value.containsEntitlementRequired()
+                    }
+
+                is JsonArray -> any { it.containsEntitlementRequired() }
+                else -> false
+            }
 
         private fun SupabaseConfig.realtimeUrl() =
             url
@@ -218,6 +222,7 @@ class SupabaseSharedRealtime
             const val HEARTBEAT_INTERVAL_MILLIS = 25_000L
             const val OPERATION_AVAILABLE_EVENT = "operation_available"
             const val ENTITLEMENT_REQUIRED = "entitlement_required"
+            val ENTITLEMENT_ERROR_KEYS = setOf("message", "code", "reason", "error")
         }
     }
 

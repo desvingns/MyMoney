@@ -45,6 +45,10 @@ sealed interface CloudSyncEvent {
 
     data object WarningActionClicked : CloudSyncEvent
 
+    data object AdPlusExpiryRenewClicked : CloudSyncEvent
+
+    data object AdPlusExpiryDeclined : CloudSyncEvent
+
     data class PaywallRequested(
         val entryPoint: PaywallEntryPoint,
     ) : CloudSyncEvent

@@ -6,6 +6,7 @@ import com.kshavrin.mymoney.core.domain.model.BackupFile
 import com.kshavrin.mymoney.core.domain.model.EntitlementState
 import com.kshavrin.mymoney.core.domain.model.EntitlementWarning
 import com.kshavrin.mymoney.core.sync.SyncTarget
+import com.kshavrin.mymoney.core.sync.shared.LocalOnlyReason
 import com.kshavrin.mymoney.core.sync.shared.SharedRealtimeStatus
 import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceBillingState
 import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceSummary
@@ -53,6 +54,9 @@ data class SharedCardState(
     val accountEmail: String? = null,
     val entitlementState: EntitlementState = EntitlementState.NONE,
     val entitlementGraceEndsAt: Instant? = null,
+    val isLocalOnly: Boolean = false,
+    val localOnlyReason: LocalOnlyReason? = null,
+    val localOnlySince: Instant? = null,
     val active: Boolean = false,
     val workspaceName: String? = null,
     val conflictCount: Int = 0,
@@ -86,6 +90,8 @@ sealed interface SharedDialog {
     data object ConfirmDeleteAccount : SharedDialog
 
     data object InternalBackups : SharedDialog
+
+    data object AdPlusExpired : SharedDialog
 
     data class ConfirmInternalBackupRestore(
         val backup: BackupFile,

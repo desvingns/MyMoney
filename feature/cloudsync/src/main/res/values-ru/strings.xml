@@ -39,6 +39,10 @@
     <string name="sync_shared_signed_out">Войдите через Google, чтобы использовать общее пространство.</string>
     <string name="sync_shared_signed_in">Вы вошли как %1$s</string>
     <string name="sync_shared_active">Общее пространство: %1$s</string>
+    <string name="sync_shared_local_only_active">Локальный режим для пространства: %1$s</string>
+    <string name="sync_shared_local_only_title">Совместная синхронизация приостановлена</string>
+    <string name="sync_shared_local_only_body">Все данные остаются на этом устройстве. Накопленные изменения отправятся после продления Plus. Снимок доступен в разделе «Резервные копии».</string>
+    <string name="sync_shared_local_only_backups">Открыть резервные копии</string>
     <string name="sync_shared_other_provider_active">Отключите Dropbox или Google Drive перед использованием общего пространства.</string>
     <string name="sync_shared_sign_in">Войти через Google</string>
     <string name="sync_shared_sign_in_required">Сначала войдите через Google.</string>
@@ -69,6 +73,10 @@
     <string name="sync_shared_warning_expiry_title">Доступ Plus заканчивается</string>
     <string name="sync_shared_warning_expiry_body">Продлите Plus, чтобы продолжать пользоваться общим пространством.</string>
     <string name="sync_shared_warning_renew">Продлить Plus</string>
+    <string name="sync_shared_ad_plus_expired_title">Срок действия Plus за рекламу истёк</string>
+    <string name="sync_shared_ad_plus_expired_body">Оформите подписку Plus, чтобы продолжить пользоваться совместной синхронизацией.</string>
+    <string name="sync_shared_ad_plus_expired_renew">Оформить Plus</string>
+    <string name="sync_shared_ad_plus_expired_decline">Не сейчас</string>
     <string name="sync_shared_read_only_title">Это пространство доступно только для чтения</string>
     <string name="sync_shared_read_only_body">Владелец пространства не продлил Plus. Вы можете просматривать общие данные, но синхронизация и приглашения недоступны.</string>
     <string name="sync_shared_read_only_unavailable_title">Доступ к общему пространству недоступен</string>

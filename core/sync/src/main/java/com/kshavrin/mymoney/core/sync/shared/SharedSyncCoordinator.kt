@@ -28,10 +28,22 @@ enum class SharedWorkspaceBillingState {
 data class SharedWorkspaceAccess(
     val billingState: SharedWorkspaceBillingState = SharedWorkspaceBillingState.Active,
     val billingStateUntil: Instant? = null,
+    val localOnly: LocalOnlyState? = null,
 ) {
     val isReadOnly: Boolean
-        get() = billingState != SharedWorkspaceBillingState.Active
+        get() = localOnly != null || billingState != SharedWorkspaceBillingState.Active
 }
+
+enum class LocalOnlyReason {
+    EntitlementExpired,
+    RemoteKillswitch,
+    AdRewardWindowEnded,
+}
+
+data class LocalOnlyState(
+    val reason: LocalOnlyReason,
+    val since: Instant,
+)
 
 /**
  * Single orchestration entry point for Shared sync mode. Unlike the file-exchange
@@ -85,6 +97,10 @@ interface SharedSyncCoordinator {
 
     suspend fun disconnectFromDevice(): Result<Unit> =
         Result.failure(UnsupportedOperationException("Device disconnect is not supported"))
+
+    suspend fun detachToLocalOnly(reason: LocalOnlyReason): Result<Unit> = Result.success(Unit)
+
+    suspend fun reattachAfterEntitlementRestored(): Result<Unit> = Result.success(Unit)
 
     suspend fun startForegroundRealtime(): Result<Unit> = Result.success(Unit)
 

@@ -611,6 +611,8 @@ private fun SharedCard(
             Text(
                 text =
                     when {
+                        state.isLocalOnly ->
+                            stringResource(R.string.sync_shared_local_only_active, state.workspaceName.orEmpty())
                         state.active ->
                             stringResource(R.string.sync_shared_active, state.workspaceName.orEmpty())
                         state.signedIn ->
@@ -621,12 +623,16 @@ private fun SharedCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             if (state.active) {
-                if (!isWriteAllowed) SharedReadOnlyBanner(state.isWorkspaceAccessKnown)
-                SharedRealtimeStatusCard(
-                    status = state.realtimeStatus,
-                    enabled = isWriteAllowed,
-                    onEvent = onEvent,
-                )
+                if (state.isLocalOnly) {
+                    SharedLocalOnlyBanner(onEvent)
+                } else {
+                    if (!isWriteAllowed) SharedReadOnlyBanner(state.isWorkspaceAccessKnown)
+                    SharedRealtimeStatusCard(
+                        status = state.realtimeStatus,
+                        enabled = isWriteAllowed,
+                        onEvent = onEvent,
+                    )
+                }
             }
             when {
                 otherProviderActive ->
@@ -710,6 +716,37 @@ private fun SharedCard(
                 ) {
                     Text(stringResource(R.string.sync_shared_recovery_backups))
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SharedLocalOnlyBanner(
+    onEvent: (CloudSyncEvent) -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.sharedSyncReadOnlyContainer,
+                contentColor = MaterialTheme.colorScheme.sharedSyncReadOnlyContent,
+            ),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(Spacing.m),
+            verticalArrangement = Arrangement.spacedBy(Spacing.s),
+        ) {
+            Text(
+                text = stringResource(R.string.sync_shared_local_only_title),
+                style = MaterialTheme.typography.titleSmall,
+            )
+            Text(
+                text = stringResource(R.string.sync_shared_local_only_body),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            TextButton(onClick = { onEvent(CloudSyncEvent.SharedInternalBackupsClicked) }) {
+                Text(stringResource(R.string.sync_shared_local_only_backups))
             }
         }
     }
@@ -890,6 +927,22 @@ private fun SharedDialogHost(
             )
         SharedDialog.Conflicts -> SharedConflictsDialog(conflicts = state.conflicts, onEvent = onEvent)
         SharedDialog.InternalBackups -> SharedInternalBackupsDialog(backups = state.internalBackups, onEvent = onEvent)
+        SharedDialog.AdPlusExpired ->
+            AlertDialog(
+                onDismissRequest = { onEvent(CloudSyncEvent.AdPlusExpiryDeclined) },
+                title = { Text(stringResource(R.string.sync_shared_ad_plus_expired_title)) },
+                text = { Text(stringResource(R.string.sync_shared_ad_plus_expired_body)) },
+                confirmButton = {
+                    Button(onClick = { onEvent(CloudSyncEvent.AdPlusExpiryRenewClicked) }) {
+                        Text(stringResource(R.string.sync_shared_ad_plus_expired_renew))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { onEvent(CloudSyncEvent.AdPlusExpiryDeclined) }) {
+                        Text(stringResource(R.string.sync_shared_ad_plus_expired_decline))
+                    }
+                },
+            )
         is SharedDialog.Invite -> SharedInviteDialog(token = state.sharedDialog.token, onEvent = onEvent)
         is SharedDialog.ConfirmInternalBackupRestore ->
             SharedInternalBackupRestoreDialog(

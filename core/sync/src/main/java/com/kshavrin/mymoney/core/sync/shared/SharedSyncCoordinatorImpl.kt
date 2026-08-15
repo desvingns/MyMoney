@@ -12,6 +12,7 @@ import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
 import com.kshavrin.mymoney.core.datastore.CloudBinding
 import com.kshavrin.mymoney.core.datastore.CloudProvider
 import com.kshavrin.mymoney.core.datastore.JournalSyncConfigStore
+import com.kshavrin.mymoney.core.datastore.SharedLocalOnlyState
 import com.kshavrin.mymoney.core.datastore.SharedSyncStore
 import com.kshavrin.mymoney.core.domain.billing.PurchaseOutcome
 import com.kshavrin.mymoney.core.domain.model.Currency
@@ -215,6 +216,9 @@ class SharedSyncCoordinatorImpl
         override suspend fun createInvite(): Result<SharedWorkspaceInvite> =
             withContext(dispatcher) {
                 operationMutex.withLock {
+                    if (sharedStore.localOnlyState() != null) {
+                        return@withLock Result.failure(SyncException(SyncError.EntitlementRequired))
+                    }
                     val result =
                         runCatching {
                             ensureSignedIn()
@@ -244,9 +248,44 @@ class SharedSyncCoordinatorImpl
                 }
             }
 
+        override suspend fun detachToLocalOnly(reason: LocalOnlyReason): Result<Unit> =
+            withContext(dispatcher) {
+                operationMutex.withLock {
+                    if (sharedStore.localOnlyState() != null) return@withLock Result.success(Unit)
+                    if (configStore.binding()?.provider != CloudProvider.Shared) return@withLock Result.success(Unit)
+                    runCatching {
+                        backupRepository.createInternalBackup().getOrThrow()
+                        sharedStore.setLocalOnly(reason.name, clock.millis())
+                        stopForegroundRealtimeAndJoin()
+                        syncScheduler.disablePeriodicSync()
+                    }
+                }
+            }
+
+        override suspend fun reattachAfterEntitlementRestored(): Result<Unit> =
+            withContext(dispatcher) {
+                val reattachResult =
+                    operationMutex.withLock {
+                        if (sharedStore.localOnlyState() == null) return@withLock Result.success(Unit)
+                        runCatching {
+                            requireActiveWorkspaceId()
+                            if (!sharedStore.isMembershipActive()) throw SyncException(SyncError.Auth)
+                            sharedStore.clearLocalOnly()
+                            if (appSettings.settings.first().autoSyncEnabled) {
+                                syncScheduler.enablePeriodicSync()
+                            }
+                            syncNowLocked().getOrThrow()
+                        }
+                    }
+                if (reattachResult.isFailure) reattachResult else startForegroundRealtime()
+            }
+
         override suspend fun startForegroundRealtime(): Result<Unit> =
             withContext(dispatcher) {
                 operationMutex.withLock {
+                    if (sharedStore.localOnlyState() != null) {
+                        return@withLock Result.failure(SyncException(SyncError.EntitlementRequired))
+                    }
                     val (generation, previousJob) = beginForegroundRealtime()
                     try {
                         previousJob?.cancelAndJoin()
@@ -354,6 +393,14 @@ class SharedSyncCoordinatorImpl
             withContext(dispatcher) {
                 val result =
                     try {
+                        sharedStore.localOnlyState()?.let { localOnly ->
+                            return@withContext Result.success(
+                                SharedWorkspaceAccess(
+                                    billingState = SharedWorkspaceBillingState.Expired,
+                                    localOnly = localOnly.toLocalOnlyState(),
+                                ),
+                            )
+                        }
                         ensureSignedIn()
                         if (!sharedStore.isMembershipActive()) throw SyncException(SyncError.Auth)
                         val workspace = workspaceApi.currentWorkspace().getOrThrow() ?: throw SyncException(SyncError.Auth)
@@ -521,6 +568,7 @@ class SharedSyncCoordinatorImpl
 
         private suspend fun syncNowLocked(): Result<Unit> =
             runCatching {
+                ensureNotInLocalOnlyMode()
                 val workspaceId = requireActiveWorkspaceId()
                 if (!sharedStore.isMembershipActive()) {
                     throw SyncException(SyncError.Auth)
@@ -1135,6 +1183,10 @@ class SharedSyncCoordinatorImpl
             if (auth.currentSession() == null) throw SyncException(SyncError.Auth)
         }
 
+        private suspend fun ensureNotInLocalOnlyMode() {
+            if (sharedStore.localOnlyState() != null) throw SyncException(SyncError.EntitlementRequired)
+        }
+
         private suspend fun ensureNoActiveBinding() {
             if (configStore.binding() != null) throw SyncException(SyncError.Conflict)
         }
@@ -1175,6 +1227,12 @@ class SharedSyncCoordinatorImpl
 
         private fun Throwable.isEntitlementRequiredFailure(): Boolean =
             (this as? SyncException)?.syncError == SyncError.EntitlementRequired
+
+        private fun SharedLocalOnlyState.toLocalOnlyState(): LocalOnlyState =
+            LocalOnlyState(
+                reason = LocalOnlyReason.entries.firstOrNull { it.name == reason } ?: LocalOnlyReason.RemoteKillswitch,
+                since = java.time.Instant.ofEpochMilli(sinceEpochMs),
+            )
 
         private fun foregroundRealtimeBackoffMillis(retryAttempt: Int): Long =
             FOREGROUND_REALTIME_BASE_BACKOFF_MILLIS shl (retryAttempt - 1)

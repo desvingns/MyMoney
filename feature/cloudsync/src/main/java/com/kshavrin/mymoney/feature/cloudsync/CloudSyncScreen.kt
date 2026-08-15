@@ -461,7 +461,14 @@ fun CloudSyncContent(
                 isConnecting = state.isConnecting,
                 onEvent = onEvent,
             )
-            if (state.shared.enabled) {
+            if (
+                state.shared.enabled ||
+                (
+                    state.binding?.provider == CloudProvider.Shared &&
+                    state.shared.active &&
+                    state.shared.isLocalOnly
+                )
+            ) {
                 state.shared.warning
                     ?.takeIf { state.shared.showsEntitlementWarning() }
                     ?.let { warning ->

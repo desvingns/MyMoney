@@ -486,6 +486,35 @@ class CloudSyncScreenContentTest {
         }
     }
 
+    @Test
+    fun `local only Shared card remains visible when the remote killswitch disables availability`() {
+        val events = mutableListOf<CloudSyncEvent>()
+        setContent(
+            CloudSyncState(
+                binding = CloudBinding(CloudProvider.Shared, "ws-1", "Budget"),
+                shared =
+                    SharedCardState(
+                        enabled = false,
+                        signedIn = true,
+                        active = true,
+                        isLocalOnly = true,
+                        isWorkspaceAccessKnown = true,
+                        isWorkspaceReadOnly = true,
+                    ),
+            ),
+            events::add,
+        )
+
+        composeTestRule.onNodeWithText(str(R.string.sync_shared_local_only_title)).performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithTag("cloud_sync_shared_sync_now").performScrollTo().assertIsNotEnabled()
+        composeTestRule.onNodeWithTag("cloud_sync_shared_create_invite").performScrollTo().assertIsNotEnabled()
+        composeTestRule.onNodeWithTag("cloud_sync_shared_backups").performScrollTo().performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(CloudSyncEvent.SharedInternalBackupsClicked), events)
+        }
+    }
+
     // ── SharedSetupDialog ──────────────────────────────────────────────────
 
     @Test

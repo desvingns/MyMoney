@@ -883,6 +883,84 @@ class CloudSyncViewModelTest {
         }
 
     @Test
+    fun `cold-start participant without Plus retries when the owner renews`() =
+        runTest {
+            val shared =
+                SharedCoordinator().apply {
+                    localOnlyState =
+                        LocalOnlyState(
+                            reason = LocalOnlyReason.EntitlementExpired,
+                            since = Instant.EPOCH,
+                            workspaceBillingState = SharedWorkspaceBillingState.Expired,
+                            isWorkspaceOwner = false,
+                        )
+                    reattachResult = Result.failure(SyncException(SyncError.EntitlementRequired))
+                }
+            val vm =
+                viewModel(
+                    SnapshotFake(),
+                    RecordingJournalSync(),
+                    Config(CloudBinding(CloudProvider.Shared, "ws-1", "Budget")),
+                    Scheduler(),
+                    shared = shared,
+                    entitlement = EntitlementFake(UserEntitlement.Free),
+                )
+
+            runCurrent()
+
+            assertTrue(vm.state.value.shared.isLocalOnly)
+            assertTrue(vm.state.value.shared.isWorkspaceOwnershipKnown)
+            assertFalse(vm.state.value.shared.isWorkspaceOwner)
+            assertEquals(1, shared.reattachCalls)
+
+            shared.reattachResult = Result.success(Unit)
+            vm.onEvent(CloudSyncEvent.SharedRealtimeForegroundStarted)
+            runCurrent()
+
+            assertEquals(2, shared.reattachCalls)
+            assertFalse(vm.state.value.shared.isLocalOnly)
+        }
+
+    @Test
+    fun `expired owner ad Plus shows the offer before detaching for server expiry`() =
+        runTest {
+            val shared =
+                SharedCoordinator().apply {
+                    workspaceAccessResult =
+                        Result.success(SharedWorkspaceAccess(SharedWorkspaceBillingState.Expired))
+                    workspaceOwnership = SharedWorkspaceOwnership(isOwner = true)
+                }
+            val vm =
+                viewModel(
+                    SnapshotFake(),
+                    RecordingJournalSync(),
+                    Config(CloudBinding(CloudProvider.Shared, "ws-1", "Budget")),
+                    Scheduler(),
+                    shared = shared,
+                    entitlement =
+                        EntitlementFake(
+                            UserEntitlement.Plus(
+                                source = EntitlementSource.AD_REWARD,
+                                state = EntitlementState.EXPIRED,
+                                startsAt = Instant.EPOCH,
+                                expiresAt = Instant.EPOCH,
+                                graceEndsAt = null,
+                            ),
+                        ),
+                )
+
+            runCurrent()
+
+            assertEquals(SharedDialog.AdPlusExpired, vm.state.value.sharedDialog)
+            assertTrue(shared.detachReasons.isEmpty())
+
+            vm.onEvent(CloudSyncEvent.AdPlusExpiryDeclined)
+            runCurrent()
+
+            assertEquals(listOf(LocalOnlyReason.AdRewardWindowEnded), shared.detachReasons)
+        }
+
+    @Test
     fun `foreground realtime cannot start after lifecycle stop while shared setup is finishing`() =
         runTest {
             val config = Config(null)
@@ -1459,6 +1537,7 @@ class CloudSyncViewModelTest {
         var disconnectResult: Result<Unit> = Result.success(Unit)
         var deleteResult: Result<Unit> = Result.success(Unit)
         var localOnlyState: LocalOnlyState? = null
+        var reattachResult: Result<Unit> = Result.success(Unit)
         private val realtimeStatus = MutableStateFlow<SharedRealtimeStatus>(SharedRealtimeStatus.Inactive)
 
         override val foregroundRealtimeStatus = realtimeStatus
@@ -1496,14 +1575,20 @@ class CloudSyncViewModelTest {
 
         override suspend fun detachToLocalOnly(reason: LocalOnlyReason): Result<Unit> {
             detachReasons += reason
-            localOnlyState = LocalOnlyState(reason = reason, since = Instant.EPOCH)
+            localOnlyState =
+                LocalOnlyState(
+                    reason = reason,
+                    since = Instant.EPOCH,
+                    workspaceBillingState = workspaceAccessResult.getOrNull()?.billingState,
+                    isWorkspaceOwner = workspaceOwnership.isOwner,
+                )
             return Result.success(Unit)
         }
 
         override suspend fun reattachAfterEntitlementRestored(): Result<Unit> {
             reattachCalls++
-            localOnlyState = null
-            return Result.success(Unit)
+            if (reattachResult.isSuccess) localOnlyState = null
+            return reattachResult
         }
 
         override suspend fun discoverRemoteWorkspace(): Result<SharedWorkspaceSummary?> {

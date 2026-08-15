@@ -5,11 +5,16 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -73,4 +78,59 @@ class SharedSyncStoreImplTest {
             assertFalse(store.isMembershipActive())
             assertEquals("keep", dataStore.data.first()[unrelatedKey])
         }
+
+    @Test
+    fun `local only state survives a cold start and clear survives the next cold start`() =
+        runTest {
+            val coldStartFile = Files.createTempFile("shared-local-only", ".preferences_pb").toFile().also { it.delete() }
+            val writerJob = Job()
+            try {
+                val writer = storeFor(coldStartFile, writerJob)
+                writer.setLocalOnly(
+                    reason = "EntitlementExpired",
+                    sinceEpochMs = 1_700_000_000_000L,
+                    workspaceBillingState = "Expired",
+                    isWorkspaceOwner = false,
+                )
+                writerJob.cancelAndJoin()
+
+                val readerJob = Job()
+                try {
+                    val reader = storeFor(coldStartFile, readerJob)
+                    assertEquals(
+                        SharedLocalOnlyState(
+                            reason = "EntitlementExpired",
+                            sinceEpochMs = 1_700_000_000_000L,
+                            workspaceBillingState = "Expired",
+                            isWorkspaceOwner = false,
+                        ),
+                        reader.localOnlyState(),
+                    )
+                    reader.clearLocalOnly()
+                } finally {
+                    readerJob.cancelAndJoin()
+                }
+
+                val clearedReaderJob = Job()
+                try {
+                    assertNull(storeFor(coldStartFile, clearedReaderJob).localOnlyState())
+                } finally {
+                    clearedReaderJob.cancelAndJoin()
+                }
+            } finally {
+                writerJob.cancel()
+                coldStartFile.delete()
+            }
+        }
+
+    private fun storeFor(
+        backingFile: File,
+        job: Job,
+    ): SharedSyncStoreImpl =
+        SharedSyncStoreImpl(
+            PreferenceDataStoreFactory.create(
+                scope = CoroutineScope(job + Dispatchers.IO),
+                produceFile = { backingFile },
+            ),
+        )
 }

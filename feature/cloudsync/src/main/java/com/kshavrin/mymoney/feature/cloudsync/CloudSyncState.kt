@@ -61,6 +61,7 @@ data class SharedCardState(
     val workspaceName: String? = null,
     val conflictCount: Int = 0,
     val isWorkspaceOwner: Boolean = false,
+    val isWorkspaceOwnershipKnown: Boolean = false,
     val isSoleOwner: Boolean = false,
     val workspaceBillingState: SharedWorkspaceBillingState? = null,
     val workspaceBillingStateUntil: Instant? = null,

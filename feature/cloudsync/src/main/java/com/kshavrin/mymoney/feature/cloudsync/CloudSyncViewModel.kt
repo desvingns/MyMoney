@@ -504,6 +504,7 @@ class CloudSyncViewModel
                     workspaceName = workspace?.name ?: verifiedBinding.accountLabel,
                     conflictCount = conflictCount,
                     isWorkspaceOwner = ownership?.isOwner == true,
+                    isWorkspaceOwnershipKnown = ownership != null,
                     isSoleOwner = ownership?.isSoleOwner == true,
                     workspaceBillingState = access.billingState,
                     workspaceBillingStateUntil = access.billingStateUntil,
@@ -558,6 +559,12 @@ class CloudSyncViewModel
                     localOnlySince = localOnly.since,
                     active = true,
                     workspaceName = _state.value.shared.workspaceName ?: binding.accountLabel,
+                    isWorkspaceOwner = localOnly.isWorkspaceOwner ?: _state.value.shared.isWorkspaceOwner,
+                    isWorkspaceOwnershipKnown =
+                        localOnly.isWorkspaceOwner != null || _state.value.shared.isWorkspaceOwnershipKnown,
+                    workspaceBillingState =
+                        localOnly.workspaceBillingState ?: _state.value.shared.workspaceBillingState,
+                    workspaceBillingStateUntil = null,
                     isWorkspaceAccessKnown = true,
                     isWorkspaceReadOnly = true,
                     warning = null,
@@ -580,6 +587,9 @@ class CloudSyncViewModel
                     accountEmail = sharedCoordinator.accountEmail(),
                     active = true,
                     workspaceName = previousShared.workspaceName ?: binding.accountLabel,
+                    isWorkspaceOwner = false,
+                    isWorkspaceOwnershipKnown = false,
+                    isSoleOwner = false,
                     workspaceBillingState = null,
                     workspaceBillingStateUntil = null,
                     isWorkspaceAccessKnown = false,
@@ -637,6 +647,7 @@ class CloudSyncViewModel
                     workspaceName = null,
                     conflictCount = 0,
                     isWorkspaceOwner = false,
+                    isWorkspaceOwnershipKnown = false,
                     isSoleOwner = false,
                     workspaceBillingState = null,
                     workspaceBillingStateUntil = null,
@@ -1175,10 +1186,21 @@ class CloudSyncViewModel
                 clearAdPlusExpiryDialog()
                 if (
                     shared.enabled &&
-                    (latestEntitlement.canUseSharedWorkspace() || shared.hasOwnerPaidParticipantAccess())
+                    (latestEntitlement.canUseSharedWorkspace() || shared.isKnownWorkspaceParticipant())
                 ) {
                     reattachAfterEntitlementRestored()
                 }
+                return
+            }
+            val entitlement = latestEntitlement as? UserEntitlement.Plus
+            if (
+                shared.isWorkspaceAccessKnown &&
+                shared.isWorkspaceOwnershipKnown &&
+                shared.isWorkspaceOwner &&
+                entitlement?.state == EntitlementState.EXPIRED &&
+                entitlement.source == EntitlementSource.AD_REWARD
+            ) {
+                showAdPlusExpiryDialog()
                 return
             }
             if (shared.workspaceBillingState == SharedWorkspaceBillingState.Expired) {
@@ -1186,17 +1208,16 @@ class CloudSyncViewModel
                 detachToLocalOnly(LocalOnlyReason.EntitlementExpired)
                 return
             }
-            if (!shared.isWorkspaceAccessKnown || !shared.isWorkspaceOwner) {
+            if (
+                !shared.isWorkspaceAccessKnown ||
+                !shared.isWorkspaceOwnershipKnown ||
+                !shared.isWorkspaceOwner
+            ) {
                 clearAdPlusExpiryDialog()
                 return
             }
-            val entitlement = latestEntitlement as? UserEntitlement.Plus
             if (entitlement?.state == EntitlementState.EXPIRED) {
-                if (entitlement.source == EntitlementSource.AD_REWARD) {
-                    showAdPlusExpiryDialog()
-                } else {
-                    detachToLocalOnly(LocalOnlyReason.EntitlementExpired)
-                }
+                detachToLocalOnly(LocalOnlyReason.EntitlementExpired)
             }
         }
 
@@ -1373,11 +1394,10 @@ private fun UserEntitlement.canUseSharedWorkspace(): Boolean =
 private fun SharedCardState.canWrite(): Boolean =
     active && isWorkspaceAccessKnown && !isWorkspaceReadOnly
 
-private fun SharedCardState.hasOwnerPaidParticipantAccess(): Boolean =
+private fun SharedCardState.isKnownWorkspaceParticipant(): Boolean =
     active &&
-        isWorkspaceAccessKnown &&
-        !isWorkspaceOwner &&
-        workspaceBillingState == SharedWorkspaceBillingState.Active
+        isWorkspaceOwnershipKnown &&
+        !isWorkspaceOwner
 
 private fun UserEntitlement.graceEndsAt() = (this as? UserEntitlement.Plus)?.graceEndsAt
 

@@ -43,6 +43,8 @@ enum class LocalOnlyReason {
 data class LocalOnlyState(
     val reason: LocalOnlyReason,
     val since: Instant,
+    val workspaceBillingState: SharedWorkspaceBillingState? = null,
+    val isWorkspaceOwner: Boolean? = null,
 )
 
 /**

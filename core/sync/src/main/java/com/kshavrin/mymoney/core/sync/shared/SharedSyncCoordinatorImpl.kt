@@ -263,7 +263,13 @@ class SharedSyncCoordinatorImpl
                     try {
                         withContext(NonCancellable) {
                             val teardownFailures = mutableListOf<Throwable>()
-                            sharedStore.setLocalOnly(reason.name, clock.millis())
+                            val accessContext = sharedStore.workspaceAccessContext()
+                            sharedStore.setLocalOnly(
+                                reason = reason.name,
+                                sinceEpochMs = clock.millis(),
+                                workspaceBillingState = accessContext?.billingState,
+                                isWorkspaceOwner = accessContext?.isWorkspaceOwner,
+                            )
                             collectCleanupFailure(teardownFailures) { stopForegroundRealtimeAndJoin() }
                             collectCleanupFailure(teardownFailures) { syncScheduler.cancelAllSync().getOrThrow() }
                             teardownFailures.toResult().getOrThrow()
@@ -285,6 +291,15 @@ class SharedSyncCoordinatorImpl
                             ensureSignedIn()
                             requireActiveWorkspaceId()
                             if (!sharedStore.isMembershipActive()) throw SyncException(SyncError.Auth)
+                            val workspace = workspaceApi.currentWorkspace().getOrThrow() ?: throw SyncException(SyncError.Auth)
+                            if (workspace.billingState != WorkspaceBillingState.Active) {
+                                throw SyncException(SyncError.EntitlementRequired)
+                            }
+                            val accessContext = sharedStore.workspaceAccessContext()
+                            sharedStore.setWorkspaceAccessContext(
+                                billingState = workspace.billingState.name,
+                                isWorkspaceOwner = accessContext?.isWorkspaceOwner,
+                            )
                             val shouldEnablePeriodicSync = appSettings.settings.first().autoSyncEnabled
                             syncNowLocked(allowLocalOnly = true).getOrThrow()
                             currentCoroutineContext().ensureActive()
@@ -403,6 +418,13 @@ class SharedSyncCoordinatorImpl
         override suspend fun activeWorkspaceOwnership(): Result<SharedWorkspaceOwnership> =
             withContext(dispatcher) {
                 val result = activeWorkspaceOwnershipResult()
+                result.getOrNull()?.let { ownership ->
+                    val accessContext = sharedStore.workspaceAccessContext()
+                    sharedStore.setWorkspaceAccessContext(
+                        billingState = accessContext?.billingState,
+                        isWorkspaceOwner = ownership.isOwner,
+                    )
+                }
                 if (result.isAuthFailure()) {
                     executionGate.withExclusive {
                         operationMutex.withLock { clearSharedStateOnAuthFailure(result) }
@@ -419,7 +441,9 @@ class SharedSyncCoordinatorImpl
                         currentLocalOnlyState()?.let { localOnly ->
                             return@withContext Result.success(
                                 SharedWorkspaceAccess(
-                                    billingState = SharedWorkspaceBillingState.Expired,
+                                    billingState =
+                                        localOnly.workspaceBillingState
+                                            ?: SharedWorkspaceBillingState.Expired,
                                     localOnly = localOnly,
                                 ),
                             )
@@ -427,6 +451,11 @@ class SharedSyncCoordinatorImpl
                         ensureSignedIn()
                         if (!sharedStore.isMembershipActive()) throw SyncException(SyncError.Auth)
                         val workspace = workspaceApi.currentWorkspace().getOrThrow() ?: throw SyncException(SyncError.Auth)
+                        val accessContext = sharedStore.workspaceAccessContext()
+                        sharedStore.setWorkspaceAccessContext(
+                            billingState = workspace.billingState.name,
+                            isWorkspaceOwner = accessContext?.isWorkspaceOwner,
+                        )
                         Result.success(
                             SharedWorkspaceAccess(
                                 billingState = workspace.billingState.toSharedWorkspaceBillingState(),
@@ -1260,6 +1289,10 @@ class SharedSyncCoordinatorImpl
             LocalOnlyState(
                 reason = LocalOnlyReason.entries.firstOrNull { it.name == reason } ?: LocalOnlyReason.RemoteKillswitch,
                 since = java.time.Instant.ofEpochMilli(sinceEpochMs),
+                workspaceBillingState =
+                    workspaceBillingState
+                        ?.let { value -> SharedWorkspaceBillingState.entries.firstOrNull { it.name == value } },
+                isWorkspaceOwner = isWorkspaceOwner,
             )
 
         private fun foregroundRealtimeBackoffMillis(retryAttempt: Int): Long =

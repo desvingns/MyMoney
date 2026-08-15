@@ -1069,6 +1069,7 @@ class SharedSyncCoordinatorImplTest {
             auth.session = fakeSession()
             configStore.current = CloudBinding(CloudProvider.Shared, "ws-1", "Budget")
             sharedStore.membershipActive = true
+            workspaceApi.currentWorkspaceResult = Result.success(fakeWorkspace())
             sharedStore.localOnly =
                 com.kshavrin.mymoney.core.datastore.SharedLocalOnlyState(
                     reason = LocalOnlyReason.EntitlementExpired.name,
@@ -1085,6 +1086,34 @@ class SharedSyncCoordinatorImplTest {
             assertTrue(coordinator.reattachAfterEntitlementRestored().isSuccess)
             assertNull(sharedStore.localOnly)
             assertEquals(1, scheduler.enableCalls)
+        }
+
+    @Test
+    fun `cold-start participant reattaches only after owner billing recovers`() =
+        runTest(dispatcher) {
+            auth.session = fakeSession()
+            configStore.current = CloudBinding(CloudProvider.Shared, "ws-1", "Budget")
+            sharedStore.membershipActive = true
+            sharedStore.localOnly =
+                com.kshavrin.mymoney.core.datastore.SharedLocalOnlyState(
+                    reason = LocalOnlyReason.EntitlementExpired.name,
+                    sinceEpochMs = clock.millis(),
+                    workspaceBillingState = WorkspaceBillingState.Expired.name,
+                    isWorkspaceOwner = false,
+                )
+            workspaceApi.currentWorkspaceResult = Result.success(fakeWorkspace(billingState = WorkspaceBillingState.Expired))
+
+            val beforeOwnerRenewal = coordinator.reattachAfterEntitlementRestored()
+
+            assertTrue(beforeOwnerRenewal.isFailure)
+            assertEquals(SyncError.EntitlementRequired, (beforeOwnerRenewal.exceptionOrNull() as? SyncException)?.syncError)
+            assertNotNull(sharedStore.localOnly)
+
+            workspaceApi.currentWorkspaceResult = Result.success(fakeWorkspace(billingState = WorkspaceBillingState.Active))
+            journalRepository.pullResults.add(Result.success(emptyList()))
+
+            assertTrue(coordinator.reattachAfterEntitlementRestored().isSuccess)
+            assertNull(sharedStore.localOnly)
         }
 
     @Test
@@ -1558,6 +1587,7 @@ class SharedSyncCoordinatorImplTest {
         var cursor = 0L
         var membershipActive = true
         var localOnly: com.kshavrin.mymoney.core.datastore.SharedLocalOnlyState? = null
+        var workspaceAccessContext: com.kshavrin.mymoney.core.datastore.SharedWorkspaceAccessContext? = null
         var cursorIsCleared = false
         var onSetMembershipActive: ((Boolean) -> Unit)? = null
 
@@ -1574,16 +1604,33 @@ class SharedSyncCoordinatorImplTest {
             onSetMembershipActive?.invoke(active)
         }
 
+        override suspend fun workspaceAccessContext() = workspaceAccessContext
+
+        override suspend fun setWorkspaceAccessContext(
+            billingState: String?,
+            isWorkspaceOwner: Boolean?,
+        ) {
+            workspaceAccessContext =
+                com.kshavrin.mymoney.core.datastore.SharedWorkspaceAccessContext(
+                    billingState = billingState,
+                    isWorkspaceOwner = isWorkspaceOwner,
+                )
+        }
+
         override suspend fun localOnlyState() = localOnly
 
         override suspend fun setLocalOnly(
             reason: String,
             sinceEpochMs: Long,
+            workspaceBillingState: String?,
+            isWorkspaceOwner: Boolean?,
         ) {
             localOnly =
                 com.kshavrin.mymoney.core.datastore.SharedLocalOnlyState(
                     reason = reason,
                     sinceEpochMs = sinceEpochMs,
+                    workspaceBillingState = workspaceBillingState,
+                    isWorkspaceOwner = isWorkspaceOwner,
                 )
         }
 

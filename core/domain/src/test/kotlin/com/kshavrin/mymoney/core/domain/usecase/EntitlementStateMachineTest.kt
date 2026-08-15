@@ -9,6 +9,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 
 class EntitlementStateMachineTest {
     @Test
@@ -568,3 +569,7 @@ class EntitlementStateMachineTest {
 
     private fun instant(value: String) = Instant.parse(value)
 }
+
+private fun Instant.plusDays(days: Long): Instant = plus(days, ChronoUnit.DAYS)
+
+private fun Instant.minusDays(days: Long): Instant = minus(days, ChronoUnit.DAYS)

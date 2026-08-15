@@ -8,6 +8,7 @@ import com.kshavrin.mymoney.core.domain.billing.SupportProduct
 import com.kshavrin.mymoney.core.domain.model.EntitlementSource
 import com.kshavrin.mymoney.core.domain.model.EntitlementState
 import com.kshavrin.mymoney.core.domain.model.UserEntitlement
+import com.kshavrin.mymoney.core.domain.usecase.ObserveEntitlementUseCase
 import com.kshavrin.mymoney.feature.support.util.MainDispatcherRule
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -146,7 +147,7 @@ class PaywallViewModelTest {
         val viewModel =
             PaywallViewModel(
                 billingGateway = billingGateway,
-                entitlementRepository = entitlementRepository,
+                observeEntitlement = ObserveEntitlementUseCase(entitlementRepository),
                 ioDispatcher = mainDispatcherRule.testDispatcher,
             )
         viewModelStore.put("paywall", viewModel)

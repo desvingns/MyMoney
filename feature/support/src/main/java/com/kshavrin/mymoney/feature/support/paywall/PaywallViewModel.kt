@@ -9,7 +9,7 @@ import com.kshavrin.mymoney.core.domain.billing.BillingGateway
 import com.kshavrin.mymoney.core.domain.billing.PurchaseOutcome
 import com.kshavrin.mymoney.core.domain.model.EntitlementState
 import com.kshavrin.mymoney.core.domain.model.UserEntitlement
-import com.kshavrin.mymoney.core.domain.repository.EntitlementRepository
+import com.kshavrin.mymoney.core.domain.usecase.ObserveEntitlementUseCase
 import com.kshavrin.mymoney.feature.support.R
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
@@ -36,7 +36,7 @@ class PaywallViewModel
     @Inject
     constructor(
         private val billingGateway: BillingGateway,
-        private val entitlementRepository: EntitlementRepository,
+        private val observeEntitlement: ObserveEntitlementUseCase,
         @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     ) : ViewModel() {
         private val _state = MutableStateFlow(PaywallState())
@@ -69,7 +69,7 @@ class PaywallViewModel
         private fun observeEntitlement() {
             viewModelScope.launch {
                 try {
-                    entitlementRepository.entitlement.collect { entitlement ->
+                    observeEntitlement.entitlement.collect { entitlement ->
                         val currentState = _state.value
                         _state.value =
                             currentState.copy(
@@ -222,7 +222,7 @@ class PaywallViewModel
         }
 
         private fun completeReconciliationIfEntitled(): Boolean {
-            val entitlement = entitlementRepository.entitlement.value
+            val entitlement = observeEntitlement.entitlement.value
             if (!entitlement.hasActivePlus()) return false
             _state.value =
                 _state.value.copy(
@@ -235,7 +235,7 @@ class PaywallViewModel
         private suspend fun refreshEntitlementForConfirmation() {
             try {
                 withTimeoutOrNull(ENTITLEMENT_REFRESH_TIMEOUT_MILLIS) {
-                    entitlementRepository.refresh()
+                    observeEntitlement.refresh()
                 }?.exceptionOrNull()?.reportToSentry()
             } catch (throwable: Throwable) {
                 if (throwable is CancellationException) throw throwable

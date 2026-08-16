@@ -8,6 +8,28 @@
 
 ## Current state
 
+- **2026-08-16 (Claude MP `--feature --next`, support-hub-tip SPEC 08, epic close):** Shipped the
+  final SPEC of the `support-hub-tip` epic (8/8 done). Added the "Purchases (Google Play Billing)"
+  block and replaced the stale "Firebase Remote Config is not enabled in this release" paragraph
+  with the honest variant-B description (Remote Config + Analytics, both confirmed on the classpath
+  since SPEC-06) — both EN/RU app-bundled policies (`app/src/main/assets/privacy_policy_*.html`)
+  and their GitHub Pages mirrors (`privacy-policy/{en,ru}/index.html`). Size gate `ok` (6 cells,
+  locale×block); risk route high (payment/legal content) → powerful developer, semantic review,
+  independent critic, full verifier. First semantic-review pass found one blocker (`SCOPE-001`):
+  the developer's initial commit only touched the app-asset files, leaving the GitHub Pages mirrors
+  stale and breaking two pre-existing `PrivacyPolicyAdvertisingContractTest` identity tests — fixed
+  in one repair cycle (commit `81bf0462`), re-review passed clean at 6/6 coverage. Tester added 3
+  new content-pinning tests (Purchases/Firebase presence + retired-phrase absence); the full runner
+  then caught a test-precision false negative (RU "Firebase Analytics" split across a verbatim
+  hard-wrapped newline) fixed via the one allowed auto-fix retry (whitespace normalization, no
+  content change). Independent critic and full verifier both passed clean. Commits `d6dd1eb6`,
+  `81bf0462`, `87d30326`, `5c6ed25e` (feature) + `c3639e6f` (SPEC-board close-out) pushed to `main`.
+  Full runner: `2298 passed / 0 failed / 0 skipped`, detekt/lint green. SPEC + epic overview both
+  moved to `done/` after an epic-completion review confirmed all 8 SPECs shipped with commits and
+  the overview's stated goal met; remaining out-of-repo prerequisites (Play Console coffee
+  products, `GOOGLE_SERVICES_JSON` CI secret, Play Data Safety form) documented as manual follow-up.
+  Telegram build offer and retro both declined by user; feedback question returned no rating.
+
 - **2026-08-16 (Claude MP `--feature --next`, plus-subscription-gating SPEC 08):** Added the six
   monetization funnel analytics events (`PaywallShown`, `TrialStarted`, `SubscriptionPurchased`,
   `SubscriptionCancelled`, `GraceEntered`, `SharedDetached`) on top of the `AnalyticsGateway`
@@ -46,24 +68,6 @@
   on the `plus-subscription-gating` epic), so the feedback question and Telegram offer are
   skipped per epic-scoped timing. Remaining human items: place `app-ads.txt` at the domain root
   in the `desvingns.github.io` repo, Play Console «Contains ads» flag + Data safety form.
-
-- **2026-08-15 (Claude MP `--feature --next`, plus-subscription-gating SPEC 06):** Completed the
-  `Expired → LocalOnly` state transition — resumed from a prior Codex session's handoff (stopped
-  after a 3rd semantic-review blocker-pass, `mp-architect` PREFLIGHT verdict `PATCH ALLOWED`).
-  Three further repair cycles: fail-closed auth/role-recovery while LocalOnly (never
-  `clearBinding`/`sharedStore.clear`/`clearSharedOutbox`); coordinator-owned
-  snapshot→durable-commit→teardown ordering for all three `LocalOnlyReason`s (a second
-  semantic-review pass caught that the first fix missed the `RemoteKillswitch` path);
-  fail-safe `Unknown` tri-state role default; and a TOCTOU race between the realtime
-  supervisor's auth-failure cleanup and the detach commit, found by the routed independent
-  critic and closed with `operationMutex.withLock`. Commits `b4335959`, `2a708a9a`, `ef2e10e8`
-  pushed to `main` (`8f330a96..ef2e10e8`); SPEC moved to `done/`. Full runner: `2248 passed / 0
-  failed / 0 skipped`, detekt/lint green; deterministic reviewer 0 violations at every cycle;
-  2 semantic-review repair cycles + 1 independent critic + 1 confirmation pass all resolved
-  `pass=true`; full verifier passed (`hilt_graph: ok`, `tests_exist: ok`, `stale_tests: ok`).
-  Three non-blocking findings logged as "Deferred hardening" in the SPEC file. Epic
-  `plus-subscription-gating` not yet complete — SPECs 07-10 remain in `backlog/`; feedback
-  question and Telegram offer both skipped per epic-scoped timing.
 
 ## Historical session log archives
 

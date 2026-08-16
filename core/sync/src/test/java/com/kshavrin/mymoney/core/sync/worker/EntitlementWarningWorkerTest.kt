@@ -257,6 +257,48 @@ class EntitlementWarningWorkerTest {
             )
         }
 
+    @Test
+    fun `permission denied silent notify still persists markNotified and prevents subsequent retry`() =
+        runTest {
+            // EntitlementNotifierImpl.notify() returns early when POST_NOTIFICATIONS is denied,
+            // so nothing reaches the user. markNotified fires BEFORE notify (at-most-once ordering),
+            // so the warning is permanently deduplicated on the first run even though no notification
+            // was ever shown. This test pins that the dedup store is updated and the worker does not
+            // retry the same (warning, expiresAt) pair on a subsequent run.
+            val expiresAt = Instant.now().plusDays(2)
+            val repo = FakeEntitlementRepository()
+            repo.seed(subscriptionTrialEntitlement(expiresAt))
+            val store = FakeEntitlementWarningStore()
+            val permissionDeniedNotifier =
+                object : EntitlementNotifier {
+                    override fun notify(warning: EntitlementWarning) {
+                        // POST_NOTIFICATIONS denied: real impl hits canPostNotifications() == false
+                        // and returns immediately — nothing posted to NotificationManager
+                    }
+                }
+
+            assertEquals(
+                ListenableWorker.Result.success(),
+                createWorker(repo = repo, store = store, notifier = permissionDeniedNotifier).doWork(),
+            )
+            assertEquals(
+                "markNotified must be recorded even when notify() is a silent no-op",
+                1,
+                store.markNotifiedCalls.size,
+            )
+            assertEquals(
+                EntitlementWarning.TRIAL_ENDING_3D,
+                store.markNotifiedCalls.single().first,
+            )
+
+            createWorker(repo = repo, store = store, notifier = permissionDeniedNotifier).doWork()
+            assertEquals(
+                "dedup must prevent re-attempt on a second run even when prior notify was a silent no-op",
+                1,
+                store.markNotifiedCalls.size,
+            )
+        }
+
     private fun subscriptionTrialEntitlement(expiresAt: Instant) =
         UserEntitlement.Plus(
             source = EntitlementSource.SUBSCRIPTION_YEARLY,

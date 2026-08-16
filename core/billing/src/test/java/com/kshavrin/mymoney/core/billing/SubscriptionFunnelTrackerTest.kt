@@ -136,6 +136,20 @@ class SubscriptionFunnelTrackerTest {
     }
 
     @Test
+    fun `ACTIVE to GRACE emits nothing because GRACE is an entitled state`() {
+        // Grace period: expiresAt is 1 day in the past; graceEndsAt = expiresAt + 7 days is still
+        // in the future. The tracker must NOT fire SubscriptionCancelled — GRACE is in ENTITLED_STATES.
+        // GraceEntered is the responsibility of EntitlementWarningWorker, not this tracker.
+        tracker.onServerConfirmed(
+            previous = plus(EntitlementState.ACTIVE),
+            snapshot = monthlySnapshot(expiresAt = now.minusDays(1), inTrial = false),
+            now = now,
+        )
+
+        assertEquals(emptyList<AnalyticsEvent>(), analytics.events)
+    }
+
+    @Test
     fun `steady active subscription emits nothing`() {
         tracker.onServerConfirmed(
             previous = plus(EntitlementState.ACTIVE),

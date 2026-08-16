@@ -140,6 +140,36 @@ class PaywallViewModelTest {
         assertTrue(viewModel.actions.replayCache.isEmpty())
     }
 
+    @Test
+    fun `successful purchase emits RequestNotificationPermission action`() = runTest {
+        val entitlementRepository = FakeEntitlementRepository()
+        val viewModel =
+            createViewModel(
+                billing(
+                    PurchaseOutcome.Purchased(
+                        productId = PaywallPlanId.Monthly.productId,
+                        purchaseToken = "monthly-token",
+                        purchasedAtMillis = 1_700_000_000_000L,
+                    ),
+                ),
+                entitlementRepository,
+            )
+        runCurrent()
+
+        val collectedActions = mutableListOf<PaywallAction>()
+        val collector = launch { viewModel.actions.collect { collectedActions += it } }
+        runCurrent()
+
+        viewModel.onEvent(PaywallEvent.PlanSelected(PaywallPlanId.Monthly))
+        advanceUntilIdle()
+        collector.cancel()
+
+        assertTrue(
+            "Expected RequestNotificationPermission in $collectedActions",
+            PaywallAction.RequestNotificationPermission in collectedActions,
+        )
+    }
+
     private fun createViewModel(
         billingGateway: BillingGateway,
         entitlementRepository: FakeEntitlementRepository,

@@ -53,7 +53,8 @@ class RemoteConfigRepositoryImpl
             BuildConfig.PLAY_INTERNAL_SYNC_ENABLED || BuildConfig.PLAY_RELEASE_SYNC_ENABLED || syncForced()
 
         override fun sharedSyncEnabled(): Boolean =
-            BuildConfig.PLAY_INTERNAL_SYNC_ENABLED || BuildConfig.PLAY_RELEASE_SYNC_ENABLED || syncForced()
+            (BuildConfig.PLAY_INTERNAL_SYNC_ENABLED || BuildConfig.PLAY_RELEASE_SYNC_ENABLED || syncForced()) &&
+                (config?.getBoolean(KEY_SHARED_SYNC) ?: DEFAULT_SHARED_SYNC_WHEN_BUILD_ENABLED)
 
         // Debug builds may force sync on via -Psync.forceEnabled=true; release ignores it (DEBUG=false).
         private fun syncForced(): Boolean = BuildConfig.DEBUG && BuildConfig.SYNC_FORCE_ENABLED
@@ -81,6 +82,12 @@ class RemoteConfigRepositoryImpl
             const val DEFAULT_DROPBOX_SYNC = false
             const val DEFAULT_GDRIVE_SYNC = false
             const val DEFAULT_SHARED_SYNC = false
+
+            // Killswitch semantics: this multiplier only ever DISABLES an already build-enabled
+            // feature, so when Remote Config is absent (config == null in non-Firebase builds) it
+            // must default to true — otherwise reading the key would silently kill shared sync in
+            // every build without Firebase. Do not reuse DEFAULT_SHARED_SYNC (false) here.
+            const val DEFAULT_SHARED_SYNC_WHEN_BUILD_ENABLED = true
             const val DEFAULT_MIN_SUPPORTED_VERSION_CODE = 1L
             const val DEFAULT_AESTHETIC_SOUND_PACK = "default"
         }

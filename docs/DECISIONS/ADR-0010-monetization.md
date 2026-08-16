@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-12
+- Amended by: ADR-0011
 - Supersedes: decision Q-B3 ("free, no IAP, no ads") recorded in `TDD/MyMoney/MyMoney_TDD.md`
   lines 24, 2030, 2036, 2110, 2382, 2772
 

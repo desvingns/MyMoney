@@ -216,7 +216,8 @@ effectively unavailable. This is accepted, not worked around:
   one.
 - **D1 rollout is all-at-once and accepted.** The release that flips the flag opens the shared
   workspace to every user simultaneously. There is no percentage rollout and no remote kill
-  switch; rollback means shipping another release.
+  switch; rollback means shipping another release. (superseded by ADR-0011 D1 — a remote kill
+  switch now exists for shared-sync specifically)
 - **Privacy policy must be corrected.** `app/src/main/assets/privacy_policy_{en,ru}.html` (also
   published to GitHub Pages) currently describes an app with no ads and no purchases. It must
   declare the advertising ID collected by the Play Services Ads SDK, the rewarded-ad flow, and

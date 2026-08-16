@@ -121,7 +121,10 @@ class PrivacyPolicyAdvertisingContractTest {
         assertContainsAll(
             text,
             listOf(
-                "Block 4 (Advertising) applied 2026-08-16",
+                // Table row ties the advertising epic to the applied date; status header wording
+                // may evolve (e.g. "all blocks applied"), but this table entry is stable once set.
+                "`support-rewarded-ads` (applied 2026-08-16)",
+                // Per-block annotation in the Block 4 section body.
                 "**Applied 2026-08-16**",
                 ADMOB_PUBLISHER_LINE,
             ),

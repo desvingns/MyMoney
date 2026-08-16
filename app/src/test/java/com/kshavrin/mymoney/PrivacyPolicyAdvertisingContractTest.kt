@@ -157,8 +157,8 @@ class PrivacyPolicyAdvertisingContractTest {
 
     @Test
     fun `both app asset locales describe firebase services as two active SDKs`() {
-        val en = assetEn.requireReadableText()
-        val ru = assetRu.requireReadableText()
+        val en = assetEn.requireReadableText().replace(Regex("\\s+"), " ")
+        val ru = assetRu.requireReadableText().replace(Regex("\\s+"), " ")
 
         assertContainsAll(
             en,

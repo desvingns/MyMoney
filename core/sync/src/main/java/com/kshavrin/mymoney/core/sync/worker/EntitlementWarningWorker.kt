@@ -35,7 +35,7 @@ class EntitlementWarningWorker
             )
 
         private suspend fun evaluate(now: Instant) {
-            entitlementRepository.refresh()
+            entitlementRepository.refresh().getOrThrow()
             val current = entitlementRepository.entitlement.value
             val previous = entitlementWarningStore.previousState()
 
@@ -43,8 +43,8 @@ class EntitlementWarningWorker
             val expiresAt = (current as? UserEntitlement.Plus)?.expiresAt
             warnings.forEach { warning ->
                 if (!entitlementWarningStore.wasNotified(warning, expiresAt)) {
-                    entitlementNotifier.notify(warning)
                     entitlementWarningStore.markNotified(warning, expiresAt)
+                    entitlementNotifier.notify(warning)
                 }
             }
 

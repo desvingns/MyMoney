@@ -80,6 +80,7 @@ object EntitlementStateMachine {
         return buildSet {
             if (
                 entitlement.state == EntitlementState.TRIAL &&
+                entitlement.source in subscriptionSources &&
                 entitlement.expiresAt?.isWithin(now, trialEndingThreshold) == true
             ) {
                 add(EntitlementWarning.TRIAL_ENDING_3D)

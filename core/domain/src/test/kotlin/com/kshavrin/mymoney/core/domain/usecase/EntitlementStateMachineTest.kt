@@ -494,6 +494,20 @@ class EntitlementStateMachineTest {
     }
 
     @Test
+    fun `trial ending warning excludes an ad reward source even within the threshold`() {
+        val now = instant("2026-08-12T00:00:00Z")
+        val adTrial = UserEntitlement.Plus(
+            source = EntitlementSource.AD_REWARD,
+            state = EntitlementState.TRIAL,
+            startsAt = Instant.EPOCH,
+            expiresAt = now.plusDays(3),
+            graceEndsAt = now.plusDays(3),
+        )
+
+        assertEquals(emptySet<EntitlementWarning>(), EntitlementStateMachine.warnings(null, adTrial, now))
+    }
+
+    @Test
     fun `warnings are empty for Free and for non-warning Plus states`() {
         val now = instant("2026-08-12T00:00:00Z")
         val active = UserEntitlement.Plus(

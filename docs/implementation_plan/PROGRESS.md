@@ -8,6 +8,36 @@
 
 ## Current state
 
+- **2026-08-16 (Claude MP `--feature --next`, plus-subscription-gating SPEC 10, epic close):**
+  Shipped the epic's final SPEC (10/10 done) — Block 3 of the privacy-policy monetization draft
+  (`docs/legal/privacy-policy-monetization-draft.md:141-174`): dropped the "compatible builds"
+  hedging around Shared workspace in both locales (app-bundled `privacy_policy_{en,ru}.html` +
+  GitHub Pages mirrors `privacy-policy/{en,ru}/index.html`) and added the new paragraph stating
+  Shared-workspace access requires an active Plus entitlement recorded on the Supabase backend,
+  account-bound not device-bound. Size gate `warn` (12 cells, locale×surface×block — SPEC predated
+  the field, derived and frozen this session); risk route high (score 9) → powerful developer,
+  semantic review, independent critic, full verifier. The SPEC's own `CHANGED_HINT` line numbers
+  (`:33`/`:48`) were stale — earlier-shipped `support-hub-tip-08` and `support-rewarded-ads-06`
+  insertions had shifted the Supabase Auth paragraph to `:57-58` EN / `:58-59` RU; verified against
+  current file state before dispatching the developer rather than trusted blindly. First semantic
+  review and the independent critic both passed clean at 12/12 coverage, risk standard — but an
+  orchestrator pre-check (running the pre-existing `PrivacyPolicyAdvertisingContractTest` directly,
+  ahead of the formal Runner step) caught a regression neither review pass was scoped to see: the
+  developer's accurate rewrite of the draft doc's status header (now correctly says all 4 blocks
+  are applied, not just Block 4) dropped the literal substring `"Block 4 (Advertising) applied
+  2026-08-16"` that one pre-existing test pinned on. Tester reconciled it (Stale-Test Update Rule)
+  by repointing the assertion at two more stable, block-specific substrings instead of weakening
+  coverage. Commits `3cd4107b` (feature) + `e55a843e` (test reconciliation) pushed to `main`. Full
+  runner: `2301 passed / 0 failed / 0 skipped`, detekt/lint green. SPEC + epic overview both moved
+  to `done/` after an epic-completion review confirmed all 10 SPECs shipped with commits and the
+  overview's stated goal (domain entitlement model, gated billing/paywall, server-authoritative
+  state machine, notifications, analytics, remote killswitch, release flip, and now the matching
+  privacy-policy wording) met by the union of ships. Telegram delivery not configured (skipped
+  silently); feedback question asked but user gave no rating; retro offered (59 events queued) and
+  declined. `support-rewarded-ads-05` (blocked on this epic per its own CONSTRAINTS) is now
+  unblocked for a future session — its only remaining blocker was `plus-subscription-gating`
+  closing.
+
 - **2026-08-16 (Claude MP `--feature --next`, plus-subscription-gating SPEC 09):** Shipped the
   shared-sync remote killswitch and the `PLAY_RELEASE_SYNC_ENABLED` release-default flip — the
   epic's penultimate SPEC, deliberately last-but-one per ADR-0010 D1 (flip only after the
@@ -54,27 +84,6 @@
   the overview's stated goal met; remaining out-of-repo prerequisites (Play Console coffee
   products, `GOOGLE_SERVICES_JSON` CI secret, Play Data Safety form) documented as manual follow-up.
   Telegram build offer and retro both declined by user; feedback question returned no rating.
-
-- **2026-08-16 (Claude MP `--feature --next`, plus-subscription-gating SPEC 08):** Added the six
-  monetization funnel analytics events (`PaywallShown`, `TrialStarted`, `SubscriptionPurchased`,
-  `SubscriptionCancelled`, `GraceEntered`, `SharedDetached`) on top of the `AnalyticsGateway`
-  introduced by `support-hub-tip-06`. Extracted a new `SubscriptionFunnelTracker` (`:core:billing`)
-  out of `EntitlementRepositoryImpl` to make the purchase/trial/cancel transition logic unit-testable
-  against final/unfakeable billing-response types; wired `GraceEntered` into
-  `EntitlementWarningWorker` on the state-transition edge (dedup-guarded against retries) and
-  `SharedDetached` into `SharedSyncCoordinatorImpl.detachToLocalOnly` for all three
-  `LocalOnlyReason`s. Size gate `warn` (12 cells, event×firebase); risk route high (score 18) →
-  powerful developer, semantic review, independent critic, full verifier. First semantic-review pass
-  failed with 3 blockers (two test-compile breaks from unmigrated constructor-param test factories,
-  and zero coverage on 4 of 6 events) — one repair cycle (interrupted once by a session-limit error,
-  resumed from on-disk state per prior-session precedent) fixed all three plus a deterministic
-  test-hygiene violation (empty-body `@Test`); second semantic pass and the independent critic both
-  passed clean at 12/12 coverage. Two non-blocking hardening items deferred to the SPEC's "Deferred
-  hardening" section (an `onServerConfirmed()` call inside a `mapCatching` that could theoretically
-  mask a thrown exception, and an unpinned idempotency assertion). Commits `cc19802f`, `c5d19a9a`,
-  `c4d3f921`, `8a9015ae` pushed to `main`. Full runner: `2295 passed / 0 failed / 0 skipped`,
-  detekt/lint green. SPEC moved to `done/`. Epic `plus-subscription-gating` not yet complete — SPECs
-  09-10 remain in `backlog/`; feedback question and Telegram offer skipped per epic-scoped timing.
 
 ## Historical session log archives
 

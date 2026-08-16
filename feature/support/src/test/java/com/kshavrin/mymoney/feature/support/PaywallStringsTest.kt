@@ -1,6 +1,7 @@
 package com.kshavrin.mymoney.feature.support
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.w3c.dom.Element
@@ -14,6 +15,53 @@ class PaywallStringsTest {
         val russian = parseStrings(ruFile).filterKeys { it.startsWith("paywall_") }
 
         assertEquals(english.keys, russian.keys)
+    }
+
+    @Test
+    fun `english and russian rewarded ad string keys stay in parity`() {
+        val english = parseStrings(enFile).filterKeys { it.startsWith("support_ads_") }
+        val russian = parseStrings(ruFile).filterKeys { it.startsWith("support_ads_") }
+
+        assertEquals(
+            "support_ads_* key parity broken — " +
+                "only in EN: ${english.keys - russian.keys}, only in RU: ${russian.keys - english.keys}",
+            english.keys,
+            russian.keys,
+        )
+    }
+
+    @Test
+    fun `awaiting confirmation string never mentions credited or charged in either locale`() {
+        val english = parseStrings(enFile)
+        val russian = parseStrings(ruFile)
+
+        assertFalse(
+            "EN awaiting_confirmation must not say 'credited'",
+            english.getValue("support_ads_awaiting_confirmation").contains("credited", ignoreCase = true),
+        )
+        assertFalse(
+            "RU awaiting_confirmation must not say 'начислено'",
+            russian.getValue("support_ads_awaiting_confirmation").contains("начислено", ignoreCase = true),
+        )
+    }
+
+    @Test
+    fun `no fill and region unavailable strings are phrased as absence not as error in both locales`() {
+        val english = parseStrings(enFile)
+        val russian = parseStrings(ruFile)
+
+        assertFalse(
+            english.getValue("support_ads_no_fill").contains("error", ignoreCase = true),
+        )
+        assertFalse(
+            english.getValue("support_ads_region_unavailable").contains("error", ignoreCase = true),
+        )
+        assertFalse(
+            russian.getValue("support_ads_no_fill").contains("ошибка", ignoreCase = true),
+        )
+        assertFalse(
+            russian.getValue("support_ads_region_unavailable").contains("ошибка", ignoreCase = true),
+        )
     }
 
     @Test

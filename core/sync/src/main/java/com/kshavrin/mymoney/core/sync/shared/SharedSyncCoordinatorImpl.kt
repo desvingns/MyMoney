@@ -14,6 +14,8 @@ import com.kshavrin.mymoney.core.datastore.CloudProvider
 import com.kshavrin.mymoney.core.datastore.JournalSyncConfigStore
 import com.kshavrin.mymoney.core.datastore.SharedLocalOnlyState
 import com.kshavrin.mymoney.core.datastore.SharedSyncStore
+import com.kshavrin.mymoney.core.domain.analytics.AnalyticsEvent
+import com.kshavrin.mymoney.core.domain.analytics.AnalyticsGateway
 import com.kshavrin.mymoney.core.domain.billing.PurchaseOutcome
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.repository.AccountRepository
@@ -37,6 +39,7 @@ import com.kshavrin.mymoney.core.network.shared.WorkspaceBillingState
 import com.kshavrin.mymoney.core.network.shared.WorkspaceRole
 import com.kshavrin.mymoney.core.sync.SyncExecutionGate
 import com.kshavrin.mymoney.core.sync.SyncScheduler
+import com.kshavrin.mymoney.core.sync.analytics.NoOpAnalyticsGateway
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -87,6 +90,7 @@ class SharedSyncCoordinatorImpl
         private val clock: Clock,
         @IoDispatcher private val dispatcher: CoroutineDispatcher,
         private val supporterSync: SupporterSync = NoOpSupporterSync,
+        private val analytics: AnalyticsGateway = NoOpAnalyticsGateway(),
     ) : SharedSyncCoordinator {
         private val operationMutex = Mutex()
         private val restartRequiredAfterAdoptionRecovery = AtomicBoolean(false)
@@ -270,6 +274,7 @@ class SharedSyncCoordinatorImpl
                                 workspaceBillingState = accessContext?.billingState,
                                 isWorkspaceOwner = accessContext?.isWorkspaceOwner,
                             )
+                            analytics.log(AnalyticsEvent.SharedDetached(reason.name))
                             collectCleanupFailure(teardownFailures) { stopForegroundRealtimeAndJoin() }
                             collectCleanupFailure(teardownFailures) { syncScheduler.cancelAllSync().getOrThrow() }
                             teardownFailures.toResult().getOrThrow()

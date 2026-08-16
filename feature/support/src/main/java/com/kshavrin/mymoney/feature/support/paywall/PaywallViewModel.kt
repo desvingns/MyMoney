@@ -1,15 +1,20 @@
 package com.kshavrin.mymoney.feature.support.paywall
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.toRoute
 import com.kshavrin.mymoney.core.common.di.IoDispatcher
 import com.kshavrin.mymoney.core.common.exception.reportToSentry
+import com.kshavrin.mymoney.core.domain.analytics.AnalyticsEvent
+import com.kshavrin.mymoney.core.domain.analytics.AnalyticsGateway
 import com.kshavrin.mymoney.core.domain.billing.BillingAvailability
 import com.kshavrin.mymoney.core.domain.billing.BillingGateway
 import com.kshavrin.mymoney.core.domain.billing.PurchaseOutcome
 import com.kshavrin.mymoney.core.domain.model.EntitlementState
 import com.kshavrin.mymoney.core.domain.model.UserEntitlement
 import com.kshavrin.mymoney.core.domain.usecase.ObserveEntitlementUseCase
+import com.kshavrin.mymoney.core.ui.navigation.Destinations
 import com.kshavrin.mymoney.feature.support.R
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
@@ -37,8 +42,12 @@ class PaywallViewModel
     constructor(
         private val billingGateway: BillingGateway,
         private val observeEntitlement: ObserveEntitlementUseCase,
+        private val analytics: AnalyticsGateway,
+        savedStateHandle: SavedStateHandle,
         @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     ) : ViewModel() {
+        private val entryPoint = savedStateHandle.toRoute<Destinations.Paywall>().entryPoint
+
         private val _state = MutableStateFlow(PaywallState())
         val state: StateFlow<PaywallState> = _state.asStateFlow()
 
@@ -54,6 +63,7 @@ class PaywallViewModel
         private val purchaseMutex = Mutex()
 
         init {
+            analytics.log(AnalyticsEvent.PaywallShown(entryPoint.name))
             observeEntitlement()
             refreshCatalog()
         }

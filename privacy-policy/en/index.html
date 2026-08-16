@@ -44,6 +44,15 @@
   <p>If you enable and use one of these providers, MyMoney uploads and downloads append-only journal files containing the records needed to synchronize your data, which may include transaction amounts and dates, notes, account and category names, currencies, budgets or other supported entities, timestamps, record identifiers and the locally generated device identifier. Dropbox uses its app folder; Google Drive uses the private <code>appDataFolder</code> area. MyMoney does not add end-to-end encryption to these journal files; the provider's account controls and transport security apply.</p>
   <p>Disconnecting a provider removes its local credential and synchronization binding, but does not delete an already uploaded remote journal. Remote copies still require provider-side deletion; delete remote files from the corresponding provider account if you want them removed.</p>
 
+  <h3>Purchases (Google Play Billing)</h3>
+  <p>Optional purchases — the Plus subscription and one-off support purchases — are processed
+entirely by Google Play. MyMoney never sees or stores your card, bank or payment details. The app
+receives from Google Play only the purchase state needed to grant what you bought (product
+identifier, purchase token, and the resulting entitlement), and stores that entitlement against
+your account so it applies across your devices. Refunds, cancellation and payment history are
+handled in your Google Play account. Purchases are not available in every region; where Play
+Billing is unavailable, every local capability of MyMoney continues to work.</p>
+
   <h3>Supabase Auth and Google OAuth</h3>
   <p>Compatible builds may include an optional Shared workspace feature. When that feature is enabled, users can sign in with Google OAuth through Supabase Auth. The sign-in flow uses the <code>openid</code>, <code>email</code> and <code>profile</code> scopes; this Google sign-in does not request Google Drive access. Supabase receives the Google identity token and maintains the authentication user, session and account data under its own policies.</p>
   <p>Shared workspace data may include a user identifier, email address, workspace membership, workspace invites, operations and conflict records. The release build includes Shared workspaces as an optional feature and uses Google OAuth through Supabase Auth. The authenticated in-app account-deletion path is available after the production backend migration was deployed. It is safely blocked while the user has an active Shared workspace with other members; resolve that membership first by leaving the workspace or, as sole owner, deleting the workspace.</p>
@@ -51,8 +60,16 @@
   <h3>Error reporting with Sentry</h3>
   <p>Sentry is used only when a release build is supplied a non-empty Sentry DSN. In that case, MyMoney may send error events, stack traces and technical app/device/runtime context needed to diagnose failures. Tracing, performance monitoring, profiling, automatic session tracking, screenshots, view-hierarchy attachments and Session Replay are disabled in the app configuration. Sentry's own privacy policy and retention rules also apply.</p>
 
-  <h3>Services and feature flags</h3>
-  <p>Firebase Remote Config is not enabled in this release. Dropbox, Google Drive and Supabase are included in the release artifact, but they transmit data only after you connect and use the corresponding feature.</p>
+  <h3>Firebase services</h3>
+  <p>Builds configured with Firebase use two Google Firebase services. Firebase Remote Config
+delivers feature configuration values to the app, transmitting those values and the technical app,
+device and runtime context needed to deliver them. Firebase Analytics records app usage events —
+such as screens opened and features used — together with a Firebase installation identifier and
+technical device context, and is used to understand how the app is used in aggregate. Neither
+service receives your transactions, accounts, categories, notes or other financial records.
+Google's own privacy policy and retention rules also apply. Dropbox, Google Drive and Supabase are
+included in the release artifact, but they transmit data only after you connect and use the
+corresponding feature.</p>
 
   <h3>Advertising (Google AdMob)</h3>
   <p>MyMoney shows <strong>rewarded ads only</strong> — an ad never appears unless you deliberately start one to earn temporary Plus access. There are no banner, interstitial or app-open ads. When you start a rewarded ad, the Google Mobile Ads SDK collects your device's advertising ID (<code>com.google.android.gms.permission.AD_ID</code>) and technical device and request context, and may use them to select and measure the ad. Google's own advertising policies apply. The reward itself is confirmed to MyMoney's backend by Google through server-side verification; the confirmation carries an opaque identifier tied to your account, not your financial records. No transaction, account, category, note or other financial record from MyMoney is ever sent to Google's advertising services. Ads are not served in every region; where they are unavailable, the rest of the app is unaffected.</p>

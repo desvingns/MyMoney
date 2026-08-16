@@ -15,12 +15,15 @@ import androidx.work.impl.utils.taskexecutor.SerialExecutor
 import androidx.work.impl.utils.taskexecutor.TaskExecutor
 import com.google.common.util.concurrent.ListenableFuture
 import com.kshavrin.mymoney.core.datastore.EntitlementWarningStore
+import com.kshavrin.mymoney.core.domain.analytics.AnalyticsEvent
+import com.kshavrin.mymoney.core.domain.analytics.AnalyticsGateway
 import com.kshavrin.mymoney.core.domain.model.EntitlementSource
 import com.kshavrin.mymoney.core.domain.model.EntitlementState
 import com.kshavrin.mymoney.core.domain.model.EntitlementWarning
 import com.kshavrin.mymoney.core.domain.model.UserEntitlement
 import com.kshavrin.mymoney.core.domain.notification.EntitlementNotifier
 import com.kshavrin.mymoney.core.domain.repository.EntitlementRepository
+import com.kshavrin.mymoney.core.testing.fake.FakeAnalyticsGateway
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -221,15 +224,25 @@ class EntitlementWarningWorkerTest {
             val store = FakeEntitlementWarningStore()
             store.setPreviousState(EntitlementState.ACTIVE)
             val notifier = FakeEntitlementNotifier()
+            val analytics = FakeAnalyticsGateway()
 
-            createWorker(repo = repo, store = store, notifier = notifier).doWork()
+            createWorker(repo = repo, store = store, notifier = notifier, analytics = analytics).doWork()
             assertEquals(1, notifier.notifyCalls.count { it == EntitlementWarning.GRACE_ENTERED })
+            assertEquals(
+                listOf(AnalyticsEvent.GraceEntered("plus_monthly")),
+                analytics.events,
+            )
 
-            createWorker(repo = repo, store = store, notifier = notifier).doWork()
+            createWorker(repo = repo, store = store, notifier = notifier, analytics = analytics).doWork()
             assertEquals(
                 "GRACE_ENTERED must not fire again when previous state is already GRACE",
                 1,
                 notifier.notifyCalls.count { it == EntitlementWarning.GRACE_ENTERED },
+            )
+            assertEquals(
+                "GraceEntered analytics must fire exactly once across the ACTIVE->GRACE->GRACE runs",
+                listOf(AnalyticsEvent.GraceEntered("plus_monthly")),
+                analytics.events,
             )
         }
 
@@ -312,6 +325,7 @@ class EntitlementWarningWorkerTest {
         repo: FakeEntitlementRepository = FakeEntitlementRepository(),
         store: EntitlementWarningStore = FakeEntitlementWarningStore(),
         notifier: EntitlementNotifier = FakeEntitlementNotifier(),
+        analytics: AnalyticsGateway = FakeAnalyticsGateway(),
         runAttemptCount: Int = 0,
     ) = EntitlementWarningWorker(
         appContext = appContext,
@@ -319,6 +333,7 @@ class EntitlementWarningWorkerTest {
         entitlementRepository = repo,
         entitlementWarningStore = store,
         entitlementNotifier = notifier,
+        analytics = analytics,
     )
 
     private fun workerParameters(runAttemptCount: Int = 0): WorkerParameters =

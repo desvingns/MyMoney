@@ -13,6 +13,7 @@ import com.kshavrin.mymoney.core.datastore.CloudBinding
 import com.kshavrin.mymoney.core.datastore.CloudProvider
 import com.kshavrin.mymoney.core.datastore.JournalSyncConfigStore
 import com.kshavrin.mymoney.core.datastore.SharedSyncStore
+import com.kshavrin.mymoney.core.domain.analytics.AnalyticsEvent
 import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.AccountType
 import com.kshavrin.mymoney.core.domain.model.Category
@@ -47,6 +48,7 @@ import com.kshavrin.mymoney.core.network.shared.WorkspaceMember
 import com.kshavrin.mymoney.core.network.shared.WorkspaceRole
 import com.kshavrin.mymoney.core.sync.SyncExecutionGate
 import com.kshavrin.mymoney.core.sync.SyncScheduler
+import com.kshavrin.mymoney.core.testing.fake.FakeAnalyticsGateway
 import com.kshavrin.mymoney.core.testing.fake.FakeAppSettingsRepository
 import com.kshavrin.mymoney.core.testing.fake.FakeSupporterSync
 import kotlinx.coroutines.CancellationException
@@ -110,6 +112,7 @@ class SharedSyncCoordinatorImplTest {
     private lateinit var currencyRepository: FakeCurrencyRepository
     private lateinit var deviceIdProvider: DeviceIdProvider
     private lateinit var supporterSync: FakeSupporterSync
+    private lateinit var analytics: FakeAnalyticsGateway
 
     private lateinit var coordinator: SharedSyncCoordinatorImpl
 
@@ -137,6 +140,7 @@ class SharedSyncCoordinatorImplTest {
         transactionRepository = FakeTransactionRepository()
         currencyRepository = FakeCurrencyRepository()
         supporterSync = FakeSupporterSync()
+        analytics = FakeAnalyticsGateway()
         deviceIdProvider =
             object : DeviceIdProvider {
                 override suspend fun deviceId() = "test-device"
@@ -167,6 +171,7 @@ class SharedSyncCoordinatorImplTest {
             clock = clock,
             dispatcher = dispatcher,
             supporterSync = supporterSync,
+            analytics = analytics,
         )
 
     @After
@@ -1046,6 +1051,36 @@ class SharedSyncCoordinatorImplTest {
             assertNotNull(sharedStore.localOnly)
             assertEquals(SharedRealtimeStatus.Inactive, coordinator.foregroundRealtimeStatus.value)
             assertEquals(1, scheduler.cancelAllCalls)
+        }
+
+    @Test
+    fun `detach to local only logs SharedDetached with the triggering reason`() =
+        runTest(dispatcher) {
+            LocalOnlyReason.entries.forEach { reason ->
+                sharedStore = FakeSharedSyncStore()
+                configStore = FakeJournalSyncConfigStore()
+                configStore.current = CloudBinding(CloudProvider.Shared, "ws-1", "Budget")
+                analytics = FakeAnalyticsGateway()
+                coordinator = createCoordinator()
+
+                assertTrue(coordinator.detachToLocalOnly(reason).isSuccess)
+
+                assertEquals(
+                    "SharedDetached must be logged once with reason ${reason.name}",
+                    listOf(AnalyticsEvent.SharedDetached(reason.name)),
+                    analytics.events,
+                )
+            }
+        }
+
+    @Test
+    fun `detach to local only does not log SharedDetached when there is no Shared binding`() =
+        runTest(dispatcher) {
+            configStore.current = null
+
+            assertTrue(coordinator.detachToLocalOnly(LocalOnlyReason.EntitlementExpired).isSuccess)
+
+            assertEquals(emptyList<AnalyticsEvent>(), analytics.events)
         }
 
     @Test

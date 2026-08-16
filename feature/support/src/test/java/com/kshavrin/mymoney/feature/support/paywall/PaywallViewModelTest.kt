@@ -1,6 +1,9 @@
 package com.kshavrin.mymoney.feature.support.paywall
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModelStore
+import com.kshavrin.mymoney.core.domain.analytics.AnalyticsEvent
+import com.kshavrin.mymoney.core.domain.analytics.AnalyticsGateway
 import com.kshavrin.mymoney.core.domain.billing.BillingAvailability
 import com.kshavrin.mymoney.core.domain.billing.BillingGateway
 import com.kshavrin.mymoney.core.domain.billing.PurchaseOutcome
@@ -9,6 +12,8 @@ import com.kshavrin.mymoney.core.domain.model.EntitlementSource
 import com.kshavrin.mymoney.core.domain.model.EntitlementState
 import com.kshavrin.mymoney.core.domain.model.UserEntitlement
 import com.kshavrin.mymoney.core.domain.usecase.ObserveEntitlementUseCase
+import com.kshavrin.mymoney.core.testing.fake.FakeAnalyticsGateway
+import com.kshavrin.mymoney.core.ui.navigation.PaywallEntryPoint
 import com.kshavrin.mymoney.feature.support.util.MainDispatcherRule
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -25,8 +30,15 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import java.time.Instant
 
+// Robolectric supplies a real android.os.Bundle so savedStateHandle.toRoute<Destinations.Paywall>()
+// can decode its route args; the android.jar stub throws "not mocked" at VM construction (SPEC-19).
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34], application = android.app.Application::class)
 class PaywallViewModelTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
@@ -36,6 +48,19 @@ class PaywallViewModelTest {
     @After
     fun tearDown() {
         viewModelStore.clear()
+    }
+
+    @Test
+    fun `paywall shown analytics event is logged once with the route entry point`() = runTest {
+        val analytics = FakeAnalyticsGateway()
+
+        createViewModel(billing(), FakeEntitlementRepository(), analytics = analytics)
+        runCurrent()
+
+        assertEquals(
+            listOf(AnalyticsEvent.PaywallShown(PaywallEntryPoint.SupportSection.name)),
+            analytics.events,
+        )
     }
 
     @Test
@@ -173,11 +198,15 @@ class PaywallViewModelTest {
     private fun createViewModel(
         billingGateway: BillingGateway,
         entitlementRepository: FakeEntitlementRepository,
+        analytics: AnalyticsGateway = FakeAnalyticsGateway(),
+        savedStateHandle: SavedStateHandle = SavedStateHandle(),
     ): PaywallViewModel {
         val viewModel =
             PaywallViewModel(
                 billingGateway = billingGateway,
                 observeEntitlement = ObserveEntitlementUseCase(entitlementRepository),
+                analytics = analytics,
+                savedStateHandle = savedStateHandle,
                 ioDispatcher = mainDispatcherRule.testDispatcher,
             )
         viewModelStore.put("paywall", viewModel)

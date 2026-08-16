@@ -45,15 +45,18 @@ class EntitlementWarningWorker
             val previous = entitlementWarningStore.previousState()
 
             val warnings = EntitlementStateMachine.warnings(previous, current, now)
-            if (EntitlementWarning.GRACE_ENTERED in warnings) {
-                (current as? UserEntitlement.Plus)?.source?.subscriptionProductId()?.let { productId ->
-                    analytics.log(AnalyticsEvent.GraceEntered(productId))
-                }
-            }
             val expiresAt = (current as? UserEntitlement.Plus)?.expiresAt
             warnings.forEach { warning ->
                 if (!entitlementWarningStore.wasNotified(warning, expiresAt)) {
+                    // markNotified persists before any side effect, so a worker retry (crash after this
+                    // point but before setPreviousState commits) will not re-fire the notification OR the
+                    // analytics event for the same (warning, expiresAt) pair.
                     entitlementWarningStore.markNotified(warning, expiresAt)
+                    if (warning == EntitlementWarning.GRACE_ENTERED) {
+                        (current as? UserEntitlement.Plus)?.source?.subscriptionProductId()?.let { productId ->
+                            analytics.log(AnalyticsEvent.GraceEntered(productId))
+                        }
+                    }
                     entitlementNotifier.notify(warning)
                 }
             }

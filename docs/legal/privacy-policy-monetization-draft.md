@@ -1,6 +1,6 @@
 # Privacy-policy draft blocks — monetization (ADR-0010)
 
-- Status: Block 4 (Advertising) applied 2026-08-16; Blocks 1–3 remain draft, not published
+- Status: Blocks 1, 2, 3 and 4 all applied 2026-08-16 (app assets + GitHub Pages mirrors); no blocks remain draft
 - Date: 2026-08-12
 - Governing decision: [ADR-0010](../DECISIONS/ADR-0010-monetization.md)
 
@@ -23,7 +23,7 @@ to the date of whichever release applies a block.
 |---|---|---|
 | [Purchases](#block-1--purchases-google-play-billing) | `support-hub-tip` | Play Billing: subscription + coffee consumables |
 | [Firebase](#block-2--firebase-services) | `support-hub-tip` | Remote Config (and Analytics, if added) |
-| [Shared workspace wording](#block-3--shared-workspace-wording-fixes) | `plus-subscription-gating` | Drops "compatible builds" hedging once shared sync is on for everyone |
+| [Shared workspace wording](#block-3--shared-workspace-wording-fixes) | `plus-subscription-gating` (applied 2026-08-16 to app assets + GitHub Pages mirrors) | Drops "compatible builds" hedging once shared sync is on for everyone |
 | [Advertising](#block-4--advertising-google-admob) | `support-rewarded-ads` (applied 2026-08-16) | AdMob rewarded ads, advertising ID, SSV |
 
 ---

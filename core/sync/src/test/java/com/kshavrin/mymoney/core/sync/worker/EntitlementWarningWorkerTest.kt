@@ -100,11 +100,17 @@ class EntitlementWarningWorkerTest {
     fun `cancellation exception from refresh is rethrown and not swallowed as retry`() =
         runTest {
             val repo = FakeEntitlementRepository(refreshResult = Result.failure(CancellationException("cancelled")))
+            var cancellationPropagated = false
             try {
                 createWorker(repo = repo).doWork()
                 fail("Expected CancellationException")
             } catch (_: CancellationException) {
+                cancellationPropagated = true
             }
+            assertTrue(
+                "CancellationException from refresh must propagate, not be swallowed as retry",
+                cancellationPropagated,
+            )
         }
 
     @Test

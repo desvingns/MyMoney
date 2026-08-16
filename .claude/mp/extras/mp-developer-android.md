@@ -105,6 +105,17 @@ When invoked via `/mp --feature` directly (not through `--phase`), there is no p
 
 JBR auto-detect snippets and Codex device notes live in `AGENTS.md`.
 
+## Gradle-property default changes
+
+If the SPEC changes a `providers.gradleProperty("x")` default (a `sync.*` killswitch/release
+flag or similar), don't trust the SPEC's `CHANGED_HINT` file count at face value — grep the
+property name across every `build.gradle.kts` in the repo first (`grep -rn "propertyName"
+--include=build.gradle.kts .`). This repo has a precedent where `sync.playReleaseEnabled` /
+`sync.playInternalEnabled` are declared independently in three modules (`app/`, `core/sync/`,
+`core/network/`), each feeding its own `BuildConfig` field with no single source of truth; a
+SPEC named only two of the three as required and the third site shipped stale until a scoped
+runner iteration caught it.
+
 ## Device-test seams (when invoked from `--device` / the runbook)
 
 When the SPEC asks you to "expose a seam" for an on-device Compose-UI test, the allowed change set is

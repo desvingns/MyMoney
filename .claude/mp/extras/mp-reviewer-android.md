@@ -53,6 +53,17 @@ In addition to layer boundaries, check Gradle-module boundaries:
 - Comments referencing the current PR / task / commit hash → violation (this rots; belongs in commit message, not code).
 - Single-line comments explaining a non-obvious WHY → fine.
 
+## Gradle-property fan-out check
+
+If a changed `build.gradle.kts` flips a `providers.gradleProperty("x").orNull...?: default`
+value (e.g. a `sync.*` killswitch/release flag feeding `BuildConfig`), grep the property name
+across **every** `build.gradle.kts` in the repo, not just the files in `CHANGED_FILES`. This repo
+has a precedent (`sync.playReleaseEnabled` / `sync.playInternalEnabled`) declared independently
+in three modules — `app/`, `core/sync/`, `core/network/` — with no single source of truth; a SPEC's
+own `CHANGED_HINT` can under-count the sites. If a sibling site reading the same property still
+carries the old default, block the chain (`rule: "gradle-property fan-out"`) even if the SPEC
+never named that file.
+
 ## Device-test seam scope (when reviewing a `--device` slice)
 
 When the SPEC is a `--device` slice, the production diff must be a **seam only** — see

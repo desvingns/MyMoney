@@ -41,7 +41,7 @@ class RewardedAdViewModel
         private var watchJob: Job? = null
 
         fun onBlockShown(activity: Activity) {
-            if (loadJob?.isActive == true) return
+            if (loadJob?.isActive == true || watchJob?.isActive == true) return
             loadBlock(activity)
         }
 

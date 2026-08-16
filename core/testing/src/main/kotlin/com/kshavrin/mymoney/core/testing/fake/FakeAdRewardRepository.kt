@@ -3,6 +3,7 @@ package com.kshavrin.mymoney.core.testing.fake
 import com.kshavrin.mymoney.core.domain.ads.AdRewardRepository
 import com.kshavrin.mymoney.core.domain.ads.AdRewardState
 import com.kshavrin.mymoney.core.domain.ads.ConfirmationOutcome
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -15,6 +16,7 @@ class FakeAdRewardRepository(
     private var confirmationOutcome: ConfirmationOutcome = ConfirmationOutcome.PendingConfirmation
     private var sessionGeneration = 0L
     private var stateSessionGeneration = 0L
+    private var confirmationGate: CompletableDeferred<Unit>? = null
 
     override val state: StateFlow<AdRewardState?> = rewardState.asStateFlow()
 
@@ -36,12 +38,14 @@ class FakeAdRewardRepository(
         refreshResult = null
     }
 
-    override suspend fun awaitConfirmation(previous: AdRewardState): ConfirmationOutcome =
-        if (rewardState.value == previous && stateSessionGeneration == sessionGeneration) {
+    override suspend fun awaitConfirmation(previous: AdRewardState): ConfirmationOutcome {
+        confirmationGate?.await()
+        return if (rewardState.value == previous && stateSessionGeneration == sessionGeneration) {
             confirmationOutcome
         } else {
             ConfirmationOutcome.PendingConfirmation
         }
+    }
 
     fun seedState(state: AdRewardState?) {
         rewardState.value = state
@@ -55,5 +59,13 @@ class FakeAdRewardRepository(
 
     fun seedConfirmationOutcome(outcome: ConfirmationOutcome) {
         confirmationOutcome = outcome
+    }
+
+    // Holds awaitConfirmation() suspended until the returned gate is completed, so a test can keep
+    // the caller in AwaitingConfirmation with its watch coroutine genuinely in flight.
+    fun suspendConfirmation(): CompletableDeferred<Unit> {
+        val gate = CompletableDeferred<Unit>()
+        confirmationGate = gate
+        return gate
     }
 }

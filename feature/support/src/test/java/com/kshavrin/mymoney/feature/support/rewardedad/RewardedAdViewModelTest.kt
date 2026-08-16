@@ -281,6 +281,47 @@ class RewardedAdViewModelTest {
             assertEquals(RewardedAdStatus.Offline, viewModel.state.value.status)
         }
 
+    // STATE-ROTATION-RACE-001 fix: onBlockShown must guard on watchJob as well as loadJob. While the
+    // block sits in AwaitingConfirmation, loadJob has finished and watchJob is suspended inside
+    // awaitConfirmation() waiting on the server. An Activity recreation (rotation) re-fires the
+    // LaunchedEffect(viewModel) -> onBlockShown; that must NOT launch a fresh loadBlock and clobber
+    // the in-flight confirmation wait back to Loading.
+    @Test
+    fun `onBlockShown while confirmation wait is in flight does not clobber AwaitingConfirmation with Loading`() =
+        runTest {
+            val fakeRepo = FakeAdRewardRepository()
+            fakeRepo.seedState(rewardState())
+            val fakeGateway =
+                FakeAdGateway().apply {
+                    loadResult = AdLoadResult.Loaded
+                    showResult = AdShowResult.Dismissed(rewardEarned = true)
+                }
+            val viewModel = createViewModel(fakeRepo = fakeRepo, fakeGateway = fakeGateway)
+
+            viewModel.onBlockShown(activity)
+            runCurrent()
+            assertEquals(RewardedAdStatus.Ready, viewModel.state.value.status)
+
+            // Hold awaitConfirmation() suspended so watchJob stays active in AwaitingConfirmation.
+            val confirmationGate = fakeRepo.suspendConfirmation()
+
+            viewModel.onWatchAd(activity)
+            runCurrent()
+            assertEquals(RewardedAdStatus.AwaitingConfirmation, viewModel.state.value.status)
+
+            // Simulate a screen rotation re-firing onBlockShown while the confirmation is in flight.
+            viewModel.onBlockShown(activity)
+            runCurrent()
+
+            // The guard must have short-circuited: no fresh loadBlock, status untouched.
+            assertNotEquals(RewardedAdStatus.Loading, viewModel.state.value.status)
+            assertEquals(RewardedAdStatus.AwaitingConfirmation, viewModel.state.value.status)
+
+            // Release the wait so the in-flight coroutine can finish cleanly.
+            confirmationGate.complete(Unit)
+            runCurrent()
+        }
+
     // ─── Load timeout guard ──────────────────────────────────────────────────────
 
     // AD_LOAD_TIMEOUT_MILLIS = 25_000L (private constant in the production file). When

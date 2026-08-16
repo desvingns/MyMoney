@@ -8,6 +8,31 @@
 
 ## Current state
 
+- **2026-08-16 (Claude MP `--feature --next`, plus-subscription-gating SPEC 09):** Shipped the
+  shared-sync remote killswitch and the `PLAY_RELEASE_SYNC_ENABLED` release-default flip — the
+  epic's penultimate SPEC, deliberately last-but-one per ADR-0010 D1 (flip only after the
+  entitlement gate is done). `RemoteConfigRepositoryImpl.sharedSyncEnabled()` now ANDs the
+  build-flag disjunction with `KEY_SHARED_SYNC` (new `DEFAULT_SHARED_SYNC_WHEN_BUILD_ENABLED =
+  true`, distinct from the older unrelated `DEFAULT_SHARED_SYNC = false`); `sync.playReleaseEnabled`
+  flipped to `?: true`. Size gate `ok` (6 cells, build_flag×remote_config — SPEC predated the field,
+  derived and frozen this session); risk route high (score 18) → powerful developer, semantic
+  review, independent critic, full verifier. The SPEC's own `CHANGED_HINT` named only two required
+  gradle sites (`app/build.gradle.kts`, `core/sync/build.gradle.kts`) as "both required" — a THIRD
+  site, `core/network/build.gradle.kts` (feeding `SharedConfigModule.SupabaseConfig.enabled`), was
+  missed by the SPEC author, the Developer, the deterministic reviewer, and the first semantic-review
+  pass alike; only the pre-existing `PlayInternalSyncCiContractTest` (written for an unrelated
+  purpose) caught it at the scoped-runner stage, via a one-cycle Developer auto-fix. A second scoped
+  iteration then reconciled that same test's stale `?: false` literal (Stale-Test Update Rule) via
+  Tester. Semantic review and the independent critic each passed with one non-blocking warning (a
+  stale ADR-0010 contradiction sentence, fixed inline; a fragile `.contains("&&")` structural test
+  guard, deferred to the SPEC's "Deferred hardening" section). Commits `29913477`, `1628b512`,
+  `54df5cf2`, `6332402e` pushed to `main`. Full runner: `2301 passed / 0 failed / 0 skipped`,
+  detekt/lint green. SPEC moved to `done/`. Epic `plus-subscription-gating` NOT yet complete — SPEC
+  10 remains in `backlog/`; feedback question and Telegram offer both skipped per epic-scoped
+  timing. Flagged for the next session: `local.properties`/CI secrets (Dropbox app key, Supabase
+  URL, anon key, Google web client ID) must be verified before the next release/CI run, since
+  `requireSyncRuntimeConfiguration()` is now live on the flipped path.
+
 - **2026-08-16 (Claude MP `--feature --next`, support-hub-tip SPEC 08, epic close):** Shipped the
   final SPEC of the `support-hub-tip` epic (8/8 done). Added the "Purchases (Google Play Billing)"
   block and replaced the stale "Firebase Remote Config is not enabled in this release" paragraph
@@ -50,24 +75,6 @@
   `c4d3f921`, `8a9015ae` pushed to `main`. Full runner: `2295 passed / 0 failed / 0 skipped`,
   detekt/lint green. SPEC moved to `done/`. Epic `plus-subscription-gating` not yet complete — SPECs
   09-10 remain in `backlog/`; feedback question and Telegram offer skipped per epic-scoped timing.
-
-- **2026-08-16 (Claude MP `--feature --next`, support-rewarded-ads SPEC 06):** Shipped the
-  monetization privacy-policy Advertising block and `app-ads.txt`. Draft Block 4 applied verbatim
-  to both app-asset policies and both GitHub Pages copies (EN/RU), «Last updated» moved to
-  2026-08-16 in both locales; new `privacy-policy/app-ads.txt` carries the real publisher line
-  (`pub-2270788427402644`, from the recorded AdMob console setup); `privacy-policy-pages.yml`
-  now also deploys `app-ads.txt` to the gh-pages branch root; the draft marks only Block 4
-  applied and records the residual manual step (domain-root `desvingns.github.io/app-ads.txt`
-  lives in the separate Pages repo). New `PrivacyPolicyAdvertisingContractTest` pins block
-  presence, date parity, asset↔Pages equality, the publisher line, and the workflow root copy.
-  Commits `5bb342a4`, `0d49d0d6` pushed to `main`. Size gate `warn` (16 cells); risk route
-  high → powerful developer + semantic review + independent critic + full verifier, all green
-  first pass (0 findings, coverage 16/16 both semantic passes); deterministic reviewer 0
-  violations; full runner `2256 passed / 0 failed / 0 skipped`, detekt/lint green. SPEC moved
-  to `done/`. Epic `support-rewarded-ads` NOT complete — SPEC 05 remains in `backlog/` (blocked
-  on the `plus-subscription-gating` epic), so the feedback question and Telegram offer are
-  skipped per epic-scoped timing. Remaining human items: place `app-ads.txt` at the domain root
-  in the `desvingns.github.io` repo, Play Console «Contains ads» flag + Data safety form.
 
 ## Historical session log archives
 

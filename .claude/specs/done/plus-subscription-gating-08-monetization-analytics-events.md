@@ -1,9 +1,11 @@
 # Шесть событий монетизации поверх AnalyticsGateway
 Epic: plus-subscription-gating
 Order: 08 of 10
-Status: active
+Status: done
 Depends-on: support-hub-tip-06 (внешний — вводит `AnalyticsGateway`), plus-subscription-gating-04, plus-subscription-gating-05, plus-subscription-gating-06
 Date: 2026-08-12
+Risk-signals: entitlement, cross-module-data-flow
+Acceptance-matrix: event=paywall_shown,trial_started,subscription_purchased,subscription_cancelled,grace_entered,shared_detached; firebase=enabled,disabled
 
 ## SPEC
 === SPEC ===
@@ -112,5 +114,30 @@ Feature: Аналитика воронки подписки
 к типам событий и точкам вызова.
 
 ## Implementation links
-- commit: (pending)
-- files:  (pending)
+- commits: `cc19802f` (feat: log subscription funnel analytics events), `c5d19a9a` (test: cover subscription funnel analytics events and fix compile), `c4d3f921` (test: assert cancellation propagation explicitly in worker test), `8a9015ae` (test: pin ACTIVE->GRACE emits no SubscriptionCancelled)
+- files:
+  - `core/domain/src/main/kotlin/com/kshavrin/mymoney/core/domain/analytics/AnalyticsGateway.kt`
+  - `core/sync/src/main/java/com/kshavrin/mymoney/core/sync/analytics/FirebaseAnalyticsGateway.kt`
+  - `core/billing/src/main/java/com/kshavrin/mymoney/core/billing/EntitlementRepositoryImpl.kt`
+  - `core/billing/src/main/java/com/kshavrin/mymoney/core/billing/SubscriptionFunnelTracker.kt` (new)
+  - `core/billing/build.gradle.kts`
+  - `core/billing/src/test/java/com/kshavrin/mymoney/core/billing/SubscriptionFunnelTrackerTest.kt` (new)
+  - `core/sync/src/main/java/com/kshavrin/mymoney/core/sync/worker/EntitlementWarningWorker.kt`
+  - `core/sync/src/test/java/com/kshavrin/mymoney/core/sync/worker/EntitlementWarningWorkerTest.kt`
+  - `core/sync/src/main/java/com/kshavrin/mymoney/core/sync/shared/SharedSyncCoordinatorImpl.kt`
+  - `core/sync/src/test/java/com/kshavrin/mymoney/core/sync/shared/SharedSyncCoordinatorImplTest.kt`
+  - `feature/support/src/main/java/com/kshavrin/mymoney/feature/support/paywall/PaywallViewModel.kt`
+  - `feature/support/src/test/java/com/kshavrin/mymoney/feature/support/paywall/PaywallViewModelTest.kt`
+
+## Deferred hardening
+Two non-blocking warnings from the independent critic, deferred rather than fixed inline (different
+failure class from the repair cycle's compile/coverage blockers, per the plus-subscription-gating-06
+precedent of only inlining same-class warnings):
+- `EntitlementRepositoryImpl.refresh()`: `funnelTracker.onServerConfirmed()` runs inside the same
+  `mapCatching` block as `cache.update()`. If it ever threw (currently unreachable — every
+  `AnalyticsGateway.log()` impl returns `Unit`), `mapCatching` would turn a successful cache write
+  into `Result.failure()`, risking a retry and a duplicate analytics event. Consider moving the call
+  to an `.onSuccess { }` after the `mapCatching` chain.
+- `SharedSyncCoordinatorImplTest`: the already-local-only idempotency test for `detachToLocalOnly`
+  confirms no `SharedDetached` fires via code-path inspection but doesn't assert
+  `analytics.events.isEmpty()` explicitly.

@@ -8,6 +8,27 @@
 
 ## Current state
 
+- **2026-08-16 (Claude MP `--feature --next`, plus-subscription-gating SPEC 08):** Added the six
+  monetization funnel analytics events (`PaywallShown`, `TrialStarted`, `SubscriptionPurchased`,
+  `SubscriptionCancelled`, `GraceEntered`, `SharedDetached`) on top of the `AnalyticsGateway`
+  introduced by `support-hub-tip-06`. Extracted a new `SubscriptionFunnelTracker` (`:core:billing`)
+  out of `EntitlementRepositoryImpl` to make the purchase/trial/cancel transition logic unit-testable
+  against final/unfakeable billing-response types; wired `GraceEntered` into
+  `EntitlementWarningWorker` on the state-transition edge (dedup-guarded against retries) and
+  `SharedDetached` into `SharedSyncCoordinatorImpl.detachToLocalOnly` for all three
+  `LocalOnlyReason`s. Size gate `warn` (12 cells, event×firebase); risk route high (score 18) →
+  powerful developer, semantic review, independent critic, full verifier. First semantic-review pass
+  failed with 3 blockers (two test-compile breaks from unmigrated constructor-param test factories,
+  and zero coverage on 4 of 6 events) — one repair cycle (interrupted once by a session-limit error,
+  resumed from on-disk state per prior-session precedent) fixed all three plus a deterministic
+  test-hygiene violation (empty-body `@Test`); second semantic pass and the independent critic both
+  passed clean at 12/12 coverage. Two non-blocking hardening items deferred to the SPEC's "Deferred
+  hardening" section (an `onServerConfirmed()` call inside a `mapCatching` that could theoretically
+  mask a thrown exception, and an unpinned idempotency assertion). Commits `cc19802f`, `c5d19a9a`,
+  `c4d3f921`, `8a9015ae` pushed to `main`. Full runner: `2295 passed / 0 failed / 0 skipped`,
+  detekt/lint green. SPEC moved to `done/`. Epic `plus-subscription-gating` not yet complete — SPECs
+  09-10 remain in `backlog/`; feedback question and Telegram offer skipped per epic-scoped timing.
+
 - **2026-08-16 (Claude MP `--feature --next`, support-rewarded-ads SPEC 06):** Shipped the
   monetization privacy-policy Advertising block and `app-ads.txt`. Draft Block 4 applied verbatim
   to both app-asset policies and both GitHub Pages copies (EN/RU), «Last updated» moved to
@@ -43,9 +64,6 @@
   Three non-blocking findings logged as "Deferred hardening" in the SPEC file. Epic
   `plus-subscription-gating` not yet complete — SPECs 07-10 remain in `backlog/`; feedback
   question and Telegram offer both skipped per epic-scoped timing.
-
-- **2026-08-15 (Codex MP `--feature --next`, plus-subscription-gating SPEC 05):** Completed Cloud sync Shared Plus gating, owner/participant paywall semantics, owner-pays copy, trial/Grace/expiry warnings, read-only participant behavior, server-authoritative `entitlement_required` mapping across HTTP/RPC/realtime, fail-closed auth/membership cleanup, entitlement restoration, EN/RU strings, and Supabase billing-column grants. SPEC moved to `done/`. Commits: `08ec42be`, `fdb88364`, `070ca33e`, `83347850`, `090c4f26`, `e31728ce`, `a74ed6ea`, `afc52d65`, `b7ac3d4b`, `a9f2dee8`, `fb9adff5`, `a3a8311c`, `c5611a88`, `ac6f7534`, `8fc58ad2`, `bb7ac5f3`. Scoped runner: `547 passed / 0 failed / 0 skipped`; full runner: `2219 passed / 0 failed / 0 skipped`; detekt/lint green; explicit `:core:domain:test :core:sync:test` green; deterministic reviewer, semantic review, independent critic, and full verifier passed. Device manual checklist remains follow-up because this SPEC is not an explicit visual task and no device gate was required.
-
 
 ## Historical session log archives
 
@@ -112,6 +130,17 @@ Append a one-line entry whenever a non-obvious decision is made during a session
 - 2026-06-01 — implementation_plan close-out: remaining PHASE_15 manual/release gates are skipped for plan completion and deferred to release/v1.1 readiness by product decision. Cross-ref: PHASE_15 close-out notes.
 - 2026-06-02 — Visual CMP work now has a hard `Pixel_5_API_34` pre-flight gate: explicitly visual `$cmp --phase`/`--feature`/`--bugfix`/`--device` tasks must stop before agent work if the required device is absent, because correct development cannot proceed without visual testing. Cross-ref: AGENTS.md "Visual-change device gate" and `.claude/commands/cmp.md`.
 - 2026-06-03 — Codex pipeline hard-switch target is MP Dev (`$mp`) via thin wrappers over Claude `mp-dev` 1.7.0; project-specific skill/agent improvements now go first to `.claude/mp/extras/*` so Claude and Codex stay synchronized. `$cmp` remains legacy fallback until a fresh-runtime `mp-architect` smoke confirms Codex has loaded the new `.codex/agents/mp-*.toml` roles. Cross-ref: AGENTS.md "Native Codex Pipeline".
+- 2026-08-16 — plus-subscription-gating SPEC 08: `EntitlementRepositoryImpl`'s inline funnel-transition
+  logic (deciding which of TrialStarted/SubscriptionPurchased/SubscriptionCancelled to fire) was
+  extracted into a new `SubscriptionFunnelTracker` class in `:core:billing` rather than tested via
+  the repository directly, because the repository reads final/unfakeable billing-response types —
+  this was a semantic-review repair-cycle fix (TEST-COVERAGE-001), not a pre-planned refactor. Also:
+  the two independent-critic warnings (an `onServerConfirmed()` call inside a `mapCatching` that
+  could theoretically swallow a thrown exception, and an unpinned idempotency assertion) were
+  deferred to the SPEC's "Deferred hardening" section rather than fixed inline, per the
+  plus-subscription-gating-06 precedent — they are a genuinely different risk class from the
+  blockers already fixed in this SPEC's repair cycle, not a repeat of the same failure. Cross-ref:
+  `.claude/specs/done/plus-subscription-gating-08-monetization-analytics-events.md`.
 - 2026-08-15 — plus-subscription-gating SPEC 06: an `mp-architect` PREFLIGHT verdict of `PATCH ALLOWED` (issued by the prior session after its 3rd semantic-review blocker-pass exhausted the standard 2-repair-cycle budget) was treated as authorizing a fresh 2-cycle repair budget for the resuming session, not as a one-shot exception — the design capsule is what the budget protects against re-deriving, and a capsule that clears review should let repair proceed normally rather than requiring per-cycle re-authorization. Also: a non-blocking independent-critic *warning* (AUTH-RACE-001, a TOCTOU race reachable via the same `clearSharedOutbox()` destructive path the SPEC's blockers already targeted) was fixed inline rather than deferred, because it was the same failure class as an already-fixed blocker, not a new category of risk — later warnings of a genuinely different kind were deferred to the SPEC's "Deferred hardening" section instead. Cross-ref: `.claude/specs/done/plus-subscription-gating-06-local-only-transition.md`.
 
 ---

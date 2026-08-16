@@ -128,6 +128,79 @@ class PrivacyPolicyAdvertisingContractTest {
         )
     }
 
+    @Test
+    fun `both app asset locales carry the purchases block with the same key claims`() {
+        val en = assetEn.requireReadableText()
+        val ru = assetRu.requireReadableText()
+
+        assertContainsAll(
+            en,
+            listOf(
+                "<h3>Purchases (Google Play Billing)</h3>",
+                "entirely by Google Play.",
+                "MyMoney never sees or stores your card",
+                "purchase token",
+                "the resulting entitlement",
+            ),
+        )
+        assertContainsAll(
+            ru,
+            listOf(
+                "<h3>Покупки (Google Play Billing)</h3>",
+                "обрабатываются Google Play.",
+                "MyMoney никогда не видит и не хранит данные вашей карты",
+                "токен покупки",
+                "итоговое право",
+            ),
+        )
+    }
+
+    @Test
+    fun `both app asset locales describe firebase services as two active SDKs`() {
+        val en = assetEn.requireReadableText()
+        val ru = assetRu.requireReadableText()
+
+        assertContainsAll(
+            en,
+            listOf(
+                "<h3>Firebase services</h3>",
+                "two Google Firebase services.",
+                "Firebase Remote Config",
+                "delivers feature configuration values",
+                "Firebase Analytics",
+                "Firebase Analytics records app usage events",
+                "service receives your transactions",
+            ),
+        )
+        assertContainsAll(
+            ru,
+            listOf(
+                "<h3>Сервисы Firebase</h3>",
+                "два сервиса Google Firebase.",
+                "Firebase Remote Config",
+                "доставляет в приложение значения конфигурации функций",
+                "Firebase Analytics",
+                "Analytics записывает события использования приложения",
+                "получает ваши операции",
+            ),
+        )
+    }
+
+    @Test
+    fun `retired services-and-feature-flags phrase is absent from all policy files`() {
+        listOf(assetEn, assetRu, pagesEn, pagesRu).forEach { file ->
+            val text = file.requireReadableText()
+            assertTrue(
+                "File ${file.name} must not contain the retired 'Services and feature flags' heading",
+                !text.contains("Services and feature flags"),
+            )
+            assertTrue(
+                "File ${file.name} must not contain the retired 'Firebase Remote Config is not enabled' phrase",
+                !text.contains("Firebase Remote Config is not enabled"),
+            )
+        }
+    }
+
     private fun advertisingRegion(
         text: String,
         heading: String,

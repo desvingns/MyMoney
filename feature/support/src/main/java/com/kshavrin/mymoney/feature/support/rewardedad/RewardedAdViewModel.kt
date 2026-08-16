@@ -61,7 +61,7 @@ class RewardedAdViewModel
                                 if (result.rewardEarned) {
                                     confirmReward()
                                 } else {
-                                    _state.value = _state.value.copy(status = RewardedAdStatus.Ready)
+                                    loadAvailability(activity)
                                 }
 
                             AdShowResult.Unauthenticated ->
@@ -137,7 +137,7 @@ class RewardedAdViewModel
         private suspend fun confirmReward() {
             val previous = observeAdRewardState.state.value
             if (previous == null) {
-                _state.value = _state.value.copy(status = RewardedAdStatus.AwaitingConfirmation)
+                _state.value = _state.value.copy(status = RewardedAdStatus.Unavailable)
                 return
             }
             _state.value = _state.value.copy(status = RewardedAdStatus.AwaitingConfirmation)

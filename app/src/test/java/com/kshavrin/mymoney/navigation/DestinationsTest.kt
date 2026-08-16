@@ -391,7 +391,8 @@ class DestinationsTest {
             readProjectSource("app", "src", "main", "java", "com", "kshavrin", "mymoney", "navigation", "MyMoneyNavHost.kt")
 
         assertTrue(activitySource.contains("val shortcutDestination = resolveShortcutDestination(intent)"))
-        assertTrue(activitySource.contains("MyMoneyNavHost(shortcutDestination = shortcutDestination)"))
+        assertTrue(Regex("""MyMoneyNavHost\(\s*shortcutDestination = shortcutDestination,""").containsMatchIn(activitySource))
+        assertTrue(activitySource.contains("openPaywall = openPaywall"))
         assertTrue(activitySource.contains("SHORTCUT_ADD_EXPENSE -> ShortcutDestination.AddExpense"))
         assertTrue(activitySource.contains("SHORTCUT_ADD_INCOME -> ShortcutDestination.AddIncome"))
         assertTrue(activitySource.contains("SHORTCUT_TRANSFER -> ShortcutDestination.Transfer"))

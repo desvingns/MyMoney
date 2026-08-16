@@ -536,3 +536,15 @@ val ColorScheme.supporterGratitudeContainer: Color
 
 val ColorScheme.supporterGratitudeContent: Color
     get() = onSecondaryContainer
+
+// Rewarded-ad block — determinate LinearProgressIndicator color pair.
+// Indicator (filled/active portion): primary (NeonMint) — signals forward progress
+// toward a reward, consistent with income-accent and primary-CTA semantics in the
+// neon palette. Track (unfilled portion): outlineVariant — the dim rail used elsewhere
+// for structural dividers; stays quiet behind the neon indicator without inventing a
+// new raw colour outside Color.kt.
+val ColorScheme.rewardAdProgressIndicator: Color
+    get() = primary
+
+val ColorScheme.rewardAdProgressTrack: Color
+    get() = outlineVariant

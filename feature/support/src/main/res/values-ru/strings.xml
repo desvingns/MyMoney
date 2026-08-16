@@ -57,4 +57,18 @@
     <string name="paywall_status_whitelist_active">Доступ Plus активен</string>
     <string name="paywall_status_local_only">Доступ Plus активен на этом устройстве</string>
     <string name="paywall_access_ends_on">Доступ Plus заканчивается: %1$s</string>
+    <string name="support_ads_title">Смотрите рекламу ради временного Plus</string>
+    <string name="support_ads_rule">Посмотрите %1$d роликов, чтобы получить 24 часа Plus.</string>
+    <string name="support_ads_loading">Проверяем доступность рекламы…</string>
+    <string name="support_ads_sign_in_required">Войдите, чтобы получать временный Plus за просмотр рекламы.</string>
+    <string name="support_ads_sign_in_action">Войти</string>
+    <string name="support_ads_progress">Просмотрено %1$d из %2$d</string>
+    <string name="support_ads_plus_active">Plus уже активен, поэтому просмотр всё равно засчитается как поддержка, но время не добавится и счётчик не вырастет.</string>
+    <string name="support_ads_watch">Посмотреть рекламу</string>
+    <string name="support_ads_no_fill">Сейчас нет доступных роликов. Попробуйте позже.</string>
+    <string name="support_ads_region_unavailable">Награждаемая реклама недоступна в вашем регионе.</string>
+    <string name="support_ads_offline">Нет подключения к интернету. Подключитесь и попробуйте снова.</string>
+    <string name="support_ads_retry">Повторить</string>
+    <string name="support_ads_awaiting_confirmation">Ролик досмотрен. Он засчитается после подтверждения сервером.</string>
+    <string name="support_ads_unavailable">Награждаемая реклама сейчас недоступна.</string>
 </resources>

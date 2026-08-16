@@ -57,4 +57,18 @@
     <string name="paywall_status_whitelist_active">Your Plus access is active</string>
     <string name="paywall_status_local_only">Your Plus access is active on this device</string>
     <string name="paywall_access_ends_on">Plus access ends: %1$s</string>
+    <string name="support_ads_title">Watch ads for temporary Plus</string>
+    <string name="support_ads_rule">Watch %1$d ads to unlock 24 hours of Plus.</string>
+    <string name="support_ads_loading">Checking ad availability…</string>
+    <string name="support_ads_sign_in_required">Sign in to earn temporary Plus by watching ads.</string>
+    <string name="support_ads_sign_in_action">Sign in</string>
+    <string name="support_ads_progress">Watched %1$d of %2$d</string>
+    <string name="support_ads_plus_active">Plus is already active, so watching still counts as support, but no time is added and the counter won\'t grow.</string>
+    <string name="support_ads_watch">Watch an ad</string>
+    <string name="support_ads_no_fill">No ads are available right now. Please try again later.</string>
+    <string name="support_ads_region_unavailable">Rewarded ads aren\'t available in your region.</string>
+    <string name="support_ads_offline">No internet connection. Please reconnect and try again.</string>
+    <string name="support_ads_retry">Try again</string>
+    <string name="support_ads_awaiting_confirmation">Ad watched. It will count once the server confirms it.</string>
+    <string name="support_ads_unavailable">Rewarded ads aren\'t available right now.</string>
 </resources>

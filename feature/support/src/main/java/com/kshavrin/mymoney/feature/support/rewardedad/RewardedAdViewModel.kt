@@ -11,9 +11,9 @@ import com.kshavrin.mymoney.core.common.di.IoDispatcher
 import com.kshavrin.mymoney.core.common.exception.SyncError
 import com.kshavrin.mymoney.core.common.exception.SyncException
 import com.kshavrin.mymoney.core.common.exception.reportToSentry
-import com.kshavrin.mymoney.core.domain.ads.AdRewardRepository
 import com.kshavrin.mymoney.core.domain.ads.AdRewardState
 import com.kshavrin.mymoney.core.domain.ads.ConfirmationOutcome
+import com.kshavrin.mymoney.core.domain.usecase.ObserveAdRewardStateUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
@@ -30,7 +30,7 @@ import javax.inject.Inject
 class RewardedAdViewModel
     @Inject
     constructor(
-        private val adRewardRepository: AdRewardRepository,
+        private val observeAdRewardState: ObserveAdRewardStateUseCase,
         private val adGateway: AdGateway,
         @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     ) : ViewModel() {
@@ -95,7 +95,7 @@ class RewardedAdViewModel
         }
 
         private suspend fun refreshRewardState(): AdRewardState? {
-            val result = withContext(ioDispatcher) { adRewardRepository.refresh() }
+            val result = withContext(ioDispatcher) { observeAdRewardState.refresh() }
             return result.fold(
                 onSuccess = { it },
                 onFailure = { throwable ->
@@ -135,13 +135,13 @@ class RewardedAdViewModel
         }
 
         private suspend fun confirmReward() {
-            val previous = adRewardRepository.state.value
+            val previous = observeAdRewardState.state.value
             if (previous == null) {
                 _state.value = _state.value.copy(status = RewardedAdStatus.AwaitingConfirmation)
                 return
             }
             _state.value = _state.value.copy(status = RewardedAdStatus.AwaitingConfirmation)
-            val outcome = withContext(ioDispatcher) { adRewardRepository.awaitConfirmation(previous) }
+            val outcome = withContext(ioDispatcher) { observeAdRewardState.awaitConfirmation(previous) }
             when (outcome) {
                 is ConfirmationOutcome.ProgressIncreased ->
                     _state.value =

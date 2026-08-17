@@ -71,4 +71,11 @@
     <string name="support_ads_retry">Try again</string>
     <string name="support_ads_awaiting_confirmation">Ad watched. It will count once the server confirms it.</string>
     <string name="support_ads_unavailable">Rewarded ads aren\'t available right now.</string>
+    <string name="support_google_sign_in_title">Sign in with Google</string>
+    <string name="support_google_sign_in_message">Sign in with your Google account to earn temporary Plus by watching ads.</string>
+    <string name="support_google_sign_in_loading">Signing in…</string>
+    <string name="support_google_sign_in_error">We couldn\'t sign you in. Please try again.</string>
+    <string name="support_google_sign_in_action">Continue with Google</string>
+    <string name="support_google_sign_in_retry">Try again</string>
+    <string name="support_google_sign_in_cancel">Cancel</string>
 </resources>

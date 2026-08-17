@@ -37,4 +37,8 @@ abstract class SharedModule {
     @Binds
     @Singleton
     abstract fun bindSharedRealtime(impl: SupabaseSharedRealtime): SharedRealtime
+
+    @Binds
+    @Singleton
+    abstract fun bindGoogleIdTokenProvider(impl: CredentialManagerGoogleIdTokenProvider): GoogleIdTokenProvider
 }

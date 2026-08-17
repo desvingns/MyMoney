@@ -20,6 +20,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -34,14 +37,15 @@ import com.kshavrin.mymoney.core.ui.theme.supportCard
 import com.kshavrin.mymoney.core.ui.theme.supportCardTitle
 import com.kshavrin.mymoney.core.ui.theme.supportDescription
 import com.kshavrin.mymoney.feature.support.R
+import com.kshavrin.mymoney.feature.support.googlesignin.GoogleSignInDialog
 
 @Composable
 fun RewardedAdSupportEntry(
-    onSignIn: () -> Unit,
     viewModel: RewardedAdViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
+    var showSignIn by remember { mutableStateOf(false) }
     LaunchedEffect(viewModel) {
         context.findActivity()?.let(viewModel::onBlockShown)
     }
@@ -49,8 +53,20 @@ fun RewardedAdSupportEntry(
         state = state,
         onWatch = { context.findActivity()?.let(viewModel::onWatchAd) },
         onRetry = { context.findActivity()?.let(viewModel::onRetry) },
-        onSignIn = onSignIn,
+        onSignIn = { showSignIn = true },
     )
+    if (showSignIn) {
+        context.findActivity()?.let { activity ->
+            GoogleSignInDialog(
+                activity = activity,
+                onDismiss = { showSignIn = false },
+                onSignedIn = {
+                    showSignIn = false
+                    context.findActivity()?.let(viewModel::onRetry)
+                },
+            )
+        }
+    }
 }
 
 @Composable

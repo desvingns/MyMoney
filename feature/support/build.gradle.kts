@@ -19,6 +19,7 @@ dependencies {
     implementation(project(":core:domain"))
     implementation(project(":core:common"))
     implementation(project(":core:ads"))
+    implementation(project(":core:network"))
     implementation(libs.androidx.core.ktx)
 
     testImplementation(libs.turbine)

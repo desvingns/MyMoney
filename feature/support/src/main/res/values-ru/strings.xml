@@ -71,4 +71,11 @@
     <string name="support_ads_retry">Повторить</string>
     <string name="support_ads_awaiting_confirmation">Ролик досмотрен. Он засчитается после подтверждения сервером.</string>
     <string name="support_ads_unavailable">Награждаемая реклама сейчас недоступна.</string>
+    <string name="support_google_sign_in_title">Вход через Google</string>
+    <string name="support_google_sign_in_message">Войдите в аккаунт Google, чтобы получать временный Plus за просмотр рекламы.</string>
+    <string name="support_google_sign_in_loading">Выполняем вход…</string>
+    <string name="support_google_sign_in_error">Не удалось выполнить вход. Попробуйте ещё раз.</string>
+    <string name="support_google_sign_in_action">Продолжить с Google</string>
+    <string name="support_google_sign_in_retry">Повторить</string>
+    <string name="support_google_sign_in_cancel">Отмена</string>
 </resources>

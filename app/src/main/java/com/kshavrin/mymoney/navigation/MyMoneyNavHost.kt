@@ -249,9 +249,7 @@ fun MyMoneyNavHost(
             com.kshavrin.mymoney.feature.support.SupportRoute(
                 onBack = { navController.popBackStack() },
                 adSlot = {
-                    com.kshavrin.mymoney.feature.support.rewardedad.RewardedAdSupportEntry(
-                        onSignIn = { navController.navigate(Destinations.CloudSync) },
-                    )
+                    com.kshavrin.mymoney.feature.support.rewardedad.RewardedAdSupportEntry()
                 },
                 plusSlot = {
                     com.kshavrin.mymoney.feature.support.paywall.PaywallSupportEntry(

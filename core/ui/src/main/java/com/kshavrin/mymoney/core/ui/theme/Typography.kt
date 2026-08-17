@@ -357,3 +357,15 @@ val Typography.supporterBadgeLabel: TextStyle
 
 val Typography.supporterGratitudeCount: TextStyle
     get() = titleMedium
+
+// Lifetime "total ads watched" counter at the top of the Support screen
+// (TotalAdsWatchedBadge). Secondary info label — subordinate to supportDescription
+// (bodyLarge) and not inside a card. labelMedium/Normal keeps it legible without
+// competing with the intro copy or the rewarded-ad card below.
+val Typography.supportAdCounterLabel: TextStyle
+    get() =
+        labelMedium.copy(
+            fontWeight = FontWeight.Normal,
+            letterSpacing = 0.sp,
+            lineHeight = 16.sp,
+        )

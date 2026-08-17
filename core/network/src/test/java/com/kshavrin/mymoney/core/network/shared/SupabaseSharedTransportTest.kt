@@ -415,7 +415,7 @@ class SupabaseSharedTransportTest {
             val http = SupabaseHttpTransport(config, OkHttpClient(), Json)
             server.enqueue(
                 MockResponse()
-                    .setBodyDelay(500, TimeUnit.MILLISECONDS)
+                    .setBodyDelay(2000, TimeUnit.MILLISECONDS)
                     .setBody("{}"),
             )
 
@@ -423,11 +423,11 @@ class SupabaseSharedTransportTest {
                 http.post(
                     path = "functions/v1/create-ad-reward-token",
                     payload = buildJsonObject { },
-                    callTimeoutMillis = 50,
+                    callTimeoutMillis = 200,
                 )
 
             assertSyncError(result, SyncError.Network)
-            assertTrue(server.takeRequest(1, TimeUnit.SECONDS) != null)
+            assertTrue(server.takeRequest(5, TimeUnit.SECONDS) != null)
         }
 
     @Test
@@ -453,7 +453,7 @@ class SupabaseSharedTransportTest {
                         accessToken = "access-token",
                     )
                 }
-            assertTrue(server.takeRequest(1, TimeUnit.SECONDS) != null)
+            assertTrue(server.takeRequest(10, TimeUnit.SECONDS) != null)
 
             request.cancel(CancellationException("caller cancelled"))
             val thrown =

@@ -34,7 +34,7 @@ fun SupportRoute(
             SupportAction.NavigateBack -> onBack()
         }
     }
-    SupportScreen(
+    SupportContent(
         state = state,
         onEvent = viewModel::onEvent,
         videosWatchedSlot = videosWatchedSlot,

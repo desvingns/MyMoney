@@ -51,7 +51,7 @@ import com.kshavrin.mymoney.feature.support.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SupportScreen(
+fun SupportContent(
     state: SupportState,
     onEvent: (SupportEvent) -> Unit,
     videosWatchedSlot: @Composable () -> Unit = {},

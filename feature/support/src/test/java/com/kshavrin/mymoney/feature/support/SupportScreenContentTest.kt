@@ -223,7 +223,7 @@ class SupportScreenContentTest {
     ) {
         composeTestRule.setContent {
             MyMoneyTheme {
-                SupportScreen(
+                SupportContent(
                     state = state,
                     onEvent = onEvent,
                     adSlot = adSlot,

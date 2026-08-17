@@ -70,6 +70,7 @@
     <string name="support_ads_offline">Нет подключения к интернету. Подключитесь и попробуйте снова.</string>
     <string name="support_ads_retry">Повторить</string>
     <string name="support_ads_awaiting_confirmation">Ролик досмотрен. Он засчитается после подтверждения сервером.</string>
+    <string name="support_ads_confirmation_timeout">Сервер не успел подтвердить просмотр. Попробуйте ещё раз.</string>
     <string name="support_ads_unavailable">Награждаемая реклама сейчас недоступна.</string>
     <string name="support_google_sign_in_title">Вход через Google</string>
     <string name="support_google_sign_in_message">Войдите в аккаунт Google, чтобы получать временный Plus за просмотр рекламы.</string>

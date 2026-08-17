@@ -198,6 +198,19 @@ private fun AuthenticatedBody(
                 style = MaterialTheme.typography.supportDescription,
             )
 
+        RewardedAdStatus.ConfirmationTimeout -> {
+            Text(
+                text = stringResource(R.string.support_ads_confirmation_timeout),
+                style = MaterialTheme.typography.supportDescription,
+            )
+            TextButton(
+                modifier = Modifier.heightIn(min = Spacing.supportActionMinHeight),
+                onClick = onRetry,
+            ) {
+                Text(stringResource(R.string.support_ads_retry))
+            }
+        }
+
         RewardedAdStatus.Unavailable ->
             Text(
                 text = stringResource(R.string.support_ads_unavailable),

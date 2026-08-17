@@ -166,10 +166,13 @@ class RewardedAdViewModelTest {
             assertEquals(true, reward!!.plusActive)
         }
 
-    // ─── Acceptance matrix: scenario 6 — Awaiting confirmation ──────────────────
+    // ─── Acceptance matrix: scenario 6 — Awaiting confirmation / retry loop ─────
 
+    // CONFIRMATION-RETRY-001: the loop retries up to CONFIRMATION_MAX_RETRIES times; when all
+    // attempts return PendingConfirmation the status must reach ConfirmationTimeout, not stay in
+    // AwaitingConfirmation forever.
     @Test
-    fun `dismissed with rewardEarned and PendingConfirmation outcome stays in AwaitingConfirmation`() =
+    fun `confirmation retries exhausted after 10 pending outcomes transitions to ConfirmationTimeout`() =
         runTest {
             val fakeRepo = FakeAdRewardRepository()
             fakeRepo.seedState(rewardState())
@@ -188,7 +191,65 @@ class RewardedAdViewModelTest {
             viewModel.onWatchAd(activity)
             runCurrent()
 
+            assertEquals(RewardedAdStatus.ConfirmationTimeout, viewModel.state.value.status)
+        }
+
+    // CONFIRMATION-RETRY-002: after the retry loop places the block in ConfirmationTimeout, the
+    // user can tap "Try again" (onRetry) to restart the whole loadBlock() sequence. The block
+    // must transition through Loading and reach Ready again.
+    @Test
+    fun `onRetry from ConfirmationTimeout reloads the block and reaches Ready`() =
+        runTest {
+            val fakeRepo = FakeAdRewardRepository()
+            fakeRepo.seedState(rewardState())
+            fakeRepo.seedConfirmationOutcome(ConfirmationOutcome.PendingConfirmation)
+            val fakeGateway =
+                FakeAdGateway().apply {
+                    loadResult = AdLoadResult.Loaded
+                    showResult = AdShowResult.Dismissed(rewardEarned = true)
+                }
+            val viewModel = createViewModel(fakeRepo = fakeRepo, fakeGateway = fakeGateway)
+
+            viewModel.onBlockShown(activity)
+            runCurrent()
+            viewModel.onWatchAd(activity)
+            runCurrent()
+            assertEquals(RewardedAdStatus.ConfirmationTimeout, viewModel.state.value.status)
+
+            viewModel.onRetry(activity)
+            runCurrent()
+
+            assertEquals(RewardedAdStatus.Ready, viewModel.state.value.status)
+        }
+
+    // CONFIRMATION-RETRY-003: while the retry loop is in flight (suspended at awaitConfirmation),
+    // the status must remain AwaitingConfirmation — the loop has not yet exhausted its budget.
+    @Test
+    fun `status remains AwaitingConfirmation while confirmation loop is suspended mid-retry`() =
+        runTest {
+            val fakeRepo = FakeAdRewardRepository()
+            fakeRepo.seedState(rewardState())
+            fakeRepo.seedConfirmationOutcome(ConfirmationOutcome.PendingConfirmation)
+            val fakeGateway =
+                FakeAdGateway().apply {
+                    loadResult = AdLoadResult.Loaded
+                    showResult = AdShowResult.Dismissed(rewardEarned = true)
+                }
+            val viewModel = createViewModel(fakeRepo = fakeRepo, fakeGateway = fakeGateway)
+
+            viewModel.onBlockShown(activity)
+            runCurrent()
+            assertEquals(RewardedAdStatus.Ready, viewModel.state.value.status)
+
+            val confirmationGate = fakeRepo.suspendConfirmation()
+
+            viewModel.onWatchAd(activity)
+            runCurrent()
+
             assertEquals(RewardedAdStatus.AwaitingConfirmation, viewModel.state.value.status)
+
+            confirmationGate.complete(Unit)
+            runCurrent()
         }
 
     // STATE-STUCK-WAITING-001 fix: null cached state in confirmReward must set Unavailable, not

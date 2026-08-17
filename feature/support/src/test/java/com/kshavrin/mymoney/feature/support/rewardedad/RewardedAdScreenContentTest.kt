@@ -166,7 +166,7 @@ class RewardedAdScreenContentTest {
             .assertIsDisplayed()
     }
 
-    // ─── Acceptance matrix: scenario 6 — Awaiting confirmation ───────────────────
+    // ─── Acceptance matrix: scenario 6a — Awaiting confirmation ─────────────────
 
     @Test
     fun `awaiting confirmation state shows server wait message and never mentions credited or earned`() {
@@ -187,6 +187,25 @@ class RewardedAdScreenContentTest {
         composeTestRule
             .onAllNodesWithText("earned", ignoreCase = true, substring = true)
             .assertCountEquals(0)
+    }
+
+    // ─── Acceptance matrix: scenario 6b — Confirmation timeout ──────────────────
+
+    @Test
+    fun `confirmation timeout state shows timeout message and retry action`() {
+        setContent(
+            RewardedAdState(
+                status = RewardedAdStatus.ConfirmationTimeout,
+                reward = defaultProgress(),
+            ),
+        )
+
+        composeTestRule
+            .onNodeWithText(string(R.string.support_ads_confirmation_timeout))
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText(string(R.string.support_ads_retry))
+            .assertIsDisplayed()
     }
 
     // ─── Acceptance matrix: scenario 7 — Interrupted ─────────────────────────────

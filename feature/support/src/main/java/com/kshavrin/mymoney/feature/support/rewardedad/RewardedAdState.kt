@@ -27,4 +27,6 @@ sealed interface RewardedAdStatus {
     data object Unavailable : RewardedAdStatus
 
     data object AwaitingConfirmation : RewardedAdStatus
+
+    data object ConfirmationTimeout : RewardedAdStatus
 }

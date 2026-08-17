@@ -70,6 +70,7 @@
     <string name="support_ads_offline">No internet connection. Please reconnect and try again.</string>
     <string name="support_ads_retry">Try again</string>
     <string name="support_ads_awaiting_confirmation">Ad watched. It will count once the server confirms it.</string>
+    <string name="support_ads_confirmation_timeout">The server didn\'t confirm the ad in time. Please try again.</string>
     <string name="support_ads_unavailable">Rewarded ads aren\'t available right now.</string>
     <string name="support_google_sign_in_title">Sign in with Google</string>
     <string name="support_google_sign_in_message">Sign in with your Google account to earn temporary Plus by watching ads.</string>

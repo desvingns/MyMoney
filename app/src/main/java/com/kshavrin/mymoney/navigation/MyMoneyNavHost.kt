@@ -248,6 +248,9 @@ fun MyMoneyNavHost(
         composable<Destinations.Support> {
             com.kshavrin.mymoney.feature.support.SupportRoute(
                 onBack = { navController.popBackStack() },
+                videosWatchedSlot = {
+                    com.kshavrin.mymoney.feature.support.rewardedad.TotalAdsWatchedBadge()
+                },
                 adSlot = {
                     com.kshavrin.mymoney.feature.support.rewardedad.RewardedAdSupportEntry()
                 },

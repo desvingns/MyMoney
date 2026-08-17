@@ -57,6 +57,7 @@
     <string name="paywall_status_whitelist_active">Your Plus access is active</string>
     <string name="paywall_status_local_only">Your Plus access is active on this device</string>
     <string name="paywall_access_ends_on">Plus access ends: %1$s</string>
+    <string name="support_ads_total_watched">Ads watched in total: %1$d</string>
     <string name="support_ads_title">Watch ads for temporary Plus</string>
     <string name="support_ads_rule">Watch %1$d ads to unlock 24 hours of Plus.</string>
     <string name="support_ads_loading">Checking ad availability…</string>

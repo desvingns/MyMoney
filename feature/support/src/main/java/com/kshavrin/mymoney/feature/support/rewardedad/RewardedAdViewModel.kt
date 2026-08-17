@@ -190,6 +190,7 @@ private fun AdRewardState.toRewardProgress(): RewardProgress =
         progress = progress,
         required = required,
         plusActive = plusActive,
+        totalWatched = totalWatched,
     )
 
 private const val AD_LOAD_TIMEOUT_MILLIS = 25_000L

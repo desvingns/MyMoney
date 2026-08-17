@@ -9,6 +9,7 @@ data class RewardProgress(
     val progress: Int,
     val required: Int,
     val plusActive: Boolean,
+    val totalWatched: Int,
 )
 
 sealed interface RewardedAdStatus {

@@ -54,6 +54,7 @@ import com.kshavrin.mymoney.feature.support.R
 fun SupportScreen(
     state: SupportState,
     onEvent: (SupportEvent) -> Unit,
+    videosWatchedSlot: @Composable () -> Unit = {},
     adSlot: @Composable () -> Unit = {},
     plusSlot: @Composable () -> Unit = {},
 ) {
@@ -84,6 +85,7 @@ fun SupportScreen(
                     ),
             verticalArrangement = Arrangement.spacedBy(Spacing.supportSectionGap),
         ) {
+            videosWatchedSlot()
             Text(
                 text = stringResource(R.string.support_description),
                 style = MaterialTheme.typography.supportDescription,

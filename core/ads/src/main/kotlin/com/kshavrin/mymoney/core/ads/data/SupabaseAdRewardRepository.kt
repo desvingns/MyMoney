@@ -261,6 +261,7 @@ private fun JsonElement.toAdRewardState(): AdRewardState =
             plusActive = response.requiredBoolean("plusActive"),
             plusProvider = response.nullableString("plusProvider"),
             plusExpiresAt = response.nullableString("plusExpiresAt")?.toInstant(),
+            totalWatched = response.requiredInt("totalWatched"),
         )
     }
 

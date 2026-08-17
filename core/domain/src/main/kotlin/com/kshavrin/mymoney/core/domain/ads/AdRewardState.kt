@@ -10,6 +10,7 @@ data class AdRewardState(
     val plusActive: Boolean,
     val plusProvider: String?,
     val plusExpiresAt: Instant?,
+    val totalWatched: Int = 0,
 )
 
 sealed interface FrozenReason {

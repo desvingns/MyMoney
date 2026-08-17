@@ -33,6 +33,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.core.ui.theme.rewardAdProgressIndicator
 import com.kshavrin.mymoney.core.ui.theme.rewardAdProgressTrack
+import com.kshavrin.mymoney.core.ui.theme.supportAdCounterLabel
 import com.kshavrin.mymoney.core.ui.theme.supportCard
 import com.kshavrin.mymoney.core.ui.theme.supportCardTitle
 import com.kshavrin.mymoney.core.ui.theme.supportDescription
@@ -66,6 +67,19 @@ fun RewardedAdSupportEntry(
                 },
             )
         }
+    }
+}
+
+@Composable
+fun TotalAdsWatchedBadge(
+    viewModel: RewardedAdViewModel = hiltViewModel(),
+) {
+    val state by viewModel.state.collectAsState()
+    state.reward?.let { reward ->
+        Text(
+            text = stringResource(R.string.support_ads_total_watched, reward.totalWatched),
+            style = MaterialTheme.typography.supportAdCounterLabel,
+        )
     }
 }
 

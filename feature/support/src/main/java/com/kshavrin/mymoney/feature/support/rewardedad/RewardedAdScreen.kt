@@ -75,9 +75,14 @@ fun TotalAdsWatchedBadge(
     viewModel: RewardedAdViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
-    state.reward?.let { reward ->
+    TotalAdsWatchedBadgeContent(reward = state.reward)
+}
+
+@Composable
+fun TotalAdsWatchedBadgeContent(reward: RewardProgress?) {
+    reward?.let {
         Text(
-            text = stringResource(R.string.support_ads_total_watched, reward.totalWatched),
+            text = stringResource(R.string.support_ads_total_watched, it.totalWatched),
             style = MaterialTheme.typography.supportAdCounterLabel,
         )
     }

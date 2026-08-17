@@ -69,6 +69,27 @@ class SupportScreenContentTest {
     }
 
     @Test
+    fun `videos watched slot renders above the introduction and ad slot`() {
+        setContent(
+            state = availableState(),
+            videosWatchedSlot = { androidx.compose.material3.Text("videos-slot") },
+            adSlot = { androidx.compose.material3.Text("ad-slot") },
+        )
+
+        composeTestRule.onNodeWithText("videos-slot").performScrollTo().assertIsDisplayed()
+
+        val orderedNodes =
+            listOf(
+                "videos-slot",
+                string(R.string.support_description),
+                "ad-slot",
+            ).map { text ->
+                composeTestRule.onNodeWithText(text).fetchSemanticsNode().boundsInRoot.top
+            }
+        assertTrue(orderedNodes.zipWithNext().all { (first, second) -> first < second })
+    }
+
+    @Test
     fun `available coffee buttons use localized formatted prices and emit product ids`() {
         val events = mutableListOf<SupportEvent>()
         val state = availableState()
@@ -218,6 +239,7 @@ class SupportScreenContentTest {
     private fun setContent(
         state: SupportState,
         onEvent: (SupportEvent) -> Unit = {},
+        videosWatchedSlot: @androidx.compose.runtime.Composable () -> Unit = {},
         adSlot: @androidx.compose.runtime.Composable () -> Unit = {},
         plusSlot: @androidx.compose.runtime.Composable () -> Unit = {},
     ) {
@@ -226,6 +248,7 @@ class SupportScreenContentTest {
                 SupportContent(
                     state = state,
                     onEvent = onEvent,
+                    videosWatchedSlot = videosWatchedSlot,
                     adSlot = adSlot,
                     plusSlot = plusSlot,
                 )

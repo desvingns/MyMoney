@@ -275,12 +275,14 @@ class RewardedAdViewModelTest {
             viewModel.onBlockShown(activity)
             runCurrent()
             assertEquals(RewardedAdStatus.Ready, viewModel.state.value.status)
+            val loadsBeforeWatch = fakeGateway.loadRewardedCalls
 
             viewModel.onWatchAd(activity)
             runCurrent()
 
             assertEquals(RewardedAdStatus.Ready, viewModel.state.value.status)
             assertEquals(4, viewModel.state.value.reward?.progress)
+            assertTrue(fakeGateway.loadRewardedCalls > loadsBeforeWatch)
         }
 
     // CONFIRMATION-RETRY-005: ConfirmationOutcome.PlusGranted returned on the first loop
@@ -303,12 +305,14 @@ class RewardedAdViewModelTest {
             viewModel.onBlockShown(activity)
             runCurrent()
             assertEquals(RewardedAdStatus.Ready, viewModel.state.value.status)
+            val loadsBeforeWatch = fakeGateway.loadRewardedCalls
 
             viewModel.onWatchAd(activity)
             runCurrent()
 
             assertEquals(RewardedAdStatus.Ready, viewModel.state.value.status)
             assertEquals(true, viewModel.state.value.reward?.plusActive)
+            assertTrue(fakeGateway.loadRewardedCalls > loadsBeforeWatch)
         }
 
     // CONFIRMATION-RETRY-006: clearing the ViewModel while the confirmation loop is suspended

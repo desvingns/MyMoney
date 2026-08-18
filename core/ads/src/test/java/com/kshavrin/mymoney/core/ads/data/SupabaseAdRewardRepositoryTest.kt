@@ -454,6 +454,28 @@ class SupabaseAdRewardRepositoryTest {
             assertEquals(previous, repository.state.value)
         }
 
+    // Branch-invariant pin, NOT a reachable production scenario: the WatchCounted trigger is
+    // totalWatched growth, independent of plusActive. The plus_state=inactive · totalWatched-only
+    // server state below cannot occur in production — grant_admob_plus_from_reward() in migration
+    // 20260812160000 only sets counts_toward_reward = false while Plus is active — but a future edit
+    // could wrongly gate this branch on Plus being active, and this test would catch that regression.
+    @Test
+    fun `awaitConfirmation confirms watch counted on totalWatched growth even when plus inactive`() =
+        // mp-real-io: MockWebServer completes requests on real clock time; a virtual scheduler would fire withTimeoutOrNull before the HTTP response arrives
+        runBlocking {
+            val previous = rewardState(progress = 2, plusActive = false, totalWatched = 5)
+            val updated = rewardState(progress = 2, plusActive = false, totalWatched = 6)
+            seed(previous)
+            server.enqueue(
+                MockResponse().setResponseCode(200).setBody(stateJson(progress = 2, plusActive = false, totalWatched = 6)),
+            )
+
+            val outcome = repository.awaitConfirmation(previous)
+
+            assertEquals(ConfirmationOutcome.WatchCounted(updated), outcome)
+            assertEquals(updated, repository.state.value)
+        }
+
     @Test
     fun `awaitConfirmation returns pending when confirmation is missing`() =
         // mp-real-io: MockWebServer completes requests on real clock time; a virtual scheduler would fire withTimeoutOrNull before the HTTP response arrives

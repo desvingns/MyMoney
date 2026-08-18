@@ -153,7 +153,11 @@ class RewardedAdViewModel
                 _state.value = _state.value.copy(status = RewardedAdStatus.ConfirmationTimeout)
                 return
             }
-            _state.value = _state.value.copy(reward = confirmed.toRewardProgress())
+            _state.value =
+                _state.value.copy(
+                    status = RewardedAdStatus.Rearming,
+                    reward = confirmed.toRewardProgress(),
+                )
             loadAvailability(activity)
         }
 

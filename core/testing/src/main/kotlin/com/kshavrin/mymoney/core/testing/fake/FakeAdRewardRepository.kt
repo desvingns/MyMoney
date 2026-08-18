@@ -4,6 +4,7 @@ import com.kshavrin.mymoney.core.domain.ads.AdRewardRepository
 import com.kshavrin.mymoney.core.domain.ads.AdRewardState
 import com.kshavrin.mymoney.core.domain.ads.ConfirmationOutcome
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,6 +18,7 @@ class FakeAdRewardRepository(
     private var sessionGeneration = 0L
     private var stateSessionGeneration = 0L
     private var confirmationGate: CompletableDeferred<Unit>? = null
+    private var confirmationDelayMillis = 0L
 
     override val state: StateFlow<AdRewardState?> = rewardState.asStateFlow()
 
@@ -40,6 +42,7 @@ class FakeAdRewardRepository(
 
     override suspend fun awaitConfirmation(previous: AdRewardState): ConfirmationOutcome {
         confirmationGate?.await()
+        if (confirmationDelayMillis > 0L) delay(confirmationDelayMillis)
         return if (rewardState.value == previous && stateSessionGeneration == sessionGeneration) {
             confirmationOutcome
         } else {
@@ -59,6 +62,12 @@ class FakeAdRewardRepository(
 
     fun seedConfirmationOutcome(outcome: ConfirmationOutcome) {
         confirmationOutcome = outcome
+    }
+
+    // Makes each awaitConfirmation() call consume virtual time, so a test can prove the caller's
+    // outer timeout bounds a slow poll loop instead of waiting for every retry to finish.
+    fun seedConfirmationDelay(delayMillis: Long) {
+        confirmationDelayMillis = delayMillis
     }
 
     // Holds awaitConfirmation() suspended until the returned gate is completed, so a test can keep

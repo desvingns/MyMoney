@@ -217,6 +217,12 @@ private fun AuthenticatedBody(
                 style = MaterialTheme.typography.supportDescription,
             )
 
+        RewardedAdStatus.Rearming ->
+            Text(
+                text = stringResource(R.string.support_ads_loading),
+                style = MaterialTheme.typography.supportDescription,
+            )
+
         RewardedAdStatus.ConfirmationTimeout -> {
             Text(
                 text = stringResource(R.string.support_ads_confirmation_timeout),

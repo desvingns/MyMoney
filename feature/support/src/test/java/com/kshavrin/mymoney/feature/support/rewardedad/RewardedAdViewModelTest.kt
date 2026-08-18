@@ -575,6 +575,46 @@ class RewardedAdViewModelTest {
             assertTrue(fakeGateway.loadRewardedCalls > loadsBeforeWatch)
         }
 
+    // ─── Acceptance matrix: cell 8 — Plus active, no server delta, bounded wait ──
+    // With Plus already active and every poll returning PendingConfirmation, the awaiting window is
+    // bounded by the ViewModel's outer withTimeoutOrNull, not by the per-call retry count. Each poll
+    // here takes 30 s of virtual time; without the ~35 s outer bound the 10-iteration loop would run
+    // for 300 s. The block must still be awaiting after one poll and reach ConfirmationTimeout at the
+    // bound — it must never hang.
+    @Test
+    fun `plus active with only pending outcomes reaches ConfirmationTimeout within the bounded window`() =
+        runTest {
+            val fakeRepo = FakeAdRewardRepository()
+            fakeRepo.seedState(rewardState(progress = 0, required = 5, plusActive = true, totalWatched = 6))
+            fakeRepo.seedConfirmationOutcome(ConfirmationOutcome.PendingConfirmation)
+            fakeRepo.seedConfirmationDelay(30_000L)
+            val fakeGateway =
+                FakeAdGateway().apply {
+                    loadResult = AdLoadResult.Loaded
+                    showResult = AdShowResult.Dismissed(rewardEarned = true)
+                }
+            val viewModel = createViewModel(fakeRepo = fakeRepo, fakeGateway = fakeGateway)
+
+            viewModel.onBlockShown(activity)
+            runCurrent()
+            assertEquals(RewardedAdStatus.Ready, viewModel.state.value.status)
+
+            viewModel.onWatchAd(activity)
+            runCurrent()
+            assertEquals(RewardedAdStatus.AwaitingConfirmation, viewModel.state.value.status)
+
+            // One 30 s poll elapses: still inside the outer budget, so no timeout yet.
+            advanceTimeBy(30_000L)
+            runCurrent()
+            assertEquals(RewardedAdStatus.AwaitingConfirmation, viewModel.state.value.status)
+
+            // CONFIRMATION_MAX_WAIT_MILLIS = 35_000L (private in the production file): the outer bound
+            // fires here, cutting the loop off ~265 s before it would otherwise finish.
+            advanceTimeBy(5_001L)
+            runCurrent()
+            assertEquals(RewardedAdStatus.ConfirmationTimeout, viewModel.state.value.status)
+        }
+
     // ─── Load timeout guard ──────────────────────────────────────────────────────
 
     // AD_LOAD_TIMEOUT_MILLIS = 25_000L (private constant in the production file). When

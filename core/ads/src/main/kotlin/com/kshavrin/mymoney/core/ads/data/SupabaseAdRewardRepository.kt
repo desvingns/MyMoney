@@ -262,6 +262,8 @@ private fun JsonElement.toAdRewardState(): AdRewardState =
             plusActive = response.requiredBoolean("plusActive"),
             plusProvider = response.nullableString("plusProvider"),
             plusExpiresAt = response.nullableString("plusExpiresAt")?.toInstant(),
+            // totalWatched is mandatory from get_ad_reward_state() (migration 20260817120000);
+            // AdRewardState's Kotlin default of 0 is for test fixtures only, never a server response.
             totalWatched = response.requiredInt("totalWatched"),
         )
     }

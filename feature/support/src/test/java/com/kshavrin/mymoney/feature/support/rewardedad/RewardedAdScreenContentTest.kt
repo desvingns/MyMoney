@@ -263,6 +263,28 @@ class RewardedAdScreenContentTest {
         composeTestRule.onNodeWithContentDescription(expectedDescription).assertIsDisplayed()
     }
 
+    // ─── STATE-001: re-arming after a confirmed view ─────────────────────────────
+    // After a view is confirmed the block reloads the next ad (Rearming). It must keep the progress
+    // row visible so the freshly-published counter is never hidden, show a neutral loading message,
+    // and stop claiming the server has not yet confirmed the view.
+    @Test
+    fun `rearming state keeps the progress row and drops the awaiting-server message`() {
+        setContent(
+            RewardedAdState(
+                status = RewardedAdStatus.Rearming,
+                reward = defaultProgress(),
+            ),
+        )
+
+        composeTestRule
+            .onNodeWithContentDescription(string(R.string.support_ads_progress, 3, 5))
+            .assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.support_ads_loading)).assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText(string(R.string.support_ads_awaiting_confirmation))
+            .assertDoesNotExist()
+    }
+
     // ─── Cross-state guard: Loading never gets stuck ──────────────────────────────
 
     @Test

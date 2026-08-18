@@ -29,5 +29,7 @@ sealed interface RewardedAdStatus {
 
     data object AwaitingConfirmation : RewardedAdStatus
 
+    data object Rearming : RewardedAdStatus
+
     data object ConfirmationTimeout : RewardedAdStatus
 }

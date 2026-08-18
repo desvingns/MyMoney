@@ -394,6 +394,66 @@ class SupabaseAdRewardRepositoryTest {
             assertEquals(updated, repository.state.value)
         }
 
+    // Acceptance-matrix cell 7 (plus_state=active · server_delta=plus_granted). With Plus already
+    // active, PlusGranted cannot fire — it needs a false->true transition. A new entitlement granted
+    // to an already-Plus user (provider whitelist -> admob) arrives together with a fresh frozen
+    // reward row, so totalWatched grows and the view surfaces as WatchCounted, never PlusGranted.
+    @Test
+    fun `awaitConfirmation reports watch counted not plus granted when plus was already active`() =
+        // mp-real-io: MockWebServer completes requests on real clock time; a virtual scheduler would fire withTimeoutOrNull before the HTTP response arrives
+        runBlocking {
+            val previous =
+                rewardState(
+                    progress = 0,
+                    frozen = true,
+                    frozenReason = FrozenReason.PlusActive("whitelist"),
+                    plusActive = true,
+                    plusProvider = "whitelist",
+                    totalWatched = 6,
+                )
+            val updated =
+                rewardState(
+                    progress = 0,
+                    frozen = true,
+                    frozenReason = FrozenReason.PlusActive("admob"),
+                    plusActive = true,
+                    plusProvider = "admob",
+                    totalWatched = 7,
+                )
+            seed(previous)
+            server.enqueue(MockResponse().setResponseCode(200).setBody(stateJson(updated)))
+
+            val outcome = repository.awaitConfirmation(previous)
+
+            assertEquals(ConfirmationOutcome.WatchCounted(updated), outcome)
+            assertNotEquals(ConfirmationOutcome.PlusGranted(updated), outcome)
+        }
+
+    // Acceptance-matrix cell 8 (plus_state=active · server_delta=none). Plus already active and the
+    // server returns the identical frozen object — nothing moved, not even totalWatched. No branch
+    // fires, so the poll stays pending and the cached state is left untouched.
+    @Test
+    fun `awaitConfirmation returns pending when plus was already active and nothing changed`() =
+        // mp-real-io: MockWebServer completes requests on real clock time; a virtual scheduler would fire withTimeoutOrNull before the HTTP response arrives
+        runBlocking {
+            val previous =
+                rewardState(
+                    progress = 0,
+                    frozen = true,
+                    frozenReason = FrozenReason.PlusActive("whitelist"),
+                    plusActive = true,
+                    plusProvider = "whitelist",
+                    totalWatched = 6,
+                )
+            seed(previous)
+            server.enqueue(MockResponse().setResponseCode(200).setBody(stateJson(previous)))
+
+            val outcome = repository.awaitConfirmation(previous)
+
+            assertEquals(ConfirmationOutcome.PendingConfirmation, outcome)
+            assertEquals(previous, repository.state.value)
+        }
+
     @Test
     fun `awaitConfirmation returns pending when confirmation is missing`() =
         // mp-real-io: MockWebServer completes requests on real clock time; a virtual scheduler would fire withTimeoutOrNull before the HTTP response arrives

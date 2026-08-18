@@ -157,6 +157,7 @@ class SupabaseAdRewardRepository
                 return when {
                     !previous.plusActive && current.plusActive -> ConfirmationOutcome.PlusGranted(current)
                     current.progress > previous.progress -> ConfirmationOutcome.ProgressIncreased(current)
+                    current.totalWatched > previous.totalWatched -> ConfirmationOutcome.WatchCounted(current)
                     else -> null
                 }
             }

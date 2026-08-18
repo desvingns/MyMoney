@@ -21,9 +21,13 @@ class FakeAdGateway : AdGateway {
     // When true, loadRewarded() suspends indefinitely — used to trigger withTimeoutOrNull.
     var neverLoad: Boolean = false
 
+    var loadRewardedCalls: Int = 0
+        private set
+
     override suspend fun ensureConsent(activity: Activity): ConsentResult = consentResult
 
     override suspend fun loadRewarded(): AdLoadResult {
+        loadRewardedCalls++
         if (neverLoad) {
             suspendCancellableCoroutine<Nothing> { }
         }

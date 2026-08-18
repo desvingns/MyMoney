@@ -28,6 +28,7 @@ import okhttp3.mockwebserver.RecordedRequest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
@@ -73,10 +74,11 @@ class SupabaseAdRewardRepositoryTest {
 
     @Test
     fun `refresh strictly maps the complete RPC object and preserves server fields`() =
+        // mp-real-io: MockWebServer completes requests on real clock time; a virtual scheduler would fire withTimeoutOrNull before the HTTP response arrives
         runBlocking {
             server.enqueue(
                 MockResponse().setResponseCode(200).setBody(
-                    """{"progress":3,"required":5,"frozen":true,"frozenReason":"plus_active:admob","plusActive":true,"plusProvider":"admob","plusExpiresAt":"2026-08-14T12:00:00Z"}""",
+                    """{"progress":3,"required":5,"frozen":true,"frozenReason":"plus_active:admob","plusActive":true,"plusProvider":"admob","plusExpiresAt":"2026-08-14T12:00:00Z","totalWatched":7}""",
                 ),
             )
 
@@ -89,6 +91,7 @@ class SupabaseAdRewardRepositoryTest {
                     plusActive = true,
                     plusProvider = "admob",
                     plusExpiresAt = Instant.parse("2026-08-14T12:00:00Z"),
+                    totalWatched = 7,
                 )
             val actual = repository.refresh().getOrThrow()
 
@@ -103,6 +106,7 @@ class SupabaseAdRewardRepositoryTest {
 
     @Test
     fun `refresh maps an unknown frozen reason to Unknown without rejecting the object`() =
+        // mp-real-io: MockWebServer completes requests on real clock time; a virtual scheduler would fire withTimeoutOrNull before the HTTP response arrives
         runBlocking {
             server.enqueue(MockResponse().setResponseCode(200).setBody(stateJson(frozenReason = "future_reason")))
 
@@ -116,6 +120,7 @@ class SupabaseAdRewardRepositoryTest {
 
     @Test
     fun `refresh maps malformed and non-object RPC responses to a server error`() =
+        // mp-real-io: MockWebServer completes requests on real clock time; a virtual scheduler would fire withTimeoutOrNull before the HTTP response arrives
         runBlocking {
             listOf("not-json", "[]", "\"state\"", "{}")
                 .forEach { responseBody ->
@@ -129,7 +134,24 @@ class SupabaseAdRewardRepositoryTest {
         }
 
     @Test
+    fun `totalWatched field absent in RPC response maps to server error`() =
+        // mp-real-io: MockWebServer completes requests on real clock time; a virtual scheduler would fire withTimeoutOrNull before the HTTP response arrives
+        runBlocking {
+            server.enqueue(
+                MockResponse().setResponseCode(200).setBody(
+                    """{"progress":3,"required":5,"frozen":false,"frozenReason":null,"plusActive":false,"plusProvider":null,"plusExpiresAt":null}""",
+                ),
+            )
+
+            val result = repository.refresh()
+
+            assertSyncError(result, SyncError.Server)
+            assertNull(repository.state.value)
+        }
+
+    @Test
     fun `refresh preserves cancellation from the authentication boundary`() =
+        // mp-real-io: MockWebServer completes requests on real clock time; a virtual scheduler would fire withTimeoutOrNull before the HTTP response arrives
         runBlocking {
             val cancellation = CancellationException("caller cancelled")
             auth.accessTokenResult = Result.failure(cancellation)
@@ -148,6 +170,7 @@ class SupabaseAdRewardRepositoryTest {
 
     @Test
     fun `refresh returns auth without a network call when there is no session`() =
+        // mp-real-io: MockWebServer completes requests on real clock time; a virtual scheduler would fire withTimeoutOrNull before the HTTP response arrives
         runBlocking {
             auth.session = null
 
@@ -160,6 +183,7 @@ class SupabaseAdRewardRepositoryTest {
 
     @Test
     fun `refresh clears cached state when the authenticated session disappears`() =
+        // mp-real-io: MockWebServer completes requests on real clock time; a virtual scheduler would fire withTimeoutOrNull before the HTTP response arrives
         runBlocking {
             server.enqueue(MockResponse().setResponseCode(200).setBody(stateJson(progress = 2)))
             repository.refresh().getOrThrow()
@@ -174,6 +198,7 @@ class SupabaseAdRewardRepositoryTest {
 
     @Test
     fun `refresh keeps the current state on a network failure and clears it on auth failure`() =
+        // mp-real-io: MockWebServer completes requests on real clock time; a virtual scheduler would fire withTimeoutOrNull before the HTTP response arrives
         runBlocking {
             val previous = rewardState(progress = 2)
             server.enqueue(MockResponse().setResponseCode(200).setBody(stateJson(progress = 2)))
@@ -194,6 +219,7 @@ class SupabaseAdRewardRepositoryTest {
 
     @Test
     fun `invalidateSession clears the StateFlow before a different session can refresh`() =
+        // mp-real-io: MockWebServer completes requests on real clock time; a virtual scheduler would fire withTimeoutOrNull before the HTTP response arrives
         runBlocking {
             server.enqueue(MockResponse().setResponseCode(200).setBody(stateJson(progress = 1)))
             repository.refresh().getOrThrow()
@@ -211,6 +237,7 @@ class SupabaseAdRewardRepositoryTest {
 
     @Test
     fun `stale confirmation does not clear a newer server state`() =
+        // mp-real-io: MockWebServer completes requests on real clock time; a virtual scheduler would fire withTimeoutOrNull before the HTTP response arrives
         runBlocking {
             val previous = rewardState(progress = 2)
             val current = rewardState(progress = 3)
@@ -224,6 +251,7 @@ class SupabaseAdRewardRepositoryTest {
 
     @Test
     fun `auth lifecycle invalidation clears a held StateFlow collector`() =
+        // mp-real-io: MockWebServer completes requests on real clock time; a virtual scheduler would fire withTimeoutOrNull before the HTTP response arrives
         runBlocking {
             val previous = rewardState(progress = 2)
             seed(previous)
@@ -242,6 +270,7 @@ class SupabaseAdRewardRepositoryTest {
 
     @Test
     fun `concurrent refreshes publish responses in invocation order`() =
+        // mp-real-io: MockWebServer completes requests on real clock time; a virtual scheduler would fire withTimeoutOrNull before the HTTP response arrives
         runBlocking {
             val firstStarted = CountDownLatch(1)
             val secondStarted = CountDownLatch(1)
@@ -275,6 +304,7 @@ class SupabaseAdRewardRepositoryTest {
 
     @Test
     fun `awaitConfirmation reports progress increased after the server advances progress`() =
+        // mp-real-io: MockWebServer completes requests on real clock time; a virtual scheduler would fire withTimeoutOrNull before the HTTP response arrives
         runBlocking {
             val previous = rewardState(progress = 2)
             val updated = rewardState(progress = 3)
@@ -288,6 +318,7 @@ class SupabaseAdRewardRepositoryTest {
 
     @Test
     fun `awaitConfirmation grants Plus only on a false to true transition`() =
+        // mp-real-io: MockWebServer completes requests on real clock time; a virtual scheduler would fire withTimeoutOrNull before the HTTP response arrives
         runBlocking {
             val previous = rewardState(progress = 4, plusActive = false)
             val updated =
@@ -316,6 +347,7 @@ class SupabaseAdRewardRepositoryTest {
 
     @Test
     fun `awaitConfirmation reports progress instead of Plus when Plus was already active`() =
+        // mp-real-io: MockWebServer completes requests on real clock time; a virtual scheduler would fire withTimeoutOrNull before the HTTP response arrives
         runBlocking {
             val previous = rewardState(progress = 2, plusActive = true)
             val updated = rewardState(progress = 3, plusActive = true)
@@ -327,8 +359,44 @@ class SupabaseAdRewardRepositoryTest {
             assertEquals(ConfirmationOutcome.ProgressIncreased(updated), outcome)
         }
 
+    // Regression (production project shwzjlkhlpgbmzgnxhxi): a Plus-active user's every reward row is
+    // frozen (counts_toward_reward = false), so progress stays 0 and plusActive stays true — only
+    // totalWatched moves (6 -> 7). The view is genuinely confirmed and must NOT be reported pending.
+    @Test
+    fun `awaitConfirmation confirms a frozen view when only totalWatched grows`() =
+        // mp-real-io: MockWebServer completes requests on real clock time; a virtual scheduler would fire withTimeoutOrNull before the HTTP response arrives
+        runBlocking {
+            val previous =
+                rewardState(
+                    progress = 0,
+                    frozen = true,
+                    frozenReason = FrozenReason.PlusActive("whitelist"),
+                    plusActive = true,
+                    plusProvider = "whitelist",
+                    totalWatched = 6,
+                )
+            val updated =
+                rewardState(
+                    progress = 0,
+                    frozen = true,
+                    frozenReason = FrozenReason.PlusActive("whitelist"),
+                    plusActive = true,
+                    plusProvider = "whitelist",
+                    totalWatched = 7,
+                )
+            seed(previous)
+            server.enqueue(MockResponse().setResponseCode(200).setBody(stateJson(updated)))
+
+            val outcome = repository.awaitConfirmation(previous)
+
+            assertEquals(ConfirmationOutcome.WatchCounted(updated), outcome)
+            assertNotEquals(ConfirmationOutcome.PendingConfirmation, outcome)
+            assertEquals(updated, repository.state.value)
+        }
+
     @Test
     fun `awaitConfirmation returns pending when confirmation is missing`() =
+        // mp-real-io: MockWebServer completes requests on real clock time; a virtual scheduler would fire withTimeoutOrNull before the HTTP response arrives
         runBlocking {
             val previous = rewardState(progress = 2)
             seed(previous)
@@ -342,6 +410,7 @@ class SupabaseAdRewardRepositoryTest {
 
     @Test
     fun `awaitConfirmation returns pending when the confirmation refresh hits the network`() =
+        // mp-real-io: MockWebServer completes requests on real clock time; a virtual scheduler would fire withTimeoutOrNull before the HTTP response arrives
         runBlocking {
             val previous = rewardState(progress = 2)
             seed(previous)
@@ -355,6 +424,7 @@ class SupabaseAdRewardRepositoryTest {
 
     @Test
     fun `awaitConfirmation returns pending and clears state when the session changes before polling`() =
+        // mp-real-io: MockWebServer completes requests on real clock time; a virtual scheduler would fire withTimeoutOrNull before the HTTP response arrives
         runBlocking {
             val previous = rewardState(progress = 2)
             seed(previous)
@@ -370,6 +440,7 @@ class SupabaseAdRewardRepositoryTest {
 
     @Test
     fun `awaitConfirmation returns pending when the session changes during a refresh`() =
+        // mp-real-io: MockWebServer completes requests on real clock time; a virtual scheduler would fire withTimeoutOrNull before the HTTP response arrives
         runBlocking {
             val previous = rewardState(progress = 2)
             seed(previous)
@@ -406,6 +477,7 @@ class SupabaseAdRewardRepositoryTest {
         plusActive: Boolean = false,
         plusProvider: String? = null,
         plusExpiresAt: Instant? = null,
+        totalWatched: Int = 0,
     ) =
         AdRewardState(
             progress = progress,
@@ -415,6 +487,7 @@ class SupabaseAdRewardRepositoryTest {
             plusActive = plusActive,
             plusProvider = plusProvider,
             plusExpiresAt = plusExpiresAt,
+            totalWatched = totalWatched,
         )
 
     private fun stateJson(
@@ -424,8 +497,9 @@ class SupabaseAdRewardRepositoryTest {
         plusActive: Boolean = state.plusActive,
         plusProvider: String? = state.plusProvider,
         plusExpiresAt: Instant? = state.plusExpiresAt,
+        totalWatched: Int = state.totalWatched,
     ): String =
-        """{"progress":$progress,"required":${state.required},"frozen":${state.frozen},"frozenReason":${frozenReason?.let(::quote) ?: "null"},"plusActive":$plusActive,"plusProvider":${plusProvider?.let(::quote) ?: "null"},"plusExpiresAt":${plusExpiresAt?.toString()?.let(::quote) ?: "null"}}"""
+        """{"progress":$progress,"required":${state.required},"frozen":${state.frozen},"frozenReason":${frozenReason?.let(::quote) ?: "null"},"plusActive":$plusActive,"plusProvider":${plusProvider?.let(::quote) ?: "null"},"plusExpiresAt":${plusExpiresAt?.toString()?.let(::quote) ?: "null"},"totalWatched":$totalWatched}"""
 
     private fun FrozenReason?.toJsonValue(): String? =
         when (this) {

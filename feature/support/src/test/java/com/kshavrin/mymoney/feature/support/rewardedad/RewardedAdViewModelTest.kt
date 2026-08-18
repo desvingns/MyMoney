@@ -18,6 +18,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -48,6 +49,7 @@ class RewardedAdViewModelTest {
         progress: Int = 3,
         required: Int = 5,
         plusActive: Boolean = false,
+        totalWatched: Int = 0,
     ) = AdRewardState(
         progress = progress,
         required = required,
@@ -56,6 +58,7 @@ class RewardedAdViewModelTest {
         plusActive = plusActive,
         plusProvider = null,
         plusExpiresAt = null,
+        totalWatched = totalWatched,
     )
 
     private fun createViewModel(
@@ -252,6 +255,142 @@ class RewardedAdViewModelTest {
             runCurrent()
         }
 
+    // CONFIRMATION-RETRY-004: ConfirmationOutcome.ProgressIncreased returned on the first loop
+    // iteration must exit the repeat block early via non-local return, transition status to Ready,
+    // and surface the updated progress from the outcome state — not the stale pre-watch value.
+    @Test
+    fun `ProgressIncreased outcome in confirmation loop exits early with Ready status and updated progress`() =
+        runTest {
+            val fakeRepo = FakeAdRewardRepository()
+            fakeRepo.seedState(rewardState(progress = 3, required = 5))
+            val updatedState = rewardState(progress = 4, required = 5)
+            fakeRepo.seedConfirmationOutcome(ConfirmationOutcome.ProgressIncreased(updatedState))
+            val fakeGateway =
+                FakeAdGateway().apply {
+                    loadResult = AdLoadResult.Loaded
+                    showResult = AdShowResult.Dismissed(rewardEarned = true)
+                }
+            val viewModel = createViewModel(fakeRepo = fakeRepo, fakeGateway = fakeGateway)
+
+            viewModel.onBlockShown(activity)
+            runCurrent()
+            assertEquals(RewardedAdStatus.Ready, viewModel.state.value.status)
+
+            viewModel.onWatchAd(activity)
+            runCurrent()
+
+            assertEquals(RewardedAdStatus.Ready, viewModel.state.value.status)
+            assertEquals(4, viewModel.state.value.reward?.progress)
+        }
+
+    // CONFIRMATION-RETRY-005: ConfirmationOutcome.PlusGranted returned on the first loop
+    // iteration must exit the repeat block early via non-local return, transition status to
+    // Ready, and surface plusActive = true from the outcome state.
+    @Test
+    fun `PlusGranted outcome in confirmation loop exits early with Ready status and plusActive true`() =
+        runTest {
+            val fakeRepo = FakeAdRewardRepository()
+            fakeRepo.seedState(rewardState(progress = 5, required = 5, plusActive = false))
+            val grantedState = rewardState(progress = 5, required = 5, plusActive = true)
+            fakeRepo.seedConfirmationOutcome(ConfirmationOutcome.PlusGranted(grantedState))
+            val fakeGateway =
+                FakeAdGateway().apply {
+                    loadResult = AdLoadResult.Loaded
+                    showResult = AdShowResult.Dismissed(rewardEarned = true)
+                }
+            val viewModel = createViewModel(fakeRepo = fakeRepo, fakeGateway = fakeGateway)
+
+            viewModel.onBlockShown(activity)
+            runCurrent()
+            assertEquals(RewardedAdStatus.Ready, viewModel.state.value.status)
+
+            viewModel.onWatchAd(activity)
+            runCurrent()
+
+            assertEquals(RewardedAdStatus.Ready, viewModel.state.value.status)
+            assertEquals(true, viewModel.state.value.reward?.plusActive)
+        }
+
+    // CONFIRMATION-RETRY-006: clearing the ViewModel while the confirmation loop is suspended
+    // mid-retry must cancel the watchJob coroutine and produce no further state mutations.
+    // The block must NOT transition to ConfirmationTimeout or any other terminal state —
+    // the cancellation path is opaque to the UI.
+    @Test
+    fun `clearing ViewModel while confirmation loop is suspended cancels the coroutine with no further state change`() =
+        runTest {
+            val fakeRepo = FakeAdRewardRepository()
+            fakeRepo.seedState(rewardState())
+            fakeRepo.seedConfirmationOutcome(ConfirmationOutcome.PendingConfirmation)
+            val fakeGateway =
+                FakeAdGateway().apply {
+                    loadResult = AdLoadResult.Loaded
+                    showResult = AdShowResult.Dismissed(rewardEarned = true)
+                }
+            val viewModel = createViewModel(fakeRepo = fakeRepo, fakeGateway = fakeGateway)
+
+            viewModel.onBlockShown(activity)
+            runCurrent()
+            assertEquals(RewardedAdStatus.Ready, viewModel.state.value.status)
+
+            val confirmationGate = fakeRepo.suspendConfirmation()
+
+            viewModel.onWatchAd(activity)
+            runCurrent()
+            assertEquals(RewardedAdStatus.AwaitingConfirmation, viewModel.state.value.status)
+
+            // Clear the store — triggers ViewModel.onCleared() and cancels viewModelScope.
+            viewModelStore.clear()
+            runCurrent()
+
+            // The coroutine was cancelled before completing the loop: no terminal transition.
+            assertEquals(RewardedAdStatus.AwaitingConfirmation, viewModel.state.value.status)
+
+            // Release the gate so the fake's pending deferred does not interfere with teardown.
+            confirmationGate.complete(Unit)
+        }
+
+    // GUARD-001: calling onWatchAd or onRetry a second time while the confirmation loop is
+    // in flight (watchJob.isActive == true) must be a no-op — the job-active guard must
+    // short-circuit both paths, preventing a duplicate loop from starting.
+    @Test
+    fun `onWatchAd and onRetry are ignored while confirmation loop is mid-flight`() =
+        runTest {
+            val fakeRepo = FakeAdRewardRepository()
+            fakeRepo.seedState(rewardState())
+            fakeRepo.seedConfirmationOutcome(ConfirmationOutcome.PendingConfirmation)
+            val fakeGateway =
+                FakeAdGateway().apply {
+                    loadResult = AdLoadResult.Loaded
+                    showResult = AdShowResult.Dismissed(rewardEarned = true)
+                }
+            val viewModel = createViewModel(fakeRepo = fakeRepo, fakeGateway = fakeGateway)
+
+            viewModel.onBlockShown(activity)
+            runCurrent()
+            assertEquals(RewardedAdStatus.Ready, viewModel.state.value.status)
+
+            val confirmationGate = fakeRepo.suspendConfirmation()
+
+            viewModel.onWatchAd(activity)
+            runCurrent()
+            assertEquals(RewardedAdStatus.AwaitingConfirmation, viewModel.state.value.status)
+
+            // Both calls must hit the watchJob.isActive guard and short-circuit.
+            viewModel.onWatchAd(activity)
+            viewModel.onRetry(activity)
+            runCurrent()
+
+            // Status is unchanged — no fresh loadBlock or second watch loop was started.
+            assertEquals(RewardedAdStatus.AwaitingConfirmation, viewModel.state.value.status)
+
+            // Release the gate; the single in-flight loop exhausts all retries.
+            confirmationGate.complete(Unit)
+            runCurrent()
+
+            // One loop reaches ConfirmationTimeout — confirming only a single loop was in flight.
+            assertEquals(RewardedAdStatus.ConfirmationTimeout, viewModel.state.value.status)
+        }
+
     // STATE-STUCK-WAITING-001 fix: null cached state in confirmReward must set Unavailable, not
     // leave the block in a permanent AwaitingConfirmation.
     @Test
@@ -381,6 +520,59 @@ class RewardedAdViewModelTest {
             // Release the wait so the in-flight coroutine can finish cleanly.
             confirmationGate.complete(Unit)
             runCurrent()
+        }
+
+    // ─── totalWatched field mapping ──────────────────────────────────────────────
+
+    // Verifies toRewardProgress() passes totalWatched from AdRewardState to RewardProgress so the
+    // TotalAdsWatchedBadge can read the lifetime counter without an extra repository query.
+    @Test
+    fun `totalWatched from AdRewardState is surfaced on reward in Ready state`() =
+        runTest {
+            val fakeRepo = FakeAdRewardRepository()
+            fakeRepo.seedState(rewardState(progress = 3, required = 5, totalWatched = 42))
+            val fakeGateway = FakeAdGateway().apply { loadResult = AdLoadResult.Loaded }
+            val viewModel = createViewModel(fakeRepo = fakeRepo, fakeGateway = fakeGateway)
+
+            viewModel.onBlockShown(activity)
+            runCurrent()
+
+            assertEquals(RewardedAdStatus.Ready, viewModel.state.value.status)
+            assertEquals(42, viewModel.state.value.reward?.totalWatched)
+        }
+
+    // ─── WATCH-COUNTED-001: frozen view confirmed via totalWatched ───────────────
+    // Regression (prod project shwzjlkhlpgbmzgnxhxi): with Plus already active every reward row is
+    // frozen, so progress stays 0 and plusActive stays true — only totalWatched moves (6 -> 7). The
+    // view IS confirmed: the block must leave AwaitingConfirmation, publish the new totalWatched,
+    // never reach ConfirmationTimeout, and re-arm a fresh ad so Watch is usable again without Retry.
+    @Test
+    fun `WatchCounted outcome while Plus active publishes totalWatched, avoids timeout and re-arms watch`() =
+        runTest {
+            val fakeRepo = FakeAdRewardRepository()
+            fakeRepo.seedState(rewardState(progress = 0, required = 5, plusActive = true, totalWatched = 6))
+            val countedState = rewardState(progress = 0, required = 5, plusActive = true, totalWatched = 7)
+            fakeRepo.seedConfirmationOutcome(ConfirmationOutcome.WatchCounted(countedState))
+            val fakeGateway =
+                FakeAdGateway().apply {
+                    loadResult = AdLoadResult.Loaded
+                    showResult = AdShowResult.Dismissed(rewardEarned = true)
+                }
+            val viewModel = createViewModel(fakeRepo = fakeRepo, fakeGateway = fakeGateway)
+
+            viewModel.onBlockShown(activity)
+            runCurrent()
+            assertEquals(RewardedAdStatus.Ready, viewModel.state.value.status)
+            val loadsBeforeWatch = fakeGateway.loadRewardedCalls
+
+            viewModel.onWatchAd(activity)
+            runCurrent()
+
+            assertNotEquals(RewardedAdStatus.ConfirmationTimeout, viewModel.state.value.status)
+            assertNotEquals(RewardedAdStatus.AwaitingConfirmation, viewModel.state.value.status)
+            assertEquals(RewardedAdStatus.Ready, viewModel.state.value.status)
+            assertEquals(7, viewModel.state.value.reward?.totalWatched)
+            assertTrue(fakeGateway.loadRewardedCalls > loadsBeforeWatch)
         }
 
     // ─── Load timeout guard ──────────────────────────────────────────────────────

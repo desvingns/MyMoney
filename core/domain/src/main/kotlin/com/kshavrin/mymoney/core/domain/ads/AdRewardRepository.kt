@@ -21,5 +21,9 @@ sealed interface ConfirmationOutcome {
         val state: AdRewardState,
     ) : ConfirmationOutcome
 
+    data class WatchCounted(
+        val state: AdRewardState,
+    ) : ConfirmationOutcome
+
     data object PendingConfirmation : ConfirmationOutcome
 }

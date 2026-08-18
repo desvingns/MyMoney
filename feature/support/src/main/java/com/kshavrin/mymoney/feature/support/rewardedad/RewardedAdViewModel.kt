@@ -59,7 +59,7 @@ class RewardedAdViewModel
                         when (val result = withContext(ioDispatcher) { adGateway.showRewarded(activity) }) {
                             is AdShowResult.Dismissed ->
                                 if (result.rewardEarned) {
-                                    confirmReward()
+                                    confirmReward(activity)
                                 } else {
                                     loadAvailability(activity)
                                 }
@@ -134,38 +134,36 @@ class RewardedAdViewModel
             }
         }
 
-        private suspend fun confirmReward() {
+        private suspend fun confirmReward(activity: Activity) {
             val previous = observeAdRewardState.state.value
             if (previous == null) {
                 _state.value = _state.value.copy(status = RewardedAdStatus.Unavailable)
                 return
             }
             _state.value = _state.value.copy(status = RewardedAdStatus.AwaitingConfirmation)
-            repeat(CONFIRMATION_MAX_RETRIES) {
-                when (val outcome = withContext(ioDispatcher) { observeAdRewardState.awaitConfirmation(previous) }) {
-                    is ConfirmationOutcome.ProgressIncreased -> {
-                        _state.value =
-                            _state.value.copy(
-                                status = RewardedAdStatus.Ready,
-                                reward = outcome.state.toRewardProgress(),
-                            )
-                        return
+            val confirmed =
+                withTimeoutOrNull(CONFIRMATION_MAX_WAIT_MILLIS) {
+                    repeat(CONFIRMATION_MAX_RETRIES) {
+                        val outcome = withContext(ioDispatcher) { observeAdRewardState.awaitConfirmation(previous) }
+                        outcome.confirmedState()?.let { return@withTimeoutOrNull it }
                     }
-
-                    is ConfirmationOutcome.PlusGranted -> {
-                        _state.value =
-                            _state.value.copy(
-                                status = RewardedAdStatus.Ready,
-                                reward = outcome.state.toRewardProgress(),
-                            )
-                        return
-                    }
-
-                    ConfirmationOutcome.PendingConfirmation -> Unit
+                    null
                 }
+            if (confirmed == null) {
+                _state.value = _state.value.copy(status = RewardedAdStatus.ConfirmationTimeout)
+                return
             }
-            _state.value = _state.value.copy(status = RewardedAdStatus.ConfirmationTimeout)
+            _state.value = _state.value.copy(reward = confirmed.toRewardProgress())
+            loadAvailability(activity)
         }
+
+        private fun ConfirmationOutcome.confirmedState(): AdRewardState? =
+            when (this) {
+                is ConfirmationOutcome.ProgressIncreased -> state
+                is ConfirmationOutcome.PlusGranted -> state
+                is ConfirmationOutcome.WatchCounted -> state
+                ConfirmationOutcome.PendingConfirmation -> null
+            }
 
         private fun applyUnavailable(availability: AdAvailability) {
             _state.value =
@@ -195,3 +193,4 @@ private fun AdRewardState.toRewardProgress(): RewardProgress =
 
 private const val AD_LOAD_TIMEOUT_MILLIS = 25_000L
 private const val CONFIRMATION_MAX_RETRIES = 10
+private const val CONFIRMATION_MAX_WAIT_MILLIS = 35_000L

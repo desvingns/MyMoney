@@ -13,6 +13,6 @@ class AdRewardBackoff(
 
     companion object {
         const val MAXIMUM_WAIT_MILLIS = 30_000L
-        val DEFAULT_DELAYS_MILLIS = listOf(1_000L, 2_000L, 4_000L, 8_000L, 12_000L)
+        val DEFAULT_DELAYS_MILLIS = listOf(250L, 500L, 1_000L, 2_000L, 4_000L, 8_000L, 12_000L)
     }
 }

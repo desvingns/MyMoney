@@ -5,9 +5,11 @@ import com.kshavrin.mymoney.core.common.exception.SyncException
 import com.kshavrin.mymoney.core.domain.model.EntitlementSnapshot
 import com.kshavrin.mymoney.core.domain.model.EntitlementSource
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 import javax.inject.Inject
 import javax.inject.Singleton
 import java.time.Instant
@@ -19,6 +21,16 @@ class SupabaseEntitlementApi
         private val auth: SharedAuth,
         private val http: SupabaseHttpTransport,
     ) {
+        suspend fun bindGooglePlayPurchase(purchaseToken: String): Result<Unit> {
+            val accessToken = auth.accessToken().getOrElse { return Result.failure(it) }
+            return http
+                .post(
+                    path = "functions/v1/bind-google-play-purchase",
+                    payload = buildJsonObject { put("purchase_token", purchaseToken) },
+                    accessToken = accessToken,
+                ).map { Unit }
+        }
+
         suspend fun getMyEntitlement(): Result<EntitlementSnapshot?> {
             val accessToken = auth.accessToken().getOrElse { return Result.failure(it) }
             return http

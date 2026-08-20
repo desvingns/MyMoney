@@ -398,10 +398,22 @@ class PlayBillingGateway
         ): PurchaseOutcome =
             plusSubscriptionClient
                 .processPurchase(billingClient, purchase)
-                .also { outcome ->
-                    if (refreshAfterPurchase && outcome is PurchaseOutcome.Purchased) {
-                        entitlementRepository.refresh()
+                .let { outcome ->
+                    if (outcome !is PurchaseOutcome.Purchased) {
+                        return@let outcome
                     }
+
+                    entitlementRepository
+                        .bindGooglePlayPurchase(outcome.purchaseToken)
+                        .fold(
+                            onSuccess = {
+                                if (refreshAfterPurchase) {
+                                    entitlementRepository.refresh()
+                                }
+                                outcome
+                            },
+                            onFailure = { PurchaseOutcome.NetworkError },
+                        )
                 }
 
         private fun deliverToActivePurchase(outcome: PurchaseOutcome) {

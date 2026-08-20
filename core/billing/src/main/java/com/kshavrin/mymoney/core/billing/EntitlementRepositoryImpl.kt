@@ -41,6 +41,11 @@ class EntitlementRepositoryImpl
                     initialValue = UserEntitlement.Free,
                 )
 
+        override suspend fun bindGooglePlayPurchase(purchaseToken: String): Result<Unit> =
+            withContext(ioDispatcher) {
+                api.bindGooglePlayPurchase(purchaseToken)
+            }
+
         override suspend fun refresh(): Result<Unit> =
             withContext(ioDispatcher) {
                 val previous = entitlement.value

@@ -1,19 +1,25 @@
 package com.kshavrin.mymoney.core.billing
 
 import com.kshavrin.mymoney.core.common.di.IoDispatcher
+import com.kshavrin.mymoney.core.common.exception.SyncError
+import com.kshavrin.mymoney.core.common.exception.SyncException
 import com.kshavrin.mymoney.core.common.scope.ApplicationScope
 import com.kshavrin.mymoney.core.datastore.EntitlementCache
 import com.kshavrin.mymoney.core.domain.analytics.AnalyticsGateway
 import com.kshavrin.mymoney.core.domain.model.UserEntitlement
 import com.kshavrin.mymoney.core.domain.repository.EntitlementRepository
 import com.kshavrin.mymoney.core.domain.usecase.EntitlementStateMachine
+import com.kshavrin.mymoney.core.network.shared.AuthSessionLifecycle
+import com.kshavrin.mymoney.core.network.shared.SharedAuth
 import com.kshavrin.mymoney.core.network.shared.SupabaseEntitlementApi
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.Clock
 import javax.inject.Inject
@@ -25,16 +31,31 @@ class EntitlementRepositoryImpl
     constructor(
         private val api: SupabaseEntitlementApi,
         private val cache: EntitlementCache,
+        private val auth: SharedAuth,
+        private val authSessionLifecycle: AuthSessionLifecycle,
         private val clock: Clock,
         analytics: AnalyticsGateway,
         @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
-        @ApplicationScope applicationScope: CoroutineScope,
+        @ApplicationScope private val applicationScope: CoroutineScope,
     ) : EntitlementRepository {
         private val funnelTracker = SubscriptionFunnelTracker(analytics)
+        private val activeUserId = MutableStateFlow(currentUserId())
+
+        init {
+            authSessionLifecycle.addInvalidationListener {
+                activeUserId.value = currentUserId()
+                applicationScope.launch(ioDispatcher) { cache.clear() }
+            }
+        }
 
         override val entitlement: StateFlow<UserEntitlement> =
-            cache.cachedEntitlement
-                .map { cached -> EntitlementStateMachine.resolve(cached.snapshot, clock.instant()) }
+            combine(cache.cachedEntitlement, activeUserId) { cached, activeUserId ->
+                if (cached.ownerUserId == activeUserId && activeUserId != null) {
+                    EntitlementStateMachine.resolve(cached.snapshot, clock.instant())
+                } else {
+                    UserEntitlement.Free
+                }
+            }
                 .stateIn(
                     scope = applicationScope,
                     started = SharingStarted.Eagerly,
@@ -48,13 +69,25 @@ class EntitlementRepositoryImpl
 
         override suspend fun refresh(): Result<Unit> =
             withContext(ioDispatcher) {
+                val ownerUserId = currentUserId()
+                    ?: return@withContext Result.failure(SyncException(SyncError.Auth))
                 val previous = entitlement.value
                 api
                     .getMyEntitlement()
                     .mapCatching { snapshot ->
+                        if (currentUserId() != ownerUserId) {
+                            throw SyncException(SyncError.Auth)
+                        }
                         val now = clock.instant()
-                        cache.update(snapshot = snapshot, lastValidatedAt = now)
+                        cache.update(
+                            snapshot = snapshot,
+                            lastValidatedAt = now,
+                            ownerUserId = ownerUserId,
+                        )
                         funnelTracker.onServerConfirmed(previous = previous, snapshot = snapshot, now = now)
                     }
             }
+
+        private fun currentUserId(): String? =
+            auth.currentSession()?.user?.id?.takeIf(String::isNotBlank)
     }

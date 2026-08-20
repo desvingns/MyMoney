@@ -303,7 +303,7 @@ class PlayBillingGateway
                             .queryPurchases(billingClient)
                             .map { purchase -> processSubscriptionPurchase(purchase, refreshAfterPurchase = false) }
                             .also { purchases ->
-                                if (purchases.isNotEmpty()) {
+                                if (purchases.any { it is PurchaseOutcome.Purchased }) {
                                     entitlementRepository.refresh()
                                 }
                             }

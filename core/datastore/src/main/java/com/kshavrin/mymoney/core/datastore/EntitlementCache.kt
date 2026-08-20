@@ -18,6 +18,7 @@ import javax.inject.Singleton
 data class CachedEntitlement(
     val snapshot: EntitlementSnapshot?,
     val lastValidatedAt: Instant?,
+    val ownerUserId: String?,
 )
 
 interface EntitlementCache {
@@ -26,7 +27,10 @@ interface EntitlementCache {
     suspend fun update(
         snapshot: EntitlementSnapshot?,
         lastValidatedAt: Instant,
+        ownerUserId: String,
     )
+
+    suspend fun clear()
 }
 
 @Singleton
@@ -41,15 +45,18 @@ class DataStoreEntitlementCache
                     CachedEntitlement(
                         snapshot = preferences.toEntitlementSnapshot(),
                         lastValidatedAt = preferences[LAST_VALIDATED_AT]?.let(Instant::ofEpochMilli),
+                        ownerUserId = preferences[OWNER_USER_ID],
                     )
                 }.distinctUntilChanged()
 
         override suspend fun update(
             snapshot: EntitlementSnapshot?,
             lastValidatedAt: Instant,
+            ownerUserId: String,
         ) {
             dataStore.edit { preferences ->
                 preferences[LAST_VALIDATED_AT] = lastValidatedAt.toEpochMilli()
+                preferences[OWNER_USER_ID] = ownerUserId
                 if (snapshot == null) {
                     preferences.removeSnapshot()
                 } else {
@@ -61,6 +68,14 @@ class DataStoreEntitlementCache
                     snapshot.revokedAt?.let { preferences[REVOKED_AT] = it.toEpochMilli() }
                         ?: preferences.remove(REVOKED_AT)
                 }
+            }
+        }
+
+        override suspend fun clear() {
+            dataStore.edit { preferences ->
+                preferences.removeSnapshot()
+                preferences.remove(LAST_VALIDATED_AT)
+                preferences.remove(OWNER_USER_ID)
             }
         }
 
@@ -92,5 +107,6 @@ class DataStoreEntitlementCache
             val IN_TRIAL = booleanPreferencesKey("entitlement_in_trial")
             val REVOKED_AT = longPreferencesKey("entitlement_revoked_at")
             val LAST_VALIDATED_AT = longPreferencesKey("entitlement_last_validated_at")
+            val OWNER_USER_ID = stringPreferencesKey("entitlement_owner_user_id")
         }
     }

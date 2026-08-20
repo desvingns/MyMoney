@@ -4,6 +4,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
+@SerialName("com.kshavrin.mymoney.core.ui.navigation.PaywallEntryPoint")
 enum class PaywallEntryPoint {
     SupportSection,
     SharedSyncGate,

@@ -76,6 +76,7 @@ import com.google.android.gms.auth.api.identity.Identity
 import com.google.android.gms.common.AccountPicker
 import com.google.android.gms.common.api.Scope
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.api.services.drive.DriveScopes
 import com.kshavrin.mymoney.core.common.exception.reportToSentry
@@ -112,6 +113,7 @@ import com.kshavrin.mymoney.core.ui.theme.sharedSyncStartingContainer
 import com.kshavrin.mymoney.core.ui.theme.sharedSyncStartingContent
 import com.kshavrin.mymoney.core.ui.theme.sharedSyncStatusOutline
 import com.kshavrin.mymoney.core.ui.navigation.PaywallEntryPoint
+import kotlinx.coroutines.CancellationException
 import java.security.MessageDigest
 import java.security.SecureRandom
 import java.time.Instant
@@ -247,14 +249,42 @@ fun CloudSyncRoute(
                             ),
                     )
                 } catch (t: Throwable) {
+                    if (t is CancellationException) throw t
                     t.reportToSentry()
+                    runCatching {
+                        sharedCredentialManager.getCredential(
+                            context = activity,
+                            request =
+                                sharedGoogleSignInCredentialRequest(
+                                    webClientId,
+                                    sharedGoogleCredentialNonce(nonce),
+                                ),
+                        )
+                    }.getOrElse {
+                        if (it is CancellationException) throw it
+                        it.reportToSentry()
+                        viewModel.onEvent(CloudSyncEvent.SharedSignInFailed)
+                        return
+                    }
+                }
+            } catch (t: Throwable) {
+                if (t is CancellationException) throw t
+                t.reportToSentry()
+                runCatching {
+                    sharedCredentialManager.getCredential(
+                        context = activity,
+                        request =
+                            sharedGoogleSignInCredentialRequest(
+                                webClientId,
+                                sharedGoogleCredentialNonce(nonce),
+                            ),
+                    )
+                }.getOrElse {
+                    if (it is CancellationException) throw it
+                    it.reportToSentry()
                     viewModel.onEvent(CloudSyncEvent.SharedSignInFailed)
                     return
                 }
-            } catch (t: Throwable) {
-                t.reportToSentry()
-                viewModel.onEvent(CloudSyncEvent.SharedSignInFailed)
-                return
             }
         val credential = result.credential as? CustomCredential
         val idToken =
@@ -1538,6 +1568,19 @@ internal fun sharedGoogleCredentialRequest(
                 .setFilterByAuthorizedAccounts(authorizedAccountsOnly)
                 .setAutoSelectEnabled(authorizedAccountsOnly)
                 .setServerClientId(normalizeSharedGoogleWebClientId(webClientId))
+                .setNonce(nonce)
+                .build(),
+        ).build()
+
+internal fun sharedGoogleSignInCredentialRequest(
+    webClientId: String,
+    nonce: String,
+): GetCredentialRequest =
+    GetCredentialRequest
+        .Builder()
+        .addCredentialOption(
+            GetSignInWithGoogleOption
+                .Builder(normalizeSharedGoogleWebClientId(webClientId))
                 .setNonce(nonce)
                 .build(),
         ).build()

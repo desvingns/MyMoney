@@ -4,6 +4,10 @@
 }
 -keep class **$$serializer { *; }
 
+# Navigation Compose type-safe args: enum route arguments are resolved via
+# Class.forName(serialName) at runtime, so their original name must survive R8.
+-keep class com.kshavrin.mymoney.core.ui.navigation.** extends java.lang.Enum { *; }
+
 # Room
 -keep class * extends androidx.room.RoomDatabase
 -keep @androidx.room.Entity class *

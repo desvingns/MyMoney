@@ -7,9 +7,11 @@ import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.NoCredentialException
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.kshavrin.mymoney.core.common.exception.reportToSentry
 import com.kshavrin.mymoney.core.network.BuildConfig
+import kotlinx.coroutines.CancellationException
 import java.security.MessageDigest
 import java.security.SecureRandom
 import javax.inject.Inject
@@ -48,12 +50,40 @@ class CredentialManagerGoogleIdTokenProvider
                                 ),
                         )
                     } catch (t: Throwable) {
+                        if (t is CancellationException) throw t
                         t.reportToSentry()
-                        return Result.failure(t)
+                        runCatching {
+                            credentialManager.getCredential(
+                                context = activity,
+                                request =
+                                    sharedGoogleSignInCredentialRequest(
+                                        webClientId,
+                                        sharedGoogleCredentialNonce(nonce),
+                                    ),
+                            )
+                        }.getOrElse {
+                            if (it is CancellationException) throw it
+                            it.reportToSentry()
+                            return Result.failure(it)
+                        }
                     }
                 } catch (t: Throwable) {
+                    if (t is CancellationException) throw t
                     t.reportToSentry()
-                    return Result.failure(t)
+                    runCatching {
+                        credentialManager.getCredential(
+                            context = activity,
+                            request =
+                                sharedGoogleSignInCredentialRequest(
+                                    webClientId,
+                                    sharedGoogleCredentialNonce(nonce),
+                                ),
+                        )
+                    }.getOrElse {
+                        if (it is CancellationException) throw it
+                        it.reportToSentry()
+                        return Result.failure(it)
+                    }
                 }
             val credential = result.credential as? CustomCredential
             val idToken =
@@ -109,6 +139,19 @@ private fun sharedGoogleCredentialRequest(
                 .setFilterByAuthorizedAccounts(authorizedAccountsOnly)
                 .setAutoSelectEnabled(authorizedAccountsOnly)
                 .setServerClientId(normalizeSharedGoogleWebClientId(webClientId))
+                .setNonce(nonce)
+                .build(),
+        ).build()
+
+private fun sharedGoogleSignInCredentialRequest(
+    webClientId: String,
+    nonce: String,
+): GetCredentialRequest =
+    GetCredentialRequest
+        .Builder()
+        .addCredentialOption(
+            GetSignInWithGoogleOption
+                .Builder(normalizeSharedGoogleWebClientId(webClientId))
                 .setNonce(nonce)
                 .build(),
         ).build()

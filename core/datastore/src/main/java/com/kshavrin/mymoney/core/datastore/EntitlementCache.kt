@@ -32,7 +32,10 @@ interface EntitlementCache {
         ownerSessionGeneration: Long,
     )
 
-    suspend fun clear()
+    suspend fun clear(
+        ownerUserId: String,
+        ownerSessionGeneration: Long,
+    )
 }
 
 @Singleton
@@ -76,12 +79,20 @@ class DataStoreEntitlementCache
             }
         }
 
-        override suspend fun clear() {
+        override suspend fun clear(
+            ownerUserId: String,
+            ownerSessionGeneration: Long,
+        ) {
             dataStore.edit { preferences ->
-                preferences.removeSnapshot()
-                preferences.remove(LAST_VALIDATED_AT)
-                preferences.remove(OWNER_USER_ID)
-                preferences.remove(OWNER_SESSION_GENERATION)
+                if (
+                    preferences[OWNER_USER_ID] == ownerUserId &&
+                    preferences[OWNER_SESSION_GENERATION] == ownerSessionGeneration
+                ) {
+                    preferences.removeSnapshot()
+                    preferences.remove(LAST_VALIDATED_AT)
+                    preferences.remove(OWNER_USER_ID)
+                    preferences.remove(OWNER_SESSION_GENERATION)
+                }
             }
         }
 

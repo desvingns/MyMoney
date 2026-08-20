@@ -40,14 +40,24 @@ class EntitlementRepositoryImpl
         @ApplicationScope private val applicationScope: CoroutineScope,
     ) : EntitlementRepository {
         private val funnelTracker = SubscriptionFunnelTracker(analytics)
-        private val authSessionGeneration = MutableStateFlow(0L)
+        // The initial generation accepts the persisted cache until local auth invalidates it.
+        private val authSessionGeneration = MutableStateFlow(COLD_START_GENERATION)
         private val activeUserId = MutableStateFlow(currentUserId())
 
         init {
             authSessionLifecycle.addInvalidationListener {
+                val invalidatedOwnerUserId = activeUserId.value
+                val invalidatedGeneration = authSessionGeneration.value
                 authSessionGeneration.update { generation -> generation + 1L }
                 activeUserId.value = currentUserId()
-                applicationScope.launch(ioDispatcher) { cache.clear() }
+                invalidatedOwnerUserId?.let { ownerUserId ->
+                    applicationScope.launch(ioDispatcher) {
+                        cache.clear(
+                            ownerUserId = ownerUserId,
+                            ownerSessionGeneration = invalidatedGeneration,
+                        )
+                    }
+                }
             }
         }
 
@@ -60,7 +70,10 @@ class EntitlementRepositoryImpl
                 if (
                     cached.ownerUserId == activeUserId &&
                     activeUserId != null &&
-                    cached.ownerSessionGeneration == currentSessionGeneration
+                    (
+                        currentSessionGeneration == COLD_START_GENERATION ||
+                            cached.ownerSessionGeneration == currentSessionGeneration
+                    )
                 ) {
                     EntitlementStateMachine.resolve(cached.snapshot, clock.instant())
                 } else {
@@ -106,4 +119,8 @@ class EntitlementRepositoryImpl
 
         private fun currentUserId(): String? =
             auth.currentSession()?.user?.id?.takeIf(String::isNotBlank)
+
+        private companion object {
+            const val COLD_START_GENERATION = 0L
+        }
     }

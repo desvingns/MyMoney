@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.Clock
+import java.util.concurrent.atomic.AtomicLong
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -39,10 +40,12 @@ class EntitlementRepositoryImpl
         @ApplicationScope private val applicationScope: CoroutineScope,
     ) : EntitlementRepository {
         private val funnelTracker = SubscriptionFunnelTracker(analytics)
+        private val authSessionGeneration = AtomicLong()
         private val activeUserId = MutableStateFlow(currentUserId())
 
         init {
             authSessionLifecycle.addInvalidationListener {
+                authSessionGeneration.incrementAndGet()
                 activeUserId.value = currentUserId()
                 applicationScope.launch(ioDispatcher) { cache.clear() }
             }
@@ -71,11 +74,15 @@ class EntitlementRepositoryImpl
             withContext(ioDispatcher) {
                 val ownerUserId = currentUserId()
                     ?: return@withContext Result.failure(SyncException(SyncError.Auth))
+                val refreshGeneration = authSessionGeneration.get()
                 val previous = entitlement.value
                 api
                     .getMyEntitlement()
                     .mapCatching { snapshot ->
-                        if (currentUserId() != ownerUserId) {
+                        if (
+                            authSessionGeneration.get() != refreshGeneration ||
+                            currentUserId() != ownerUserId
+                        ) {
                             throw SyncException(SyncError.Auth)
                         }
                         val now = clock.instant()

@@ -19,6 +19,7 @@ data class CachedEntitlement(
     val snapshot: EntitlementSnapshot?,
     val lastValidatedAt: Instant?,
     val ownerUserId: String?,
+    val ownerSessionGeneration: Long,
 )
 
 interface EntitlementCache {
@@ -28,6 +29,7 @@ interface EntitlementCache {
         snapshot: EntitlementSnapshot?,
         lastValidatedAt: Instant,
         ownerUserId: String,
+        ownerSessionGeneration: Long,
     )
 
     suspend fun clear()
@@ -46,6 +48,7 @@ class DataStoreEntitlementCache
                         snapshot = preferences.toEntitlementSnapshot(),
                         lastValidatedAt = preferences[LAST_VALIDATED_AT]?.let(Instant::ofEpochMilli),
                         ownerUserId = preferences[OWNER_USER_ID],
+                        ownerSessionGeneration = preferences[OWNER_SESSION_GENERATION] ?: Long.MIN_VALUE,
                     )
                 }.distinctUntilChanged()
 
@@ -53,10 +56,12 @@ class DataStoreEntitlementCache
             snapshot: EntitlementSnapshot?,
             lastValidatedAt: Instant,
             ownerUserId: String,
+            ownerSessionGeneration: Long,
         ) {
             dataStore.edit { preferences ->
                 preferences[LAST_VALIDATED_AT] = lastValidatedAt.toEpochMilli()
                 preferences[OWNER_USER_ID] = ownerUserId
+                preferences[OWNER_SESSION_GENERATION] = ownerSessionGeneration
                 if (snapshot == null) {
                     preferences.removeSnapshot()
                 } else {
@@ -76,6 +81,7 @@ class DataStoreEntitlementCache
                 preferences.removeSnapshot()
                 preferences.remove(LAST_VALIDATED_AT)
                 preferences.remove(OWNER_USER_ID)
+                preferences.remove(OWNER_SESSION_GENERATION)
             }
         }
 
@@ -108,5 +114,6 @@ class DataStoreEntitlementCache
             val REVOKED_AT = longPreferencesKey("entitlement_revoked_at")
             val LAST_VALIDATED_AT = longPreferencesKey("entitlement_last_validated_at")
             val OWNER_USER_ID = stringPreferencesKey("entitlement_owner_user_id")
+            val OWNER_SESSION_GENERATION = longPreferencesKey("entitlement_owner_session_generation")
         }
     }

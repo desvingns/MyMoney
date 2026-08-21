@@ -576,6 +576,7 @@ class SharedSyncCoordinatorImpl
                         } catch (failure: Throwable) {
                             if (failure is CancellationException) throw failure
                             failure.reportToSentry()
+                            throw failure
                         }
                     }
                     currentCoroutineContext().ensureActive()

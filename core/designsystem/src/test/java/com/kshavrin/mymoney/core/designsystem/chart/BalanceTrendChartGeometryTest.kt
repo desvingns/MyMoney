@@ -1,5 +1,7 @@
 package com.kshavrin.mymoney.core.designsystem.chart
 
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -215,43 +217,165 @@ class BalanceTrendChartGeometryTest {
         assertEquals(width, g.marker!!.x, 0.5f)
     }
 
-    // ---- ChartColorRule (D9) ----
+    // ---- ChartColorRule and renderer geometry ----
 
     @Test
-    fun `BySign rule resolves to Income when last value is positive`() {
-        val values = listOf(1f, 5f, 3f)
-        val rule = ChartColorRule.BySign
-        val lastValue = values.last()
-        val isIncome = rule == ChartColorRule.BySign && lastValue >= 0f
-        assertTrue(isIncome)
+    fun `ChartColorRule exposes exactly the four canonical modes and their persisted ids`() {
+        assertEquals(
+            listOf(
+                ChartColorRule.Solid,
+                ChartColorRule.AlwaysGreen,
+                ChartColorRule.AlwaysRed,
+                ChartColorRule.ByDirection,
+            ),
+            ChartColorRule.entries.toList(),
+        )
+        assertEquals(
+            listOf("solid", "always_green", "always_red", "by_direction"),
+            ChartColorRule.entries.map(ChartColorRule::id),
+        )
     }
 
     @Test
-    fun `BySign rule resolves to Expense when last value is negative`() {
-        val values = listOf(4f, 3f, 1f, -2f, -3f)
-        val rule = ChartColorRule.BySign
-        val lastValue = values.last()
-        val isExpense = rule == ChartColorRule.BySign && lastValue < 0f
-        assertTrue(isExpense)
+    fun `Default color rule is ByDirection`() {
+        assertEquals(ChartColorRule.ByDirection, ChartColorRule.Default)
     }
 
     @Test
-    fun `BySign rule resolves to Income when last value is zero`() {
-        val values = listOf(-1f, 0f)
-        val rule = ChartColorRule.BySign
-        val lastValue = values.last()
-        val isIncome = rule == ChartColorRule.BySign && lastValue >= 0f
-        assertTrue(isIncome)
+    fun `canonical color modes resolve to their required line colors`() {
+        val solid = Color.Blue
+        val income = Color.Green
+        val expense = Color.Red
+
+        assertEquals(solid, resolveBalanceTrendChartLineColor(ChartColorRule.Solid, solid, income, expense))
+        assertEquals(income, resolveBalanceTrendChartLineColor(ChartColorRule.AlwaysGreen, solid, income, expense))
+        assertEquals(expense, resolveBalanceTrendChartLineColor(ChartColorRule.AlwaysRed, solid, income, expense))
+        assertEquals(income, resolveBalanceTrendChartLineColor(ChartColorRule.ByDirection, solid, income, expense))
     }
 
     @Test
-    fun `Income rule is distinct from Expense rule`() {
-        assertTrue(ChartColorRule.Income != ChartColorRule.Expense)
+    fun `projection colors stay green and red independently of the line color mode`() {
+        val income = Color.Green
+        val expense = Color.Red
+        val colors = balanceTrendChartProjectionColors(income, expense)
+
+        assertEquals(income.copy(alpha = 0.22f), colors.above)
+        assertEquals(expense.copy(alpha = 0.22f), colors.below)
     }
 
     @Test
-    fun `Default color rule is BySign`() {
-        assertEquals(ChartColorRule.BySign, ChartColorRule.Default)
+    fun `linear splitter divides a strict crossing at the requested horizontal line`() {
+        val segments =
+            splitBalanceTrendChartSegmentsAtHorizontalLine(
+                points = listOf(Offset(0f, -5f), Offset(10f, 5f)),
+                horizontalLineY = 0f,
+            )
+
+        assertEquals(2, segments.size)
+        assertEquals(Offset(5f, 0f), segments[0].end)
+        assertEquals(Offset(5f, 0f), segments[1].start)
+        assertEquals(BalanceTrendChartHorizontalZone.AboveOrOn, segments[0].zone)
+        assertEquals(BalanceTrendChartHorizontalZone.Below, segments[1].zone)
+    }
+
+    @Test
+    fun `linear splitter keeps touch points green and only splits strict sign changes`() {
+        val touched =
+            splitBalanceTrendChartSegmentsAtHorizontalLine(
+                points = listOf(Offset(0f, 0f), Offset(10f, 0f)),
+                horizontalLineY = 0f,
+            )
+        val startTouch =
+            splitBalanceTrendChartSegmentsAtHorizontalLine(
+                points = listOf(Offset(0f, 0f), Offset(10f, -5f)),
+                horizontalLineY = 0f,
+            )
+
+        assertEquals(1, touched.size)
+        assertEquals(BalanceTrendChartHorizontalZone.AboveOrOn, touched.single().zone)
+        assertEquals(1, startTouch.size)
+        assertEquals(BalanceTrendChartHorizontalZone.AboveOrOn, startTouch.single().zone)
+    }
+
+    @Test
+    fun `linear splitter keeps single-sign segments in one deterministic zone`() {
+        val above =
+            splitBalanceTrendChartSegmentsAtHorizontalLine(
+                points = listOf(Offset(0f, -5f), Offset(10f, -1f)),
+                horizontalLineY = 0f,
+            )
+        val below =
+            splitBalanceTrendChartSegmentsAtHorizontalLine(
+                points = listOf(Offset(0f, 5f), Offset(10f, 1f)),
+                horizontalLineY = 0f,
+            )
+
+        assertEquals(BalanceTrendChartHorizontalZone.AboveOrOn, above.single().zone)
+        assertEquals(BalanceTrendChartHorizontalZone.Below, below.single().zone)
+    }
+
+    @Test
+    fun `linear splitter handles the by-direction fixture and degenerate series`() {
+        val segments =
+            splitBalanceTrendChartSegmentsAtHorizontalLine(
+                points = listOf(Offset(0f, 1000f), Offset(1f, 1200f), Offset(2f, 800f)),
+                horizontalLineY = 1000f,
+            )
+
+        assertEquals(3, segments.size)
+        assertEquals(Offset(1.5f, 1000f), segments[1].end)
+        assertEquals(BalanceTrendChartHorizontalZone.Below, segments[0].zone)
+        assertEquals(BalanceTrendChartHorizontalZone.Below, segments[1].zone)
+        assertEquals(BalanceTrendChartHorizontalZone.AboveOrOn, segments[2].zone)
+        assertTrue(splitBalanceTrendChartSegmentsAtHorizontalLine(emptyList(), 0f).isEmpty())
+        assertTrue(splitBalanceTrendChartSegmentsAtHorizontalLine(listOf(Offset.Zero), 0f).isEmpty())
+    }
+
+    @Test
+    fun `smooth projection uses the same split cubic geometry as the visible smooth line`() {
+        val points = listOf(Offset(0f, 0f), Offset(100f, 100f))
+        val projection =
+            calculateBalanceTrendChartProjectionSegments(
+                points = points,
+                baseline = 50f,
+                style = ChartStyle.Smooth,
+            )
+
+        assertEquals(2, projection.size)
+        val first = (projection[0] as BalanceTrendChartProjectionSegment.Cubic).segment.cubic
+        val second = (projection[1] as BalanceTrendChartProjectionSegment.Cubic).segment.cubic
+        assertEquals(50f, first.end.x, 0.001f)
+        assertEquals(50f, first.end.y, 0.001f)
+        assertEquals(50f, second.start.x, 0.001f)
+        assertEquals(50f, second.start.y, 0.001f)
+        assertEquals(25f, first.firstControl.x, 0.001f)
+        assertEquals(0f, first.firstControl.y, 0.001f)
+        assertEquals(37.5f, first.secondControl.x, 0.001f)
+        assertEquals(25f, first.secondControl.y, 0.001f)
+        assertEquals(62.5f, second.firstControl.x, 0.001f)
+        assertEquals(75f, second.firstControl.y, 0.001f)
+        assertEquals(75f, second.secondControl.x, 0.001f)
+        assertEquals(100f, second.secondControl.y, 0.001f)
+    }
+
+    @Test
+    fun `projection geometry is absent for bars and linear for line style`() {
+        val points = listOf(Offset(0f, -5f), Offset(10f, 5f))
+
+        assertTrue(
+            calculateBalanceTrendChartProjectionSegments(
+                points = points,
+                baseline = 0f,
+                style = ChartStyle.Bars,
+            ).isEmpty(),
+        )
+        assertTrue(
+            calculateBalanceTrendChartProjectionSegments(
+                points = points,
+                baseline = 0f,
+                style = ChartStyle.Line,
+            ).all { it is BalanceTrendChartProjectionSegment.Linear },
+        )
     }
 
     // ---- acceptance scenarios from SPEC ----

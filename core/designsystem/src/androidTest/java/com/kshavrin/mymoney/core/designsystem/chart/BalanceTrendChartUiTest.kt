@@ -44,6 +44,7 @@ class BalanceTrendChartUiTest {
         metricLabel: String? = null,
         colorRule: ChartColorRule = ChartColorRule.Default,
         style: ChartStyle = ChartStyle.Default,
+        showProjection: Boolean = false,
     ) {
         composeTestRule.setContent {
             MyMoneyTheme {
@@ -56,6 +57,7 @@ class BalanceTrendChartUiTest {
                     showLabels = showLabels,
                     colorRule = colorRule,
                     style = style,
+                    showProjection = showProjection,
                 )
             }
         }
@@ -93,11 +95,17 @@ class BalanceTrendChartUiTest {
         }
     }
 
-    private fun captureStylePixels(style: ChartStyle): IntArray {
+    private fun captureStylePixels(
+        style: ChartStyle,
+        colorRule: ChartColorRule = ChartColorRule.Default,
+        showProjection: Boolean = false,
+    ): IntArray {
         setContent(
-            points = listOf(1f, 5f, 2f, 6f),
+            points = listOf(4f, -4f, 4f),
             showGridlines = false,
             style = style,
+            colorRule = colorRule,
+            showProjection = showProjection,
         )
         composeTestRule.waitForIdle()
         val image = composeTestRule.onNodeWithTag(BALANCE_TREND_CHART_TAG).captureToImage()
@@ -169,6 +177,101 @@ class BalanceTrendChartUiTest {
     }
 
     @Test
+    fun `all 24 frozen color rule projection and style cells render`() {
+        val matrixCells =
+            buildList {
+                ChartColorRule.entries.forEach { colorRule ->
+                    listOf(false, true).forEach { showProjection ->
+                        ChartStyle.entries.forEach { style ->
+                            add(Triple(colorRule, showProjection, style))
+                        }
+                    }
+                }
+            }
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                Column(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState()),
+                ) {
+                    matrixCells.forEach { (colorRule, showProjection, style) ->
+                        val tag = "matrix_${colorRule.id}_${showProjection}_${style.name}"
+                        Box(modifier = Modifier.testTag(tag)) {
+                            BalanceTrendChart(
+                                points = listOf(4f, -4f, 4f),
+                                modifier = Modifier.fillMaxWidth(),
+                                showGridlines = false,
+                                colorRule = colorRule,
+                                style = style,
+                                showProjection = showProjection,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        composeTestRule.waitForIdle()
+
+        composeTestRule
+            .onAllNodesWithTag(BALANCE_TREND_CHART_TAG)
+            .assertCountEquals(24)
+        matrixCells.forEach { (colorRule, showProjection, style) ->
+            val tag = "matrix_${colorRule.id}_${showProjection}_${style.name}"
+            composeTestRule.onNodeWithTag(tag).assertExists()
+        }
+    }
+
+    @Test
+    fun `projection changes line and smooth but leaves Bars unchanged for every color rule`() {
+        ChartColorRule.entries.forEach { colorRule ->
+            val barsWithoutProjection = captureStylePixels(ChartStyle.Bars, colorRule, showProjection = false)
+            val barsWithProjection = captureStylePixels(ChartStyle.Bars, colorRule, showProjection = true)
+            assertTrue(
+                "Bars must ignore showProjection for ${colorRule.id}",
+                barsWithoutProjection.contentEquals(barsWithProjection),
+            )
+
+            listOf(ChartStyle.Line, ChartStyle.Smooth).forEach { style ->
+                val withoutProjection = captureStylePixels(style, colorRule, showProjection = false)
+                val withProjection = captureStylePixels(style, colorRule, showProjection = true)
+                assertFalse(
+                    "${style.name} must draw its zero-axis projection for ${colorRule.id}",
+                    withoutProjection.contentEquals(withProjection),
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `chartHeight remains the ninth positional parameter`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                BalanceTrendChart(
+                    listOf(1f, 2f, 3f),
+                    Modifier.fillMaxWidth(),
+                    emptyList(),
+                    null,
+                    false,
+                    false,
+                    ChartColorRule.Solid,
+                    ChartStyle.Line,
+                    120.dp,
+                )
+            }
+        }
+
+        val bounds =
+            composeTestRule
+                .onNodeWithTag(BALANCE_TREND_CHART_TAG)
+                .assertExists()
+                .fetchSemanticsNode()
+                .boundsInRoot
+        assertEquals(with(composeTestRule.density) { 120.dp.toPx() }, bounds.height, 2f)
+    }
+
+    @Test
     fun `empty series renders a chart node without crashing`() {
         setContent(emptyList())
         composeTestRule
@@ -237,7 +340,7 @@ class BalanceTrendChartUiTest {
     }
 
     @Test
-    fun summaryUsesSuppliedMetricIntradayPeriodLocalizedValuesAndIncreasingDirection() {
+    fun `ByDirection summary reports direction relative to the start`() {
         val labels = listOf("0", "2", "4")
         val metricLabel = "Income + expense"
         val points = listOf(1234.5f, 1800f, 2500.75f)
@@ -246,6 +349,7 @@ class BalanceTrendChartUiTest {
             labels = labels,
             metricLabel = metricLabel,
             showLabels = true,
+            colorRule = ChartColorRule.ByDirection,
         )
 
         val expectedPeriod = targetString(R.string.balance_trend_chart_period_range, labels.first(), labels.last())
@@ -361,32 +465,32 @@ class BalanceTrendChartUiTest {
     }
 
     @Test
-    fun `BySign rule on positive-last series renders the chart node`() {
-        setContent(listOf(10f, 6f, 12f, 12f, 15f), colorRule = ChartColorRule.BySign)
+    fun `Solid rule renders the chart node`() {
+        setContent(listOf(10f, 6f, 12f, 12f, 15f), colorRule = ChartColorRule.Solid)
         composeTestRule
             .onNodeWithTag(BALANCE_TREND_CHART_TAG)
             .assertExists()
     }
 
     @Test
-    fun `BySign rule on negative-last series renders the chart node`() {
-        setContent(listOf(4f, 3f, 1f, -2f, -3f), colorRule = ChartColorRule.BySign)
+    fun `AlwaysGreen rule renders the chart node`() {
+        setContent(listOf(4f, 3f, 1f, -2f, -3f), colorRule = ChartColorRule.AlwaysGreen)
         composeTestRule
             .onNodeWithTag(BALANCE_TREND_CHART_TAG)
             .assertExists()
     }
 
     @Test
-    fun `Income rule renders the chart node`() {
-        setContent(listOf(1f, 2f, 3f), colorRule = ChartColorRule.Income)
+    fun `AlwaysRed rule renders the chart node`() {
+        setContent(listOf(1f, 2f, 3f), colorRule = ChartColorRule.AlwaysRed)
         composeTestRule
             .onNodeWithTag(BALANCE_TREND_CHART_TAG)
             .assertExists()
     }
 
     @Test
-    fun `Expense rule renders the chart node`() {
-        setContent(listOf(1f, 2f, 3f), colorRule = ChartColorRule.Expense)
+    fun `ByDirection rule renders the chart node`() {
+        setContent(listOf(1000f, 1200f, 800f), colorRule = ChartColorRule.ByDirection)
         composeTestRule
             .onNodeWithTag(BALANCE_TREND_CHART_TAG)
             .assertExists()
@@ -469,16 +573,16 @@ class BalanceTrendChartUiTest {
     }
 
     @Test
-    fun `Smooth style with BySign color rule renders chart node without crash`() {
-        setContent(listOf(10f, 6f, 12f, 12f, 15f), colorRule = ChartColorRule.BySign, style = ChartStyle.Smooth)
+    fun `Smooth style with ByDirection color rule renders chart node without crash`() {
+        setContent(listOf(10f, 6f, 12f, 12f, 15f), colorRule = ChartColorRule.ByDirection, style = ChartStyle.Smooth)
         composeTestRule
             .onNodeWithTag(BALANCE_TREND_CHART_TAG)
             .assertExists()
     }
 
     @Test
-    fun `Smooth style with BySign negative series renders chart node without crash`() {
-        setContent(listOf(-5f, -3f, -8f, -1f), colorRule = ChartColorRule.BySign, style = ChartStyle.Smooth)
+    fun `Smooth style with ByDirection negative series renders chart node without crash`() {
+        setContent(listOf(-5f, -3f, -8f, -1f), colorRule = ChartColorRule.ByDirection, style = ChartStyle.Smooth)
         composeTestRule
             .onNodeWithTag(BALANCE_TREND_CHART_TAG)
             .assertExists()

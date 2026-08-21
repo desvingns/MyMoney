@@ -60,6 +60,34 @@ private data class BalanceTrendChartPalette(
     val byDirection: Boolean,
 )
 
+internal fun resolveBalanceTrendChartLineColor(
+    colorRule: ChartColorRule,
+    solidColor: Color,
+    incomeColor: Color,
+    expenseColor: Color,
+): Color =
+    when (colorRule) {
+        ChartColorRule.Solid -> solidColor
+        ChartColorRule.AlwaysGreen,
+        ChartColorRule.ByDirection,
+        -> incomeColor
+        ChartColorRule.AlwaysRed -> expenseColor
+    }
+
+internal data class BalanceTrendChartProjectionColors(
+    val above: Color,
+    val below: Color,
+)
+
+internal fun balanceTrendChartProjectionColors(
+    incomeColor: Color,
+    expenseColor: Color,
+): BalanceTrendChartProjectionColors =
+    BalanceTrendChartProjectionColors(
+        above = incomeColor.copy(alpha = 0.22f),
+        below = expenseColor.copy(alpha = 0.22f),
+    )
+
 private data class BalanceTrendChartLabelDrawCache(
     val layout: TextLayoutResult,
     val topLeft: Offset,
@@ -72,6 +100,7 @@ private data class BalanceTrendChartStyleDrawCache(
     val markerRadius: Float,
     val barWidth: Float,
     val smoothPath: Path,
+    val smoothSegments: List<BalanceTrendChartCubicSegment>,
     val smoothGlowStroke: Stroke,
     val smoothStroke: Stroke,
     val directionSmoothGlowStroke: Stroke,
@@ -81,7 +110,7 @@ private data class BalanceTrendChartStyleDrawCache(
     val waveLastDotColor: Color,
     val barColor: Color,
     val directionSegments: List<BalanceTrendChartHorizontalSegment>,
-    val directionSmoothPaths: List<Path>,
+    val directionSmoothPaths: List<BalanceTrendChartCubicPathSegment>,
     val aboveWaveGlowColor: Color,
     val belowWaveGlowColor: Color,
     val aboveLastDotColor: Color,
@@ -131,6 +160,39 @@ internal data class BalanceTrendChartHorizontalSegment(
     val zone: BalanceTrendChartHorizontalZone,
 )
 
+internal data class BalanceTrendChartCubicSegment(
+    val start: Offset,
+    val firstControl: Offset,
+    val secondControl: Offset,
+    val end: Offset,
+)
+
+internal data class BalanceTrendChartCubicHorizontalSegment(
+    val cubic: BalanceTrendChartCubicSegment,
+    val zone: BalanceTrendChartHorizontalZone,
+)
+
+private data class BalanceTrendChartCubicPathSegment(
+    val path: Path,
+    val zone: BalanceTrendChartHorizontalZone,
+)
+
+internal sealed interface BalanceTrendChartProjectionSegment {
+    val zone: BalanceTrendChartHorizontalZone
+
+    data class Linear(
+        val segment: BalanceTrendChartHorizontalSegment,
+    ) : BalanceTrendChartProjectionSegment {
+        override val zone = segment.zone
+    }
+
+    data class Cubic(
+        val segment: BalanceTrendChartCubicHorizontalSegment,
+    ) : BalanceTrendChartProjectionSegment {
+        override val zone = segment.zone
+    }
+}
+
 internal fun splitBalanceTrendChartSegmentsAtHorizontalLine(
     points: List<Offset>,
     horizontalLineY: Float,
@@ -168,6 +230,153 @@ internal fun splitBalanceTrendChartSegmentsAtHorizontalLine(
         }
     }
     return segments
+}
+
+internal fun buildBalanceTrendChartSmoothSegments(
+    points: List<Offset>,
+): List<BalanceTrendChartCubicSegment> {
+    if (points.size < 2) return emptyList()
+
+    return ArrayList<BalanceTrendChartCubicSegment>(points.lastIndex).apply {
+        for (index in 0 until points.lastIndex) {
+            val start = points[index]
+            val end = points[index + 1]
+            val midpointX = (start.x + end.x) / 2f
+            add(
+                BalanceTrendChartCubicSegment(
+                    start = start,
+                    firstControl = Offset(midpointX, start.y),
+                    secondControl = Offset(midpointX, end.y),
+                    end = end,
+                ),
+            )
+        }
+    }
+}
+
+internal fun splitBalanceTrendChartSmoothSegmentsAtHorizontalLine(
+    segments: List<BalanceTrendChartCubicSegment>,
+    horizontalLineY: Float,
+): List<BalanceTrendChartCubicHorizontalSegment> {
+    if (segments.isEmpty()) return emptyList()
+
+    return ArrayList<BalanceTrendChartCubicHorizontalSegment>(segments.size).apply {
+        for (segment in segments) {
+            val startDistance = segment.start.y - horizontalLineY
+            val endDistance = segment.end.y - horizontalLineY
+            if (startDistance * endDistance < 0f) {
+                val (first, second) = splitCubicAtHorizontalLine(segment, horizontalLineY)
+                add(
+                    BalanceTrendChartCubicHorizontalSegment(
+                        cubic = first,
+                        zone = horizontalZoneFor(segment.start, horizontalLineY),
+                    ),
+                )
+                add(
+                    BalanceTrendChartCubicHorizontalSegment(
+                        cubic = second,
+                        zone = horizontalZoneFor(segment.end, horizontalLineY),
+                    ),
+                )
+            } else {
+                add(
+                    BalanceTrendChartCubicHorizontalSegment(
+                        cubic = segment,
+                        zone = horizontalZoneForSegment(startDistance, endDistance),
+                    ),
+                )
+            }
+        }
+    }
+}
+
+internal fun calculateBalanceTrendChartProjectionSegments(
+    points: List<Offset>,
+    baseline: Float,
+    style: ChartStyle,
+    smoothSegments: List<BalanceTrendChartCubicSegment>? = null,
+): List<BalanceTrendChartProjectionSegment> =
+    when (style) {
+        ChartStyle.Bars -> emptyList()
+        ChartStyle.Line ->
+            splitBalanceTrendChartSegmentsAtHorizontalLine(points, baseline).map {
+                BalanceTrendChartProjectionSegment.Linear(it)
+            }
+
+        ChartStyle.Smooth ->
+            splitBalanceTrendChartSmoothSegmentsAtHorizontalLine(
+                segments = smoothSegments ?: buildBalanceTrendChartSmoothSegments(points),
+                horizontalLineY = baseline,
+            ).map {
+                BalanceTrendChartProjectionSegment.Cubic(it)
+            }
+    }
+
+private fun splitCubicAtHorizontalLine(
+    segment: BalanceTrendChartCubicSegment,
+    horizontalLineY: Float,
+): Pair<BalanceTrendChartCubicSegment, BalanceTrendChartCubicSegment> {
+    var lowerT = 0f
+    var upperT = 1f
+    val ascending = segment.start.y < segment.end.y
+    repeat(24) {
+        val midpointT = (lowerT + upperT) / 2f
+        val midpointY = segment.yAt(midpointT)
+        val isBeforeIntersection =
+            if (ascending) {
+                midpointY < horizontalLineY
+            } else {
+                midpointY > horizontalLineY
+            }
+        if (isBeforeIntersection) {
+            lowerT = midpointT
+        } else {
+            upperT = midpointT
+        }
+    }
+    val (first, second) = segment.splitAt((lowerT + upperT) / 2f)
+    val intersection = first.end.copy(y = horizontalLineY)
+    return first.copy(end = intersection) to second.copy(start = intersection)
+}
+
+private fun BalanceTrendChartCubicSegment.yAt(t: Float): Float {
+    val inverseT = 1f - t
+    return (
+        inverseT * inverseT * inverseT * start.y +
+            3f * inverseT * inverseT * t * firstControl.y +
+            3f * inverseT * t * t * secondControl.y +
+            t * t * t * end.y
+    )
+}
+
+private fun BalanceTrendChartCubicSegment.splitAt(
+    t: Float,
+): Pair<BalanceTrendChartCubicSegment, BalanceTrendChartCubicSegment> {
+    fun interpolate(
+        start: Offset,
+        end: Offset,
+    ): Offset = Offset(start.x + (end.x - start.x) * t, start.y + (end.y - start.y) * t)
+
+    val startFirst = interpolate(start, firstControl)
+    val controls = interpolate(firstControl, secondControl)
+    val secondEnd = interpolate(secondControl, end)
+    val firstSecond = interpolate(startFirst, controls)
+    val secondFirst = interpolate(controls, secondEnd)
+    val intersection = interpolate(firstSecond, secondFirst)
+    return (
+        BalanceTrendChartCubicSegment(
+            start = start,
+            firstControl = startFirst,
+            secondControl = firstSecond,
+            end = intersection,
+        ) to
+            BalanceTrendChartCubicSegment(
+                start = intersection,
+                firstControl = secondFirst,
+                secondControl = secondEnd,
+                end = end,
+            )
+        )
 }
 
 private fun horizontalZoneFor(
@@ -291,18 +500,18 @@ fun BalanceTrendChart(
     showLabels: Boolean = false,
     colorRule: ChartColorRule = ChartColorRule.Default,
     style: ChartStyle = ChartStyle.Default,
-    showProjection: Boolean = false,
     chartHeight: Dp = Spacing.trendChartDefaultHeight,
+    showProjection: Boolean = false,
 ) {
     val incomeColor = MaterialTheme.colorScheme.incomeAccent
     val expenseColor = MaterialTheme.colorScheme.expenseAccent
     val lineColor =
-        when (colorRule) {
-            ChartColorRule.Solid -> MaterialTheme.colorScheme.dashboardAuroraAccent
-            ChartColorRule.AlwaysGreen -> incomeColor
-            ChartColorRule.AlwaysRed -> expenseColor
-            ChartColorRule.ByDirection -> incomeColor
-        }
+        resolveBalanceTrendChartLineColor(
+            colorRule = colorRule,
+            solidColor = MaterialTheme.colorScheme.dashboardAuroraAccent,
+            incomeColor = incomeColor,
+            expenseColor = expenseColor,
+        )
     val gridColor = MaterialTheme.colorScheme.trendChartGridLine
     val zeroLineColor = MaterialTheme.colorScheme.trendChartZeroLine
     val glowColor = MaterialTheme.colorScheme.trendChartMarkerGlow
@@ -480,6 +689,7 @@ private fun CacheDrawScope.buildBalanceTrendChartDrawCache(
                 showProjection = showProjection,
                 style = style,
                 palette = palette,
+                smoothSegments = styleCache.smoothSegments,
             ),
         labels = labelCache,
         labelColor = labelStyle.color,
@@ -506,17 +716,32 @@ private fun CacheDrawScope.buildBalanceTrendChartStyleDrawCache(
         } else {
             emptyList()
         }
+    val smoothSegments = buildBalanceTrendChartSmoothSegments(chartPoints)
+    val directionSmoothSegments =
+        if (palette.byDirection && chartPoints.isNotEmpty()) {
+            splitBalanceTrendChartSmoothSegmentsAtHorizontalLine(
+                segments = smoothSegments,
+                horizontalLineY = chartPoints.first().y,
+            )
+        } else {
+            emptyList()
+        }
     val directionSmoothPaths =
         if (palette.byDirection) {
-            ArrayList<Path>(directionSegments.size).apply {
-                for (segment in directionSegments) {
-                    add(Path().apply { buildSmoothSegment(segment.start, segment.end) })
+            ArrayList<BalanceTrendChartCubicPathSegment>(directionSmoothSegments.size).apply {
+                for (segment in directionSmoothSegments) {
+                    add(
+                        BalanceTrendChartCubicPathSegment(
+                            path = Path().apply { buildSmooth(segment.cubic) },
+                            zone = segment.zone,
+                        ),
+                    )
                 }
             }
         } else {
             emptyList()
         }
-    val smoothPath = Path().apply { buildSmooth(chartPoints) }
+    val smoothPath = Path().apply { buildSmooth(smoothSegments, chartPoints.firstOrNull()) }
 
     return BalanceTrendChartStyleDrawCache(
         baseline = baseline,
@@ -525,6 +750,7 @@ private fun CacheDrawScope.buildBalanceTrendChartStyleDrawCache(
         markerRadius = markerRadius,
         barWidth = calculateBalanceTrendChartBarWidth(chartPoints, chartWidth),
         smoothPath = smoothPath,
+        smoothSegments = smoothSegments,
         smoothGlowStroke = Stroke(width = lineStroke * 3.2f, cap = StrokeCap.Round, join = StrokeJoin.Round),
         smoothStroke = Stroke(width = lineStroke * 1.2f, cap = StrokeCap.Round, join = StrokeJoin.Round),
         directionSmoothGlowStroke = Stroke(width = lineStroke * 3.2f, cap = StrokeCap.Butt, join = StrokeJoin.Round),
@@ -550,12 +776,20 @@ private fun CacheDrawScope.buildBalanceTrendChartProjectionDrawCache(
     showProjection: Boolean,
     style: ChartStyle,
     palette: BalanceTrendChartPalette,
+    smoothSegments: List<BalanceTrendChartCubicSegment>,
 ): BalanceTrendChartProjectionDrawCache? {
     if (!showProjection || style == ChartStyle.Bars || geometry.points.size < 2) return null
 
     val abovePath = Path()
     val belowPath = Path()
-    val segments = splitBalanceTrendChartSegmentsAtHorizontalLine(geometry.points, baseline)
+    val colors = balanceTrendChartProjectionColors(palette.income, palette.expense)
+    val segments =
+        calculateBalanceTrendChartProjectionSegments(
+            points = geometry.points,
+            baseline = baseline,
+            style = style,
+            smoothSegments = smoothSegments,
+        )
     for (segment in segments) {
         val path =
             if (segment.zone == BalanceTrendChartHorizontalZone.AboveOrOn) {
@@ -563,17 +797,36 @@ private fun CacheDrawScope.buildBalanceTrendChartProjectionDrawCache(
             } else {
                 belowPath
             }
-        path.moveTo(segment.start.x, segment.start.y)
-        path.lineTo(segment.end.x, segment.end.y)
-        path.lineTo(segment.end.x, baseline)
-        path.lineTo(segment.start.x, baseline)
+        when (segment) {
+            is BalanceTrendChartProjectionSegment.Linear -> {
+                path.moveTo(segment.segment.start.x, segment.segment.start.y)
+                path.lineTo(segment.segment.end.x, segment.segment.end.y)
+                path.lineTo(segment.segment.end.x, baseline)
+                path.lineTo(segment.segment.start.x, baseline)
+            }
+
+            is BalanceTrendChartProjectionSegment.Cubic -> {
+                val cubic = segment.segment.cubic
+                path.moveTo(cubic.start.x, cubic.start.y)
+                path.cubicTo(
+                    cubic.firstControl.x,
+                    cubic.firstControl.y,
+                    cubic.secondControl.x,
+                    cubic.secondControl.y,
+                    cubic.end.x,
+                    cubic.end.y,
+                )
+                path.lineTo(cubic.end.x, baseline)
+                path.lineTo(cubic.start.x, baseline)
+            }
+        }
         path.close()
     }
     return BalanceTrendChartProjectionDrawCache(
         abovePath = abovePath,
         belowPath = belowPath,
-        aboveColor = palette.income.copy(alpha = 0.22f),
-        belowColor = palette.expense.copy(alpha = 0.22f),
+        aboveColor = colors.above,
+        belowColor = colors.below,
     )
 }
 
@@ -674,7 +927,6 @@ private fun DrawScope.drawCachedBalanceTrendChartStyle(
             if (palette.byDirection) {
                 drawCachedDirectionalSmoothPaths(
                     paths = styleCache.directionSmoothPaths,
-                    segments = styleCache.directionSegments,
                     aboveColor = palette.income,
                     belowColor = palette.expense,
                     aboveGlowColor = styleCache.aboveWaveGlowColor,
@@ -881,8 +1133,7 @@ private fun DrawScope.drawCachedDirectionalDots(
 }
 
 private fun DrawScope.drawCachedDirectionalSmoothPaths(
-    paths: List<Path>,
-    segments: List<BalanceTrendChartHorizontalSegment>,
+    paths: List<BalanceTrendChartCubicPathSegment>,
     aboveColor: Color,
     belowColor: Color,
     aboveGlowColor: Color,
@@ -890,10 +1141,10 @@ private fun DrawScope.drawCachedDirectionalSmoothPaths(
     glowStroke: Stroke,
     stroke: Stroke,
 ) {
-    for (index in paths.indices) {
-        val isAbove = segments[index].zone == BalanceTrendChartHorizontalZone.AboveOrOn
-        drawCachedPath(paths[index], if (isAbove) aboveGlowColor else belowGlowColor, glowStroke)
-        drawCachedPath(paths[index], if (isAbove) aboveColor else belowColor, stroke)
+    for (segment in paths) {
+        val isAbove = segment.zone == BalanceTrendChartHorizontalZone.AboveOrOn
+        drawCachedPath(segment.path, if (isAbove) aboveGlowColor else belowGlowColor, glowStroke)
+        drawCachedPath(segment.path, if (isAbove) aboveColor else belowColor, stroke)
     }
 }
 
@@ -936,23 +1187,35 @@ private fun lightenColor(
     )
 }
 
-private fun Path.buildSmooth(points: List<Offset>) {
+private fun Path.buildSmooth(
+    segments: List<BalanceTrendChartCubicSegment>,
+    fallbackPoint: Offset?,
+) {
     reset()
-    if (points.isEmpty()) return
-    moveTo(points.first().x, points.first().y)
-    for (index in 0 until points.lastIndex) {
-        val current = points[index]
-        val next = points[index + 1]
-        val midpointX = (current.x + next.x) / 2f
-        cubicTo(midpointX, current.y, midpointX, next.y, next.x, next.y)
+    val start = segments.firstOrNull()?.start ?: fallbackPoint ?: return
+    moveTo(start.x, start.y)
+    for (segment in segments) {
+        cubicTo(
+            segment.firstControl.x,
+            segment.firstControl.y,
+            segment.secondControl.x,
+            segment.secondControl.y,
+            segment.end.x,
+            segment.end.y,
+        )
     }
 }
 
-private fun Path.buildSmoothSegment(
-    start: Offset,
-    end: Offset,
+private fun Path.buildSmooth(
+    segment: BalanceTrendChartCubicSegment,
 ) {
-    moveTo(start.x, start.y)
-    val midpointX = (start.x + end.x) / 2f
-    cubicTo(midpointX, start.y, midpointX, end.y, end.x, end.y)
+    moveTo(segment.start.x, segment.start.y)
+    cubicTo(
+        segment.firstControl.x,
+        segment.firstControl.y,
+        segment.secondControl.x,
+        segment.secondControl.y,
+        segment.end.x,
+        segment.end.y,
+    )
 }

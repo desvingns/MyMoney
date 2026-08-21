@@ -125,18 +125,28 @@ fun ChartSettingsSheet(
             SectionLabel(stringResource(R.string.chart_settings_section_display))
             ToggleRow(
                 label = stringResource(R.string.chart_settings_gridlines),
+                contentDescription = stringResource(R.string.chart_settings_gridlines),
                 checked = config.showGridlines,
                 testTag = CHART_SETTINGS_GRIDLINES_TAG,
                 onCheckedChange = { onEvent(DashboardEvent.ChartGridlinesToggled(it)) },
             )
             ToggleRow(
                 label = stringResource(R.string.chart_settings_labels),
+                contentDescription = stringResource(R.string.chart_settings_labels),
                 checked = config.showLabels,
                 testTag = CHART_SETTINGS_LABELS_TAG,
                 onCheckedChange = { onEvent(DashboardEvent.ChartLabelsToggled(it)) },
             )
             ToggleRow(
+                label = stringResource(R.string.chart_settings_projection),
+                contentDescription = stringResource(R.string.chart_settings_projection_cd),
+                checked = config.showProjection,
+                testTag = CHART_SETTINGS_PROJECTION_TAG,
+                onCheckedChange = { onEvent(DashboardEvent.ChartProjectionToggled(it)) },
+            )
+            ToggleRow(
                 label = stringResource(R.string.chart_settings_visible),
+                contentDescription = stringResource(R.string.chart_settings_visible),
                 checked = config.visible,
                 testTag = CHART_SETTINGS_VISIBLE_TAG,
                 onCheckedChange = { onEvent(DashboardEvent.ChartVisibilityChanged(it)) },
@@ -266,6 +276,7 @@ private fun PointCountStepper(
 @Composable
 private fun ToggleRow(
     label: String,
+    contentDescription: String,
     checked: Boolean,
     testTag: String,
     onCheckedChange: (Boolean) -> Unit,
@@ -286,7 +297,10 @@ private fun ToggleRow(
         Switch(
             checked = checked,
             onCheckedChange = onCheckedChange,
-            modifier = Modifier.testTag(testTag),
+            modifier =
+                Modifier
+                    .testTag(testTag)
+                    .semantics { this.contentDescription = contentDescription },
         )
     }
 }
@@ -325,9 +339,22 @@ private fun metricOptions(): List<SegmentOption<ChartMetric>> =
 @Composable
 private fun colorRuleOptions(): List<SegmentOption<ChartColorRule>> =
     listOf(
-        SegmentOption(ChartColorRule.BySign, stringResource(R.string.chart_settings_color_by_sign), chartColorTag(ChartColorRule.BySign)),
-        SegmentOption(ChartColorRule.Income, stringResource(R.string.chart_settings_color_income), chartColorTag(ChartColorRule.Income)),
-        SegmentOption(ChartColorRule.Expense, stringResource(R.string.chart_settings_color_expense), chartColorTag(ChartColorRule.Expense)),
+        SegmentOption(ChartColorRule.Solid, stringResource(R.string.chart_settings_color_solid), chartColorTag(ChartColorRule.Solid)),
+        SegmentOption(
+            ChartColorRule.AlwaysGreen,
+            stringResource(R.string.chart_settings_color_always_green),
+            chartColorTag(ChartColorRule.AlwaysGreen),
+        ),
+        SegmentOption(
+            ChartColorRule.AlwaysRed,
+            stringResource(R.string.chart_settings_color_always_red),
+            chartColorTag(ChartColorRule.AlwaysRed),
+        ),
+        SegmentOption(
+            ChartColorRule.ByDirection,
+            stringResource(R.string.chart_settings_color_by_direction),
+            chartColorTag(ChartColorRule.ByDirection),
+        ),
     )
 
 private val STYLE_PREVIEW_POINTS = listOf(-1f, 0.5f, -0.5f, 1.2f, 0.8f)
@@ -337,6 +364,7 @@ const val CHART_SETTINGS_MODE_AUTO_TAG = "chart_settings_mode_auto"
 const val CHART_SETTINGS_MODE_MANUAL_TAG = "chart_settings_mode_manual"
 const val CHART_SETTINGS_GRIDLINES_TAG = "chart_settings_gridlines"
 const val CHART_SETTINGS_LABELS_TAG = "chart_settings_labels"
+const val CHART_SETTINGS_PROJECTION_TAG = "chart_settings_projection"
 const val CHART_SETTINGS_VISIBLE_TAG = "chart_settings_visible"
 const val CHART_SETTINGS_POINTS_DECREASE_TAG = "chart_settings_points_decrease"
 const val CHART_SETTINGS_POINTS_INCREASE_TAG = "chart_settings_points_increase"

@@ -105,12 +105,15 @@
     <string name="chart_settings_metric_period_net">Period balance</string>
     <string name="chart_settings_metric_income_expense">Income + expense</string>
 
-    <string name="chart_settings_color_by_sign">By sign</string>
-    <string name="chart_settings_color_income">Always green</string>
-    <string name="chart_settings_color_expense">By trend</string>
+    <string name="chart_settings_color_solid">Solid</string>
+    <string name="chart_settings_color_always_green">Always green</string>
+    <string name="chart_settings_color_always_red">Always red</string>
+    <string name="chart_settings_color_by_direction">By direction</string>
 
     <string name="chart_settings_gridlines">Vertical lines</string>
     <string name="chart_settings_labels">Labels</string>
+    <string name="chart_settings_projection">Projections</string>
+    <string name="chart_settings_projection_cd">Toggle projections</string>
     <string name="chart_settings_visible">Show chart</string>
 
     <string name="chart_settings_points_decrease">Fewer points</string>

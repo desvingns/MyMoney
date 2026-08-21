@@ -105,12 +105,15 @@
     <string name="chart_settings_metric_period_net">Остаток за период</string>
     <string name="chart_settings_metric_income_expense">Доход + расход</string>
 
-    <string name="chart_settings_color_by_sign">По знаку</string>
-    <string name="chart_settings_color_income">Всегда зелёный</string>
-    <string name="chart_settings_color_expense">По тренду</string>
+    <string name="chart_settings_color_solid">Однотонный</string>
+    <string name="chart_settings_color_always_green">Всегда зелёный</string>
+    <string name="chart_settings_color_always_red">Всегда красный</string>
+    <string name="chart_settings_color_by_direction">По направлению</string>
 
     <string name="chart_settings_gridlines">Вертикальные линии</string>
     <string name="chart_settings_labels">Подписи</string>
+    <string name="chart_settings_projection">Проекции</string>
+    <string name="chart_settings_projection_cd">Переключить проекции</string>
     <string name="chart_settings_visible">Показывать график</string>
 
     <string name="chart_settings_points_decrease">Меньше точек</string>

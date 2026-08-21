@@ -819,7 +819,7 @@ class SharedSyncCoordinatorImpl
             } catch (t: Throwable) {
                 if (t is CancellationException) throw t
                 t.reportToSentry()
-                if (t is SharedIntegrityException) PullOperationResult.Deferred else PullOperationResult.Completed
+                if (t is SharedIntegrityException) PullOperationResult.Deferred else throw t
             }
 
         private suspend fun applyOperation(operation: SharedOperation) {

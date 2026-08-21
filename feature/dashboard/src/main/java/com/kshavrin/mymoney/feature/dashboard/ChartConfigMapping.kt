@@ -5,39 +5,49 @@ import com.kshavrin.mymoney.core.designsystem.chart.ChartColorRule
 import com.kshavrin.mymoney.core.designsystem.chart.ChartStyle
 import com.kshavrin.mymoney.core.domain.model.ChartMetric
 
-// Stable snake_case ids for each persisted chart enum. These are the contract with AppSettings
-// (SPEC 02) — the persisted default is "neon_line"/"follow"/"cumulative"/"by_sign". Unknown ids
-// fall back to the enum's default so a future/older config never crashes the dashboard.
+fun chartStyleFromId(id: String): ChartStyle =
+    when (id) {
+        "bars", "rounded_bars" -> ChartStyle.Bars
+        "smooth",
+        "smooth_line",
+        "smooth_area",
+        "stepped_area",
+        "neon_area",
+        "vertical_gradient_area",
+        "mountain",
+        "baseline_fill",
+        -> ChartStyle.Smooth
 
-private val chartStyleIds: Map<String, ChartStyle> =
-    mapOf(
-        "neon_line" to ChartStyle.NeonLine,
-        "neon_area" to ChartStyle.NeonArea,
-        "smooth_line" to ChartStyle.SmoothLine,
-        "smooth_area" to ChartStyle.SmoothArea,
-        "stepped_line" to ChartStyle.SteppedLine,
-        "stepped_area" to ChartStyle.SteppedArea,
-        "bars" to ChartStyle.Bars,
-        "rounded_bars" to ChartStyle.RoundedBars,
-        "dots_line" to ChartStyle.DotsLine,
-        "dots_only" to ChartStyle.DotsOnly,
-        "gradient_stroke" to ChartStyle.GradientStroke,
-        "dual_glow" to ChartStyle.DualGlow,
-        "dashed_line" to ChartStyle.DashedLine,
-        "thin_minimal" to ChartStyle.ThinMinimal,
-        "thick_bold" to ChartStyle.ThickBold,
-        "baseline_fill" to ChartStyle.BaselineFill,
-        "vertical_gradient_area" to ChartStyle.VerticalGradientArea,
-        "candy_segments" to ChartStyle.CandySegments,
-        "mountain" to ChartStyle.Mountain,
-        "ribbon" to ChartStyle.Ribbon,
-    )
+        "line",
+        "neon_line",
+        "stepped_line",
+        "dots_line",
+        "dots_only",
+        "gradient_stroke",
+        "dual_glow",
+        "dashed_line",
+        "thin_minimal",
+        "thick_bold",
+        "candy_segments",
+        "ribbon",
+        -> ChartStyle.Line
 
-private val chartStyleToId: Map<ChartStyle, String> = chartStyleIds.entries.associate { it.value to it.key }
+        else -> ChartStyle.Default
+    }
 
-fun chartStyleFromId(id: String): ChartStyle = chartStyleIds[id] ?: ChartStyle.Default
+fun ChartStyle.toId(): String =
+    when (this) {
+        ChartStyle.Bars -> "bars"
+        ChartStyle.Line -> "line"
+        ChartStyle.Smooth -> "smooth"
+    }
 
-fun ChartStyle.toId(): String = chartStyleToId[this] ?: chartStyleToId.getValue(ChartStyle.Default)
+internal fun chartStyleLabelRes(style: ChartStyle): Int =
+    when (style) {
+        ChartStyle.Bars -> R.string.chart_settings_style_bars
+        ChartStyle.Line -> R.string.chart_settings_style_line
+        ChartStyle.Smooth -> R.string.chart_settings_style_smooth
+    }
 
 private val periodTypeIds: Map<String, ChartPeriodType> =
     mapOf(

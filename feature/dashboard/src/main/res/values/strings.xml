@@ -116,7 +116,9 @@
     <string name="chart_settings_points_decrease">Fewer points</string>
     <string name="chart_settings_points_increase">More points</string>
 
-    <string name="chart_settings_style_option">Chart style</string>
+    <string name="chart_settings_style_bars">Bars</string>
+    <string name="chart_settings_style_line">Line</string>
+    <string name="chart_settings_style_smooth">Smooth</string>
 
     <string name="chart_hidden_hint">Chart hidden</string>
     <string name="dashboard_account_toggle_cd">Account view: %1$s, %2$s</string>

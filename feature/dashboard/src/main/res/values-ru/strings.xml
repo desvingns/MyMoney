@@ -116,7 +116,9 @@
     <string name="chart_settings_points_decrease">Меньше точек</string>
     <string name="chart_settings_points_increase">Больше точек</string>
 
-    <string name="chart_settings_style_option">Стиль графика</string>
+    <string name="chart_settings_style_bars">Столбики</string>
+    <string name="chart_settings_style_line">Линия</string>
+    <string name="chart_settings_style_smooth">Плавная линия</string>
 
     <string name="chart_hidden_hint">График скрыт</string>
     <string name="dashboard_account_toggle_cd">Вид счетов: %1$s, %2$s</string>

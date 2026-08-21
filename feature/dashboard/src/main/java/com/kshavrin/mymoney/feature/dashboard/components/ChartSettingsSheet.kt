@@ -48,6 +48,7 @@ import com.kshavrin.mymoney.feature.dashboard.ChartPeriodType
 import com.kshavrin.mymoney.feature.dashboard.DashboardEvent
 import com.kshavrin.mymoney.feature.dashboard.R
 import com.kshavrin.mymoney.feature.dashboard.chartMetricLabelRes
+import com.kshavrin.mymoney.feature.dashboard.chartStyleLabelRes
 import com.kshavrin.mymoney.feature.dashboard.toId
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -159,7 +160,6 @@ private fun StyleRow(
     metricLabel: String,
     onSelected: (ChartStyle) -> Unit,
 ) {
-    val optionDescription = stringResource(R.string.chart_settings_style_option)
     Row(
         modifier =
             Modifier
@@ -169,6 +169,7 @@ private fun StyleRow(
     ) {
         ChartStyle.entries.forEach { style ->
             val isSelected = style == selected
+            val styleLabel = stringResource(chartStyleLabelRes(style))
             val borderColor =
                 if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
             Box(
@@ -183,7 +184,7 @@ private fun StyleRow(
                         ).clickable { onSelected(style) }
                         .testTag(chartStyleThumbTag(style))
                         .semantics {
-                            contentDescription = optionDescription
+                            contentDescription = styleLabel
                             this.selected = isSelected
                         },
                 contentAlignment = Alignment.Center,

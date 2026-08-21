@@ -119,10 +119,10 @@ class ChartSettingsSheetUiTest {
 
     @Test
     fun `tapping each style thumb emits exactly its selected chart family`() {
-        ChartStyle.entries.forEach { style ->
-            val captured = mutableListOf<DashboardEvent>()
-            setSheet(onEvent = { captured += it })
+        val captured = mutableListOf<DashboardEvent>()
+        setSheet(onEvent = { captured += it })
 
+        ChartStyle.entries.forEachIndexed { index, style ->
             composeTestRule
                 .onNodeWithTag(chartStyleThumbTag(style))
                 .performScrollTo()
@@ -130,7 +130,7 @@ class ChartSettingsSheetUiTest {
 
             composeTestRule.runOnIdle {
                 assertEquals(
-                    listOf(DashboardEvent.ChartStyleChanged(style)),
+                    ChartStyle.entries.take(index + 1).map { DashboardEvent.ChartStyleChanged(it) },
                     captured,
                 )
             }
@@ -314,6 +314,7 @@ class ChartSettingsSheetUiTest {
         ).forEach { (rule, resourceId) ->
             composeTestRule
                 .onNodeWithText(context.getString(resourceId))
+                .performScrollTo()
                 .assertIsDisplayed()
             composeTestRule
                 .onNodeWithTag(chartColorTag(rule))
@@ -472,10 +473,12 @@ class ChartSettingsSheetUiTest {
         ).forEach { (_, resourceId) ->
             composeTestRule
                 .onNodeWithText(context.getString(resourceId))
+                .performScrollTo()
                 .assertIsDisplayed()
         }
         composeTestRule
             .onNodeWithTag(CHART_SETTINGS_PROJECTION_TAG)
+            .performScrollTo()
             .assertContentDescriptionEquals(context.getString(R.string.chart_settings_projection_cd))
     }
 

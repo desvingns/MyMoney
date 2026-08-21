@@ -193,7 +193,7 @@ private fun StyleRow(
                             shape = MaterialTheme.shapes.small,
                         ).clickable { onSelected(style) }
                         .testTag(chartStyleThumbTag(style))
-                        .semantics {
+                        .semantics(mergeDescendants = true) {
                             contentDescription = styleLabel
                             this.selected = isSelected
                         },
@@ -225,7 +225,7 @@ private fun <T> SegmentedRow(
                 shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
                 modifier = Modifier.testTag(option.testTag),
             ) {
-                Text(text = option.label, maxLines = 1)
+                Text(text = option.label, maxLines = 2)
             }
         }
     }
@@ -299,6 +299,7 @@ private fun ToggleRow(
             onCheckedChange = onCheckedChange,
             modifier =
                 Modifier
+                    .heightIn(min = Spacing.chartSettingsSheetRowHeight)
                     .testTag(testTag)
                     .semantics { this.contentDescription = contentDescription },
         )

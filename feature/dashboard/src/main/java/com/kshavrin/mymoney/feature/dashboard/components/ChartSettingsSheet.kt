@@ -7,10 +7,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -65,11 +66,13 @@ fun ChartSettingsSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         modifier = Modifier.testTag(CHART_SETTINGS_SHEET_TAG),
+        contentWindowInsets = { WindowInsets(0, 0, 0, 0) },
     ) {
         Column(
             modifier =
                 Modifier
                     .fillMaxWidth()
+                    .navigationBarsPadding()
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = Spacing.l)
                     .padding(bottom = Spacing.l),
@@ -153,7 +156,6 @@ fun ChartSettingsSheet(
                 testTag = CHART_SETTINGS_VISIBLE_TAG,
                 onCheckedChange = { onEvent(DashboardEvent.ChartVisibilityChanged(it)) },
             )
-            Spacer(modifier = Modifier.height(Spacing.chartSettingsSheetRowHeight))
         }
     }
 }

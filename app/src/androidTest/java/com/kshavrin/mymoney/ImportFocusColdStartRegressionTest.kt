@@ -18,6 +18,7 @@ import com.kshavrin.mymoney.core.database.repository.CurrencyRepositoryImpl
 import com.kshavrin.mymoney.core.database.repository.TransactionRepositoryImpl
 import com.kshavrin.mymoney.core.database.transaction.RoomTransactionRunner
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepositoryImpl
+import com.kshavrin.mymoney.core.datastore.usecase.DashboardDataUseCase
 import com.kshavrin.mymoney.core.domain.csv.ImportCategoryStrategy
 import com.kshavrin.mymoney.core.domain.csv.ImportDataStrategy
 import com.kshavrin.mymoney.core.domain.csv.ImportPlan
@@ -234,15 +235,18 @@ class ImportFocusColdStartRegressionTest {
             try {
                 val viewModel =
                     DashboardViewModel(
-                        accountRepository = accountRepository,
-                        currencyRepository = currencyRepository,
+                        dashboardDataUseCase =
+                            DashboardDataUseCase(
+                                accountRepository = accountRepository,
+                                currencyRepository = currencyRepository,
+                                appSettingsRepository = settingsRepository,
+                                transactionRepository = transactionRepository,
+                                categoryRepository = categoryRepository,
+                            ),
                         balanceCalculator = balanceCalculator,
                         balanceTrendCalculator = BalanceTrendCalculator(),
                         intradayTrendCalculator = IntradayTrendCalculator(),
-                        appSettingsRepository = settingsRepository,
-                        transactionRepository = transactionRepository,
                         observeBudgetAlertsUseCase = observeBudgetAlerts,
-                        categoryRepository = categoryRepository,
                         journalSync = NoOpJournalSync(),
                         getCategoryRecords =
                             GetCategoryRecordsUseCase(

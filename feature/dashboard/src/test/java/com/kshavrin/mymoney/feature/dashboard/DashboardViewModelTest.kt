@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModelStore
 import androidx.paging.PagingData
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
 import com.kshavrin.mymoney.core.datastore.model.AppSettings
+import com.kshavrin.mymoney.core.datastore.usecase.DashboardDataUseCase
 import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.AccountType
 import com.kshavrin.mymoney.core.domain.model.BalanceSnapshot
@@ -3002,15 +3003,11 @@ class DashboardViewModelTest {
                                 defaultDispatcher = dispatcher,
                             )
                         return DashboardViewModel(
-                            accountRepository = accountRepository,
-                            currencyRepository = currencyRepository,
+                            dashboardDataUseCase = buildDashboardDataUseCase(gatedTransactionRepository),
                             balanceCalculator = calculator,
                             balanceTrendCalculator = BalanceTrendCalculator(),
                             intradayTrendCalculator = IntradayTrendCalculator(),
-                            appSettingsRepository = settingsRepository,
-                            transactionRepository = gatedTransactionRepository,
                             observeBudgetAlertsUseCase = alerts,
-                            categoryRepository = categoryRepository,
                             resolveRateUseCase = buildResolveRate(),
                             getCategoryRecords = getCategoryRecordsGated,
                             getOperationsSummary =
@@ -3452,6 +3449,17 @@ class DashboardViewModelTest {
             }
         }
 
+    private fun buildDashboardDataUseCase(
+        transactionRepository: TransactionRepository = this.transactionRepository,
+    ): DashboardDataUseCase =
+        DashboardDataUseCase(
+            accountRepository = accountRepository,
+            currencyRepository = currencyRepository,
+            appSettingsRepository = settingsRepository,
+            transactionRepository = transactionRepository,
+            categoryRepository = categoryRepository,
+        )
+
     private fun buildViewModel(): Pair<DashboardViewModel, ViewModelStore> {
         val dispatcher = mainDispatcherRule.testDispatcher
         val calculator =
@@ -3493,15 +3501,11 @@ class DashboardViewModelTest {
                 @Suppress("UNCHECKED_CAST")
                 override fun <T : ViewModel> create(modelClass: Class<T>): T =
                     DashboardViewModel(
-                        accountRepository = accountRepository,
-                        currencyRepository = currencyRepository,
+                        dashboardDataUseCase = buildDashboardDataUseCase(),
                         balanceCalculator = calculator,
                         balanceTrendCalculator = BalanceTrendCalculator(),
                         intradayTrendCalculator = IntradayTrendCalculator(),
-                        appSettingsRepository = settingsRepository,
-                        transactionRepository = transactionRepository,
                         observeBudgetAlertsUseCase = alerts,
-                        categoryRepository = categoryRepository,
                         resolveRateUseCase = buildResolveRate(),
                         getCategoryRecords = getCategoryRecords,
                         getOperationsSummary = getOperationsSummary,
@@ -3563,15 +3567,11 @@ class DashboardViewModelTest {
                 @Suppress("UNCHECKED_CAST")
                 override fun <T : ViewModel> create(modelClass: Class<T>): T =
                     DashboardViewModel(
-                        accountRepository = accountRepository,
-                        currencyRepository = currencyRepository,
+                        dashboardDataUseCase = buildDashboardDataUseCase(),
                         balanceCalculator = calculator,
                         balanceTrendCalculator = BalanceTrendCalculator(),
                         intradayTrendCalculator = IntradayTrendCalculator(),
-                        appSettingsRepository = settingsRepository,
-                        transactionRepository = transactionRepository,
                         observeBudgetAlertsUseCase = alerts,
-                        categoryRepository = categoryRepository,
                         resolveRateUseCase = buildResolveRate(rateRepository),
                         getCategoryRecords = getCategoryRecords,
                         getOperationsSummary = getOperationsSummary,
@@ -4351,16 +4351,127 @@ class DashboardViewModelTest {
         }
 
     @Test
+    fun `ChartProjectionToggled true persists through DashboardDataUseCase and does not recompute trend`() =
+        runTest {
+            transactionRepository.seedIncomeSummary(
+                cash.id,
+                initialPeriod,
+                summary(categoryId = 200L, amount = "100.00"),
+            )
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+                val trendBefore = viewModel.state.value.trendPoints
+                val summaryCallsBefore = transactionRepository.categorySummaryCallCount
+                assertTrue("the fixture must produce trend points", trendBefore.isNotEmpty())
+
+                viewModel.onEvent(DashboardEvent.ChartProjectionToggled(true))
+                runCurrent()
+
+                assertTrue(settingsRepository.currentSettings().chartShowProjection)
+                assertTrue(viewModel.state.value.chartConfig.showProjection)
+                assertEquals(trendBefore, viewModel.state.value.trendPoints)
+                assertEquals(summaryCallsBefore, transactionRepository.categorySummaryCallCount)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `ChartProjectionToggled false persists through DashboardDataUseCase and does not recompute trend`() =
+        runTest {
+            settingsRepository =
+                FakeDashboardAppSettingsRepository(
+                    AppSettings(
+                        defaultAccountId = cash.id,
+                        firstPositiveSeen = true,
+                        chartAutoMode = false,
+                        chartShowProjection = true,
+                    ),
+                )
+            transactionRepository.seedIncomeSummary(
+                cash.id,
+                initialPeriod,
+                summary(categoryId = 200L, amount = "100.00"),
+            )
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+                val trendBefore = viewModel.state.value.trendPoints
+                val summaryCallsBefore = transactionRepository.categorySummaryCallCount
+                assertTrue("the fixture must produce trend points", trendBefore.isNotEmpty())
+
+                viewModel.onEvent(DashboardEvent.ChartProjectionToggled(false))
+                runCurrent()
+
+                assertFalse(settingsRepository.currentSettings().chartShowProjection)
+                assertFalse(viewModel.state.value.chartConfig.showProjection)
+                assertEquals(trendBefore, viewModel.state.value.trendPoints)
+                assertEquals(summaryCallsBefore, transactionRepository.categorySummaryCallCount)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `visual chart settings persist without recomputing trend`() =
+        runTest {
+            transactionRepository.seedIncomeSummary(
+                cash.id,
+                initialPeriod,
+                summary(categoryId = 200L, amount = "100.00"),
+            )
+
+            val (viewModel, store) = buildViewModel()
+            try {
+                runCurrent()
+                val trendBefore = viewModel.state.value.trendPoints
+                val summaryCallsBefore = transactionRepository.categorySummaryCallCount
+                assertTrue("the fixture must produce trend points", trendBefore.isNotEmpty())
+
+                viewModel.onEvent(DashboardEvent.ChartProjectionToggled(true))
+                runCurrent()
+                assertEquals(summaryCallsBefore, transactionRepository.categorySummaryCallCount)
+                assertEquals(trendBefore, viewModel.state.value.trendPoints)
+
+                viewModel.onEvent(
+                    DashboardEvent.ChartColorRuleChanged(
+                        com.kshavrin.mymoney.core.designsystem.chart.ChartColorRule.AlwaysRed,
+                    ),
+                )
+                runCurrent()
+                assertEquals(summaryCallsBefore, transactionRepository.categorySummaryCallCount)
+                assertEquals(trendBefore, viewModel.state.value.trendPoints)
+
+                viewModel.onEvent(
+                    DashboardEvent.ChartStyleChanged(
+                        com.kshavrin.mymoney.core.designsystem.chart.ChartStyle.Bars,
+                    ),
+                )
+                runCurrent()
+                assertEquals(summaryCallsBefore, transactionRepository.categorySummaryCallCount)
+                assertEquals(trendBefore, viewModel.state.value.trendPoints)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
     fun `ChartColorRuleChanged persists the new color rule id to AppSettings`() =
         runTest {
             val (viewModel, store) = buildViewModel()
             try {
                 runCurrent()
 
-                viewModel.onEvent(DashboardEvent.ChartColorRuleChanged(com.kshavrin.mymoney.core.designsystem.chart.ChartColorRule.Expense))
+                viewModel.onEvent(DashboardEvent.ChartColorRuleChanged(com.kshavrin.mymoney.core.designsystem.chart.ChartColorRule.AlwaysRed))
                 runCurrent()
 
-                assertEquals("expense", settingsRepository.currentSettings().chartColorRule)
+                assertEquals("always_red", settingsRepository.currentSettings().chartColorRule)
             } finally {
                 store.clear()
                 runCurrent()
@@ -4969,15 +5080,11 @@ class DashboardViewModelTest {
                                 defaultDispatcher = dispatcher,
                             )
                         return DashboardViewModel(
-                            accountRepository = accountRepository,
-                            currencyRepository = currencyRepository,
+                            dashboardDataUseCase = buildDashboardDataUseCase(gatedRepo),
                             balanceCalculator = calculator,
                             balanceTrendCalculator = BalanceTrendCalculator(),
                             intradayTrendCalculator = IntradayTrendCalculator(),
-                            appSettingsRepository = settingsRepository,
-                            transactionRepository = gatedRepo,
                             observeBudgetAlertsUseCase = alerts,
-                            categoryRepository = categoryRepository,
                             resolveRateUseCase = buildResolveRate(),
                             getCategoryRecords = getCategoryRecordsGated,
                             getOperationsSummary =
@@ -5257,6 +5364,8 @@ private open class FakeDashboardTransactionRepository : TransactionRepository {
     private val incomeSummaries = mutableMapOf<Pair<Long, Period>, List<CategorySummary>>()
     private val categoryGroups = mutableMapOf<Pair<Long, Period>, List<CategoryGroup>>()
     private val transactionsByPeriod = mutableMapOf<Pair<Long, Period>, List<Transaction>>()
+    var categorySummaryCallCount = 0
+        private set
 
     fun seedExpenseSummary(
         accountId: Long,
@@ -5313,12 +5422,14 @@ private open class FakeDashboardTransactionRepository : TransactionRepository {
         accountId: Long,
         period: Period,
         kind: TransactionKind,
-    ): List<CategorySummary> =
-        if (kind == TransactionKind.Expense) {
+    ): List<CategorySummary> {
+        categorySummaryCallCount++
+        return if (kind == TransactionKind.Expense) {
             expenseSummaries[accountId to period].orEmpty()
         } else {
             incomeSummaries[accountId to period].orEmpty()
         }
+    }
 
     override suspend fun getCategoryGroups(
         accountId: Long,

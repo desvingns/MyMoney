@@ -189,6 +189,10 @@ class DashboardViewModel
                     val period = resolvePeriod(focusPeriod, current.period, inputs.settings)
                     val chartConfig = inputs.settings.toChartConfig()
                     val contextChanged = current.period != period || current.dashboardSelection != selection
+                    val balanceInputsChanged =
+                        current.accounts != inputs.accounts ||
+                            current.currencies != inputs.currencies ||
+                            contextChanged
                     if (contextChanged) categoryRecordsJob?.cancel()
                     _state.value =
                         current.copy(
@@ -202,8 +206,10 @@ class DashboardViewModel
                             expandedRecords = if (contextChanged) emptyList() else current.expandedRecords,
                             expandedRecordsLoading = if (contextChanged) false else current.expandedRecordsLoading,
                         )
-                    selectBudgetAlerts()
-                    recomputeBalance()
+                    if (balanceInputsChanged) {
+                        selectBudgetAlerts()
+                        recomputeBalance()
+                    }
                 }
             }
         }

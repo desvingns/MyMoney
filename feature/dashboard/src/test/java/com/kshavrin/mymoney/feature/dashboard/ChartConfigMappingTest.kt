@@ -165,8 +165,8 @@ class ChartConfigMappingTest {
     // -------------------------------------------------------------------------
 
     @Test
-    fun `every ChartColorRule survives a round-trip through its snake_case id`() {
-        listOf(ChartColorRule.BySign, ChartColorRule.Income, ChartColorRule.Expense).forEach { rule ->
+    fun `every modern ChartColorRule survives a round-trip through its snake_case id`() {
+        ChartColorRule.entries.forEach { rule ->
             val id = rule.toId()
             val recovered = chartColorRuleFromId(id)
             assertEquals("round-trip failed for $rule", rule, recovered)
@@ -174,23 +174,37 @@ class ChartConfigMappingTest {
     }
 
     @Test
+    fun `every modern color rule id maps to its ChartColorRule`() {
+        val expectedRulesById =
+            mapOf(
+                "solid" to ChartColorRule.Solid,
+                "always_green" to ChartColorRule.AlwaysGreen,
+                "always_red" to ChartColorRule.AlwaysRed,
+                "by_direction" to ChartColorRule.ByDirection,
+            )
+
+        expectedRulesById.forEach { (id, expectedRule) ->
+            assertEquals("color rule id $id", expectedRule, chartColorRuleFromId(id))
+        }
+    }
+
+    @Test
+    fun `legacy color rule ids map to their modern equivalents`() {
+        val expectedRulesByLegacyId =
+            mapOf(
+                "by_sign" to ChartColorRule.ByDirection,
+                "income" to ChartColorRule.AlwaysGreen,
+                "expense" to ChartColorRule.AlwaysRed,
+            )
+
+        expectedRulesByLegacyId.forEach { (id, expectedRule) ->
+            assertEquals("legacy color rule id $id", expectedRule, chartColorRuleFromId(id))
+        }
+    }
+
+    @Test
     fun `unknown color rule id falls back to Default`() {
         assertEquals(ChartColorRule.Default, chartColorRuleFromId("__bad__"))
-    }
-
-    @Test
-    fun `by_sign id maps to BySign`() {
-        assertEquals(ChartColorRule.BySign, chartColorRuleFromId("by_sign"))
-    }
-
-    @Test
-    fun `income id maps to Income`() {
-        assertEquals(ChartColorRule.Income, chartColorRuleFromId("income"))
-    }
-
-    @Test
-    fun `ChartColorRule Expense toId returns expense`() {
-        assertEquals("expense", ChartColorRule.Expense.toId())
     }
 
     // -------------------------------------------------------------------------
@@ -208,6 +222,7 @@ class ChartConfigMappingTest {
                 chartMetric = "period_net",
                 chartShowGridlines = false,
                 chartShowLabels = false,
+                chartShowProjection = true,
                 chartColorRule = "expense",
             )
 
@@ -220,7 +235,8 @@ class ChartConfigMappingTest {
         assertEquals(ChartMetric.PERIOD_NET, config.metric)
         assertEquals(false, config.showGridlines)
         assertEquals(false, config.showLabels)
-        assertEquals(ChartColorRule.Expense, config.colorRule)
+        assertEquals(true, config.showProjection)
+        assertEquals(ChartColorRule.AlwaysRed, config.colorRule)
     }
 
     @Test
@@ -235,7 +251,17 @@ class ChartConfigMappingTest {
         assertEquals(ChartMetric.CUMULATIVE, config.metric)
         assertEquals(true, config.showGridlines)
         assertEquals(true, config.showLabels)
-        assertEquals(ChartColorRule.BySign, config.colorRule)
+        assertEquals(false, config.showProjection)
+        assertEquals(ChartColorRule.ByDirection, config.colorRule)
+    }
+
+    @Test
+    fun `toChartConfig preserves showProjection for both persisted values`() {
+        listOf(false, true).forEach { showProjection ->
+            val config = AppSettings(chartShowProjection = showProjection).toChartConfig()
+
+            assertEquals("showProjection=$showProjection", showProjection, config.showProjection)
+        }
     }
 
     @Test

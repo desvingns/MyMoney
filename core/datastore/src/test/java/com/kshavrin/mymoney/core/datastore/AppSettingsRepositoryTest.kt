@@ -80,6 +80,7 @@ class AppSettingsRepositoryTest {
             assertEquals("cumulative", settings.chartMetric)
             assertEquals(true, settings.chartShowGridlines)
             assertEquals(true, settings.chartShowLabels)
+            assertEquals(false, settings.chartShowProjection)
             assertEquals("by_sign", settings.chartColorRule)
         }
 
@@ -119,6 +120,7 @@ class AppSettingsRepositoryTest {
                     chartMetric = "period_net",
                     chartShowGridlines = false,
                     chartShowLabels = false,
+                    chartShowProjection = true,
                     chartColorRule = "fixed",
                 )
             repository.update { target }
@@ -134,12 +136,14 @@ class AppSettingsRepositoryTest {
                     chartStyle = "bars",
                     chartMetric = "period_net",
                     chartVisible = false,
+                    chartShowProjection = true,
                 )
             }
             val read = repository.settings.first()
             assertEquals("bars", read.chartStyle)
             assertEquals("period_net", read.chartMetric)
             assertEquals(false, read.chartVisible)
+            assertEquals(true, read.chartShowProjection)
         }
 
     @Test
@@ -157,6 +161,7 @@ class AppSettingsRepositoryTest {
         assertEquals("cumulative", settings.chartMetric)
         assertEquals(true, settings.chartShowGridlines)
         assertEquals(true, settings.chartShowLabels)
+        assertEquals(false, settings.chartShowProjection)
         assertEquals("by_sign", settings.chartColorRule)
         assertEquals(false, settings.supporterBadgeEarned)
         assertEquals(0, settings.supportPurchaseCount)

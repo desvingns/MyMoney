@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -59,7 +60,7 @@ fun ChartSettingsSheet(
     onEvent: (DashboardEvent) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val sheetState = rememberModalBottomSheetState()
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -71,7 +72,7 @@ fun ChartSettingsSheet(
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = Spacing.l)
-                    .padding(bottom = Spacing.chartSettingsSheetRowHeight),
+                    .padding(bottom = Spacing.l),
             verticalArrangement = Arrangement.spacedBy(Spacing.chartSettingsSheetSectionGap),
         ) {
             Text(
@@ -152,6 +153,7 @@ fun ChartSettingsSheet(
                 testTag = CHART_SETTINGS_VISIBLE_TAG,
                 onCheckedChange = { onEvent(DashboardEvent.ChartVisibilityChanged(it)) },
             )
+            Spacer(modifier = Modifier.height(Spacing.chartSettingsSheetRowHeight))
         }
     }
 }

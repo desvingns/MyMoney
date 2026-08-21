@@ -4,11 +4,13 @@ import android.content.Context
 import android.content.res.Configuration
 import android.os.LocaleList
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -323,9 +325,23 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `tapping color rule ByDirection emits ChartColorRuleChanged ByDirection`() {
+    fun `selecting color rule ByDirection emits the event and keeps the new selection`() {
         val captured = mutableListOf<DashboardEvent>()
-        setSheet(onEvent = { captured += it })
+        val config = mutableStateOf(defaultConfig().copy(colorRule = ChartColorRule.Solid))
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                ChartSettingsSheet(
+                    config = config.value,
+                    onEvent = { event ->
+                        captured += event
+                        if (event is DashboardEvent.ChartColorRuleChanged) {
+                            config.value = config.value.copy(colorRule = event.colorRule)
+                        }
+                    },
+                    onDismiss = {},
+                )
+            }
+        }
 
         composeTestRule
             .onNodeWithTag(chartColorTag(ChartColorRule.ByDirection))
@@ -337,6 +353,9 @@ class ChartSettingsSheetUiTest {
                 captured,
             )
         }
+        composeTestRule
+            .onNodeWithTag(chartColorTag(ChartColorRule.ByDirection))
+            .assertIsSelected()
     }
 
     @Test

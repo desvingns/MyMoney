@@ -358,6 +358,28 @@ class AuroraBalanceCardUiTest {
     }
 
     @Test
+    fun `Bars style renders inside aurora card`() {
+        setCard(
+            chartConfig = defaultConfig(visible = true).copy(style = ChartStyle.Bars),
+            points = listOf(100f, 200f, 150f, 300f, 250f),
+        )
+        composeTestRule
+            .onNodeWithTag(BALANCE_TREND_CHART_TAG, useUnmergedTree = true)
+            .assertExists()
+    }
+
+    @Test
+    fun `Line style renders inside aurora card`() {
+        setCard(
+            chartConfig = defaultConfig(visible = true).copy(style = ChartStyle.Line),
+            points = listOf(100f, 200f, 150f, 300f, 250f),
+        )
+        composeTestRule
+            .onNodeWithTag(BALANCE_TREND_CHART_TAG, useUnmergedTree = true)
+            .assertExists()
+    }
+
+    @Test
     fun `Smooth style with empty points renders without crash inside aurora card`() {
         setCard(
             chartConfig = defaultConfig(visible = true).copy(style = ChartStyle.Smooth),

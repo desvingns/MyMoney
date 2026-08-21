@@ -26,8 +26,42 @@ class ChartConfigMappingTest {
     }
 
     @Test
+    fun `canonical and legacy style ids map to their nearest chart family`() {
+        val expectedStylesById =
+            mapOf(
+                "bars" to ChartStyle.Bars,
+                "rounded_bars" to ChartStyle.Bars,
+                "line" to ChartStyle.Line,
+                "neon_line" to ChartStyle.Line,
+                "stepped_line" to ChartStyle.Line,
+                "dots_line" to ChartStyle.Line,
+                "dots_only" to ChartStyle.Line,
+                "gradient_stroke" to ChartStyle.Line,
+                "dual_glow" to ChartStyle.Line,
+                "dashed_line" to ChartStyle.Line,
+                "thin_minimal" to ChartStyle.Line,
+                "thick_bold" to ChartStyle.Line,
+                "candy_segments" to ChartStyle.Line,
+                "ribbon" to ChartStyle.Line,
+                "smooth" to ChartStyle.Smooth,
+                "smooth_line" to ChartStyle.Smooth,
+                "smooth_area" to ChartStyle.Smooth,
+                "stepped_area" to ChartStyle.Smooth,
+                "neon_area" to ChartStyle.Smooth,
+                "vertical_gradient_area" to ChartStyle.Smooth,
+                "mountain" to ChartStyle.Smooth,
+                "baseline_fill" to ChartStyle.Smooth,
+            )
+
+        expectedStylesById.forEach { (id, expectedStyle) ->
+            assertEquals("style id $id", expectedStyle, chartStyleFromId(id))
+        }
+    }
+
+    @Test
     fun `unknown chart style id falls back to Default`() {
         assertEquals(ChartStyle.Default, chartStyleFromId("__not_a_real_id__"))
+        assertEquals(ChartStyle.Smooth, chartStyleFromId("__not_a_real_id__"))
     }
 
     @Test
@@ -43,6 +77,11 @@ class ChartConfigMappingTest {
     @Test
     fun `ChartStyle Line toId returns line`() {
         assertEquals("line", ChartStyle.Line.toId())
+    }
+
+    @Test
+    fun `ChartStyle Bars toId returns bars`() {
+        assertEquals("bars", ChartStyle.Bars.toId())
     }
 
     @Test

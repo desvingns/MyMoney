@@ -5,11 +5,13 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.designsystem.chart.ChartColorRule
 import com.kshavrin.mymoney.core.designsystem.chart.ChartStyle
 import com.kshavrin.mymoney.core.domain.model.ChartMetric
@@ -28,6 +30,7 @@ import com.kshavrin.mymoney.feature.dashboard.components.chartColorTag
 import com.kshavrin.mymoney.feature.dashboard.components.chartMetricTag
 import com.kshavrin.mymoney.feature.dashboard.components.chartPeriodTag
 import com.kshavrin.mymoney.feature.dashboard.components.chartStyleThumbTag
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -78,6 +81,44 @@ class ChartSettingsSheetUiTest {
             composeTestRule
                 .onNodeWithTag(chartStyleThumbTag(style))
                 .assertExists()
+        }
+    }
+
+    @Test
+    fun `style thumbs expose the localized label resource for every chart family`() {
+        setSheet()
+        val labelResources =
+            mapOf(
+                ChartStyle.Bars to R.string.chart_settings_style_bars,
+                ChartStyle.Line to R.string.chart_settings_style_line,
+                ChartStyle.Smooth to R.string.chart_settings_style_smooth,
+            )
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+
+        labelResources.forEach { (style, resourceId) ->
+            composeTestRule
+                .onNodeWithTag(chartStyleThumbTag(style))
+                .assertContentDescriptionEquals(context.getString(resourceId))
+        }
+    }
+
+    @Test
+    fun `tapping each style thumb emits exactly its selected chart family`() {
+        ChartStyle.entries.forEach { style ->
+            val captured = mutableListOf<DashboardEvent>()
+            setSheet(onEvent = { captured += it })
+
+            composeTestRule
+                .onNodeWithTag(chartStyleThumbTag(style))
+                .performScrollTo()
+                .performClick()
+
+            composeTestRule.runOnIdle {
+                assertEquals(
+                    listOf(DashboardEvent.ChartStyleChanged(style)),
+                    captured,
+                )
+            }
         }
     }
 

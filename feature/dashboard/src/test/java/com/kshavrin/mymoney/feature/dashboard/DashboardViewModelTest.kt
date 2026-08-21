@@ -4291,6 +4291,32 @@ class DashboardViewModelTest {
         }
 
     @Test
+    fun `ChartStyleChanged persists the canonical id for every chart family`() =
+        runTest {
+            val expectedIdsByStyle =
+                listOf(
+                    com.kshavrin.mymoney.core.designsystem.chart.ChartStyle.Bars to "bars",
+                    com.kshavrin.mymoney.core.designsystem.chart.ChartStyle.Line to "line",
+                    com.kshavrin.mymoney.core.designsystem.chart.ChartStyle.Smooth to "smooth",
+                )
+
+            expectedIdsByStyle.forEach { (style, expectedId) ->
+                val (viewModel, store) = buildViewModel()
+                try {
+                    runCurrent()
+
+                    viewModel.onEvent(DashboardEvent.ChartStyleChanged(style))
+                    runCurrent()
+
+                    assertEquals(expectedId, settingsRepository.currentSettings().chartStyle)
+                } finally {
+                    store.clear()
+                    runCurrent()
+                }
+            }
+        }
+
+    @Test
     fun `ChartGridlinesToggled persists the new value to AppSettings`() =
         runTest {
             val (viewModel, store) = buildViewModel()

@@ -93,6 +93,19 @@ class BalanceTrendChartUiTest {
         }
     }
 
+    private fun captureStylePixels(style: ChartStyle): IntArray {
+        setContent(
+            points = listOf(1f, 5f, 2f, 6f),
+            showGridlines = false,
+            style = style,
+        )
+        composeTestRule.waitForIdle()
+        val image = composeTestRule.onNodeWithTag(BALANCE_TREND_CHART_TAG).captureToImage()
+        val pixels = IntArray(image.width * image.height)
+        image.readPixels(pixels)
+        return pixels
+    }
+
     @Test
     fun `five-point series renders a chart node with the expected testTag`() {
         setContent(listOf(10f, 6f, 12f, 12f, 15f))
@@ -132,6 +145,27 @@ class BalanceTrendChartUiTest {
     @Test
     fun `every chart style renders without crashing for a zero-crossing series`() {
         assertAllStylesRender(listOf(4f, 3f, 1f, -2f, -3f))
+    }
+
+    @Test
+    fun `three chart styles render distinct geometry families`() {
+        val barsPixels = captureStylePixels(ChartStyle.Bars)
+        val linePixels = captureStylePixels(ChartStyle.Line)
+        val smoothPixels = captureStylePixels(ChartStyle.Smooth)
+
+        assertEquals(barsPixels.size, linePixels.size)
+        assertEquals(linePixels.size, smoothPixels.size)
+        assertFalse("Bars must render different geometry from Line", barsPixels.contentEquals(linePixels))
+        assertFalse("Line must render different geometry from Smooth", linePixels.contentEquals(smoothPixels))
+        assertFalse("Bars must render different geometry from Smooth", barsPixels.contentEquals(smoothPixels))
+    }
+
+    @Test
+    fun `default style renders the same geometry as Smooth`() {
+        val defaultPixels = captureStylePixels(ChartStyle.Default)
+        val smoothPixels = captureStylePixels(ChartStyle.Smooth)
+
+        assertTrue(defaultPixels.contentEquals(smoothPixels))
     }
 
     @Test

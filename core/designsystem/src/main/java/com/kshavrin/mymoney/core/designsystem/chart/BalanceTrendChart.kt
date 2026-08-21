@@ -55,8 +55,9 @@ const val BALANCE_TREND_CHART_GRIDLINE_COUNT = 3
 private data class BalanceTrendChartPalette(
     val line: Color,
     val glow: Color,
-    val accent: Color,
-    val accentLine: Boolean,
+    val income: Color,
+    val expense: Color,
+    val byDirection: Boolean,
 )
 
 private data class BalanceTrendChartLabelDrawCache(
@@ -73,10 +74,27 @@ private data class BalanceTrendChartStyleDrawCache(
     val smoothPath: Path,
     val smoothGlowStroke: Stroke,
     val smoothStroke: Stroke,
+    val directionSmoothGlowStroke: Stroke,
+    val directionSmoothStroke: Stroke,
     val waveColor: Color,
     val waveGlowColor: Color,
     val waveLastDotColor: Color,
     val barColor: Color,
+    val directionSegments: List<BalanceTrendChartHorizontalSegment>,
+    val directionSmoothPaths: List<Path>,
+    val aboveWaveGlowColor: Color,
+    val belowWaveGlowColor: Color,
+    val aboveLastDotColor: Color,
+    val belowLastDotColor: Color,
+    val aboveBarColor: Color,
+    val belowBarColor: Color,
+)
+
+private data class BalanceTrendChartProjectionDrawCache(
+    val abovePath: Path,
+    val belowPath: Path,
+    val aboveColor: Color,
+    val belowColor: Color,
 )
 
 private data class BalanceTrendChartDrawCache(
@@ -90,6 +108,7 @@ private data class BalanceTrendChartDrawCache(
     val style: ChartStyle,
     val palette: BalanceTrendChartPalette,
     val styleCache: BalanceTrendChartStyleDrawCache,
+    val projection: BalanceTrendChartProjectionDrawCache?,
     val labels: List<BalanceTrendChartLabelDrawCache>,
     val labelColor: Color,
 )
@@ -100,6 +119,76 @@ data class BalanceTrendChartGeometry(
     val zeroLineY: Float?,
     val marker: Offset?,
 )
+
+internal enum class BalanceTrendChartHorizontalZone {
+    AboveOrOn,
+    Below,
+}
+
+internal data class BalanceTrendChartHorizontalSegment(
+    val start: Offset,
+    val end: Offset,
+    val zone: BalanceTrendChartHorizontalZone,
+)
+
+internal fun splitBalanceTrendChartSegmentsAtHorizontalLine(
+    points: List<Offset>,
+    horizontalLineY: Float,
+): List<BalanceTrendChartHorizontalSegment> {
+    if (points.size < 2) return emptyList()
+
+    val segments = ArrayList<BalanceTrendChartHorizontalSegment>(points.size)
+    for (index in 0 until points.lastIndex) {
+        val start = points[index]
+        val end = points[index + 1]
+        val startDistance = start.y - horizontalLineY
+        val endDistance = end.y - horizontalLineY
+        if (startDistance * endDistance < 0f) {
+            val t = (horizontalLineY - start.y) / (end.y - start.y)
+            val intersection = Offset(start.x + t * (end.x - start.x), horizontalLineY)
+            segments +=
+                BalanceTrendChartHorizontalSegment(
+                    start = start,
+                    end = intersection,
+                    zone = horizontalZoneFor(start, horizontalLineY),
+                )
+            segments +=
+                BalanceTrendChartHorizontalSegment(
+                    start = intersection,
+                    end = end,
+                    zone = horizontalZoneFor(end, horizontalLineY),
+                )
+        } else {
+            segments +=
+                BalanceTrendChartHorizontalSegment(
+                    start = start,
+                    end = end,
+                    zone = horizontalZoneForSegment(startDistance, endDistance),
+                )
+        }
+    }
+    return segments
+}
+
+private fun horizontalZoneFor(
+    point: Offset,
+    horizontalLineY: Float,
+): BalanceTrendChartHorizontalZone =
+    if (point.y <= horizontalLineY) {
+        BalanceTrendChartHorizontalZone.AboveOrOn
+    } else {
+        BalanceTrendChartHorizontalZone.Below
+    }
+
+private fun horizontalZoneForSegment(
+    startDistance: Float,
+    endDistance: Float,
+): BalanceTrendChartHorizontalZone =
+    when {
+        startDistance == 0f && endDistance == 0f -> BalanceTrendChartHorizontalZone.AboveOrOn
+        startDistance == 0f -> if (endDistance < 0f) BalanceTrendChartHorizontalZone.AboveOrOn else BalanceTrendChartHorizontalZone.Below
+        else -> if (startDistance < 0f) BalanceTrendChartHorizontalZone.AboveOrOn else BalanceTrendChartHorizontalZone.Below
+    }
 
 internal fun calculateBalanceTrendChartGeometry(
     values: List<Float>,
@@ -202,31 +291,28 @@ fun BalanceTrendChart(
     showLabels: Boolean = false,
     colorRule: ChartColorRule = ChartColorRule.Default,
     style: ChartStyle = ChartStyle.Default,
+    showProjection: Boolean = false,
     chartHeight: Dp = Spacing.trendChartDefaultHeight,
 ) {
     val incomeColor = MaterialTheme.colorScheme.incomeAccent
     val expenseColor = MaterialTheme.colorScheme.expenseAccent
     val lineColor =
         when (colorRule) {
-            ChartColorRule.Income -> incomeColor
-            ChartColorRule.Expense -> expenseColor
-            ChartColorRule.BySign ->
-                if ((points.lastOrNull() ?: 0f) >= 0f) {
-                    incomeColor
-                } else {
-                    expenseColor
-                }
+            ChartColorRule.Solid -> MaterialTheme.colorScheme.dashboardAuroraAccent
+            ChartColorRule.AlwaysGreen -> incomeColor
+            ChartColorRule.AlwaysRed -> expenseColor
+            ChartColorRule.ByDirection -> incomeColor
         }
     val gridColor = MaterialTheme.colorScheme.trendChartGridLine
     val zeroLineColor = MaterialTheme.colorScheme.trendChartZeroLine
     val glowColor = MaterialTheme.colorScheme.trendChartMarkerGlow
-    val accentColor = MaterialTheme.colorScheme.dashboardAuroraAccent
     val palette =
         BalanceTrendChartPalette(
             line = lineColor,
             glow = glowColor,
-            accent = accentColor,
-            accentLine = colorRule == ChartColorRule.BySign,
+            income = incomeColor,
+            expense = expenseColor,
+            byDirection = colorRule == ChartColorRule.ByDirection,
         )
     val labelStyle = MaterialTheme.typography.labelSmall.copy(color = gridColor)
 
@@ -302,6 +388,7 @@ fun BalanceTrendChart(
                             showGridlines = showGridlines,
                             showLabels = showLabels,
                             style = style,
+                            showProjection = showProjection,
                             palette = palette,
                             gridColor = gridColor,
                             zeroLineColor = zeroLineColor,
@@ -326,6 +413,7 @@ private fun CacheDrawScope.buildBalanceTrendChartDrawCache(
     showGridlines: Boolean,
     showLabels: Boolean,
     style: ChartStyle,
+    showProjection: Boolean,
     palette: BalanceTrendChartPalette,
     gridColor: Color,
     zeroLineColor: Color,
@@ -364,6 +452,16 @@ private fun CacheDrawScope.buildBalanceTrendChartDrawCache(
             emptyList()
         }
 
+    val styleCache =
+        buildBalanceTrendChartStyleDrawCache(
+            values = values,
+            geometry = geometry,
+            chartHeight = chartHeightPx,
+            verticalPadding = Spacing.trendChartVerticalPadding.toPx(),
+            chartWidth = size.width,
+            palette = palette,
+        )
+
     return BalanceTrendChartDrawCache(
         geometry = geometry,
         chartWidth = size.width,
@@ -374,13 +472,13 @@ private fun CacheDrawScope.buildBalanceTrendChartDrawCache(
         gridStroke = Spacing.trendChartGridLineStrokeWidth.toPx(),
         style = style,
         palette = palette,
-        styleCache =
-            buildBalanceTrendChartStyleDrawCache(
-                values = values,
+        styleCache = styleCache,
+        projection =
+            buildBalanceTrendChartProjectionDrawCache(
                 geometry = geometry,
-                chartHeight = chartHeightPx,
-                verticalPadding = Spacing.trendChartVerticalPadding.toPx(),
-                chartWidth = size.width,
+                baseline = styleCache.baseline,
+                showProjection = showProjection,
+                style = style,
                 palette = palette,
             ),
         labels = labelCache,
@@ -401,7 +499,23 @@ private fun CacheDrawScope.buildBalanceTrendChartStyleDrawCache(
     val lineStroke = Spacing.trendChartLineStrokeWidth.toPx()
     val pointRadius = Spacing.trendChartPointRadius.toPx()
     val markerRadius = Spacing.trendChartMarkerRadius.toPx()
-    val waveColor = if (palette.accentLine) palette.accent else palette.line
+    val waveColor = palette.line
+    val directionSegments =
+        if (palette.byDirection && chartPoints.isNotEmpty()) {
+            splitBalanceTrendChartSegmentsAtHorizontalLine(chartPoints, chartPoints.first().y)
+        } else {
+            emptyList()
+        }
+    val directionSmoothPaths =
+        if (palette.byDirection) {
+            ArrayList<Path>(directionSegments.size).apply {
+                for (segment in directionSegments) {
+                    add(Path().apply { buildSmoothSegment(segment.start, segment.end) })
+                }
+            }
+        } else {
+            emptyList()
+        }
     val smoothPath = Path().apply { buildSmooth(chartPoints) }
 
     return BalanceTrendChartStyleDrawCache(
@@ -413,10 +527,53 @@ private fun CacheDrawScope.buildBalanceTrendChartStyleDrawCache(
         smoothPath = smoothPath,
         smoothGlowStroke = Stroke(width = lineStroke * 3.2f, cap = StrokeCap.Round, join = StrokeJoin.Round),
         smoothStroke = Stroke(width = lineStroke * 1.2f, cap = StrokeCap.Round, join = StrokeJoin.Round),
+        directionSmoothGlowStroke = Stroke(width = lineStroke * 3.2f, cap = StrokeCap.Butt, join = StrokeJoin.Round),
+        directionSmoothStroke = Stroke(width = lineStroke * 1.2f, cap = StrokeCap.Butt, join = StrokeJoin.Round),
         waveColor = waveColor,
         waveGlowColor = waveColor.copy(alpha = 0.22f),
         waveLastDotColor = lightenColor(waveColor, 1.4f),
         barColor = palette.line.copy(alpha = 0.86f),
+        directionSegments = directionSegments,
+        directionSmoothPaths = directionSmoothPaths,
+        aboveWaveGlowColor = palette.income.copy(alpha = 0.22f),
+        belowWaveGlowColor = palette.expense.copy(alpha = 0.22f),
+        aboveLastDotColor = lightenColor(palette.income, 1.4f),
+        belowLastDotColor = lightenColor(palette.expense, 1.4f),
+        aboveBarColor = palette.income.copy(alpha = 0.86f),
+        belowBarColor = palette.expense.copy(alpha = 0.86f),
+    )
+}
+
+private fun CacheDrawScope.buildBalanceTrendChartProjectionDrawCache(
+    geometry: BalanceTrendChartGeometry,
+    baseline: Float,
+    showProjection: Boolean,
+    style: ChartStyle,
+    palette: BalanceTrendChartPalette,
+): BalanceTrendChartProjectionDrawCache? {
+    if (!showProjection || style == ChartStyle.Bars || geometry.points.size < 2) return null
+
+    val abovePath = Path()
+    val belowPath = Path()
+    val segments = splitBalanceTrendChartSegmentsAtHorizontalLine(geometry.points, baseline)
+    for (segment in segments) {
+        val path =
+            if (segment.zone == BalanceTrendChartHorizontalZone.AboveOrOn) {
+                abovePath
+            } else {
+                belowPath
+            }
+        path.moveTo(segment.start.x, segment.start.y)
+        path.lineTo(segment.end.x, segment.end.y)
+        path.lineTo(segment.end.x, baseline)
+        path.lineTo(segment.start.x, baseline)
+        path.close()
+    }
+    return BalanceTrendChartProjectionDrawCache(
+        abovePath = abovePath,
+        belowPath = belowPath,
+        aboveColor = palette.income.copy(alpha = 0.22f),
+        belowColor = palette.expense.copy(alpha = 0.22f),
     )
 }
 
@@ -436,6 +593,10 @@ private fun DrawScope.drawBalanceTrendChart(
                 strokeWidth = cache.gridStroke,
             )
         }
+    }
+    cache.projection?.let { projection ->
+        drawPath(path = projection.abovePath, color = projection.aboveColor)
+        drawPath(path = projection.belowPath, color = projection.belowColor)
     }
     geometry.zeroLineY?.let { y ->
         drawLine(
@@ -465,26 +626,76 @@ private fun DrawScope.drawCachedBalanceTrendChartStyle(
     val marker = cache.geometry.marker
     when (cache.style) {
         ChartStyle.Bars -> {
-            drawCachedBars(
-                points = chartPoints,
-                baseline = styleCache.baseline,
-                color = styleCache.barColor,
-                rounded = false,
-                barWidth = styleCache.barWidth,
-            )
+            if (palette.byDirection) {
+                drawCachedDirectionalBars(
+                    points = chartPoints,
+                    baseline = styleCache.baseline,
+                    directionReferenceY = chartPoints.first().y,
+                    aboveColor = styleCache.aboveBarColor,
+                    belowColor = styleCache.belowBarColor,
+                    rounded = false,
+                    barWidth = styleCache.barWidth,
+                )
+            } else {
+                drawCachedBars(
+                    points = chartPoints,
+                    baseline = styleCache.baseline,
+                    color = styleCache.barColor,
+                    rounded = false,
+                    barWidth = styleCache.barWidth,
+                )
+            }
             drawCachedMarker(marker, palette.glow, glowPaint, styleCache.markerRadius)
         }
 
         ChartStyle.Line -> {
-            drawSegmentLine(chartPoints, palette.line, styleCache.lineStroke)
-            drawCachedDots(chartPoints, palette.line, styleCache.pointRadius)
+            if (palette.byDirection) {
+                drawDirectionalSegments(
+                    segments = styleCache.directionSegments,
+                    aboveColor = palette.income,
+                    belowColor = palette.expense,
+                    strokeWidth = styleCache.lineStroke,
+                )
+                drawCachedDirectionalDots(
+                    points = chartPoints,
+                    directionReferenceY = chartPoints.first().y,
+                    aboveColor = palette.income,
+                    belowColor = palette.expense,
+                    radius = styleCache.pointRadius,
+                )
+            } else {
+                drawSegmentLine(chartPoints, palette.line, styleCache.lineStroke)
+                drawCachedDots(chartPoints, palette.line, styleCache.pointRadius)
+            }
             drawCachedMarker(marker, palette.glow, glowPaint, styleCache.markerRadius)
         }
 
         ChartStyle.Smooth -> {
-            drawCachedPath(styleCache.smoothPath, styleCache.waveGlowColor, styleCache.smoothGlowStroke)
-            drawCachedPath(styleCache.smoothPath, styleCache.waveColor, styleCache.smoothStroke)
-            drawCachedWaveDots(chartPoints, styleCache.waveColor, styleCache.waveLastDotColor, styleCache.pointRadius)
+            if (palette.byDirection) {
+                drawCachedDirectionalSmoothPaths(
+                    paths = styleCache.directionSmoothPaths,
+                    segments = styleCache.directionSegments,
+                    aboveColor = palette.income,
+                    belowColor = palette.expense,
+                    aboveGlowColor = styleCache.aboveWaveGlowColor,
+                    belowGlowColor = styleCache.belowWaveGlowColor,
+                    glowStroke = styleCache.directionSmoothGlowStroke,
+                    stroke = styleCache.directionSmoothStroke,
+                )
+                drawCachedDirectionalWaveDots(
+                    points = chartPoints,
+                    directionReferenceY = chartPoints.first().y,
+                    aboveColor = palette.income,
+                    belowColor = palette.expense,
+                    aboveLastDotColor = styleCache.aboveLastDotColor,
+                    belowLastDotColor = styleCache.belowLastDotColor,
+                    pointRadius = styleCache.pointRadius,
+                )
+            } else {
+                drawCachedPath(styleCache.smoothPath, styleCache.waveGlowColor, styleCache.smoothGlowStroke)
+                drawCachedPath(styleCache.smoothPath, styleCache.waveColor, styleCache.smoothStroke)
+                drawCachedWaveDots(chartPoints, styleCache.waveColor, styleCache.waveLastDotColor, styleCache.pointRadius)
+            }
             drawCachedMarker(marker, palette.glow, glowPaint, styleCache.markerRadius)
         }
     }
@@ -539,6 +750,30 @@ private fun DrawScope.drawCachedBars(
         val height = maxOf(kotlin.math.abs(point.y - baseline), 1f)
         drawRoundRect(
             color = color,
+            topLeft = Offset(left, top),
+            size = Size(barWidth, height),
+            cornerRadius = CornerRadius(radius, radius),
+        )
+    }
+}
+
+private fun DrawScope.drawCachedDirectionalBars(
+    points: List<Offset>,
+    baseline: Float,
+    directionReferenceY: Float,
+    aboveColor: Color,
+    belowColor: Color,
+    rounded: Boolean,
+    barWidth: Float,
+) {
+    val radius = if (rounded) barWidth / 2f else 0f
+    for (index in points.indices) {
+        val point = points[index]
+        val left = (point.x - barWidth / 2f).coerceIn(0f, (size.width - barWidth).coerceAtLeast(0f))
+        val top = minOf(point.y, baseline)
+        val height = maxOf(kotlin.math.abs(point.y - baseline), 1f)
+        drawRoundRect(
+            color = if (point.y <= directionReferenceY) aboveColor else belowColor,
             topLeft = Offset(left, top),
             size = Size(barWidth, height),
             cornerRadius = CornerRadius(radius, radius),
@@ -611,6 +846,83 @@ private fun DrawScope.drawSegmentLine(
     }
 }
 
+private fun DrawScope.drawDirectionalSegments(
+    segments: List<BalanceTrendChartHorizontalSegment>,
+    aboveColor: Color,
+    belowColor: Color,
+    strokeWidth: Float,
+) {
+    for (segment in segments) {
+        drawLine(
+            color = if (segment.zone == BalanceTrendChartHorizontalZone.AboveOrOn) aboveColor else belowColor,
+            start = segment.start,
+            end = segment.end,
+            strokeWidth = strokeWidth,
+            cap = StrokeCap.Butt,
+        )
+    }
+}
+
+private fun DrawScope.drawCachedDirectionalDots(
+    points: List<Offset>,
+    directionReferenceY: Float,
+    aboveColor: Color,
+    belowColor: Color,
+    radius: Float,
+) {
+    for (index in points.indices) {
+        val point = points[index]
+        drawCircle(
+            color = if (point.y <= directionReferenceY) aboveColor else belowColor,
+            radius = radius,
+            center = point,
+        )
+    }
+}
+
+private fun DrawScope.drawCachedDirectionalSmoothPaths(
+    paths: List<Path>,
+    segments: List<BalanceTrendChartHorizontalSegment>,
+    aboveColor: Color,
+    belowColor: Color,
+    aboveGlowColor: Color,
+    belowGlowColor: Color,
+    glowStroke: Stroke,
+    stroke: Stroke,
+) {
+    for (index in paths.indices) {
+        val isAbove = segments[index].zone == BalanceTrendChartHorizontalZone.AboveOrOn
+        drawCachedPath(paths[index], if (isAbove) aboveGlowColor else belowGlowColor, glowStroke)
+        drawCachedPath(paths[index], if (isAbove) aboveColor else belowColor, stroke)
+    }
+}
+
+private fun DrawScope.drawCachedDirectionalWaveDots(
+    points: List<Offset>,
+    directionReferenceY: Float,
+    aboveColor: Color,
+    belowColor: Color,
+    aboveLastDotColor: Color,
+    belowLastDotColor: Color,
+    pointRadius: Float,
+) {
+    for (index in points.indices) {
+        val point = points[index]
+        val isAbove = point.y <= directionReferenceY
+        val isLast = index == points.lastIndex
+        drawCircle(
+            color =
+                if (isLast) {
+                    if (isAbove) aboveLastDotColor else belowLastDotColor
+                } else {
+                    if (isAbove) aboveColor else belowColor
+                },
+            radius = if (isLast) pointRadius * 1.33f else pointRadius * 0.87f,
+            center = point,
+        )
+    }
+}
+
 private fun lightenColor(
     color: Color,
     factor: Float,
@@ -634,4 +946,13 @@ private fun Path.buildSmooth(points: List<Offset>) {
         val midpointX = (current.x + next.x) / 2f
         cubicTo(midpointX, current.y, midpointX, next.y, next.x, next.y)
     }
+}
+
+private fun Path.buildSmoothSegment(
+    start: Offset,
+    end: Offset,
+) {
+    moveTo(start.x, start.y)
+    val midpointX = (start.x + end.x) / 2f
+    cubicTo(midpointX, start.y, midpointX, end.y, end.x, end.y)
 }

@@ -150,6 +150,7 @@ data class ChartConfig(
     val metric: ChartMetric = ChartMetric.CUMULATIVE,
     val showGridlines: Boolean = true,
     val showLabels: Boolean = true,
+    val showProjection: Boolean = false,
     val colorRule: ChartColorRule = ChartColorRule.Default,
     // Auto mode (the default) derives the trend window from the dashboard's selected period and
     // ignores [periodType]/[pointCount]. Manual mode (false) keeps the legacy independent-anchor
@@ -321,6 +322,10 @@ sealed interface DashboardEvent {
     ) : DashboardEvent
 
     data class ChartLabelsToggled(
+        val enabled: Boolean,
+    ) : DashboardEvent
+
+    data class ChartProjectionToggled(
         val enabled: Boolean,
     ) : DashboardEvent
 

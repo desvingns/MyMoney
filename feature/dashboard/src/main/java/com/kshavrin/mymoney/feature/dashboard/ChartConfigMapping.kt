@@ -86,12 +86,22 @@ internal fun chartMetricLabelRes(metric: ChartMetric): Int =
 
 private val colorRuleIds: Map<String, ChartColorRule> =
     mapOf(
-        "by_sign" to ChartColorRule.BySign,
-        "income" to ChartColorRule.Income,
-        "expense" to ChartColorRule.Expense,
+        "solid" to ChartColorRule.Solid,
+        "always_green" to ChartColorRule.AlwaysGreen,
+        "always_red" to ChartColorRule.AlwaysRed,
+        "by_direction" to ChartColorRule.ByDirection,
+        "by_sign" to ChartColorRule.ByDirection,
+        "income" to ChartColorRule.AlwaysGreen,
+        "expense" to ChartColorRule.AlwaysRed,
     )
 
-private val colorRuleToId: Map<ChartColorRule, String> = colorRuleIds.entries.associate { it.value to it.key }
+private val colorRuleToId: Map<ChartColorRule, String> =
+    mapOf(
+        ChartColorRule.Solid to "solid",
+        ChartColorRule.AlwaysGreen to "always_green",
+        ChartColorRule.AlwaysRed to "always_red",
+        ChartColorRule.ByDirection to "by_direction",
+    )
 
 fun chartColorRuleFromId(id: String): ChartColorRule = colorRuleIds[id] ?: ChartColorRule.Default
 
@@ -106,6 +116,7 @@ fun AppSettings.toChartConfig(): ChartConfig =
         metric = chartMetricFromId(chartMetric),
         showGridlines = chartShowGridlines,
         showLabels = chartShowLabels,
+        showProjection = chartShowProjection,
         colorRule = chartColorRuleFromId(chartColorRule),
         autoMode = chartAutoMode,
     )

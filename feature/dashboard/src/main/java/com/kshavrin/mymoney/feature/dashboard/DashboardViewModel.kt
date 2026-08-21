@@ -1168,6 +1168,10 @@ class DashboardViewModel
                     updateChartSettings { it.copy(chartShowGridlines = event.enabled) }
                 is DashboardEvent.ChartLabelsToggled ->
                     updateChartSettings { it.copy(chartShowLabels = event.enabled) }
+                is DashboardEvent.ChartProjectionToggled ->
+                    updateChartSettings(recomputeTrend = false) {
+                        it.copy(chartShowProjection = event.enabled)
+                    }
                 is DashboardEvent.ChartColorRuleChanged ->
                     updateChartSettings { it.copy(chartColorRule = event.colorRule.toId()) }
                 is DashboardEvent.ChartVisibilityChanged ->

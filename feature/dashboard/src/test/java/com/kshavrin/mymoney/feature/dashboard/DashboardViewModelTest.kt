@@ -8,6 +8,7 @@ import androidx.paging.PagingData
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
 import com.kshavrin.mymoney.core.datastore.model.AppSettings
 import com.kshavrin.mymoney.core.datastore.usecase.DashboardDataUseCase
+import com.kshavrin.mymoney.core.designsystem.chart.ChartColorRule
 import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.AccountType
 import com.kshavrin.mymoney.core.domain.model.BalanceSnapshot
@@ -4351,6 +4352,94 @@ class DashboardViewModelTest {
         }
 
     @Test
+    fun `dashboard config read acceptance matrix maps every color and projection cell`() =
+        runTest {
+            chartSettingsColorIdCases.forEach { colorCase ->
+                listOf(false, true).forEach { showProjection ->
+                    val settings =
+                        AppSettings(
+                            defaultAccountId = cash.id,
+                            firstPositiveSeen = true,
+                            chartColorRule = colorCase.id,
+                            chartShowProjection = showProjection,
+                        )
+                    val mappedConfig = settings.toChartConfig()
+                    assertEquals(colorCase.expectedRule, mappedConfig.colorRule)
+                    assertEquals(showProjection, mappedConfig.showProjection)
+
+                    settingsRepository = FakeDashboardAppSettingsRepository(settings)
+                    val (viewModel, store) = buildViewModel()
+                    try {
+                        runCurrent()
+
+                        val config = viewModel.state.value.chartConfig
+                        assertEquals(
+                            "color_id=${colorCase.category}, projection=$showProjection, update_path=config_read",
+                            colorCase.expectedRule,
+                            config.colorRule,
+                        )
+                        assertEquals(showProjection, config.showProjection)
+                    } finally {
+                        store.clear()
+                        runCurrent()
+                    }
+                }
+            }
+        }
+
+    @Test
+    fun `dashboard projection event acceptance matrix preserves config without trend recomputation`() =
+        runTest {
+            transactionRepository.seedIncomeSummary(
+                cash.id,
+                initialPeriod,
+                summary(categoryId = 200L, amount = "100.00"),
+            )
+
+            chartSettingsColorIdCases.forEach { colorCase ->
+                listOf(false, true).forEach { initialProjection ->
+                    val requestedProjection = !initialProjection
+                    settingsRepository =
+                        FakeDashboardAppSettingsRepository(
+                            AppSettings(
+                                defaultAccountId = cash.id,
+                                firstPositiveSeen = true,
+                                chartAutoMode = false,
+                                chartColorRule = colorCase.id,
+                                chartShowProjection = initialProjection,
+                            ),
+                        )
+                    val (viewModel, store) = buildViewModel()
+                    try {
+                        runCurrent()
+                        val trendBefore = viewModel.state.value.trendPoints
+                        val summaryCallsBefore = transactionRepository.categorySummaryCallCount
+                        assertTrue("the fixture must produce trend points", trendBefore.isNotEmpty())
+
+                        viewModel.onEvent(DashboardEvent.ChartProjectionToggled(requestedProjection))
+                        runCurrent()
+
+                        val persisted = settingsRepository.currentSettings()
+                        val config = viewModel.state.value.chartConfig
+                        assertEquals(colorCase.id, persisted.chartColorRule)
+                        assertEquals(requestedProjection, persisted.chartShowProjection)
+                        assertEquals(
+                            "color_id=${colorCase.category}, projection=$initialProjection, update_path=event_toggle",
+                            colorCase.expectedRule,
+                            config.colorRule,
+                        )
+                        assertEquals(requestedProjection, config.showProjection)
+                        assertEquals(trendBefore, viewModel.state.value.trendPoints)
+                        assertEquals(summaryCallsBefore, transactionRepository.categorySummaryCallCount)
+                    } finally {
+                        store.clear()
+                        runCurrent()
+                    }
+                }
+            }
+        }
+
+    @Test
     fun `ChartProjectionToggled true persists through DashboardDataUseCase and does not recompute trend`() =
         runTest {
             transactionRepository.seedIncomeSummary(
@@ -5178,6 +5267,19 @@ class DashboardViewModelTest {
             }
         }
 }
+
+private data class ChartSettingsColorIdCase(
+    val category: String,
+    val id: String,
+    val expectedRule: ChartColorRule,
+)
+
+private val chartSettingsColorIdCases =
+    listOf(
+        ChartSettingsColorIdCase("legacy", "by_sign", ChartColorRule.ByDirection),
+        ChartSettingsColorIdCase("modern", "always_red", ChartColorRule.AlwaysRed),
+        ChartSettingsColorIdCase("unknown", "unknown_color_rule", ChartColorRule.Default),
+    )
 
 private class FakeDashboardAppSettingsRepository(
     initial: AppSettings,

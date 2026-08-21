@@ -4,15 +4,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kshavrin.mymoney.core.common.exception.reportToSentry
-import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
 import com.kshavrin.mymoney.core.datastore.model.AppSettings
+import com.kshavrin.mymoney.core.datastore.usecase.DashboardDataUseCase
 import com.kshavrin.mymoney.core.designsystem.dialog.RateRow
 import com.kshavrin.mymoney.core.designsystem.donut.CategorySlice
 import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.BalanceSnapshot
 import com.kshavrin.mymoney.core.domain.model.Category
 import com.kshavrin.mymoney.core.domain.model.CategoryBalance
-import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.DomainEvent
 import com.kshavrin.mymoney.core.domain.model.Money
@@ -21,10 +20,6 @@ import com.kshavrin.mymoney.core.domain.model.SummaryRecord
 import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.domain.model.TrendPoint
 import com.kshavrin.mymoney.core.domain.model.toMoneyScale
-import com.kshavrin.mymoney.core.domain.repository.AccountRepository
-import com.kshavrin.mymoney.core.domain.repository.CategoryRepository
-import com.kshavrin.mymoney.core.domain.repository.CurrencyRepository
-import com.kshavrin.mymoney.core.domain.repository.TransactionRepository
 import com.kshavrin.mymoney.core.domain.time.PeriodArithmetic
 import com.kshavrin.mymoney.core.domain.usecase.BalanceCalculator
 import com.kshavrin.mymoney.core.domain.usecase.BalanceTrendCalculator
@@ -47,8 +42,6 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
@@ -64,15 +57,11 @@ import kotlin.coroutines.cancellation.CancellationException
 class DashboardViewModel
     @Inject
     constructor(
-        private val accountRepository: AccountRepository,
-        private val currencyRepository: CurrencyRepository,
+        private val dashboardDataUseCase: DashboardDataUseCase,
         private val balanceCalculator: BalanceCalculator,
         private val balanceTrendCalculator: BalanceTrendCalculator,
         private val intradayTrendCalculator: IntradayTrendCalculator,
-        private val appSettingsRepository: AppSettingsRepository,
-        private val transactionRepository: TransactionRepository,
         private val observeBudgetAlertsUseCase: ObserveBudgetAlertsUseCase,
-        private val categoryRepository: CategoryRepository,
         private val resolveRateUseCase: ResolveRateUseCase,
         private val getCategoryRecords: GetCategoryRecordsUseCase,
         private val getOperationsSummary: GetOperationsSummaryUseCase,
@@ -128,7 +117,7 @@ class DashboardViewModel
         // (SPEC 03) can render each operation's category leaf without re-querying per row.
         private fun observeCategoryDisplays() {
             viewModelScope.launch {
-                categoryRepository.observeAll().collect { categories ->
+                dashboardDataUseCase.observeCategories().collect { categories ->
                     _state.value =
                         _state.value.copy(
                             categoryDisplays =
@@ -146,7 +135,7 @@ class DashboardViewModel
 
         private fun observeExpenseCategories() {
             viewModelScope.launch {
-                categoryRepository.observeByKind(CategoryKind.Expense).collect { categories ->
+                dashboardDataUseCase.observeExpenseCategories().collect { categories ->
                     _state.value =
                         _state.value.copy(
                             expenseCategoryPlaceholders =
@@ -170,13 +159,7 @@ class DashboardViewModel
 
         private fun observeAccountsAndCurrencies() {
             viewModelScope.launch {
-                combine(
-                    accountRepository.observeActive(),
-                    currencyRepository.observeActive(),
-                    appSettingsRepository.settings,
-                ) { accounts, currencies, settings ->
-                    DashboardInputs(accounts, currencies, settings)
-                }.collect { inputs ->
+                dashboardDataUseCase.observeInputs().collect { inputs ->
                     val current = _state.value
                     val focusPeriod = inputs.settings.importFocusPeriod()
                     val focusSelection = inputs.settings.importFocusSelection(inputs.accounts)
@@ -227,7 +210,7 @@ class DashboardViewModel
 
         private fun clearImportFocus() {
             viewModelScope.launch {
-                appSettingsRepository.update {
+                dashboardDataUseCase.updateSettings {
                     it.copy(importFocusEpochMs = 0L, importFocusCurrencyId = -1L)
                 }
             }
@@ -267,7 +250,7 @@ class DashboardViewModel
         private fun persistDashboardPeriod(period: Period) {
             val epochMs = period.anchorEpochMsOrNull() ?: return
             viewModelScope.launch {
-                appSettingsRepository.update { it.copy(dashboardPeriodEpochMs = epochMs) }
+                dashboardDataUseCase.updateSettings { it.copy(dashboardPeriodEpochMs = epochMs) }
             }
         }
 
@@ -400,7 +383,7 @@ class DashboardViewModel
         // no-ops until an active account is set, so the first emission covers the initial load.
         private fun observeTransactionChanges() {
             viewModelScope.launch {
-                transactionRepository.observeRecent(limit = 1).collect {
+                dashboardDataUseCase.observeTransactionChanges().collect {
                     recomputeBalance()
                 }
             }
@@ -493,7 +476,7 @@ class DashboardViewModel
                             previousExpense = previousExpense,
                         )
                     val periodNet = snapshot.toPeriodNet()
-                    val settings = appSettingsRepository.settings.first()
+                    val settings = dashboardDataUseCase.currentSettings()
                     val firstPositive = !settings.firstPositiveSeen && snapshot.net.amount.signum() > 0
                     val chartConfig = _state.value.chartConfig
                     val currencyCards = computeCurrencyCards(selection, state.accounts, period, chartConfig)
@@ -520,7 +503,7 @@ class DashboardViewModel
                             showConfetti = firstPositive,
                         )
                     if (firstPositive) {
-                        appSettingsRepository.update { it.copy(firstPositiveSeen = true) }
+                        dashboardDataUseCase.updateSettings { it.copy(firstPositiveSeen = true) }
                     }
                     recomputeNeighbors(selection, state.accounts, period, chartConfig)
                 }
@@ -847,7 +830,7 @@ class DashboardViewModel
             _state.value.currencies.firstOrNull { it.id == currencyId }
                 ?: importFocusCurrencyId
                     ?.takeIf { it == currencyId }
-                    ?.let { currencyRepository.findById(it) }
+                    ?.let { dashboardDataUseCase.findCurrency(it) }
 
         private fun emptySnapshot(currency: Currency): BalanceSnapshot =
             BalanceSnapshot(
@@ -1006,7 +989,7 @@ class DashboardViewModel
             period: Period.Day,
         ): List<Transaction> =
             when (selection) {
-                is DashboardSelection.SpecificAccount -> transactionRepository.findByPeriod(selection.account.id, period)
+                is DashboardSelection.SpecificAccount -> dashboardDataUseCase.findTransactions(selection.account.id, period)
                 is DashboardSelection.AllAccounts ->
                     groupTransactions(accounts.filterNot { it.isArchived }, period)
             }
@@ -1015,15 +998,14 @@ class DashboardViewModel
             groupAccounts: List<Account>,
             period: Period.Day,
         ): List<Transaction> =
-            groupAccounts.flatMap { account -> transactionRepository.findByPeriod(account.id, period) }
+            groupAccounts.flatMap { account -> dashboardDataUseCase.findTransactions(account.id, period) }
 
         // Earliest transaction date for the Period.All auto window (O2). Derived from the existing
         // observeAll() flow — no new DAO — and null when the ledger is empty (buildAutoWindow then
         // yields an empty window, which the chart renders as empty, G13).
         private suspend fun earliestTransactionDate(): java.time.LocalDate? =
-            transactionRepository
-                .observeAll()
-                .first()
+            dashboardDataUseCase
+                .allTransactions()
                 .minByOrNull { it.occurredAt }
                 ?.occurredAt
                 ?.atZone(ZoneId.systemDefault())
@@ -1067,7 +1049,7 @@ class DashboardViewModel
                     selectBudgetAlerts()
                     recomputeBalance()
                     viewModelScope.launch {
-                        appSettingsRepository.update {
+                        dashboardDataUseCase.updateSettings {
                             it.copy(
                                 defaultAccountId = event.accountId,
                                 dashboardSelectionMode = DASHBOARD_SELECTION_SPECIFIC,
@@ -1192,9 +1174,9 @@ class DashboardViewModel
             transform: (AppSettings) -> AppSettings,
         ) {
             viewModelScope.launch {
-                appSettingsRepository.update(transform)
+                dashboardDataUseCase.updateSettings(transform)
                 if (recomputeTrend) {
-                    _state.value = _state.value.copy(chartConfig = appSettingsRepository.settings.first().toChartConfig())
+                    _state.value = _state.value.copy(chartConfig = dashboardDataUseCase.currentSettings().toChartConfig())
                     recomputeBalance()
                 }
             }
@@ -1215,7 +1197,7 @@ class DashboardViewModel
             selectBudgetAlerts()
             recomputeBalance()
             viewModelScope.launch {
-                appSettingsRepository.update { it.copy(dashboardSelectionMode = DASHBOARD_SELECTION_ALL) }
+                dashboardDataUseCase.updateSettings { it.copy(dashboardSelectionMode = DASHBOARD_SELECTION_ALL) }
             }
         }
 
@@ -1277,7 +1259,7 @@ class DashboardViewModel
             selectBudgetAlerts()
             recomputeBalance()
             viewModelScope.launch {
-                appSettingsRepository.update { it.copy(dashboardSelectionMode = DASHBOARD_SELECTION_ALL) }
+                dashboardDataUseCase.updateSettings { it.copy(dashboardSelectionMode = DASHBOARD_SELECTION_ALL) }
             }
         }
 
@@ -1521,12 +1503,6 @@ private data class BudgetAlertSelection(
 private data class TrendResult(
     val points: List<TrendPoint>,
     val axis: ChartTrendAxis,
-)
-
-private data class DashboardInputs(
-    val accounts: List<Account>,
-    val currencies: List<Currency>,
-    val settings: AppSettings,
 )
 
 private const val DASHBOARD_SELECTION_SPECIFIC = "specific_account"

@@ -58,6 +58,26 @@ class L10nParityTest {
     }
 
     @Test
+    fun `chart settings rework strings keep the exact EN and RU contract`() {
+        val enValues = parseStringValues(resolveResFile("feature/dashboard", "values/strings.xml"))
+        val ruValues = parseStringValues(resolveResFile("feature/dashboard", "values-ru/strings.xml"))
+        val expected =
+            mapOf(
+                "chart_settings_color_solid" to ("Solid" to "Однотонный"),
+                "chart_settings_color_always_green" to ("Always green" to "Всегда зелёный"),
+                "chart_settings_color_always_red" to ("Always red" to "Всегда красный"),
+                "chart_settings_color_by_direction" to ("By direction" to "По направлению"),
+                "chart_settings_projection" to ("Projections" to "Проекции"),
+                "chart_settings_projection_cd" to ("Toggle projections" to "Переключить проекции"),
+            )
+
+        expected.forEach { (key, values) ->
+            assertEquals("[$key] English value", values.first, enValues[key])
+            assertEquals("[$key] Russian value", values.second, ruValues[key])
+        }
+    }
+
+    @Test
     fun `every module with plurals has the same plural names in EN and RU`() {
         MODULES_WITH_PLURALS.forEach { module ->
             val enNames = parsePluralNames(resolveResFile(module, "values/plurals.xml"))
@@ -152,6 +172,19 @@ class L10nParityTest {
                 if (name.isNotBlank()) keys += name
             }
             return keys
+        }
+
+        fun parseStringValues(file: File): Map<String, String> {
+            require(file.isFile) { "strings.xml not found: ${file.path}" }
+            val doc = newDocumentBuilder().parse(file)
+            val nodes = doc.getElementsByTagName("string")
+            val values = LinkedHashMap<String, String>()
+            for (i in 0 until nodes.length) {
+                val el = nodes.item(i) as Element
+                val name = el.getAttribute("name")
+                if (name.isNotBlank()) values[name] = el.textContent
+            }
+            return values
         }
 
         /** Returns a map from plural name to the set of quantity attributes declared on its items. */

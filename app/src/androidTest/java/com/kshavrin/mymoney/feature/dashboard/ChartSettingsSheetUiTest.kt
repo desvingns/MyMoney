@@ -1,15 +1,24 @@
 package com.kshavrin.mymoney.feature.dashboard
 
+import android.content.Context
+import android.content.res.Configuration
+import android.os.LocaleList
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertContentDescriptionEquals
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.test.junit4.accessibility.enableAccessibilityChecks
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.designsystem.chart.ChartColorRule
@@ -23,6 +32,7 @@ import com.kshavrin.mymoney.feature.dashboard.components.CHART_SETTINGS_MODE_MAN
 import com.kshavrin.mymoney.feature.dashboard.components.CHART_SETTINGS_POINTS_DECREASE_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.CHART_SETTINGS_POINTS_INCREASE_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.CHART_SETTINGS_POINTS_VALUE_TAG
+import com.kshavrin.mymoney.feature.dashboard.components.CHART_SETTINGS_PROJECTION_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.CHART_SETTINGS_SHEET_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.CHART_SETTINGS_VISIBLE_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.ChartSettingsSheet
@@ -30,16 +40,19 @@ import com.kshavrin.mymoney.feature.dashboard.components.chartColorTag
 import com.kshavrin.mymoney.feature.dashboard.components.chartMetricTag
 import com.kshavrin.mymoney.feature.dashboard.components.chartPeriodTag
 import com.kshavrin.mymoney.feature.dashboard.components.chartStyleThumbTag
+import com.kshavrin.mymoney.test.assertTouchHeightIsAtLeast
+import com.kshavrin.mymoney.test.assertTouchWidthIsAtLeast
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.util.Locale
 
 @RunWith(AndroidJUnit4::class)
 class ChartSettingsSheetUiTest {
     @get:Rule
-    val composeTestRule = createComposeRule()
+    val composeTestRule = createComposeRule().apply { enableAccessibilityChecks() }
 
     private fun defaultConfig() =
         ChartConfig(
@@ -50,7 +63,8 @@ class ChartSettingsSheetUiTest {
             metric = ChartMetric.CUMULATIVE,
             showGridlines = true,
             showLabels = true,
-            colorRule = ChartColorRule.BySign,
+            showProjection = false,
+            colorRule = ChartColorRule.ByDirection,
             // Manual mode: keeps period-type and point-count controls visible so that all
             // pre-existing stepper/period tests can assert on them without extra `.copy(autoMode=false)`.
             autoMode = false,
@@ -75,8 +89,9 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `style thumb for each ChartStyle entry exists in the sheet`() {
+    fun `sheet renders exactly the three ChartStyle previews`() {
         setSheet()
+        assertEquals("the chart style contract has exactly three previews", 3, ChartStyle.entries.size)
         ChartStyle.entries.forEach { style ->
             composeTestRule
                 .onNodeWithTag(chartStyleThumbTag(style))
@@ -268,9 +283,18 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `color rule buttons for all three rules exist`() {
+    fun `color rule buttons for all four rules exist`() {
         setSheet()
-        listOf(ChartColorRule.BySign, ChartColorRule.Income, ChartColorRule.Expense).forEach { rule ->
+        val rules =
+            listOf(
+                ChartColorRule.Solid,
+                ChartColorRule.AlwaysGreen,
+                ChartColorRule.AlwaysRed,
+                ChartColorRule.ByDirection,
+            )
+        assertEquals("the chart color contract has exactly four modes", 4, rules.size)
+        assertEquals(ChartColorRule.entries.toSet(), rules.toSet())
+        rules.forEach { rule ->
             composeTestRule
                 .onNodeWithTag(chartColorTag(rule))
                 .assertExists()
@@ -278,18 +302,38 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `tapping color rule Expense emits ChartColorRuleChanged Expense`() {
+    fun `color rule buttons expose the localized label for every mode`() {
+        val locale = Locale.US
+        val context = localizedContext(locale)
+        setLocalizedSheet(locale)
+        mapOf(
+            ChartColorRule.Solid to R.string.chart_settings_color_solid,
+            ChartColorRule.AlwaysGreen to R.string.chart_settings_color_always_green,
+            ChartColorRule.AlwaysRed to R.string.chart_settings_color_always_red,
+            ChartColorRule.ByDirection to R.string.chart_settings_color_by_direction,
+        ).forEach { (rule, resourceId) ->
+            composeTestRule
+                .onNodeWithText(context.getString(resourceId))
+                .assertIsDisplayed()
+            composeTestRule
+                .onNodeWithTag(chartColorTag(rule))
+                .assertExists()
+        }
+    }
+
+    @Test
+    fun `tapping color rule ByDirection emits ChartColorRuleChanged ByDirection`() {
         val captured = mutableListOf<DashboardEvent>()
         setSheet(onEvent = { captured += it })
 
         composeTestRule
-            .onNodeWithTag(chartColorTag(ChartColorRule.Expense))
+            .onNodeWithTag(chartColorTag(ChartColorRule.ByDirection))
             .performClick()
 
         composeTestRule.runOnIdle {
-            assertTrue(
-                "expected ChartColorRuleChanged(Expense); got $captured",
-                captured.any { it == DashboardEvent.ChartColorRuleChanged(ChartColorRule.Expense) },
+            assertEquals(
+                listOf(DashboardEvent.ChartColorRuleChanged(ChartColorRule.ByDirection)),
+                captured,
             )
         }
     }
@@ -364,6 +408,75 @@ class ChartSettingsSheetUiTest {
                 captured.any { it == DashboardEvent.ChartLabelsToggled(true) },
             )
         }
+    }
+
+    @Test
+    fun `projection toggle is off when showProjection is false`() {
+        setSheet(config = defaultConfig().copy(showProjection = false))
+        composeTestRule
+            .onNodeWithTag(CHART_SETTINGS_PROJECTION_TAG)
+            .assertIsOff()
+    }
+
+    @Test
+    fun `projection toggle is on when showProjection is true`() {
+        setSheet(config = defaultConfig().copy(showProjection = true))
+        composeTestRule
+            .onNodeWithTag(CHART_SETTINGS_PROJECTION_TAG)
+            .assertIsOn()
+    }
+
+    @Test
+    fun `tapping projection toggle to enable emits ChartProjectionToggled true`() {
+        val captured = mutableListOf<DashboardEvent>()
+        setSheet(
+            config = defaultConfig().copy(showProjection = false),
+            onEvent = { captured += it },
+        )
+
+        composeTestRule
+            .onNodeWithTag(CHART_SETTINGS_PROJECTION_TAG)
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertEquals(
+                listOf(DashboardEvent.ChartProjectionToggled(true)),
+                captured,
+            )
+        }
+    }
+
+    @Test
+    fun `projection toggle has localized content description and a 48dp touch target`() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        setSheet()
+
+        composeTestRule
+            .onNodeWithTag(CHART_SETTINGS_PROJECTION_TAG)
+            .assertContentDescriptionEquals(context.getString(R.string.chart_settings_projection_cd))
+            .assertTouchWidthIsAtLeast(48.dp)
+            .assertTouchHeightIsAtLeast(48.dp)
+    }
+
+    @Test
+    fun `color and projection labels render in Russian`() {
+        val locale = Locale.forLanguageTag("ru-RU")
+        val context = localizedContext(locale)
+        setLocalizedSheet(locale)
+
+        mapOf(
+            ChartColorRule.Solid to R.string.chart_settings_color_solid,
+            ChartColorRule.AlwaysGreen to R.string.chart_settings_color_always_green,
+            ChartColorRule.AlwaysRed to R.string.chart_settings_color_always_red,
+            ChartColorRule.ByDirection to R.string.chart_settings_color_by_direction,
+        ).forEach { (_, resourceId) ->
+            composeTestRule
+                .onNodeWithText(context.getString(resourceId))
+                .assertIsDisplayed()
+        }
+        composeTestRule
+            .onNodeWithTag(CHART_SETTINGS_PROJECTION_TAG)
+            .assertContentDescriptionEquals(context.getString(R.string.chart_settings_projection_cd))
     }
 
     @Test
@@ -572,7 +685,7 @@ class ChartSettingsSheetUiTest {
     fun `color rule buttons are visible in auto mode`() {
         setSheet(config = defaultConfig().copy(autoMode = true))
         composeTestRule
-            .onNodeWithTag(chartColorTag(ChartColorRule.BySign))
+            .onNodeWithTag(chartColorTag(ChartColorRule.Solid))
             .performScrollTo()
             .assertExists()
     }
@@ -581,7 +694,7 @@ class ChartSettingsSheetUiTest {
     fun `color rule buttons are visible in manual mode`() {
         setSheet(config = defaultConfig().copy(autoMode = false))
         composeTestRule
-            .onNodeWithTag(chartColorTag(ChartColorRule.BySign))
+            .onNodeWithTag(chartColorTag(ChartColorRule.Solid))
             .performScrollTo()
             .assertExists()
     }
@@ -620,5 +733,31 @@ class ChartSettingsSheetUiTest {
             .onNodeWithTag(CHART_SETTINGS_VISIBLE_TAG)
             .performScrollTo()
             .assertExists()
+    }
+
+    private fun setLocalizedSheet(locale: Locale) {
+        val context = localizedContext(locale)
+        val configuration = context.resources.configuration
+        composeTestRule.setContent {
+            CompositionLocalProvider(
+                LocalContext provides context,
+                LocalConfiguration provides configuration,
+            ) {
+                MyMoneyTheme {
+                    ChartSettingsSheet(
+                        config = defaultConfig(),
+                        onEvent = {},
+                        onDismiss = {},
+                    )
+                }
+            }
+        }
+    }
+
+    private fun localizedContext(locale: Locale): Context {
+        val baseContext = InstrumentationRegistry.getInstrumentation().targetContext
+        val configuration = Configuration(baseContext.resources.configuration)
+        configuration.setLocales(LocaleList(locale))
+        return baseContext.createConfigurationContext(configuration)
     }
 }

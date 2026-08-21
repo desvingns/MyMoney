@@ -5,21 +5,23 @@ import android.content.res.Configuration
 import android.os.LocaleList
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
-import androidx.compose.ui.test.assertContentDescriptionEquals
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.accessibility.enableAccessibilityChecks
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -35,6 +37,7 @@ import com.kshavrin.mymoney.feature.dashboard.components.CHART_SETTINGS_POINTS_D
 import com.kshavrin.mymoney.feature.dashboard.components.CHART_SETTINGS_POINTS_INCREASE_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.CHART_SETTINGS_POINTS_VALUE_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.CHART_SETTINGS_PROJECTION_TAG
+import com.kshavrin.mymoney.feature.dashboard.components.CHART_SETTINGS_SCROLL_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.CHART_SETTINGS_SHEET_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.CHART_SETTINGS_VISIBLE_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.ChartSettingsSheet
@@ -345,6 +348,7 @@ class ChartSettingsSheetUiTest {
 
         composeTestRule
             .onNodeWithTag(chartColorTag(ChartColorRule.ByDirection))
+            .performScrollTo()
             .performClick()
 
         composeTestRule.runOnIdle {
@@ -489,15 +493,23 @@ class ChartSettingsSheetUiTest {
             ChartColorRule.AlwaysGreen to R.string.chart_settings_color_always_green,
             ChartColorRule.AlwaysRed to R.string.chart_settings_color_always_red,
             ChartColorRule.ByDirection to R.string.chart_settings_color_by_direction,
-        ).forEach { (_, resourceId) ->
+        ).forEach { (rule, resourceId) ->
+            val label = context.getString(resourceId)
             composeTestRule
-                .onNodeWithText(context.getString(resourceId))
-                .performScrollTo()
+                .onNodeWithTag(CHART_SETTINGS_SCROLL_TAG)
+                .performScrollToNode(hasTestTag(chartColorTag(rule)))
+            composeTestRule
+                .onNodeWithTag(chartColorTag(rule))
                 .assertIsDisplayed()
+            composeTestRule
+                .onNodeWithText(label)
+                .assertExists()
         }
         composeTestRule
+            .onNodeWithTag(CHART_SETTINGS_SCROLL_TAG)
+            .performScrollToNode(hasTestTag(CHART_SETTINGS_PROJECTION_TAG))
+        composeTestRule
             .onNodeWithTag(CHART_SETTINGS_PROJECTION_TAG)
-            .performScrollTo()
             .assertContentDescriptionEquals(context.getString(R.string.chart_settings_projection_cd))
     }
 

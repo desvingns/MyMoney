@@ -5,17 +5,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
@@ -31,8 +28,12 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -62,100 +63,131 @@ fun ChartSettingsSheet(
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val context = LocalContext.current
+    val configuration = LocalConfiguration.current
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         modifier = Modifier.testTag(CHART_SETTINGS_SHEET_TAG),
-        contentWindowInsets = { WindowInsets(0, 0, 0, 0) },
+        scrimColor = Color.Unspecified,
     ) {
-        Box(modifier = Modifier.fillMaxWidth().navigationBarsPadding()) {
-            Column(
+        CompositionLocalProvider(
+            LocalContext provides context,
+            LocalConfiguration provides configuration,
+        ) {
+            LazyColumn(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = Spacing.l)
-                        .padding(bottom = Spacing.l),
+                        .testTag(CHART_SETTINGS_SCROLL_TAG),
+                contentPadding =
+                    PaddingValues(
+                        start = Spacing.l,
+                        end = Spacing.l,
+                        bottom = Spacing.chartSettingsSheetRowHeight,
+                    ),
                 verticalArrangement = Arrangement.spacedBy(Spacing.chartSettingsSheetSectionGap),
             ) {
-                Text(
-                    text = stringResource(R.string.chart_settings_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-
-                SectionLabel(stringResource(R.string.chart_settings_section_mode))
-                SegmentedRow(
-                    options = autoModeOptions(),
-                    selected = config.autoMode,
-                    onSelected = { onEvent(DashboardEvent.ChartAutoModeChanged(it)) },
-                )
-
-                SectionLabel(stringResource(R.string.chart_settings_section_style))
-                StyleRow(
-                    selected = config.style,
-                    metricLabel = stringResource(chartMetricLabelRes(config.metric)),
-                    onSelected = { onEvent(DashboardEvent.ChartStyleChanged(it)) },
-                )
-
-                if (!config.autoMode) {
-                    SectionLabel(stringResource(R.string.chart_settings_section_period))
-                    SegmentedRow(
-                        options = periodTypeOptions(),
-                        selected = config.periodType,
-                        onSelected = { onEvent(DashboardEvent.ChartPeriodTypeChanged(it)) },
-                    )
-
-                    SectionLabel(stringResource(R.string.chart_settings_section_points))
-                    PointCountStepper(
-                        count = config.pointCount,
-                        onChange = { onEvent(DashboardEvent.ChartPointCountChanged(it)) },
+                item {
+                    Text(
+                        text = stringResource(R.string.chart_settings_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                 }
 
-                SectionLabel(stringResource(R.string.chart_settings_section_metric))
-                SegmentedRow(
-                    options = metricOptions(),
-                    selected = config.metric,
-                    onSelected = { onEvent(DashboardEvent.ChartMetricChanged(it)) },
-                )
+                item { SectionLabel(stringResource(R.string.chart_settings_section_mode)) }
+                item {
+                    SegmentedRow(
+                        options = autoModeOptions(),
+                        selected = config.autoMode,
+                        onSelected = { onEvent(DashboardEvent.ChartAutoModeChanged(it)) },
+                    )
+                }
 
-                SectionLabel(stringResource(R.string.chart_settings_section_color))
-                SegmentedRow(
-                    options = colorRuleOptions(),
-                    selected = config.colorRule,
-                    onSelected = { onEvent(DashboardEvent.ChartColorRuleChanged(it)) },
-                )
+                item { SectionLabel(stringResource(R.string.chart_settings_section_style)) }
+                item {
+                    StyleRow(
+                        selected = config.style,
+                        metricLabel = stringResource(chartMetricLabelRes(config.metric)),
+                        onSelected = { onEvent(DashboardEvent.ChartStyleChanged(it)) },
+                    )
+                }
 
-                SectionLabel(stringResource(R.string.chart_settings_section_display))
-                ToggleRow(
-                    label = stringResource(R.string.chart_settings_gridlines),
-                    contentDescription = stringResource(R.string.chart_settings_gridlines),
-                    checked = config.showGridlines,
-                    testTag = CHART_SETTINGS_GRIDLINES_TAG,
-                    onCheckedChange = { onEvent(DashboardEvent.ChartGridlinesToggled(it)) },
-                )
-                ToggleRow(
-                    label = stringResource(R.string.chart_settings_labels),
-                    contentDescription = stringResource(R.string.chart_settings_labels),
-                    checked = config.showLabels,
-                    testTag = CHART_SETTINGS_LABELS_TAG,
-                    onCheckedChange = { onEvent(DashboardEvent.ChartLabelsToggled(it)) },
-                )
-                ToggleRow(
-                    label = stringResource(R.string.chart_settings_projection),
-                    contentDescription = stringResource(R.string.chart_settings_projection_cd),
-                    checked = config.showProjection,
-                    testTag = CHART_SETTINGS_PROJECTION_TAG,
-                    onCheckedChange = { onEvent(DashboardEvent.ChartProjectionToggled(it)) },
-                )
-                ToggleRow(
-                    label = stringResource(R.string.chart_settings_visible),
-                    contentDescription = stringResource(R.string.chart_settings_visible),
-                    checked = config.visible,
-                    testTag = CHART_SETTINGS_VISIBLE_TAG,
-                    onCheckedChange = { onEvent(DashboardEvent.ChartVisibilityChanged(it)) },
-                )
+                if (!config.autoMode) {
+                    item { SectionLabel(stringResource(R.string.chart_settings_section_period)) }
+                    item {
+                        SegmentedRow(
+                            options = periodTypeOptions(),
+                            selected = config.periodType,
+                            onSelected = { onEvent(DashboardEvent.ChartPeriodTypeChanged(it)) },
+                        )
+                    }
+
+                    item { SectionLabel(stringResource(R.string.chart_settings_section_points)) }
+                    item {
+                        PointCountStepper(
+                            count = config.pointCount,
+                            onChange = { onEvent(DashboardEvent.ChartPointCountChanged(it)) },
+                        )
+                    }
+                }
+
+                item { SectionLabel(stringResource(R.string.chart_settings_section_metric)) }
+                item {
+                    SegmentedRow(
+                        options = metricOptions(),
+                        selected = config.metric,
+                        onSelected = { onEvent(DashboardEvent.ChartMetricChanged(it)) },
+                    )
+                }
+
+                item { SectionLabel(stringResource(R.string.chart_settings_section_color)) }
+                item {
+                    SegmentedRow(
+                        options = colorRuleOptions(),
+                        selected = config.colorRule,
+                        onSelected = { onEvent(DashboardEvent.ChartColorRuleChanged(it)) },
+                    )
+                }
+
+                item { SectionLabel(stringResource(R.string.chart_settings_section_display)) }
+                item {
+                    ToggleRow(
+                        label = stringResource(R.string.chart_settings_gridlines),
+                        contentDescription = stringResource(R.string.chart_settings_gridlines),
+                        checked = config.showGridlines,
+                        testTag = CHART_SETTINGS_GRIDLINES_TAG,
+                        onCheckedChange = { onEvent(DashboardEvent.ChartGridlinesToggled(it)) },
+                    )
+                }
+                item {
+                    ToggleRow(
+                        label = stringResource(R.string.chart_settings_labels),
+                        contentDescription = stringResource(R.string.chart_settings_labels),
+                        checked = config.showLabels,
+                        testTag = CHART_SETTINGS_LABELS_TAG,
+                        onCheckedChange = { onEvent(DashboardEvent.ChartLabelsToggled(it)) },
+                    )
+                }
+                item {
+                    ToggleRow(
+                        label = stringResource(R.string.chart_settings_projection),
+                        contentDescription = stringResource(R.string.chart_settings_projection_cd),
+                        checked = config.showProjection,
+                        testTag = CHART_SETTINGS_PROJECTION_TAG,
+                        onCheckedChange = { onEvent(DashboardEvent.ChartProjectionToggled(it)) },
+                    )
+                }
+                item {
+                    ToggleRow(
+                        label = stringResource(R.string.chart_settings_visible),
+                        contentDescription = stringResource(R.string.chart_settings_visible),
+                        checked = config.visible,
+                        testTag = CHART_SETTINGS_VISIBLE_TAG,
+                        onCheckedChange = { onEvent(DashboardEvent.ChartVisibilityChanged(it)) },
+                    )
+                }
             }
         }
     }
@@ -367,6 +399,7 @@ private fun colorRuleOptions(): List<SegmentOption<ChartColorRule>> =
 private val STYLE_PREVIEW_POINTS = listOf(-1f, 0.5f, -0.5f, 1.2f, 0.8f)
 
 const val CHART_SETTINGS_SHEET_TAG = "chart_settings_sheet"
+const val CHART_SETTINGS_SCROLL_TAG = "chart_settings_scroll"
 const val CHART_SETTINGS_MODE_AUTO_TAG = "chart_settings_mode_auto"
 const val CHART_SETTINGS_MODE_MANUAL_TAG = "chart_settings_mode_manual"
 const val CHART_SETTINGS_GRIDLINES_TAG = "chart_settings_gridlines"

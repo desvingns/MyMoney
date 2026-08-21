@@ -332,7 +332,72 @@ class SharedSyncCoordinatorImplTest {
         }
 
     @Test
-    fun `recoverRemoteWorkspace clears local data only after the explicit recovery call`() =
+    fun `recoverRemoteWorkspace replace path materializes remote rows before binding`() =
+        runTest(dispatcher) {
+            auth.session = fakeSession()
+            workspaceApi.currentWorkspaceResult = Result.success(fakeWorkspace())
+            val operations = seedRemoteJournalForEmptyLocalDb()
+
+            val result = coordinator.recoverRemoteWorkspace(importLocalData = false)
+
+            assertTrue(result.isSuccess)
+            assertEquals(1, backupRepository.internalBackupCalls)
+            assertEquals(1, backupRepository.clearDatabaseCalls)
+            assertEquals(1, journalRepository.pullCalls)
+            assertEquals(listOf(0L), journalRepository.pullAfterSequences)
+            assertMaterializedRemoteRows(operations)
+            assertEquals(operations.last().serverSequence, sharedStore.cursor)
+            assertEquals(CloudProvider.Shared, configStore.current?.provider)
+            assertEquals("ws-1", configStore.current?.stableAccountId)
+        }
+
+    @Test
+    fun `recoverRemoteWorkspace replace probe failure preserves local rows without clearing or restart`() =
+        runTest(dispatcher) {
+            auth.session = fakeSession()
+            workspaceApi.currentWorkspaceResult = Result.success(fakeWorkspace())
+            val localAccount = sampleAccount(id = 1L)
+            val localCategory =
+                Category(
+                    id = 2L,
+                    name = "Local food",
+                    kind = CategoryKind.Expense,
+                    iconKey = "ic_food",
+                    colorHex = "#FF5722",
+                    textColor = "#FFFFFF",
+                    sortOrder = 1,
+                    isDefault = false,
+                    isArchived = false,
+                    createdAt = clock.instant(),
+                )
+            val localTransaction = sampleTransaction(accountId = localAccount.id)
+            val localCurrency = fakeCurrency()
+            accountRepository.accounts = listOf(localAccount)
+            categoryRepository.categories = listOf(localCategory)
+            transactionRepository.transactions = listOf(localTransaction)
+            currencyRepository.currencies = mapOf(localCurrency.id to localCurrency)
+            val probeFailure = SyncException(SyncError.EntitlementRequired)
+            journalRepository.pullResults.add(Result.failure(probeFailure))
+
+            val result = coordinator.recoverRemoteWorkspace(importLocalData = false)
+
+            assertTrue(result.isFailure)
+            assertEquals(probeFailure, result.exceptionOrNull())
+            assertEquals(1, backupRepository.internalBackupCalls)
+            assertEquals(1, journalRepository.pullCalls)
+            assertEquals(listOf(0L), journalRepository.pullAfterSequences)
+            assertEquals(0, backupRepository.clearDatabaseCalls)
+            assertTrue(backupRepository.importPaths.isEmpty())
+            assertTrue(!coordinator.consumeRestartRequiredAfterAdoptionRecovery())
+            assertNull(configStore.current)
+            assertEquals(listOf(localAccount), accountRepository.accounts)
+            assertEquals(listOf(localCategory), categoryRepository.categories)
+            assertEquals(listOf(localTransaction), transactionRepository.transactions)
+            assertEquals(mapOf(localCurrency.id to localCurrency), currencyRepository.currencies)
+        }
+
+    @Test
+    fun `recoverRemoteWorkspace replace path succeeds with empty remote journal at cursor zero`() =
         runTest(dispatcher) {
             auth.session = fakeSession()
             workspaceApi.currentWorkspaceResult = Result.success(fakeWorkspace())
@@ -343,7 +408,84 @@ class SharedSyncCoordinatorImplTest {
             assertTrue(result.isSuccess)
             assertEquals(1, backupRepository.internalBackupCalls)
             assertEquals(1, backupRepository.clearDatabaseCalls)
+            assertEquals(1, journalRepository.pullCalls)
+            assertEquals(listOf(0L), journalRepository.pullAfterSequences)
+            assertEquals(0L, sharedStore.cursor)
             assertEquals(CloudProvider.Shared, configStore.current?.provider)
+            assertEquals("ws-1", configStore.current?.stableAccountId)
+            assertTrue(accountRepository.upsertCalls.isEmpty())
+            assertTrue(categoryRepository.upsertCalls.isEmpty())
+            assertTrue(transactionRepository.upsertCalls.isEmpty())
+        }
+
+    @Test
+    fun `recoverRemoteWorkspace import path materializes remote rows before binding`() =
+        runTest(dispatcher) {
+            auth.session = fakeSession()
+            workspaceApi.currentWorkspaceResult = Result.success(fakeWorkspace())
+            val operations = seedRemoteJournalForEmptyLocalDb()
+
+            val result = coordinator.recoverRemoteWorkspace(importLocalData = true)
+
+            assertTrue(result.isSuccess)
+            assertEquals(1, backupRepository.internalBackupCalls)
+            assertEquals(0, backupRepository.clearDatabaseCalls)
+            assertMaterializedRemoteRows(operations)
+            assertEquals(operations.last().serverSequence, sharedStore.cursor)
+            assertEquals(CloudProvider.Shared, configStore.current?.provider)
+            assertEquals("ws-1", configStore.current?.stableAccountId)
+        }
+
+    @Test
+    fun `recoverRemoteWorkspace import path preserves local rows when journal push fails`() =
+        runTest(dispatcher) {
+            auth.session = fakeSession()
+            workspaceApi.currentWorkspaceResult = Result.success(fakeWorkspace())
+            val localAccount = sampleAccount(id = 1L)
+            accountRepository.accounts = listOf(localAccount)
+            accountRepository.uuids = mapOf(1L to "account-uuid-local")
+            val localCurrency = fakeCurrency(code = "USD")
+            currencyRepository.currencies = mapOf(localCurrency.id to localCurrency)
+            val pushFailure = SyncException(SyncError.Server)
+            journalRepository.pushFailure = pushFailure
+            journalRepository.pullResults.add(Result.success(emptyList()))
+
+            val result = coordinator.recoverRemoteWorkspace(importLocalData = true)
+
+            assertTrue(result.isFailure)
+            assertEquals(pushFailure, result.exceptionOrNull())
+            assertEquals(1, journalRepository.pushCalls)
+            assertEquals(1, journalRepository.pullCalls)
+            assertNull(configStore.current)
+            assertTrue(!sharedStore.membershipActive)
+            assertEquals(0L, sharedStore.cursor)
+            assertTrue(backupRepository.importPaths.isEmpty())
+            assertTrue(!coordinator.consumeRestartRequiredAfterAdoptionRecovery())
+            assertEquals(listOf(localAccount), accountRepository.accounts)
+            assertEquals(mapOf(localCurrency.id to localCurrency), currencyRepository.currencies)
+        }
+
+    @Test
+    fun `recoverRemoteWorkspace does not report success after malformed remote operation`() =
+        runTest(dispatcher) {
+            auth.session = fakeSession()
+            workspaceApi.currentWorkspaceResult = Result.success(fakeWorkspace())
+            val malformedOperation =
+                fakeOperation(
+                    serverSequence = 1L,
+                    entityKind = EntityKind.Category,
+                    payload = "{}",
+                )
+            journalRepository.pullResults.add(Result.success(listOf(malformedOperation)))
+
+            val result = coordinator.recoverRemoteWorkspace(importLocalData = false)
+
+            assertTrue(result.isFailure)
+            assertNotNull(result.exceptionOrNull())
+            assertEquals(0L, sharedStore.cursor)
+            assertNull(configStore.current)
+            assertTrue(accountRepository.upsertCalls.isEmpty())
+            assertEquals(listOf("/internal/backup.db"), backupRepository.importPaths)
         }
 
     @Test
@@ -827,18 +969,15 @@ class SharedSyncCoordinatorImplTest {
             assertEquals(1_600_000_000_000L, appSettings.settings.first().lastSyncAt)
         }
 
-    // ── pullAndApply per-operation skip-and-continue ───────────────────────
+    // ── pullAndApply per-operation failure and dependency ordering ──────────
 
     @Test
-    fun `pullAndApply advances cursor past malformed non-currency op and applies subsequent valid op`() =
+    fun `pullAndApply fails on malformed non-currency op and preserves cursor`() =
         runTest(dispatcher) {
             configStore.current = CloudBinding(CloudProvider.Shared, "ws-1", "Budget")
             sharedStore.membershipActive = true
 
-            // A malformed category payload is still a proven-invalid operation and may be skipped.
-            // Currency integrity failures are covered below and must remain retryable instead.
             val malformedOp = fakeOperation(serverSequence = 1L, entityKind = EntityKind.Category, payload = "{}")
-            // Op 2: tombstone account (no ref resolution needed) → applied
             val validOp =
                 fakeOperation(
                     serverSequence = 2L,
@@ -848,12 +987,39 @@ class SharedSyncCoordinatorImplTest {
                 )
             journalRepository.pullResults.add(Result.success(listOf(malformedOp, validOp)))
 
-            coordinator.syncNow()
+            val result = coordinator.syncNow()
 
-            // Cursor must have advanced to sequence 2 (past the malformed op)
-            assertEquals(2L, sharedStore.cursor)
-            // applySharedArchive was called for the tombstone op
-            assertTrue(accountRepository.archivedUuids.contains(validOp.entityId))
+            assertTrue(result.isFailure)
+            assertNotNull(result.exceptionOrNull())
+            assertEquals(0L, sharedStore.cursor)
+            assertTrue(accountRepository.archivedUuids.isEmpty())
+            assertNotNull(configStore.current)
+        }
+
+    @Test
+    fun `pullAndApply fails on Room persistence error and does not advance cursor`() =
+        runTest(dispatcher) {
+            configStore.current = CloudBinding(CloudProvider.Shared, "ws-1", "Budget")
+            sharedStore.membershipActive = true
+            accountRepository.applyFailure = IllegalStateException("room write failed")
+            val payload = codec.encodeAccount(sampleAccount(id = 10L, currencyId = 0L), "account-uuid", fakeCurrency())
+            val operation = fakeOperation(serverSequence = 1L, payload = payload)
+            journalRepository.pullResults.add(Result.success(listOf(operation)))
+
+            val result = coordinator.syncNow()
+
+            assertTrue(result.isFailure)
+            assertEquals("room write failed", result.exceptionOrNull()?.message)
+            assertEquals(0L, sharedStore.cursor)
+            assertTrue(accountRepository.upsertCalls.isEmpty())
+            assertNull(
+                db.sharedOutboxDao().stateForEntity(
+                    workspaceId = "ws-1",
+                    entityKind = EntityKind.Account.name,
+                    entityId = operation.entityId,
+                ),
+            )
+            assertNotNull(configStore.current)
         }
 
     @Test
@@ -1608,6 +1774,70 @@ class SharedSyncCoordinatorImplTest {
         createdAt = clock.instant(),
     )
 
+    private fun seedRemoteJournalForEmptyLocalDb(): List<SharedOperation> {
+        val currency = fakeCurrency(code = "XYZ").copy(id = 0L, symbol = "¤", name = "Test currency")
+        val account = sampleAccount(id = 10L, currencyId = 0L)
+        val category =
+            Category(
+                id = 20L,
+                name = "Food",
+                kind = CategoryKind.Expense,
+                iconKey = "ic_food",
+                colorHex = "#FF5722",
+                textColor = "#FFFFFF",
+                sortOrder = 1,
+                isDefault = false,
+                isArchived = false,
+                createdAt = clock.instant(),
+            )
+        val transaction = sampleTransaction(currencyId = 0L, accountId = account.id).copy(categoryId = category.id)
+        val accountUuid = "remote-account-uuid"
+        val categoryUuid = "remote-category-uuid"
+        val transactionUuid = "remote-transaction-uuid"
+
+        return listOf(
+            fakeOperation(
+                serverSequence = 1L,
+                entityKind = EntityKind.Transaction,
+                entityId = transactionUuid,
+                payload = codec.encodeTransaction(transaction, transactionUuid, currency, accountUuid, categoryUuid, null),
+            ),
+            fakeOperation(
+                serverSequence = 2L,
+                entityKind = EntityKind.Account,
+                entityId = accountUuid,
+                payload = codec.encodeAccount(account, accountUuid, currency),
+            ),
+            fakeOperation(
+                serverSequence = 3L,
+                entityKind = EntityKind.Category,
+                entityId = categoryUuid,
+                payload = codec.encodeCategory(category, categoryUuid),
+            ),
+        ).also { operations -> journalRepository.pullResults.add(Result.success(operations)) }
+    }
+
+    private suspend fun assertMaterializedRemoteRows(operations: List<SharedOperation>) {
+        assertEquals(1, accountRepository.upsertCalls.size)
+        assertEquals(10L, accountRepository.upsertCalls.single().first.id)
+        assertEquals(1, categoryRepository.upsertCalls.size)
+        assertEquals(20L, categoryRepository.upsertCalls.single().first.id)
+        assertEquals(1, transactionRepository.upsertCalls.size)
+        assertEquals(42L, transactionRepository.upsertCalls.single().first.id)
+        assertEquals(10L, accountRepository.idForUuid("remote-account-uuid"))
+        assertEquals(20L, categoryRepository.idForUuid("remote-category-uuid"))
+        assertEquals("XYZ", currencyRepository.findByCode("XYZ")?.code)
+        operations.forEach { operation ->
+            assertNotNull(
+                db.sharedOutboxDao().stateForEntity(
+                    workspaceId = operation.workspaceId,
+                    entityKind = operation.entityKind.name,
+                    entityId = operation.entityId,
+                ),
+            )
+        }
+    }
+
     // ── local fakes ────────────────────────────────────────────────────────
 
     private inner class FakeSharedAuth : SharedAuth {
@@ -1720,8 +1950,10 @@ class SharedSyncCoordinatorImplTest {
     private inner class FakeSharedJournalRepository : SharedJournalRepository {
         val pullResults = ArrayDeque<Result<List<SharedOperation>>>()
         var pullCalls = 0
+        val pullAfterSequences = mutableListOf<Long>()
         private val pullCallCount = MutableStateFlow(0)
         var pushCalls = 0
+        var pushFailure: Throwable? = null
         var resolveCalls = 0
         var lastResolve: Pair<String, String>? = null
         var conflictsResult: Result<List<SharedConflict>> = Result.success(emptyList())
@@ -1737,6 +1969,7 @@ class SharedSyncCoordinatorImplTest {
             tombstone: Boolean,
         ): Result<SharedOperation> {
             pushCalls++
+            pushFailure?.let { return Result.failure(it) }
             return Result.success(fakeOperation(serverSequence = pushCalls.toLong(), entityKind = entityKind))
         }
 
@@ -1746,6 +1979,7 @@ class SharedSyncCoordinatorImplTest {
             limit: Int,
         ): Result<List<SharedOperation>> {
             pullCalls++
+            pullAfterSequences += afterSequence
             pullCallCount.value = pullCalls
             return pullResults.removeFirstOrNull()
                 ?: Result.success(emptyList())
@@ -1922,6 +2156,7 @@ class SharedSyncCoordinatorImplTest {
         var uuids: Map<Long, String> = emptyMap()
         val archivedUuids = mutableListOf<String>()
         val upsertCalls = mutableListOf<Triple<Account, String, String>>()
+        var applyFailure: Throwable? = null
         var onApply: (() -> Unit)? = null
 
         override fun observeActive(): Flow<List<Account>> = flowOf(accounts)
@@ -1945,7 +2180,9 @@ class SharedSyncCoordinatorImplTest {
             uuid: String,
             deviceId: String,
         ) {
+            applyFailure?.let { throw it }
             upsertCalls += Triple(account, uuid, deviceId)
+            uuids = uuids + (account.id to uuid)
             onApply?.invoke()
         }
 
@@ -1963,6 +2200,7 @@ class SharedSyncCoordinatorImplTest {
     private inner class FakeCategoryRepository : CategoryRepository {
         var categories: List<Category> = emptyList()
         var uuids: Map<Long, String> = emptyMap()
+        val upsertCalls = mutableListOf<Triple<Category, String, String>>()
 
         override fun observeByKind(kind: CategoryKind): Flow<List<Category>> = flowOf(emptyList())
 
@@ -1982,7 +2220,10 @@ class SharedSyncCoordinatorImplTest {
             category: Category,
             uuid: String,
             deviceId: String,
-        ) = Unit
+        ) {
+            upsertCalls += Triple(category, uuid, deviceId)
+            uuids = uuids + (category.id to uuid)
+        }
 
         override suspend fun applySharedArchive(uuid: String) = Unit
 
@@ -2041,6 +2282,7 @@ class SharedSyncCoordinatorImplTest {
             deviceId: String,
         ) {
             upsertCalls += Triple(transaction, uuid, deviceId)
+            uuids = uuids + (transaction.id to uuid)
             onApply?.invoke()
         }
 

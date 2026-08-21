@@ -529,18 +529,30 @@ class SharedSyncCoordinatorImpl
         private suspend fun adoptWorkspace(
             workspace: SharedWorkspace,
             importLocalData: Boolean,
+            onLocalDataChanged: () -> Unit,
         ) {
+            val probedOperations =
+                if (importLocalData) {
+                    null
+                } else {
+                    journalRepository.pull(workspace.id, afterSequence = 0L, limit = PAGE_SIZE).getOrThrow()
+                }
             sharedStore.clear()
             clearSharedOutbox()
             if (importLocalData) {
                 // Enqueue snapshots before pulling remote state. The durable outbox preserves the
                 // user's original payloads even if a remote operation subsequently changes a row.
                 enqueueLocalChanges(workspace.id)
-                pullAndApply(workspace.id)
+                pullAndApply(workspace.id, onOperationApplied = onLocalDataChanged)
             } else {
                 backupRepository.clearDatabase().getOrThrow()
+                onLocalDataChanged()
                 currencyRepository.upsertAll(InitialDataSeeder.defaultCurrencyCatalog())
-                pullAndApply(workspace.id)
+                pullAndApply(
+                    workspaceId = workspace.id,
+                    initialOperations = probedOperations,
+                    onOperationApplied = onLocalDataChanged,
+                )
             }
             // Mark membership active BEFORE the binding becomes visible, so a concurrent syncNow()
             // landing between these two writes cannot see the binding with an inactive-membership flag
@@ -564,8 +576,13 @@ class SharedSyncCoordinatorImpl
             backupPath: String,
             remoteCompensation: suspend () -> Unit,
         ) {
+            var localDataChanged = false
             try {
-                adoptWorkspace(workspace, importLocalData)
+                adoptWorkspace(
+                    workspace = workspace,
+                    importLocalData = importLocalData,
+                    onLocalDataChanged = { localDataChanged = true },
+                )
                 if (importLocalData) {
                     currentCoroutineContext().ensureActive()
                     // The local binding is committed before delivery. Shielding publication prevents a
@@ -582,7 +599,12 @@ class SharedSyncCoordinatorImpl
                     currentCoroutineContext().ensureActive()
                 }
             } catch (failure: Throwable) {
-                recoverFailedAdoption(backupPath, remoteCompensation, failure)
+                recoverFailedAdoption(
+                    backupPath = backupPath,
+                    remoteCompensation = remoteCompensation,
+                    failure = failure,
+                    restoreLocalData = localDataChanged,
+                )
                 throw failure
             }
         }
@@ -591,6 +613,7 @@ class SharedSyncCoordinatorImpl
             backupPath: String,
             remoteCompensation: suspend () -> Unit,
             failure: Throwable,
+            restoreLocalData: Boolean,
         ) =
             withContext(NonCancellable) {
                 val recoveryFailures = mutableListOf<Throwable>()
@@ -600,9 +623,13 @@ class SharedSyncCoordinatorImpl
                 collectRecoveryFailure(recoveryFailures) { configStore.clearBinding() }
                 collectRecoveryFailure(recoveryFailures) { sharedStore.clear() }
                 collectRecoveryFailure(recoveryFailures) { clearSharedOutbox() }
-                restartRequiredAfterAdoptionRecovery.set(true)
-                collectRecoveryFailure(recoveryFailures) {
-                    backupRepository.importFromFile(backupPath).getOrThrow()
+                if (restoreLocalData) {
+                    restartRequiredAfterAdoptionRecovery.set(true)
+                    collectRecoveryFailure(recoveryFailures) {
+                        backupRepository.importFromFile(backupPath).getOrThrow()
+                    }
+                } else {
+                    restartRequiredAfterAdoptionRecovery.set(false)
                 }
                 recoveryFailures.forEach { recoveryFailure ->
                     recoveryFailure.reportToSentry()
@@ -668,18 +695,26 @@ class SharedSyncCoordinatorImpl
             }
         }
 
-        private suspend fun pullAndApply(workspaceId: String) {
+        private suspend fun pullAndApply(
+            workspaceId: String,
+            initialOperations: List<SharedOperation>? = null,
+            onOperationApplied: (() -> Unit)? = null,
+        ) {
             var durableAfter = sharedStore.cursor()
             var fetchAfter = durableAfter
+            var nextOperations = initialOperations
             val fetchedOperations = mutableListOf<SharedOperation>()
             val deferredOperations = mutableListOf<SharedOperation>()
             val completedSequences = mutableSetOf<Long>()
             var nextCursorOperationIndex = 0
             while (true) {
+                val prefetchedOperations = nextOperations
+                nextOperations = null
                 val operations =
-                    journalRepository
-                        .pull(workspaceId, fetchAfter, PAGE_SIZE)
-                        .getOrThrow()
+                    (prefetchedOperations
+                        ?: journalRepository
+                            .pull(workspaceId, fetchAfter, PAGE_SIZE)
+                            .getOrThrow())
                         .sortedBy { it.serverSequence }
                 if (operations.isEmpty()) break
 
@@ -689,7 +724,11 @@ class SharedSyncCoordinatorImpl
                 for (operation in operations) {
                     fetchedOperations += operation
                     when (applyPulledOperation(operation)) {
-                        PullOperationResult.Completed -> completedSequences += operation.serverSequence
+                        PullOperationResult.Completed -> {
+                            completedSequences += operation.serverSequence
+                            onOperationApplied?.invoke()
+                        }
+
                         PullOperationResult.Deferred -> deferredOperations += operation
                     }
                 }
@@ -703,6 +742,7 @@ class SharedSyncCoordinatorImpl
                         when (applyPulledOperation(operation)) {
                             PullOperationResult.Completed -> {
                                 completedSequences += operation.serverSequence
+                                onOperationApplied?.invoke()
                                 iterator.remove()
                                 retryMadeProgress = true
                             }
@@ -843,8 +883,8 @@ class SharedSyncCoordinatorImpl
                             val decoded = codec.decodeTransaction(payload)
                             val refs = codec.decodeTransactionRefs(payload)
                             // Remap portable references to LOCAL ids. A null lookup (referenced
-                            // currency/account/category not present yet) throws, so the per-operation
-                            // catch logs and skips this op; the missing row arrives on a later pull.
+                            // currency/account/category not present yet) defers this operation until
+                            // its referenced row arrives in the same pull window.
                             val currencyId =
                                 materializeCurrency(currencyReference.code, currencyReference.currency).id
                             val accountId =

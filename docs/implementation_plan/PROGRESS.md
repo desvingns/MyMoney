@@ -8,6 +8,10 @@
 
 ## Current state
 
+- **2026-08-21 (Codex `$mp --bugfix`, shared-workspace reinstall recovery):** Reproduced the empty-after-reinstall flow on the Play build with Pixel 9 and traced it to two client-side failure paths: remote pull/apply errors could advance/skip state without successful materialization, and import publication failures were swallowed; the replace path also cleared the local database before a remote entitlement-gated pull was known to succeed. `SharedSyncCoordinatorImpl` now propagates pull/apply and publication failures, probes the remote journal before destructive replacement, keeps the probe page for application, advances the cursor only after completed operations, and restores/restarts only after local data was actually changed. Added regression coverage for remote rows, empty journals, malformed operations, Room/persistence failures, entitlement probe failure, and import push failure. Full runner: **2378 passed / 0 failed / 0 skipped**, detekt/lint green, debug assemble green, graphify updated. Pixel 9 debug verification preserved local rows and the recovery dialog on the entitlement failure instead of wiping/restarting; a successful remote pull remains blocked until the `MyMoney QA` workspace entitlement is active/verified on the backend.
+
+- **2026-08-20 (Codex beta verification):** Supabase production was missing the two Shared-workspace billing migrations (`workspace_payer_and_entitlement_gating` and `grant_shared_billing_columns`), causing the app's workspace discovery query to return HTTP 400 and surface `Sync failed`. Applied both migrations successfully; Pixel 9 then discovered and connected the existing `MyMoney QA` workspace, whose server billing state is `active` with 10 operations. Rewarded Plus remains deferred for a non-whitelist beta account.
+
 - **2026-08-16 (Claude MP `--feature --next`, plus-subscription-gating SPEC 10, epic close):**
   Shipped the epic's final SPEC (10/10 done) — Block 3 of the privacy-policy monetization draft
   (`docs/legal/privacy-policy-monetization-draft.md:141-174`): dropped the "compatible builds"

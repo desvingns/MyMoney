@@ -104,6 +104,7 @@ internal fun Preferences.toAppSettings(): AppSettings =
         chartMetric = this[AppSettingsKeys.CHART_METRIC] ?: "cumulative",
         chartShowGridlines = this[AppSettingsKeys.CHART_SHOW_GRIDLINES] ?: true,
         chartShowLabels = this[AppSettingsKeys.CHART_SHOW_LABELS] ?: true,
+        chartShowProjection = this[AppSettingsKeys.CHART_SHOW_PROJECTION] ?: false,
         chartColorRule = this[AppSettingsKeys.CHART_COLOR_RULE] ?: "by_sign",
         chartAutoMode = this[AppSettingsKeys.CHART_AUTO_MODE] ?: true,
     )
@@ -152,6 +153,7 @@ internal fun AppSettings.writeTo(prefs: androidx.datastore.preferences.core.Muta
     prefs[AppSettingsKeys.CHART_METRIC] = chartMetric
     prefs[AppSettingsKeys.CHART_SHOW_GRIDLINES] = chartShowGridlines
     prefs[AppSettingsKeys.CHART_SHOW_LABELS] = chartShowLabels
+    prefs[AppSettingsKeys.CHART_SHOW_PROJECTION] = chartShowProjection
     prefs[AppSettingsKeys.CHART_COLOR_RULE] = chartColorRule
     prefs[AppSettingsKeys.CHART_AUTO_MODE] = chartAutoMode
 }

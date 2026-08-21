@@ -36,6 +36,7 @@ data class AppSettings(
     val chartMetric: String = "cumulative",
     val chartShowGridlines: Boolean = true,
     val chartShowLabels: Boolean = true,
+    val chartShowProjection: Boolean = false,
     val chartColorRule: String = "by_sign",
     val chartAutoMode: Boolean = true,
 )

@@ -305,7 +305,7 @@ class ChartSettingsSheetUiTest {
     fun `color rule buttons expose the localized label for every mode`() {
         val locale = Locale.US
         val context = localizedContext(locale)
-        setLocalizedSheet(locale)
+        setLocalizedSheet(locale, defaultConfig().copy(autoMode = true))
         mapOf(
             ChartColorRule.Solid to R.string.chart_settings_color_solid,
             ChartColorRule.AlwaysGreen to R.string.chart_settings_color_always_green,
@@ -463,7 +463,7 @@ class ChartSettingsSheetUiTest {
     fun `color and projection labels render in Russian`() {
         val locale = Locale.forLanguageTag("ru-RU")
         val context = localizedContext(locale)
-        setLocalizedSheet(locale)
+        setLocalizedSheet(locale, defaultConfig().copy(autoMode = true))
 
         mapOf(
             ChartColorRule.Solid to R.string.chart_settings_color_solid,
@@ -738,7 +738,10 @@ class ChartSettingsSheetUiTest {
             .assertExists()
     }
 
-    private fun setLocalizedSheet(locale: Locale) {
+    private fun setLocalizedSheet(
+        locale: Locale,
+        config: ChartConfig = defaultConfig(),
+    ) {
         val context = localizedContext(locale)
         val configuration = context.resources.configuration
         composeTestRule.setContent {
@@ -748,7 +751,7 @@ class ChartSettingsSheetUiTest {
             ) {
                 MyMoneyTheme {
                     ChartSettingsSheet(
-                        config = defaultConfig(),
+                        config = config,
                         onEvent = {},
                         onDismiss = {},
                     )

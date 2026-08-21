@@ -33,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -70,7 +71,7 @@ fun ChartSettingsSheet(
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = Spacing.l)
-                    .padding(bottom = Spacing.l),
+                    .padding(bottom = Spacing.chartSettingsSheetRowHeight),
             verticalArrangement = Arrangement.spacedBy(Spacing.chartSettingsSheetSectionGap),
         ) {
             Text(
@@ -193,7 +194,7 @@ private fun StyleRow(
                             shape = MaterialTheme.shapes.small,
                         ).clickable { onSelected(style) }
                         .testTag(chartStyleThumbTag(style))
-                        .semantics(mergeDescendants = true) {
+                        .clearAndSetSemantics {
                             contentDescription = styleLabel
                             this.selected = isSelected
                         },

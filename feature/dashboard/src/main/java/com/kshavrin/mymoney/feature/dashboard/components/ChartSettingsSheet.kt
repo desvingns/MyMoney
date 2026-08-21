@@ -68,94 +68,95 @@ fun ChartSettingsSheet(
         modifier = Modifier.testTag(CHART_SETTINGS_SHEET_TAG),
         contentWindowInsets = { WindowInsets(0, 0, 0, 0) },
     ) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = Spacing.l)
-                    .padding(bottom = Spacing.l),
-            verticalArrangement = Arrangement.spacedBy(Spacing.chartSettingsSheetSectionGap),
-        ) {
-            Text(
-                text = stringResource(R.string.chart_settings_title),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-
-            SectionLabel(stringResource(R.string.chart_settings_section_mode))
-            SegmentedRow(
-                options = autoModeOptions(),
-                selected = config.autoMode,
-                onSelected = { onEvent(DashboardEvent.ChartAutoModeChanged(it)) },
-            )
-
-            SectionLabel(stringResource(R.string.chart_settings_section_style))
-            StyleRow(
-                selected = config.style,
-                metricLabel = stringResource(chartMetricLabelRes(config.metric)),
-                onSelected = { onEvent(DashboardEvent.ChartStyleChanged(it)) },
-            )
-
-            if (!config.autoMode) {
-                SectionLabel(stringResource(R.string.chart_settings_section_period))
-                SegmentedRow(
-                    options = periodTypeOptions(),
-                    selected = config.periodType,
-                    onSelected = { onEvent(DashboardEvent.ChartPeriodTypeChanged(it)) },
+        Box(modifier = Modifier.fillMaxWidth().navigationBarsPadding()) {
+            Column(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = Spacing.l)
+                        .padding(bottom = Spacing.l),
+                verticalArrangement = Arrangement.spacedBy(Spacing.chartSettingsSheetSectionGap),
+            ) {
+                Text(
+                    text = stringResource(R.string.chart_settings_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
 
-                SectionLabel(stringResource(R.string.chart_settings_section_points))
-                PointCountStepper(
-                    count = config.pointCount,
-                    onChange = { onEvent(DashboardEvent.ChartPointCountChanged(it)) },
+                SectionLabel(stringResource(R.string.chart_settings_section_mode))
+                SegmentedRow(
+                    options = autoModeOptions(),
+                    selected = config.autoMode,
+                    onSelected = { onEvent(DashboardEvent.ChartAutoModeChanged(it)) },
+                )
+
+                SectionLabel(stringResource(R.string.chart_settings_section_style))
+                StyleRow(
+                    selected = config.style,
+                    metricLabel = stringResource(chartMetricLabelRes(config.metric)),
+                    onSelected = { onEvent(DashboardEvent.ChartStyleChanged(it)) },
+                )
+
+                if (!config.autoMode) {
+                    SectionLabel(stringResource(R.string.chart_settings_section_period))
+                    SegmentedRow(
+                        options = periodTypeOptions(),
+                        selected = config.periodType,
+                        onSelected = { onEvent(DashboardEvent.ChartPeriodTypeChanged(it)) },
+                    )
+
+                    SectionLabel(stringResource(R.string.chart_settings_section_points))
+                    PointCountStepper(
+                        count = config.pointCount,
+                        onChange = { onEvent(DashboardEvent.ChartPointCountChanged(it)) },
+                    )
+                }
+
+                SectionLabel(stringResource(R.string.chart_settings_section_metric))
+                SegmentedRow(
+                    options = metricOptions(),
+                    selected = config.metric,
+                    onSelected = { onEvent(DashboardEvent.ChartMetricChanged(it)) },
+                )
+
+                SectionLabel(stringResource(R.string.chart_settings_section_color))
+                SegmentedRow(
+                    options = colorRuleOptions(),
+                    selected = config.colorRule,
+                    onSelected = { onEvent(DashboardEvent.ChartColorRuleChanged(it)) },
+                )
+
+                SectionLabel(stringResource(R.string.chart_settings_section_display))
+                ToggleRow(
+                    label = stringResource(R.string.chart_settings_gridlines),
+                    contentDescription = stringResource(R.string.chart_settings_gridlines),
+                    checked = config.showGridlines,
+                    testTag = CHART_SETTINGS_GRIDLINES_TAG,
+                    onCheckedChange = { onEvent(DashboardEvent.ChartGridlinesToggled(it)) },
+                )
+                ToggleRow(
+                    label = stringResource(R.string.chart_settings_labels),
+                    contentDescription = stringResource(R.string.chart_settings_labels),
+                    checked = config.showLabels,
+                    testTag = CHART_SETTINGS_LABELS_TAG,
+                    onCheckedChange = { onEvent(DashboardEvent.ChartLabelsToggled(it)) },
+                )
+                ToggleRow(
+                    label = stringResource(R.string.chart_settings_projection),
+                    contentDescription = stringResource(R.string.chart_settings_projection_cd),
+                    checked = config.showProjection,
+                    testTag = CHART_SETTINGS_PROJECTION_TAG,
+                    onCheckedChange = { onEvent(DashboardEvent.ChartProjectionToggled(it)) },
+                )
+                ToggleRow(
+                    label = stringResource(R.string.chart_settings_visible),
+                    contentDescription = stringResource(R.string.chart_settings_visible),
+                    checked = config.visible,
+                    testTag = CHART_SETTINGS_VISIBLE_TAG,
+                    onCheckedChange = { onEvent(DashboardEvent.ChartVisibilityChanged(it)) },
                 )
             }
-
-            SectionLabel(stringResource(R.string.chart_settings_section_metric))
-            SegmentedRow(
-                options = metricOptions(),
-                selected = config.metric,
-                onSelected = { onEvent(DashboardEvent.ChartMetricChanged(it)) },
-            )
-
-            SectionLabel(stringResource(R.string.chart_settings_section_color))
-            SegmentedRow(
-                options = colorRuleOptions(),
-                selected = config.colorRule,
-                onSelected = { onEvent(DashboardEvent.ChartColorRuleChanged(it)) },
-            )
-
-            SectionLabel(stringResource(R.string.chart_settings_section_display))
-            ToggleRow(
-                label = stringResource(R.string.chart_settings_gridlines),
-                contentDescription = stringResource(R.string.chart_settings_gridlines),
-                checked = config.showGridlines,
-                testTag = CHART_SETTINGS_GRIDLINES_TAG,
-                onCheckedChange = { onEvent(DashboardEvent.ChartGridlinesToggled(it)) },
-            )
-            ToggleRow(
-                label = stringResource(R.string.chart_settings_labels),
-                contentDescription = stringResource(R.string.chart_settings_labels),
-                checked = config.showLabels,
-                testTag = CHART_SETTINGS_LABELS_TAG,
-                onCheckedChange = { onEvent(DashboardEvent.ChartLabelsToggled(it)) },
-            )
-            ToggleRow(
-                label = stringResource(R.string.chart_settings_projection),
-                contentDescription = stringResource(R.string.chart_settings_projection_cd),
-                checked = config.showProjection,
-                testTag = CHART_SETTINGS_PROJECTION_TAG,
-                onCheckedChange = { onEvent(DashboardEvent.ChartProjectionToggled(it)) },
-            )
-            ToggleRow(
-                label = stringResource(R.string.chart_settings_visible),
-                contentDescription = stringResource(R.string.chart_settings_visible),
-                checked = config.visible,
-                testTag = CHART_SETTINGS_VISIBLE_TAG,
-                onCheckedChange = { onEvent(DashboardEvent.ChartVisibilityChanged(it)) },
-            )
         }
     }
 }

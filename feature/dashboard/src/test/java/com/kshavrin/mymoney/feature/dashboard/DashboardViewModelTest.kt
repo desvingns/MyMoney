@@ -4545,7 +4545,7 @@ class DashboardViewModelTest {
                 runCurrent()
 
                 assertEquals(
-                    com.kshavrin.mymoney.core.designsystem.chart.ChartStyle.SmoothArea,
+                    com.kshavrin.mymoney.core.designsystem.chart.ChartStyle.Smooth,
                     viewModel.state.value.chartConfig.style,
                 )
             } finally {

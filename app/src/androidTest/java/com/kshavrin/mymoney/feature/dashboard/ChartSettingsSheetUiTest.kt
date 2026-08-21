@@ -41,7 +41,7 @@ class ChartSettingsSheetUiTest {
     private fun defaultConfig() =
         ChartConfig(
             visible = true,
-            style = ChartStyle.NeonLine,
+            style = ChartStyle.Line,
             periodType = ChartPeriodType.Follow,
             pointCount = DEFAULT_CHART_POINT_COUNT,
             metric = ChartMetric.CUMULATIVE,
@@ -497,7 +497,7 @@ class ChartSettingsSheetUiTest {
     fun `style thumbs are visible in auto mode`() {
         setSheet(config = defaultConfig().copy(autoMode = true))
         composeTestRule
-            .onNodeWithTag(chartStyleThumbTag(ChartStyle.NeonLine))
+            .onNodeWithTag(chartStyleThumbTag(ChartStyle.Line))
             .assertExists()
     }
 
@@ -505,7 +505,7 @@ class ChartSettingsSheetUiTest {
     fun `style thumbs are visible in manual mode`() {
         setSheet(config = defaultConfig().copy(autoMode = false))
         composeTestRule
-            .onNodeWithTag(chartStyleThumbTag(ChartStyle.NeonLine))
+            .onNodeWithTag(chartStyleThumbTag(ChartStyle.Line))
             .assertExists()
     }
 

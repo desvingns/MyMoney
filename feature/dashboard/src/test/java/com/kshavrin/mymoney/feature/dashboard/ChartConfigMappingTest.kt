@@ -14,6 +14,10 @@ class ChartConfigMappingTest {
 
     @Test
     fun `every ChartStyle survives a round-trip through its snake_case id`() {
+        assertEquals(
+            listOf(ChartStyle.Bars, ChartStyle.Line, ChartStyle.Smooth),
+            ChartStyle.entries.toList(),
+        )
         ChartStyle.entries.forEach { style ->
             val id = style.toId()
             val recovered = chartStyleFromId(id)
@@ -27,23 +31,23 @@ class ChartConfigMappingTest {
     }
 
     @Test
-    fun `neon_line maps to ChartStyle NeonLine`() {
-        assertEquals(ChartStyle.NeonLine, chartStyleFromId("neon_line"))
+    fun `neon_line maps to ChartStyle Line`() {
+        assertEquals(ChartStyle.Line, chartStyleFromId("neon_line"))
     }
 
     @Test
-    fun `ribbon maps to ChartStyle Ribbon`() {
-        assertEquals(ChartStyle.Ribbon, chartStyleFromId("ribbon"))
+    fun `ribbon maps to ChartStyle Line`() {
+        assertEquals(ChartStyle.Line, chartStyleFromId("ribbon"))
     }
 
     @Test
-    fun `ChartStyle NeonLine toId returns neon_line`() {
-        assertEquals("neon_line", ChartStyle.NeonLine.toId())
+    fun `ChartStyle Line toId returns line`() {
+        assertEquals("line", ChartStyle.Line.toId())
     }
 
     @Test
-    fun `ChartStyle Ribbon toId returns ribbon`() {
-        assertEquals("ribbon", ChartStyle.Ribbon.toId())
+    fun `ChartStyle Smooth toId returns smooth`() {
+        assertEquals("smooth", ChartStyle.Smooth.toId())
     }
 
     // -------------------------------------------------------------------------
@@ -182,10 +186,11 @@ class ChartConfigMappingTest {
 
     @Test
     fun `toChartConfig uses defaults when AppSettings has default values`() {
+        assertEquals("smooth_area", AppSettings().chartStyle)
         val config = AppSettings().toChartConfig()
 
         assertEquals(true, config.visible)
-        assertEquals(ChartStyle.SmoothArea, config.style)
+        assertEquals(ChartStyle.Smooth, config.style)
         assertEquals(ChartPeriodType.Follow, config.periodType)
         assertEquals(DEFAULT_CHART_POINT_COUNT, config.pointCount)
         assertEquals(ChartMetric.CUMULATIVE, config.metric)
@@ -195,8 +200,8 @@ class ChartConfigMappingTest {
     }
 
     @Test
-    fun `ChartStyle Default is SmoothArea`() {
-        assertEquals(ChartStyle.SmoothArea, ChartStyle.Default)
+    fun `ChartStyle Default is Smooth`() {
+        assertEquals(ChartStyle.Smooth, ChartStyle.Default)
     }
 
     @Test
@@ -214,11 +219,11 @@ class ChartConfigMappingTest {
     }
 
     @Test
-    fun `toChartConfig unknown style id falls back to Default which is SmoothArea`() {
+    fun `toChartConfig unknown style id falls back to Default which is Smooth`() {
         val settings = AppSettings(chartStyle = "does_not_exist")
         val config = settings.toChartConfig()
         assertEquals(ChartStyle.Default, config.style)
-        assertEquals(ChartStyle.SmoothArea, config.style)
+        assertEquals(ChartStyle.Smooth, config.style)
     }
 
     @Test

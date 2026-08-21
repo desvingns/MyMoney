@@ -344,9 +344,9 @@ class AuroraBalanceCardUiTest {
     }
 
     @Test
-    fun `SmoothArea style renders without crash inside aurora card`() {
+    fun `Smooth style renders without crash inside aurora card`() {
         setCard(
-            chartConfig = defaultConfig(visible = true).copy(style = ChartStyle.SmoothArea),
+            chartConfig = defaultConfig(visible = true).copy(style = ChartStyle.Smooth),
             points = listOf(100f, 200f, 150f, 300f, 250f),
         )
         composeTestRule
@@ -358,9 +358,9 @@ class AuroraBalanceCardUiTest {
     }
 
     @Test
-    fun `SmoothArea style with empty points renders without crash inside aurora card`() {
+    fun `Smooth style with empty points renders without crash inside aurora card`() {
         setCard(
-            chartConfig = defaultConfig(visible = true).copy(style = ChartStyle.SmoothArea),
+            chartConfig = defaultConfig(visible = true).copy(style = ChartStyle.Smooth),
             points = emptyList(),
         )
         composeTestRule
@@ -369,9 +369,9 @@ class AuroraBalanceCardUiTest {
     }
 
     @Test
-    fun `SmoothArea style with single point renders without crash inside aurora card`() {
+    fun `Smooth style with single point renders without crash inside aurora card`() {
         setCard(
-            chartConfig = defaultConfig(visible = true).copy(style = ChartStyle.SmoothArea),
+            chartConfig = defaultConfig(visible = true).copy(style = ChartStyle.Smooth),
             points = listOf(42f),
         )
         composeTestRule

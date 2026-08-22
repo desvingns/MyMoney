@@ -8,6 +8,8 @@
 
 ## Current state
 
+- **2026-08-22 (Codex `$mp --feature --next --chain`, drawer-search-redesign epic close):** Restyled the shared transaction search bar to the hero gradient/spacing/typography tokens while preserving autofocus, Mic/Close, overlay semantics, search phases, and both drawer/list entry points. Added JVM and instrumented coverage. Scoped Runner: `239/0/0`; full Runner: `2412/0/0`, detekt/lint green; Pixel 5/API 34 visual gate and Verifier passed. Commits `3b8b1188`, `47616f0b`, `d1b2cd57`; epic overview and SPEC 02 moved to `done/`. Push was attempted but rejected by GitHub token authentication; local `main` is ahead of `origin/main`. Next runnable SPECs remain in `support-screen-redesign`.
+
 - **2026-08-22 (Codex `$mp --feature --next --chain`, support-screen-redesign SPEC 02):** Added per-product small/large coffee counters with one-time legacy backfill, domain-owned product IDs, monotonic persistence, cancellation-safe supporter retry, and regression coverage across datastore, sync, billing, and support consumers. Deterministic reviewer passed after adding the dedicated `ObserveSupporterStateUseCaseTest`; semantic matrix and independent critic covered 8/8 with one non-blocking warning that direct `SupporterPurchaseStoreImpl` tests could be deeper. Scoped Runner: `874/0/0`; full Runner: `2411/0/0`, detekt/lint green. Commits `662b8230`, `c2187cac`, `d660c9b2`, `e8ae3dfe`, `dbcc2800`; SPEC moved to `done/`. SPEC 03–07 remain queued in the `support-screen-redesign` epic.
 
 - **2026-08-22 (Codex `$mp --feature --next`, support-screen-redesign SPEC 01):** Added the

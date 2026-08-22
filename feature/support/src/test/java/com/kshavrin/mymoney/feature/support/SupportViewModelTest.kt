@@ -3,12 +3,15 @@ package com.kshavrin.mymoney.feature.support
 import androidx.lifecycle.ViewModelStore
 import app.cash.turbine.test
 import com.kshavrin.mymoney.core.domain.analytics.AnalyticsEvent
+import com.kshavrin.mymoney.core.domain.ads.AdRewardState
 import com.kshavrin.mymoney.core.domain.billing.BillingAvailability
 import com.kshavrin.mymoney.core.domain.billing.PurchaseOutcome
 import com.kshavrin.mymoney.core.domain.billing.SupportProduct
 import com.kshavrin.mymoney.core.domain.supporter.SupportPurchaseReconciliationCoordinator
 import com.kshavrin.mymoney.core.domain.supporter.SupportPurchaseReconciliationState
 import com.kshavrin.mymoney.core.domain.supporter.SupporterState
+import com.kshavrin.mymoney.core.domain.usecase.ObserveAdRewardStateUseCase
+import com.kshavrin.mymoney.core.testing.fake.FakeAdRewardRepository
 import com.kshavrin.mymoney.core.testing.fake.FakeAnalyticsGateway
 import com.kshavrin.mymoney.core.testing.fake.FakeBillingGateway
 import com.kshavrin.mymoney.core.testing.fake.FakeSupporterRepository
@@ -44,6 +47,111 @@ class SupportViewModelTest {
             runCurrent()
 
             assertEquals(listOf(AnalyticsEvent.SupportOpened), fixtures.analytics.events)
+        }
+
+    @Test
+    fun `legacy constructor without ad reward observer keeps ads watched total at zero`() =
+        runTest {
+            val viewModel = createViewModel(fixtures())
+
+            runCurrent()
+
+            assertEquals(0, viewModel.state.value.adsWatchedTotal)
+        }
+
+    @Test
+    fun `fresh supporter with absent ad reward keeps all support counters at zero`() =
+        runTest {
+            val fixtures =
+                fixtures(
+                    supporterState = SupporterState(badgeEarned = false, purchaseCount = 0),
+                    rewardState = null,
+                )
+            val viewModel = createViewModel(fixtures, observeAdRewardState = true)
+
+            runCurrent()
+
+            assertEquals(0, viewModel.state.value.adsWatchedTotal)
+            assertEquals(
+                SupporterState(badgeEarned = false, purchaseCount = 0),
+                viewModel.state.value.supporterState,
+            )
+        }
+
+    @Test
+    fun `fresh supporter with present ad reward exposes total watched`() =
+        runTest {
+            val fixtures =
+                fixtures(
+                    supporterState = SupporterState(badgeEarned = false, purchaseCount = 0),
+                    rewardState = adRewardState(totalWatched = 7),
+                )
+            val viewModel = createViewModel(fixtures, observeAdRewardState = true)
+
+            runCurrent()
+
+            assertEquals(7, viewModel.state.value.adsWatchedTotal)
+            assertEquals(
+                SupporterState(badgeEarned = false, purchaseCount = 0),
+                viewModel.state.value.supporterState,
+            )
+        }
+
+    @Test
+    fun `ad reward state emissions update watched total without reopening the screen`() =
+        runTest {
+            val fixtures = fixtures(rewardState = adRewardState(totalWatched = 7))
+            val viewModel = createViewModel(fixtures, observeAdRewardState = true)
+
+            runCurrent()
+            assertEquals(7, viewModel.state.value.adsWatchedTotal)
+
+            fixtures.adRewards.seedState(adRewardState(totalWatched = 8))
+            runCurrent()
+
+            assertEquals(8, viewModel.state.value.adsWatchedTotal)
+        }
+
+    @Test
+    fun `supporter with purchases and absent ad reward preserves coffee counters and zero ads`() =
+        runTest {
+            val supporterState =
+                SupporterState(
+                    badgeEarned = true,
+                    purchaseCount = 3,
+                    smallCoffeeCount = 2,
+                    largeCoffeeCount = 1,
+                )
+            val fixtures = fixtures(supporterState = supporterState, rewardState = null)
+            val viewModel = createViewModel(fixtures, observeAdRewardState = true)
+
+            runCurrent()
+
+            assertEquals(0, viewModel.state.value.adsWatchedTotal)
+            assertEquals(supporterState, viewModel.state.value.supporterState)
+        }
+
+    @Test
+    fun `supporter with purchases and present ad reward exposes all support counters`() =
+        runTest {
+            val supporterState =
+                SupporterState(
+                    badgeEarned = true,
+                    purchaseCount = 5,
+                    smallCoffeeCount = 3,
+                    largeCoffeeCount = 2,
+                )
+            val fixtures =
+                fixtures(
+                    supporterState = supporterState,
+                    rewardState = adRewardState(totalWatched = 42),
+                )
+            val viewModel = createViewModel(fixtures, observeAdRewardState = true)
+
+            runCurrent()
+
+            assertEquals(42, viewModel.state.value.adsWatchedTotal)
+            assertEquals(supporterState, viewModel.state.value.supporterState)
         }
 
     @Test
@@ -330,15 +438,29 @@ class SupportViewModelTest {
             )
         }
 
-    private fun createViewModel(fixtures: Fixtures): SupportViewModel {
+    private fun createViewModel(
+        fixtures: Fixtures,
+        observeAdRewardState: Boolean = false,
+    ): SupportViewModel {
         val viewModel =
-            SupportViewModel(
-                billingGateway = fixtures.billing,
-                supporterRepository = fixtures.supporter,
-                supportPurchaseReconciliationCoordinator = fixtures.coordinator,
-                analyticsGateway = fixtures.analytics,
-                ioDispatcher = mainDispatcherRule.testDispatcher,
-            )
+            if (observeAdRewardState) {
+                SupportViewModel(
+                    billingGateway = fixtures.billing,
+                    supporterRepository = fixtures.supporter,
+                    observeAdRewardStateUseCase = ObserveAdRewardStateUseCase(fixtures.adRewards),
+                    supportPurchaseReconciliationCoordinator = fixtures.coordinator,
+                    analyticsGateway = fixtures.analytics,
+                    ioDispatcher = mainDispatcherRule.testDispatcher,
+                )
+            } else {
+                SupportViewModel(
+                    billingGateway = fixtures.billing,
+                    supporterRepository = fixtures.supporter,
+                    supportPurchaseReconciliationCoordinator = fixtures.coordinator,
+                    analyticsGateway = fixtures.analytics,
+                    ioDispatcher = mainDispatcherRule.testDispatcher,
+                )
+            }
         viewModelStore.put("support", viewModel)
         return viewModel
     }
@@ -348,6 +470,8 @@ class SupportViewModelTest {
         products: List<SupportProduct> = emptyList(),
         purchaseOutcome: PurchaseOutcome? = null,
         reconciliationState: SupportPurchaseReconciliationState = SupportPurchaseReconciliationState.Ready,
+        supporterState: SupporterState = SupporterState(badgeEarned = false, purchaseCount = 0),
+        rewardState: AdRewardState? = null,
     ): Fixtures {
         val billing =
             FakeBillingGateway().apply {
@@ -357,10 +481,11 @@ class SupportViewModelTest {
                     products.forEach { product -> seedPurchaseOutcome(product.id, purchaseOutcome) }
                 }
             }
-        val supporter = FakeSupporterRepository()
+        val supporter = FakeSupporterRepository(initialState = supporterState)
         return Fixtures(
             billing = billing,
             supporter = supporter,
+            adRewards = FakeAdRewardRepository(initialState = rewardState),
             coordinator =
                 FakeSupportPurchaseReconciliationCoordinator(
                     initialState = reconciliationState,
@@ -373,9 +498,22 @@ class SupportViewModelTest {
     private data class Fixtures(
         val billing: FakeBillingGateway,
         val supporter: FakeSupporterRepository,
+        val adRewards: FakeAdRewardRepository,
         val coordinator: FakeSupportPurchaseReconciliationCoordinator,
         val analytics: FakeAnalyticsGateway,
     )
+
+    private fun adRewardState(totalWatched: Int) =
+        AdRewardState(
+            progress = 2,
+            required = 5,
+            frozen = false,
+            frozenReason = null,
+            plusActive = false,
+            plusProvider = null,
+            plusExpiresAt = null,
+            totalWatched = totalWatched,
+        )
 
     private class FakeSupportPurchaseReconciliationCoordinator(
         initialState: SupportPurchaseReconciliationState,

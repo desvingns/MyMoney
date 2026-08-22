@@ -207,6 +207,7 @@ private fun SupportPurchaseSection(
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.supportPanelGap)) {
         CoffeePurchaseCard(
             products = state.products,
+            isBillingAvailable = state.billingState == SupportBillingState.Available,
             isPurchaseInProgress = state.isPurchaseInProgress,
             onPurchase = { productId -> onEvent(SupportEvent.PurchaseClicked(productId)) },
         )
@@ -258,9 +259,12 @@ private fun SupportPurchaseStatus(
 @Composable
 private fun CoffeePurchaseCard(
     products: List<SupportProduct>,
+    isBillingAvailable: Boolean,
     isPurchaseInProgress: Boolean,
     onPurchase: (String) -> Unit,
 ) {
+    val smallProduct = products.firstOrNull { it.id == COFFEE_SMALL_PRODUCT_ID }
+    val largeProduct = products.firstOrNull { it.id == COFFEE_LARGE_PRODUCT_ID }
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.supportPanel,
@@ -278,7 +282,7 @@ private fun CoffeePurchaseCard(
         ) {
             CoffeeProductColumn(
                 modifier = Modifier.weight(1f),
-                product = products.firstOrNull { it.id == COFFEE_SMALL_PRODUCT_ID },
+                product = smallProduct,
                 productId = COFFEE_SMALL_PRODUCT_ID,
                 illustrationRes = DesignSystemR.drawable.support_neon_coffee_small,
                 illustrationDescriptionRes = R.string.support_image_coffee_small_description,
@@ -286,7 +290,10 @@ private fun CoffeePurchaseCard(
                     Modifier
                         .width(Spacing.supportCoffeeIllustrationWidthSmall)
                         .height(Spacing.supportCoffeeIllustrationHeight),
-                isPurchaseInProgress = isPurchaseInProgress,
+                isPurchaseEnabled =
+                    isBillingAvailable &&
+                        smallProduct != null &&
+                        !isPurchaseInProgress,
                 onPurchase = onPurchase,
             )
             Box(
@@ -298,12 +305,15 @@ private fun CoffeePurchaseCard(
             )
             CoffeeProductColumn(
                 modifier = Modifier.weight(1f),
-                product = products.firstOrNull { it.id == COFFEE_LARGE_PRODUCT_ID },
+                product = largeProduct,
                 productId = COFFEE_LARGE_PRODUCT_ID,
                 illustrationRes = DesignSystemR.drawable.support_neon_coffee_large,
                 illustrationDescriptionRes = R.string.support_image_coffee_large_description,
                 illustrationModifier = Modifier.size(Spacing.supportCoffeeIllustrationHeight),
-                isPurchaseInProgress = isPurchaseInProgress,
+                isPurchaseEnabled =
+                    isBillingAvailable &&
+                        largeProduct != null &&
+                        !isPurchaseInProgress,
                 onPurchase = onPurchase,
             )
         }
@@ -317,7 +327,7 @@ private fun CoffeeProductColumn(
     illustrationRes: Int,
     illustrationDescriptionRes: Int,
     illustrationModifier: Modifier,
-    isPurchaseInProgress: Boolean,
+    isPurchaseEnabled: Boolean,
     onPurchase: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -351,7 +361,7 @@ private fun CoffeeProductColumn(
                     .fillMaxWidth()
                     .heightIn(min = Spacing.supportActionMinHeight),
             onClick = { onPurchase(productId) },
-            enabled = !isPurchaseInProgress,
+            enabled = isPurchaseEnabled,
             shape = MaterialTheme.shapes.supportPrimaryAction,
         ) {
             Text(

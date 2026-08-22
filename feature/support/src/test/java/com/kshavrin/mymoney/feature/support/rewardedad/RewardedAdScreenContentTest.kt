@@ -295,32 +295,24 @@ class RewardedAdScreenContentTest {
         composeTestRule.onNodeWithText(string(R.string.support_ads_watch)).assertDoesNotExist()
     }
 
-    // ─── Total ads watched badge ──────────────────────────────────────────────────
-
     @Test
-    fun `badge renders formatted lifetime total when reward is present`() {
-        composeTestRule.setContent {
-            MyMoneyTheme {
-                TotalAdsWatchedBadgeContent(
-                    reward = RewardProgress(progress = 3, required = 5, plusActive = false, totalWatched = 42),
-                )
-            }
-        }
+    fun `ready state does not surface the removed lifetime total counter`() {
+        setContent(
+            RewardedAdState(
+                status = RewardedAdStatus.Ready,
+                reward = RewardProgress(progress = 3, required = 5, plusActive = false, totalWatched = 42),
+            ),
+        )
 
         composeTestRule
             .onNodeWithText(string(R.string.support_ads_total_watched, 42))
-            .assertIsDisplayed()
+            .assertDoesNotExist()
     }
 
     @Test
-    fun `badge renders nothing when reward is null`() {
-        composeTestRule.setContent {
-            MyMoneyTheme {
-                TotalAdsWatchedBadgeContent(reward = null)
-            }
-        }
+    fun `loading state without reward does not create a lifetime total placeholder`() {
+        setContent(RewardedAdState(status = RewardedAdStatus.Loading, reward = null))
 
         composeTestRule.onNodeWithText(string(R.string.support_ads_total_watched, 0)).assertDoesNotExist()
-        composeTestRule.onAllNodesWithText("0", substring = true).assertCountEquals(0)
     }
 }

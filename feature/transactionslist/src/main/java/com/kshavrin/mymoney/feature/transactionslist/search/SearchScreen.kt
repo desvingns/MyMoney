@@ -40,7 +40,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SuggestionChip
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -52,6 +51,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -60,12 +60,14 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kshavrin.mymoney.core.common.money.MoneyFormatter
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.TransactionKind
 import com.kshavrin.mymoney.core.ui.theme.Spacing
+import com.kshavrin.mymoney.core.ui.theme.dashboardHeroGradientEnd
+import com.kshavrin.mymoney.core.ui.theme.dashboardHeroGradientStart
+import com.kshavrin.mymoney.core.ui.theme.dashboardTopBarTitle
 import com.kshavrin.mymoney.feature.transactionslist.R
 import java.math.BigDecimal
 import java.time.Instant
@@ -196,73 +198,76 @@ private fun SearchTopBar(
     onLaunchVoice: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.primary,
-        contentColor = MaterialTheme.colorScheme.onPrimary,
-        shadowElevation = 0.dp,
+    Row(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.linearGradient(
+                        colors =
+                            listOf(
+                                MaterialTheme.colorScheme.dashboardHeroGradientStart,
+                                MaterialTheme.colorScheme.dashboardHeroGradientEnd,
+                            ),
+                    ),
+                ).statusBarsPadding()
+                .height(Spacing.heroAppBarHeight)
+                .padding(horizontal = Spacing.s),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(modifier = Modifier.statusBarsPadding()) {
-            Row(
-                modifier =
-                    Modifier
-                        .height(64.dp)
-                        .fillMaxWidth()
-                        .padding(horizontal = Spacing.xs),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconButton(onClick = onBack) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = stringResource(R.string.transactions_list_back),
-                    )
-                }
-                BasicTextField(
-                    value = query,
-                    onValueChange = onQueryChange,
-                    modifier =
-                        Modifier
-                            .weight(1f)
-                            .focusRequester(focusRequester),
-                    singleLine = true,
-                    textStyle =
-                        MaterialTheme.typography.headlineSmall.copy(
-                            color = MaterialTheme.colorScheme.onPrimary,
-                        ),
-                    cursorBrush = SolidColor(MaterialTheme.colorScheme.onPrimary),
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                    keyboardActions = KeyboardActions(onSearch = { onSearch() }),
-                    decorationBox = { innerTextField ->
-                        Box(contentAlignment = Alignment.CenterStart) {
-                            if (query.isEmpty()) {
-                                Text(
-                                    text = stringResource(R.string.search_records_hint),
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.72f),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
-                            innerTextField()
-                        }
-                    },
-                )
-                if (query.isEmpty()) {
-                    if (voiceAvailable) {
-                        IconButton(onClick = onLaunchVoice) {
-                            Icon(
-                                Icons.Filled.Mic,
-                                contentDescription = stringResource(R.string.search_voice_cd),
-                            )
-                        }
-                    }
-                } else {
-                    IconButton(onClick = onClear) {
-                        Icon(
-                            Icons.Filled.Close,
-                            contentDescription = stringResource(R.string.search_clear_cd),
+        IconButton(onClick = onBack) {
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = stringResource(R.string.transactions_list_back),
+            )
+        }
+        BasicTextField(
+            value = query,
+            onValueChange = onQueryChange,
+            modifier =
+                Modifier
+                    .weight(1f)
+                    .padding(start = Spacing.s)
+                    .focusRequester(focusRequester),
+            singleLine = true,
+            textStyle =
+                MaterialTheme.typography.dashboardTopBarTitle.copy(
+                    color = MaterialTheme.colorScheme.onPrimary,
+                ),
+            cursorBrush = SolidColor(MaterialTheme.colorScheme.onPrimary),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(onSearch = { onSearch() }),
+            decorationBox = { innerTextField ->
+                Box(contentAlignment = Alignment.CenterStart) {
+                    if (query.isEmpty()) {
+                        Text(
+                            text = stringResource(R.string.search_records_hint),
+                            style = MaterialTheme.typography.dashboardTopBarTitle,
+                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.72f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                         )
                     }
+                    innerTextField()
+                }
+            },
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            if (query.isEmpty()) {
+                if (voiceAvailable) {
+                    IconButton(onClick = onLaunchVoice) {
+                        Icon(
+                            Icons.Filled.Mic,
+                            contentDescription = stringResource(R.string.search_voice_cd),
+                        )
+                    }
+                }
+            } else {
+                IconButton(onClick = onClear) {
+                    Icon(
+                        Icons.Filled.Close,
+                        contentDescription = stringResource(R.string.search_clear_cd),
+                    )
                 }
             }
         }

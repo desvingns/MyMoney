@@ -93,6 +93,7 @@ private fun CurrencyBalanceCardItem(
                 showLabels = false,
                 colorRule = chartConfig.colorRule,
                 style = chartConfig.style,
+                showProjection = chartConfig.showProjection,
                 chartHeight = Spacing.trendChartMiniHeight,
                 modifier = Modifier.testTag(DASHBOARD_CURRENCY_CARD_MINI_CHART_TAG),
             )

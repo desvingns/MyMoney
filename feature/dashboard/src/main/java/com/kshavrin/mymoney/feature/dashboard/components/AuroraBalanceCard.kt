@@ -116,6 +116,7 @@ fun AuroraBalanceCard(
                     showLabels = chartConfig.showLabels,
                     colorRule = chartConfig.colorRule,
                     style = chartConfig.style,
+                    showProjection = chartConfig.showProjection,
                     chartHeight = Spacing.dashboardAuroraChartHeight,
                 )
             }

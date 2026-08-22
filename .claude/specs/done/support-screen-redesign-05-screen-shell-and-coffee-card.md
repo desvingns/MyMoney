@@ -1,7 +1,7 @@
 # Каркас экрана поддержки и плашка кофе
 Epic: support-screen-redesign
 Order: 05 of 07
-Status: backlog
+Status: done
 Depends-on: support-screen-redesign-01, support-screen-redesign-03
 Date: 2026-08-20
 Acceptance-matrix: billing=loading,available,pending,network_error,unavailable; purchase=idle,in_progress
@@ -101,5 +101,5 @@ Feature: Каркас экрана поддержки и плашка кофе
 hero, заголовок, двухколоночная плашка, поведение статусов. Заблокировано D2/D3/D4/D5/D7.
 
 ## Implementation links
-- commit: —
-- files: —
+- commits: 604a488c, 69fa41b1, fcc072e3, 19168b13
+- files: app/src/main/java/com/kshavrin/mymoney/navigation/MyMoneyNavHost.kt; feature/support/src/main/java/com/kshavrin/mymoney/feature/support/SupportRoute.kt; feature/support/src/main/java/com/kshavrin/mymoney/feature/support/SupportScreen.kt; feature/support/src/main/java/com/kshavrin/mymoney/feature/support/rewardedad/RewardedAdScreen.kt; feature/support/src/test/java/com/kshavrin/mymoney/feature/support/SupportScreenContentTest.kt; feature/support/src/test/java/com/kshavrin/mymoney/feature/support/rewardedad/RewardedAdScreenContentTest.kt

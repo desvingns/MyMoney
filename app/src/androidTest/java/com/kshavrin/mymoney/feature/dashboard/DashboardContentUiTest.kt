@@ -331,6 +331,50 @@ class DashboardContentUiTest {
     }
 
     @Test
+    fun search_row_click_closes_right_drawer_content() {
+        var state by mutableStateOf(DashboardState(isLoading = false))
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                DashboardContent(
+                    state = state,
+                    onEvent = { event ->
+                        state =
+                            when (event) {
+                                DashboardEvent.RightDrawerToggled ->
+                                    state.copy(
+                                        rightDrawerOpen = !state.rightDrawerOpen,
+                                        leftDrawerOpen = false,
+                                    )
+                                DashboardEvent.SearchClicked ->
+                                    state.copy(leftDrawerOpen = false, rightDrawerOpen = false)
+                                else -> state
+                            }
+                        }
+                )
+            }
+        }
+        composeTestRule.waitForIdle()
+
+        composeTestRule
+            .onNodeWithContentDescription(targetString(R.string.dashboard_overflow_menu))
+            .performClick()
+        composeTestRule.waitForIdle()
+
+        composeTestRule
+            .onNodeWithTag(RIGHT_DRAWER_SEARCH_TAG, useUnmergedTree = true)
+            .assertIsDisplayed()
+            .performClick()
+
+        composeTestRule.waitForIdle()
+
+        destinationDrawerRowTags().forEach { tag ->
+            composeTestRule
+                .onAllNodesWithTag(tag, useUnmergedTree = true)
+                .assertCountEquals(0)
+        }
+    }
+
+    @Test
     fun `pull to refresh gesture emits refresh requested`() {
         val capturedEvents = mutableListOf<DashboardEvent>()
         setDashboardContent(

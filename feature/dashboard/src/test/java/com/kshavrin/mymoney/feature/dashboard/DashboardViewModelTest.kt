@@ -2072,6 +2072,36 @@ class DashboardViewModelTest {
         }
 
     @Test
+    fun `search event closes both drawers and emits search navigation`() =
+        runTest {
+            val (viewModel, store) = buildViewModel()
+            val actions = mutableListOf<DashboardAction>()
+            val collector =
+                backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+                    viewModel.actions.toList(actions)
+                }
+
+            try {
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.RightDrawerToggled)
+                assertTrue(viewModel.state.value.rightDrawerOpen)
+                assertFalse(viewModel.state.value.leftDrawerOpen)
+
+                viewModel.onEvent(DashboardEvent.SearchClicked)
+                runCurrent()
+
+                assertFalse(viewModel.state.value.leftDrawerOpen)
+                assertFalse(viewModel.state.value.rightDrawerOpen)
+                assertEquals(listOf(DashboardAction.NavigateSearch), actions)
+            } finally {
+                collector.cancel()
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
     fun `support event closes drawers and emits support navigation`() =
         runTest {
             val (viewModel, store) = buildViewModel()

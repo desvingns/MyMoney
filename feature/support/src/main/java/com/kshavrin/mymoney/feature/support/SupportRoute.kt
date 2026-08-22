@@ -13,7 +13,6 @@ import com.kshavrin.mymoney.core.ui.flow.CollectActions
 @Composable
 fun SupportRoute(
     onBack: () -> Unit,
-    videosWatchedSlot: @Composable () -> Unit = {},
     adSlot: @Composable () -> Unit = {},
     plusSlot: @Composable () -> Unit = {},
     viewModel: SupportViewModel = hiltViewModel(),
@@ -37,7 +36,6 @@ fun SupportRoute(
     SupportContent(
         state = state,
         onEvent = viewModel::onEvent,
-        videosWatchedSlot = videosWatchedSlot,
         adSlot = adSlot,
         plusSlot = plusSlot,
     )

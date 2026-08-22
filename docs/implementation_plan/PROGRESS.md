@@ -8,6 +8,14 @@
 
 ## Current state
 
+- **2026-08-22 (Codex `$mp --feature --next`, support-screen-redesign SPEC 01):** Added the
+  six exact-size transparent PNG-32 `support_neon_*` placeholders to `:core:designsystem`
+  (hero/coffee-small/coffee-large/ads/Plus/avatar) under O1; final artwork remains a later
+  replacement. Deterministic reviewer passed, semantic review covered 6/6 with one close-out
+  warning resolved in the board links, independent critic passed, and Verifier passed. Scoped
+  Runner: `257/0/0`; full Runner: `2409/0/0`, detekt/lint green. Commit `d30680e`; SPEC 02–07
+  remain queued in the `support-screen-redesign` epic.
+
 - **2026-08-22 (Codex `$mp --feature --next`, drawer-search-redesign SPEC 01):** Closed the
   right drawer before `NavigateSearch` via `DashboardViewModel.closeDrawers()`, preserving the
   existing search overlay/back wiring. Added focused ViewModel and Compose regression tests;

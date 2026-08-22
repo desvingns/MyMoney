@@ -1,7 +1,7 @@
 # Неон-иллюстрации экрана поддержки (PNG-ассеты)
 Epic: support-screen-redesign
 Order: 01 of 07
-Status: backlog
+Status: done
 Depends-on: —
 Date: 2026-08-20
 Acceptance-matrix: asset=hero,coffee_small,coffee_large,ads,plus,avatar
@@ -76,5 +76,12 @@ Feature: Ассеты иллюстраций экрана поддержки
 Заблокировано D14 (PNG в `drawable-nodpi`), открыто O1 (чем именно рисуются картинки).
 
 ## Implementation links
-- commit: —
-- files: —
+- commit: d30680eda7f8b76f5b17540db34e93845fcc3d36
+- files: core/designsystem/src/main/res/drawable-nodpi/support_neon_hero_cup.png,
+  core/designsystem/src/main/res/drawable-nodpi/support_neon_coffee_small.png,
+  core/designsystem/src/main/res/drawable-nodpi/support_neon_coffee_large.png,
+  core/designsystem/src/main/res/drawable-nodpi/support_neon_ads.png,
+  core/designsystem/src/main/res/drawable-nodpi/support_neon_plus.png,
+  core/designsystem/src/main/res/drawable-nodpi/support_neon_avatar.png
+- assets: temporary exact-size PNG-32 placeholders with transparent backgrounds and mint/coral
+  outline frames; final illustration artwork was unavailable under O1 and must replace them later.

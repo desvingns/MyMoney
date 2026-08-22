@@ -86,4 +86,39 @@ class TypedNavigationDeviceTest {
             )
         }
     }
+
+    @Test
+    fun `back from Dashboard opened via settings returns to Settings`() {
+        lateinit var navController: TestNavHostController
+
+        composeTestRule.setContent {
+            val context = LocalContext.current
+            navController =
+                remember(context) {
+                    TestNavHostController(context).apply {
+                        navigatorProvider.addNavigator(ComposeNavigator())
+                    }
+                }
+            NavHost(
+                navController = navController,
+                startDestination = Destinations.Settings,
+            ) {
+                composable<Destinations.Settings> {}
+                composable<Destinations.Dashboard> {}
+            }
+        }
+
+        composeTestRule.runOnIdle {
+            navController.navigate(Destinations.Dashboard(openChartSettings = true))
+            assertEquals(
+                Destinations.Dashboard(openChartSettings = true),
+                navController.currentBackStackEntry?.toRoute<Destinations.Dashboard>(),
+            )
+            assertTrue(navController.popBackStack())
+            assertEquals(
+                Destinations.Settings,
+                navController.currentBackStackEntry?.toRoute<Destinations.Settings>(),
+            )
+        }
+    }
 }

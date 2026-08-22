@@ -44,6 +44,8 @@ import com.kshavrin.mymoney.core.ui.theme.expenseAccent
 import com.kshavrin.mymoney.core.ui.theme.incomeAccent
 import com.kshavrin.mymoney.core.ui.theme.trendChartGridLine
 import com.kshavrin.mymoney.core.ui.theme.trendChartMarkerGlow
+import com.kshavrin.mymoney.core.ui.theme.trendChartProjectionAbove
+import com.kshavrin.mymoney.core.ui.theme.trendChartProjectionBelow
 import com.kshavrin.mymoney.core.ui.theme.trendChartZeroLine
 import java.text.NumberFormat
 import java.util.Locale
@@ -80,12 +82,12 @@ internal data class BalanceTrendChartProjectionColors(
 )
 
 internal fun balanceTrendChartProjectionColors(
-    incomeColor: Color,
-    expenseColor: Color,
+    aboveColor: Color,
+    belowColor: Color,
 ): BalanceTrendChartProjectionColors =
     BalanceTrendChartProjectionColors(
-        above = incomeColor.copy(alpha = 0.22f),
-        below = expenseColor.copy(alpha = 0.22f),
+        above = aboveColor,
+        below = belowColor,
     )
 
 private data class BalanceTrendChartLabelDrawCache(
@@ -515,6 +517,11 @@ fun BalanceTrendChart(
     val gridColor = MaterialTheme.colorScheme.trendChartGridLine
     val zeroLineColor = MaterialTheme.colorScheme.trendChartZeroLine
     val glowColor = MaterialTheme.colorScheme.trendChartMarkerGlow
+    val projectionColors =
+        balanceTrendChartProjectionColors(
+            aboveColor = MaterialTheme.colorScheme.trendChartProjectionAbove,
+            belowColor = MaterialTheme.colorScheme.trendChartProjectionBelow,
+        )
     val palette =
         BalanceTrendChartPalette(
             line = lineColor,
@@ -599,6 +606,7 @@ fun BalanceTrendChart(
                             style = style,
                             showProjection = showProjection,
                             palette = palette,
+                            projectionColors = projectionColors,
                             gridColor = gridColor,
                             zeroLineColor = zeroLineColor,
                             labelStyle = labelStyle,
@@ -624,6 +632,7 @@ private fun CacheDrawScope.buildBalanceTrendChartDrawCache(
     style: ChartStyle,
     showProjection: Boolean,
     palette: BalanceTrendChartPalette,
+    projectionColors: BalanceTrendChartProjectionColors,
     gridColor: Color,
     zeroLineColor: Color,
     labelStyle: TextStyle,
@@ -688,7 +697,7 @@ private fun CacheDrawScope.buildBalanceTrendChartDrawCache(
                 baseline = styleCache.baseline,
                 showProjection = showProjection,
                 style = style,
-                palette = palette,
+                colors = projectionColors,
                 smoothSegments = styleCache.smoothSegments,
             ),
         labels = labelCache,
@@ -775,14 +784,13 @@ private fun CacheDrawScope.buildBalanceTrendChartProjectionDrawCache(
     baseline: Float,
     showProjection: Boolean,
     style: ChartStyle,
-    palette: BalanceTrendChartPalette,
+    colors: BalanceTrendChartProjectionColors,
     smoothSegments: List<BalanceTrendChartCubicSegment>,
 ): BalanceTrendChartProjectionDrawCache? {
     if (!showProjection || style == ChartStyle.Bars || geometry.points.size < 2) return null
 
     val abovePath = Path()
     val belowPath = Path()
-    val colors = balanceTrendChartProjectionColors(palette.income, palette.expense)
     val segments =
         calculateBalanceTrendChartProjectionSegments(
             points = geometry.points,

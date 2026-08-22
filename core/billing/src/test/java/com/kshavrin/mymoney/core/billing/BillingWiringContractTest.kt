@@ -163,7 +163,7 @@ class BillingWiringContractTest {
                 "billingClient.awaitConnection()",
             ),
         )
-        assertTrue(source.contains("val SUPPORT_PRODUCT_IDS = setOf(\"coffee_small\", \"coffee_large\")"))
+        assertTrue(source.contains("val SUPPORT_PRODUCT_IDS = setOf(COFFEE_SMALL_PRODUCT_ID, COFFEE_LARGE_PRODUCT_ID)"))
         assertContainsInOrder(
             source,
             listOf(

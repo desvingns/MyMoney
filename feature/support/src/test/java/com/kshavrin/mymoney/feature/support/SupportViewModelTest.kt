@@ -205,7 +205,12 @@ class SupportViewModelTest {
             assertFalse(viewModel.state.value.isPurchaseInProgress)
             assertEquals(listOf(outcome), fixtures.coordinator.recordedPurchases)
             assertEquals(
-                SupporterState(badgeEarned = true, purchaseCount = 1),
+                SupporterState(
+                    badgeEarned = true,
+                    purchaseCount = 1,
+                    smallCoffeeCount = 1,
+                    largeCoffeeCount = 0,
+                ),
                 viewModel.state.value.supporterState,
             )
             assertEquals(

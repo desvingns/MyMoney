@@ -240,19 +240,23 @@ private fun RewardedAdStatusLine(
 }
 
 private fun RewardedAdState.statusMessageRes(): Int? =
-    when (status) {
+    if (hasPlusActiveStatusPrecedence()) {
+        R.string.support_ads_plus_active
+    } else {
+        status.statusMessageRes()
+    }
+
+private fun RewardedAdState.hasPlusActiveStatusPrecedence(): Boolean =
+    status != RewardedAdStatus.Unauthenticated && reward?.plusActive == true
+
+private fun RewardedAdStatus.statusMessageRes(): Int? =
+    when (this) {
         RewardedAdStatus.Loading,
         RewardedAdStatus.Rearming,
         -> R.string.support_ads_loading
 
         RewardedAdStatus.Unauthenticated -> R.string.support_ads_sign_in_required
-        RewardedAdStatus.Ready ->
-            if (reward?.plusActive == true) {
-                R.string.support_ads_plus_active
-            } else {
-                null
-            }
-
+        RewardedAdStatus.Ready -> null
         RewardedAdStatus.NoFill -> R.string.support_ads_no_fill
         RewardedAdStatus.RegionUnavailable -> R.string.support_ads_region_unavailable
         RewardedAdStatus.Offline -> R.string.support_ads_offline

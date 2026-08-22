@@ -89,8 +89,9 @@ fun RewardedAdContent(
     onSignIn: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val required = state.reward?.required ?: DEFAULT_REQUIRED_VIEWS
-    val progress = state.reward?.progress ?: 0
+    val visibleReward = state.reward.takeUnless { state.status == RewardedAdStatus.Unauthenticated }
+    val required = visibleReward?.required ?: DEFAULT_REQUIRED_VIEWS
+    val progress = visibleReward?.progress ?: 0
     val action =
         when (state.status) {
             RewardedAdStatus.Unauthenticated ->

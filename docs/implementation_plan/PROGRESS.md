@@ -8,6 +8,15 @@
 
 ## Current state
 
+- **2026-08-22 (Codex `$mp --feature --next`, drawer-search-redesign SPEC 01):** Closed the
+  right drawer before `NavigateSearch` via `DashboardViewModel.closeDrawers()`, preserving the
+  existing search overlay/back wiring. Added focused ViewModel and Compose regression tests;
+  staged only these additions alongside pre-existing dirty dashboard-test edits. Commits
+  `5795aa7d` + `8de1f24f`. Deterministic reviewer, semantic review, independent critic, and
+  Verifier passed; scoped Runner `403/0/0`, full Runner `2409/0/0` with detekt/lint green, and
+  connected `DashboardContentUiTest` `68/0/0` on Pixel 5/API 34. Non-blocking critic warning
+  `TEST-001` remains in the manual checklist; SPEC moved to `done/`. SPEC 02 remains queued.
+
 - **2026-08-21 (Codex `$mp --bugfix`, shared-workspace reinstall recovery):** Reproduced the empty-after-reinstall flow on the Play build with Pixel 9 and traced it to two client-side failure paths: remote pull/apply errors could advance/skip state without successful materialization, and import publication failures were swallowed; the replace path also cleared the local database before a remote entitlement-gated pull was known to succeed. `SharedSyncCoordinatorImpl` now propagates pull/apply and publication failures, probes the remote journal before destructive replacement, keeps the probe page for application, advances the cursor only after completed operations, and restores/restarts only after local data was actually changed. Added regression coverage for remote rows, empty journals, malformed operations, Room/persistence failures, entitlement probe failure, and import push failure. Full runner: **2378 passed / 0 failed / 0 skipped**, detekt/lint green, debug assemble green, graphify updated. Pixel 9 debug verification preserved local rows and the recovery dialog on the entitlement failure instead of wiping/restarting; a successful remote pull remains blocked until the `MyMoney QA` workspace entitlement is active/verified on the backend.
 
   Follow-up production diagnosis: Supabase `pull_operations` returned HTTP 400 because its billing predicate used unqualified `where id = p_workspace_id`, ambiguous with the function's table-return column `id`. Added and applied migration `20260821170000_fix_pull_operations_workspace_id_qualification.sql`, plus a migration contract test. Direct RPC verification now returns 10 operations / max sequence 195; Pixel 9 then completed shared sync with `push_operation` and `pull_operations` returning HTTP 200. The fix is backend-only, so Play `1.0.11` does not need a new APK for this incident.

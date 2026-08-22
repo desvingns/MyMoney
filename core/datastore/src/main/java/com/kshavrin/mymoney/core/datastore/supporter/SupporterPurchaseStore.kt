@@ -8,6 +8,7 @@ import com.kshavrin.mymoney.core.datastore.AppSettingsKeys
 import com.kshavrin.mymoney.core.domain.billing.COFFEE_LARGE_PRODUCT_ID
 import com.kshavrin.mymoney.core.domain.billing.COFFEE_SMALL_PRODUCT_ID
 import com.kshavrin.mymoney.core.domain.billing.PurchaseOutcome
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
@@ -40,7 +41,7 @@ class SupporterPurchaseStoreImpl
             outcome: PurchaseOutcome.Purchased,
             ownerUserId: String?,
         ): Result<Unit> =
-            runCatching {
+            cancellationAwareResult {
                 dataStore.edit { preferences ->
                     val purchases = preferences.pendingPurchases()
                     var changed = false
@@ -74,7 +75,7 @@ class SupporterPurchaseStoreImpl
             }
 
         override suspend fun pendingPurchases(ownerUserId: String): Result<List<PurchaseOutcome.Purchased>> =
-            runCatching {
+            cancellationAwareResult {
                 dataStore.data
                     .first()
                     .pendingPurchases()
@@ -86,7 +87,7 @@ class SupporterPurchaseStoreImpl
             ownerUserId: String,
             purchaseToken: String,
         ): Result<Unit> =
-            runCatching {
+            cancellationAwareResult {
                 dataStore.edit { preferences ->
                     val remaining =
                         preferences.pendingPurchases().filterNot { purchase ->
@@ -114,6 +115,15 @@ class SupporterPurchaseStoreImpl
                 )
             this[AppSettingsKeys.SUPPORT_PURCHASE_SPLIT_BACKFILLED] = true
         }
+
+        private suspend fun <T> cancellationAwareResult(block: suspend () -> T): Result<T> =
+            try {
+                Result.success(block())
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (throwable: Throwable) {
+                Result.failure(throwable)
+            }
 
         private companion object {
             val json = Json

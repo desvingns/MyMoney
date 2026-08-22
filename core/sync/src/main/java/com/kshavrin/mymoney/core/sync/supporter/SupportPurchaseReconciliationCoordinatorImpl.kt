@@ -8,6 +8,7 @@ import com.kshavrin.mymoney.core.domain.supporter.SupportPurchaseReconciliationC
 import com.kshavrin.mymoney.core.domain.supporter.SupportPurchaseReconciliationState
 import com.kshavrin.mymoney.core.domain.supporter.SupporterRepository
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -41,7 +42,10 @@ class SupportPurchaseReconciliationCoordinatorImpl
                 withContext(dispatcher) {
                     _state.value = SupportPurchaseReconciliationState.Loading
                     val result = billingGateway.resolvePendingPurchases()
-                    result.exceptionOrNull()?.reportToSentry()
+                    result.exceptionOrNull()?.let { throwable ->
+                        if (throwable is CancellationException) throw throwable
+                        throwable.reportToSentry()
+                    }
                     val outcomes = result.getOrNull()
                     _state.value =
                         if (outcomes == null) {
@@ -64,7 +68,10 @@ class SupportPurchaseReconciliationCoordinatorImpl
                     supporterRepository
                         .recordPurchase(outcome)
                         .onSuccess { recordedPurchaseTokens += outcome.purchaseToken }
-                        .onFailure(Throwable::reportToSentry)
+                        .onFailure { throwable ->
+                            if (throwable is CancellationException) throw throwable
+                            throwable.reportToSentry()
+                        }
                 }
             }
 

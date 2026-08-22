@@ -7,6 +7,7 @@ import com.kshavrin.mymoney.core.domain.billing.COFFEE_SMALL_PRODUCT_ID
 import com.kshavrin.mymoney.core.domain.billing.PurchaseOutcome
 import com.kshavrin.mymoney.core.domain.supporter.SupporterRepository
 import com.kshavrin.mymoney.core.domain.supporter.SupporterState
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
@@ -34,7 +35,7 @@ class SupporterRepositoryImpl
                 }.distinctUntilChanged()
 
         override suspend fun recordPurchase(outcome: PurchaseOutcome.Purchased): Result<Unit> =
-            runCatching {
+            cancellationAwareResult {
                 appSettingsRepository.update { settings ->
                     if (outcome.purchaseToken in settings.supporterPurchaseTokens) {
                         settings
@@ -59,12 +60,14 @@ class SupporterRepositoryImpl
             remoteCount: Int,
             remoteBadge: Boolean,
         ): Result<Unit> =
-            runCatching {
+            cancellationAwareResult {
                 appSettingsRepository.update { settings ->
-                    settings.copy(
-                        supporterBadgeEarned = settings.supporterBadgeEarned || remoteBadge,
-                        supportPurchaseCount = maxOf(settings.supportPurchaseCount, remoteCount),
-                    )
+                    val backfilledSettings = settings.withBackfilledPurchaseSplit()
+                    backfilledSettings
+                        .copy(
+                            supporterBadgeEarned = backfilledSettings.supporterBadgeEarned || remoteBadge,
+                            supportPurchaseCount = maxOf(backfilledSettings.supportPurchaseCount, remoteCount),
+                        )
                 }
             }
 
@@ -82,5 +85,14 @@ class SupporterRepositoryImpl
                     supportPurchaseCountSmall = maxOf(supportPurchaseCountSmall, supportPurchaseCount),
                     supportPurchaseSplitBackfilled = true,
                 )
+            }
+
+        private suspend fun <T> cancellationAwareResult(block: suspend () -> T): Result<T> =
+            try {
+                Result.success(block())
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (throwable: Throwable) {
+                Result.failure(throwable)
             }
     }

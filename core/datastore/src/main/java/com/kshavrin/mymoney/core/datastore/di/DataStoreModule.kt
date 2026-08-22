@@ -24,6 +24,7 @@ import com.kshavrin.mymoney.core.datastore.supporter.SupporterPurchaseStore
 import com.kshavrin.mymoney.core.datastore.supporter.SupporterPurchaseStoreImpl
 import com.kshavrin.mymoney.core.datastore.supporter.SupporterRepositoryImpl
 import com.kshavrin.mymoney.core.domain.supporter.SupporterRepository
+import com.kshavrin.mymoney.core.domain.supporter.SupporterStateSource
 import com.kshavrin.mymoney.core.domain.sync.DeviceIdProvider
 import com.kshavrin.mymoney.core.network.shared.SharedSessionStore
 import dagger.Binds
@@ -65,6 +66,10 @@ abstract class DataStoreBindings {
     @Binds
     @Singleton
     abstract fun bindSupporterRepository(impl: SupporterRepositoryImpl): SupporterRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindSupporterStateSource(impl: SupporterRepositoryImpl): SupporterStateSource
 
     @Binds
     @Singleton

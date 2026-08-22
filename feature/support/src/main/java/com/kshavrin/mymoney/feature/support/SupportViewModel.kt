@@ -12,7 +12,8 @@ import com.kshavrin.mymoney.core.domain.billing.PurchaseOutcome
 import com.kshavrin.mymoney.core.domain.billing.SupportProduct
 import com.kshavrin.mymoney.core.domain.supporter.SupportPurchaseReconciliationCoordinator
 import com.kshavrin.mymoney.core.domain.supporter.SupportPurchaseReconciliationState
-import com.kshavrin.mymoney.core.domain.supporter.SupporterRepository
+import com.kshavrin.mymoney.core.domain.supporter.SupporterStateSource
+import com.kshavrin.mymoney.core.domain.usecase.ObserveSupporterStateUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
@@ -35,11 +36,25 @@ class SupportViewModel
     @Inject
     constructor(
         private val billingGateway: BillingGateway,
-        private val supporterRepository: SupporterRepository,
+        private val observeSupporterStateUseCase: ObserveSupporterStateUseCase,
         private val supportPurchaseReconciliationCoordinator: SupportPurchaseReconciliationCoordinator,
         private val analyticsGateway: AnalyticsGateway,
         @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     ) : ViewModel() {
+        constructor(
+            billingGateway: BillingGateway,
+            supporterRepository: SupporterStateSource,
+            supportPurchaseReconciliationCoordinator: SupportPurchaseReconciliationCoordinator,
+            analyticsGateway: AnalyticsGateway,
+            ioDispatcher: CoroutineDispatcher,
+        ) : this(
+            billingGateway = billingGateway,
+            observeSupporterStateUseCase = ObserveSupporterStateUseCase(supporterRepository),
+            supportPurchaseReconciliationCoordinator = supportPurchaseReconciliationCoordinator,
+            analyticsGateway = analyticsGateway,
+            ioDispatcher = ioDispatcher,
+        )
+
         private val _state = MutableStateFlow(SupportState())
         val state: StateFlow<SupportState> = _state.asStateFlow()
 
@@ -52,6 +67,7 @@ class SupportViewModel
 
         private var hasUnresolvedPendingPurchase = false
         private var isForegroundPurchaseActive = false
+        private var supporterStateJob: Job? = null
         private var availabilityRefreshJob: Job? = null
         private var availabilityRefreshGeneration = 0L
 
@@ -70,21 +86,26 @@ class SupportViewModel
             when (event) {
                 SupportEvent.BackClicked -> viewModelScope.launch { _actions.emit(SupportAction.NavigateBack) }
                 is SupportEvent.PurchaseClicked -> purchase(event.productId)
-                SupportEvent.RetryClicked -> refreshBilling()
+                SupportEvent.RetryClicked -> {
+                    observeSupporterState()
+                    refreshBilling()
+                }
             }
         }
 
         private fun observeSupporterState() {
-            viewModelScope.launch {
-                try {
-                    supporterRepository.state().collect { supporterState ->
-                        _state.value = _state.value.copy(supporterState = supporterState)
+            if (supporterStateJob?.isActive == true) return
+            supporterStateJob =
+                viewModelScope.launch {
+                    try {
+                        observeSupporterStateUseCase().collect { supporterState ->
+                            _state.value = _state.value.copy(supporterState = supporterState)
+                        }
+                    } catch (throwable: Throwable) {
+                        if (throwable is CancellationException) throw throwable
+                        throwable.reportToSentry()
                     }
-                } catch (throwable: Throwable) {
-                    if (throwable is CancellationException) throw throwable
-                    throwable.reportToSentry()
                 }
-            }
         }
 
         private fun observePurchaseReconciliation() {
@@ -185,6 +206,7 @@ class SupportViewModel
             result.fold(
                 onSuccess = ::showAvailableProducts,
                 onFailure = { throwable ->
+                    if (throwable is CancellationException) throw throwable
                     throwable.reportToSentry()
                     showNetworkError()
                 },
@@ -262,7 +284,11 @@ class SupportViewModel
             when (outcome) {
                 is PurchaseOutcome.Purchased -> {
                     hasUnresolvedPendingPurchase = false
-                    if (supportPurchaseReconciliationCoordinator.recordPurchase(outcome).isSuccess) {
+                    val recordResult = supportPurchaseReconciliationCoordinator.recordPurchase(outcome)
+                    recordResult.exceptionOrNull()?.let { throwable ->
+                        if (throwable is CancellationException) throw throwable
+                    }
+                    if (recordResult.isSuccess) {
                         _state.value =
                             _state.value.copy(
                                 billingState = SupportBillingState.Available,

@@ -3,8 +3,12 @@ package com.kshavrin.mymoney.core.domain.supporter
 import com.kshavrin.mymoney.core.domain.billing.PurchaseOutcome
 import kotlinx.coroutines.flow.Flow
 
-interface SupporterRepository {
+interface SupporterStateSource {
     fun state(): Flow<SupporterState>
+}
+
+interface SupporterRepository : SupporterStateSource {
+    override fun state(): Flow<SupporterState>
 
     suspend fun recordPurchase(outcome: PurchaseOutcome.Purchased): Result<Unit>
 

@@ -8,6 +8,7 @@ import com.kshavrin.mymoney.core.domain.supporter.SupporterRepository
 import com.kshavrin.mymoney.core.domain.supporter.SupporterSync
 import com.kshavrin.mymoney.core.network.shared.SharedAuth
 import com.kshavrin.mymoney.core.network.shared.SupabaseSupporterApi
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -52,7 +53,11 @@ class SupporterSyncImpl
             withContext(dispatcher) {
                 deliveryMutex.withLock {
                     val session = auth.currentSession() ?: return@withLock Result.success(Unit)
-                    val accessToken = auth.accessToken().getOrElse { return@withLock Result.failure(it) }
+                    val accessToken =
+                        auth.accessToken().getOrElse { throwable ->
+                            if (throwable is CancellationException) throw throwable
+                            return@withLock Result.failure(throwable)
+                        }
                     val deliveryResult =
                         deliverPendingPurchases(
                             userId = session.user.id,
@@ -61,7 +66,7 @@ class SupporterSyncImpl
                     if (deliveryResult.isFailure) {
                         return@withLock deliveryResult.reportFailure()
                     }
-                    runCatching {
+                    cancellationAwareResult {
                         val remote =
                             api
                                 .getState(
@@ -96,14 +101,26 @@ class SupporterSyncImpl
             userId: String,
             accessToken: String,
         ): Result<Unit> =
-            runCatching {
+            cancellationAwareResult {
                 val pendingPurchases = supporterPurchaseStore.pendingPurchases(userId).getOrThrow()
                 pendingPurchases.forEach { outcome ->
                     api.postPurchase(userId, outcome, accessToken).getOrThrow()
                     supporterPurchaseStore.remove(userId, outcome.purchaseToken).getOrThrow()
                 }
             }
+
+        private suspend fun <T> cancellationAwareResult(block: suspend () -> T): Result<T> =
+            try {
+                Result.success(block())
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (throwable: Throwable) {
+                Result.failure(throwable)
+            }
     }
 
 private fun <T> Result<T>.reportFailure(): Result<T> =
-    onFailure(Throwable::reportToSentry)
+    onFailure { throwable ->
+        if (throwable is CancellationException) throw throwable
+        throwable.reportToSentry()
+    }

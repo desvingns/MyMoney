@@ -7,9 +7,12 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SearchContentTest {
-    private fun showsMicSlot(query: String): Boolean = query.isEmpty()
+    private fun showsMicSlot(
+        query: String,
+        voiceAvailable: Boolean,
+    ): Boolean = query.isEmpty() && voiceAvailable
 
-    private fun showsClearIcon(query: String): Boolean = !query.isEmpty()
+    private fun showsClearIcon(query: String): Boolean = query.isNotEmpty()
 
     private fun bodyTakesOver(
         contextualOverlay: Boolean,
@@ -18,9 +21,19 @@ class SearchContentTest {
         !contextualOverlay || phase != SearchPhase.Empty
 
     @Test
-    fun `mic slot is the trailing branch exactly when the query is empty`() {
-        assertTrue("blank query -> mic branch", showsMicSlot(""))
-        assertFalse("non-empty query -> not the mic branch", showsMicSlot("coffee"))
+    fun `mic slot is shown only for an empty query when voice search is available`() {
+        assertTrue(
+            "empty query + voice available -> mic branch",
+            showsMicSlot("", voiceAvailable = true),
+        )
+        assertFalse(
+            "empty query + voice unavailable -> no mic branch",
+            showsMicSlot("", voiceAvailable = false),
+        )
+        assertFalse(
+            "non-empty query -> not the mic branch",
+            showsMicSlot("coffee", voiceAvailable = true),
+        )
     }
 
     @Test
@@ -30,19 +43,29 @@ class SearchContentTest {
     }
 
     @Test
-    fun `mic and clear are mutually exclusive across the query branch`() {
-        for (query in listOf("", "a", "coffee")) {
+    fun `voice and clear actions expose the complete trailing-action matrix`() {
+        val cases =
+            listOf(
+                Triple("", true, 1),
+                Triple("", false, 0),
+                Triple("a", true, 1),
+                Triple("coffee", false, 1),
+            )
+        for ((query, voiceAvailable, expectedActions) in cases) {
             assertEquals(
-                "exactly one trailing branch for query='$query'",
-                1,
-                listOf(showsMicSlot(query), showsClearIcon(query)).count { it },
+                "trailing actions for query='$query', voiceAvailable=$voiceAvailable",
+                expectedActions,
+                listOf(
+                    showsMicSlot(query, voiceAvailable),
+                    showsClearIcon(query),
+                ).count { it },
             )
         }
     }
 
     private enum class Body { Chips, Loading, Results, NoMatches, Error }
 
-    private fun bodyFor(phase: SearchPhase): Body =
+    private fun bodyByPhase(phase: SearchPhase): Body =
         when (phase) {
             SearchPhase.Empty -> Body.Chips
             SearchPhase.Loading -> Body.Loading
@@ -53,27 +76,44 @@ class SearchContentTest {
 
     @Test
     fun `Empty phase renders the history chips row`() {
-        assertEquals(Body.Chips, bodyFor(SearchPhase.Empty))
+        assertEquals(Body.Chips, bodyByPhase(SearchPhase.Empty))
     }
 
     @Test
     fun `Results phase renders the results list`() {
-        assertEquals(Body.Results, bodyFor(SearchPhase.Results))
+        assertEquals(Body.Results, bodyByPhase(SearchPhase.Results))
     }
 
     @Test
     fun `EmptyResults phase renders the No matches message`() {
-        assertEquals(Body.NoMatches, bodyFor(SearchPhase.EmptyResults))
+        assertEquals(Body.NoMatches, bodyByPhase(SearchPhase.EmptyResults))
     }
 
     @Test
     fun `Loading phase renders the progress indicator`() {
-        assertEquals(Body.Loading, bodyFor(SearchPhase.Loading))
+        assertEquals(Body.Loading, bodyByPhase(SearchPhase.Loading))
     }
 
     @Test
     fun `Error phase renders the error message`() {
-        assertEquals(Body.Error, bodyFor(SearchPhase.Error))
+        assertEquals(Body.Error, bodyByPhase(SearchPhase.Error))
+    }
+
+    @Test
+    fun `each SearchPhase maps to one dedicated body branch`() {
+        val phases =
+            listOf(
+                SearchPhase.Empty,
+                SearchPhase.Loading,
+                SearchPhase.Results,
+                SearchPhase.EmptyResults,
+                SearchPhase.Error,
+            )
+
+        assertEquals(
+            listOf(Body.Chips, Body.Loading, Body.Results, Body.NoMatches, Body.Error),
+            phases.map(::bodyByPhase),
+        )
     }
 
     @Test

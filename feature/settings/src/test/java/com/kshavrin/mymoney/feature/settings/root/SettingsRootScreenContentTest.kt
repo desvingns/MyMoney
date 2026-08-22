@@ -67,6 +67,7 @@ class SettingsRootScreenContentTest {
                     state = state,
                     onEvent = onEvent,
                     onOpenTheme = {},
+                    onOpenChartSettings = {},
                     onOpenLanguage = {},
                     onOpenBackup = {},
                     onOpenAbout = {},

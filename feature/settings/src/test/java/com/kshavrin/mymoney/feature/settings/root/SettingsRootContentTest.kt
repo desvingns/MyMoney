@@ -227,6 +227,7 @@ class SettingsRootContentTest {
 
     private enum class Row {
         Theme,
+        ChartSettings,
         AppLock,
         HideAppContentInRecents,
         Sync,
@@ -243,6 +244,7 @@ class SettingsRootContentTest {
     private val rows: List<Row> =
         listOf(
             Row.Theme,
+            Row.ChartSettings,
             Row.AppLock,
             Row.HideAppContentInRecents,
             Row.Sync,
@@ -259,6 +261,7 @@ class SettingsRootContentTest {
     private fun headlineRes(row: Row): Int =
         when (row) {
             Row.Theme -> R.string.settings_theme
+            Row.ChartSettings -> R.string.settings_chart_settings
             Row.AppLock -> R.string.settings_biometric_lock
             Row.HideAppContentInRecents -> R.string.settings_hide_content_in_recents
             Row.Sync -> R.string.settings_cloud_sync
@@ -278,7 +281,7 @@ class SettingsRootContentTest {
      */
     private fun isDisabled(row: Row): Boolean =
         when (row) {
-            Row.Theme, Row.AppLock, Row.Sync, Row.Backup, Row.Language,
+            Row.Theme, Row.ChartSettings, Row.AppLock, Row.Sync, Row.Backup, Row.Language,
             Row.HideAppContentInRecents, Row.Sound, Row.Haptic, Row.About, Row.Licences,
             Row.FactoryReset,
             -> false
@@ -294,6 +297,7 @@ class SettingsRootContentTest {
     private fun callbackKeyForRowClick(row: Row): String? =
         when (row) {
             Row.Theme -> "onOpenTheme"
+            Row.ChartSettings -> "onOpenChartSettings"
             Row.AppLock -> "onOpenBiometricLock"
             Row.HideAppContentInRecents, Row.Sound, Row.Haptic -> null
             Row.Sync -> "onOpenCloudSync"
@@ -447,11 +451,18 @@ class SettingsRootContentTest {
     }
 
     @Test
-    fun `the eight clickable rows each route to a distinct handler`() {
+    fun `chart settings row is wired to onOpenChartSettings`() {
+        assertEquals("onOpenChartSettings", callbackKeyForRowClick(Row.ChartSettings))
+        assertFalse(isDisabled(Row.ChartSettings))
+    }
+
+    @Test
+    fun `the nine clickable rows each route to a distinct handler`() {
         val clickableRows = rows.filter { callbackKeyForRowClick(it) != null }
         assertEquals(
             listOf(
                 Row.Theme,
+                Row.ChartSettings,
                 Row.AppLock,
                 Row.Sync,
                 Row.Backup,

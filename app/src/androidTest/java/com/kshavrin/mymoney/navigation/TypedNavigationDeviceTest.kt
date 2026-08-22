@@ -44,7 +44,7 @@ class TypedNavigationDeviceTest {
                 }
             NavHost(
                 navController = navController,
-                startDestination = Destinations.Dashboard,
+                startDestination = Destinations.Dashboard(),
             ) {
                 composable<Destinations.Dashboard> {}
                 composable<Destinations.TransactionsList> { entry ->
@@ -66,7 +66,7 @@ class TypedNavigationDeviceTest {
             assertEquals(transactionsList, decodedTransactionsList)
             assertTrue(navController.popBackStack())
             assertEquals(
-                Destinations.Dashboard,
+                Destinations.Dashboard(),
                 navController.currentBackStackEntry?.toRoute<Destinations.Dashboard>(),
             )
 
@@ -81,7 +81,7 @@ class TypedNavigationDeviceTest {
             )
             assertTrue(navController.popBackStack())
             assertEquals(
-                Destinations.Dashboard,
+                Destinations.Dashboard(),
                 navController.currentBackStackEntry?.toRoute<Destinations.Dashboard>(),
             )
         }

@@ -401,7 +401,7 @@ class DestinationsTest {
                 """LockOverlay\(\s*onUnlocked\s*=\s*\{\s*lockController\.markUnlocked\(activityStartId\)\s*},\s*managesSecureWindow\s*=\s*false,\s*\)""",
             ).containsMatchIn(activitySource),
         )
-        assertTrue(navHostSource.contains("navController.navigate(Destinations.Dashboard)"))
+        assertTrue(navHostSource.contains("navController.navigate(Destinations.Dashboard())"))
         assertTrue(navHostSource.contains("ShortcutDestination.AddExpense -> navController.navigate(Destinations.AddExpense)"))
         assertTrue(navHostSource.contains("ShortcutDestination.AddIncome -> navController.navigate(Destinations.AddIncome)"))
         assertTrue(navHostSource.contains("ShortcutDestination.Transfer -> navController.navigate(Destinations.Transfer)"))

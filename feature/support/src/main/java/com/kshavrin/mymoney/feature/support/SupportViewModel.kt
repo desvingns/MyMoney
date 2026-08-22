@@ -13,6 +13,7 @@ import com.kshavrin.mymoney.core.domain.billing.SupportProduct
 import com.kshavrin.mymoney.core.domain.supporter.SupportPurchaseReconciliationCoordinator
 import com.kshavrin.mymoney.core.domain.supporter.SupportPurchaseReconciliationState
 import com.kshavrin.mymoney.core.domain.supporter.SupporterStateSource
+import com.kshavrin.mymoney.core.domain.usecase.ObserveAdRewardStateUseCase
 import com.kshavrin.mymoney.core.domain.usecase.ObserveSupporterStateUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
@@ -37,6 +38,7 @@ class SupportViewModel
     constructor(
         private val billingGateway: BillingGateway,
         private val observeSupporterStateUseCase: ObserveSupporterStateUseCase,
+        private val observeAdRewardStateUseCase: ObserveAdRewardStateUseCase?,
         private val supportPurchaseReconciliationCoordinator: SupportPurchaseReconciliationCoordinator,
         private val analyticsGateway: AnalyticsGateway,
         @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
@@ -44,12 +46,14 @@ class SupportViewModel
         constructor(
             billingGateway: BillingGateway,
             supporterRepository: SupporterStateSource,
+            observeAdRewardStateUseCase: ObserveAdRewardStateUseCase? = null,
             supportPurchaseReconciliationCoordinator: SupportPurchaseReconciliationCoordinator,
             analyticsGateway: AnalyticsGateway,
             ioDispatcher: CoroutineDispatcher,
         ) : this(
             billingGateway = billingGateway,
             observeSupporterStateUseCase = ObserveSupporterStateUseCase(supporterRepository),
+            observeAdRewardStateUseCase = observeAdRewardStateUseCase,
             supportPurchaseReconciliationCoordinator = supportPurchaseReconciliationCoordinator,
             analyticsGateway = analyticsGateway,
             ioDispatcher = ioDispatcher,
@@ -74,6 +78,7 @@ class SupportViewModel
         init {
             log(AnalyticsEvent.SupportOpened)
             observeSupporterState()
+            observeAdRewardState()
             observePurchaseReconciliation()
             refreshBilling()
         }
@@ -106,6 +111,21 @@ class SupportViewModel
                         throwable.reportToSentry()
                     }
                 }
+        }
+
+        private fun observeAdRewardState() {
+            val observeAdRewardState = observeAdRewardStateUseCase ?: return
+            viewModelScope.launch {
+                try {
+                    observeAdRewardState.state.collect { adRewardState ->
+                        _state.value =
+                            _state.value.copy(adsWatchedTotal = adRewardState?.totalWatched ?: 0)
+                    }
+                } catch (throwable: Throwable) {
+                    if (throwable is CancellationException) throw throwable
+                    throwable.reportToSentry()
+                }
+            }
         }
 
         private fun observePurchaseReconciliation() {

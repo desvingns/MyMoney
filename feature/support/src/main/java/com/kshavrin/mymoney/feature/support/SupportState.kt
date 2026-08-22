@@ -9,6 +9,7 @@ data class SupportState(
     val billingState: SupportBillingState = SupportBillingState.Loading,
     val products: List<SupportProduct> = emptyList(),
     val supporterState: SupporterState = SupporterState(badgeEarned = false, purchaseCount = 0),
+    val adsWatchedTotal: Int = 0,
     val isPurchaseInProgress: Boolean = false,
 )
 

@@ -52,6 +52,22 @@ class SupportScreenContentTest {
         composeTestRule
             .onNodeWithText(string(R.string.support_ads_total_watched, 0))
             .assertDoesNotExist()
+        composeTestRule.onNodeWithText(string(R.string.support_coffee_title)).assertDoesNotExist()
+    }
+
+    @Test
+    fun `back control exposes localized semantics and a 48dp touch target`() {
+        setContent(state = SupportState())
+
+        composeTestRule.onNodeWithText(string(R.string.support_back_label)).assertIsDisplayed()
+        val backControl =
+            composeTestRule
+                .onNodeWithContentDescription(string(R.string.support_back))
+                .assertIsDisplayed()
+        val minimumTouchTarget = with(composeTestRule.density) { 48.dp.roundToPx() }
+        val controlSize = backControl.fetchSemanticsNode().size
+        assertTrue(controlSize.width >= minimumTouchTarget)
+        assertTrue(controlSize.height >= minimumTouchTarget)
     }
 
     @Test
@@ -126,8 +142,8 @@ class SupportScreenContentTest {
             .onNodeWithText(string(R.string.support_coffee_large_name))
             .performScrollTo()
             .assertIsDisplayed()
-        composeTestRule.onNodeWithText(SMALL_PRICE).performScrollTo().assertIsDisplayed()
-        composeTestRule.onNodeWithText(LARGE_PRICE).performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText(state.products[0].formattedPrice).performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText(state.products[1].formattedPrice).performScrollTo().assertIsDisplayed()
 
         val purchaseActions =
             composeTestRule
@@ -165,7 +181,20 @@ class SupportScreenContentTest {
     }
 
     @Test
-    fun `coffee card stays visible and CTAs follow billing availability across the frozen matrix`() {
+    fun `only a matching product receives an actionable purchase button`() {
+        val state = availableState()
+        setContent(state = state.copy(products = listOf(state.products.first())))
+
+        val purchaseActions =
+            composeTestRule
+                .onAllNodesWithText(string(R.string.support_purchase_action))
+                .assertCountEquals(2)
+        purchaseActions[0].performScrollTo().assertIsEnabled()
+        purchaseActions[1].performScrollTo().assertIsNotEnabled()
+    }
+
+    @Test
+    fun `coffee card and billing status cover every frozen matrix cell`() {
         val state = mutableStateOf(availableState())
         composeTestRule.setContent {
             MyMoneyTheme {
@@ -177,16 +206,20 @@ class SupportScreenContentTest {
                 )
             }
         }
-        val billingStates =
-            listOf<SupportBillingState>(
-                SupportBillingState.Loading,
-                SupportBillingState.Available,
-                SupportBillingState.Pending,
-                SupportBillingState.NetworkError,
-                SupportBillingState.Unavailable(SupportUnavailableReason.UnavailableInRegion),
+        val matrix =
+            listOf<Triple<SupportBillingState, Int?, Boolean>>(
+                Triple(SupportBillingState.Loading, null, false),
+                Triple(SupportBillingState.Available, null, false),
+                Triple(SupportBillingState.Pending, R.string.support_pending, false),
+                Triple(SupportBillingState.NetworkError, R.string.support_network_error, true),
+                Triple(
+                    SupportBillingState.Unavailable(SupportUnavailableReason.UnavailableInRegion),
+                    R.string.support_unavailable_region,
+                    false,
+                ),
             )
 
-        billingStates.forEach { billingState ->
+        matrix.forEach { (billingState, statusResource, retryable) ->
             listOf(false, true).forEach { isPurchaseInProgress ->
                 composeTestRule.runOnIdle {
                     state.value =
@@ -195,12 +228,28 @@ class SupportScreenContentTest {
                             isPurchaseInProgress = isPurchaseInProgress,
                         )
                 }
+                composeTestRule.waitForIdle()
 
                 assertCoffeeColumnsDisplayed()
                 assertCoffeeActionsEnabled(
                     expectedEnabled =
                         billingState == SupportBillingState.Available && !isPurchaseInProgress,
                 )
+                if (statusResource == null) {
+                    assertNoBillingStatus()
+                } else {
+                    val status = string(statusResource)
+                    composeTestRule.onNodeWithText(status).performScrollTo().assertIsDisplayed()
+                    assertStatusBelowCoffee(status)
+                    if (retryable) {
+                        composeTestRule
+                            .onNodeWithText(string(R.string.support_retry))
+                            .performScrollTo()
+                            .assertIsEnabled()
+                    } else {
+                        composeTestRule.onNodeWithText(string(R.string.support_retry)).assertDoesNotExist()
+                    }
+                }
             }
         }
     }
@@ -377,6 +426,20 @@ class SupportScreenContentTest {
         assertTrue(coffeeTop < statusNode.fetchSemanticsNode().boundsInRoot.top)
     }
 
+    private fun assertNoBillingStatus() {
+        listOf(
+            R.string.support_pending,
+            R.string.support_network_error,
+            R.string.support_retry,
+            R.string.support_unavailable_build,
+            R.string.support_unavailable_device,
+            R.string.support_unavailable_region,
+            R.string.support_unavailable,
+        ).forEach { resourceId ->
+            composeTestRule.onNodeWithText(string(resourceId)).assertDoesNotExist()
+        }
+    }
+
     private fun setContent(
         state: SupportState,
         onEvent: (SupportEvent) -> Unit = {},
@@ -400,8 +463,4 @@ class SupportScreenContentTest {
         vararg args: Any,
     ): String = context.getString(resourceId, *args)
 
-    private companion object {
-        const val SMALL_PRICE = "£1.99"
-        const val LARGE_PRICE = "£4.99"
-    }
 }

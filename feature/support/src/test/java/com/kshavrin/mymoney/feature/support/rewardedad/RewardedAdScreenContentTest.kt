@@ -1,11 +1,9 @@
 package com.kshavrin.mymoney.feature.support.rewardedad
 
-import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.core.app.ApplicationProvider
@@ -109,11 +107,7 @@ class RewardedAdScreenContentTest {
         composeTestRule
             .onNodeWithText(string(R.string.support_ads_region_unavailable))
             .assertIsDisplayed()
-        // The text must not be phrased as an app error.
-        composeTestRule
-            .onAllNodesWithText("error", ignoreCase = true, substring = true)
-            .assertCountEquals(0)
-        // No loading indicator text.
+        assertNoAlternativeRewardStatus(R.string.support_ads_region_unavailable)
         composeTestRule.onNodeWithText(string(R.string.support_ads_loading)).assertDoesNotExist()
     }
 
@@ -134,10 +128,7 @@ class RewardedAdScreenContentTest {
             .assertIsDisplayed()
             .assertIsNotEnabled()
         composeTestRule.onNodeWithText(string(R.string.support_ads_no_fill)).assertIsDisplayed()
-        // No fill is not an app error — verify no error phrasing in displayed text.
-        composeTestRule
-            .onAllNodesWithText("error", ignoreCase = true, substring = true)
-            .assertCountEquals(0)
+        assertNoAlternativeRewardStatus(R.string.support_ads_no_fill)
     }
 
     // ─── Acceptance matrix: scenario 5 — Plus already active ─────────────────────
@@ -180,13 +171,7 @@ class RewardedAdScreenContentTest {
         composeTestRule
             .onNodeWithText(string(R.string.support_ads_awaiting_confirmation))
             .assertIsDisplayed()
-        // No premature "credited" / "earned" / "начислено" text in any semantics node.
-        composeTestRule
-            .onAllNodesWithText("credited", ignoreCase = true, substring = true)
-            .assertCountEquals(0)
-        composeTestRule
-            .onAllNodesWithText("earned", ignoreCase = true, substring = true)
-            .assertCountEquals(0)
+        assertNoAlternativeRewardStatus(R.string.support_ads_awaiting_confirmation)
     }
 
     // ─── Acceptance matrix: scenario 6b — Confirmation timeout ──────────────────
@@ -224,9 +209,7 @@ class RewardedAdScreenContentTest {
             .onNodeWithContentDescription(string(R.string.support_ads_progress, 3, 5))
             .assertIsDisplayed()
         composeTestRule.onNodeWithText(string(R.string.support_ads_no_fill)).assertIsDisplayed()
-        composeTestRule
-            .onAllNodesWithText("error", ignoreCase = true, substring = true)
-            .assertCountEquals(0)
+        assertNoAlternativeRewardStatus(R.string.support_ads_no_fill)
     }
 
     // ─── Acceptance matrix: scenario 8 — Offline ─────────────────────────────────
@@ -314,5 +297,21 @@ class RewardedAdScreenContentTest {
         setContent(RewardedAdState(status = RewardedAdStatus.Loading, reward = null))
 
         composeTestRule.onNodeWithText(string(R.string.support_ads_total_watched, 0)).assertDoesNotExist()
+    }
+
+    private fun assertNoAlternativeRewardStatus(expectedResourceId: Int) {
+        listOf(
+            R.string.support_ads_loading,
+            R.string.support_ads_sign_in_required,
+            R.string.support_ads_plus_active,
+            R.string.support_ads_no_fill,
+            R.string.support_ads_region_unavailable,
+            R.string.support_ads_offline,
+            R.string.support_ads_awaiting_confirmation,
+            R.string.support_ads_confirmation_timeout,
+            R.string.support_ads_unavailable,
+        ).filterNot { it == expectedResourceId }.forEach { resourceId ->
+            composeTestRule.onNodeWithText(string(resourceId)).assertDoesNotExist()
+        }
     }
 }

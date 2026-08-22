@@ -30,7 +30,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.dp
+import com.kshavrin.mymoney.core.designsystem.drawer.DrawerRowDefaults
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.feature.dashboard.DashboardEvent
 import com.kshavrin.mymoney.feature.dashboard.R
@@ -113,14 +113,14 @@ private fun RightDrawerItem(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(
-            modifier = Modifier.size(56.dp),
+            modifier = Modifier.size(DrawerRowDefaults.TouchTargetSize),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.secondary,
-                modifier = Modifier.size(44.dp),
+                modifier = Modifier.size(DrawerRowDefaults.IconSize),
             )
         }
         Text(

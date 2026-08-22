@@ -209,4 +209,17 @@ object Spacing {
     val supportCardPadding = 16.dp
     val supportStatusGap = 12.dp
     val supportActionMinHeight = 48.dp
+    val supportTopBarHeight = 56.dp
+    val supportBackTouchTarget = 48.dp
+    val supportHeroSize = 196.dp
+    val supportPanelGap = 14.dp
+    val supportPanelPadding = 16.dp
+    val supportPanelColumnGap = 10.dp
+    val supportCoffeeIllustrationWidthSmall = 66.dp
+    val supportCoffeeIllustrationHeight = 82.dp
+    val supportPanelIconSize = 52.dp
+    val supportAvatarSize = 84.dp
+    val supportSubtitleMaxWidth = 296.dp
+    val supporterChipHeight = 26.dp
+    val supportHeadlineUnderlineThickness = 3.dp
 }

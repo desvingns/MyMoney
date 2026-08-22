@@ -51,3 +51,18 @@ val Shapes.supportCard: Shape
 
 val Shapes.supporterBadge: Shape
     get() = extraLarge
+
+val Shapes.supportPanel: Shape
+    get() = RoundedCornerShape(20.dp)
+
+val Shapes.supportPanelIllustration: Shape
+    get() = RoundedCornerShape(12.dp)
+
+val Shapes.supportHeroIllustration: Shape
+    get() = RoundedCornerShape(18.dp)
+
+val Shapes.supportPrimaryAction: Shape
+    get() = RoundedCornerShape(24.dp)
+
+val Shapes.supporterChip: Shape
+    get() = RoundedCornerShape(13.dp)

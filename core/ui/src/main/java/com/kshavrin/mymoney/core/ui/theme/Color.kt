@@ -543,6 +543,39 @@ val ColorScheme.supporterGratitudeContainer: Color
 val ColorScheme.supporterGratitudeContent: Color
     get() = onSecondaryContainer
 
+val ColorScheme.supportPanelContainer: Color
+    get() = surface
+
+val ColorScheme.supportPanelOutline: Color
+    get() = primary.copy(alpha = 0.28f)
+
+val ColorScheme.supportPanelDivider: Color
+    get() = primary.copy(alpha = 0.22f)
+
+val ColorScheme.supportHeadlineAccent: Color
+    get() = primary
+
+val ColorScheme.supportPriceValue: Color
+    get() = primary
+
+val ColorScheme.supportBackLabel: Color
+    get() = onSurfaceVariant
+
+val ColorScheme.supporterChipContainer: Color
+    get() = surfaceVariant
+
+val ColorScheme.supporterChipOutline: Color
+    get() = primary.copy(alpha = 0.45f)
+
+val ColorScheme.supporterChipContent: Color
+    get() = primary
+
+val ColorScheme.supportCounterValue: Color
+    get() = onSurface
+
+val ColorScheme.supportCounterLabel: Color
+    get() = onSurfaceVariant
+
 // Rewarded-ad block — determinate LinearProgressIndicator color pair.
 // Indicator (filled/active portion): primary (NeonMint) — signals forward progress
 // toward a reward, consistent with income-accent and primary-CTA semantics in the

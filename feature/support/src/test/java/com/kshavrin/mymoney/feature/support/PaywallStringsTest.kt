@@ -18,6 +18,19 @@ class PaywallStringsTest {
     }
 
     @Test
+    fun `english and russian support string keys stay in parity`() {
+        val english = parseStrings(enFile).filterKeys { it.startsWith("support_") }
+        val russian = parseStrings(ruFile).filterKeys { it.startsWith("support_") }
+
+        assertEquals(
+            "support_* key parity broken — " +
+                "only in EN: ${english.keys - russian.keys}, only in RU: ${russian.keys - english.keys}",
+            english.keys,
+            russian.keys,
+        )
+    }
+
+    @Test
     fun `english and russian rewarded ad string keys stay in parity`() {
         val english = parseStrings(enFile).filterKeys { it.startsWith("support_ads_") }
         val russian = parseStrings(ruFile).filterKeys { it.startsWith("support_ads_") }

@@ -369,3 +369,98 @@ val Typography.supportAdCounterLabel: TextStyle
             letterSpacing = 0.sp,
             lineHeight = 16.sp,
         )
+
+val Typography.supportHeadline: TextStyle
+    get() =
+        headlineLarge.copy(
+            fontFamily = FontFamily.Default,
+            fontSize = 33.sp,
+            fontWeight = FontWeight.ExtraBold,
+            lineHeight = 36.sp,
+            letterSpacing = (-0.8).sp,
+        )
+
+val Typography.supportSubtitle: TextStyle
+    get() =
+        bodyLarge.copy(
+            fontFamily = FontFamily.Default,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Normal,
+            lineHeight = 22.sp,
+        )
+
+val Typography.supportPanelTitle: TextStyle
+    get() =
+        titleMedium.copy(
+            fontFamily = FontFamily.Default,
+            fontSize = 17.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = (-0.25).sp,
+        )
+
+val Typography.supportPanelSubtitle: TextStyle
+    get() =
+        bodyMedium.copy(
+            fontFamily = FontFamily.Default,
+            fontSize = 13.5.sp,
+            fontWeight = FontWeight.Normal,
+            lineHeight = 20.sp,
+        )
+
+val Typography.supportProductName: TextStyle
+    get() =
+        bodyLarge.copy(
+            fontFamily = FontFamily.Default,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.SemiBold,
+        )
+
+val Typography.supportProductPrice: TextStyle
+    get() =
+        headlineLarge.copy(
+            fontFamily = FontFamily.Default,
+            fontSize = 27.sp,
+            fontWeight = FontWeight.ExtraBold,
+            letterSpacing = (-0.5).sp,
+        )
+
+val Typography.supportActionLabel: TextStyle
+    get() =
+        labelLarge.copy(
+            fontFamily = FontFamily.Default,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Bold,
+        )
+
+val Typography.supportBackLabel: TextStyle
+    get() =
+        labelLarge.copy(
+            fontFamily = FontFamily.Default,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.SemiBold,
+        )
+
+val Typography.supporterChipLabel: TextStyle
+    get() =
+        labelMedium.copy(
+            fontFamily = FontFamily.Default,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 0.5.sp,
+        )
+
+val Typography.supportCounterValue: TextStyle
+    get() =
+        titleMedium.copy(
+            fontFamily = FontFamily.Default,
+            fontSize = 17.sp,
+            fontWeight = FontWeight.Bold,
+        )
+
+val Typography.supportCounterLabel: TextStyle
+    get() =
+        labelMedium.copy(
+            fontFamily = FontFamily.Default,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Normal,
+        )

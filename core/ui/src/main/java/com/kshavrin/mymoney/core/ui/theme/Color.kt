@@ -362,6 +362,12 @@ val ColorScheme.trendChartGridLine: Color
 val ColorScheme.trendChartMarkerGlow: Color
     get() = NeonMint
 
+val ColorScheme.trendChartProjectionAbove: Color
+    get() = incomeAccent.copy(alpha = 0.22f)
+
+val ColorScheme.trendChartProjectionBelow: Color
+    get() = expenseAccent.copy(alpha = 0.22f)
+
 // ── Aurora hero card (SecAurora / ChartWave design tokens) ───────────────────
 // Accent for the Aurora card and the default ChartWave series stroke.
 // Source: accentOf() in neon-core.jsx returns '#37E1C0' for multi-hue mode (the default).

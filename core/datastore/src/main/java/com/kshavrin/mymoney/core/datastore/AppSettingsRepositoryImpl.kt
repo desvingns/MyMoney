@@ -42,6 +42,12 @@ class AppSettingsRepositoryImpl
                 if (current.supporterBadgeEarned && !next.supporterBadgeEarned) {
                     throw IllegalStateException("supporterBadgeEarned is monotonic - cannot flip true to false")
                 }
+                if (next.supportPurchaseCountSmall < current.supportPurchaseCountSmall) {
+                    throw IllegalStateException("supportPurchaseCountSmall is monotonic - cannot decrease")
+                }
+                if (next.supportPurchaseCountLarge < current.supportPurchaseCountLarge) {
+                    throw IllegalStateException("supportPurchaseCountLarge is monotonic - cannot decrease")
+                }
                 next.writeTo(prefs)
                 prefs[AppSettingsKeys.SETTINGS_REVISION] =
                     (prefs[AppSettingsKeys.SETTINGS_REVISION] ?: 0L) + 1L
@@ -53,6 +59,10 @@ class AppSettingsRepositoryImpl
                 val deviceId = prefs[AppSettingsKeys.DEVICE_ID]
                 val supporterBadgeEarned = prefs[AppSettingsKeys.SUPPORTER_BADGE_EARNED] ?: false
                 val supportPurchaseCount = prefs[AppSettingsKeys.SUPPORT_PURCHASE_COUNT] ?: 0
+                val supportPurchaseCountSmall = prefs[AppSettingsKeys.SUPPORT_PURCHASE_COUNT_SMALL] ?: 0
+                val supportPurchaseCountLarge = prefs[AppSettingsKeys.SUPPORT_PURCHASE_COUNT_LARGE] ?: 0
+                val supportPurchaseSplitBackfilled =
+                    prefs[AppSettingsKeys.SUPPORT_PURCHASE_SPLIT_BACKFILLED] ?: false
                 val supporterPurchaseTokens = prefs[AppSettingsKeys.SUPPORTER_PURCHASE_TOKENS].orEmpty()
                 val pendingSupporterPurchases = prefs[SupporterPurchaseStoreKeys.PENDING_PURCHASES]
                 val revision = (prefs[AppSettingsKeys.SETTINGS_REVISION] ?: 0L) + 1L
@@ -62,6 +72,9 @@ class AppSettingsRepositoryImpl
                 }
                 prefs[AppSettingsKeys.SUPPORTER_BADGE_EARNED] = supporterBadgeEarned
                 prefs[AppSettingsKeys.SUPPORT_PURCHASE_COUNT] = supportPurchaseCount
+                prefs[AppSettingsKeys.SUPPORT_PURCHASE_COUNT_SMALL] = supportPurchaseCountSmall
+                prefs[AppSettingsKeys.SUPPORT_PURCHASE_COUNT_LARGE] = supportPurchaseCountLarge
+                prefs[AppSettingsKeys.SUPPORT_PURCHASE_SPLIT_BACKFILLED] = supportPurchaseSplitBackfilled
                 prefs[AppSettingsKeys.SUPPORTER_PURCHASE_TOKENS] = supporterPurchaseTokens
                 if (pendingSupporterPurchases != null) {
                     prefs[SupporterPurchaseStoreKeys.PENDING_PURCHASES] = pendingSupporterPurchases
@@ -92,6 +105,9 @@ internal fun Preferences.toAppSettings(): AppSettings =
         firstPositiveSeen = this[AppSettingsKeys.FIRST_POSITIVE_SEEN] ?: false,
         supporterBadgeEarned = this[AppSettingsKeys.SUPPORTER_BADGE_EARNED] ?: false,
         supportPurchaseCount = this[AppSettingsKeys.SUPPORT_PURCHASE_COUNT] ?: 0,
+        supportPurchaseCountSmall = this[AppSettingsKeys.SUPPORT_PURCHASE_COUNT_SMALL] ?: 0,
+        supportPurchaseCountLarge = this[AppSettingsKeys.SUPPORT_PURCHASE_COUNT_LARGE] ?: 0,
+        supportPurchaseSplitBackfilled = this[AppSettingsKeys.SUPPORT_PURCHASE_SPLIT_BACKFILLED] ?: false,
         supporterPurchaseTokens = this[AppSettingsKeys.SUPPORTER_PURCHASE_TOKENS].orEmpty(),
         importFocusEpochMs = this[AppSettingsKeys.IMPORT_FOCUS_EPOCH_MS] ?: 0L,
         importFocusCurrencyId = this[AppSettingsKeys.IMPORT_FOCUS_CURRENCY_ID] ?: -1L,
@@ -137,6 +153,9 @@ internal fun AppSettings.writeTo(prefs: androidx.datastore.preferences.core.Muta
     prefs[AppSettingsKeys.FIRST_POSITIVE_SEEN] = firstPositiveSeen
     prefs[AppSettingsKeys.SUPPORTER_BADGE_EARNED] = supporterBadgeEarned
     prefs[AppSettingsKeys.SUPPORT_PURCHASE_COUNT] = supportPurchaseCount
+    prefs[AppSettingsKeys.SUPPORT_PURCHASE_COUNT_SMALL] = supportPurchaseCountSmall
+    prefs[AppSettingsKeys.SUPPORT_PURCHASE_COUNT_LARGE] = supportPurchaseCountLarge
+    prefs[AppSettingsKeys.SUPPORT_PURCHASE_SPLIT_BACKFILLED] = supportPurchaseSplitBackfilled
     prefs[AppSettingsKeys.SUPPORTER_PURCHASE_TOKENS] = supporterPurchaseTokens
     prefs[AppSettingsKeys.IMPORT_FOCUS_EPOCH_MS] = importFocusEpochMs
     prefs[AppSettingsKeys.IMPORT_FOCUS_CURRENCY_ID] = importFocusCurrencyId

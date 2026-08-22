@@ -22,6 +22,8 @@ import com.kshavrin.mymoney.core.common.di.MainDispatcher
 import com.kshavrin.mymoney.core.common.scope.ApplicationScope
 import com.kshavrin.mymoney.core.domain.billing.BillingAvailability
 import com.kshavrin.mymoney.core.domain.billing.BillingGateway
+import com.kshavrin.mymoney.core.domain.billing.COFFEE_LARGE_PRODUCT_ID
+import com.kshavrin.mymoney.core.domain.billing.COFFEE_SMALL_PRODUCT_ID
 import com.kshavrin.mymoney.core.domain.billing.PurchaseOutcome
 import com.kshavrin.mymoney.core.domain.billing.SupportProduct
 import com.kshavrin.mymoney.core.domain.repository.EntitlementRepository
@@ -497,7 +499,7 @@ class PlayBillingGateway
         ) : IllegalStateException(availability.toString())
 
         internal companion object {
-            val SUPPORT_PRODUCT_IDS = setOf("coffee_small", "coffee_large")
+            val SUPPORT_PRODUCT_IDS = setOf(COFFEE_SMALL_PRODUCT_ID, COFFEE_LARGE_PRODUCT_ID)
             const val RUSSIA_COUNTRY_CODE = "RU"
             const val DISABLED_IN_BUILD_REASON = "billing_disabled_in_build"
             const val NO_FOREGROUND_ACTIVITY_REASON = "no_foreground_activity"

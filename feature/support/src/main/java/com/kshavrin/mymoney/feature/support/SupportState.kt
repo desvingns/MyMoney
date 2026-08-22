@@ -1,5 +1,7 @@
 package com.kshavrin.mymoney.feature.support
 
+import com.kshavrin.mymoney.core.domain.billing.COFFEE_LARGE_PRODUCT_ID as domainCoffeeLargeProductId
+import com.kshavrin.mymoney.core.domain.billing.COFFEE_SMALL_PRODUCT_ID as domainCoffeeSmallProductId
 import com.kshavrin.mymoney.core.domain.billing.SupportProduct
 import com.kshavrin.mymoney.core.domain.supporter.SupporterState
 
@@ -45,5 +47,5 @@ sealed interface SupportAction {
     data object NavigateBack : SupportAction
 }
 
-internal const val COFFEE_SMALL_PRODUCT_ID = "coffee_small"
-internal const val COFFEE_LARGE_PRODUCT_ID = "coffee_large"
+internal const val COFFEE_SMALL_PRODUCT_ID = domainCoffeeSmallProductId
+internal const val COFFEE_LARGE_PRODUCT_ID = domainCoffeeLargeProductId

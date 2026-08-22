@@ -5,6 +5,8 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.kshavrin.mymoney.core.datastore.AppSettingsKeys
+import com.kshavrin.mymoney.core.domain.billing.COFFEE_LARGE_PRODUCT_ID
+import com.kshavrin.mymoney.core.domain.billing.COFFEE_SMALL_PRODUCT_ID
 import com.kshavrin.mymoney.core.domain.billing.PurchaseOutcome
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.Serializable
@@ -44,9 +46,18 @@ class SupporterPurchaseStoreImpl
                     var changed = false
                     val purchaseTokens = preferences[AppSettingsKeys.SUPPORTER_PURCHASE_TOKENS].orEmpty()
                     if (outcome.purchaseToken !in purchaseTokens) {
+                        preferences.backfillPurchaseSplitIfNeeded()
                         preferences[AppSettingsKeys.SUPPORTER_BADGE_EARNED] = true
                         preferences[AppSettingsKeys.SUPPORT_PURCHASE_COUNT] =
                             (preferences[AppSettingsKeys.SUPPORT_PURCHASE_COUNT] ?: 0) + 1
+                        when (outcome.productId) {
+                            COFFEE_SMALL_PRODUCT_ID ->
+                                preferences[AppSettingsKeys.SUPPORT_PURCHASE_COUNT_SMALL] =
+                                    (preferences[AppSettingsKeys.SUPPORT_PURCHASE_COUNT_SMALL] ?: 0) + 1
+                            COFFEE_LARGE_PRODUCT_ID ->
+                                preferences[AppSettingsKeys.SUPPORT_PURCHASE_COUNT_LARGE] =
+                                    (preferences[AppSettingsKeys.SUPPORT_PURCHASE_COUNT_LARGE] ?: 0) + 1
+                        }
                         preferences[AppSettingsKeys.SUPPORTER_PURCHASE_TOKENS] = purchaseTokens + outcome.purchaseToken
                         changed = true
                     }
@@ -93,6 +104,16 @@ class SupporterPurchaseStoreImpl
             this[SupporterPurchaseStoreKeys.PENDING_PURCHASES]
                 ?.let { encoded -> json.decodeFromString<List<StoredSupporterPurchase>>(encoded) }
                 .orEmpty()
+
+        private fun androidx.datastore.preferences.core.MutablePreferences.backfillPurchaseSplitIfNeeded() {
+            if (this[AppSettingsKeys.SUPPORT_PURCHASE_SPLIT_BACKFILLED] == true) return
+            this[AppSettingsKeys.SUPPORT_PURCHASE_COUNT_SMALL] =
+                maxOf(
+                    this[AppSettingsKeys.SUPPORT_PURCHASE_COUNT_SMALL] ?: 0,
+                    this[AppSettingsKeys.SUPPORT_PURCHASE_COUNT] ?: 0,
+                )
+            this[AppSettingsKeys.SUPPORT_PURCHASE_SPLIT_BACKFILLED] = true
+        }
 
         private companion object {
             val json = Json

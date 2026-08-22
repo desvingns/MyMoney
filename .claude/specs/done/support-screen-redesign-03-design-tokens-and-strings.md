@@ -1,7 +1,7 @@
 # Токены темы и строки нового экрана поддержки
 Epic: support-screen-redesign
 Order: 03 of 07
-Status: backlog
+Status: done
 Depends-on: —
 Date: 2026-08-20
 Acceptance-matrix: token_group=color,shape,spacing,typography; locale=en,ru
@@ -18,6 +18,7 @@ WHAT: Фундамент под новую вёрстку: в `:core:ui` theme �
 SPEC не переписывается — он только раскладывает токены и ресурсы, чтобы SPEC-05/06/07 нигде не
 хардкодили dp, цвета и текст.
 LAYERS: presentation
+DESIGN_TOKENS: colorScheme.supportPanelContainer, colorScheme.supportPanelOutline, colorScheme.supportPanelDivider, colorScheme.supportHeadlineAccent, colorScheme.supportPriceValue, colorScheme.supportBackLabel, colorScheme.supporterChipContainer, colorScheme.supporterChipOutline, colorScheme.supporterChipContent, colorScheme.supportCounterValue, colorScheme.supportCounterLabel, shape.supportPanel, shape.supportPanelIllustration, shape.supportHeroIllustration, shape.supportPrimaryAction, shape.supporterChip, spacing.supportTopBarHeight, spacing.supportBackTouchTarget, spacing.supportHeroSize, spacing.supportPanelGap, spacing.supportPanelPadding, spacing.supportPanelColumnGap, spacing.supportCoffeeIllustrationWidthSmall, spacing.supportCoffeeIllustrationHeight, spacing.supportPanelIconSize, spacing.supportAvatarSize, spacing.supportSubtitleMaxWidth, spacing.supporterChipHeight, spacing.supportHeadlineUnderlineThickness, typography.supportHeadline, typography.supportSubtitle, typography.supportPanelTitle, typography.supportPanelSubtitle, typography.supportProductName, typography.supportProductPrice, typography.supportActionLabel, typography.supportBackLabel, typography.supporterChipLabel, typography.supportCounterValue, typography.supportCounterLabel
 CHANGED_HINT:
   - core/ui/src/main/java/com/kshavrin/mymoney/core/ui/theme/Color.kt:497-538 — новые extension-property рядом с существующими `support*`: `supportPanelContainer` (= surface), `supportPanelOutline` (= primary с alpha 0.28f), `supportPanelDivider` (= primary с alpha 0.22f), `supportHeadlineAccent` (= primary), `supportPriceValue` (= primary), `supportBackLabel` (= onSurfaceVariant), `supporterChipContainer` (= surfaceVariant), `supporterChipOutline` (= primary с alpha 0.45f), `supporterChipContent` (= primary), `supportCounterValue` (= onSurface), `supportCounterLabel` (= onSurfaceVariant) — все через существующие роли `ColorScheme`, сырых `Color(0x…)` не вводить (G18, G19, D16)
   - core/ui/src/main/java/com/kshavrin/mymoney/core/ui/theme/Shape.kt:49-53 — `supportPanel` = RoundedCornerShape(20.dp), `supportPanelIllustration` = RoundedCornerShape(12.dp), `supportHeroIllustration` = RoundedCornerShape(18.dp), `supportPrimaryAction` = RoundedCornerShape(24.dp) (полная пилюля при высоте 48dp), `supporterChip` = RoundedCornerShape(13.dp); существующие `supportCard`/`supporterBadge` не удалять — они ещё используются (G21)
@@ -79,5 +80,5 @@ Feature: Токены и строки нового экрана поддержк
 (G19, G23). Заблокировано D15 (шрифт Default) и D16 (цвета только через алиасы).
 
 ## Implementation links
-- commit: —
-- files: —
+- commit: 39ff99e5, 6ef17525
+- files: core/ui/src/main/java/com/kshavrin/mymoney/core/ui/theme/Color.kt, core/ui/src/main/java/com/kshavrin/mymoney/core/ui/theme/Shape.kt, core/ui/src/main/java/com/kshavrin/mymoney/core/ui/theme/Spacing.kt, core/ui/src/main/java/com/kshavrin/mymoney/core/ui/theme/Typography.kt, core/ui/src/test/java/com/kshavrin/mymoney/core/ui/theme/SupportThemeTokensTest.kt, feature/support/src/main/res/values/strings.xml, feature/support/src/main/res/values-ru/strings.xml, feature/support/src/test/java/com/kshavrin/mymoney/feature/support/PaywallStringsTest.kt

@@ -1093,7 +1093,10 @@ class DashboardViewModel
                 DashboardEvent.MinusFabClicked -> emit(DashboardAction.NavigateAddExpense)
                 DashboardEvent.PlusFabClicked -> emit(DashboardAction.NavigateAddIncome)
                 DashboardEvent.TransferClicked -> emit(DashboardAction.NavigateTransfer)
-                DashboardEvent.SearchClicked -> emit(DashboardAction.NavigateSearch)
+                DashboardEvent.SearchClicked -> {
+                    closeDrawers()
+                    emit(DashboardAction.NavigateSearch)
+                }
                 DashboardEvent.SettingsClicked -> {
                     closeDrawers()
                     emit(DashboardAction.NavigateSettings)

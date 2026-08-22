@@ -25,7 +25,9 @@ object Destinations {
 
     @Serializable
     @SerialName("com.kshavrin.mymoney.navigation.Destinations.Dashboard")
-    data object Dashboard
+    data class Dashboard(
+        val openChartSettings: Boolean = false,
+    )
 
     @Serializable
     @SerialName("com.kshavrin.mymoney.navigation.Destinations.AddExpense")

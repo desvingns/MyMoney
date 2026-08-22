@@ -50,6 +50,7 @@ const val FACTORY_RESET_CONFIRM_BUTTON_TAG = "factory_reset_confirm_button"
 @Composable
 fun SettingsRootRoute(
     onOpenTheme: () -> Unit,
+    onOpenChartSettings: () -> Unit,
     onOpenLanguage: () -> Unit,
     onOpenBackup: () -> Unit,
     onOpenCloudSync: () -> Unit,
@@ -70,6 +71,7 @@ fun SettingsRootRoute(
         state = state,
         onEvent = viewModel::onEvent,
         onOpenTheme = onOpenTheme,
+        onOpenChartSettings = onOpenChartSettings,
         onOpenLanguage = onOpenLanguage,
         onOpenBackup = onOpenBackup,
         onOpenCloudSync = onOpenCloudSync,
@@ -88,6 +90,7 @@ fun SettingsRootContent(
     state: SettingsState,
     onEvent: (SettingsEvent) -> Unit,
     onOpenTheme: () -> Unit,
+    onOpenChartSettings: () -> Unit,
     onOpenLanguage: () -> Unit,
     onOpenBackup: () -> Unit,
     onOpenAbout: () -> Unit,
@@ -127,6 +130,14 @@ fun SettingsRootContent(
                     Modifier
                         .clickable(onClick = onOpenTheme)
                         .semantics { contentDescription = themeLabel },
+            )
+            val chartSettingsLabel = stringResource(R.string.settings_chart_settings)
+            ListItem(
+                headlineContent = { Text(chartSettingsLabel) },
+                modifier =
+                    Modifier
+                        .clickable(onClick = onOpenChartSettings)
+                        .semantics { contentDescription = chartSettingsLabel },
             )
 
             SectionHeader(stringResource(R.string.settings_section_security))

@@ -41,6 +41,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -87,10 +88,22 @@ import java.util.Locale
 @Composable
 fun DashboardRoute(
     onAction: (DashboardAction) -> Unit,
+    openChartSettings: Boolean = false,
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
     var conversionDialog by remember { mutableStateOf<AllAccountsConversionDialog?>(null) }
+
+    // Deep-linked from Settings → «Настройки графиков»: open the chart-settings sheet once so the
+    // user sees the chart react. The consumed flag survives rotation/process-death (rememberSaveable)
+    // so closing the sheet never re-triggers an auto-open.
+    var chartSettingsAutoOpened by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(openChartSettings) {
+        if (openChartSettings && !chartSettingsAutoOpened) {
+            chartSettingsAutoOpened = true
+            viewModel.onEvent(DashboardEvent.ChartSettingsClicked)
+        }
+    }
 
     CollectActions(flow = viewModel.actions, key = viewModel) { action ->
         when (action) {

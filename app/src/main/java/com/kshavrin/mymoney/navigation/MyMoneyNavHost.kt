@@ -44,7 +44,7 @@ fun MyMoneyNavHost(
                             popUpTo<Destinations.Splash> { inclusive = true }
                         }
                     } else {
-                        navController.navigate(Destinations.Dashboard) {
+                        navController.navigate(Destinations.Dashboard()) {
                             popUpTo<Destinations.Splash> { inclusive = true }
                         }
                     }
@@ -54,16 +54,18 @@ fun MyMoneyNavHost(
         composable<Destinations.Onboarding> {
             com.kshavrin.mymoney.feature.onboarding.OnboardingScreen(
                 onComplete = {
-                    navController.navigate(Destinations.Dashboard) {
+                    navController.navigate(Destinations.Dashboard()) {
                         popUpTo<Destinations.Onboarding> { inclusive = true }
                     }
                 },
             )
         }
-        composable<Destinations.Dashboard> {
+        composable<Destinations.Dashboard> { entry ->
+            val route = entry.toRoute<Destinations.Dashboard>()
             var searchOverlayOpen by rememberSaveable { mutableStateOf(false) }
             Box(modifier = Modifier.fillMaxSize()) {
                 com.kshavrin.mymoney.feature.dashboard.DashboardRoute(
+                    openChartSettings = route.openChartSettings,
                     onAction = { action ->
                         when (action) {
                             com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateAddExpense ->
@@ -235,6 +237,9 @@ fun MyMoneyNavHost(
         composable<Destinations.Settings> {
             com.kshavrin.mymoney.feature.settings.root.SettingsRootRoute(
                 onOpenTheme = { navController.navigate(Destinations.SettingsTheme) },
+                onOpenChartSettings = {
+                    navController.navigate(Destinations.Dashboard(openChartSettings = true))
+                },
                 onOpenLanguage = { navController.navigate(Destinations.SettingsLanguage) },
                 onOpenBackup = { navController.navigate(Destinations.SettingsBackup) },
                 onOpenCloudSync = { navController.navigate(Destinations.CloudSync) },
@@ -346,7 +351,7 @@ private fun DecisionRouter(
                     popUpTo<Destinations.Decision> { inclusive = true }
                 }
             DecisionDestination.Dashboard -> {
-                navController.navigate(Destinations.Dashboard) {
+                navController.navigate(Destinations.Dashboard()) {
                     popUpTo<Destinations.Decision> { inclusive = true }
                 }
                 when (shortcutDestination) {

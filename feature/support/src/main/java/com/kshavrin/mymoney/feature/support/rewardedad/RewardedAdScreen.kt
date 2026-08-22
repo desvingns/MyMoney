@@ -3,19 +3,21 @@ package com.kshavrin.mymoney.feature.support.rewardedad
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -25,17 +27,27 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.core.ui.theme.rewardAdProgressIndicator
 import com.kshavrin.mymoney.core.ui.theme.rewardAdProgressTrack
-import com.kshavrin.mymoney.core.ui.theme.supportCard
-import com.kshavrin.mymoney.core.ui.theme.supportCardTitle
-import com.kshavrin.mymoney.core.ui.theme.supportDescription
+import com.kshavrin.mymoney.core.ui.theme.supportActionLabel
+import com.kshavrin.mymoney.core.ui.theme.supportPanel
+import com.kshavrin.mymoney.core.ui.theme.supportPanelContainer
+import com.kshavrin.mymoney.core.ui.theme.supportPanelIllustration
+import com.kshavrin.mymoney.core.ui.theme.supportPanelOutline
+import com.kshavrin.mymoney.core.ui.theme.supportPanelSubtitle
+import com.kshavrin.mymoney.core.ui.theme.supportPanelTitle
+import com.kshavrin.mymoney.core.ui.theme.supportPrimaryAction
 import com.kshavrin.mymoney.feature.support.R
 import com.kshavrin.mymoney.feature.support.googlesignin.GoogleSignInDialog
 
@@ -78,174 +90,104 @@ fun RewardedAdContent(
     modifier: Modifier = Modifier,
 ) {
     val required = state.reward?.required ?: DEFAULT_REQUIRED_VIEWS
+    val progress = state.reward?.progress ?: 0
+    val action =
+        when (state.status) {
+            RewardedAdStatus.Unauthenticated ->
+                RewardedAdAction(
+                    labelRes = R.string.support_ads_sign_in_action,
+                    enabled = true,
+                    onClick = onSignIn,
+                )
+
+            RewardedAdStatus.Offline,
+            RewardedAdStatus.ConfirmationTimeout,
+            ->
+                RewardedAdAction(
+                    labelRes = R.string.support_ads_retry,
+                    enabled = true,
+                    onClick = onRetry,
+                )
+
+            else ->
+                RewardedAdAction(
+                    labelRes = R.string.support_ads_watch,
+                    enabled = state.status == RewardedAdStatus.Ready,
+                    onClick = onWatch,
+                )
+        }
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.supportCard,
-        color = MaterialTheme.colorScheme.secondaryContainer,
-        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        shape = MaterialTheme.shapes.supportPanel,
+        color = MaterialTheme.colorScheme.supportPanelContainer,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.supportPanelOutline),
     ) {
         Column(
-            modifier = Modifier.padding(Spacing.supportCardPadding),
-            verticalArrangement = Arrangement.spacedBy(Spacing.supportStatusGap),
+            modifier = Modifier.padding(Spacing.supportPanelPadding),
+            verticalArrangement = Arrangement.spacedBy(Spacing.supportPanelGap),
         ) {
-            Text(
-                text = stringResource(R.string.support_ads_title),
-                style = MaterialTheme.typography.supportCardTitle,
-            )
-            Text(
-                text = stringResource(R.string.support_ads_rule, required),
-                style = MaterialTheme.typography.supportDescription,
-            )
-            when (state.status) {
-                RewardedAdStatus.Loading -> LoadingBody()
-                RewardedAdStatus.Unauthenticated -> UnauthenticatedBody(onSignIn = onSignIn)
-                else ->
-                    AuthenticatedBody(
-                        state = state,
-                        onWatch = onWatch,
-                        onRetry = onRetry,
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(Spacing.supportPanelColumnGap),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Image(
+                    painter = painterResource(DesignSystemR.drawable.support_neon_ads),
+                    contentDescription = stringResource(R.string.support_image_ads_description),
+                    contentScale = ContentScale.Fit,
+                    modifier =
+                        Modifier
+                            .size(Spacing.supportPanelIconSize)
+                            .clip(MaterialTheme.shapes.supportPanelIllustration),
+                )
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(Spacing.supportPanelColumnGap),
+                ) {
+                    Text(
+                        text = stringResource(R.string.support_ads_title),
+                        style = MaterialTheme.typography.supportPanelTitle,
                     )
+                    Text(
+                        text = stringResource(R.string.support_ads_rule, required),
+                        style = MaterialTheme.typography.supportPanelSubtitle,
+                    )
+                }
             }
-        }
-    }
-}
-
-@Composable
-private fun LoadingBody() {
-    Box(
-        modifier = Modifier.fillMaxWidth(),
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(Spacing.supportStatusGap),
-        ) {
-            CircularProgressIndicator()
-            Text(
-                text = stringResource(R.string.support_ads_loading),
-                style = MaterialTheme.typography.supportDescription,
+            RewardProgressRow(
+                progress = progress,
+                required = required,
+            )
+            RewardedAdActionButton(action = action)
+            RewardedAdStatusLine(
+                messageRes = state.statusMessageRes(),
+                showLoadingIndicator =
+                    state.status == RewardedAdStatus.Loading ||
+                        state.status == RewardedAdStatus.Rearming,
             )
         }
     }
 }
 
 @Composable
-private fun UnauthenticatedBody(onSignIn: () -> Unit) {
-    Text(
-        text = stringResource(R.string.support_ads_sign_in_required),
-        style = MaterialTheme.typography.supportDescription,
-    )
-    Button(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .heightIn(min = Spacing.supportActionMinHeight),
-        onClick = onSignIn,
-    ) {
-        Text(stringResource(R.string.support_ads_sign_in_action))
-    }
-}
-
-@Composable
-private fun AuthenticatedBody(
-    state: RewardedAdState,
-    onWatch: () -> Unit,
-    onRetry: () -> Unit,
+private fun RewardProgressRow(
+    progress: Int,
+    required: Int,
 ) {
-    state.reward?.let { reward ->
-        RewardProgressRow(reward = reward)
-        if (reward.plusActive) {
-            Text(
-                text = stringResource(R.string.support_ads_plus_active),
-                style = MaterialTheme.typography.supportDescription,
-            )
-        }
-    }
-    when (state.status) {
-        RewardedAdStatus.Ready ->
-            WatchButton(enabled = true, onWatch = onWatch)
-
-        RewardedAdStatus.NoFill -> {
-            WatchButton(enabled = false, onWatch = onWatch)
-            Text(
-                text = stringResource(R.string.support_ads_no_fill),
-                style = MaterialTheme.typography.supportDescription,
-            )
-        }
-
-        RewardedAdStatus.RegionUnavailable ->
-            Text(
-                text = stringResource(R.string.support_ads_region_unavailable),
-                style = MaterialTheme.typography.supportDescription,
-            )
-
-        RewardedAdStatus.Offline -> {
-            Text(
-                text = stringResource(R.string.support_ads_offline),
-                style = MaterialTheme.typography.supportDescription,
-            )
-            TextButton(
-                modifier = Modifier.heightIn(min = Spacing.supportActionMinHeight),
-                onClick = onRetry,
-            ) {
-                Text(stringResource(R.string.support_ads_retry))
-            }
-        }
-
-        RewardedAdStatus.AwaitingConfirmation ->
-            Text(
-                text = stringResource(R.string.support_ads_awaiting_confirmation),
-                style = MaterialTheme.typography.supportDescription,
-            )
-
-        RewardedAdStatus.Rearming ->
-            Text(
-                text = stringResource(R.string.support_ads_loading),
-                style = MaterialTheme.typography.supportDescription,
-            )
-
-        RewardedAdStatus.ConfirmationTimeout -> {
-            Text(
-                text = stringResource(R.string.support_ads_confirmation_timeout),
-                style = MaterialTheme.typography.supportDescription,
-            )
-            TextButton(
-                modifier = Modifier.heightIn(min = Spacing.supportActionMinHeight),
-                onClick = onRetry,
-            ) {
-                Text(stringResource(R.string.support_ads_retry))
-            }
-        }
-
-        RewardedAdStatus.Unavailable ->
-            Text(
-                text = stringResource(R.string.support_ads_unavailable),
-                style = MaterialTheme.typography.supportDescription,
-            )
-
-        RewardedAdStatus.Loading,
-        RewardedAdStatus.Unauthenticated,
-        -> Unit
-    }
-}
-
-@Composable
-private fun RewardProgressRow(reward: RewardProgress) {
     val progressText =
-        stringResource(R.string.support_ads_progress, reward.progress, reward.required)
+        stringResource(R.string.support_ads_progress, progress, required)
     val fraction =
-        if (reward.required > 0) {
-            (reward.progress.toFloat() / reward.required.toFloat()).coerceIn(0f, 1f)
+        if (required > 0) {
+            (progress.toFloat() / required.toFloat()).coerceIn(0f, 1f)
         } else {
             0f
         }
     Column(
         modifier = Modifier.clearAndSetSemantics { contentDescription = progressText },
-        verticalArrangement = Arrangement.spacedBy(Spacing.supportStatusGap),
+        verticalArrangement = Arrangement.spacedBy(Spacing.supportPanelColumnGap),
     ) {
         Text(
             text = progressText,
-            style = MaterialTheme.typography.supportDescription,
+            style = MaterialTheme.typography.supportPanelSubtitle,
         )
         LinearProgressIndicator(
             progress = { fraction },
@@ -257,21 +199,73 @@ private fun RewardProgressRow(reward: RewardProgress) {
 }
 
 @Composable
-private fun WatchButton(
-    enabled: Boolean,
-    onWatch: () -> Unit,
+private fun RewardedAdActionButton(
+    action: RewardedAdAction,
 ) {
     Button(
         modifier =
             Modifier
                 .fillMaxWidth()
                 .heightIn(min = Spacing.supportActionMinHeight),
-        onClick = onWatch,
-        enabled = enabled,
+        onClick = action.onClick,
+        enabled = action.enabled,
+        shape = MaterialTheme.shapes.supportPrimaryAction,
     ) {
-        Text(stringResource(R.string.support_ads_watch))
+        Text(
+            text = stringResource(action.labelRes),
+            style = MaterialTheme.typography.supportActionLabel,
+        )
     }
 }
+
+@Composable
+private fun RewardedAdStatusLine(
+    messageRes: Int?,
+    showLoadingIndicator: Boolean,
+) {
+    if (messageRes == null) return
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(Spacing.supportPanelColumnGap),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (showLoadingIndicator) {
+            CircularProgressIndicator()
+        }
+        Text(
+            text = stringResource(messageRes),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.supportPanelSubtitle,
+        )
+    }
+}
+
+private fun RewardedAdState.statusMessageRes(): Int? =
+    when (status) {
+        RewardedAdStatus.Loading,
+        RewardedAdStatus.Rearming,
+        -> R.string.support_ads_loading
+
+        RewardedAdStatus.Unauthenticated -> R.string.support_ads_sign_in_required
+        RewardedAdStatus.Ready ->
+            if (reward?.plusActive == true) {
+                R.string.support_ads_plus_active
+            } else {
+                null
+            }
+
+        RewardedAdStatus.NoFill -> R.string.support_ads_no_fill
+        RewardedAdStatus.RegionUnavailable -> R.string.support_ads_region_unavailable
+        RewardedAdStatus.Offline -> R.string.support_ads_offline
+        RewardedAdStatus.AwaitingConfirmation -> R.string.support_ads_awaiting_confirmation
+        RewardedAdStatus.ConfirmationTimeout -> R.string.support_ads_confirmation_timeout
+        RewardedAdStatus.Unavailable -> R.string.support_ads_unavailable
+    }
+
+private data class RewardedAdAction(
+    val labelRes: Int,
+    val enabled: Boolean,
+    val onClick: () -> Unit,
+)
 
 private tailrec fun Context.findActivity(): Activity? =
     when (this) {

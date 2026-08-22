@@ -1,7 +1,7 @@
 # Раздельные счётчики покупок кофе (мл./бл.)
 Epic: support-screen-redesign
 Order: 02 of 07
-Status: backlog
+Status: done
 Depends-on: —
 Date: 2026-08-20
 Acceptance-matrix: purchase=small,large,unknown_product,duplicate_token; migration=fresh_install,existing_count
@@ -95,5 +95,26 @@ Feature: Раздельный учёт покупок кофе
 как SPEC-04 добавит счётчики в `SupportState`, а SPEC-07 — в вёрстку.
 
 ## Implementation links
-- commit: —
-- files: —
+- commit: 662b8230, c2187cac, d660c9b2, e8ae3dfe, dbcc2800
+- files:
+  - core/billing/src/main/java/com/kshavrin/mymoney/core/billing/PlayBillingGateway.kt
+  - core/datastore/src/main/java/com/kshavrin/mymoney/core/datastore/AppSettingsKeys.kt
+  - core/datastore/src/main/java/com/kshavrin/mymoney/core/datastore/AppSettingsRepositoryImpl.kt
+  - core/datastore/src/main/java/com/kshavrin/mymoney/core/datastore/model/AppSettings.kt
+  - core/datastore/src/main/java/com/kshavrin/mymoney/core/datastore/di/DataStoreModule.kt
+  - core/datastore/src/main/java/com/kshavrin/mymoney/core/datastore/supporter/SupporterPurchaseStore.kt
+  - core/datastore/src/main/java/com/kshavrin/mymoney/core/datastore/supporter/SupporterRepositoryImpl.kt
+  - core/datastore/src/test/java/com/kshavrin/mymoney/core/datastore/AppSettingsRepositoryTest.kt
+  - core/datastore/src/test/kotlin/com/kshavrin/mymoney/core/datastore/supporter/SupporterRepositoryImplTest.kt
+  - core/domain/src/main/kotlin/com/kshavrin/mymoney/core/domain/billing/SupportProduct.kt
+  - core/domain/src/main/kotlin/com/kshavrin/mymoney/core/domain/supporter/SupporterState.kt
+  - core/domain/src/main/kotlin/com/kshavrin/mymoney/core/domain/supporter/SupporterRepository.kt
+  - core/domain/src/main/kotlin/com/kshavrin/mymoney/core/domain/usecase/ObserveSupporterStateUseCase.kt
+  - core/domain/src/test/kotlin/com/kshavrin/mymoney/core/domain/usecase/ObserveSupporterStateUseCaseTest.kt
+  - core/testing/src/main/kotlin/com/kshavrin/mymoney/core/testing/fake/FakeSupporterRepository.kt
+  - core/sync/src/main/java/com/kshavrin/mymoney/core/sync/supporter/SupportPurchaseReconciliationCoordinatorImpl.kt
+  - core/sync/src/main/java/com/kshavrin/mymoney/core/sync/supporter/SupporterSyncImpl.kt
+  - feature/support/src/main/java/com/kshavrin/mymoney/feature/support/SupportState.kt
+  - feature/support/src/main/java/com/kshavrin/mymoney/feature/support/SupportViewModel.kt
+  - core/billing/src/test/java/com/kshavrin/mymoney/core/billing/BillingWiringContractTest.kt
+  - feature/support/src/test/java/com/kshavrin/mymoney/feature/support/SupportViewModelTest.kt

@@ -8,6 +8,8 @@
 
 ## Current state
 
+- **2026-08-22 (Codex `$mp --feature --next --chain`, support-screen-redesign SPEC 02):** Added per-product small/large coffee counters with one-time legacy backfill, domain-owned product IDs, monotonic persistence, cancellation-safe supporter retry, and regression coverage across datastore, sync, billing, and support consumers. Deterministic reviewer passed after adding the dedicated `ObserveSupporterStateUseCaseTest`; semantic matrix and independent critic covered 8/8 with one non-blocking warning that direct `SupporterPurchaseStoreImpl` tests could be deeper. Scoped Runner: `874/0/0`; full Runner: `2411/0/0`, detekt/lint green. Commits `662b8230`, `c2187cac`, `d660c9b2`, `e8ae3dfe`, `dbcc2800`; SPEC moved to `done/`. SPEC 03–07 remain queued in the `support-screen-redesign` epic.
+
 - **2026-08-22 (Codex `$mp --feature --next`, support-screen-redesign SPEC 01):** Added the
   six exact-size transparent PNG-32 `support_neon_*` placeholders to `:core:designsystem`
   (hero/coffee-small/coffee-large/ads/Plus/avatar) under O1; final artwork remains a later

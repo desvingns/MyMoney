@@ -164,3 +164,21 @@ Phase/release state authority: `docs/implementation_plan/PROGRESS.md` (do not re
 - none hard-blocking. The Supabase project is provisioned in the EU/Ireland region and the
   shared-sync close-out was manually verified by the user. Public rollout remains disabled by the
   experimental gate and the existing release/DevOps prerequisites remain tracked in `PROGRESS.md`.
+
+## 2026-08-22 CHAIN USER OVERRIDE
+- User explicitly approved consuming `chart-settings-rework-06-integration-and-snapshots` without
+  splitting it despite the size-gate recommendation; this run uses `size_override=1`.
+- For subsequent `$mp --feature --next --chain` sessions, do not stop to split an existing backlog
+  SPEC on `split_recommended`; proceed with the approved SPEC as written and record the override.
+
+## 2026-08-22 MP REPAIR BLOCKER
+- `chart-settings-rework-06-integration-and-snapshots` remains active after the first semantic
+  repair cycle. The independent critic's device-evidence blocker is not resolved; the Pixel 5
+  API 34 emulator was confirmed earlier but is currently absent from local `adb devices` after
+  the long Gradle run. No repair code was applied in the failed Developer attempt.
+
+## 2026-08-22 MP REPAIR RESOLVED
+- Pixel 5/API 34 was reconnected; themed projection-token wiring was committed in `efd6d023`,
+  consumer matrix tests in `d2bff540`, and both targeted connected matrix XML reports passed.
+- SPEC `chart-settings-rework-06-integration-and-snapshots` and epic `chart-settings-rework` are
+  complete. The user explicitly requested no successor chain task after this close.

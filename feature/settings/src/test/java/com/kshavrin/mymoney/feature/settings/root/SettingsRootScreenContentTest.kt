@@ -7,10 +7,12 @@ import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.core.app.ApplicationProvider
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import com.kshavrin.mymoney.feature.settings.R
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -25,6 +27,19 @@ import org.robolectric.annotation.GraphicsMode.Mode.NATIVE
 class SettingsRootScreenContentTest {
     @get:Rule
     val composeRule = createComposeRule()
+
+    @Test
+    fun `chart settings row tap invokes onOpenChartSettings`() {
+        var opened = false
+        setContent(onOpenChartSettings = { opened = true })
+
+        composeRule
+            .onNodeWithContentDescription(string(R.string.settings_chart_settings))
+            .performScrollTo()
+            .performClick()
+
+        assertTrue(opened)
+    }
 
     @Test
     fun `recents privacy switch is visible`() {
@@ -60,6 +75,7 @@ class SettingsRootScreenContentTest {
     private fun setContent(
         state: SettingsState = SettingsState(),
         onEvent: (SettingsEvent) -> Unit = {},
+        onOpenChartSettings: () -> Unit = {},
     ) {
         composeRule.setContent {
             MyMoneyTheme {
@@ -67,7 +83,7 @@ class SettingsRootScreenContentTest {
                     state = state,
                     onEvent = onEvent,
                     onOpenTheme = {},
-                    onOpenChartSettings = {},
+                    onOpenChartSettings = onOpenChartSettings,
                     onOpenLanguage = {},
                     onOpenBackup = {},
                     onOpenAbout = {},

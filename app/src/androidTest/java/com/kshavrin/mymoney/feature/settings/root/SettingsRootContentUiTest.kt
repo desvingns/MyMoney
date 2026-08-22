@@ -45,6 +45,7 @@ class SettingsRootContentUiTest {
 
         setContent(
             onOpenTheme = { opened += "theme" },
+            onOpenChartSettings = { opened += "chart" },
             onOpenBiometricLock = { opened += "lock" },
             onOpenCloudSync = { opened += "cloud" },
             onOpenBackup = { opened += "backup" },
@@ -55,6 +56,7 @@ class SettingsRootContentUiTest {
 
         listOf(
             R.string.settings_theme to "theme",
+            R.string.settings_chart_settings to "chart",
             R.string.settings_biometric_lock to "lock",
             R.string.settings_cloud_sync to "cloud",
             R.string.settings_backup_restore to "backup",
@@ -70,7 +72,7 @@ class SettingsRootContentUiTest {
 
         composeTestRule.runOnIdle {
             assertEquals(
-                listOf("theme", "lock", "cloud", "backup", "language", "about", "licences"),
+                listOf("theme", "chart", "lock", "cloud", "backup", "language", "about", "licences"),
                 opened,
             )
         }

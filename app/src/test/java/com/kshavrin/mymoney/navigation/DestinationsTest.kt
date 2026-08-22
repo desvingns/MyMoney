@@ -21,6 +21,7 @@ class DestinationsTest {
 
     @Test
     fun `argument destinations preserve their legacy default values`() {
+        assertEquals(Destinations.Dashboard(openChartSettings = false), Destinations.Dashboard())
         assertEquals(Destinations.CurrencyRate(-1L, -1L), Destinations.CurrencyRate())
         assertEquals(
             Destinations.TransactionsList(-1L, -1L, -1L, -1L, -1L),
@@ -381,6 +382,56 @@ class DestinationsTest {
                 source.contains("navController.navigate("),
             )
         }
+    }
+
+    @Test
+    fun `settings chart-settings entry point navigates to Dashboard with openChartSettings=true`() {
+        val source =
+            readProjectSource(
+                "app",
+                "src",
+                "main",
+                "java",
+                "com",
+                "kshavrin",
+                "mymoney",
+                "navigation",
+                "MyMoneyNavHost.kt",
+            )
+        assertTrue(
+            "onOpenChartSettings in MyMoneyNavHost must navigate to Dashboard(openChartSettings = true)",
+            source.contains("Destinations.Dashboard(openChartSettings = true)"),
+        )
+    }
+
+    @Test
+    fun `DashboardRoute guards chart-settings auto-open with rememberSaveable consumed flag`() {
+        val source =
+            readProjectSource(
+                "feature",
+                "dashboard",
+                "src",
+                "main",
+                "java",
+                "com",
+                "kshavrin",
+                "mymoney",
+                "feature",
+                "dashboard",
+                "DashboardScreen.kt",
+            )
+        assertTrue(
+            "DashboardRoute must use rememberSaveable so the consumed flag survives rotation",
+            source.contains("rememberSaveable"),
+        )
+        assertTrue(
+            "DashboardRoute must guard with the consumed flag to prevent a second auto-open",
+            source.contains("!chartSettingsAutoOpened"),
+        )
+        assertTrue(
+            "DashboardRoute must key the LaunchedEffect on openChartSettings",
+            source.contains("LaunchedEffect(openChartSettings)"),
+        )
     }
 
     @Test

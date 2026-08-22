@@ -1,7 +1,7 @@
 # SupportState: счётчик роликов и раздельные счётчики кофе
 Epic: support-screen-redesign
 Order: 04 of 07
-Status: backlog
+Status: done
 Depends-on: support-screen-redesign-02
 Date: 2026-08-20
 Acceptance-matrix: reward_state=absent,present; supporter=fresh,with_purchases
@@ -69,5 +69,5 @@ Feature: Данные счётчиков на экране поддержки
 Этот SPEC переносит источник данных в `SupportViewModel` до того, как SPEC-07 нарисует карточку.
 
 ## Implementation links
-- commit: —
-- files: —
+- commit: 56b18a6a6dd4b506bf3ad622b4f47f210508910a + 547900461ef7b9cde2e5695b1d4fae8b568db09b
+- files: feature/support/src/main/java/com/kshavrin/mymoney/feature/support/SupportState.kt; feature/support/src/main/java/com/kshavrin/mymoney/feature/support/SupportViewModel.kt; feature/support/src/test/java/com/kshavrin/mymoney/feature/support/SupportViewModelTest.kt

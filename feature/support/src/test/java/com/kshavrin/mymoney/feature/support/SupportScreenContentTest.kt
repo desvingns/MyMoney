@@ -463,4 +463,8 @@ class SupportScreenContentTest {
         vararg args: Any,
     ): String = context.getString(resourceId, *args)
 
+    private companion object {
+        const val SMALL_PRICE = "£1.99"
+        const val LARGE_PRICE = "£4.99"
+    }
 }

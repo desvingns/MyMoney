@@ -26,7 +26,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kshavrin.mymoney.core.designsystem.chart.BalanceTrendChart
 import com.kshavrin.mymoney.core.ui.theme.Spacing
@@ -64,7 +63,7 @@ fun AuroraBalanceCard(
         } else {
             MaterialTheme.colorScheme.dashboardAuroraAccentForSign(false)
         }
-    val balanceGlowBlur = with(LocalDensity.current) { 8.dp.toPx() }
+    val balanceGlowBlur = with(LocalDensity.current) { Spacing.trendChartMarkerGlowRadius.toPx() }
     AuroraCardSurface(
         cardTestTag = DASHBOARD_AURORA_CARD_TAG,
         modifier = modifier,

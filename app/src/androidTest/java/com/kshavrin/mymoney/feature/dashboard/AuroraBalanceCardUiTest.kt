@@ -1,10 +1,14 @@
 package com.kshavrin.mymoney.feature.dashboard
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -15,6 +19,7 @@ import androidx.compose.ui.unit.sp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.designsystem.chart.BALANCE_TREND_CHART_TAG
+import com.kshavrin.mymoney.core.designsystem.chart.ChartColorRule
 import com.kshavrin.mymoney.core.designsystem.chart.ChartStyle
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import com.kshavrin.mymoney.core.ui.theme.Spacing
@@ -24,6 +29,7 @@ import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_AURORA_CARD_T
 import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_AURORA_EXPENSE_PILL_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_AURORA_INCOME_PILL_TAG
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -35,6 +41,13 @@ class AuroraBalanceCardUiTest {
     val composeTestRule = createComposeRule()
 
     private val defaultPoints = listOf(100f, 200f, 150f, 300f, 250f)
+    private val matrixPoints = listOf(10f, 20f, 5f)
+
+    private data class CapturedChart(
+        val pixels: IntArray,
+        val width: Int,
+        val height: Int,
+    )
 
     private fun defaultConfig(visible: Boolean = true) = ChartConfig(visible = visible)
 
@@ -239,7 +252,7 @@ class AuroraBalanceCardUiTest {
 
     @Test
     fun `chart tag is absent and hidden hint tag is shown when chartConfig visible is false`() {
-        setCard(chartConfig = defaultConfig(visible = false))
+        setCard(chartConfig = defaultConfig(visible = false).copy(showProjection = true))
         composeTestRule
             .onNodeWithTag(DASHBOARD_CHART_HIDDEN_HINT_TAG)
             .assertExists()
@@ -380,6 +393,42 @@ class AuroraBalanceCardUiTest {
     }
 
     @Test
+    fun `AuroraBalanceCard renders the full style color and projection matrix`() {
+        val capture = startChartMatrixCapture()
+
+        ChartStyle.entries.forEach { style ->
+            val withoutProjection =
+                ChartColorRule.entries.associateWith { colorRule ->
+                    capture(style, colorRule, false)
+                }
+            assertDistinctColorRules(
+                charts = withoutProjection,
+                style = style,
+                consumer = "AuroraBalanceCard",
+            )
+
+            ChartColorRule.entries.forEach { colorRule ->
+                val withProjection = capture(style, colorRule, true)
+                val without = withoutProjection.getValue(colorRule)
+
+                assertEquals(without.width, withProjection.width)
+                assertEquals(without.height, withProjection.height)
+                if (style == ChartStyle.Bars) {
+                    assertTrue(
+                        "Bars must ignore projection for ${colorRule.id} in AuroraBalanceCard",
+                        without.pixels.contentEquals(withProjection.pixels),
+                    )
+                } else {
+                    assertFalse(
+                        "${style.name} must receive showProjection for ${colorRule.id} in AuroraBalanceCard",
+                        without.pixels.contentEquals(withProjection.pixels),
+                    )
+                }
+            }
+        }
+    }
+
+    @Test
     fun `Smooth style with empty points renders without crash inside aurora card`() {
         setCard(
             chartConfig = defaultConfig(visible = true).copy(style = ChartStyle.Smooth),
@@ -442,6 +491,71 @@ class AuroraBalanceCardUiTest {
         label: String,
     ) {
         assertTrue("$label expected=$expected actual=$actual", kotlin.math.abs(expected - actual) <= 1.5f)
+    }
+
+    private fun startChartMatrixCapture(): (ChartStyle, ChartColorRule, Boolean) -> CapturedChart {
+        var chartConfig by mutableStateOf(defaultConfig(visible = true))
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                AuroraBalanceCard(
+                    balance = "12 345 $",
+                    income = "20 000 $",
+                    expense = "7 654 $",
+                    points = matrixPoints,
+                    chartConfig = chartConfig,
+                    onChartClick = {},
+                    netPositive = true,
+                )
+            }
+        }
+
+        return { style, colorRule, showProjection ->
+            composeTestRule.runOnIdle {
+                chartConfig =
+                    chartConfig.copy(
+                        style = style,
+                        colorRule = colorRule,
+                        showProjection = showProjection,
+                    )
+            }
+            composeTestRule.waitForIdle()
+            val image =
+                composeTestRule
+                    .onNodeWithTag(BALANCE_TREND_CHART_TAG, useUnmergedTree = true)
+                    .captureToImage()
+            val pixels = IntArray(image.width * image.height)
+            image.readPixels(pixels)
+            CapturedChart(pixels = pixels, width = image.width, height = image.height)
+        }
+    }
+
+    private fun assertDistinctColorRules(
+        charts: Map<ChartColorRule, CapturedChart>,
+        style: ChartStyle,
+        consumer: String,
+    ) {
+        ChartColorRule.entries.forEachIndexed { firstIndex, firstRule ->
+            ChartColorRule.entries.drop(firstIndex + 1).forEach { secondRule ->
+                assertFalse(
+                    "$consumer ${style.name} must render ${firstRule.id} differently from ${secondRule.id}",
+                    charts.getValue(firstRule).pixels.contentEquals(charts.getValue(secondRule).pixels),
+                )
+            }
+        }
+        assertFalse(
+            "$consumer ${style.name} ByDirection must not collapse to AlwaysGreen when the final point is below the first",
+            charts
+                .getValue(ChartColorRule.ByDirection)
+                .pixels
+                .contentEquals(charts.getValue(ChartColorRule.AlwaysGreen).pixels),
+        )
+        assertFalse(
+            "$consumer ${style.name} ByDirection must not collapse to AlwaysRed when the second point is above the first",
+            charts
+                .getValue(ChartColorRule.ByDirection)
+                .pixels
+                .contentEquals(charts.getValue(ChartColorRule.AlwaysRed).pixels),
+        )
     }
 
     private fun SemanticsNodeInteraction.textLayout(): TextLayoutResult {

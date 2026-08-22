@@ -1,11 +1,15 @@
 package com.kshavrin.mymoney.feature.dashboard.components
 
 import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -17,6 +21,8 @@ import androidx.compose.ui.unit.sp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.common.money.MoneyFormatter
+import com.kshavrin.mymoney.core.designsystem.chart.ChartColorRule
+import com.kshavrin.mymoney.core.designsystem.chart.ChartStyle
 import com.kshavrin.mymoney.core.domain.model.BalanceSnapshot
 import com.kshavrin.mymoney.core.domain.model.Currency
 import com.kshavrin.mymoney.core.domain.model.Money
@@ -27,6 +33,8 @@ import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.feature.dashboard.ChartConfig
 import com.kshavrin.mymoney.feature.dashboard.CurrencyBalanceCard
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -38,6 +46,8 @@ import java.time.YearMonth
 class CurrencyBalanceCardListUiTest {
     @get:Rule
     val composeTestRule = createComposeRule()
+
+    private val matrixPoints = listOf(10, 20, 5)
 
     private val usd =
         Currency(
@@ -60,6 +70,12 @@ class CurrencyBalanceCardListUiTest {
             isActive = true,
             sortOrder = 1,
         )
+
+    private data class CapturedChart(
+        val pixels: IntArray,
+        val width: Int,
+        val height: Int,
+    )
 
     // -----------------------------------------------------------------------
     // Empty list
@@ -417,7 +433,7 @@ class CurrencyBalanceCardListUiTest {
             MyMoneyTheme {
                 CurrencyBalanceCardList(
                     cards = listOf(usdCard(income = "100.99", expense = "30.49", withTrend = true)),
-                    chartConfig = ChartConfig(visible = false),
+                    chartConfig = ChartConfig(visible = false, showProjection = true),
                 )
             }
         }
@@ -484,6 +500,38 @@ class CurrencyBalanceCardListUiTest {
         composeTestRule
             .onAllNodesWithTag(DASHBOARD_CURRENCY_CARD_MINI_CHART_TAG)
             .assertCountEquals(2)
+    }
+
+    @Test
+    fun `CurrencyBalanceCardList renders the full mini chart matrix`() {
+        val capture = startMiniChartMatrixCapture()
+
+        ChartStyle.entries.forEach { style ->
+            val withoutProjection =
+                ChartColorRule.entries.associateWith { colorRule ->
+                    capture(style, colorRule, false)
+                }
+            assertDistinctColorRules(withoutProjection, style)
+
+            ChartColorRule.entries.forEach { colorRule ->
+                val withProjection = capture(style, colorRule, true)
+                val without = withoutProjection.getValue(colorRule)
+
+                assertEquals(without.width, withProjection.width)
+                assertEquals(without.height, withProjection.height)
+                if (style == ChartStyle.Bars) {
+                    assertTrue(
+                        "Bars must ignore projection for ${colorRule.id} in currency mini-chart",
+                        without.pixels.contentEquals(withProjection.pixels),
+                    )
+                } else {
+                    assertFalse(
+                        "${style.name} must receive showProjection for ${colorRule.id} in currency mini-chart",
+                        without.pixels.contentEquals(withProjection.pixels),
+                    )
+                }
+            }
+        }
     }
 
     // -----------------------------------------------------------------------
@@ -577,5 +625,77 @@ class CurrencyBalanceCardListUiTest {
         val results = mutableListOf<TextLayoutResult>()
         fetchSemanticsNode().config[SemanticsActions.GetTextLayoutResult].action?.invoke(results)
         return results.first()
+    }
+
+    private fun startMiniChartMatrixCapture(): (ChartStyle, ChartColorRule, Boolean) -> CapturedChart {
+        var chartConfig by mutableStateOf(ChartConfig(visible = true))
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                CurrencyBalanceCardList(
+                    cards = listOf(usdCardWithMatrixTrend()),
+                    chartConfig = chartConfig,
+                )
+            }
+        }
+
+        return { style, colorRule, showProjection ->
+            composeTestRule.runOnIdle {
+                chartConfig =
+                    chartConfig.copy(
+                        style = style,
+                        colorRule = colorRule,
+                        showProjection = showProjection,
+                    )
+            }
+            composeTestRule.waitForIdle()
+            val image =
+                composeTestRule
+                    .onNodeWithTag(DASHBOARD_CURRENCY_CARD_MINI_CHART_TAG)
+                    .assertIsDisplayed()
+                    .captureToImage()
+            val pixels = IntArray(image.width * image.height)
+            image.readPixels(pixels)
+            CapturedChart(pixels = pixels, width = image.width, height = image.height)
+        }
+    }
+
+    private fun usdCardWithMatrixTrend(): CurrencyBalanceCard =
+        usdCard(income = "100.99", expense = "30.49").copy(
+            trendPoints =
+                matrixPoints.mapIndexed { index, value ->
+                    TrendPoint(
+                        index = index,
+                        period = Period.Month(YearMonth.of(2026, index + 1)),
+                        value = Money(BigDecimal(value), usd),
+                    )
+                },
+        )
+
+    private fun assertDistinctColorRules(
+        charts: Map<ChartColorRule, CapturedChart>,
+        style: ChartStyle,
+    ) {
+        ChartColorRule.entries.forEachIndexed { firstIndex, firstRule ->
+            ChartColorRule.entries.drop(firstIndex + 1).forEach { secondRule ->
+                assertFalse(
+                    "Currency mini-chart ${style.name} must render ${firstRule.id} differently from ${secondRule.id}",
+                    charts.getValue(firstRule).pixels.contentEquals(charts.getValue(secondRule).pixels),
+                )
+            }
+        }
+        assertFalse(
+            "Currency mini-chart ${style.name} ByDirection must not collapse to AlwaysGreen when the final point is below the first",
+            charts
+                .getValue(ChartColorRule.ByDirection)
+                .pixels
+                .contentEquals(charts.getValue(ChartColorRule.AlwaysGreen).pixels),
+        )
+        assertFalse(
+            "Currency mini-chart ${style.name} ByDirection must not collapse to AlwaysRed when the second point is above the first",
+            charts
+                .getValue(ChartColorRule.ByDirection)
+                .pixels
+                .contentEquals(charts.getValue(ChartColorRule.AlwaysRed).pixels),
+        )
     }
 }

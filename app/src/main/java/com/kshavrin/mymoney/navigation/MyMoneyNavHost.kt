@@ -86,8 +86,6 @@ fun MyMoneyNavHost(
                                 navController.navigate(Destinations.CurrenciesList)
                             com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateSupport ->
                                 navController.navigate(Destinations.Support)
-                            com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateAbout ->
-                                navController.navigate(Destinations.Settings)
                             is com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateToTransactionDetail ->
                                 navController.navigate(Destinations.TransactionDetail(action.transactionId))
                             is com.kshavrin.mymoney.feature.dashboard.DashboardAction.NavigateToTransactionsList ->
@@ -249,10 +247,12 @@ fun MyMoneyNavHost(
             com.kshavrin.mymoney.feature.support.SupportRoute(
                 onBack = { navController.popBackStack() },
                 videosWatchedSlot = {
-                    com.kshavrin.mymoney.feature.support.rewardedad.TotalAdsWatchedBadge()
+                    com.kshavrin.mymoney.feature.support.rewardedad
+                        .TotalAdsWatchedBadge()
                 },
                 adSlot = {
-                    com.kshavrin.mymoney.feature.support.rewardedad.RewardedAdSupportEntry()
+                    com.kshavrin.mymoney.feature.support.rewardedad
+                        .RewardedAdSupportEntry()
                 },
                 plusSlot = {
                     com.kshavrin.mymoney.feature.support.paywall.PaywallSupportEntry(

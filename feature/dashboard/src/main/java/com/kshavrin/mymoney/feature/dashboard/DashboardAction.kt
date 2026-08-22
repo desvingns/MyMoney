@@ -54,5 +54,4 @@ sealed interface DashboardAction {
         val toMillis: Long,
     ) : DashboardAction
 
-    data object NavigateAbout : DashboardAction
 }

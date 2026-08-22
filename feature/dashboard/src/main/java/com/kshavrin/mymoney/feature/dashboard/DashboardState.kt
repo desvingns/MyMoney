@@ -270,8 +270,6 @@ sealed interface DashboardEvent {
 
     data object CurrenciesClicked : DashboardEvent
 
-    data object AboutClicked : DashboardEvent
-
     data object SupportClicked : DashboardEvent
 
     data object BalanceCardClicked : DashboardEvent

@@ -1114,10 +1114,6 @@ class DashboardViewModel
                     closeDrawers()
                     emit(DashboardAction.NavigateCurrencies)
                 }
-                DashboardEvent.AboutClicked -> {
-                    closeDrawers()
-                    emit(DashboardAction.NavigateAbout)
-                }
                 DashboardEvent.SupportClicked -> {
                     closeDrawers()
                     emit(DashboardAction.NavigateSupport)

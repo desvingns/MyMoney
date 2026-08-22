@@ -12,12 +12,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ShowChart
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Flag
-import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Paid
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
@@ -43,9 +41,9 @@ fun RightDrawerContent(onEvent: (DashboardEvent) -> Unit) {
         modifier =
             Modifier
                 .fillMaxWidth()
-                // The eight items overflow the drawer height on shorter screens; a scrollable
-                // ancestor keeps every row's full 48dp touch target reachable (and stops ATF
-                // flagging the bottom row, whose on-screen bounds would otherwise be clipped).
+                // Seven items fit on Pixel 5 API 34 without scrolling; verticalScroll is kept
+                // as a safety net for low-density screens or large font scales so that every
+                // row's full touch target remains reachable (and ATF does not flag clipped rows).
                 .verticalScroll(rememberScrollState())
                 .padding(Spacing.l),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -83,22 +81,10 @@ fun RightDrawerContent(onEvent: (DashboardEvent) -> Unit) {
             testTag = RIGHT_DRAWER_CURRENCIES_TAG,
         )
         RightDrawerItem(
-            label = stringResource(R.string.right_drawer_chart_settings),
-            icon = Icons.AutoMirrored.Outlined.ShowChart,
-            onClick = { onEvent(DashboardEvent.ChartSettingsClicked) },
-            testTag = RIGHT_DRAWER_CHART_SETTINGS_TAG,
-        )
-        RightDrawerItem(
             label = stringResource(R.string.right_drawer_settings),
             icon = Icons.Outlined.Settings,
             onClick = { onEvent(DashboardEvent.SettingsClicked) },
             testTag = RIGHT_DRAWER_SETTINGS_TAG,
-        )
-        RightDrawerItem(
-            label = stringResource(R.string.right_drawer_about),
-            icon = Icons.Outlined.Info,
-            onClick = { onEvent(DashboardEvent.AboutClicked) },
-            testTag = RIGHT_DRAWER_ABOUT_TAG,
         )
         RightDrawerItem(
             label = stringResource(R.string.right_drawer_support),
@@ -151,6 +137,4 @@ const val RIGHT_DRAWER_ACCOUNTS_TAG = "right_drawer_accounts"
 const val RIGHT_DRAWER_FINANCIAL_GOALS_TAG = "right_drawer_financial_goals"
 const val RIGHT_DRAWER_CURRENCIES_TAG = "right_drawer_currencies"
 const val RIGHT_DRAWER_SETTINGS_TAG = "right_drawer_settings"
-const val RIGHT_DRAWER_CHART_SETTINGS_TAG = "right_drawer_chart_settings"
-const val RIGHT_DRAWER_ABOUT_TAG = "right_drawer_about"
 const val RIGHT_DRAWER_SUPPORT_TAG = "right_drawer_support"

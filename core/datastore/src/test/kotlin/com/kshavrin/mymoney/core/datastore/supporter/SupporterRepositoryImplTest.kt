@@ -1,6 +1,8 @@
 package com.kshavrin.mymoney.core.datastore.supporter
 
 import com.kshavrin.mymoney.core.datastore.model.AppSettings
+import com.kshavrin.mymoney.core.domain.billing.COFFEE_LARGE_PRODUCT_ID
+import com.kshavrin.mymoney.core.domain.billing.COFFEE_SMALL_PRODUCT_ID
 import com.kshavrin.mymoney.core.domain.billing.PurchaseOutcome
 import com.kshavrin.mymoney.core.domain.supporter.SupporterState
 import com.kshavrin.mymoney.core.testing.fake.FakeAppSettingsRepository
@@ -11,7 +13,7 @@ import org.junit.Test
 
 class SupporterRepositoryImplTest {
     @Test
-    fun `state exposes persisted supporter badge and purchase count`() =
+    fun `state backfills a legacy count once without overwriting later split purchases`() =
         runTest {
             val appSettingsRepository =
                 FakeAppSettingsRepository(
@@ -23,68 +25,111 @@ class SupporterRepositoryImplTest {
             val repository = SupporterRepositoryImpl(appSettingsRepository)
 
             assertEquals(
-                SupporterState(badgeEarned = true, purchaseCount = 2),
+                SupporterState(
+                    badgeEarned = true,
+                    purchaseCount = 2,
+                    smallCoffeeCount = 2,
+                    largeCoffeeCount = 0,
+                ),
+                repository.state().first(),
+            )
+            assertEquals(true, appSettingsRepository.current().supportPurchaseSplitBackfilled)
+
+            repository.recordPurchase(purchasedOutcome(COFFEE_LARGE_PRODUCT_ID, "large-token")).getOrThrow()
+
+            assertEquals(
+                SupporterState(
+                    badgeEarned = true,
+                    purchaseCount = 3,
+                    smallCoffeeCount = 2,
+                    largeCoffeeCount = 1,
+                ),
                 repository.state().first(),
             )
         }
 
     @Test
-    fun `purchased outcome earns badge and increments purchase count`() =
+    fun `fresh install keeps split counters at zero`() =
         runTest {
             val appSettingsRepository = FakeAppSettingsRepository()
             val repository = SupporterRepositoryImpl(appSettingsRepository)
 
-            repository.recordPurchase(purchasedOutcome()).getOrThrow()
-
             assertEquals(
-                SupporterState(badgeEarned = true, purchaseCount = 1),
+                SupporterState(badgeEarned = false, purchaseCount = 0),
                 repository.state().first(),
             )
-            assertEquals(setOf("token"), appSettingsRepository.current().supporterPurchaseTokens)
+            assertEquals(0, appSettingsRepository.current().supportPurchaseCountSmall)
+            assertEquals(0, appSettingsRepository.current().supportPurchaseCountLarge)
+            assertEquals(true, appSettingsRepository.current().supportPurchaseSplitBackfilled)
         }
 
     @Test
-    fun `subsequent purchased outcome increments an existing count`() =
+    fun `small and large purchases increment their respective counters`() =
         runTest {
-            val appSettingsRepository =
-                FakeAppSettingsRepository(
-                    AppSettings(
-                        supporterBadgeEarned = true,
-                        supportPurchaseCount = 2,
-                        supporterPurchaseTokens = setOf("previous-token"),
-                    ),
-                )
+            val appSettingsRepository = FakeAppSettingsRepository()
             val repository = SupporterRepositoryImpl(appSettingsRepository)
 
-            repository.recordPurchase(purchasedOutcome()).getOrThrow()
+            repository.recordPurchase(purchasedOutcome(COFFEE_SMALL_PRODUCT_ID, "small-token")).getOrThrow()
 
             assertEquals(
-                SupporterState(badgeEarned = true, purchaseCount = 3),
+                SupporterState(
+                    badgeEarned = true,
+                    purchaseCount = 1,
+                    smallCoffeeCount = 1,
+                    largeCoffeeCount = 0,
+                ),
                 repository.state().first(),
             )
+
+            repository.recordPurchase(purchasedOutcome(COFFEE_LARGE_PRODUCT_ID, "large-token")).getOrThrow()
+
             assertEquals(
-                setOf("previous-token", "token"),
-                appSettingsRepository.current().supporterPurchaseTokens,
+                SupporterState(
+                    badgeEarned = true,
+                    purchaseCount = 2,
+                    smallCoffeeCount = 1,
+                    largeCoffeeCount = 1,
+                ),
+                repository.state().first(),
             )
         }
 
     @Test
-    fun `replaying the same purchase token does not increment the local count`() =
+    fun `unknown product increments only the total count`() =
         runTest {
-            val appSettingsRepository =
-                FakeAppSettingsRepository(
-                    AppSettings(
-                        supporterBadgeEarned = true,
-                        supportPurchaseCount = 2,
-                        supporterPurchaseTokens = setOf("token"),
-                    ),
-                )
+            val appSettingsRepository = FakeAppSettingsRepository()
             val repository = SupporterRepositoryImpl(appSettingsRepository)
 
-            repository.recordPurchase(purchasedOutcome()).getOrThrow()
+            repository.recordPurchase(purchasedOutcome(productId = "support_tip", token = "unknown-token")).getOrThrow()
 
             assertEquals(
-                SupporterState(badgeEarned = true, purchaseCount = 2),
+                SupporterState(
+                    badgeEarned = true,
+                    purchaseCount = 1,
+                    smallCoffeeCount = 0,
+                    largeCoffeeCount = 0,
+                ),
+                repository.state().first(),
+            )
+        }
+
+    @Test
+    fun `replaying the same purchase token does not increment any counter`() =
+        runTest {
+            val appSettingsRepository = FakeAppSettingsRepository()
+            val repository = SupporterRepositoryImpl(appSettingsRepository)
+            val outcome = purchasedOutcome(COFFEE_SMALL_PRODUCT_ID, "token")
+
+            repository.recordPurchase(outcome).getOrThrow()
+            repository.recordPurchase(outcome).getOrThrow()
+
+            assertEquals(
+                SupporterState(
+                    badgeEarned = true,
+                    purchaseCount = 1,
+                    smallCoffeeCount = 1,
+                    largeCoffeeCount = 0,
+                ),
                 repository.state().first(),
             )
             assertEquals(setOf("token"), appSettingsRepository.current().supporterPurchaseTokens)
@@ -105,7 +150,12 @@ class SupporterRepositoryImplTest {
             repository.mergeRemote(remoteCount = 1, remoteBadge = false).getOrThrow()
 
             assertEquals(
-                SupporterState(badgeEarned = true, purchaseCount = 3),
+                SupporterState(
+                    badgeEarned = true,
+                    purchaseCount = 3,
+                    smallCoffeeCount = 3,
+                    largeCoffeeCount = 0,
+                ),
                 repository.state().first(),
             )
         }
@@ -124,10 +174,13 @@ class SupporterRepositoryImplTest {
             )
         }
 
-    private fun purchasedOutcome() =
+    private fun purchasedOutcome(
+        productId: String,
+        token: String,
+    ) =
         PurchaseOutcome.Purchased(
-            productId = "support_tip",
-            purchaseToken = "token",
+            productId = productId,
+            purchaseToken = token,
             purchasedAtMillis = 1L,
         )
 }

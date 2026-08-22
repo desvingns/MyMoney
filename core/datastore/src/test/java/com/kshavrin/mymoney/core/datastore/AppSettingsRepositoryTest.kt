@@ -68,6 +68,9 @@ class AppSettingsRepositoryTest {
             assertEquals(false, settings.firstPositiveSeen)
             assertEquals(false, settings.supporterBadgeEarned)
             assertEquals(0, settings.supportPurchaseCount)
+            assertEquals(0, settings.supportPurchaseCountSmall)
+            assertEquals(0, settings.supportPurchaseCountLarge)
+            assertEquals(false, settings.supportPurchaseSplitBackfilled)
             assertEquals(emptySet<String>(), settings.supporterPurchaseTokens)
             assertEquals(0L, settings.importFocusEpochMs)
             assertEquals(-1L, settings.importFocusCurrencyId)
@@ -108,6 +111,9 @@ class AppSettingsRepositoryTest {
                     firstPositiveSeen = true,
                     supporterBadgeEarned = true,
                     supportPurchaseCount = 3,
+                    supportPurchaseCountSmall = 2,
+                    supportPurchaseCountLarge = 1,
+                    supportPurchaseSplitBackfilled = true,
                     supporterPurchaseTokens = setOf("token-a", "token-b"),
                     importFocusEpochMs = 1700000002000L,
                     importFocusCurrencyId = 9L,
@@ -165,6 +171,9 @@ class AppSettingsRepositoryTest {
         assertEquals("by_sign", settings.chartColorRule)
         assertEquals(false, settings.supporterBadgeEarned)
         assertEquals(0, settings.supportPurchaseCount)
+        assertEquals(0, settings.supportPurchaseCountSmall)
+        assertEquals(0, settings.supportPurchaseCountLarge)
+        assertEquals(false, settings.supportPurchaseSplitBackfilled)
     }
 
     @Test
@@ -174,6 +183,9 @@ class AppSettingsRepositoryTest {
                 it.copy(
                     supporterBadgeEarned = true,
                     supportPurchaseCount = 7,
+                    supportPurchaseCountSmall = 5,
+                    supportPurchaseCountLarge = 2,
+                    supportPurchaseSplitBackfilled = true,
                     supporterPurchaseTokens = setOf("token"),
                 )
             }
@@ -182,6 +194,9 @@ class AppSettingsRepositoryTest {
 
             assertEquals(true, preferences[AppSettingsKeys.SUPPORTER_BADGE_EARNED])
             assertEquals(7, preferences[AppSettingsKeys.SUPPORT_PURCHASE_COUNT])
+            assertEquals(5, preferences[AppSettingsKeys.SUPPORT_PURCHASE_COUNT_SMALL])
+            assertEquals(2, preferences[AppSettingsKeys.SUPPORT_PURCHASE_COUNT_LARGE])
+            assertEquals(true, preferences[AppSettingsKeys.SUPPORT_PURCHASE_SPLIT_BACKFILLED])
             assertEquals(setOf("token"), preferences[AppSettingsKeys.SUPPORTER_PURCHASE_TOKENS])
         }
 
@@ -261,6 +276,35 @@ class AppSettingsRepositoryTest {
         }
 
     @Test
+    fun `split purchase counters cannot decrease`() =
+        runTest(UnconfinedTestDispatcher()) {
+            repository.update {
+                it.copy(
+                    supportPurchaseCountSmall = 3,
+                    supportPurchaseCountLarge = 2,
+                    supportPurchaseSplitBackfilled = true,
+                )
+            }
+
+            try {
+                repository.update { it.copy(supportPurchaseCountSmall = 2) }
+                fail("supportPurchaseCountSmall should not decrease")
+            } catch (_: IllegalStateException) {
+            }
+
+            try {
+                repository.update { it.copy(supportPurchaseCountLarge = 1) }
+                fail("supportPurchaseCountLarge should not decrease")
+            } catch (_: IllegalStateException) {
+            }
+
+            val settings = repository.settings.first()
+            assertEquals(3, settings.supportPurchaseCountSmall)
+            assertEquals(2, settings.supportPurchaseCountLarge)
+            assertEquals(true, settings.supportPurchaseSplitBackfilled)
+        }
+
+    @Test
     fun update_transform_preserves_changes_committed_before_edit_applies() =
         runTest {
             val interleavedDataStore = InterleavedDataStore()
@@ -318,7 +362,7 @@ class AppSettingsRepositoryTest {
         }
 
     @Test
-    fun `reset clears stored settings while preserving device id and supporter state`() =
+    fun `full replacement reset preserves split supporter state and backfill flag`() =
         runTest(UnconfinedTestDispatcher()) {
             val preservedDeviceId = DeviceIdProviderImpl(dataStore).deviceId()
             val purchaseStore = SupporterPurchaseStoreImpl(dataStore)
@@ -340,6 +384,9 @@ class AppSettingsRepositoryTest {
                     firstPositiveSeen = true,
                     supporterBadgeEarned = true,
                     supportPurchaseCount = 4,
+                    supportPurchaseCountSmall = 3,
+                    supportPurchaseCountLarge = 1,
+                    supportPurchaseSplitBackfilled = true,
                     supporterPurchaseTokens = setOf("purchase-token"),
                     tzNormalizedAt = 789L,
                 )
@@ -351,6 +398,9 @@ class AppSettingsRepositoryTest {
                 AppSettings(
                     supporterBadgeEarned = true,
                     supportPurchaseCount = 4,
+                    supportPurchaseCountSmall = 3,
+                    supportPurchaseCountLarge = 1,
+                    supportPurchaseSplitBackfilled = true,
                     supporterPurchaseTokens = setOf("purchase-token"),
                 ),
                 repository.settings.first(),

@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
@@ -63,7 +62,6 @@ import com.kshavrin.mymoney.core.ui.theme.supportPrimaryAction
 import com.kshavrin.mymoney.core.ui.theme.supportPriceValue
 import com.kshavrin.mymoney.core.ui.theme.supportProductName
 import com.kshavrin.mymoney.core.ui.theme.supportProductPrice
-import com.kshavrin.mymoney.core.ui.theme.supportSubtitle
 import com.kshavrin.mymoney.core.ui.theme.supporterChip
 import com.kshavrin.mymoney.core.ui.theme.supporterChipContainer
 import com.kshavrin.mymoney.core.ui.theme.supporterChipContent
@@ -82,6 +80,7 @@ fun SupportContent(
         modifier =
             Modifier
                 .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
                 .statusBarsPadding(),
     ) {
         SupportBackRow(onBack = { onEvent(SupportEvent.BackClicked) })
@@ -144,6 +143,7 @@ private fun SupportBackRow(onBack: () -> Unit) {
 private fun SupportHeadline() {
     val accentColor = MaterialTheme.colorScheme.supportHeadlineAccent
     Column(
+        modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Spacing.supportPanelGap),
     ) {
@@ -171,13 +171,6 @@ private fun SupportHeadline() {
                         },
             )
         }
-        Text(
-            text = stringResource(R.string.support_description),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            style = MaterialTheme.typography.supportSubtitle,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.widthIn(max = Spacing.supportSubtitleMaxWidth),
-        )
     }
 }
 

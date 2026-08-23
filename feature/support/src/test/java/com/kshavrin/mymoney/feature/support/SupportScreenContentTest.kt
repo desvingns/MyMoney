@@ -50,10 +50,6 @@ class SupportScreenContentTest {
         composeTestRule.onNodeWithText(string(R.string.support_headline_lead)).assertIsDisplayed()
         composeTestRule.onNodeWithText(string(R.string.support_headline_accent)).assertIsDisplayed()
         composeTestRule
-            .onNodeWithText(string(R.string.support_description))
-            .performScrollTo()
-            .assertIsDisplayed()
-        composeTestRule
             .onNodeWithText(string(R.string.support_ads_total_watched, 0))
             .assertDoesNotExist()
         composeTestRule.onNodeWithText(string(R.string.support_coffee_title)).assertDoesNotExist()

@@ -152,12 +152,8 @@ fun RewardedAdContent(
                     verticalArrangement = Arrangement.spacedBy(Spacing.supportPanelColumnGap),
                 ) {
                     Text(
-                        text = stringResource(R.string.support_ads_title),
-                        style = MaterialTheme.typography.supportPanelTitle,
-                    )
-                    Text(
                         text = stringResource(R.string.support_ads_rule, required),
-                        style = MaterialTheme.typography.supportPanelSubtitle,
+                        style = MaterialTheme.typography.supportPanelTitle,
                     )
                 }
             }
@@ -188,10 +184,6 @@ private fun RewardProgressRow(
         modifier = Modifier.clearAndSetSemantics { contentDescription = progressText },
         verticalArrangement = Arrangement.spacedBy(Spacing.supportPanelColumnGap),
     ) {
-        Text(
-            text = progressText,
-            style = MaterialTheme.typography.supportPanelSubtitle,
-        )
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(Spacing.supportPanelColumnGap),

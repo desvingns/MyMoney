@@ -134,6 +134,7 @@ private fun SupportBackRow(onBack: () -> Unit) {
         Spacer(modifier = Modifier.weight(1f))
         Text(
             text = stringResource(R.string.support_title),
+            color = MaterialTheme.colorScheme.onBackground,
             style = MaterialTheme.typography.supportBackLabel,
         )
     }
@@ -150,6 +151,7 @@ private fun SupportHeadline() {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = stringResource(R.string.support_headline_lead),
+                color = MaterialTheme.colorScheme.onBackground,
                 style = MaterialTheme.typography.supportHeadline,
                 textAlign = TextAlign.Center,
             )

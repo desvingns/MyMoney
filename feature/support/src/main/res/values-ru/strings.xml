@@ -75,7 +75,6 @@
     <string name="paywall_status_local_only">Доступ Plus активен на этом устройстве</string>
     <string name="paywall_access_ends_on">Доступ Plus заканчивается: %1$s</string>
     <string name="support_ads_total_watched">Всего просмотрено рекламы: %1$d</string>
-    <string name="support_ads_title">Смотрите рекламу ради временного Plus</string>
     <string name="support_ads_rule">Посмотрите %1$d роликов, чтобы получить 24 часа Plus.</string>
     <string name="support_ads_loading">Проверяем доступность рекламы…</string>
     <string name="support_ads_sign_in_required">Войдите, чтобы получать временный Plus за просмотр рекламы.</string>

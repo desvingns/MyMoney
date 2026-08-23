@@ -1,7 +1,8 @@
 # Support screen redesign — epic overview
 Epic: support-screen-redesign
 Order: 00 of 07
-Status: backlog
+Status: done
+Completed: 2026-08-23
 Depends-on: —
 Date: 2026-08-20
 

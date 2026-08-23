@@ -1,7 +1,7 @@
 # Плашка Plus и карточка благодарности с тремя счётчиками
 Epic: support-screen-redesign
 Order: 07 of 07
-Status: backlog
+Status: done
 Depends-on: support-screen-redesign-01, support-screen-redesign-03, support-screen-redesign-04, support-screen-redesign-05
 Date: 2026-08-20
 Acceptance-matrix: supporter=prospect,supporter; counters=zeros,mixed
@@ -92,5 +92,5 @@ Feature: Плашка Plus и карточка благодарности
 в SPEC-02 и SPEC-04.
 
 ## Implementation links
-- commit: —
-- files: —
+- commits: f0175b98, 455ea25a, 0d5037b9
+- files: feature/support/src/main/java/com/kshavrin/mymoney/feature/support/SupportScreen.kt; feature/support/src/main/java/com/kshavrin/mymoney/feature/support/paywall/PaywallScreen.kt; feature/support/src/main/res/values/strings.xml; feature/support/src/main/res/values-ru/strings.xml; feature/support/src/test/java/com/kshavrin/mymoney/feature/support/SupportScreenContentTest.kt; feature/support/src/test/java/com/kshavrin/mymoney/feature/support/paywall/PaywallScreenContentTest.kt

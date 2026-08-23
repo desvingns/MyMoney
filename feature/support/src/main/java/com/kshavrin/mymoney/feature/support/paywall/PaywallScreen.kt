@@ -6,7 +6,6 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,7 +18,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -42,15 +40,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
 import com.kshavrin.mymoney.core.domain.model.EntitlementSource
 import com.kshavrin.mymoney.core.domain.model.EntitlementState
 import com.kshavrin.mymoney.core.domain.model.UserEntitlement
@@ -64,10 +58,8 @@ import com.kshavrin.mymoney.core.ui.theme.supportActionLabel
 import com.kshavrin.mymoney.core.ui.theme.supportPanel
 import com.kshavrin.mymoney.core.ui.theme.supportPanelContainer
 import com.kshavrin.mymoney.core.ui.theme.supportPanelDivider
-import com.kshavrin.mymoney.core.ui.theme.supportPanelIllustration
 import com.kshavrin.mymoney.core.ui.theme.supportPanelOutline
 import com.kshavrin.mymoney.core.ui.theme.supportPanelSubtitle
-import com.kshavrin.mymoney.core.ui.theme.supportPanelTitle
 import com.kshavrin.mymoney.core.ui.theme.supportPriceValue
 import com.kshavrin.mymoney.core.ui.theme.supportPrimaryAction
 import com.kshavrin.mymoney.core.ui.theme.supportProductName
@@ -177,64 +169,6 @@ fun PaywallContent(
 }
 
 @Composable
-fun PaywallSupportEntry(
-    onOpenPaywall: () -> Unit,
-) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.supportPanel,
-        color = MaterialTheme.colorScheme.supportPanelContainer,
-        contentColor = MaterialTheme.colorScheme.onSurface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.supportPanelOutline),
-    ) {
-        Column(
-            modifier = Modifier.padding(Spacing.supportPanelPadding),
-            verticalArrangement = Arrangement.spacedBy(Spacing.supportPanelGap),
-        ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(Spacing.supportPanelColumnGap),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Image(
-                    painter = painterResource(DesignSystemR.drawable.support_neon_plus),
-                    contentDescription = stringResource(R.string.support_image_plus_description),
-                    contentScale = ContentScale.Fit,
-                    modifier =
-                        Modifier
-                            .size(Spacing.supportPanelIconSize)
-                            .clip(MaterialTheme.shapes.supportPanelIllustration),
-                )
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(Spacing.supportPanelColumnGap),
-                ) {
-                    Text(
-                        text = stringResource(R.string.paywall_support_entry_title),
-                        style = MaterialTheme.typography.supportPanelTitle,
-                    )
-                    Text(
-                        text = stringResource(R.string.paywall_support_entry_description),
-                        style = MaterialTheme.typography.supportPanelSubtitle,
-                    )
-                }
-            }
-            Button(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = Spacing.supportActionMinHeight),
-                onClick = onOpenPaywall,
-                shape = MaterialTheme.shapes.supportPrimaryAction,
-            ) {
-                Text(
-                    text = stringResource(R.string.paywall_support_entry_action),
-                    style = MaterialTheme.typography.supportActionLabel,
-                )
-            }
-        }
-    }
-}
-
-@Composable
 private fun PaywallBenefitsCard() {
     PaywallCard {
         Text(
@@ -287,7 +221,7 @@ private fun WorkspacePayerCard() {
 }
 
 @Composable
-private fun PaywallCatalog(
+internal fun PaywallCatalog(
     state: PaywallState,
     onEvent: (PaywallEvent) -> Unit,
 ) {
@@ -347,7 +281,7 @@ private fun PaywallCatalog(
 }
 
 @Composable
-private fun PaywallPlans(
+internal fun PaywallPlans(
     plans: List<PaywallPlan>,
     purchaseState: PaywallPurchaseState = PaywallPurchaseState.Idle,
     onEvent: ((PaywallEvent) -> Unit)? = null,
@@ -420,7 +354,7 @@ private fun PaywallPlans(
     }
 }
 
-private fun planSelectHandler(
+internal fun planSelectHandler(
     planId: PaywallPlanId,
     purchaseState: PaywallPurchaseState,
     onEvent: ((PaywallEvent) -> Unit)?,
@@ -432,7 +366,7 @@ private fun planSelectHandler(
     }
 
 @Composable
-private fun PaywallPlanColumn(
+internal fun PaywallPlanColumn(
     plan: PaywallPlan?,
     planId: PaywallPlanId,
     onSelect: (() -> Unit)?,
@@ -484,7 +418,7 @@ private fun PaywallPlanColumn(
 }
 
 @Composable
-private fun PlusStatusCard(entitlement: UserEntitlement.Plus) {
+internal fun PlusStatusCard(entitlement: UserEntitlement.Plus) {
     PaywallCard(
         color = MaterialTheme.colorScheme.primaryContainer,
         contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -599,7 +533,7 @@ private fun UserEntitlement.Plus.statusDate(): Pair<Int, Instant>? =
 private fun EntitlementSource.isSubscription(): Boolean =
     this == EntitlementSource.SUBSCRIPTION_MONTHLY || this == EntitlementSource.SUBSCRIPTION_YEARLY
 
-private fun UserEntitlement.hasActivePlus(): Boolean =
+internal fun UserEntitlement.hasActivePlus(): Boolean =
     this is UserEntitlement.Plus && state != EntitlementState.NONE && state != EntitlementState.EXPIRED
 
 private fun formatRenewalDate(instant: Instant): String =

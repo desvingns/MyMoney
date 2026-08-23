@@ -124,11 +124,12 @@ private fun SupportBackRow(onBack: () -> Unit) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = stringResource(R.string.support_back),
+                tint = MaterialTheme.colorScheme.onBackground,
             )
         }
         Text(
             text = stringResource(R.string.support_back_label),
-            color = MaterialTheme.colorScheme.supportBackLabel,
+            color = MaterialTheme.colorScheme.onBackground,
             style = MaterialTheme.typography.supportBackLabel,
         )
         Spacer(modifier = Modifier.weight(1f))

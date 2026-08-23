@@ -256,13 +256,7 @@ fun MyMoneyNavHost(
                         .RewardedAdSupportEntry()
                 },
                 plusSlot = {
-                    com.kshavrin.mymoney.feature.support.paywall.PaywallSupportEntry(
-                        onOpenPaywall = {
-                            navController.navigate(
-                                Destinations.Paywall(PaywallEntryPoint.SupportSection),
-                            )
-                        },
-                    )
+                    com.kshavrin.mymoney.feature.support.plus.SupportPlusEntry()
                 },
             )
         }

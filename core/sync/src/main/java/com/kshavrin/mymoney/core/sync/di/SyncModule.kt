@@ -1,5 +1,6 @@
 package com.kshavrin.mymoney.core.sync.di
 
+import com.kshavrin.mymoney.core.domain.billing.PlusSubscriptionCoordinator
 import com.kshavrin.mymoney.core.domain.notification.EntitlementNotifier
 import com.kshavrin.mymoney.core.domain.repository.RemoteConfigRepository
 import com.kshavrin.mymoney.core.domain.reset.FactoryResetGateway
@@ -26,6 +27,7 @@ import com.kshavrin.mymoney.core.sync.notification.EntitlementNotifierImpl
 import com.kshavrin.mymoney.core.sync.remoteconfig.RemoteConfigRepositoryImpl
 import com.kshavrin.mymoney.core.sync.shared.SharedSyncCoordinator
 import com.kshavrin.mymoney.core.sync.shared.SharedSyncCoordinatorImpl
+import com.kshavrin.mymoney.core.sync.supporter.PlusSubscriptionCoordinatorImpl
 import com.kshavrin.mymoney.core.sync.supporter.SupportPurchaseReconciliationCoordinatorImpl
 import com.kshavrin.mymoney.core.sync.supporter.SupporterSyncImpl
 import dagger.Binds
@@ -99,4 +101,10 @@ abstract class SyncModule {
     @Binds
     @Singleton
     abstract fun bindEntitlementNotifier(impl: EntitlementNotifierImpl): EntitlementNotifier
+
+    @Binds
+    @Singleton
+    abstract fun bindPlusSubscriptionCoordinator(
+        impl: PlusSubscriptionCoordinatorImpl,
+    ): PlusSubscriptionCoordinator
 }

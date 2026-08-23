@@ -2,9 +2,10 @@
 
 Epic: support-paywall-visual-polish
 Order: 00 of 02 (overview)
-Status: backlog
+Status: done
 Depends-on: —
 Date: 2026-08-23
+Completed: 2026-08-23 — both SPECs shipped, verified on Pixel 5/API 34, epic closed
 
 ## Goal
 Четыре точечные визуальные правки на экранах Support и Paywall (`feature/support`):

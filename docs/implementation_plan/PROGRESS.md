@@ -8,6 +8,25 @@
 
 ## Current state
 
+- **2026-08-23 (Claude `/mp --feature`, support-paywall-visual-polish SPEC 02 + epic close):**
+  Replaced the vertical Paywall plan list with a single two-column card (Monthly left, Yearly
+  right) visually identical to `CoffeePurchaseCard` — same `supportPanel`/`supportPanelContainer`/
+  `supportPanelOutline`/`supportPanelDivider` tokens, `CreditCard` icon per column, one button per
+  plan; the yearly-trial text and disabled/non-interactive behaviour in
+  Loading/UnavailableInRegion/Unavailable/Error catalog states are preserved. Deterministic
+  reviewer, semantic review (6/6 coverage), and full Verifier passed; independent critic found one
+  non-blocking test-coverage warning (missing non-interactive assertion for the Error state), fixed
+  before shipping. Scoped Runner `:feature:support` 146/0/0, full Runner 2191/0/0 with detekt/lint
+  green. Pixel 5/API 34 screenshot confirmed the two-column layout in the Unavailable catalog
+  state. Commits `fade4a24` (code), `233adeed` + `bc8a5143` (tests), pushed to `origin/main`. SPEC
+  and the `support-paywall-visual-polish` epic overview both moved to `done/` after a clean
+  epic-completion review — both SPECs shipped with commits and the overview's four stated fixes
+  (ad-line merge, progress-counter text removal, headline contrast, Paywall two-column card) are
+  all delivered. Note: the Developer agent accidentally ran `git checkout app/build.gradle.kts`
+  during this SPEC, discarding an unrelated pre-existing uncommitted edit to that file that
+  predated this session; it was never staged so it is not recoverable via git — the user was
+  notified and is attempting recovery via Android Studio Local History.
+
 - **2026-08-23 (Claude `/mp --feature`, support-paywall-visual-polish SPEC 01):** Merged the
   rewarded-ad block's two lines into one bold line (`support_ads_rule` now styled
   `supportPanelTitle`, `support_ads_title` removed), removed the visible "Watched N of 5" text

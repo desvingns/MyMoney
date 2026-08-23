@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -201,6 +202,7 @@ private fun RewardProgressRow(
                         Modifier
                             .weight(1f)
                             .height(Spacing.supportRewardAdProgressCellHeight)
+                            .testTag(REWARDED_AD_PROGRESS_CELL_TAG)
                             .clip(MaterialTheme.shapes.supportPanelIllustration)
                             .background(
                                 if (index < completedCells) {
@@ -291,5 +293,7 @@ private tailrec fun Context.findActivity(): Activity? =
         is ContextWrapper -> baseContext.findActivity()
         else -> null
     }
+
+internal const val REWARDED_AD_PROGRESS_CELL_TAG = "rewarded_ad_progress_cell"
 
 private const val DEFAULT_REQUIRED_VIEWS = 5

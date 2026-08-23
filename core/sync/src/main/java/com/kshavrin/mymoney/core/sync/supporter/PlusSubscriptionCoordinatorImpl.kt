@@ -116,7 +116,12 @@ class PlusSubscriptionCoordinatorImpl
                     }
                 }
             } catch (throwable: Throwable) {
-                if (throwable is CancellationException) throw throwable
+                if (throwable is CancellationException) {
+                    if (!lockTransferred) {
+                        _state.value = _state.value.copy(purchase = PlusPurchaseState.Idle)
+                    }
+                    throw throwable
+                }
                 throwable.reportToSentry()
                 outcomeSignal = PlusPurchaseOutcome.Failed
                 _state.value = _state.value.copy(purchase = PlusPurchaseState.Idle)
@@ -242,7 +247,9 @@ private fun UserEntitlement.hasActivePlus(): Boolean =
     this is UserEntitlement.Plus && state != EntitlementState.NONE && state != EntitlementState.EXPIRED
 
 private fun PlusPurchaseState.isAwaitingEntitlement(): Boolean =
-    this == PlusPurchaseState.ReconcilingEntitlement || this == PlusPurchaseState.AwaitingEntitlement
+    this == PlusPurchaseState.ReconcilingEntitlement ||
+        this == PlusPurchaseState.AwaitingEntitlement ||
+        this == PlusPurchaseState.Pending
 
 private val ENTITLEMENT_RECONCILIATION_DELAYS_MILLIS = listOf(500L, 1_000L, 2_000L)
 private const val ENTITLEMENT_REFRESH_TIMEOUT_MILLIS = 10_000L

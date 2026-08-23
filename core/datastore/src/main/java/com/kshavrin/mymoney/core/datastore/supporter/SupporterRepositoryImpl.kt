@@ -110,7 +110,11 @@ class SupporterRepositoryImpl
             }
 
         private fun AppSettings.withBackfilledSupportActivity(): AppSettings =
-            if (hasRecordedSupportActivity()) this else copy(supporterActivityRecorded = true)
+            if (requiresSupportActivityBackfill()) {
+                copy(supporterActivityRecorded = true)
+            } else {
+                this
+            }
 
         private fun AppSettings.requiresSupportActivityBackfill(): Boolean =
             !supporterActivityRecorded &&

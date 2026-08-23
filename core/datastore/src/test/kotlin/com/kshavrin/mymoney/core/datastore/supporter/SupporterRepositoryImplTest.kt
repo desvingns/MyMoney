@@ -30,10 +30,12 @@ class SupporterRepositoryImplTest {
                     purchaseCount = 2,
                     smallCoffeeCount = 2,
                     largeCoffeeCount = 0,
+                    hasSupportActivity = true,
                 ),
                 repository.state().first(),
             )
             assertEquals(true, appSettingsRepository.current().supportPurchaseSplitBackfilled)
+            assertEquals(true, appSettingsRepository.current().supporterActivityRecorded)
 
             repository.recordPurchase(purchasedOutcome(COFFEE_LARGE_PRODUCT_ID, "large-token")).getOrThrow()
 
@@ -43,6 +45,7 @@ class SupporterRepositoryImplTest {
                     purchaseCount = 3,
                     smallCoffeeCount = 2,
                     largeCoffeeCount = 1,
+                    hasSupportActivity = true,
                 ),
                 repository.state().first(),
             )
@@ -77,6 +80,7 @@ class SupporterRepositoryImplTest {
                     purchaseCount = 1,
                     smallCoffeeCount = 1,
                     largeCoffeeCount = 0,
+                    hasSupportActivity = true,
                 ),
                 repository.state().first(),
             )
@@ -89,6 +93,7 @@ class SupporterRepositoryImplTest {
                     purchaseCount = 2,
                     smallCoffeeCount = 1,
                     largeCoffeeCount = 1,
+                    hasSupportActivity = true,
                 ),
                 repository.state().first(),
             )
@@ -108,6 +113,7 @@ class SupporterRepositoryImplTest {
                     purchaseCount = 1,
                     smallCoffeeCount = 0,
                     largeCoffeeCount = 0,
+                    hasSupportActivity = true,
                 ),
                 repository.state().first(),
             )
@@ -129,6 +135,7 @@ class SupporterRepositoryImplTest {
                     purchaseCount = 1,
                     smallCoffeeCount = 1,
                     largeCoffeeCount = 0,
+                    hasSupportActivity = true,
                 ),
                 repository.state().first(),
             )
@@ -155,6 +162,7 @@ class SupporterRepositoryImplTest {
                     purchaseCount = 3,
                     smallCoffeeCount = 3,
                     largeCoffeeCount = 0,
+                    hasSupportActivity = true,
                 ),
                 repository.state().first(),
             )
@@ -169,9 +177,41 @@ class SupporterRepositoryImplTest {
             repository.mergeRemote(remoteCount = 4, remoteBadge = true).getOrThrow()
 
             assertEquals(
-                SupporterState(badgeEarned = true, purchaseCount = 4),
+                SupporterState(badgeEarned = true, purchaseCount = 4, hasSupportActivity = true),
                 repository.state().first(),
             )
+        }
+
+    @Test
+    fun `recordSupportActivity is monotonic and survives a remote merge with no activity`() =
+        runTest {
+            val appSettingsRepository = FakeAppSettingsRepository()
+            val repository = SupporterRepositoryImpl(appSettingsRepository)
+
+            assertEquals(false, repository.state().first().hasSupportActivity)
+
+            repository.recordSupportActivity().getOrThrow()
+            repository.mergeRemote(remoteCount = 0, remoteBadge = false).getOrThrow()
+
+            assertEquals(true, repository.state().first().hasSupportActivity)
+            assertEquals(true, appSettingsRepository.current().supporterActivityRecorded)
+        }
+
+    @Test
+    fun `remote badge or count backfills support activity`() =
+        runTest {
+            listOf(
+                0 to true,
+                2 to false,
+            ).forEach { (remoteCount, remoteBadge) ->
+                val appSettingsRepository = FakeAppSettingsRepository()
+                val repository = SupporterRepositoryImpl(appSettingsRepository)
+
+                repository.mergeRemote(remoteCount, remoteBadge).getOrThrow()
+
+                assertEquals(true, repository.state().first().hasSupportActivity)
+                assertEquals(true, appSettingsRepository.current().supporterActivityRecorded)
+            }
         }
 
     private fun purchasedOutcome(

@@ -48,6 +48,7 @@ class SupporterPurchaseStoreTest {
 
             val persisted = settings.settings.first()
             assertTrue(persisted.supporterBadgeEarned)
+            assertTrue(persisted.supporterActivityRecorded)
             assertEquals(1, persisted.supportPurchaseCount)
             assertEquals(setOf("token-a"), persisted.supporterPurchaseTokens)
             assertEquals(listOf(outcome), store.pendingPurchases("user-a").getOrThrow())
@@ -74,6 +75,7 @@ class SupporterPurchaseStoreTest {
                 assertEquals(listOf(userB), readStore.pendingPurchases("user-b").getOrThrow())
                 assertEquals(emptyList<PurchaseOutcome.Purchased>(), readStore.pendingPurchases("user-c").getOrThrow())
                 assertEquals(2, readSettings.settings.first().supportPurchaseCount)
+                assertTrue(readSettings.settings.first().supporterActivityRecorded)
                 assertEquals(setOf("token-a", "token-b"), readSettings.settings.first().supporterPurchaseTokens)
             } finally {
                 readJob.cancelAndJoin()
@@ -123,6 +125,7 @@ class SupporterPurchaseStoreTest {
 
             val persisted = settings.settings.first()
             assertTrue(persisted.supporterBadgeEarned)
+            assertTrue(persisted.supporterActivityRecorded)
             assertEquals(1, persisted.supportPurchaseCount)
             assertEquals(emptyList<PurchaseOutcome.Purchased>(), store.pendingPurchases("any-user").getOrThrow())
         }

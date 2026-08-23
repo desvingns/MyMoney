@@ -67,6 +67,7 @@ class AppSettingsRepositoryTest {
             assertEquals(true, settings.budgetModeEnabled)
             assertEquals(false, settings.firstPositiveSeen)
             assertEquals(false, settings.supporterBadgeEarned)
+            assertEquals(false, settings.supporterActivityRecorded)
             assertEquals(0, settings.supportPurchaseCount)
             assertEquals(0, settings.supportPurchaseCountSmall)
             assertEquals(0, settings.supportPurchaseCountLarge)
@@ -110,6 +111,7 @@ class AppSettingsRepositoryTest {
                     budgetModeEnabled = false,
                     firstPositiveSeen = true,
                     supporterBadgeEarned = true,
+                    supporterActivityRecorded = true,
                     supportPurchaseCount = 3,
                     supportPurchaseCountSmall = 2,
                     supportPurchaseCountLarge = 1,
@@ -170,6 +172,7 @@ class AppSettingsRepositoryTest {
         assertEquals(false, settings.chartShowProjection)
         assertEquals("by_sign", settings.chartColorRule)
         assertEquals(false, settings.supporterBadgeEarned)
+        assertEquals(false, settings.supporterActivityRecorded)
         assertEquals(0, settings.supportPurchaseCount)
         assertEquals(0, settings.supportPurchaseCountSmall)
         assertEquals(0, settings.supportPurchaseCountLarge)
@@ -182,6 +185,7 @@ class AppSettingsRepositoryTest {
             repository.update {
                 it.copy(
                     supporterBadgeEarned = true,
+                    supporterActivityRecorded = true,
                     supportPurchaseCount = 7,
                     supportPurchaseCountSmall = 5,
                     supportPurchaseCountLarge = 2,
@@ -193,6 +197,7 @@ class AppSettingsRepositoryTest {
             val preferences = dataStore.data.first()
 
             assertEquals(true, preferences[AppSettingsKeys.SUPPORTER_BADGE_EARNED])
+            assertEquals(true, preferences[AppSettingsKeys.SUPPORTER_ACTIVITY_RECORDED])
             assertEquals(7, preferences[AppSettingsKeys.SUPPORT_PURCHASE_COUNT])
             assertEquals(5, preferences[AppSettingsKeys.SUPPORT_PURCHASE_COUNT_SMALL])
             assertEquals(2, preferences[AppSettingsKeys.SUPPORT_PURCHASE_COUNT_LARGE])
@@ -273,6 +278,20 @@ class AppSettingsRepositoryTest {
             val settings = repository.settings.first()
             assertEquals(true, settings.supporterBadgeEarned)
             assertEquals(2, settings.supportPurchaseCount)
+        }
+
+    @Test
+    fun `support activity cannot be reset from true to false`() =
+        runTest(UnconfinedTestDispatcher()) {
+            repository.update { it.copy(supporterActivityRecorded = true) }
+
+            try {
+                repository.update { it.copy(supporterActivityRecorded = false) }
+                fail("supporterActivityRecorded should not flip from true to false")
+            } catch (_: IllegalStateException) {
+            }
+
+            assertEquals(true, repository.settings.first().supporterActivityRecorded)
         }
 
     @Test
@@ -362,7 +381,7 @@ class AppSettingsRepositoryTest {
         }
 
     @Test
-    fun `full replacement reset preserves split supporter state and backfill flag`() =
+    fun `full replacement reset preserves supporter activity and split state`() =
         runTest(UnconfinedTestDispatcher()) {
             val preservedDeviceId = DeviceIdProviderImpl(dataStore).deviceId()
             val purchaseStore = SupporterPurchaseStoreImpl(dataStore)
@@ -383,6 +402,7 @@ class AppSettingsRepositoryTest {
                     autoSyncEnabled = false,
                     firstPositiveSeen = true,
                     supporterBadgeEarned = true,
+                    supporterActivityRecorded = true,
                     supportPurchaseCount = 4,
                     supportPurchaseCountSmall = 3,
                     supportPurchaseCountLarge = 1,
@@ -397,6 +417,7 @@ class AppSettingsRepositoryTest {
             assertEquals(
                 AppSettings(
                     supporterBadgeEarned = true,
+                    supporterActivityRecorded = true,
                     supportPurchaseCount = 4,
                     supportPurchaseCountSmall = 3,
                     supportPurchaseCountLarge = 1,

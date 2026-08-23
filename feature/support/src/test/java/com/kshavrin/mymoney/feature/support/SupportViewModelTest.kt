@@ -7,18 +7,28 @@ import com.kshavrin.mymoney.core.domain.ads.AdRewardState
 import com.kshavrin.mymoney.core.domain.billing.BillingAvailability
 import com.kshavrin.mymoney.core.domain.billing.PurchaseOutcome
 import com.kshavrin.mymoney.core.domain.billing.SupportProduct
+import com.kshavrin.mymoney.core.domain.model.EntitlementSource
+import com.kshavrin.mymoney.core.domain.model.EntitlementState
+import com.kshavrin.mymoney.core.domain.model.UserEntitlement
 import com.kshavrin.mymoney.core.domain.supporter.SupportPurchaseReconciliationCoordinator
 import com.kshavrin.mymoney.core.domain.supporter.SupportPurchaseReconciliationState
+import com.kshavrin.mymoney.core.domain.supporter.SupporterRepository
 import com.kshavrin.mymoney.core.domain.supporter.SupporterState
 import com.kshavrin.mymoney.core.domain.usecase.ObserveAdRewardStateUseCase
+import com.kshavrin.mymoney.core.domain.usecase.ObserveEntitlementUseCase
+import com.kshavrin.mymoney.core.domain.usecase.ObserveSupporterStateUseCase
+import com.kshavrin.mymoney.core.domain.usecase.RecordSupportActivityUseCase
 import com.kshavrin.mymoney.core.testing.fake.FakeAdRewardRepository
 import com.kshavrin.mymoney.core.testing.fake.FakeAnalyticsGateway
 import com.kshavrin.mymoney.core.testing.fake.FakeBillingGateway
 import com.kshavrin.mymoney.core.testing.fake.FakeSupporterRepository
+import com.kshavrin.mymoney.feature.support.paywall.FakeEntitlementRepository
 import com.kshavrin.mymoney.feature.support.util.MainDispatcherRule
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -27,6 +37,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import java.time.Instant
 
 class SupportViewModelTest {
     @get:Rule
@@ -50,7 +61,7 @@ class SupportViewModelTest {
         }
 
     @Test
-    fun `legacy constructor without ad reward observer keeps ads watched total at zero`() =
+    fun `without ad reward observer keeps ads watched total at zero`() =
         runTest {
             val viewModel = createViewModel(fixtures())
 
@@ -72,6 +83,8 @@ class SupportViewModelTest {
             runCurrent()
 
             assertEquals(0, viewModel.state.value.adsWatchedTotal)
+            assertFalse(viewModel.state.value.hasSupportActivity)
+            assertEquals(0, fixtures.supporter.recordSupportActivityCalls)
             assertEquals(
                 SupporterState(badgeEarned = false, purchaseCount = 0),
                 viewModel.state.value.supporterState,
@@ -91,10 +104,63 @@ class SupportViewModelTest {
             runCurrent()
 
             assertEquals(7, viewModel.state.value.adsWatchedTotal)
+            assertTrue(viewModel.state.value.hasSupportActivity)
+            assertEquals(1, fixtures.supporter.recordSupportActivityCalls)
             assertEquals(
-                SupporterState(badgeEarned = false, purchaseCount = 0),
+                SupporterState(badgeEarned = false, purchaseCount = 0, hasSupportActivity = true),
                 viewModel.state.value.supporterState,
             )
+        }
+
+    @Test
+    fun `zero ad reward total does not record support activity`() =
+        runTest {
+            val fixtures = fixtures(rewardState = adRewardState(totalWatched = 0))
+            val viewModel = createViewModel(fixtures, observeAdRewardState = true)
+
+            runCurrent()
+
+            assertFalse(viewModel.state.value.hasSupportActivity)
+            assertEquals(0, fixtures.supporter.recordSupportActivityCalls)
+        }
+
+    @Test
+    fun `active monthly and yearly subscriptions record support activity`() =
+        runTest {
+            listOf(
+                EntitlementSource.SUBSCRIPTION_MONTHLY,
+                EntitlementSource.SUBSCRIPTION_YEARLY,
+            ).forEach { source ->
+                viewModelStore.clear()
+                val fixtures = fixtures(entitlement = plusEntitlement(source, EntitlementState.ACTIVE))
+                val viewModel = createViewModel(fixtures)
+
+                runCurrent()
+
+                assertTrue("$source should open the support card", viewModel.state.value.hasSupportActivity)
+                assertEquals(1, fixtures.supporter.recordSupportActivityCalls)
+            }
+        }
+
+    @Test
+    fun `non qualifying entitlement states and sources do not record support activity`() =
+        runTest {
+            listOf(
+                plusEntitlement(EntitlementSource.AD_REWARD, EntitlementState.ACTIVE),
+                plusEntitlement(EntitlementSource.WHITELIST, EntitlementState.ACTIVE),
+                plusEntitlement(EntitlementSource.SUBSCRIPTION_MONTHLY, EntitlementState.EXPIRED),
+                plusEntitlement(EntitlementSource.SUBSCRIPTION_MONTHLY, EntitlementState.TRIAL),
+                plusEntitlement(EntitlementSource.SUBSCRIPTION_MONTHLY, EntitlementState.GRACE),
+            ).forEach { entitlement ->
+                viewModelStore.clear()
+                val fixtures = fixtures(entitlement = entitlement)
+                val viewModel = createViewModel(fixtures)
+
+                runCurrent()
+
+                assertFalse("$entitlement must not open the support card", viewModel.state.value.hasSupportActivity)
+                assertEquals(0, fixtures.supporter.recordSupportActivityCalls)
+            }
         }
 
     @Test
@@ -121,6 +187,7 @@ class SupportViewModelTest {
                     purchaseCount = 3,
                     smallCoffeeCount = 2,
                     largeCoffeeCount = 1,
+                    hasSupportActivity = true,
                 )
             val fixtures = fixtures(supporterState = supporterState, rewardState = null)
             val viewModel = createViewModel(fixtures, observeAdRewardState = true)
@@ -140,6 +207,7 @@ class SupportViewModelTest {
                     purchaseCount = 5,
                     smallCoffeeCount = 3,
                     largeCoffeeCount = 2,
+                    hasSupportActivity = true,
                 )
             val fixtures =
                 fixtures(
@@ -261,6 +329,8 @@ class SupportViewModelTest {
             runCurrent()
 
             assertEquals(SupportBillingState.Pending, viewModel.state.value.billingState)
+            assertFalse(viewModel.state.value.hasSupportActivity)
+            assertEquals(0, fixtures.supporter.recordSupportActivityCalls)
             assertTrue(viewModel.state.value.products.isEmpty())
         }
 
@@ -318,9 +388,11 @@ class SupportViewModelTest {
                     purchaseCount = 1,
                     smallCoffeeCount = 1,
                     largeCoffeeCount = 0,
+                    hasSupportActivity = true,
                 ),
                 viewModel.state.value.supporterState,
             )
+            assertTrue(viewModel.state.value.hasSupportActivity)
             assertEquals(
                 listOf(
                     AnalyticsEvent.SupportOpened,
@@ -406,6 +478,8 @@ class SupportViewModelTest {
             runCurrent()
 
             assertEquals(SupportBillingState.Pending, viewModel.state.value.billingState)
+            assertFalse(viewModel.state.value.hasSupportActivity)
+            assertEquals(0, fixtures.supporter.recordSupportActivityCalls)
             assertEquals(
                 listOf(
                     AnalyticsEvent.SupportOpened,
@@ -443,24 +517,21 @@ class SupportViewModelTest {
         observeAdRewardState: Boolean = false,
     ): SupportViewModel {
         val viewModel =
-            if (observeAdRewardState) {
-                SupportViewModel(
-                    billingGateway = fixtures.billing,
-                    supporterRepository = fixtures.supporter,
-                    observeAdRewardStateUseCase = ObserveAdRewardStateUseCase(fixtures.adRewards),
-                    supportPurchaseReconciliationCoordinator = fixtures.coordinator,
-                    analyticsGateway = fixtures.analytics,
-                    ioDispatcher = mainDispatcherRule.testDispatcher,
-                )
-            } else {
-                SupportViewModel(
-                    billingGateway = fixtures.billing,
-                    supporterRepository = fixtures.supporter,
-                    supportPurchaseReconciliationCoordinator = fixtures.coordinator,
-                    analyticsGateway = fixtures.analytics,
-                    ioDispatcher = mainDispatcherRule.testDispatcher,
-                )
-            }
+            SupportViewModel(
+                billingGateway = fixtures.billing,
+                observeSupporterStateUseCase = ObserveSupporterStateUseCase(fixtures.supporter),
+                observeAdRewardStateUseCase =
+                    if (observeAdRewardState) {
+                        ObserveAdRewardStateUseCase(fixtures.adRewards)
+                    } else {
+                        null
+                    },
+                observeEntitlementUseCase = ObserveEntitlementUseCase(fixtures.entitlements),
+                recordSupportActivityUseCase = RecordSupportActivityUseCase(fixtures.supporter),
+                supportPurchaseReconciliationCoordinator = fixtures.coordinator,
+                analyticsGateway = fixtures.analytics,
+                ioDispatcher = mainDispatcherRule.testDispatcher,
+            )
         viewModelStore.put("support", viewModel)
         return viewModel
     }
@@ -472,6 +543,7 @@ class SupportViewModelTest {
         reconciliationState: SupportPurchaseReconciliationState = SupportPurchaseReconciliationState.Ready,
         supporterState: SupporterState = SupporterState(badgeEarned = false, purchaseCount = 0),
         rewardState: AdRewardState? = null,
+        entitlement: UserEntitlement = UserEntitlement.Free,
     ): Fixtures {
         val billing =
             FakeBillingGateway().apply {
@@ -481,11 +553,12 @@ class SupportViewModelTest {
                     products.forEach { product -> seedPurchaseOutcome(product.id, purchaseOutcome) }
                 }
             }
-        val supporter = FakeSupporterRepository(initialState = supporterState)
+        val supporter = ActivityAwareSupporterRepository(initialState = supporterState)
         return Fixtures(
             billing = billing,
             supporter = supporter,
             adRewards = FakeAdRewardRepository(initialState = rewardState),
+            entitlements = FakeEntitlementRepository(initialEntitlement = entitlement),
             coordinator =
                 FakeSupportPurchaseReconciliationCoordinator(
                     initialState = reconciliationState,
@@ -497,8 +570,9 @@ class SupportViewModelTest {
 
     private data class Fixtures(
         val billing: FakeBillingGateway,
-        val supporter: FakeSupporterRepository,
+        val supporter: ActivityAwareSupporterRepository,
         val adRewards: FakeAdRewardRepository,
+        val entitlements: FakeEntitlementRepository,
         val coordinator: FakeSupportPurchaseReconciliationCoordinator,
         val analytics: FakeAnalyticsGateway,
     )
@@ -515,9 +589,21 @@ class SupportViewModelTest {
             totalWatched = totalWatched,
         )
 
+    private fun plusEntitlement(
+        source: EntitlementSource,
+        state: EntitlementState,
+    ) =
+        UserEntitlement.Plus(
+            source = source,
+            state = state,
+            startsAt = Instant.parse("2026-08-01T00:00:00Z"),
+            expiresAt = Instant.parse("2026-09-01T00:00:00Z"),
+            graceEndsAt = null,
+        )
+
     private class FakeSupportPurchaseReconciliationCoordinator(
         initialState: SupportPurchaseReconciliationState,
-        private val supporterRepository: FakeSupporterRepository,
+        private val supporterRepository: SupporterRepository,
     ) : SupportPurchaseReconciliationCoordinator {
         private val stateFlow = MutableStateFlow(initialState)
 
@@ -534,6 +620,49 @@ class SupportViewModelTest {
             recordedPurchases += outcome
             if (recordResult.isFailure) return recordResult
             return supporterRepository.recordPurchase(outcome)
+        }
+    }
+
+    private class ActivityAwareSupporterRepository(
+        initialState: SupporterState,
+    ) : SupporterRepository {
+        private val delegate = FakeSupporterRepository(initialState)
+        private val activityRecorded =
+            MutableStateFlow(
+                initialState.hasSupportActivity ||
+                    initialState.badgeEarned ||
+                    initialState.purchaseCount > 0 ||
+                    initialState.smallCoffeeCount > 0 ||
+                    initialState.largeCoffeeCount > 0,
+            )
+
+        var recordSupportActivityCalls = 0
+            private set
+
+        override fun state(): Flow<SupporterState> =
+            combine(delegate.state(), activityRecorded) { state, recorded ->
+                state.copy(hasSupportActivity = state.hasSupportActivity || recorded)
+            }
+
+        override suspend fun recordPurchase(outcome: PurchaseOutcome.Purchased): Result<Unit> {
+            val result = delegate.recordPurchase(outcome)
+            if (result.isSuccess) activityRecorded.value = true
+            return result
+        }
+
+        override suspend fun recordSupportActivity(): Result<Unit> {
+            recordSupportActivityCalls++
+            activityRecorded.value = true
+            return Result.success(Unit)
+        }
+
+        override suspend fun mergeRemote(
+            remoteCount: Int,
+            remoteBadge: Boolean,
+        ): Result<Unit> {
+            val result = delegate.mergeRemote(remoteCount, remoteBadge)
+            if (result.isSuccess && (remoteCount > 0 || remoteBadge)) activityRecorded.value = true
+            return result
         }
     }
 }

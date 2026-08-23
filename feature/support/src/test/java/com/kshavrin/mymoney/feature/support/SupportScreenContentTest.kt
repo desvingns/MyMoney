@@ -1,6 +1,8 @@
 package com.kshavrin.mymoney.feature.support
 
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.semantics.SemanticsNode
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -9,6 +11,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.dp
@@ -36,14 +39,14 @@ class SupportScreenContentTest {
     private val context = ApplicationProvider.getApplicationContext<android.content.Context>()
 
     @Test
-    fun `support shell displays back row hero and localized headline`() {
+    fun `support shell keeps the localized headline and omits the hero artwork`() {
         setContent(state = availableState())
 
         composeTestRule.onNodeWithText(string(R.string.support_title)).assertIsDisplayed()
         composeTestRule.onNodeWithText(string(R.string.support_back_label)).assertIsDisplayed()
         composeTestRule
             .onNodeWithContentDescription(string(R.string.support_image_hero_description))
-            .assertIsDisplayed()
+            .assertDoesNotExist()
         composeTestRule.onNodeWithText(string(R.string.support_headline_lead)).assertIsDisplayed()
         composeTestRule.onNodeWithText(string(R.string.support_headline_accent)).assertIsDisplayed()
         composeTestRule
@@ -54,6 +57,42 @@ class SupportScreenContentTest {
             .onNodeWithText(string(R.string.support_ads_total_watched, 0))
             .assertDoesNotExist()
         composeTestRule.onNodeWithText(string(R.string.support_coffee_title)).assertDoesNotExist()
+    }
+
+    @Test
+    fun `gratitude card stays hidden by default and shows all zero counters after activity`() {
+        val state = mutableStateOf(SupportState())
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                SupportContent(
+                    state = state.value,
+                    onEvent = {},
+                )
+            }
+        }
+
+        composeTestRule
+            .onNodeWithContentDescription(string(R.string.support_image_avatar_description))
+            .assertDoesNotExist()
+        composeTestRule.onNodeWithText(string(R.string.support_counter_ads_label)).assertDoesNotExist()
+
+        composeTestRule.runOnIdle {
+            state.value = state.value.copy(hasSupportActivity = true)
+        }
+        composeTestRule.waitForIdle()
+
+        composeTestRule
+            .onNodeWithContentDescription(string(R.string.support_image_avatar_description))
+            .performScrollTo()
+            .assertIsDisplayed()
+        listOf(
+            R.string.support_counter_ads_label,
+            R.string.support_counter_coffee_small_label,
+            R.string.support_counter_coffee_large_label,
+        ).forEach { labelRes ->
+            composeTestRule.onNodeWithText(string(labelRes)).performScrollTo().assertIsDisplayed()
+        }
+        composeTestRule.onAllNodesWithText("0").assertCountEquals(3)
     }
 
     @Test
@@ -77,6 +116,7 @@ class SupportScreenContentTest {
             state =
                 availableState().copy(
                     supporterState = SupporterState(badgeEarned = true, purchaseCount = 3),
+                    hasSupportActivity = true,
                 ),
             adSlot = { androidx.compose.material3.Text(string(R.string.support_ads_title)) },
             plusSlot = { androidx.compose.material3.Text(string(R.string.paywall_support_entry_title)) },
@@ -87,28 +127,43 @@ class SupportScreenContentTest {
             .performScrollTo()
             .assertIsDisplayed()
         composeTestRule
-            .onNodeWithText(string(R.string.support_coffee_small_name))
-            .performScrollTo()
-            .assertIsDisplayed()
-        composeTestRule
-            .onNodeWithText(string(R.string.paywall_support_entry_title))
+            .onNodeWithText(string(R.string.support_headline_lead))
             .performScrollTo()
             .assertIsDisplayed()
         composeTestRule
             .onNodeWithText(string(R.string.support_gratitude_title_supporter))
             .performScrollTo()
             .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText(string(R.string.support_coffee_small_name))
+            .performScrollTo()
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText(string(R.string.support_coffee_large_name))
+            .performScrollTo()
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText(string(R.string.paywall_support_entry_title))
+            .performScrollTo()
+            .assertIsDisplayed()
 
-        val orderedNodes =
+        val expectedOrder =
             listOf(
+                string(R.string.support_headline_lead),
+                string(R.string.support_gratitude_title_supporter),
                 string(R.string.support_ads_title),
                 string(R.string.support_coffee_small_name),
+                string(R.string.support_coffee_large_name),
                 string(R.string.paywall_support_entry_title),
-                string(R.string.support_gratitude_title_supporter),
-            ).map { text ->
-                composeTestRule.onNodeWithText(text).fetchSemanticsNode().boundsInRoot.top
+            )
+        val textOrder = semanticTextOrder()
+        val indexes =
+            expectedOrder.map { text ->
+                textOrder.indexOf(text).also { index ->
+                    assertTrue("Missing expected support slot text: $text", index >= 0)
+                }
             }
-        assertTrue(orderedNodes.zipWithNext().all { (first, second) -> first < second })
+        assertTrue(indexes.zipWithNext().all { (first, second) -> first < second })
     }
 
     @Test
@@ -266,6 +321,7 @@ class SupportScreenContentTest {
                 availableState().copy(
                     billingState =
                         SupportBillingState.Unavailable(SupportUnavailableReason.DisabledInBuild),
+                    hasSupportActivity = true,
                     supporterState = supporterState,
                 ),
         )
@@ -293,6 +349,7 @@ class SupportScreenContentTest {
                 availableState().copy(
                     billingState =
                         SupportBillingState.Unavailable(SupportUnavailableReason.UnavailableInRegion),
+                    hasSupportActivity = true,
                     supporterState = supporterState,
                 ),
         )
@@ -365,6 +422,7 @@ class SupportScreenContentTest {
                 state.value =
                     availableState().copy(
                         adsWatchedTotal = cell.adsWatched,
+                        hasSupportActivity = true,
                         supporterState =
                             SupporterState(
                                 badgeEarned = cell.isSupporter,
@@ -561,6 +619,18 @@ class SupportScreenContentTest {
         resourceId: Int,
         vararg args: Any,
     ): String = context.getString(resourceId, *args)
+
+    private fun semanticTextOrder(): List<String> =
+        composeTestRule
+            .onRoot(useUnmergedTree = true)
+            .fetchSemanticsNode()
+            .flattened()
+            .flatMap { node ->
+                node.config.getOrElse(SemanticsProperties.Text) { emptyList() }.map { text -> text.text }
+            }
+
+    private fun SemanticsNode.flattened(): List<SemanticsNode> =
+        listOf(this) + children.flatMap { child -> child.flattened() }
 
     private companion object {
         const val SMALL_PRICE = "£1.99"

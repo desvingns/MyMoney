@@ -16,6 +16,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.kshavrin.mymoney.core.domain.billing.SupportProduct
 import com.kshavrin.mymoney.core.domain.supporter.SupporterState
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
+import com.kshavrin.mymoney.feature.support.paywall.PaywallSupportEntry
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -93,14 +94,17 @@ class SupportScreenContentTest {
             .onNodeWithText(string(R.string.paywall_support_entry_title))
             .performScrollTo()
             .assertIsDisplayed()
-        composeTestRule.onNodeWithText(string(R.string.support_gratitude)).performScrollTo().assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText(string(R.string.support_gratitude_title_supporter))
+            .performScrollTo()
+            .assertIsDisplayed()
 
         val orderedNodes =
             listOf(
                 string(R.string.support_ads_title),
                 string(R.string.support_coffee_small_name),
                 string(R.string.paywall_support_entry_title),
-                string(R.string.support_gratitude),
+                string(R.string.support_gratitude_title_supporter),
             ).map { text ->
                 composeTestRule.onNodeWithText(text).fetchSemanticsNode().boundsInRoot.top
             }
@@ -276,7 +280,7 @@ class SupportScreenContentTest {
         composeTestRule.onNodeWithText(string(R.string.support_retry)).assertDoesNotExist()
         composeTestRule.onNodeWithText(string(R.string.support_badge)).performScrollTo().assertIsDisplayed()
         composeTestRule
-            .onNodeWithText(string(R.string.support_gratitude_count, 3))
+            .onNodeWithText(string(R.string.support_gratitude_title_supporter))
             .performScrollTo()
             .assertIsDisplayed()
     }
@@ -303,7 +307,7 @@ class SupportScreenContentTest {
         composeTestRule.onNodeWithText(string(R.string.support_retry)).assertDoesNotExist()
         composeTestRule.onNodeWithText(string(R.string.support_badge)).performScrollTo().assertIsDisplayed()
         composeTestRule
-            .onNodeWithText(string(R.string.support_gratitude_count, 3))
+            .onNodeWithText(string(R.string.support_gratitude_title_supporter))
             .performScrollTo()
             .assertIsDisplayed()
     }
@@ -340,23 +344,87 @@ class SupportScreenContentTest {
     }
 
     @Test
-    fun `supporter badge and gratitude count render only for supporter state`() {
+    fun `gratitude card covers every frozen supporter and counter matrix cell`() {
+        val state = mutableStateOf(availableState())
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                SupportContent(
+                    state = state.value,
+                    onEvent = {},
+                )
+            }
+        }
+
+        listOf(
+            GratitudeCell(isSupporter = false, adsWatched = 0, smallCoffees = 0, largeCoffees = 0),
+            GratitudeCell(isSupporter = false, adsWatched = 12, smallCoffees = 2, largeCoffees = 1),
+            GratitudeCell(isSupporter = true, adsWatched = 0, smallCoffees = 0, largeCoffees = 0),
+            GratitudeCell(isSupporter = true, adsWatched = 12, smallCoffees = 2, largeCoffees = 1),
+        ).forEach { cell ->
+            composeTestRule.runOnIdle {
+                state.value =
+                    availableState().copy(
+                        adsWatchedTotal = cell.adsWatched,
+                        supporterState =
+                            SupporterState(
+                                badgeEarned = cell.isSupporter,
+                                purchaseCount = cell.smallCoffees + cell.largeCoffees,
+                                smallCoffeeCount = cell.smallCoffees,
+                                largeCoffeeCount = cell.largeCoffees,
+                            ),
+                    )
+            }
+            composeTestRule.waitForIdle()
+
+            val titleRes =
+                if (cell.isSupporter) {
+                    R.string.support_gratitude_title_supporter
+                } else {
+                    R.string.support_gratitude_title_prospect
+                }
+            val bodyRes =
+                if (cell.isSupporter) {
+                    R.string.support_gratitude_body_supporter
+                } else {
+                    R.string.support_gratitude_body_prospect
+                }
+            composeTestRule.onNodeWithText(string(titleRes)).performScrollTo().assertIsDisplayed()
+            composeTestRule.onNodeWithText(string(bodyRes)).performScrollTo().assertIsDisplayed()
+            if (cell.isSupporter) {
+                composeTestRule
+                    .onNodeWithText(string(R.string.support_badge))
+                    .performScrollTo()
+                    .assertIsDisplayed()
+            } else {
+                composeTestRule.onNodeWithText(string(R.string.support_badge)).assertDoesNotExist()
+            }
+            assertCounterValues(cell)
+        }
+    }
+
+    @Test
+    fun `plus panel keeps the existing open paywall callback`() {
+        var opened = false
         setContent(
-            state =
-                availableState().copy(
-                    supporterState = SupporterState(badgeEarned = true, purchaseCount = 3),
-                ),
+            state = availableState(),
+            plusSlot = {
+                PaywallSupportEntry(onOpenPaywall = { opened = true })
+            },
         )
 
-        composeTestRule.onNodeWithText(string(R.string.support_badge)).performScrollTo().assertIsDisplayed()
         composeTestRule
-            .onNodeWithText(string(R.string.support_gratitude))
+            .onNodeWithContentDescription(string(R.string.support_image_plus_description))
             .performScrollTo()
             .assertIsDisplayed()
         composeTestRule
-            .onNodeWithText(string(R.string.support_gratitude_count, 3))
+            .onNodeWithText(string(R.string.paywall_support_entry_action))
             .performScrollTo()
             .assertIsDisplayed()
+            .performClick()
+
+        composeTestRule.runOnIdle {
+            assertTrue(opened)
+        }
     }
 
     @Test
@@ -440,6 +508,25 @@ class SupportScreenContentTest {
         }
     }
 
+    private fun assertCounterValues(cell: GratitudeCell) {
+        val counters =
+            listOf(
+                R.string.support_counter_ads_label to cell.adsWatched,
+                R.string.support_counter_coffee_small_label to cell.smallCoffees,
+                R.string.support_counter_coffee_large_label to cell.largeCoffees,
+            )
+        counters.forEach { (labelRes, _) ->
+            composeTestRule.onNodeWithText(string(labelRes)).performScrollTo().assertIsDisplayed()
+        }
+        if (cell.adsWatched == 0 && cell.smallCoffees == 0 && cell.largeCoffees == 0) {
+            composeTestRule.onAllNodesWithText(0.toString()).assertCountEquals(3)
+        } else {
+            counters.forEach { (_, value) ->
+                composeTestRule.onNodeWithText(value.toString()).performScrollTo().assertIsDisplayed()
+            }
+        }
+    }
+
     private fun setContent(
         state: SupportState,
         onEvent: (SupportEvent) -> Unit = {},
@@ -467,4 +554,11 @@ class SupportScreenContentTest {
         const val SMALL_PRICE = "£1.99"
         const val LARGE_PRICE = "£4.99"
     }
+
+    private data class GratitudeCell(
+        val isSupporter: Boolean,
+        val adsWatched: Int,
+        val smallCoffees: Int,
+        val largeCoffees: Int,
+    )
 }

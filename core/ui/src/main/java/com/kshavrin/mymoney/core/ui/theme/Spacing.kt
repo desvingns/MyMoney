@@ -215,6 +215,7 @@ object Spacing {
     val supportPanelGap = 14.dp
     val supportPanelPadding = 16.dp
     val supportPanelColumnGap = 10.dp
+    val supportRewardAdProgressCellHeight = 40.dp
     val supportCoffeeIllustrationWidthSmall = 66.dp
     val supportCoffeeIllustrationHeight = 82.dp
     val supportPanelIconSize = 52.dp

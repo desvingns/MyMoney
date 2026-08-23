@@ -14,8 +14,6 @@
     <string name="support_network_error">Не удалось связаться с Google Play. Попробуйте ещё раз.</string>
     <string name="support_retry">Повторить</string>
     <string name="support_badge">Supporter</string>
-    <string name="support_gratitude">Спасибо за поддержку MyMoney</string>
-    <string name="support_gratitude_count">Покупок кофе: %1$d</string>
     <string name="support_back_label">Назад</string>
     <string name="support_headline_lead">Помогите MyMoney</string>
     <string name="support_headline_accent">расти</string>

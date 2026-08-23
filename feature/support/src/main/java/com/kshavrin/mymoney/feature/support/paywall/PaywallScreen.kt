@@ -5,13 +5,17 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -33,9 +37,14 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
 import com.kshavrin.mymoney.core.domain.model.EntitlementSource
 import com.kshavrin.mymoney.core.domain.model.EntitlementState
 import com.kshavrin.mymoney.core.domain.model.UserEntitlement
@@ -45,6 +54,14 @@ import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.core.ui.theme.supportCard
 import com.kshavrin.mymoney.core.ui.theme.supportCardTitle
 import com.kshavrin.mymoney.core.ui.theme.supportDescription
+import com.kshavrin.mymoney.core.ui.theme.supportActionLabel
+import com.kshavrin.mymoney.core.ui.theme.supportPanel
+import com.kshavrin.mymoney.core.ui.theme.supportPanelContainer
+import com.kshavrin.mymoney.core.ui.theme.supportPanelIllustration
+import com.kshavrin.mymoney.core.ui.theme.supportPanelOutline
+import com.kshavrin.mymoney.core.ui.theme.supportPanelSubtitle
+import com.kshavrin.mymoney.core.ui.theme.supportPanelTitle
+import com.kshavrin.mymoney.core.ui.theme.supportPrimaryAction
 import com.kshavrin.mymoney.feature.support.R
 import java.time.Instant
 import java.time.ZoneId
@@ -155,30 +172,53 @@ fun PaywallSupportEntry(
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.supportCard,
-        color = MaterialTheme.colorScheme.secondaryContainer,
-        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        shape = MaterialTheme.shapes.supportPanel,
+        color = MaterialTheme.colorScheme.supportPanelContainer,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.supportPanelOutline),
     ) {
         Column(
-            modifier = Modifier.padding(Spacing.supportCardPadding),
-            verticalArrangement = Arrangement.spacedBy(Spacing.supportStatusGap),
+            modifier = Modifier.padding(Spacing.supportPanelPadding),
+            verticalArrangement = Arrangement.spacedBy(Spacing.supportPanelGap),
         ) {
-            Text(
-                text = stringResource(R.string.paywall_support_entry_title),
-                style = MaterialTheme.typography.supportCardTitle,
-            )
-            Text(
-                text = stringResource(R.string.paywall_support_entry_description),
-                style = MaterialTheme.typography.supportDescription,
-            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(Spacing.supportPanelColumnGap),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Image(
+                    painter = painterResource(DesignSystemR.drawable.support_neon_plus),
+                    contentDescription = stringResource(R.string.support_image_plus_description),
+                    contentScale = ContentScale.Fit,
+                    modifier =
+                        Modifier
+                            .size(Spacing.supportPanelIconSize)
+                            .clip(MaterialTheme.shapes.supportPanelIllustration),
+                )
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(Spacing.supportPanelColumnGap),
+                ) {
+                    Text(
+                        text = stringResource(R.string.paywall_support_entry_title),
+                        style = MaterialTheme.typography.supportPanelTitle,
+                    )
+                    Text(
+                        text = stringResource(R.string.paywall_support_entry_description),
+                        style = MaterialTheme.typography.supportPanelSubtitle,
+                    )
+                }
+            }
             Button(
                 modifier =
                     Modifier
                         .fillMaxWidth()
                         .heightIn(min = Spacing.supportActionMinHeight),
                 onClick = onOpenPaywall,
+                shape = MaterialTheme.shapes.supportPrimaryAction,
             ) {
-                Text(stringResource(R.string.paywall_support_entry_action))
+                Text(
+                    text = stringResource(R.string.paywall_support_entry_action),
+                    style = MaterialTheme.typography.supportActionLabel,
+                )
             }
         }
     }

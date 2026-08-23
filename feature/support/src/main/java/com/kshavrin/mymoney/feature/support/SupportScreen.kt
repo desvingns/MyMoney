@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -44,10 +45,10 @@ import androidx.compose.ui.unit.dp
 import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
 import com.kshavrin.mymoney.core.domain.billing.SupportProduct
 import com.kshavrin.mymoney.core.ui.theme.Spacing
-import com.kshavrin.mymoney.core.ui.theme.supportCard
-import com.kshavrin.mymoney.core.ui.theme.supportDescription
 import com.kshavrin.mymoney.core.ui.theme.supportActionLabel
 import com.kshavrin.mymoney.core.ui.theme.supportBackLabel
+import com.kshavrin.mymoney.core.ui.theme.supportCounterLabel
+import com.kshavrin.mymoney.core.ui.theme.supportCounterValue
 import com.kshavrin.mymoney.core.ui.theme.supportHeadline
 import com.kshavrin.mymoney.core.ui.theme.supportHeadlineAccent
 import com.kshavrin.mymoney.core.ui.theme.supportHeroIllustration
@@ -57,18 +58,17 @@ import com.kshavrin.mymoney.core.ui.theme.supportPanelDivider
 import com.kshavrin.mymoney.core.ui.theme.supportPanelIllustration
 import com.kshavrin.mymoney.core.ui.theme.supportPanelOutline
 import com.kshavrin.mymoney.core.ui.theme.supportPanelSubtitle
+import com.kshavrin.mymoney.core.ui.theme.supportPanelTitle
 import com.kshavrin.mymoney.core.ui.theme.supportPrimaryAction
 import com.kshavrin.mymoney.core.ui.theme.supportPriceValue
 import com.kshavrin.mymoney.core.ui.theme.supportProductName
 import com.kshavrin.mymoney.core.ui.theme.supportProductPrice
 import com.kshavrin.mymoney.core.ui.theme.supportSubtitle
-import com.kshavrin.mymoney.core.ui.theme.supporterBadge
-import com.kshavrin.mymoney.core.ui.theme.supporterBadgeLabel
-import com.kshavrin.mymoney.core.ui.theme.supporterGratitudeCount
-import com.kshavrin.mymoney.core.ui.theme.supporterBadgeContainer
-import com.kshavrin.mymoney.core.ui.theme.supporterBadgeContent
-import com.kshavrin.mymoney.core.ui.theme.supporterGratitudeContainer
-import com.kshavrin.mymoney.core.ui.theme.supporterGratitudeContent
+import com.kshavrin.mymoney.core.ui.theme.supporterChip
+import com.kshavrin.mymoney.core.ui.theme.supporterChipContainer
+import com.kshavrin.mymoney.core.ui.theme.supporterChipContent
+import com.kshavrin.mymoney.core.ui.theme.supporterChipLabel
+import com.kshavrin.mymoney.core.ui.theme.supporterChipOutline
 import com.kshavrin.mymoney.feature.support.R
 
 @Composable
@@ -98,10 +98,7 @@ fun SupportContent(
                 onEvent = onEvent,
             )
             plusSlot()
-            if (state.supporterState.badgeEarned) {
-                SupporterBadge()
-                SupporterGratitude(purchaseCount = state.supporterState.purchaseCount)
-            }
+            SupporterGratitude(state = state)
         }
     }
 }
@@ -399,41 +396,114 @@ private fun SupportStatusLine(
 }
 
 @Composable
-private fun SupporterBadge() {
+private fun SupporterGratitude(state: SupportState) {
+    val isSupporter = state.supporterState.badgeEarned
     Surface(
-        shape = MaterialTheme.shapes.supporterBadge,
-        color = MaterialTheme.colorScheme.supporterBadgeContainer,
-        contentColor = MaterialTheme.colorScheme.supporterBadgeContent,
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.supportPanel,
+        color = MaterialTheme.colorScheme.supportPanelContainer,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.supportPanelOutline),
     ) {
-        Text(
-            text = stringResource(R.string.support_badge),
-            style = MaterialTheme.typography.supporterBadgeLabel,
-            modifier = Modifier.padding(Spacing.supportCardPadding),
-        )
+        Row(
+            modifier = Modifier.padding(Spacing.supportPanelPadding),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.supportPanelGap),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Image(
+                painter = painterResource(DesignSystemR.drawable.support_neon_avatar),
+                contentDescription = stringResource(R.string.support_image_avatar_description),
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.size(Spacing.supportAvatarSize).clip(CircleShape),
+            )
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(Spacing.supportPanelColumnGap),
+            ) {
+                Text(
+                    text =
+                        stringResource(
+                            if (isSupporter) {
+                                R.string.support_gratitude_title_supporter
+                            } else {
+                                R.string.support_gratitude_title_prospect
+                            },
+                        ),
+                    style = MaterialTheme.typography.supportPanelTitle,
+                )
+                Text(
+                    text =
+                        stringResource(
+                            if (isSupporter) {
+                                R.string.support_gratitude_body_supporter
+                            } else {
+                                R.string.support_gratitude_body_prospect
+                            },
+                        ),
+                    style = MaterialTheme.typography.supportPanelSubtitle,
+                )
+                if (isSupporter) {
+                    Surface(
+                        modifier = Modifier.height(Spacing.supporterChipHeight),
+                        shape = MaterialTheme.shapes.supporterChip,
+                        color = MaterialTheme.colorScheme.supporterChipContainer,
+                        contentColor = MaterialTheme.colorScheme.supporterChipContent,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.supporterChipOutline),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.support_badge),
+                            style = MaterialTheme.typography.supporterChipLabel,
+                            modifier = Modifier.padding(horizontal = Spacing.supportStatusGap),
+                        )
+                    }
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.supportPanelColumnGap),
+                ) {
+                    SupportCounter(
+                        value = state.adsWatchedTotal,
+                        labelRes = R.string.support_counter_ads_label,
+                        modifier = Modifier.weight(1f),
+                    )
+                    SupportCounter(
+                        value = state.supporterState.smallCoffeeCount,
+                        labelRes = R.string.support_counter_coffee_small_label,
+                        modifier = Modifier.weight(1f),
+                    )
+                    SupportCounter(
+                        value = state.supporterState.largeCoffeeCount,
+                        labelRes = R.string.support_counter_coffee_large_label,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+        }
     }
 }
 
 @Composable
-private fun SupporterGratitude(purchaseCount: Int) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.supportCard,
-        color = MaterialTheme.colorScheme.supporterGratitudeContainer,
-        contentColor = MaterialTheme.colorScheme.supporterGratitudeContent,
+private fun SupportCounter(
+    value: Int,
+    labelRes: Int,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(Spacing.supportPanelColumnGap),
     ) {
-        Column(
-            modifier = Modifier.padding(Spacing.supportCardPadding),
-            verticalArrangement = Arrangement.spacedBy(Spacing.supportStatusGap),
-        ) {
-            Text(
-                text = stringResource(R.string.support_gratitude),
-                style = MaterialTheme.typography.supportDescription,
-            )
-            Text(
-                text = stringResource(R.string.support_gratitude_count, purchaseCount),
-                style = MaterialTheme.typography.supporterGratitudeCount,
-            )
-        }
+        Text(
+            text = value.toString(),
+            color = MaterialTheme.colorScheme.supportCounterValue,
+            style = MaterialTheme.typography.supportCounterValue,
+        )
+        Text(
+            text = stringResource(labelRes),
+            color = MaterialTheme.colorScheme.supportCounterLabel,
+            style = MaterialTheme.typography.supportCounterLabel,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 

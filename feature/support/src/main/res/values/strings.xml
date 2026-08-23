@@ -14,8 +14,6 @@
     <string name="support_network_error">We couldn’t reach Google Play. Please try again.</string>
     <string name="support_retry">Try again</string>
     <string name="support_badge">Supporter</string>
-    <string name="support_gratitude">Thank you for supporting MyMoney</string>
-    <string name="support_gratitude_count">%1$d coffee purchases</string>
     <string name="support_back_label">Back</string>
     <string name="support_headline_lead">Help MyMoney</string>
     <string name="support_headline_accent">grow</string>

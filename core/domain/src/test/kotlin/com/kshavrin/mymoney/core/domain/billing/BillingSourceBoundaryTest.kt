@@ -15,6 +15,7 @@ class BillingSourceBoundaryTest {
         val expectedNames = setOf(
             "BillingAvailability.kt",
             "BillingGateway.kt",
+            "PlusSubscriptionCoordinator.kt",
             "PurchaseOutcome.kt",
             "SupportProduct.kt",
         )

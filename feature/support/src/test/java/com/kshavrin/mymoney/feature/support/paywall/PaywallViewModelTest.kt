@@ -4,36 +4,30 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModelStore
 import com.kshavrin.mymoney.core.domain.analytics.AnalyticsEvent
 import com.kshavrin.mymoney.core.domain.analytics.AnalyticsGateway
-import com.kshavrin.mymoney.core.domain.billing.BillingAvailability
-import com.kshavrin.mymoney.core.domain.billing.BillingGateway
-import com.kshavrin.mymoney.core.domain.billing.PurchaseOutcome
-import com.kshavrin.mymoney.core.domain.billing.SupportProduct
-import com.kshavrin.mymoney.core.domain.model.EntitlementSource
-import com.kshavrin.mymoney.core.domain.model.EntitlementState
-import com.kshavrin.mymoney.core.domain.model.UserEntitlement
-import com.kshavrin.mymoney.core.domain.usecase.ObserveEntitlementUseCase
+import com.kshavrin.mymoney.core.domain.billing.PlusCatalogState
+import com.kshavrin.mymoney.core.domain.billing.PlusPlanId
+import com.kshavrin.mymoney.core.domain.billing.PlusPurchaseOutcome
+import com.kshavrin.mymoney.core.domain.billing.PlusSubscriptionCoordinator
+import com.kshavrin.mymoney.core.domain.billing.PlusSubscriptionState
 import com.kshavrin.mymoney.core.testing.fake.FakeAnalyticsGateway
 import com.kshavrin.mymoney.core.ui.navigation.PaywallEntryPoint
 import com.kshavrin.mymoney.feature.support.util.MainDispatcherRule
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import java.time.Instant
 
 // Robolectric supplies a real android.os.Bundle so savedStateHandle.toRoute<Destinations.Paywall>()
 // can decode its route args; the android.jar stub throws "not mocked" at VM construction (SPEC-19).
@@ -54,7 +48,7 @@ class PaywallViewModelTest {
     fun `paywall shown analytics event is logged once with the route entry point`() = runTest {
         val analytics = FakeAnalyticsGateway()
 
-        createViewModel(billing(), FakeEntitlementRepository(), analytics = analytics)
+        createViewModel(analytics = analytics)
         runCurrent()
 
         assertEquals(
@@ -64,10 +58,20 @@ class PaywallViewModelTest {
     }
 
     @Test
-    fun `catalog loads both subscription plans with Play prices`() = runTest {
-        val billing = billing()
-        val viewModel = createViewModel(billing, FakeEntitlementRepository())
+    fun `coordinator prices map to PaywallPlan list through PlusPlanId to PaywallPlanId boundary`() = runTest {
+        val coordinator = FakePlusSubscriptionCoordinator()
+        val viewModel = createViewModel(coordinator)
 
+        coordinator.emitState(
+            PlusSubscriptionState(
+                catalog = PlusCatalogState.Available,
+                prices =
+                    mapOf(
+                        PlusPlanId.Monthly to "€1.99 / month",
+                        PlusPlanId.Yearly to "€12.99 / year",
+                    ),
+            ),
+        )
         runCurrent()
 
         assertEquals(PaywallCatalogState.Available, viewModel.state.value.catalogState)
@@ -81,82 +85,14 @@ class PaywallViewModelTest {
     }
 
     @Test
-    fun `purchased plan refreshes entitlement and returns to idle after active confirmation`() = runTest {
-        val entitlementRepository = FakeEntitlementRepository()
-        val activeEntitlement = subscriptionEntitlement(EntitlementState.ACTIVE)
-        entitlementRepository.onRefresh = { entitlementRepository.seed(activeEntitlement) }
-        val viewModel = createViewModel(
-            billing(
-                PurchaseOutcome.Purchased(
-                    productId = PaywallPlanId.Monthly.productId,
-                    purchaseToken = "monthly-token",
-                    purchasedAtMillis = 1_700_000_000_000L,
-                ),
-            ),
-            entitlementRepository,
-        )
-
-        runCurrent()
-        viewModel.onEvent(PaywallEvent.PlanSelected(PaywallPlanId.Monthly))
-        advanceUntilIdle()
-
-        assertEquals(PaywallPurchaseState.Idle, viewModel.state.value.purchaseState)
-        assertEquals(activeEntitlement, viewModel.state.value.entitlement)
-        assertEquals(1, entitlementRepository.refreshCalls)
-    }
-
-    @Test
-    fun `purchased plan waits for entitlement and resumes when repository publishes Plus`() = runTest {
-        val entitlementRepository = FakeEntitlementRepository()
-        val viewModel = createViewModel(
-            billing(
-                PurchaseOutcome.Purchased(
-                    productId = PaywallPlanId.Monthly.productId,
-                    purchaseToken = "monthly-token",
-                    purchasedAtMillis = 1_700_000_000_000L,
-                ),
-            ),
-            entitlementRepository,
-        )
-
-        runCurrent()
-        viewModel.onEvent(PaywallEvent.PlanSelected(PaywallPlanId.Monthly))
-        advanceUntilIdle()
-
-        assertEquals(PaywallPurchaseState.AwaitingEntitlement, viewModel.state.value.purchaseState)
-        assertEquals(4, entitlementRepository.refreshCalls)
-
-        entitlementRepository.seed(subscriptionEntitlement(EntitlementState.ACTIVE))
-        runCurrent()
-
-        assertEquals(PaywallPurchaseState.Idle, viewModel.state.value.purchaseState)
-    }
-
-    @Test
-    fun `double tapping a plan launches only one subscription flow`() = runTest {
-        val billing = RecordingBillingGateway()
-        val viewModel = createViewModel(billing, FakeEntitlementRepository())
-
-        runCurrent()
-        viewModel.onEvent(PaywallEvent.PlanSelected(PaywallPlanId.Monthly))
-        runCurrent()
-        viewModel.onEvent(PaywallEvent.PlanSelected(PaywallPlanId.Yearly))
-        runCurrent()
-
-        assertEquals(listOf(PaywallPlanId.Monthly.productId), billing.subscriptionLaunches)
-        assertEquals(PaywallPurchaseState.InProgress, viewModel.state.value.purchaseState)
-    }
-
-    @Test
-    fun `back event emits a one-shot navigation action`() = runTest {
-        val viewModel = createViewModel(billing(), FakeEntitlementRepository())
+    fun `back event emits a one-shot NavigateBack action`() = runTest {
+        val viewModel = createViewModel()
         runCurrent()
 
         var action: PaywallAction? = null
-        val collector = launch {
-            viewModel.actions.collect { action = it }
-        }
+        val collector = launch { viewModel.actions.collect { action = it } }
         runCurrent()
+
         viewModel.onEvent(PaywallEvent.BackClicked)
         runCurrent()
         collector.cancel()
@@ -166,19 +102,27 @@ class PaywallViewModelTest {
     }
 
     @Test
+    fun `PlanSelected maps PaywallPlanId to domain PlusPlanId before calling coordinator`() = runTest {
+        val coordinator = FakePlusSubscriptionCoordinator()
+        val viewModel = createViewModel(coordinator)
+        runCurrent()
+
+        viewModel.onEvent(PaywallEvent.PlanSelected(PaywallPlanId.Monthly))
+        runCurrent()
+        assertEquals(PlusPlanId.Monthly, coordinator.lastPurchasedPlanId)
+
+        viewModel.onEvent(PaywallEvent.PlanSelected(PaywallPlanId.Yearly))
+        runCurrent()
+        assertEquals(PlusPlanId.Yearly, coordinator.lastPurchasedPlanId)
+    }
+
+    @Test
     fun `successful purchase emits RequestNotificationPermission action`() = runTest {
-        val entitlementRepository = FakeEntitlementRepository()
-        val viewModel =
-            createViewModel(
-                billing(
-                    PurchaseOutcome.Purchased(
-                        productId = PaywallPlanId.Monthly.productId,
-                        purchaseToken = "monthly-token",
-                        purchasedAtMillis = 1_700_000_000_000L,
-                    ),
-                ),
-                entitlementRepository,
-            )
+        val coordinator =
+            FakePlusSubscriptionCoordinator().apply {
+                purchaseOutcome = PlusPurchaseOutcome.Purchased
+            }
+        val viewModel = createViewModel(coordinator)
         runCurrent()
 
         val collectedActions = mutableListOf<PaywallAction>()
@@ -195,72 +139,71 @@ class PaywallViewModelTest {
         )
     }
 
+    @Test
+    fun `Failed purchase outcome sets an error message in state`() = runTest {
+        val coordinator =
+            FakePlusSubscriptionCoordinator().apply {
+                purchaseOutcome = PlusPurchaseOutcome.Failed
+            }
+        val viewModel = createViewModel(coordinator)
+        runCurrent()
+
+        viewModel.onEvent(PaywallEvent.PlanSelected(PaywallPlanId.Monthly))
+        advanceUntilIdle()
+
+        assertNotNull(
+            "errorMessageRes must be set after a Failed purchase outcome",
+            viewModel.state.value.errorMessageRes,
+        )
+    }
+
+    @Test
+    fun `retry clicked delegates to coordinator refreshCatalog`() = runTest {
+        val coordinator = FakePlusSubscriptionCoordinator()
+        val viewModel = createViewModel(coordinator)
+        runCurrent()
+        val callsBeforeRetry = coordinator.refreshCatalogCalls
+
+        viewModel.onEvent(PaywallEvent.RetryClicked)
+        runCurrent()
+
+        assertEquals(callsBeforeRetry + 1, coordinator.refreshCatalogCalls)
+    }
+
     private fun createViewModel(
-        billingGateway: BillingGateway,
-        entitlementRepository: FakeEntitlementRepository,
+        coordinator: FakePlusSubscriptionCoordinator = FakePlusSubscriptionCoordinator(),
         analytics: AnalyticsGateway = FakeAnalyticsGateway(),
         savedStateHandle: SavedStateHandle = SavedStateHandle(),
     ): PaywallViewModel {
         val viewModel =
             PaywallViewModel(
-                billingGateway = billingGateway,
-                observeEntitlement = ObserveEntitlementUseCase(entitlementRepository),
+                coordinator = coordinator,
                 analytics = analytics,
                 savedStateHandle = savedStateHandle,
-                ioDispatcher = mainDispatcherRule.testDispatcher,
             )
         viewModelStore.put("paywall", viewModel)
         return viewModel
     }
 
-    private fun billing(outcome: PurchaseOutcome? = null): com.kshavrin.mymoney.core.testing.fake.FakeBillingGateway =
-        com.kshavrin.mymoney.core.testing.fake.FakeBillingGateway().apply {
-            seedAvailability(BillingAvailability.Available)
-            seedSubscriptions(
-                SupportProduct(PaywallPlanId.Monthly.productId, "€1.99 / month", "Monthly"),
-                SupportProduct(PaywallPlanId.Yearly.productId, "€12.99 / year", "Yearly"),
-            )
-            outcome?.let { seedSubscriptionOutcome(PaywallPlanId.Monthly.productId, it) }
+    private class FakePlusSubscriptionCoordinator : PlusSubscriptionCoordinator {
+        private val _state = MutableStateFlow(PlusSubscriptionState())
+        override val state: StateFlow<PlusSubscriptionState> = _state.asStateFlow()
+
+        var purchaseOutcome: PlusPurchaseOutcome = PlusPurchaseOutcome.Cancelled
+        var refreshCatalogCalls: Int = 0
+        var lastPurchasedPlanId: PlusPlanId? = null
+
+        override suspend fun refreshCatalog() {
+            refreshCatalogCalls++
         }
 
-    private fun subscriptionEntitlement(state: EntitlementState) =
-        UserEntitlement.Plus(
-            source = EntitlementSource.SUBSCRIPTION_MONTHLY,
-            state = state,
-            startsAt = Instant.parse("2026-08-14T00:00:00Z"),
-            expiresAt = Instant.parse("2026-09-14T00:00:00Z"),
-            graceEndsAt = null,
-        )
-
-    private class RecordingBillingGateway : BillingGateway {
-        private val availabilityState = MutableStateFlow<BillingAvailability>(BillingAvailability.Available)
-        private val subscriptionFlow = MutableSharedFlow<PurchaseOutcome>(extraBufferCapacity = 1)
-
-        val subscriptionLaunches = mutableListOf<String>()
-
-        override fun availability(): StateFlow<BillingAvailability> = availabilityState.asStateFlow()
-
-        override fun products(): Result<List<SupportProduct>> = Result.success(emptyList())
-
-        override fun purchase(productId: String): Flow<PurchaseOutcome> = flowOf(PurchaseOutcome.Cancelled)
-
-        override fun resolvePendingPurchases(): Result<List<PurchaseOutcome>> = Result.success(emptyList())
-
-        override fun querySubscriptions(): Result<List<SupportProduct>> =
-            Result.success(
-                listOf(
-                    SupportProduct(PaywallPlanId.Monthly.productId, "€1.99 / month", "Monthly"),
-                    SupportProduct(PaywallPlanId.Yearly.productId, "€12.99 / year", "Yearly"),
-                ),
-            )
-
-        override fun launchSubscriptionFlow(productId: String): Flow<PurchaseOutcome> {
-            subscriptionLaunches += productId
-            return subscriptionFlow
+        override suspend fun purchase(planId: PlusPlanId): PlusPurchaseOutcome {
+            lastPurchasedPlanId = planId
+            return purchaseOutcome
         }
 
-        override suspend fun acknowledge(purchaseToken: String): Result<Unit> = Result.success(Unit)
-
-        override fun resolveSubscriptionPurchases(): Result<List<PurchaseOutcome>> = Result.success(emptyList())
+        fun emitState(state: PlusSubscriptionState) {
+            _state.value = state
+        }
     }
 }

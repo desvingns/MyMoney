@@ -8,6 +8,23 @@
 
 ## Current state
 
+- **2026-08-23 (Claude `/mp --feature`, support-paywall-visual-polish SPEC 01):** Merged the
+  rewarded-ad block's two lines into one bold line (`support_ads_rule` now styled
+  `supportPanelTitle`, `support_ads_title` removed), removed the visible "Watched N of 5" text
+  from the progress row while keeping its `contentDescription` for screen readers, and gave
+  "Support the app" / "Help MyMoney" an explicit `colorScheme.onBackground` so they no longer
+  blend into the themed background added by the prior visual-polish SPEC. Deterministic reviewer,
+  semantic review (3/3 coverage), independent critic, and full Verifier all passed; scoped Runner
+  `:feature:support` 141/0/0, full Runner 2186/0/0 with detekt/lint green. Pixel 5/API 34
+  screenshot confirmed all three fixes. Commits `97985bd2` (code), `7813d231` (tests), pushed to
+  `origin/main`. SPEC moved to `done/`; SPEC 02 (Paywall monthly/yearly two-column card) remains
+  queued in the `support-paywall-visual-polish` epic. Also closed out a stale board entry from a
+  prior session: `support-screen-visual-polish-01` was already fully implemented and committed
+  (`f976f743`) but never moved out of `active/` — verified its tests pass and moved it to `done/`
+  before starting this SPEC.
+
+- **2026-08-23 (Codex, support rewarded-ads artwork):** Replaced the rewarded-ads Support bitmap `support_neon_ads.png` with the approved standalone neon Play button, preserving the existing resource ID and `RewardedAdScreen` consumer. The artwork contract test and full `:app:assembleDebug` passed; graphify AST update was attempted but its shrink-guard refused to overwrite the existing graph because the dirty workspace produced 14 fewer nodes.
+
 - **2026-08-23 (Codex `$mp --feature --next`, support-screen-artwork-counters SPEC 02 + epic close):** Removed only the Support hero consumer while preserving the headline/description and back navigation; ordered the gated avatar/counters before ads, small coffee, large coffee, and Plus. Added a monotonic persisted first-action flag for authoritative ad totals, reconciled coffee purchases, and active monthly/yearly subscriptions, including legacy backfill, restart/expiry persistence, zero counters, and pending/unconfirmed guards. Added focused Compose/ViewModel/datastore/domain tests. Targeted tests and forced full debug assemble passed; Pixel 5/API 34 screenshots passed for cold hidden state and post-action visible zero counters, including back-row safe-area repair under edge-to-edge. Commits `d17ff0be`, `4fa76689`, `51c7d840`, `59741951`; SPEC-02 and the epic overview moved to `done/`; board drained. 
 
 - **2026-08-23 (Codex `$mp --feature --next`, support-screen-artwork-counters SPEC 01):** Replaced the five Support bitmap resources with the approved avatar/heart, crown coffee bean, softened-glow takeaway cappuccino with `Thanks`, espresso, and rewarded-ads phone artwork. Added the asset contract test and verified a fresh forced `:app:assembleDebug` plus Pixel 5/API 34 manual screenshots for Support and Plus plans. Resource IDs, consumers, and hero artwork remain unchanged. Commits `b3e81e5f`, `22b02f19`; SPEC moved to `done/`. Next runnable SPEC: support-screen-artwork-counters 02.

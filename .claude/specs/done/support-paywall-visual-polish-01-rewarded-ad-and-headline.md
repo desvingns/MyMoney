@@ -2,9 +2,10 @@
 
 Epic: support-paywall-visual-polish
 Order: 01 of 02
-Status: active
+Status: done
 Depends-on: —
 Date: 2026-08-23
+Implementation links: commits 97985bd2 (production), 7813d231 (tests); pushed to origin/main
 Risk-signals: visual
 Acceptance-matrix: surface=ads-headline-merge,progress-counter-text-removal,headline-font-contrast
 

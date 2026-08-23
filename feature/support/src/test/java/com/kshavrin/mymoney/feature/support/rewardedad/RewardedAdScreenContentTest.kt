@@ -6,6 +6,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -370,8 +371,7 @@ class RewardedAdScreenContentTest {
 
     @Test
     fun `progress row content description equals the visible watched N of M text`() {
-        // The RewardProgressRow uses clearAndSetSemantics so the LinearProgressIndicator
-        // and Text are read as a single content-described node, not just a bar.
+        // The decorative progress cells and their label remain one accessible progress node.
         setContent(
             RewardedAdState(
                 status = RewardedAdStatus.Ready,
@@ -381,6 +381,57 @@ class RewardedAdScreenContentTest {
 
         val expectedDescription = string(R.string.support_ads_progress, 2, 5)
         composeTestRule.onNodeWithContentDescription(expectedDescription).assertIsDisplayed()
+    }
+
+    @Test
+    fun `zero watched videos render exactly five unfilled progress cells`() {
+        setContent(
+            RewardedAdState(
+                status = RewardedAdStatus.Ready,
+                reward = RewardProgress(progress = 0, required = 5, plusActive = false),
+            ),
+        )
+
+        composeTestRule
+            .onNodeWithContentDescription(string(R.string.support_ads_progress, 0, 5))
+            .assertIsDisplayed()
+        composeTestRule
+            .onAllNodesWithTag(REWARDED_AD_PROGRESS_CELL_TAG, useUnmergedTree = true)
+            .assertCountEquals(5)
+    }
+
+    @Test
+    fun `three watched videos render five cells with the first three filled`() {
+        setContent(
+            RewardedAdState(
+                status = RewardedAdStatus.Ready,
+                reward = RewardProgress(progress = 3, required = 5, plusActive = false),
+            ),
+        )
+
+        composeTestRule
+            .onNodeWithContentDescription(string(R.string.support_ads_progress, 3, 5))
+            .assertIsDisplayed()
+        composeTestRule
+            .onAllNodesWithTag(REWARDED_AD_PROGRESS_CELL_TAG, useUnmergedTree = true)
+            .assertCountEquals(5)
+    }
+
+    @Test
+    fun `five watched videos render five filled progress cells`() {
+        setContent(
+            RewardedAdState(
+                status = RewardedAdStatus.Ready,
+                reward = RewardProgress(progress = 5, required = 5, plusActive = false),
+            ),
+        )
+
+        composeTestRule
+            .onNodeWithContentDescription(string(R.string.support_ads_progress, 5, 5))
+            .assertIsDisplayed()
+        composeTestRule
+            .onAllNodesWithTag(REWARDED_AD_PROGRESS_CELL_TAG, useUnmergedTree = true)
+            .assertCountEquals(5)
     }
 
     // ─── STATE-001: re-arming after a confirmed view ─────────────────────────────

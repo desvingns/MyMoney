@@ -5,16 +5,19 @@ import android.content.Context
 import android.content.ContextWrapper
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.weight
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -95,7 +98,7 @@ fun RewardedAdContent(
                 state.status == RewardedAdStatus.Unauthenticated
         }
     val required = visibleReward?.required ?: DEFAULT_REQUIRED_VIEWS
-    val progress = visibleReward?.progress ?: 0
+    val progress = visibleReward?.progress?.coerceIn(0, DEFAULT_REQUIRED_VIEWS) ?: 0
     val action =
         when (state.status) {
             RewardedAdStatus.Unauthenticated ->
@@ -178,14 +181,9 @@ private fun RewardProgressRow(
     progress: Int,
     required: Int,
 ) {
+    val completedCells = progress.coerceIn(0, DEFAULT_REQUIRED_VIEWS)
     val progressText =
-        stringResource(R.string.support_ads_progress, progress, required)
-    val fraction =
-        if (required > 0) {
-            (progress.toFloat() / required.toFloat()).coerceIn(0f, 1f)
-        } else {
-            0f
-        }
+        stringResource(R.string.support_ads_progress, completedCells, required)
     Column(
         modifier = Modifier.clearAndSetSemantics { contentDescription = progressText },
         verticalArrangement = Arrangement.spacedBy(Spacing.supportPanelColumnGap),
@@ -194,12 +192,27 @@ private fun RewardProgressRow(
             text = progressText,
             style = MaterialTheme.typography.supportPanelSubtitle,
         )
-        LinearProgressIndicator(
-            progress = { fraction },
+        Row(
             modifier = Modifier.fillMaxWidth(),
-            color = MaterialTheme.colorScheme.rewardAdProgressIndicator,
-            trackColor = MaterialTheme.colorScheme.rewardAdProgressTrack,
-        )
+            horizontalArrangement = Arrangement.spacedBy(Spacing.supportPanelColumnGap),
+        ) {
+            repeat(DEFAULT_REQUIRED_VIEWS) { index ->
+                Box(
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .height(Spacing.supportRewardAdProgressCellHeight)
+                            .clip(MaterialTheme.shapes.supportPanelIllustration)
+                            .background(
+                                if (index < completedCells) {
+                                    MaterialTheme.colorScheme.rewardAdProgressIndicator
+                                } else {
+                                    MaterialTheme.colorScheme.rewardAdProgressTrack
+                                },
+                            ),
+                )
+            }
+        }
     }
 }
 

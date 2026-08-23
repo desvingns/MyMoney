@@ -7,15 +7,20 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -42,6 +47,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
@@ -57,11 +63,15 @@ import com.kshavrin.mymoney.core.ui.theme.supportDescription
 import com.kshavrin.mymoney.core.ui.theme.supportActionLabel
 import com.kshavrin.mymoney.core.ui.theme.supportPanel
 import com.kshavrin.mymoney.core.ui.theme.supportPanelContainer
+import com.kshavrin.mymoney.core.ui.theme.supportPanelDivider
 import com.kshavrin.mymoney.core.ui.theme.supportPanelIllustration
 import com.kshavrin.mymoney.core.ui.theme.supportPanelOutline
 import com.kshavrin.mymoney.core.ui.theme.supportPanelSubtitle
 import com.kshavrin.mymoney.core.ui.theme.supportPanelTitle
+import com.kshavrin.mymoney.core.ui.theme.supportPriceValue
 import com.kshavrin.mymoney.core.ui.theme.supportPrimaryAction
+import com.kshavrin.mymoney.core.ui.theme.supportProductName
+import com.kshavrin.mymoney.core.ui.theme.supportProductPrice
 import com.kshavrin.mymoney.feature.support.R
 import java.time.Instant
 import java.time.ZoneId
@@ -342,19 +352,44 @@ private fun PaywallPlans(
     purchaseState: PaywallPurchaseState = PaywallPurchaseState.Idle,
     onEvent: ((PaywallEvent) -> Unit)? = null,
 ) {
+    val monthlyPlan = plans.firstOrNull { it.id == PaywallPlanId.Monthly }
+    val yearlyPlan = plans.firstOrNull { it.id == PaywallPlanId.Yearly }
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.supportStatusGap)) {
-        plans.forEach { plan ->
-            PaywallPlanCard(
-                plan = plan,
-                onSelect =
-                    if (purchaseState == PaywallPurchaseState.Idle) {
-                        onEvent?.let { eventHandler ->
-                            { eventHandler(PaywallEvent.PlanSelected(plan.id)) }
-                        }
-                    } else {
-                        null
-                    },
-            )
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.supportPanel,
+            color = MaterialTheme.colorScheme.supportPanelContainer,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.supportPanelOutline),
+        ) {
+            Row(
+                modifier =
+                    Modifier
+                        .padding(Spacing.supportPanelPadding)
+                        .height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.supportPanelColumnGap),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                PaywallPlanColumn(
+                    modifier = Modifier.weight(1f),
+                    plan = monthlyPlan,
+                    planId = PaywallPlanId.Monthly,
+                    onSelect = planSelectHandler(PaywallPlanId.Monthly, purchaseState, onEvent),
+                )
+                Box(
+                    modifier =
+                        Modifier
+                            .fillMaxHeight()
+                            .width(1.dp)
+                            .background(MaterialTheme.colorScheme.supportPanelDivider),
+                )
+                PaywallPlanColumn(
+                    modifier = Modifier.weight(1f),
+                    plan = yearlyPlan,
+                    planId = PaywallPlanId.Yearly,
+                    onSelect = planSelectHandler(PaywallPlanId.Yearly, purchaseState, onEvent),
+                )
+            }
         }
         when (purchaseState) {
             PaywallPurchaseState.Idle -> Unit
@@ -385,28 +420,49 @@ private fun PaywallPlans(
     }
 }
 
+private fun planSelectHandler(
+    planId: PaywallPlanId,
+    purchaseState: PaywallPurchaseState,
+    onEvent: ((PaywallEvent) -> Unit)?,
+): (() -> Unit)? =
+    if (purchaseState == PaywallPurchaseState.Idle) {
+        onEvent?.let { eventHandler -> { eventHandler(PaywallEvent.PlanSelected(planId)) } }
+    } else {
+        null
+    }
+
 @Composable
-private fun PaywallPlanCard(
-    plan: PaywallPlan,
+private fun PaywallPlanColumn(
+    plan: PaywallPlan?,
+    planId: PaywallPlanId,
     onSelect: (() -> Unit)?,
+    modifier: Modifier = Modifier,
 ) {
-    PaywallCard {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(Spacing.supportPanelColumnGap),
+    ) {
         Icon(
             imageVector = Icons.Outlined.CreditCard,
-            contentDescription = stringResource(plan.id.iconContentDescriptionRes),
+            contentDescription = stringResource(planId.iconContentDescriptionRes),
         )
         Text(
-            text = stringResource(plan.id.titleRes),
-            style = MaterialTheme.typography.supportCardTitle,
+            text = stringResource(planId.titleRes),
+            style = MaterialTheme.typography.supportProductName,
+            textAlign = TextAlign.Center,
         )
         Text(
-            text = plan.formattedPrice ?: stringResource(plan.id.fallbackPriceRes),
-            style = MaterialTheme.typography.supportDescription,
+            text = plan?.formattedPrice ?: stringResource(planId.fallbackPriceRes),
+            color = MaterialTheme.colorScheme.supportPriceValue,
+            style = MaterialTheme.typography.supportProductPrice,
+            textAlign = TextAlign.Center,
         )
-        if (plan.id == PaywallPlanId.Yearly) {
+        if (planId == PaywallPlanId.Yearly) {
             Text(
                 text = stringResource(R.string.paywall_yearly_trial),
-                style = MaterialTheme.typography.supportDescription,
+                style = MaterialTheme.typography.supportPanelSubtitle,
+                textAlign = TextAlign.Center,
             )
         }
         onSelect?.let { select ->
@@ -416,8 +472,12 @@ private fun PaywallPlanCard(
                         .fillMaxWidth()
                         .heightIn(min = Spacing.supportActionMinHeight),
                 onClick = select,
+                shape = MaterialTheme.shapes.supportPrimaryAction,
             ) {
-                Text(stringResource(R.string.paywall_select_plan))
+                Text(
+                    text = stringResource(R.string.paywall_select_plan),
+                    style = MaterialTheme.typography.supportActionLabel,
+                )
             }
         }
     }

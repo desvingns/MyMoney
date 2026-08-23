@@ -1,7 +1,7 @@
 # Плашка рекламы в стилистике плашки кофе
 Epic: support-screen-redesign
 Order: 06 of 07
-Status: backlog
+Status: done
 Depends-on: support-screen-redesign-01, support-screen-redesign-03, support-screen-redesign-05
 Date: 2026-08-20
 Acceptance-matrix: ad_status=loading,unauthenticated,ready,no_fill,region_unavailable,offline,awaiting_confirmation,confirmation_timeout,rearming,unavailable; plus=active,inactive
@@ -97,5 +97,5 @@ Feature: Плашка рекламы на экране поддержки
 месте и приводится к общей стилистике с добавлением прогресс-бара.
 
 ## Implementation links
-- commit: —
-- files: —
+- commits: d6a4dbf2, 6f077cce, 3b624a70, 19f119db, 8cc214fb, 7a81a4ee
+- files: feature/support/src/main/java/com/kshavrin/mymoney/feature/support/rewardedad/RewardedAdScreen.kt; feature/support/src/test/java/com/kshavrin/mymoney/feature/support/rewardedad/RewardedAdScreenContentTest.kt

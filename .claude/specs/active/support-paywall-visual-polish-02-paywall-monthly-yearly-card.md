@@ -2,7 +2,7 @@
 
 Epic: support-paywall-visual-polish
 Order: 02 of 02
-Status: backlog
+Status: active
 Depends-on: —
 Date: 2026-08-23
 Risk-signals: visual

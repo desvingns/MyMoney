@@ -141,6 +141,50 @@ class PlusSubscriptionCoordinatorImplTest {
         assertTrue("prices cleared on catalog error", coordinator.state.value.prices.isEmpty())
     }
 
+    @Test
+    fun `refreshCatalog clears stale prices when a later region check reports UnavailableInRegion`() = runTest {
+        val billing = FakeBillingGateway().apply {
+            seedAvailability(BillingAvailability.Available)
+            seedSubscriptions(monthlyProduct, yearlyProduct)
+        }
+        val coordinator = coordinator(billing)
+        coordinator.refreshCatalog()
+        advanceUntilIdle()
+        assertTrue("prices must be populated from the first successful load", coordinator.state.value.prices.isNotEmpty())
+
+        billing.seedAvailability(BillingAvailability.UnavailableInRegion)
+        coordinator.refreshCatalog()
+        advanceUntilIdle()
+
+        assertEquals(PlusCatalogState.UnavailableInRegion, coordinator.state.value.catalog)
+        assertTrue(
+            "prices from a prior successful session must not survive into UnavailableInRegion",
+            coordinator.state.value.prices.isEmpty(),
+        )
+    }
+
+    @Test
+    fun `refreshCatalog clears stale prices when billing later reports Unavailable`() = runTest {
+        val billing = FakeBillingGateway().apply {
+            seedAvailability(BillingAvailability.Available)
+            seedSubscriptions(monthlyProduct, yearlyProduct)
+        }
+        val coordinator = coordinator(billing)
+        coordinator.refreshCatalog()
+        advanceUntilIdle()
+        assertTrue("prices must be populated from the first successful load", coordinator.state.value.prices.isNotEmpty())
+
+        billing.seedAvailability(BillingAvailability.UnavailableOnDevice)
+        coordinator.refreshCatalog()
+        advanceUntilIdle()
+
+        assertEquals(PlusCatalogState.Unavailable, coordinator.state.value.catalog)
+        assertTrue(
+            "prices from a prior successful session must not survive into Unavailable",
+            coordinator.state.value.prices.isEmpty(),
+        )
+    }
+
     // endregion
 
     // region purchase – happy path
@@ -380,6 +424,102 @@ class PlusSubscriptionCoordinatorImplTest {
         assertEquals(
             "active Plus entitlement arriving while Pending must reset purchase to Idle",
             PlusPurchaseState.Idle,
+            coordinator.state.value.purchase,
+        )
+
+        purchaseJob.cancel()
+    }
+
+    // endregion
+
+    // region critical fixes from independent-critic review (stale state across screen visits)
+
+    @Test
+    fun `refreshCatalog resets a stalled AwaitingEntitlement purchase to Idle on next screen visit`() = runTest {
+        val entitlementRepo = FakeEntitlementRepository()
+        val coordinator = coordinator(
+            TestBillingGateway(flowOf(PurchaseOutcome.Purchased("plus_monthly", "tok-monthly", 0L))),
+            entitlementRepo,
+        )
+        coordinator.refreshCatalog()
+        advanceUntilIdle()
+
+        val purchaseJob = launch { coordinator.purchase(PlusPlanId.Monthly) }
+        advanceUntilIdle()
+        purchaseJob.cancel()
+
+        assertEquals(
+            "reconciliation must exhaust retries and land on AwaitingEntitlement when entitlement never confirms",
+            PlusPurchaseState.AwaitingEntitlement,
+            coordinator.state.value.purchase,
+        )
+
+        // The coordinator is a Singleton: this simulates the user leaving the Paywall screen
+        // (destroying the ViewModel) and reopening it later (a fresh ViewModel calling
+        // refreshCatalog() on init, same as the pre-extraction per-instance ViewModel did).
+        coordinator.refreshCatalog()
+        advanceUntilIdle()
+
+        assertEquals(
+            "reopening the screen must not leave the user permanently unable to purchase",
+            PlusPurchaseState.Idle,
+            coordinator.state.value.purchase,
+        )
+    }
+
+    @Test
+    fun `refreshCatalog resets a stalled Pending purchase to Idle on next screen visit`() = runTest {
+        val coordinator = coordinator(
+            TestBillingGateway(
+                flow {
+                    emit(PurchaseOutcome.Pending)
+                    awaitCancellation()
+                },
+            ),
+        )
+        coordinator.refreshCatalog()
+        advanceUntilIdle()
+
+        val purchaseJob = launch { coordinator.purchase(PlusPlanId.Monthly) }
+        runCurrent()
+        assertEquals(PlusPurchaseState.Pending, coordinator.state.value.purchase)
+        purchaseJob.cancel()
+
+        coordinator.refreshCatalog()
+        advanceUntilIdle()
+
+        assertEquals(
+            "a family-approval Pending purchase abandoned by the user must not block the paywall forever",
+            PlusPurchaseState.Idle,
+            coordinator.state.value.purchase,
+        )
+    }
+
+    @Test
+    fun `refreshCatalog does not disturb an actively reconciling purchase`() = runTest {
+        val entitlementRepo = FakeEntitlementRepository()
+        val coordinator = coordinator(
+            TestBillingGateway(flowOf(PurchaseOutcome.Purchased("plus_monthly", "tok-monthly", 0L))),
+            entitlementRepo,
+        )
+        coordinator.refreshCatalog()
+        advanceUntilIdle()
+
+        val purchaseJob = launch { coordinator.purchase(PlusPlanId.Monthly) }
+        runCurrent()
+
+        assertEquals(
+            "reconciliation should be live (not yet exhausted) right after a Purchased outcome",
+            PlusPurchaseState.ReconcilingEntitlement,
+            coordinator.state.value.purchase,
+        )
+
+        coordinator.refreshCatalog()
+        runCurrent()
+
+        assertEquals(
+            "a refresh triggered while reconciliation is actively in flight must not reset it out from under itself",
+            PlusPurchaseState.ReconcilingEntitlement,
             coordinator.state.value.purchase,
         )
 

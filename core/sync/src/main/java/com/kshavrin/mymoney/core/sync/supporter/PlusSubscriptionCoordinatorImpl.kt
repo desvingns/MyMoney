@@ -54,7 +54,25 @@ class PlusSubscriptionCoordinatorImpl
             catalogRefreshJob?.cancel()
             catalogRefreshJob =
                 applicationScope.launch {
-                    _state.value = _state.value.copy(catalog = PlusCatalogState.Loading)
+                    val currentState = _state.value
+                    _state.value =
+                        currentState.copy(
+                            catalog = PlusCatalogState.Loading,
+                            // The coordinator is a Singleton and outlives any single Paywall
+                            // screen visit. A stalled reconciliation (Pending family-approval,
+                            // or retries exhausted with no local entitlement confirmation) must
+                            // not block purchasing forever just because the user left and came
+                            // back — this call only runs on screen (re)open, so it mirrors the
+                            // fresh-ViewModel-instance reset the pre-extraction code got for
+                            // free. Idle/InProgress/ReconcilingEntitlement are left untouched:
+                            // the latter two reflect a purchase actively in flight right now.
+                            purchase =
+                                if (currentState.purchase.isStalledAwaitingEntitlement()) {
+                                    PlusPurchaseState.Idle
+                                } else {
+                                    currentState.purchase
+                                },
+                        )
                     try {
                         applyAvailability(billingGateway.availability().first())
                     } catch (throwable: Throwable) {
@@ -161,11 +179,12 @@ class PlusSubscriptionCoordinatorImpl
             when (availability) {
                 BillingAvailability.Available -> loadCatalog()
                 BillingAvailability.UnavailableInRegion ->
-                    _state.value = _state.value.copy(catalog = PlusCatalogState.UnavailableInRegion)
+                    _state.value =
+                        _state.value.copy(catalog = PlusCatalogState.UnavailableInRegion, prices = emptyMap())
 
                 BillingAvailability.DisabledInBuild,
                 BillingAvailability.UnavailableOnDevice,
-                -> _state.value = _state.value.copy(catalog = PlusCatalogState.Unavailable)
+                -> _state.value = _state.value.copy(catalog = PlusCatalogState.Unavailable, prices = emptyMap())
 
                 BillingAvailability.NetworkUnavailable,
                 BillingAvailability.ServiceUnavailable,
@@ -250,6 +269,13 @@ private fun PlusPurchaseState.isAwaitingEntitlement(): Boolean =
     this == PlusPurchaseState.ReconcilingEntitlement ||
         this == PlusPurchaseState.AwaitingEntitlement ||
         this == PlusPurchaseState.Pending
+
+// Unlike isAwaitingEntitlement(), excludes ReconcilingEntitlement: that state has a live
+// coroutine actively ticking through the retry loop right now and must not be reset out from
+// under it. Pending/AwaitingEntitlement have no such in-flight worker — nothing but a future
+// entitlement observation (which may never arrive) can move them off this value otherwise.
+private fun PlusPurchaseState.isStalledAwaitingEntitlement(): Boolean =
+    this == PlusPurchaseState.AwaitingEntitlement || this == PlusPurchaseState.Pending
 
 private val ENTITLEMENT_RECONCILIATION_DELAYS_MILLIS = listOf(500L, 1_000L, 2_000L)
 private const val ENTITLEMENT_REFRESH_TIMEOUT_MILLIS = 10_000L

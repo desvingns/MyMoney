@@ -131,6 +131,7 @@ class PaywallScreenContentTest {
         composeTestRule.onNodeWithText(string(R.string.paywall_prices_error)).performScrollTo().assertIsDisplayed()
         composeTestRule.onNodeWithText(string(R.string.paywall_retry)).performScrollTo().assertIsEnabled().performClick()
         composeTestRule.onNodeWithText(string(R.string.paywall_monthly_fallback_price)).performScrollTo().assertIsDisplayed()
+        composeTestRule.onAllNodesWithText(string(R.string.paywall_select_plan)).assertCountEquals(0)
 
         composeTestRule.runOnIdle {
             assertEquals(listOf(PaywallEvent.RetryClicked), events)

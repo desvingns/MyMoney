@@ -5,4 +5,5 @@ data class SupporterState(
     val purchaseCount: Int,
     val smallCoffeeCount: Int = 0,
     val largeCoffeeCount: Int = 0,
+    val hasSupportActivity: Boolean = false,
 )

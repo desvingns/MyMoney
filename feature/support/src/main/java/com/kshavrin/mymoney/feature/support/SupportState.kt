@@ -10,6 +10,7 @@ data class SupportState(
     val products: List<SupportProduct> = emptyList(),
     val supporterState: SupporterState = SupporterState(badgeEarned = false, purchaseCount = 0),
     val adsWatchedTotal: Int = 0,
+    val hasSupportActivity: Boolean = false,
     val isPurchaseInProgress: Boolean = false,
 )
 

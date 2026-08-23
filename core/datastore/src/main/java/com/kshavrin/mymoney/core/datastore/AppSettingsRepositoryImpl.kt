@@ -42,6 +42,9 @@ class AppSettingsRepositoryImpl
                 if (current.supporterBadgeEarned && !next.supporterBadgeEarned) {
                     throw IllegalStateException("supporterBadgeEarned is monotonic - cannot flip true to false")
                 }
+                if (current.supporterActivityRecorded && !next.supporterActivityRecorded) {
+                    throw IllegalStateException("supporterActivityRecorded is monotonic - cannot flip true to false")
+                }
                 if (next.supportPurchaseCountSmall < current.supportPurchaseCountSmall) {
                     throw IllegalStateException("supportPurchaseCountSmall is monotonic - cannot decrease")
                 }
@@ -58,6 +61,7 @@ class AppSettingsRepositoryImpl
             dataStore.edit { prefs ->
                 val deviceId = prefs[AppSettingsKeys.DEVICE_ID]
                 val supporterBadgeEarned = prefs[AppSettingsKeys.SUPPORTER_BADGE_EARNED] ?: false
+                val supporterActivityRecorded = prefs[AppSettingsKeys.SUPPORTER_ACTIVITY_RECORDED] ?: false
                 val supportPurchaseCount = prefs[AppSettingsKeys.SUPPORT_PURCHASE_COUNT] ?: 0
                 val supportPurchaseCountSmall = prefs[AppSettingsKeys.SUPPORT_PURCHASE_COUNT_SMALL] ?: 0
                 val supportPurchaseCountLarge = prefs[AppSettingsKeys.SUPPORT_PURCHASE_COUNT_LARGE] ?: 0
@@ -71,6 +75,7 @@ class AppSettingsRepositoryImpl
                     prefs[AppSettingsKeys.DEVICE_ID] = deviceId
                 }
                 prefs[AppSettingsKeys.SUPPORTER_BADGE_EARNED] = supporterBadgeEarned
+                prefs[AppSettingsKeys.SUPPORTER_ACTIVITY_RECORDED] = supporterActivityRecorded
                 prefs[AppSettingsKeys.SUPPORT_PURCHASE_COUNT] = supportPurchaseCount
                 prefs[AppSettingsKeys.SUPPORT_PURCHASE_COUNT_SMALL] = supportPurchaseCountSmall
                 prefs[AppSettingsKeys.SUPPORT_PURCHASE_COUNT_LARGE] = supportPurchaseCountLarge
@@ -104,6 +109,7 @@ internal fun Preferences.toAppSettings(): AppSettings =
         budgetModeEnabled = this[AppSettingsKeys.BUDGET_MODE_ENABLED] ?: true,
         firstPositiveSeen = this[AppSettingsKeys.FIRST_POSITIVE_SEEN] ?: false,
         supporterBadgeEarned = this[AppSettingsKeys.SUPPORTER_BADGE_EARNED] ?: false,
+        supporterActivityRecorded = this[AppSettingsKeys.SUPPORTER_ACTIVITY_RECORDED] ?: false,
         supportPurchaseCount = this[AppSettingsKeys.SUPPORT_PURCHASE_COUNT] ?: 0,
         supportPurchaseCountSmall = this[AppSettingsKeys.SUPPORT_PURCHASE_COUNT_SMALL] ?: 0,
         supportPurchaseCountLarge = this[AppSettingsKeys.SUPPORT_PURCHASE_COUNT_LARGE] ?: 0,
@@ -152,6 +158,7 @@ internal fun AppSettings.writeTo(prefs: androidx.datastore.preferences.core.Muta
     prefs[AppSettingsKeys.BUDGET_MODE_ENABLED] = budgetModeEnabled
     prefs[AppSettingsKeys.FIRST_POSITIVE_SEEN] = firstPositiveSeen
     prefs[AppSettingsKeys.SUPPORTER_BADGE_EARNED] = supporterBadgeEarned
+    prefs[AppSettingsKeys.SUPPORTER_ACTIVITY_RECORDED] = supporterActivityRecorded
     prefs[AppSettingsKeys.SUPPORT_PURCHASE_COUNT] = supportPurchaseCount
     prefs[AppSettingsKeys.SUPPORT_PURCHASE_COUNT_SMALL] = supportPurchaseCountSmall
     prefs[AppSettingsKeys.SUPPORT_PURCHASE_COUNT_LARGE] = supportPurchaseCountLarge

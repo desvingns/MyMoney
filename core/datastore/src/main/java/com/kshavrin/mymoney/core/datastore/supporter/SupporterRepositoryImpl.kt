@@ -24,13 +24,14 @@ class SupporterRepositoryImpl
     ) : SupporterRepository {
         override fun state(): Flow<SupporterState> =
             appSettingsRepository.settings
-                .onStart { backfillPurchaseSplitIfNeeded() }
+                .onStart { backfillSupportActivityIfNeeded() }
                 .map { settings ->
                     SupporterState(
                         badgeEarned = settings.supporterBadgeEarned,
                         purchaseCount = settings.supportPurchaseCount,
                         smallCoffeeCount = settings.supportPurchaseCountSmall,
                         largeCoffeeCount = settings.supportPurchaseCountLarge,
+                        hasSupportActivity = settings.hasRecordedSupportActivity(),
                     )
                 }.distinctUntilChanged()
 
@@ -43,6 +44,7 @@ class SupporterRepositoryImpl
                         val backfilledSettings = settings.withBackfilledPurchaseSplit()
                         backfilledSettings.copy(
                             supporterBadgeEarned = true,
+                            supporterActivityRecorded = true,
                             supportPurchaseCount = backfilledSettings.supportPurchaseCount + 1,
                             supportPurchaseCountSmall =
                                 backfilledSettings.supportPurchaseCountSmall +
@@ -52,6 +54,19 @@ class SupporterRepositoryImpl
                                     if (outcome.productId == COFFEE_LARGE_PRODUCT_ID) 1 else 0,
                             supporterPurchaseTokens = backfilledSettings.supporterPurchaseTokens + outcome.purchaseToken,
                         )
+                    }
+                }
+            }
+
+        override suspend fun recordSupportActivity(): Result<Unit> =
+            cancellationAwareResult {
+                if (!appSettingsRepository.settings.first().supporterActivityRecorded) {
+                    appSettingsRepository.update { settings ->
+                        if (settings.supporterActivityRecorded) {
+                            settings
+                        } else {
+                            settings.copy(supporterActivityRecorded = true)
+                        }
                     }
                 }
             }
@@ -66,14 +81,21 @@ class SupporterRepositoryImpl
                     backfilledSettings
                         .copy(
                             supporterBadgeEarned = backfilledSettings.supporterBadgeEarned || remoteBadge,
+                            supporterActivityRecorded =
+                                backfilledSettings.supporterActivityRecorded || remoteBadge || remoteCount > 0,
                             supportPurchaseCount = maxOf(backfilledSettings.supportPurchaseCount, remoteCount),
                         )
                 }
             }
 
-        private suspend fun backfillPurchaseSplitIfNeeded() {
-            if (!appSettingsRepository.settings.first().supportPurchaseSplitBackfilled) {
-                appSettingsRepository.update { settings -> settings.withBackfilledPurchaseSplit() }
+        private suspend fun backfillSupportActivityIfNeeded() {
+            val settings = appSettingsRepository.settings.first()
+            if (!settings.supportPurchaseSplitBackfilled || settings.requiresSupportActivityBackfill()) {
+                appSettingsRepository.update { current ->
+                    current
+                        .withBackfilledPurchaseSplit()
+                        .withBackfilledSupportActivity()
+                }
             }
         }
 
@@ -86,6 +108,23 @@ class SupporterRepositoryImpl
                     supportPurchaseSplitBackfilled = true,
                 )
             }
+
+        private fun AppSettings.withBackfilledSupportActivity(): AppSettings =
+            if (hasRecordedSupportActivity()) this else copy(supporterActivityRecorded = true)
+
+        private fun AppSettings.requiresSupportActivityBackfill(): Boolean =
+            !supporterActivityRecorded &&
+                (supporterBadgeEarned ||
+                    supportPurchaseCount > 0 ||
+                    supportPurchaseCountSmall > 0 ||
+                    supportPurchaseCountLarge > 0)
+
+        private fun AppSettings.hasRecordedSupportActivity(): Boolean =
+            supporterActivityRecorded ||
+                supporterBadgeEarned ||
+                supportPurchaseCount > 0 ||
+                supportPurchaseCountSmall > 0 ||
+                supportPurchaseCountLarge > 0
 
         private suspend fun <T> cancellationAwareResult(block: suspend () -> T): Result<T> =
             try {

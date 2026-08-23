@@ -19,6 +19,7 @@ data class AppSettings(
     val budgetModeEnabled: Boolean = true,
     val firstPositiveSeen: Boolean = false,
     val supporterBadgeEarned: Boolean = false,
+    val supporterActivityRecorded: Boolean = false,
     val supportPurchaseCount: Int = 0,
     val supportPurchaseCountSmall: Int = 0,
     val supportPurchaseCountLarge: Int = 0,

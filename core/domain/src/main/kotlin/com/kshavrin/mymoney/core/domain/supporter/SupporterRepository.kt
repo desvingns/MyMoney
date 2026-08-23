@@ -12,6 +12,8 @@ interface SupporterRepository : SupporterStateSource {
 
     suspend fun recordPurchase(outcome: PurchaseOutcome.Purchased): Result<Unit>
 
+    suspend fun recordSupportActivity(): Result<Unit> = Result.success(Unit)
+
     suspend fun mergeRemote(
         remoteCount: Int,
         remoteBadge: Boolean,

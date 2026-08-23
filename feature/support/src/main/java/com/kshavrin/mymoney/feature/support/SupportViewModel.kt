@@ -10,11 +10,16 @@ import com.kshavrin.mymoney.core.domain.billing.BillingAvailability
 import com.kshavrin.mymoney.core.domain.billing.BillingGateway
 import com.kshavrin.mymoney.core.domain.billing.PurchaseOutcome
 import com.kshavrin.mymoney.core.domain.billing.SupportProduct
+import com.kshavrin.mymoney.core.domain.model.EntitlementSource
+import com.kshavrin.mymoney.core.domain.model.EntitlementState
+import com.kshavrin.mymoney.core.domain.model.UserEntitlement
 import com.kshavrin.mymoney.core.domain.supporter.SupportPurchaseReconciliationCoordinator
 import com.kshavrin.mymoney.core.domain.supporter.SupportPurchaseReconciliationState
 import com.kshavrin.mymoney.core.domain.supporter.SupporterStateSource
 import com.kshavrin.mymoney.core.domain.usecase.ObserveAdRewardStateUseCase
+import com.kshavrin.mymoney.core.domain.usecase.ObserveEntitlementUseCase
 import com.kshavrin.mymoney.core.domain.usecase.ObserveSupporterStateUseCase
+import com.kshavrin.mymoney.core.domain.usecase.RecordSupportActivityUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
@@ -39,6 +44,8 @@ class SupportViewModel
         private val billingGateway: BillingGateway,
         private val observeSupporterStateUseCase: ObserveSupporterStateUseCase,
         private val observeAdRewardStateUseCase: ObserveAdRewardStateUseCase?,
+        private val observeEntitlementUseCase: ObserveEntitlementUseCase?,
+        private val recordSupportActivityUseCase: RecordSupportActivityUseCase?,
         private val supportPurchaseReconciliationCoordinator: SupportPurchaseReconciliationCoordinator,
         private val analyticsGateway: AnalyticsGateway,
         @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
@@ -50,10 +57,14 @@ class SupportViewModel
             supportPurchaseReconciliationCoordinator: SupportPurchaseReconciliationCoordinator,
             analyticsGateway: AnalyticsGateway,
             ioDispatcher: CoroutineDispatcher,
+            observeEntitlementUseCase: ObserveEntitlementUseCase? = null,
+            recordSupportActivityUseCase: RecordSupportActivityUseCase? = null,
         ) : this(
             billingGateway = billingGateway,
             observeSupporterStateUseCase = ObserveSupporterStateUseCase(supporterRepository),
             observeAdRewardStateUseCase = observeAdRewardStateUseCase,
+            observeEntitlementUseCase = observeEntitlementUseCase,
+            recordSupportActivityUseCase = recordSupportActivityUseCase,
             supportPurchaseReconciliationCoordinator = supportPurchaseReconciliationCoordinator,
             analyticsGateway = analyticsGateway,
             ioDispatcher = ioDispatcher,
@@ -79,6 +90,7 @@ class SupportViewModel
             log(AnalyticsEvent.SupportOpened)
             observeSupporterState()
             observeAdRewardState()
+            observeEntitlement()
             observePurchaseReconciliation()
             refreshBilling()
         }
@@ -104,7 +116,11 @@ class SupportViewModel
                 viewModelScope.launch {
                     try {
                         observeSupporterStateUseCase().collect { supporterState ->
-                            _state.value = _state.value.copy(supporterState = supporterState)
+                            _state.value =
+                                _state.value.copy(
+                                    supporterState = supporterState,
+                                    hasSupportActivity = supporterState.hasSupportActivity,
+                                )
                         }
                     } catch (throwable: Throwable) {
                         if (throwable is CancellationException) throw throwable
@@ -118,8 +134,10 @@ class SupportViewModel
             viewModelScope.launch {
                 try {
                     observeAdRewardState.state.collect { adRewardState ->
+                        val adsWatchedTotal = adRewardState?.totalWatched ?: 0
                         _state.value =
-                            _state.value.copy(adsWatchedTotal = adRewardState?.totalWatched ?: 0)
+                            _state.value.copy(adsWatchedTotal = adsWatchedTotal)
+                        if (adsWatchedTotal > 0) recordSupportActivity()
                     }
                 } catch (throwable: Throwable) {
                     if (throwable is CancellationException) throw throwable
@@ -180,6 +198,28 @@ class SupportViewModel
                         }
                     }
                 }
+        }
+
+        private fun observeEntitlement() {
+            val observeEntitlement = observeEntitlementUseCase ?: return
+            viewModelScope.launch {
+                try {
+                    observeEntitlement.entitlement.collect { entitlement ->
+                        if (entitlement.isQualifyingSubscription()) recordSupportActivity()
+                    }
+                } catch (throwable: Throwable) {
+                    if (throwable is CancellationException) throw throwable
+                    throwable.reportToSentry()
+                }
+            }
+        }
+
+        private suspend fun recordSupportActivity() {
+            val recordSupportActivity = recordSupportActivityUseCase ?: return
+            recordSupportActivity().exceptionOrNull()?.let { throwable ->
+                if (throwable is CancellationException) throw throwable
+                throwable.reportToSentry()
+            }
         }
 
         private fun invalidateAvailabilityRefresh() {
@@ -409,3 +449,16 @@ private fun PurchaseOutcome.analyticsOutcome(): String =
         is PurchaseOutcome.Unavailable -> "unavailable"
         PurchaseOutcome.Pending -> error("Pending purchases do not complete an attempt")
     }
+
+private fun UserEntitlement.isQualifyingSubscription(): Boolean =
+    this is UserEntitlement.Plus &&
+        state == EntitlementState.ACTIVE &&
+        when (source) {
+            EntitlementSource.SUBSCRIPTION_MONTHLY,
+            EntitlementSource.SUBSCRIPTION_YEARLY,
+            -> true
+
+            EntitlementSource.AD_REWARD,
+            EntitlementSource.WHITELIST,
+            -> false
+        }

@@ -49,6 +49,7 @@ class SupporterPurchaseStoreImpl
                     if (outcome.purchaseToken !in purchaseTokens) {
                         preferences.backfillPurchaseSplitIfNeeded()
                         preferences[AppSettingsKeys.SUPPORTER_BADGE_EARNED] = true
+                        preferences[AppSettingsKeys.SUPPORTER_ACTIVITY_RECORDED] = true
                         preferences[AppSettingsKeys.SUPPORT_PURCHASE_COUNT] =
                             (preferences[AppSettingsKeys.SUPPORT_PURCHASE_COUNT] ?: 0) + 1
                         when (outcome.productId) {

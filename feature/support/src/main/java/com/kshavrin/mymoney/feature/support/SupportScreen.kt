@@ -51,7 +51,6 @@ import com.kshavrin.mymoney.core.ui.theme.supportCounterLabel
 import com.kshavrin.mymoney.core.ui.theme.supportCounterValue
 import com.kshavrin.mymoney.core.ui.theme.supportHeadline
 import com.kshavrin.mymoney.core.ui.theme.supportHeadlineAccent
-import com.kshavrin.mymoney.core.ui.theme.supportHeroIllustration
 import com.kshavrin.mymoney.core.ui.theme.supportPanel
 import com.kshavrin.mymoney.core.ui.theme.supportPanelContainer
 import com.kshavrin.mymoney.core.ui.theme.supportPanelDivider
@@ -91,14 +90,14 @@ fun SupportContent(
                     ),
             verticalArrangement = Arrangement.spacedBy(Spacing.supportPanelGap),
         ) {
-            SupportHeroIntro()
+            SupportHeadline()
+            if (state.hasSupportActivity) SupporterGratitude(state = state)
             adSlot()
             SupportPurchaseSection(
                 state = state,
                 onEvent = onEvent,
             )
             plusSlot()
-            SupporterGratitude(state = state)
         }
     }
 }
@@ -132,26 +131,6 @@ private fun SupportBackRow(onBack: () -> Unit) {
             text = stringResource(R.string.support_title),
             style = MaterialTheme.typography.supportBackLabel,
         )
-    }
-}
-
-@Composable
-private fun SupportHeroIntro() {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(Spacing.supportPanelGap),
-    ) {
-        Image(
-            painter = painterResource(DesignSystemR.drawable.support_neon_hero_cup),
-            contentDescription = stringResource(R.string.support_image_hero_description),
-            contentScale = ContentScale.Fit,
-            modifier =
-                Modifier
-                    .size(Spacing.supportHeroSize)
-                    .clip(MaterialTheme.shapes.supportHeroIllustration),
-        )
-        SupportHeadline()
     }
 }
 

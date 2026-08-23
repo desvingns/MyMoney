@@ -25,6 +25,7 @@ internal object AppSettingsKeys {
     val BUDGET_MODE_ENABLED = booleanPreferencesKey("budget_mode_enabled")
     val FIRST_POSITIVE_SEEN = booleanPreferencesKey("first_positive_seen")
     val SUPPORTER_BADGE_EARNED = booleanPreferencesKey("supporter_badge_earned")
+    val SUPPORTER_ACTIVITY_RECORDED = booleanPreferencesKey("supporter_activity_recorded")
     val SUPPORT_PURCHASE_COUNT = intPreferencesKey("support_purchase_count")
     val SUPPORT_PURCHASE_COUNT_SMALL = intPreferencesKey("support_purchase_count_small")
     val SUPPORT_PURCHASE_COUNT_LARGE = intPreferencesKey("support_purchase_count_large")

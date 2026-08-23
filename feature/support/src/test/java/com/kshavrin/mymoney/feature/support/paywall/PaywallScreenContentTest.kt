@@ -110,6 +110,9 @@ class PaywallScreenContentTest {
         )
 
         composeTestRule.onNodeWithText(string(R.string.paywall_region_unavailable)).performScrollTo().assertIsDisplayed()
+        // Plans card renders non-interactively alongside the message (acceptance cell #4)
+        composeTestRule.onNodeWithText(string(R.string.paywall_monthly_title)).performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.paywall_yearly_title)).performScrollTo().assertIsDisplayed()
         composeTestRule.onAllNodesWithText(string(R.string.paywall_select_plan)).assertCountEquals(0)
     }
 
@@ -238,6 +241,105 @@ class PaywallScreenContentTest {
 
         composeTestRule.onNodeWithText(string(R.string.paywall_status_local_only)).performScrollTo().assertIsDisplayed()
         composeTestRule.onAllNodesWithText(string(R.string.paywall_monthly_title)).assertCountEquals(0)
+    }
+
+    // --- Acceptance cell #1: layout — single two-column card ---
+
+    @Test
+    fun `plans card renders both columns inside a single container with one icon per plan`() {
+        setContent(state = availableState())
+
+        // One CreditCard icon per column — both columns are rendered inside the single card
+        composeTestRule
+            .onNodeWithContentDescription(string(R.string.paywall_monthly_icon_content_description))
+            .performScrollTo()
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithContentDescription(string(R.string.paywall_yearly_icon_content_description))
+            .performScrollTo()
+            .assertIsDisplayed()
+        // Each plan title appears exactly once — no duplication from a multi-card layout
+        composeTestRule.onAllNodesWithText(string(R.string.paywall_monthly_title)).assertCountEquals(1)
+        composeTestRule.onAllNodesWithText(string(R.string.paywall_yearly_title)).assertCountEquals(1)
+        // Two select buttons total — one per column inside the single Surface
+        composeTestRule.onAllNodesWithText(string(R.string.paywall_select_plan)).assertCountEquals(2)
+    }
+
+    // --- Explicit click ordering: Row left-to-right = Monthly[0], Yearly[1] ---
+
+    @Test
+    fun `select plan button at index zero emits Monthly event and index one emits Yearly event`() {
+        val events = mutableListOf<PaywallEvent>()
+        setContent(state = availableState(), onEvent = events::add)
+
+        // Button at index 0 must be Monthly (left column)
+        composeTestRule.onAllNodesWithText(string(R.string.paywall_select_plan)).get(0)
+            .performScrollTo().performClick()
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(PaywallEvent.PlanSelected(PaywallPlanId.Monthly)), events)
+        }
+
+        events.clear()
+
+        // Button at index 1 must be Yearly (right column)
+        composeTestRule.onAllNodesWithText(string(R.string.paywall_select_plan)).get(1)
+            .performScrollTo().performClick()
+        composeTestRule.runOnIdle {
+            assertEquals(listOf(PaywallEvent.PlanSelected(PaywallPlanId.Yearly)), events)
+        }
+    }
+
+    // --- Missing plan: null plan in one column renders fallback price, does not crash ---
+
+    @Test
+    fun `missing yearly plan shows yearly fallback price without crashing`() {
+        setContent(
+            state =
+                PaywallState(
+                    catalogState = PaywallCatalogState.Available,
+                    plans = listOf(PaywallPlan(PaywallPlanId.Monthly, "€2.49 / month")),
+                ),
+        )
+
+        // Monthly column renders with real price
+        composeTestRule.onNodeWithText(string(R.string.paywall_monthly_title)).performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText("€2.49 / month").performScrollTo().assertIsDisplayed()
+        composeTestRule.onAllNodesWithText(string(R.string.paywall_monthly_fallback_price)).assertCountEquals(0)
+        // Yearly column still renders; null plan falls back to the static fallback string
+        composeTestRule.onNodeWithText(string(R.string.paywall_yearly_title)).performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.paywall_yearly_fallback_price)).performScrollTo().assertIsDisplayed()
+    }
+
+    // --- Yearly trial text also renders in a non-interactive catalog state ---
+
+    @Test
+    fun `yearly trial text renders in unavailable region state`() {
+        setContent(
+            state =
+                availableState().copy(
+                    catalogState = PaywallCatalogState.UnavailableInRegion,
+                ),
+        )
+
+        composeTestRule.onNodeWithText(string(R.string.paywall_yearly_trial)).performScrollTo().assertIsDisplayed()
+    }
+
+    // --- Acceptance cell #5: Unavailable catalog state ---
+
+    @Test
+    fun `billing unavailable explains the limitation and renders plans non-interactively`() {
+        setContent(
+            state =
+                availableState().copy(
+                    catalogState = PaywallCatalogState.Unavailable,
+                ),
+        )
+
+        composeTestRule.onNodeWithText(string(R.string.paywall_billing_unavailable)).performScrollTo().assertIsDisplayed()
+        // Both plan columns render alongside the message (non-interactive: no onEvent forwarded)
+        composeTestRule.onNodeWithText(string(R.string.paywall_monthly_title)).performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.paywall_yearly_title)).performScrollTo().assertIsDisplayed()
+        composeTestRule.onAllNodesWithText(string(R.string.paywall_select_plan)).assertCountEquals(0)
     }
 
     @Test

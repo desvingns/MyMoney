@@ -31,6 +31,47 @@ class PaywallStringsTest {
     }
 
     @Test
+    fun `new support screen strings exist in both locales`() {
+        val english = parseStrings(enFile)
+        val russian = parseStrings(ruFile)
+        val expectedKeys =
+            setOf(
+                "support_back_label",
+                "support_headline_lead",
+                "support_headline_accent",
+                "support_coffee_small_name",
+                "support_coffee_large_name",
+                "support_coffee_generic_name",
+                "support_purchase_action",
+                "support_gratitude_title_supporter",
+                "support_gratitude_body_supporter",
+                "support_gratitude_title_prospect",
+                "support_gratitude_body_prospect",
+                "support_counter_ads_label",
+                "support_counter_coffee_small_label",
+                "support_counter_coffee_large_label",
+                "support_image_hero_description",
+                "support_image_coffee_small_description",
+                "support_image_coffee_large_description",
+                "support_image_ads_description",
+                "support_image_plus_description",
+                "support_image_avatar_description",
+            )
+
+        assertTrue(
+            "Missing new EN support keys: ${expectedKeys - english.keys}",
+            expectedKeys.all(english::containsKey),
+        )
+        assertTrue(
+            "Missing new RU support keys: ${expectedKeys - russian.keys}",
+            expectedKeys.all(russian::containsKey),
+        )
+        assertTrue(
+            expectedKeys.all { english.getValue(it).isNotBlank() && russian.getValue(it).isNotBlank() },
+        )
+    }
+
+    @Test
     fun `english and russian rewarded ad string keys stay in parity`() {
         val english = parseStrings(enFile).filterKeys { it.startsWith("support_ads_") }
         val russian = parseStrings(ruFile).filterKeys { it.startsWith("support_ads_") }

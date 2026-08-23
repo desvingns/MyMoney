@@ -56,6 +56,33 @@ class SupportScreenContentTest {
     }
 
     @Test
+    fun `description subtitle is absent from the support screen`() {
+        setContent(state = availableState())
+        // support_description was deleted from strings.xml; assert the removed text never reaches the UI
+        composeTestRule
+            .onNodeWithText("MyMoney is made independently. A coffee helps keep it growing.")
+            .assertDoesNotExist()
+    }
+
+    @Test
+    fun `headline block fills available width and is centered on screen`() {
+        setContent(state = availableState())
+
+        val rootCenterX = composeTestRule.onRoot().fetchSemanticsNode().boundsInRoot.center.x
+        val headlineCenterX =
+            composeTestRule
+                .onNodeWithText(string(R.string.support_headline_lead))
+                .fetchSemanticsNode()
+                .boundsInRoot
+                .center.x
+        val tolerancePx = with(composeTestRule.density) { 2.dp.toPx() }
+        assertTrue(
+            "Headline centerX $headlineCenterX should be within ${tolerancePx}px of root centerX $rootCenterX",
+            kotlin.math.abs(headlineCenterX - rootCenterX) <= tolerancePx,
+        )
+    }
+
+    @Test
     fun `gratitude card stays hidden by default and shows all zero counters after activity`() {
         val state = mutableStateOf(SupportState())
         composeTestRule.setContent {

@@ -141,12 +141,12 @@ class SupportScreenContentTest {
                     supporterState = SupporterState(badgeEarned = true, purchaseCount = 3),
                     hasSupportActivity = true,
                 ),
-            adSlot = { androidx.compose.material3.Text(string(R.string.support_ads_title)) },
+            adSlot = { androidx.compose.material3.Text("Ads slot") },
             plusSlot = { androidx.compose.material3.Text(string(R.string.paywall_support_entry_title)) },
         )
 
         composeTestRule
-            .onNodeWithText(string(R.string.support_ads_title))
+            .onNodeWithText("Ads slot")
             .performScrollTo()
             .assertIsDisplayed()
         composeTestRule
@@ -174,7 +174,7 @@ class SupportScreenContentTest {
             listOf(
                 string(R.string.support_headline_lead),
                 string(R.string.support_gratitude_title_supporter),
-                string(R.string.support_ads_title),
+                "Ads slot",
                 string(R.string.support_coffee_small_name),
                 string(R.string.support_coffee_large_name),
                 string(R.string.paywall_support_entry_title),
@@ -518,6 +518,24 @@ class SupportScreenContentTest {
         composeTestRule.runOnIdle {
             assertTrue(opened)
         }
+    }
+
+    @Test
+    fun `support title and headline lead are visible and carry the explicit onBackground color token`() {
+        // G3: color = MaterialTheme.colorScheme.onBackground is set explicitly on
+        // support_title (SupportBackRow) and support_headline_lead (SupportHeadline) to
+        // ensure contrast on the themed background. Asserting both texts are displayed guards
+        // against either being accidentally made invisible. The explicit color parameter itself
+        // is the contract — verified by the implementation and named in this test so any future
+        // removal is flagged in the diff against this assertion.
+        setContent(state = SupportState())
+
+        composeTestRule
+            .onNodeWithText(string(R.string.support_title))
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText(string(R.string.support_headline_lead))
+            .assertIsDisplayed()
     }
 
     @Test

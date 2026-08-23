@@ -56,10 +56,11 @@ class RewardedAdScreenContentTest {
     // ─── Always-visible header ───────────────────────────────────────────────────
 
     @Test
-    fun `title and rule are displayed in every state`() {
+    fun `rule is displayed in every state`() {
+        // G1: the separate ads title Text was removed; the rule now carries supportPanelTitle
+        // style and is the sole heading in the ads block. No standalone title Text node exists.
         setContent(RewardedAdState(status = RewardedAdStatus.Loading))
 
-        composeTestRule.onNodeWithText(string(R.string.support_ads_title)).assertIsDisplayed()
         composeTestRule.onNodeWithText(string(R.string.support_ads_rule, 5)).assertIsDisplayed()
         composeTestRule
             .onNodeWithContentDescription(string(R.string.support_image_ads_description))
@@ -381,6 +382,24 @@ class RewardedAdScreenContentTest {
 
         val expectedDescription = string(R.string.support_ads_progress, 2, 5)
         composeTestRule.onNodeWithContentDescription(expectedDescription).assertIsDisplayed()
+    }
+
+    @Test
+    fun `visible progress counter text is absent while a11y content description is preserved`() {
+        // G2: the visible Text node for "Watched N of M" was removed from RewardProgressRow.
+        // Only the Column's clearAndSetSemantics contentDescription survives for screen readers.
+        setContent(
+            RewardedAdState(
+                status = RewardedAdStatus.Ready,
+                reward = RewardProgress(progress = 2, required = 5, plusActive = false),
+            ),
+        )
+
+        val progressText = string(R.string.support_ads_progress, 2, 5)
+        // A11y contract: the progress row is still reachable by screen readers.
+        composeTestRule.onNodeWithContentDescription(progressText).assertIsDisplayed()
+        // Visual contract: no Text node with the same string is rendered in the UI.
+        composeTestRule.onNodeWithText(progressText).assertDoesNotExist()
     }
 
     @Test

@@ -241,14 +241,11 @@ private fun RewardedAdStatusLine(
 }
 
 private fun RewardedAdState.statusMessageRes(): Int? =
-    if (hasPlusActiveStatusPrecedence()) {
+    if (status == RewardedAdStatus.Ready && reward?.plusActive == true) {
         R.string.support_ads_plus_active
     } else {
         status.statusMessageRes()
     }
-
-private fun RewardedAdState.hasPlusActiveStatusPrecedence(): Boolean =
-    status != RewardedAdStatus.Unauthenticated && reward?.plusActive == true
 
 private fun RewardedAdStatus.statusMessageRes(): Int? =
     when (this) {

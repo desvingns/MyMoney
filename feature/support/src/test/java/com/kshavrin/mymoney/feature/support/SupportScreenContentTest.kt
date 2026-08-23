@@ -376,6 +376,10 @@ class SupportScreenContentTest {
             }
             composeTestRule.waitForIdle()
 
+            composeTestRule
+                .onNodeWithContentDescription(string(R.string.support_image_avatar_description))
+                .performScrollTo()
+                .assertIsDisplayed()
             val titleRes =
                 if (cell.isSupporter) {
                     R.string.support_gratitude_title_supporter
@@ -414,6 +418,14 @@ class SupportScreenContentTest {
 
         composeTestRule
             .onNodeWithContentDescription(string(R.string.support_image_plus_description))
+            .performScrollTo()
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText(string(R.string.paywall_support_entry_title))
+            .performScrollTo()
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText(string(R.string.paywall_support_entry_description))
             .performScrollTo()
             .assertIsDisplayed()
         composeTestRule

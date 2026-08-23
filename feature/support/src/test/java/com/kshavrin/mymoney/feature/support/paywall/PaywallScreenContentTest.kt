@@ -261,6 +261,15 @@ class PaywallScreenContentTest {
             }
         }
 
+        composeTestRule
+            .onNodeWithContentDescription(string(R.string.support_image_plus_description))
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText(string(R.string.paywall_support_entry_title))
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText(string(R.string.paywall_support_entry_description))
+            .assertIsDisplayed()
         composeTestRule.onNodeWithText(string(R.string.paywall_support_entry_action)).performClick()
 
         composeTestRule.runOnIdle {

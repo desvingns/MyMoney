@@ -27,7 +27,7 @@ class PlayInternalSyncCiContractTest {
             appText,
             listOf(
                 "providers.gradleProperty(\"sync.playInternalEnabled\").orNull?.toBooleanStrictOrNull() ?: false",
-                "providers.gradleProperty(\"sync.playReleaseEnabled\").orNull?.toBooleanStrictOrNull() ?: true",
+            "providers.gradleProperty(\"sync.playReleaseEnabled\").orNull?.toBooleanStrictOrNull() ?: !playInternalSyncEnabled",
                 "buildConfigField(\"boolean\", \"PLAY_INTERNAL_SYNC_ENABLED\", playInternalSyncEnabled.toString())",
                 "buildConfigField(\"boolean\", \"PLAY_RELEASE_SYNC_ENABLED\", playReleaseSyncEnabled.toString())",
             ),

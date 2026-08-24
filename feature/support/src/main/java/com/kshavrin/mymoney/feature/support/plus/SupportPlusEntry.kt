@@ -100,9 +100,9 @@ fun SupportPlusContent(
         contentColor = MaterialTheme.colorScheme.onSurface,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.supportPanelOutline),
     ) {
-        Box {
+        Box(modifier = Modifier.fillMaxWidth()) {
             Column(
-                modifier = Modifier.padding(Spacing.supportPanelPadding),
+                modifier = Modifier.fillMaxWidth().padding(Spacing.supportPanelPadding),
                 verticalArrangement = Arrangement.spacedBy(Spacing.supportPanelGap),
             ) {
                 Row(
@@ -146,7 +146,9 @@ fun SupportPlusContent(
                     )
                 }
             }
-            SupportPlusInfoIcon(modifier = Modifier.align(Alignment.TopEnd))
+            Box(modifier = Modifier.align(Alignment.TopEnd)) {
+                SupportPlusInfoIcon()
+            }
         }
     }
 }
@@ -157,6 +159,10 @@ private fun SupportPlusInfoIcon(modifier: Modifier = Modifier) {
     val tooltipState = rememberTooltipState(isPersistent = false)
     val scope = rememberCoroutineScope()
     val description = stringResource(R.string.support_plus_info_tooltip)
+    // TooltipBox does not propagate a BoxScope.align() modifier to its own outer bounds the way
+    // a plain composable would (verified empirically on-device: align() applied directly to
+    // TooltipBox's modifier parameter had zero effect on its rendered position) — it must be
+    // wrapped in a positioned Box instead, as the caller does.
     TooltipBox(
         modifier = modifier,
         positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),

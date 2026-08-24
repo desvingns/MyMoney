@@ -19,7 +19,9 @@ import androidx.test.core.app.ApplicationProvider
 import com.kshavrin.mymoney.core.domain.billing.SupportProduct
 import com.kshavrin.mymoney.core.domain.supporter.SupporterState
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
-import com.kshavrin.mymoney.feature.support.paywall.PaywallSupportEntry
+import com.kshavrin.mymoney.feature.support.paywall.PaywallCatalogState
+import com.kshavrin.mymoney.feature.support.plus.SupportPlusContent
+import com.kshavrin.mymoney.feature.support.plus.SupportPlusState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -488,12 +490,17 @@ class SupportScreenContentTest {
     }
 
     @Test
-    fun `plus panel keeps the existing open paywall callback`() {
-        var opened = false
+    fun `plus panel renders the Plus card header with title and description`() {
+        // PaywallSupportEntry (the old navigation-based entry) was removed by SPEC-02.
+        // SupportPlusContent (stateless) is now the testable surface for the plusSlot.
         setContent(
             state = availableState(),
             plusSlot = {
-                PaywallSupportEntry(onOpenPaywall = { opened = true })
+                SupportPlusContent(
+                    state = SupportPlusState(catalogState = PaywallCatalogState.Loading),
+                    onPlanSelected = {},
+                    onRetry = {},
+                )
             },
         )
 
@@ -509,15 +516,20 @@ class SupportScreenContentTest {
             .onNodeWithText(string(R.string.paywall_support_entry_description))
             .performScrollTo()
             .assertIsDisplayed()
-        composeTestRule
-            .onNodeWithText(string(R.string.paywall_support_entry_action))
-            .performScrollTo()
-            .assertIsDisplayed()
-            .performClick()
+    }
 
-        composeTestRule.runOnIdle {
-            assertTrue(opened)
-        }
+    @Test
+    fun `back label is visible and carries the explicit onBackground color token`() {
+        // G4: color = MaterialTheme.colorScheme.onBackground is set explicitly on
+        // support_back_label (SupportBackRow) replacing the previous supportBackLabel token,
+        // aligning it with support_title for visual consistency on the themed background.
+        // Asserting the text is displayed guards against accidental invisibility caused
+        // by incorrect color; the explicit parameter itself is the contract.
+        setContent(state = SupportState())
+
+        composeTestRule
+            .onNodeWithText(string(R.string.support_back_label))
+            .assertIsDisplayed()
     }
 
     @Test

@@ -186,7 +186,7 @@ class SupportArtworkAssetContractTest {
             listOf(
                 "feature/support/src/main/java/com/kshavrin/mymoney/feature/support/SupportScreen.kt",
                 "feature/support/src/main/java/com/kshavrin/mymoney/feature/support/rewardedad/RewardedAdScreen.kt",
-                "feature/support/src/main/java/com/kshavrin/mymoney/feature/support/paywall/PaywallScreen.kt",
+                "feature/support/src/main/java/com/kshavrin/mymoney/feature/support/plus/SupportPlusEntry.kt",
             )
 
         private val artworkConsumers =
@@ -200,7 +200,7 @@ class SupportArtworkAssetContractTest {
                 "support_neon_ads" to
                     "feature/support/src/main/java/com/kshavrin/mymoney/feature/support/rewardedad/RewardedAdScreen.kt",
                 "support_neon_plus" to
-                    "feature/support/src/main/java/com/kshavrin/mymoney/feature/support/paywall/PaywallScreen.kt",
+                    "feature/support/src/main/java/com/kshavrin/mymoney/feature/support/plus/SupportPlusEntry.kt",
             )
 
         fun findRepositoryRoot(): File =

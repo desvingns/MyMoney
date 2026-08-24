@@ -40,7 +40,6 @@
     <string name="paywall_intro_shared_sync">Для создания и управления общим воркспейсом нужна подписка Plus.</string>
     <string name="paywall_support_entry_title">MyMoney Plus</string>
     <string name="paywall_support_entry_description">Общие воркспейсы и история версий резервных копий.</string>
-    <string name="paywall_support_entry_action">Посмотреть тарифы Plus</string>
     <string name="support_plus_info_tooltip">Plus синхронизирует общий воркспейс для вашей команды или семьи.</string>
     <string name="paywall_benefits_title">Что даёт Plus</string>
     <string name="paywall_benefit_shared_workspace">Общие воркспейсы для семьи или команды.</string>

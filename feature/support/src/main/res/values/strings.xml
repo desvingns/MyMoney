@@ -40,7 +40,6 @@
     <string name="paywall_intro_shared_sync">A Plus subscription is needed to create and manage a shared workspace.</string>
     <string name="paywall_support_entry_title">MyMoney Plus</string>
     <string name="paywall_support_entry_description">Unlock shared workspaces and backup version history.</string>
-    <string name="paywall_support_entry_action">View Plus plans</string>
     <string name="support_plus_info_tooltip">Plus keeps a shared workspace in sync for your team or family.</string>
     <string name="paywall_benefits_title">What Plus adds</string>
     <string name="paywall_benefit_shared_workspace">Shared workspaces for a household or team.</string>

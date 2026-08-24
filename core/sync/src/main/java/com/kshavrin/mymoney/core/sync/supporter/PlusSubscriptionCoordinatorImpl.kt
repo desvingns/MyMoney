@@ -50,29 +50,33 @@ class PlusSubscriptionCoordinatorImpl
             observeEntitlementInternal()
         }
 
+        // This coordinator is a Singleton shared by every screen that shows Plus plans (Support's
+        // inline card and the separate Paywall screen). Both call refreshCatalog() from their own
+        // init, so two screens can legitimately be alive at once (e.g. Support in the back stack,
+        // Paywall opened on top via a shared-sync deep link) and race here: whichever call starts
+        // second cancels the first via catalogRefreshJob and both end up observing the same eventual
+        // state through the shared StateFlow once the surviving job completes. This is intentionally
+        // left as a transient Loading flicker rather than guarded against catalog already being
+        // Available — that guard would also skip the purchase-state staleness reset below for a
+        // screen reopened with a stalled Pending/AwaitingEntitlement purchase, which is the worse
+        // failure mode (a stuck purchase button vs. a flicker on a screen not currently visible).
         override suspend fun refreshCatalog() {
+            val currentState = _state.value
+            if (currentState.purchase.isStalledAwaitingEntitlement()) {
+                // The coordinator is a Singleton and outlives any single Paywall/Support screen
+                // visit. A stalled reconciliation (Pending family-approval, or retries exhausted
+                // with no local entitlement confirmation) must not block purchasing forever just
+                // because the user left and came back — this runs on every screen (re)open, so it
+                // mirrors the fresh-ViewModel-instance reset the pre-extraction code got for free.
+                // Idle/InProgress/ReconcilingEntitlement are left untouched: the latter two reflect
+                // a purchase actively in flight right now.
+                _state.value = currentState.copy(purchase = PlusPurchaseState.Idle)
+            }
+
             catalogRefreshJob?.cancel()
             catalogRefreshJob =
                 applicationScope.launch {
-                    val currentState = _state.value
-                    _state.value =
-                        currentState.copy(
-                            catalog = PlusCatalogState.Loading,
-                            // The coordinator is a Singleton and outlives any single Paywall
-                            // screen visit. A stalled reconciliation (Pending family-approval,
-                            // or retries exhausted with no local entitlement confirmation) must
-                            // not block purchasing forever just because the user left and came
-                            // back — this call only runs on screen (re)open, so it mirrors the
-                            // fresh-ViewModel-instance reset the pre-extraction code got for
-                            // free. Idle/InProgress/ReconcilingEntitlement are left untouched:
-                            // the latter two reflect a purchase actively in flight right now.
-                            purchase =
-                                if (currentState.purchase.isStalledAwaitingEntitlement()) {
-                                    PlusPurchaseState.Idle
-                                } else {
-                                    currentState.purchase
-                                },
-                        )
+                    _state.value = _state.value.copy(catalog = PlusCatalogState.Loading)
                     try {
                         applyAvailability(billingGateway.availability().first())
                     } catch (throwable: Throwable) {

@@ -6,6 +6,9 @@ import kotlinx.coroutines.flow.StateFlow
 interface PlusSubscriptionCoordinator {
     val state: StateFlow<PlusSubscriptionState>
 
+    // This coordinator is a Singleton shared by every screen that shows Plus plans. Concurrent
+    // callers (e.g. Support's inline card and the separate Paywall screen both alive at once) can
+    // race here — see the implementation for why that's accepted rather than guarded against.
     suspend fun refreshCatalog()
 
     suspend fun purchase(planId: PlusPlanId): PlusPurchaseOutcome

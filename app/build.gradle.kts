@@ -69,7 +69,7 @@ fun String.asBuildConfigString(): String =
 val playInternalSyncEnabled =
     providers.gradleProperty("sync.playInternalEnabled").orNull?.toBooleanStrictOrNull() ?: false
 val playReleaseSyncEnabled =
-    providers.gradleProperty("sync.playReleaseEnabled").orNull?.toBooleanStrictOrNull() ?: true
+    providers.gradleProperty("sync.playReleaseEnabled").orNull?.toBooleanStrictOrNull() ?: !playInternalSyncEnabled
 val syncEnabled = playInternalSyncEnabled || playReleaseSyncEnabled
 val billingEnabled =
     providers.gradleProperty("billing.enabled").orNull?.toBooleanStrictOrNull() ?: false

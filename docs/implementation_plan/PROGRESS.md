@@ -8,6 +8,35 @@
 
 ## Current state
 
+- **2026-08-24 (Claude `/mp --feature`, support-plus-inline-purchase epic, both SPECs + close):**
+  Reworked the Support screen's "MyMoney Plus" card after a 1/5 feedback score on the prior
+  epic's separate-Paywall-screen approach. SPEC 01 extracted the subscription
+  catalog/purchase/entitlement-reconciliation logic out of `PaywallViewModel` into a shared
+  `@Singleton` `PlusSubscriptionCoordinator` (interface in `:core:domain/billing`, impl in
+  `:core:sync/supporter`, mirroring `SupportPurchaseReconciliationCoordinator`); semantic review
+  and an independent critic together caught three real Singleton-lifetime regressions (purchase
+  state stuck at `InProgress`/`Pending`/`AwaitingEntitlement` forever if a screen was left and
+  reopened, and stale prices/catalog surviving into a genuine `Unavailable` state) — all three
+  fixed before shipping (`5f8b3b0c`, `d20ed457`). SPEC 02 replaced the Support screen's
+  `PaywallSupportEntry` ("View Plus plans" button, navigated to a separate screen) with an inline
+  `SupportPlusEntry`/`SupportPlusViewModel` slot (mirroring `RewardedAdSupportEntry`) rendering the
+  same two-column Monthly/Yearly card directly on Support, an info "i" tooltip, and the back-row
+  contrast fix (`onBackground`) carried over from a prior SPEC. The Paywall screen itself was
+  preserved unchanged for the `SharedSyncGate`/`DecisionRouter` deep-link entry points — only its
+  Support-specific entry composable was removed. On-device visual verification (Pixel 5/API 34)
+  caught one more real bug static review missed: the info icon rendered top-left instead of
+  top-right, because `TooltipBox` does not propagate a `BoxScope.align()` modifier the way an
+  ordinary composable does — fixed by wrapping it in its own positioned `Box` (`f7d69a87`), root
+  cause confirmed empirically by swapping in a plain colored `Box` at the same call site. Full
+  Runner clean on both SPECs except pre-existing unrelated red (verified via `git blame` to
+  predate this epic): 1 flaky `SupabaseSharedTransportTest` teardown timeout and 6 detekt
+  violations in `core/network`/`core/datastore`/`core/sync` worker test, none in files this epic
+  touched. Commits `7f828102`..`d20ed457` (SPEC 01, 5 commits) and `98175d0e`..`f7d69a87` (SPEC 02,
+  5 commits), all pushed to `origin/main`. Both SPECs and the epic overview moved to `done/`.
+  Session also survived two agent session-limit interruptions (Developer retried cleanly both
+  times; repo verified clean via `git status` before each retry, per the prior session's
+  `git checkout` data-loss incident making that check mandatory).
+
 - **2026-08-23 (Claude `/mp --feature`, support-paywall-visual-polish SPEC 02 + epic close):**
   Replaced the vertical Paywall plan list with a single two-column card (Monthly left, Yearly
   right) visually identical to `CoffeePurchaseCard` — same `supportPanel`/`supportPanelContainer`/
@@ -41,126 +70,6 @@
   prior session: `support-screen-visual-polish-01` was already fully implemented and committed
   (`f976f743`) but never moved out of `active/` — verified its tests pass and moved it to `done/`
   before starting this SPEC.
-
-- **2026-08-23 (Codex, support rewarded-ads artwork):** Replaced the rewarded-ads Support bitmap `support_neon_ads.png` with the approved standalone neon Play button, preserving the existing resource ID and `RewardedAdScreen` consumer. The artwork contract test and full `:app:assembleDebug` passed; graphify AST update was attempted but its shrink-guard refused to overwrite the existing graph because the dirty workspace produced 14 fewer nodes.
-
-- **2026-08-23 (Codex `$mp --feature --next`, support-screen-artwork-counters SPEC 02 + epic close):** Removed only the Support hero consumer while preserving the headline/description and back navigation; ordered the gated avatar/counters before ads, small coffee, large coffee, and Plus. Added a monotonic persisted first-action flag for authoritative ad totals, reconciled coffee purchases, and active monthly/yearly subscriptions, including legacy backfill, restart/expiry persistence, zero counters, and pending/unconfirmed guards. Added focused Compose/ViewModel/datastore/domain tests. Targeted tests and forced full debug assemble passed; Pixel 5/API 34 screenshots passed for cold hidden state and post-action visible zero counters, including back-row safe-area repair under edge-to-edge. Commits `d17ff0be`, `4fa76689`, `51c7d840`, `59741951`; SPEC-02 and the epic overview moved to `done/`; board drained. 
-
-- **2026-08-23 (Codex `$mp --feature --next`, support-screen-artwork-counters SPEC 01):** Replaced the five Support bitmap resources with the approved avatar/heart, crown coffee bean, softened-glow takeaway cappuccino with `Thanks`, espresso, and rewarded-ads phone artwork. Added the asset contract test and verified a fresh forced `:app:assembleDebug` plus Pixel 5/API 34 manual screenshots for Support and Plus plans. Resource IDs, consumers, and hero artwork remain unchanged. Commits `b3e81e5f`, `22b02f19`; SPEC moved to `done/`. Next runnable SPEC: support-screen-artwork-counters 02.
-
-- **2026-08-23 (Codex `$mp --feature --next --chain`, support-screen-redesign SPEC 07 + epic close):** Restyled the Plus support panel with shared tokens, star illustration, accessibility description, and existing Paywall callback. Made the gratitude card permanent with supporter/prospect copy, gated Supporter chip, and ads/small-coffee/large-coffee counters from `SupportState`; removed the obsolete standalone badge and gratitude strings. Semantic review initially caught stale resource assertions; repair rewrote the Compose coverage, then semantic review and independent critic passed with non-blocking raw `1.dp`/counter-association warnings. Pixel 5/API 34 preflight passed; Verifier passed and emitted the manual checklist (not run interactively). Scoped Runner: `126/0/0`; final full Runner: `2437/0/0`, detekt/lint green. Commits `f0175b98`, `455ea25a`, `0d5037b9`, `9c866e55`, `dc5b5700`; SPEC and epic overview moved to `done/`, board drained, and `main` pushed to `origin/main`.
-
-- **2026-08-23 (Codex `$mp --feature --next --chain`, support-screen-redesign SPEC 06):** Rebuilt the rewarded-ad block as the shared Support panel with the coffee-card shape, mint outline, illustration, deterministic progress, one CTA, and all 10 `RewardedAdStatus` messages kept inside the panel. Added stale-auth/loading progress gates and reconciled the 20-cell ad-status×Plus matrix with callback coverage. Semantic review, independent critic, and Verifier passed; scoped Runner: `125/0/0`; final full Runner: `2436/0/0`, detekt/lint green. Pixel 5/API 34 preflight, install, dashboard/menu smoke, and the approved manual checklist gate completed; non-blocking warning remains for the raw `1.dp` border token. Commits `d6a4dbf2`, `6f077cce`, `3b624a70`, `19f119db`, `8cc214fb`, `7a81a4ee`; SPEC moved to `done/`. Next runnable SPEC: support-screen-redesign 07.
-
-- **2026-08-23 (Codex `$mp --feature --next --chain`, support-screen-redesign SPEC 05):** Rebuilt the Support screen shell with custom back/title row, hero/headline, ordered slots, and two-column coffee card; billing status stays below the card and purchase CTAs are gated by availability/product/progress. Removed the obsolete total-ads slot/badge wiring and reconciled Compose tests, including all 10 billing×purchase matrix cells. Scoped Runner: `115/0/0`; final full Runner: `2428/0/0`, detekt/lint green; semantic review, independent critic, and Verifier passed. Non-blocking warning remains for raw `1.dp` border/divider tokens; manual Pixel 5/API 34 visual checklist remains to be run. Commits `604a488c`, `69fa41b1`, `fcc072e3`, `19168b13`; SPEC moved to `done/`. Next runnable SPECs: support-screen-redesign 06–07.
-
-- **2026-08-22 (Codex `$mp --feature --next --chain`, support-screen-redesign SPEC 04):** Added `adsWatchedTotal` to `SupportState` and a direct `ObserveAdRewardStateUseCase` collector in `SupportViewModel`; coffee counters remain sourced from `supporterState`. Added absent/present, purchase-counter, and live 7→8 StateFlow coverage. Scoped Runner: `114/0/0` after repair; final full Runner: `2425/0/0`, detekt/lint green; semantic review, independent critic, and Verifier passed. Non-blocking `RULE-001` remains about the nullable compatibility constructor. Commits `56b18a6a`, `54790046`; SPEC moved to `done/`. Next runnable SPECs: support-screen-redesign 05–07.
-
-- **2026-08-22 (Codex `$mp --feature --next --chain`, support-screen-redesign SPEC 03):** Added 11 semantic color, 5 shape, 13 spacing, and 11 typography tokens plus 20 EN/RU support strings and parity/token unit coverage; no composable files changed. Semantic matrix and independent critic passed 8/8. Scoped Runner: 150/0/0 after one test-only compile auto-fix (initial 145/0/0 compile failure); full Runner: 2419/0/0, detekt/lint green; Verifier passed. Commits `39ff99e5`, `6ef17525`, `766fa913`; push rejected by GitHub token authentication, so local `main` is ahead of `origin/main`. SPEC moved to `done/`; next runnable SPEC is `support-screen-redesign-04`.
-
-- **2026-08-22 (Codex `$mp --feature --next --chain`, drawer-search-redesign epic close):** Restyled the shared transaction search bar to the hero gradient/spacing/typography tokens while preserving autofocus, Mic/Close, overlay semantics, search phases, and both drawer/list entry points. Added JVM and instrumented coverage. Scoped Runner: `239/0/0`; full Runner: `2412/0/0`, detekt/lint green; Pixel 5/API 34 visual gate and Verifier passed. Commits `3b8b1188`, `47616f0b`, `d1b2cd57`; epic overview and SPEC 02 moved to `done/`. Push was attempted but rejected by GitHub token authentication; local `main` is ahead of `origin/main`. Next runnable SPECs remain in `support-screen-redesign`.
-
-- **2026-08-22 (Codex `$mp --feature --next --chain`, support-screen-redesign SPEC 02):** Added per-product small/large coffee counters with one-time legacy backfill, domain-owned product IDs, monotonic persistence, cancellation-safe supporter retry, and regression coverage across datastore, sync, billing, and support consumers. Deterministic reviewer passed after adding the dedicated `ObserveSupporterStateUseCaseTest`; semantic matrix and independent critic covered 8/8 with one non-blocking warning that direct `SupporterPurchaseStoreImpl` tests could be deeper. Scoped Runner: `874/0/0`; full Runner: `2411/0/0`, detekt/lint green. Commits `662b8230`, `c2187cac`, `d660c9b2`, `e8ae3dfe`, `dbcc2800`; SPEC moved to `done/`. SPEC 03–07 remain queued in the `support-screen-redesign` epic.
-
-- **2026-08-22 (Codex `$mp --feature --next`, support-screen-redesign SPEC 01):** Added the
-  six exact-size transparent PNG-32 `support_neon_*` placeholders to `:core:designsystem`
-  (hero/coffee-small/coffee-large/ads/Plus/avatar) under O1; final artwork remains a later
-  replacement. Deterministic reviewer passed, semantic review covered 6/6 with one close-out
-  warning resolved in the board links, independent critic passed, and Verifier passed. Scoped
-  Runner: `257/0/0`; full Runner: `2409/0/0`, detekt/lint green. Commit `d30680e`; SPEC 02–07
-  remain queued in the `support-screen-redesign` epic.
-
-- **2026-08-22 (Codex `$mp --feature --next`, drawer-search-redesign SPEC 01):** Closed the
-  right drawer before `NavigateSearch` via `DashboardViewModel.closeDrawers()`, preserving the
-  existing search overlay/back wiring. Added focused ViewModel and Compose regression tests;
-  staged only these additions alongside pre-existing dirty dashboard-test edits. Commits
-  `5795aa7d` + `8de1f24f`. Deterministic reviewer, semantic review, independent critic, and
-  Verifier passed; scoped Runner `403/0/0`, full Runner `2409/0/0` with detekt/lint green, and
-  connected `DashboardContentUiTest` `68/0/0` on Pixel 5/API 34. Non-blocking critic warning
-  `TEST-001` remains in the manual checklist; SPEC moved to `done/`. SPEC 02 remains queued.
-
-- **2026-08-21 (Codex `$mp --bugfix`, shared-workspace reinstall recovery):** Reproduced the empty-after-reinstall flow on the Play build with Pixel 9 and traced it to two client-side failure paths: remote pull/apply errors could advance/skip state without successful materialization, and import publication failures were swallowed; the replace path also cleared the local database before a remote entitlement-gated pull was known to succeed. `SharedSyncCoordinatorImpl` now propagates pull/apply and publication failures, probes the remote journal before destructive replacement, keeps the probe page for application, advances the cursor only after completed operations, and restores/restarts only after local data was actually changed. Added regression coverage for remote rows, empty journals, malformed operations, Room/persistence failures, entitlement probe failure, and import push failure. Full runner: **2378 passed / 0 failed / 0 skipped**, detekt/lint green, debug assemble green, graphify updated. Pixel 9 debug verification preserved local rows and the recovery dialog on the entitlement failure instead of wiping/restarting; a successful remote pull remains blocked until the `MyMoney QA` workspace entitlement is active/verified on the backend.
-
-  Follow-up production diagnosis: Supabase `pull_operations` returned HTTP 400 because its billing predicate used unqualified `where id = p_workspace_id`, ambiguous with the function's table-return column `id`. Added and applied migration `20260821170000_fix_pull_operations_workspace_id_qualification.sql`, plus a migration contract test. Direct RPC verification now returns 10 operations / max sequence 195; Pixel 9 then completed shared sync with `push_operation` and `pull_operations` returning HTTP 200. The fix is backend-only, so Play `1.0.11` does not need a new APK for this incident.
-
-- **2026-08-20 (Codex beta verification):** Supabase production was missing the two Shared-workspace billing migrations (`workspace_payer_and_entitlement_gating` and `grant_shared_billing_columns`), causing the app's workspace discovery query to return HTTP 400 and surface `Sync failed`. Applied both migrations successfully; Pixel 9 then discovered and connected the existing `MyMoney QA` workspace, whose server billing state is `active` with 10 operations. Rewarded Plus remains deferred for a non-whitelist beta account.
-
-- **2026-08-16 (Claude MP `--feature --next`, plus-subscription-gating SPEC 10, epic close):**
-  Shipped the epic's final SPEC (10/10 done) — Block 3 of the privacy-policy monetization draft
-  (`docs/legal/privacy-policy-monetization-draft.md:141-174`): dropped the "compatible builds"
-  hedging around Shared workspace in both locales (app-bundled `privacy_policy_{en,ru}.html` +
-  GitHub Pages mirrors `privacy-policy/{en,ru}/index.html`) and added the new paragraph stating
-  Shared-workspace access requires an active Plus entitlement recorded on the Supabase backend,
-  account-bound not device-bound. Size gate `warn` (12 cells, locale×surface×block — SPEC predated
-  the field, derived and frozen this session); risk route high (score 9) → powerful developer,
-  semantic review, independent critic, full verifier. The SPEC's own `CHANGED_HINT` line numbers
-  (`:33`/`:48`) were stale — earlier-shipped `support-hub-tip-08` and `support-rewarded-ads-06`
-  insertions had shifted the Supabase Auth paragraph to `:57-58` EN / `:58-59` RU; verified against
-  current file state before dispatching the developer rather than trusted blindly. First semantic
-  review and the independent critic both passed clean at 12/12 coverage, risk standard — but an
-  orchestrator pre-check (running the pre-existing `PrivacyPolicyAdvertisingContractTest` directly,
-  ahead of the formal Runner step) caught a regression neither review pass was scoped to see: the
-  developer's accurate rewrite of the draft doc's status header (now correctly says all 4 blocks
-  are applied, not just Block 4) dropped the literal substring `"Block 4 (Advertising) applied
-  2026-08-16"` that one pre-existing test pinned on. Tester reconciled it (Stale-Test Update Rule)
-  by repointing the assertion at two more stable, block-specific substrings instead of weakening
-  coverage. Commits `3cd4107b` (feature) + `e55a843e` (test reconciliation) pushed to `main`. Full
-  runner: `2301 passed / 0 failed / 0 skipped`, detekt/lint green. SPEC + epic overview both moved
-  to `done/` after an epic-completion review confirmed all 10 SPECs shipped with commits and the
-  overview's stated goal (domain entitlement model, gated billing/paywall, server-authoritative
-  state machine, notifications, analytics, remote killswitch, release flip, and now the matching
-  privacy-policy wording) met by the union of ships. Telegram delivery not configured (skipped
-  silently); feedback question asked but user gave no rating; retro offered (59 events queued) and
-  declined. `support-rewarded-ads-05` (blocked on this epic per its own CONSTRAINTS) is now
-  unblocked for a future session — its only remaining blocker was `plus-subscription-gating`
-  closing.
-
-- **2026-08-16 (Claude MP `--feature --next`, plus-subscription-gating SPEC 09):** Shipped the
-  shared-sync remote killswitch and the `PLAY_RELEASE_SYNC_ENABLED` release-default flip — the
-  epic's penultimate SPEC, deliberately last-but-one per ADR-0010 D1 (flip only after the
-  entitlement gate is done). `RemoteConfigRepositoryImpl.sharedSyncEnabled()` now ANDs the
-  build-flag disjunction with `KEY_SHARED_SYNC` (new `DEFAULT_SHARED_SYNC_WHEN_BUILD_ENABLED =
-  true`, distinct from the older unrelated `DEFAULT_SHARED_SYNC = false`); `sync.playReleaseEnabled`
-  flipped to `?: true`. Size gate `ok` (6 cells, build_flag×remote_config — SPEC predated the field,
-  derived and frozen this session); risk route high (score 18) → powerful developer, semantic
-  review, independent critic, full verifier. The SPEC's own `CHANGED_HINT` named only two required
-  gradle sites (`app/build.gradle.kts`, `core/sync/build.gradle.kts`) as "both required" — a THIRD
-  site, `core/network/build.gradle.kts` (feeding `SharedConfigModule.SupabaseConfig.enabled`), was
-  missed by the SPEC author, the Developer, the deterministic reviewer, and the first semantic-review
-  pass alike; only the pre-existing `PlayInternalSyncCiContractTest` (written for an unrelated
-  purpose) caught it at the scoped-runner stage, via a one-cycle Developer auto-fix. A second scoped
-  iteration then reconciled that same test's stale `?: false` literal (Stale-Test Update Rule) via
-  Tester. Semantic review and the independent critic each passed with one non-blocking warning (a
-  stale ADR-0010 contradiction sentence, fixed inline; a fragile `.contains("&&")` structural test
-  guard, deferred to the SPEC's "Deferred hardening" section). Commits `29913477`, `1628b512`,
-  `54df5cf2`, `6332402e` pushed to `main`. Full runner: `2301 passed / 0 failed / 0 skipped`,
-  detekt/lint green. SPEC moved to `done/`. Epic `plus-subscription-gating` NOT yet complete — SPEC
-  10 remains in `backlog/`; feedback question and Telegram offer both skipped per epic-scoped
-  timing. Flagged for the next session: `local.properties`/CI secrets (Dropbox app key, Supabase
-  URL, anon key, Google web client ID) must be verified before the next release/CI run, since
-  `requireSyncRuntimeConfiguration()` is now live on the flipped path.
-
-- **2026-08-16 (Claude MP `--feature --next`, support-hub-tip SPEC 08, epic close):** Shipped the
-  final SPEC of the `support-hub-tip` epic (8/8 done). Added the "Purchases (Google Play Billing)"
-  block and replaced the stale "Firebase Remote Config is not enabled in this release" paragraph
-  with the honest variant-B description (Remote Config + Analytics, both confirmed on the classpath
-  since SPEC-06) — both EN/RU app-bundled policies (`app/src/main/assets/privacy_policy_*.html`)
-  and their GitHub Pages mirrors (`privacy-policy/{en,ru}/index.html`). Size gate `ok` (6 cells,
-  locale×block); risk route high (payment/legal content) → powerful developer, semantic review,
-  independent critic, full verifier. First semantic-review pass found one blocker (`SCOPE-001`):
-  the developer's initial commit only touched the app-asset files, leaving the GitHub Pages mirrors
-  stale and breaking two pre-existing `PrivacyPolicyAdvertisingContractTest` identity tests — fixed
-  in one repair cycle (commit `81bf0462`), re-review passed clean at 6/6 coverage. Tester added 3
-  new content-pinning tests (Purchases/Firebase presence + retired-phrase absence); the full runner
-  then caught a test-precision false negative (RU "Firebase Analytics" split across a verbatim
-  hard-wrapped newline) fixed via the one allowed auto-fix retry (whitespace normalization, no
-  content change). Independent critic and full verifier both passed clean. Commits `d6dd1eb6`,
-  `81bf0462`, `87d30326`, `5c6ed25e` (feature) + `c3639e6f` (SPEC-board close-out) pushed to `main`.
-  Full runner: `2298 passed / 0 failed / 0 skipped`, detekt/lint green. SPEC + epic overview both
-  moved to `done/` after an epic-completion review confirmed all 8 SPECs shipped with commits and
-  the overview's stated goal met; remaining out-of-repo prerequisites (Play Console coffee
-  products, `GOOGLE_SERVICES_JSON` CI secret, Play Data Safety form) documented as manual follow-up.
-  Telegram build offer and retro both declined by user; feedback question returned no rating.
 
 ## Historical session log archives
 

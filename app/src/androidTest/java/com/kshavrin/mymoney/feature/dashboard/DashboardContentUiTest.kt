@@ -59,10 +59,8 @@ import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_CURRENCY_CARD
 import com.kshavrin.mymoney.feature.dashboard.components.DASHBOARD_INLINE_RECORDS_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.OPERATIONS_SUMMARY_EMPTY_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.OPERATIONS_SUMMARY_SHEET_TAG
-import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_ABOUT_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_ACCOUNTS_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_CATEGORIES_TAG
-import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_CHART_SETTINGS_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_CURRENCIES_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_FINANCIAL_GOALS_TAG
 import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_SEARCH_TAG
@@ -711,10 +709,9 @@ class DashboardContentUiTest {
                     DashboardEvent.SearchClicked,
                     DashboardEvent.CategoriesClicked,
                     DashboardEvent.AccountsClicked,
+                    DashboardEvent.FinancialGoalsClicked,
                     DashboardEvent.CurrenciesClicked,
-                    DashboardEvent.ChartSettingsClicked,
                     DashboardEvent.SettingsClicked,
-                    DashboardEvent.AboutClicked,
                     DashboardEvent.SupportClicked,
                 ),
                 capturedEvents,
@@ -1479,27 +1476,19 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `right drawer chart settings row is displayed and emits ChartSettingsClicked`() {
-        val capturedEvents = mutableListOf<DashboardEvent>()
-
+    fun `right drawer does not expose a chart settings row after its removal from the drawer`() {
+        // ChartSettingsClicked / ChartSettingsSheet survive in the codebase for SPEC-02
+        // (auto-open from dashboard cards), but the right-drawer entry was deleted in the
+        // 7-item refactor. Assert the tag is absent so that re-adding the row accidentally
+        // is caught immediately.
         setStatefulDashboardContent(
             initialState = DashboardState(isLoading = false, rightDrawerOpen = true),
-            onCapturedEvent = { event -> capturedEvents += event },
         )
         composeTestRule.waitForIdle()
 
         composeTestRule
-            .onNodeWithTag(RIGHT_DRAWER_CHART_SETTINGS_TAG, useUnmergedTree = true)
-            .assertIsDisplayed()
-            .assertHasClickAction()
-            .performClick()
-
-        composeTestRule.runOnIdle {
-            assertTrue(
-                "expected ChartSettingsClicked; got $capturedEvents",
-                capturedEvents.contains(DashboardEvent.ChartSettingsClicked),
-            )
-        }
+            .onAllNodes(androidx.compose.ui.test.hasTestTag("right_drawer_chart_settings"))
+            .assertCountEquals(0)
     }
 
     @Test
@@ -1748,10 +1737,9 @@ class DashboardContentUiTest {
             RIGHT_DRAWER_SEARCH_TAG,
             RIGHT_DRAWER_CATEGORIES_TAG,
             RIGHT_DRAWER_ACCOUNTS_TAG,
+            RIGHT_DRAWER_FINANCIAL_GOALS_TAG,
             RIGHT_DRAWER_CURRENCIES_TAG,
-            RIGHT_DRAWER_CHART_SETTINGS_TAG,
             RIGHT_DRAWER_SETTINGS_TAG,
-            RIGHT_DRAWER_ABOUT_TAG,
             RIGHT_DRAWER_SUPPORT_TAG,
         )
 

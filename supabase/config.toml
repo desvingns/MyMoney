@@ -1,0 +1,14 @@
+[functions.redeem-activation-code]
+verify_jwt = true
+
+[functions.create-ad-reward-token]
+verify_jwt = true
+
+[functions.admob-ssv]
+verify_jwt = false
+
+[functions.google-play-rtdn]
+verify_jwt = false
+
+[functions.bind-google-play-purchase]
+verify_jwt = true

@@ -136,6 +136,14 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "temporary_database_failure" }, 500);
     }
 
+    const { error: recomputeError } = await admin.rpc(
+      "recompute_workspace_billing_state_from_rtdn",
+    );
+    if (recomputeError) {
+      console.error("bind-google-play-purchase.billing_state_recompute_failed");
+      return jsonResponse({ error: "temporary_billing_state_failure" }, 500);
+    }
+
     return jsonResponse({
       entitlement: "plus",
       expires_at: expiresAt,

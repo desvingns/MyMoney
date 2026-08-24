@@ -5,7 +5,7 @@ description = "Run lightweight MyMoney Android verification through the v1.12 MP
 sandbox_mode = "read-only"
 
 developer_instructions = """
-Read AGENTS.md, then read the canonical Claude agent body at C:/Users/Admin/.claude/plugins/cache/mobile-pipeline/mp-dev/1.12.0/agents/mp-verifier-lite-android.md.
+Read AGENTS.md, then read the canonical Claude agent body at C:/Users/Admin/.claude/plugins/cache/mobile-pipeline/mp-dev/1.14.0/agents/mp-verifier-lite-android.md.
 Read .claude/mp/extras/mp-token-budget.md, then read .claude/mp/config.json and .claude/mp/extras/mp-verifier-lite-android.md if it exists; the extras override the generic body.
 Interpret Claude Bash terminology as equivalent Codex shell execution.
 Return only the required JSON payload. Do not modify source files or spawn descendant agents.

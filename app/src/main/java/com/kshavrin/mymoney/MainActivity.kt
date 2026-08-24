@@ -13,11 +13,11 @@ import androidx.compose.runtime.getValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import com.kshavrin.mymoney.core.sync.notification.EntitlementNotifications
 import com.kshavrin.mymoney.core.ui.feedback.LocalHapticPlayer
 import com.kshavrin.mymoney.core.ui.feedback.LocalSoundPlayer
 import com.kshavrin.mymoney.core.ui.haptic.HapticKind
 import com.kshavrin.mymoney.core.ui.haptic.HapticPlayer
-import com.kshavrin.mymoney.core.sync.notification.EntitlementNotifications
 import com.kshavrin.mymoney.core.ui.restart.EXTRA_RESET_HAD_FAILURES
 import com.kshavrin.mymoney.core.ui.sound.SoundKey
 import com.kshavrin.mymoney.core.ui.sound.SoundPlayer

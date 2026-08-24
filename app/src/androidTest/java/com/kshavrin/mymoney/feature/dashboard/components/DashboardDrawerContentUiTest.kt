@@ -41,11 +41,12 @@ class DashboardDrawerContentUiTest {
         val capturedEvents = mutableListOf<DashboardEvent>()
         val entries =
             listOf(
+                R.string.right_drawer_search to DashboardEvent.SearchClicked,
                 R.string.right_drawer_categories to DashboardEvent.CategoriesClicked,
                 R.string.right_drawer_accounts to DashboardEvent.AccountsClicked,
+                R.string.right_drawer_financial_goals to DashboardEvent.FinancialGoalsClicked,
                 R.string.right_drawer_currencies to DashboardEvent.CurrenciesClicked,
                 R.string.right_drawer_settings to DashboardEvent.SettingsClicked,
-                R.string.right_drawer_about to DashboardEvent.AboutClicked,
                 R.string.right_drawer_support to DashboardEvent.SupportClicked,
             )
 

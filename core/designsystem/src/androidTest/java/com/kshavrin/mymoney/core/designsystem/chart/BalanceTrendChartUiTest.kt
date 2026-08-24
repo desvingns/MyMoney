@@ -5,8 +5,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.captureToImage
@@ -19,6 +21,11 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kshavrin.mymoney.core.designsystem.R
 import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
+import com.kshavrin.mymoney.core.ui.theme.dashboardAuroraAccent
+import com.kshavrin.mymoney.core.ui.theme.expenseAccent
+import com.kshavrin.mymoney.core.ui.theme.incomeAccent
+import com.kshavrin.mymoney.core.ui.theme.trendChartProjectionAbove
+import com.kshavrin.mymoney.core.ui.theme.trendChartProjectionBelow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -35,6 +42,17 @@ class BalanceTrendChartUiTest {
     private fun styleWrapperTag(style: ChartStyle) = "balance_trend_chart_style_${style.name}"
 
     private fun chartWrapperTag(name: String) = "balance_trend_chart_wrapper_$name"
+
+    private data class RenderedChart(
+        val pixels: IntArray,
+        val width: Int,
+        val height: Int,
+        val solidColor: Int,
+        val incomeColor: Int,
+        val expenseColor: Int,
+        val projectionAboveColor: Int,
+        val projectionBelowColor: Int,
+    )
 
     private fun setContent(
         points: List<Float>,
@@ -112,6 +130,50 @@ class BalanceTrendChartUiTest {
         val pixels = IntArray(image.width * image.height)
         image.readPixels(pixels)
         return pixels
+    }
+
+    private fun captureChart(
+        points: List<Float>,
+        style: ChartStyle,
+        colorRule: ChartColorRule,
+        showProjection: Boolean = false,
+    ): RenderedChart {
+        var solidColor = 0
+        var incomeColor = 0
+        var expenseColor = 0
+        var projectionAboveColor = 0
+        var projectionBelowColor = 0
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                solidColor = MaterialTheme.colorScheme.dashboardAuroraAccent.toArgb()
+                incomeColor = MaterialTheme.colorScheme.incomeAccent.toArgb()
+                expenseColor = MaterialTheme.colorScheme.expenseAccent.toArgb()
+                projectionAboveColor = MaterialTheme.colorScheme.trendChartProjectionAbove.toArgb()
+                projectionBelowColor = MaterialTheme.colorScheme.trendChartProjectionBelow.toArgb()
+                BalanceTrendChart(
+                    points = points,
+                    modifier = Modifier.fillMaxWidth(),
+                    showGridlines = false,
+                    colorRule = colorRule,
+                    style = style,
+                    showProjection = showProjection,
+                )
+            }
+        }
+        composeTestRule.waitForIdle()
+        val image = composeTestRule.onNodeWithTag(BALANCE_TREND_CHART_TAG).captureToImage()
+        val pixels = IntArray(image.width * image.height)
+        image.readPixels(pixels)
+        return RenderedChart(
+            pixels = pixels,
+            width = image.width,
+            height = image.height,
+            solidColor = solidColor,
+            incomeColor = incomeColor,
+            expenseColor = expenseColor,
+            projectionAboveColor = projectionAboveColor,
+            projectionBelowColor = projectionBelowColor,
+        )
     }
 
     @Test
@@ -242,6 +304,189 @@ class BalanceTrendChartUiTest {
                 )
             }
         }
+    }
+
+    @Test
+    fun `projection is disabled by default`() {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                BalanceTrendChart(
+                    points = listOf(4f, -4f, 4f),
+                    modifier = Modifier.fillMaxWidth(),
+                    showGridlines = false,
+                    style = ChartStyle.Line,
+                )
+            }
+        }
+        composeTestRule.waitForIdle()
+        val defaultImage = composeTestRule.onNodeWithTag(BALANCE_TREND_CHART_TAG).captureToImage()
+        val defaultPixels = IntArray(defaultImage.width * defaultImage.height)
+        defaultImage.readPixels(defaultPixels)
+
+        assertTrue(
+            defaultPixels.contentEquals(
+                captureStylePixels(
+                    style = ChartStyle.Line,
+                    colorRule = ChartColorRule.Default,
+                    showProjection = false,
+                ),
+            ),
+        )
+    }
+
+    @Test
+    fun `every color rule renders its canonical color across all chart styles`() {
+        val points = listOf(1000f, 1200f, 800f)
+
+        ChartStyle.entries.forEach { style ->
+            ChartColorRule.entries.forEach { colorRule ->
+                val chart = captureChart(points, style, colorRule)
+                val expectedColor =
+                    when (colorRule) {
+                        ChartColorRule.Solid -> chart.solidColor
+                        ChartColorRule.AlwaysGreen -> chart.incomeColor
+                        ChartColorRule.AlwaysRed -> chart.expenseColor
+                        ChartColorRule.ByDirection -> chart.incomeColor
+                    }
+
+                assertTrue(
+                    "${colorRule.id} must render its canonical color for ${style.name}",
+                    imageContainsColor(chart.pixels, expectedColor, tolerance = 48),
+                )
+                if (colorRule == ChartColorRule.ByDirection) {
+                    assertTrue(
+                        "ByDirection must render the above segment in green for ${style.name}",
+                        imageContainsColor(chart.pixels, chart.incomeColor, tolerance = 48),
+                    )
+                    assertTrue(
+                        "ByDirection must render the below segment in red for ${style.name}",
+                        imageContainsColor(chart.pixels, chart.expenseColor, tolerance = 48),
+                    )
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `ByDirection bars use both colors relative to the first point`() {
+        val chart =
+            captureChart(
+                points = listOf(1000f, 1200f, 800f),
+                style = ChartStyle.Bars,
+                colorRule = ChartColorRule.ByDirection,
+            )
+
+        assertTrue(imageContainsColor(chart.pixels, chart.incomeColor, tolerance = 48))
+        assertTrue(imageContainsColor(chart.pixels, chart.expenseColor, tolerance = 48))
+    }
+
+    @Test
+    fun `projection uses MaterialTheme tokens above and below zero for every line color rule`() {
+        listOf(ChartStyle.Line, ChartStyle.Smooth).forEach { style ->
+            ChartColorRule.entries.forEach { colorRule ->
+                val withoutProjection =
+                    captureChart(
+                        points = listOf(4f, -4f, 4f),
+                        style = style,
+                        colorRule = colorRule,
+                    )
+                val withProjection =
+                    captureChart(
+                        points = listOf(4f, -4f, 4f),
+                        style = style,
+                        colorRule = colorRule,
+                        showProjection = true,
+                    )
+
+                assertTrue(
+                    "${style.name}/${colorRule.id} projection must add green pixels above the zero axis",
+                    containsNewPixelInRegion(
+                        before = withoutProjection,
+                        after = withProjection,
+                        topInclusive = 0,
+                        bottomExclusive = withProjection.height / 2,
+                        predicate = { colorsMatch(it, withProjection.projectionAboveColor, tolerance = 48) },
+                    ),
+                )
+                assertTrue(
+                    "${style.name}/${colorRule.id} projection must add red pixels below the zero axis",
+                    containsNewPixelInRegion(
+                        before = withoutProjection,
+                        after = withProjection,
+                        topInclusive = withProjection.height / 2,
+                        bottomExclusive = withProjection.height,
+                        predicate = { colorsMatch(it, withProjection.projectionBelowColor, tolerance = 48) },
+                    ),
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `single-sign projection uses one fill color with the zero axis at the edge`() {
+        val positiveWithoutProjection =
+            captureChart(
+                points = listOf(3f, 7f),
+                style = ChartStyle.Line,
+                colorRule = ChartColorRule.Solid,
+            )
+        val positiveWithProjection =
+            captureChart(
+                points = listOf(3f, 7f),
+                style = ChartStyle.Line,
+                colorRule = ChartColorRule.Solid,
+                showProjection = true,
+            )
+        assertTrue(
+            containsNewPixelInRegion(
+                before = positiveWithoutProjection,
+                after = positiveWithProjection,
+                topInclusive = 0,
+                bottomExclusive = positiveWithProjection.height,
+                predicate = { colorsMatch(it, positiveWithProjection.projectionAboveColor, tolerance = 48) },
+            ),
+        )
+        assertFalse(
+            containsNewPixelInRegion(
+                before = positiveWithoutProjection,
+                after = positiveWithProjection,
+                topInclusive = 0,
+                bottomExclusive = positiveWithProjection.height,
+                predicate = { colorsMatch(it, positiveWithProjection.projectionBelowColor, tolerance = 48) },
+            ),
+        )
+
+        val negativeWithoutProjection =
+            captureChart(
+                points = listOf(-3f, -7f),
+                style = ChartStyle.Line,
+                colorRule = ChartColorRule.Solid,
+            )
+        val negativeWithProjection =
+            captureChart(
+                points = listOf(-3f, -7f),
+                style = ChartStyle.Line,
+                colorRule = ChartColorRule.Solid,
+                showProjection = true,
+            )
+        assertTrue(
+            containsNewPixelInRegion(
+                before = negativeWithoutProjection,
+                after = negativeWithProjection,
+                topInclusive = 0,
+                bottomExclusive = negativeWithProjection.height,
+                predicate = { colorsMatch(it, negativeWithProjection.projectionBelowColor, tolerance = 48) },
+            ),
+        )
+        assertFalse(
+            containsNewPixelInRegion(
+                before = negativeWithoutProjection,
+                after = negativeWithProjection,
+                topInclusive = 0,
+                bottomExclusive = negativeWithProjection.height,
+                predicate = { colorsMatch(it, negativeWithProjection.projectionAboveColor, tolerance = 48) },
+            ),
+        )
     }
 
     @Test
@@ -622,4 +867,46 @@ class BalanceTrendChartUiTest {
                 maximumFractionDigits = 6
             }.format(value.toDouble())
     }
+
+    private fun imageContainsColor(
+        pixels: IntArray,
+        argb: Int,
+        tolerance: Int = 16,
+    ): Boolean =
+        pixels.any { colorsMatch(it, argb, tolerance) }
+
+    private fun containsNewPixelInRegion(
+        before: RenderedChart,
+        after: RenderedChart,
+        topInclusive: Int,
+        bottomExclusive: Int,
+        predicate: (Int) -> Boolean,
+    ): Boolean {
+        assertEquals(before.width, after.width)
+        assertEquals(before.height, after.height)
+        for (y in topInclusive until bottomExclusive) {
+            for (x in 0 until after.width) {
+                val index = y * after.width + x
+                if (before.pixels[index] != after.pixels[index] && predicate(after.pixels[index])) {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
+    private fun colorsMatch(
+        actual: Int,
+        expected: Int,
+        tolerance: Int,
+    ): Boolean {
+        return kotlin.math.abs(channel(actual, 16) - channel(expected, 16)) <= tolerance &&
+            kotlin.math.abs(channel(actual, 8) - channel(expected, 8)) <= tolerance &&
+            kotlin.math.abs(channel(actual, 0) - channel(expected, 0)) <= tolerance
+    }
+
+    private fun channel(
+        argb: Int,
+        shift: Int,
+    ): Int = (argb shr shift) and 0xFF
 }

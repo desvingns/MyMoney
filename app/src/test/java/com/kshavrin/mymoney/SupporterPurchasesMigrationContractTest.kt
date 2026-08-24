@@ -53,7 +53,8 @@ class SupporterPurchasesMigrationContractTest {
     fun `after-insert trigger grants the cosmetic supporter badge idempotently`() {
         val sql = normalized()
         val function =
-            sql.substringAfter("create or replace function private.grant_supporter_from_purchase()")
+            sql
+                .substringAfter("create or replace function private.grant_supporter_from_purchase()")
                 .substringBefore("create trigger supporter_purchases_grant_supporter")
         val trigger = sql.substringAfter("create trigger supporter_purchases_grant_supporter")
 

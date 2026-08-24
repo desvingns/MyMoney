@@ -11,6 +11,21 @@ import org.junit.Test
 class BalanceTrendChartGeometryTest {
     // ---- helpers ----
 
+    @Test
+    fun `projection colors preserve the supplied design tokens including alpha`() {
+        val above = Color(0x385BE3B0)
+        val below = Color(0x38FF8A80)
+
+        val colors =
+            balanceTrendChartProjectionColors(
+                aboveColor = above,
+                belowColor = below,
+            )
+
+        assertEquals(above, colors.above)
+        assertEquals(below, colors.below)
+    }
+
     private fun geometry(
         values: List<Float>,
         width: Float = 400f,
@@ -257,10 +272,16 @@ class BalanceTrendChartGeometryTest {
     fun `projection colors stay green and red independently of the line color mode`() {
         val income = Color.Green
         val expense = Color.Red
-        val colors = balanceTrendChartProjectionColors(income, expense)
+        val aboveToken = income.copy(alpha = 0.22f)
+        val belowToken = expense.copy(alpha = 0.22f)
+        val colors =
+            balanceTrendChartProjectionColors(
+                aboveColor = aboveToken,
+                belowColor = belowToken,
+            )
 
-        assertEquals(income.copy(alpha = 0.22f), colors.above)
-        assertEquals(expense.copy(alpha = 0.22f), colors.below)
+        assertEquals(aboveToken, colors.above)
+        assertEquals(belowToken, colors.below)
     }
 
     @Test
@@ -276,6 +297,19 @@ class BalanceTrendChartGeometryTest {
         assertEquals(Offset(5f, 0f), segments[1].start)
         assertEquals(BalanceTrendChartHorizontalZone.AboveOrOn, segments[0].zone)
         assertEquals(BalanceTrendChartHorizontalZone.Below, segments[1].zone)
+    }
+
+    @Test
+    fun `linear splitter uses the exact interpolation fraction for an uneven crossing`() {
+        val segments =
+            splitBalanceTrendChartSegmentsAtHorizontalLine(
+                points = listOf(Offset(2f, -6f), Offset(12f, 9f)),
+                horizontalLineY = 3f,
+            )
+
+        assertEquals(2, segments.size)
+        assertEquals(Offset(8f, 3f), segments[0].end)
+        assertEquals(Offset(8f, 3f), segments[1].start)
     }
 
     @Test
@@ -295,6 +329,20 @@ class BalanceTrendChartGeometryTest {
         assertEquals(BalanceTrendChartHorizontalZone.AboveOrOn, touched.single().zone)
         assertEquals(1, startTouch.size)
         assertEquals(BalanceTrendChartHorizontalZone.AboveOrOn, startTouch.single().zone)
+
+        val endTouchAbove =
+            splitBalanceTrendChartSegmentsAtHorizontalLine(
+                points = listOf(Offset(0f, -5f), Offset(10f, 0f)),
+                horizontalLineY = 0f,
+            )
+        val endTouchBelow =
+            splitBalanceTrendChartSegmentsAtHorizontalLine(
+                points = listOf(Offset(0f, 5f), Offset(10f, 0f)),
+                horizontalLineY = 0f,
+            )
+
+        assertEquals(BalanceTrendChartHorizontalZone.AboveOrOn, endTouchAbove.single().zone)
+        assertEquals(BalanceTrendChartHorizontalZone.Below, endTouchBelow.single().zone)
     }
 
     @Test
@@ -375,6 +423,74 @@ class BalanceTrendChartGeometryTest {
                 baseline = 0f,
                 style = ChartStyle.Line,
             ).all { it is BalanceTrendChartProjectionSegment.Linear },
+        )
+    }
+
+    @Test
+    fun `line projection keeps all-above all-below and neutral segments unsplit`() {
+        val above =
+            calculateBalanceTrendChartProjectionSegments(
+                points = listOf(Offset(0f, -5f), Offset(10f, -1f)),
+                baseline = 0f,
+                style = ChartStyle.Line,
+            )
+        val below =
+            calculateBalanceTrendChartProjectionSegments(
+                points = listOf(Offset(0f, 5f), Offset(10f, 1f)),
+                baseline = 0f,
+                style = ChartStyle.Line,
+            )
+        val neutral =
+            calculateBalanceTrendChartProjectionSegments(
+                points = listOf(Offset(0f, 0f), Offset(10f, 0f)),
+                baseline = 0f,
+                style = ChartStyle.Line,
+            )
+
+        assertEquals(1, above.size)
+        assertEquals(BalanceTrendChartHorizontalZone.AboveOrOn, above.single().zone)
+        assertEquals(1, below.size)
+        assertEquals(BalanceTrendChartHorizontalZone.Below, below.single().zone)
+        assertEquals(1, neutral.size)
+        assertEquals(BalanceTrendChartHorizontalZone.AboveOrOn, neutral.single().zone)
+    }
+
+    @Test
+    fun `single-sign projection stays one color with the zero axis at the plot edge`() {
+        val positiveGeometry = geometry(listOf(3f, 7f), height = 200f)
+        val negativeGeometry = geometry(listOf(-3f, -7f), height = 200f)
+        val positiveProjection =
+            calculateBalanceTrendChartProjectionSegments(
+                points = positiveGeometry.points,
+                baseline = 200f,
+                style = ChartStyle.Line,
+            )
+        val negativeProjection =
+            calculateBalanceTrendChartProjectionSegments(
+                points = negativeGeometry.points,
+                baseline = 0f,
+                style = ChartStyle.Line,
+            )
+
+        assertTrue(positiveProjection.all { it.zone == BalanceTrendChartHorizontalZone.AboveOrOn })
+        assertTrue(negativeProjection.all { it.zone == BalanceTrendChartHorizontalZone.Below })
+    }
+
+    @Test
+    fun `smooth projection preserves zones for a strict crossing`() {
+        val projection =
+            calculateBalanceTrendChartProjectionSegments(
+                points = listOf(Offset(0f, -5f), Offset(100f, 5f)),
+                baseline = 0f,
+                style = ChartStyle.Smooth,
+            )
+
+        assertEquals(
+            listOf(
+                BalanceTrendChartHorizontalZone.AboveOrOn,
+                BalanceTrendChartHorizontalZone.Below,
+            ),
+            projection.map { it.zone },
         )
     }
 

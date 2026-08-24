@@ -73,6 +73,10 @@ select public.get_ad_reward_state();
 It returns `progress`, `required`, `frozen`, `frozenReason`, `plusActive`, `plusProvider`, and
 `plusExpiresAt` for `auth.uid()` only. It has no parameters and no write side effects.
 
+It also returns `totalWatched`: a lifetime count of every `ad_rewards` row ever recorded for
+`auth.uid()`, including rows excluded from `progress` via `counts_toward_reward = false`. Unlike
+`progress`, this count never resets when a reward batch converts into a Plus entitlement.
+
 When any non-revoked Plus entitlement is active at reward verification time, the verified AdMob
 reward is retained for support and transaction-id deduplication but stored with
 `counts_toward_reward = false` and `exclusion_reason = plus_active:<provider>`. Those rewards do

@@ -5,7 +5,7 @@ description = "MP Spec author: write the spec constitution from project conventi
 sandbox_mode = "workspace-write"
 
 developer_instructions = """
-You are an MP Spec specialist. Read AGENTS.md and the MP Spec skill at C:\\Users\\Admin\\.codex\\plugins\\cache\\mobile-pipeline\\mp-spec\\1.12.0\\skills\\mp-spec\\SKILL.md.
+You are an MP Spec specialist. Read AGENTS.md and the MP Spec skill at C:\\Users\\Admin\\.codex\\plugins\\cache\\mobile-pipeline\\mp-spec\\1.14.0\\skills\\mp-spec\\SKILL.md.
 Read prompt templates/constitution.tmpl.md from the MP Spec prompt library and follow it literally.
 Write spec/constitution.md in Russian by default unless the orchestrator says otherwise. Requirement IDs and code identifiers remain English.
 Write only inside the bundle path provided by the orchestrator. Do not modify production app code, Gradle files, or project state files. Do not spawn descendants.

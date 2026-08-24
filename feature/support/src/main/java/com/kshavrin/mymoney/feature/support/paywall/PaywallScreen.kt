@@ -6,6 +6,7 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,12 +19,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.outlined.CreditCard
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -40,11 +41,15 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
 import com.kshavrin.mymoney.core.domain.model.EntitlementSource
 import com.kshavrin.mymoney.core.domain.model.EntitlementState
 import com.kshavrin.mymoney.core.domain.model.UserEntitlement
@@ -58,6 +63,7 @@ import com.kshavrin.mymoney.core.ui.theme.supportDescription
 import com.kshavrin.mymoney.core.ui.theme.supportPanel
 import com.kshavrin.mymoney.core.ui.theme.supportPanelContainer
 import com.kshavrin.mymoney.core.ui.theme.supportPanelDivider
+import com.kshavrin.mymoney.core.ui.theme.supportPanelIllustration
 import com.kshavrin.mymoney.core.ui.theme.supportPanelOutline
 import com.kshavrin.mymoney.core.ui.theme.supportPanelSubtitle
 import com.kshavrin.mymoney.core.ui.theme.supportPriceValue
@@ -379,9 +385,14 @@ internal fun PaywallPlanColumn(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Spacing.supportPanelColumnGap),
     ) {
-        Icon(
-            imageVector = Icons.Outlined.CreditCard,
+        Image(
+            painter = painterResource(planId.illustrationRes),
             contentDescription = stringResource(planId.iconContentDescriptionRes),
+            contentScale = ContentScale.Fit,
+            modifier =
+                Modifier
+                    .size(Spacing.supportPanelIconSize)
+                    .clip(MaterialTheme.shapes.supportPanelIllustration),
         )
         Text(
             text = stringResource(planId.titleRes),
@@ -401,20 +412,19 @@ internal fun PaywallPlanColumn(
                 textAlign = TextAlign.Center,
             )
         }
-        onSelect?.let { select ->
-            Button(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = Spacing.supportActionMinHeight),
-                onClick = select,
-                shape = MaterialTheme.shapes.supportPrimaryAction,
-            ) {
-                Text(
-                    text = stringResource(R.string.paywall_select_plan),
-                    style = MaterialTheme.typography.supportActionLabel,
-                )
-            }
+        Button(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = Spacing.supportActionMinHeight),
+            onClick = { onSelect?.invoke() },
+            enabled = onSelect != null,
+            shape = MaterialTheme.shapes.supportPrimaryAction,
+        ) {
+            Text(
+                text = stringResource(R.string.paywall_select_plan),
+                style = MaterialTheme.typography.supportActionLabel,
+            )
         }
     }
 }
@@ -508,6 +518,13 @@ private val PaywallPlanId.iconContentDescriptionRes: Int
         when (this) {
             PaywallPlanId.Monthly -> R.string.paywall_monthly_icon_content_description
             PaywallPlanId.Yearly -> R.string.paywall_yearly_icon_content_description
+        }
+
+private val PaywallPlanId.illustrationRes: Int
+    get() =
+        when (this) {
+            PaywallPlanId.Monthly -> DesignSystemR.drawable.support_neon_plus_monthly
+            PaywallPlanId.Yearly -> DesignSystemR.drawable.support_neon_plus_yearly
         }
 
 private val UserEntitlement.Plus.statusRes: Int

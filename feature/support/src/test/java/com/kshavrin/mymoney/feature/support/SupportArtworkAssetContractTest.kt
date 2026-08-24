@@ -158,7 +158,9 @@ class SupportArtworkAssetContractTest {
     }
 
     private fun String.countOccurrences(value: String): Int =
-        windowed(value.length, 1).count { it == value }
+        Regex("(?<![A-Za-z0-9_])${Regex.escape(value)}(?![A-Za-z0-9_])")
+            .findAll(this)
+            .count()
 
     private fun normalize(source: String): String = source.replace(Regex("\\s+"), " ")
 
@@ -182,6 +184,8 @@ class SupportArtworkAssetContractTest {
                 "support_neon_coffee_large" to DesignSystemR.drawable.support_neon_coffee_large,
                 "support_neon_coffee_small" to DesignSystemR.drawable.support_neon_coffee_small,
                 "support_neon_ads" to DesignSystemR.drawable.support_neon_ads,
+                "support_neon_plus_monthly" to DesignSystemR.drawable.support_neon_plus_monthly,
+                "support_neon_plus_yearly" to DesignSystemR.drawable.support_neon_plus_yearly,
             )
 
         private val consumerPaths =
@@ -189,6 +193,7 @@ class SupportArtworkAssetContractTest {
                 "feature/support/src/main/java/com/kshavrin/mymoney/feature/support/SupportScreen.kt",
                 "feature/support/src/main/java/com/kshavrin/mymoney/feature/support/rewardedad/RewardedAdScreen.kt",
                 "feature/support/src/main/java/com/kshavrin/mymoney/feature/support/plus/SupportPlusEntry.kt",
+                "feature/support/src/main/java/com/kshavrin/mymoney/feature/support/paywall/PaywallScreen.kt",
             )
 
         private val artworkConsumers =
@@ -203,6 +208,10 @@ class SupportArtworkAssetContractTest {
                     "feature/support/src/main/java/com/kshavrin/mymoney/feature/support/rewardedad/RewardedAdScreen.kt",
                 "support_neon_plus" to
                     "feature/support/src/main/java/com/kshavrin/mymoney/feature/support/plus/SupportPlusEntry.kt",
+                "support_neon_plus_monthly" to
+                    "feature/support/src/main/java/com/kshavrin/mymoney/feature/support/paywall/PaywallScreen.kt",
+                "support_neon_plus_yearly" to
+                    "feature/support/src/main/java/com/kshavrin/mymoney/feature/support/paywall/PaywallScreen.kt",
             )
 
         fun findRepositoryRoot(): File =

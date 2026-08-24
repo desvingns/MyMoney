@@ -61,4 +61,36 @@ class BillingContractsTest {
         assertSame(PurchaseOutcome.NetworkError, PurchaseOutcome.NetworkError)
         assertEquals("billing disabled", PurchaseOutcome.Unavailable("billing disabled").reason)
     }
+
+    @Test
+    fun `plus contracts expose every catalog purchase and outcome state`() {
+        val catalogStates =
+            listOf(
+                PlusCatalogState.Loading,
+                PlusCatalogState.Available,
+                PlusCatalogState.UnavailableInRegion,
+                PlusCatalogState.Unavailable,
+                PlusCatalogState.Error,
+            )
+        val purchaseStates =
+            listOf(
+                PlusPurchaseState.Idle,
+                PlusPurchaseState.InProgress,
+                PlusPurchaseState.ReconcilingEntitlement,
+                PlusPurchaseState.AwaitingEntitlement,
+                PlusPurchaseState.Pending,
+            )
+        val state =
+            PlusSubscriptionState(
+                catalog = PlusCatalogState.Available,
+                prices = mapOf(PlusPlanId.Monthly to "€2.99", PlusPlanId.Yearly to "€24.99"),
+                purchase = PlusPurchaseState.Pending,
+            )
+
+        assertEquals(5, catalogStates.toSet().size)
+        assertEquals(5, purchaseStates.toSet().size)
+        assertEquals(2, PlusPlanId.entries.size)
+        assertEquals(6, PlusPurchaseOutcome.entries.size)
+        assertEquals("€2.99", state.prices[PlusPlanId.Monthly])
+    }
 }

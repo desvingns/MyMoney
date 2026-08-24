@@ -4,6 +4,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -113,7 +114,8 @@ class PaywallScreenContentTest {
         // Plans card renders non-interactively alongside the message (acceptance cell #4)
         composeTestRule.onNodeWithText(string(R.string.paywall_monthly_title)).performScrollTo().assertIsDisplayed()
         composeTestRule.onNodeWithText(string(R.string.paywall_yearly_title)).performScrollTo().assertIsDisplayed()
-        composeTestRule.onAllNodesWithText(string(R.string.paywall_select_plan)).assertCountEquals(0)
+        composeTestRule.onAllNodesWithText(string(R.string.paywall_select_plan)).assertCountEquals(2)
+        composeTestRule.onAllNodesWithText(string(R.string.paywall_select_plan)).get(0).assertIsNotEnabled()
     }
 
     @Test
@@ -135,7 +137,8 @@ class PaywallScreenContentTest {
             .assertIsEnabled()
             .performClick()
         composeTestRule.onNodeWithText(string(R.string.paywall_monthly_fallback_price)).performScrollTo().assertIsDisplayed()
-        composeTestRule.onAllNodesWithText(string(R.string.paywall_select_plan)).assertCountEquals(0)
+        composeTestRule.onAllNodesWithText(string(R.string.paywall_select_plan)).assertCountEquals(2)
+        composeTestRule.onAllNodesWithText(string(R.string.paywall_select_plan)).get(0).assertIsNotEnabled()
 
         composeTestRule.runOnIdle {
             assertEquals(listOf(PaywallEvent.RetryClicked), events)
@@ -152,7 +155,8 @@ class PaywallScreenContentTest {
         )
 
         composeTestRule.onNodeWithText(string(R.string.paywall_purchase_processing)).performScrollTo().assertIsDisplayed()
-        composeTestRule.onAllNodesWithText(string(R.string.paywall_select_plan)).assertCountEquals(0)
+        composeTestRule.onAllNodesWithText(string(R.string.paywall_select_plan)).assertCountEquals(2)
+        composeTestRule.onAllNodesWithText(string(R.string.paywall_select_plan)).get(0).assertIsNotEnabled()
     }
 
     @Test
@@ -254,7 +258,7 @@ class PaywallScreenContentTest {
     fun `plans card renders both columns inside a single container with one icon per plan`() {
         setContent(state = availableState())
 
-        // One CreditCard icon per column — both columns are rendered inside the single card
+        // One subscription illustration per column — both columns are rendered inside the single card
         composeTestRule
             .onNodeWithContentDescription(string(R.string.paywall_monthly_icon_content_description))
             .performScrollTo()
@@ -350,7 +354,8 @@ class PaywallScreenContentTest {
         // Both plan columns render alongside the message (non-interactive: no onEvent forwarded)
         composeTestRule.onNodeWithText(string(R.string.paywall_monthly_title)).performScrollTo().assertIsDisplayed()
         composeTestRule.onNodeWithText(string(R.string.paywall_yearly_title)).performScrollTo().assertIsDisplayed()
-        composeTestRule.onAllNodesWithText(string(R.string.paywall_select_plan)).assertCountEquals(0)
+        composeTestRule.onAllNodesWithText(string(R.string.paywall_select_plan)).assertCountEquals(2)
+        composeTestRule.onAllNodesWithText(string(R.string.paywall_select_plan)).get(0).assertIsNotEnabled()
     }
 
     @Test

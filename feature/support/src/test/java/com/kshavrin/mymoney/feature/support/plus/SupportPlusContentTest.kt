@@ -3,6 +3,7 @@ package com.kshavrin.mymoney.feature.support.plus
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -254,7 +255,7 @@ class SupportPlusContentTest {
     // ─── UnavailableInRegion catalog ─────────────────────────────────────────────
 
     @Test
-    fun `region unavailable catalog explains the limitation without select buttons`() {
+    fun `region unavailable catalog explains the limitation with disabled select buttons`() {
         setContent(
             state =
                 SupportPlusState(
@@ -272,6 +273,10 @@ class SupportPlusContentTest {
             .assertIsDisplayed()
         composeTestRule
             .onAllNodesWithText(string(R.string.paywall_select_plan))
-            .assertCountEquals(0)
+            .assertCountEquals(2)
+        composeTestRule
+            .onAllNodesWithText(string(R.string.paywall_select_plan))
+            .get(0)
+            .assertIsNotEnabled()
     }
 }

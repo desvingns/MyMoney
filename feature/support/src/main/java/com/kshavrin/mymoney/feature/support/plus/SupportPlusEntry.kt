@@ -40,7 +40,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
 import com.kshavrin.mymoney.core.domain.model.UserEntitlement
 import com.kshavrin.mymoney.core.ui.flow.CollectActions
 import com.kshavrin.mymoney.core.ui.theme.Spacing
@@ -58,6 +57,7 @@ import com.kshavrin.mymoney.feature.support.paywall.PaywallState
 import com.kshavrin.mymoney.feature.support.paywall.PlusStatusCard
 import com.kshavrin.mymoney.feature.support.paywall.hasActivePlus
 import kotlinx.coroutines.launch
+import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
 
 @Composable
 fun SupportPlusEntry(

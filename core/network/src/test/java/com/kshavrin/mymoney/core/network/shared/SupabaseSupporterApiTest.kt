@@ -184,7 +184,7 @@ class SupabaseSupporterApiTest {
                 MockResponse()
                     .setResponseCode(200)
                     .addHeader("Content-Range", "0-2/3")
-                    .setBody("[{\"id\":\"purchase-1\"}]")
+                    .setBody("[{\"id\":\"purchase-1\"}]"),
             )
 
             val state = api.getState("user-1", "access-token").getOrThrow()

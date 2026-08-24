@@ -7,13 +7,10 @@ import com.kshavrin.mymoney.core.domain.ads.AdRewardRepository
 import com.kshavrin.mymoney.core.domain.ads.AdRewardState
 import com.kshavrin.mymoney.core.domain.ads.ConfirmationOutcome
 import com.kshavrin.mymoney.core.domain.ads.FrozenReason
-import com.kshavrin.mymoney.core.network.shared.SharedAuth
 import com.kshavrin.mymoney.core.network.shared.AuthSessionLifecycle
 import com.kshavrin.mymoney.core.network.shared.NoOpAuthSessionLifecycle
+import com.kshavrin.mymoney.core.network.shared.SharedAuth
 import com.kshavrin.mymoney.core.network.shared.SupabaseHttpTransport
-import javax.inject.Inject
-import javax.inject.Singleton
-import java.time.Instant
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.delay
@@ -31,6 +28,9 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
+import java.time.Instant
+import javax.inject.Inject
+import javax.inject.Singleton
 
 @Singleton
 class SupabaseAdRewardRepository

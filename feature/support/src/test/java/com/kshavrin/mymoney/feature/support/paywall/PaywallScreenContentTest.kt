@@ -129,7 +129,11 @@ class PaywallScreenContentTest {
         )
 
         composeTestRule.onNodeWithText(string(R.string.paywall_prices_error)).performScrollTo().assertIsDisplayed()
-        composeTestRule.onNodeWithText(string(R.string.paywall_retry)).performScrollTo().assertIsEnabled().performClick()
+        composeTestRule
+            .onNodeWithText(string(R.string.paywall_retry))
+            .performScrollTo()
+            .assertIsEnabled()
+            .performClick()
         composeTestRule.onNodeWithText(string(R.string.paywall_monthly_fallback_price)).performScrollTo().assertIsDisplayed()
         composeTestRule.onAllNodesWithText(string(R.string.paywall_select_plan)).assertCountEquals(0)
 
@@ -274,8 +278,11 @@ class PaywallScreenContentTest {
         setContent(state = availableState(), onEvent = events::add)
 
         // Button at index 0 must be Monthly (left column)
-        composeTestRule.onAllNodesWithText(string(R.string.paywall_select_plan)).get(0)
-            .performScrollTo().performClick()
+        composeTestRule
+            .onAllNodesWithText(string(R.string.paywall_select_plan))
+            .get(0)
+            .performScrollTo()
+            .performClick()
         composeTestRule.runOnIdle {
             assertEquals(listOf(PaywallEvent.PlanSelected(PaywallPlanId.Monthly)), events)
         }
@@ -283,8 +290,11 @@ class PaywallScreenContentTest {
         events.clear()
 
         // Button at index 1 must be Yearly (right column)
-        composeTestRule.onAllNodesWithText(string(R.string.paywall_select_plan)).get(1)
-            .performScrollTo().performClick()
+        composeTestRule
+            .onAllNodesWithText(string(R.string.paywall_select_plan))
+            .get(1)
+            .performScrollTo()
+            .performClick()
         composeTestRule.runOnIdle {
             assertEquals(listOf(PaywallEvent.PlanSelected(PaywallPlanId.Yearly)), events)
         }

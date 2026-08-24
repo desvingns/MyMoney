@@ -97,8 +97,11 @@ class DataStoreEntitlementCache
         }
 
         private fun Preferences.toEntitlementSnapshot(): EntitlementSnapshot? {
-            val source = this[SOURCE]?.let { value -> runCatching { EntitlementSource.valueOf(value) }.getOrNull() }
-                ?: return null
+            val source =
+                this[SOURCE]?.let { value ->
+                    runCatching { EntitlementSource.valueOf(value) }.getOrNull()
+                }
+                    ?: return null
             val startsAt = this[STARTS_AT]?.let(Instant::ofEpochMilli) ?: return null
             return EntitlementSnapshot(
                 source = source,

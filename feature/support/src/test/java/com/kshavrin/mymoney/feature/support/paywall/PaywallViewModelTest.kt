@@ -45,130 +45,137 @@ class PaywallViewModelTest {
     }
 
     @Test
-    fun `paywall shown analytics event is logged once with the route entry point`() = runTest {
-        val analytics = FakeAnalyticsGateway()
+    fun `paywall shown analytics event is logged once with the route entry point`() =
+        runTest {
+            val analytics = FakeAnalyticsGateway()
 
-        createViewModel(analytics = analytics)
-        runCurrent()
+            createViewModel(analytics = analytics)
+            runCurrent()
 
-        assertEquals(
-            listOf(AnalyticsEvent.PaywallShown(PaywallEntryPoint.SupportSection.name)),
-            analytics.events,
-        )
-    }
-
-    @Test
-    fun `coordinator prices map to PaywallPlan list through PlusPlanId to PaywallPlanId boundary`() = runTest {
-        val coordinator = FakePlusSubscriptionCoordinator()
-        val viewModel = createViewModel(coordinator)
-
-        coordinator.emitState(
-            PlusSubscriptionState(
-                catalog = PlusCatalogState.Available,
-                prices =
-                    mapOf(
-                        PlusPlanId.Monthly to "€1.99 / month",
-                        PlusPlanId.Yearly to "€12.99 / year",
-                    ),
-            ),
-        )
-        runCurrent()
-
-        assertEquals(PaywallCatalogState.Available, viewModel.state.value.catalogState)
-        assertEquals(
-            listOf(
-                PaywallPlan(PaywallPlanId.Monthly, "€1.99 / month"),
-                PaywallPlan(PaywallPlanId.Yearly, "€12.99 / year"),
-            ),
-            viewModel.state.value.plans,
-        )
-    }
+            assertEquals(
+                listOf(AnalyticsEvent.PaywallShown(PaywallEntryPoint.SupportSection.name)),
+                analytics.events,
+            )
+        }
 
     @Test
-    fun `back event emits a one-shot NavigateBack action`() = runTest {
-        val viewModel = createViewModel()
-        runCurrent()
+    fun `coordinator prices map to PaywallPlan list through PlusPlanId to PaywallPlanId boundary`() =
+        runTest {
+            val coordinator = FakePlusSubscriptionCoordinator()
+            val viewModel = createViewModel(coordinator)
 
-        var action: PaywallAction? = null
-        val collector = launch { viewModel.actions.collect { action = it } }
-        runCurrent()
+            coordinator.emitState(
+                PlusSubscriptionState(
+                    catalog = PlusCatalogState.Available,
+                    prices =
+                        mapOf(
+                            PlusPlanId.Monthly to "€1.99 / month",
+                            PlusPlanId.Yearly to "€12.99 / year",
+                        ),
+                ),
+            )
+            runCurrent()
 
-        viewModel.onEvent(PaywallEvent.BackClicked)
-        runCurrent()
-        collector.cancel()
-
-        assertEquals(PaywallAction.NavigateBack, action)
-        assertTrue(viewModel.actions.replayCache.isEmpty())
-    }
-
-    @Test
-    fun `PlanSelected maps PaywallPlanId to domain PlusPlanId before calling coordinator`() = runTest {
-        val coordinator = FakePlusSubscriptionCoordinator()
-        val viewModel = createViewModel(coordinator)
-        runCurrent()
-
-        viewModel.onEvent(PaywallEvent.PlanSelected(PaywallPlanId.Monthly))
-        runCurrent()
-        assertEquals(PlusPlanId.Monthly, coordinator.lastPurchasedPlanId)
-
-        viewModel.onEvent(PaywallEvent.PlanSelected(PaywallPlanId.Yearly))
-        runCurrent()
-        assertEquals(PlusPlanId.Yearly, coordinator.lastPurchasedPlanId)
-    }
+            assertEquals(PaywallCatalogState.Available, viewModel.state.value.catalogState)
+            assertEquals(
+                listOf(
+                    PaywallPlan(PaywallPlanId.Monthly, "€1.99 / month"),
+                    PaywallPlan(PaywallPlanId.Yearly, "€12.99 / year"),
+                ),
+                viewModel.state.value.plans,
+            )
+        }
 
     @Test
-    fun `successful purchase emits RequestNotificationPermission action`() = runTest {
-        val coordinator =
-            FakePlusSubscriptionCoordinator().apply {
-                purchaseOutcome = PlusPurchaseOutcome.Purchased
-            }
-        val viewModel = createViewModel(coordinator)
-        runCurrent()
+    fun `back event emits a one-shot NavigateBack action`() =
+        runTest {
+            val viewModel = createViewModel()
+            runCurrent()
 
-        val collectedActions = mutableListOf<PaywallAction>()
-        val collector = launch { viewModel.actions.collect { collectedActions += it } }
-        runCurrent()
+            var action: PaywallAction? = null
+            val collector = launch { viewModel.actions.collect { action = it } }
+            runCurrent()
 
-        viewModel.onEvent(PaywallEvent.PlanSelected(PaywallPlanId.Monthly))
-        advanceUntilIdle()
-        collector.cancel()
+            viewModel.onEvent(PaywallEvent.BackClicked)
+            runCurrent()
+            collector.cancel()
 
-        assertTrue(
-            "Expected RequestNotificationPermission in $collectedActions",
-            PaywallAction.RequestNotificationPermission in collectedActions,
-        )
-    }
+            assertEquals(PaywallAction.NavigateBack, action)
+            assertTrue(viewModel.actions.replayCache.isEmpty())
+        }
 
     @Test
-    fun `Failed purchase outcome sets an error message in state`() = runTest {
-        val coordinator =
-            FakePlusSubscriptionCoordinator().apply {
-                purchaseOutcome = PlusPurchaseOutcome.Failed
-            }
-        val viewModel = createViewModel(coordinator)
-        runCurrent()
+    fun `PlanSelected maps PaywallPlanId to domain PlusPlanId before calling coordinator`() =
+        runTest {
+            val coordinator = FakePlusSubscriptionCoordinator()
+            val viewModel = createViewModel(coordinator)
+            runCurrent()
 
-        viewModel.onEvent(PaywallEvent.PlanSelected(PaywallPlanId.Monthly))
-        advanceUntilIdle()
+            viewModel.onEvent(PaywallEvent.PlanSelected(PaywallPlanId.Monthly))
+            runCurrent()
+            assertEquals(PlusPlanId.Monthly, coordinator.lastPurchasedPlanId)
 
-        assertNotNull(
-            "errorMessageRes must be set after a Failed purchase outcome",
-            viewModel.state.value.errorMessageRes,
-        )
-    }
+            viewModel.onEvent(PaywallEvent.PlanSelected(PaywallPlanId.Yearly))
+            runCurrent()
+            assertEquals(PlusPlanId.Yearly, coordinator.lastPurchasedPlanId)
+        }
 
     @Test
-    fun `retry clicked delegates to coordinator refreshCatalog`() = runTest {
-        val coordinator = FakePlusSubscriptionCoordinator()
-        val viewModel = createViewModel(coordinator)
-        runCurrent()
-        val callsBeforeRetry = coordinator.refreshCatalogCalls
+    fun `successful purchase emits RequestNotificationPermission action`() =
+        runTest {
+            val coordinator =
+                FakePlusSubscriptionCoordinator().apply {
+                    purchaseOutcome = PlusPurchaseOutcome.Purchased
+                }
+            val viewModel = createViewModel(coordinator)
+            runCurrent()
 
-        viewModel.onEvent(PaywallEvent.RetryClicked)
-        runCurrent()
+            val collectedActions = mutableListOf<PaywallAction>()
+            val collector = launch { viewModel.actions.collect { collectedActions += it } }
+            runCurrent()
 
-        assertEquals(callsBeforeRetry + 1, coordinator.refreshCatalogCalls)
-    }
+            viewModel.onEvent(PaywallEvent.PlanSelected(PaywallPlanId.Monthly))
+            advanceUntilIdle()
+            collector.cancel()
+
+            assertTrue(
+                "Expected RequestNotificationPermission in $collectedActions",
+                PaywallAction.RequestNotificationPermission in collectedActions,
+            )
+        }
+
+    @Test
+    fun `Failed purchase outcome sets an error message in state`() =
+        runTest {
+            val coordinator =
+                FakePlusSubscriptionCoordinator().apply {
+                    purchaseOutcome = PlusPurchaseOutcome.Failed
+                }
+            val viewModel = createViewModel(coordinator)
+            runCurrent()
+
+            viewModel.onEvent(PaywallEvent.PlanSelected(PaywallPlanId.Monthly))
+            advanceUntilIdle()
+
+            assertNotNull(
+                "errorMessageRes must be set after a Failed purchase outcome",
+                viewModel.state.value.errorMessageRes,
+            )
+        }
+
+    @Test
+    fun `retry clicked delegates to coordinator refreshCatalog`() =
+        runTest {
+            val coordinator = FakePlusSubscriptionCoordinator()
+            val viewModel = createViewModel(coordinator)
+            runCurrent()
+            val callsBeforeRetry = coordinator.refreshCatalogCalls
+
+            viewModel.onEvent(PaywallEvent.RetryClicked)
+            runCurrent()
+
+            assertEquals(callsBeforeRetry + 1, coordinator.refreshCatalogCalls)
+        }
 
     private fun createViewModel(
         coordinator: FakePlusSubscriptionCoordinator = FakePlusSubscriptionCoordinator(),

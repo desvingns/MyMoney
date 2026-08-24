@@ -37,19 +37,19 @@ class AppSettingsRepositoryImpl
                 val current = prefs.toAppSettings()
                 val next = transform(current)
                 if (current.firstPositiveSeen && !next.firstPositiveSeen) {
-                    throw IllegalStateException("firstPositiveSeen is monotonic — cannot flip true to false")
+                    error("firstPositiveSeen is monotonic — cannot flip true to false")
                 }
                 if (current.supporterBadgeEarned && !next.supporterBadgeEarned) {
-                    throw IllegalStateException("supporterBadgeEarned is monotonic - cannot flip true to false")
+                    error("supporterBadgeEarned is monotonic - cannot flip true to false")
                 }
                 if (current.supporterActivityRecorded && !next.supporterActivityRecorded) {
-                    throw IllegalStateException("supporterActivityRecorded is monotonic - cannot flip true to false")
+                    error("supporterActivityRecorded is monotonic - cannot flip true to false")
                 }
                 if (next.supportPurchaseCountSmall < current.supportPurchaseCountSmall) {
-                    throw IllegalStateException("supportPurchaseCountSmall is monotonic - cannot decrease")
+                    error("supportPurchaseCountSmall is monotonic - cannot decrease")
                 }
                 if (next.supportPurchaseCountLarge < current.supportPurchaseCountLarge) {
-                    throw IllegalStateException("supportPurchaseCountLarge is monotonic - cannot decrease")
+                    error("supportPurchaseCountLarge is monotonic - cannot decrease")
                 }
                 next.writeTo(prefs)
                 prefs[AppSettingsKeys.SETTINGS_REVISION] =

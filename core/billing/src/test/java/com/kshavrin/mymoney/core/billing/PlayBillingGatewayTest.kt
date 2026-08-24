@@ -25,37 +25,39 @@ import org.junit.Test
 
 class PlayBillingGatewayTest {
     @Test
-    fun `disabled build returns disabled outcomes without creating the Play client`() = runTest {
-        assertFalse(BuildConfig.BILLING_ENABLED)
-        val fixture = fixture()
+    fun `disabled build returns disabled outcomes without creating the Play client`() =
+        runTest {
+            assertFalse(BuildConfig.BILLING_ENABLED)
+            val fixture = fixture()
 
-        assertEquals(BillingAvailability.DisabledInBuild, fixture.gateway.availability().first())
-        assertEquals(emptyList<SupportProduct>(), fixture.gateway.products().getOrThrow())
-        assertEquals(emptyList<PurchaseOutcome>(), fixture.gateway.resolvePendingPurchases().getOrThrow())
-        assertEquals(
-            PurchaseOutcome.Unavailable("billing_disabled_in_build"),
-            fixture.gateway.purchase("coffee_small").first(),
-        )
-        assertEquals(0, fixture.factory.createCalls)
-    }
+            assertEquals(BillingAvailability.DisabledInBuild, fixture.gateway.availability().first())
+            assertEquals(emptyList<SupportProduct>(), fixture.gateway.products().getOrThrow())
+            assertEquals(emptyList<PurchaseOutcome>(), fixture.gateway.resolvePendingPurchases().getOrThrow())
+            assertEquals(
+                PurchaseOutcome.Unavailable("billing_disabled_in_build"),
+                fixture.gateway.purchase("coffee_small").first(),
+            )
+            assertEquals(0, fixture.factory.createCalls)
+        }
 
     @Test
-    fun `pending outcome keeps the bridge open for a later purchased outcome`() = runTest {
-        val bridge = PurchaseOutcomeBridge()
-        val purchased =
-            PurchaseOutcome.Purchased(
-                productId = "coffee_small",
-                purchaseToken = "purchase-token",
-                purchasedAtMillis = 1_723_456_789_000L,
-            )
+    fun `pending outcome keeps the bridge open for a later purchased outcome`() =
+        runTest {
+            val bridge = PurchaseOutcomeBridge()
+            val purchased =
+                PurchaseOutcome.Purchased(
+                    productId = "coffee_small",
+                    purchaseToken = "purchase-token",
+                    purchasedAtMillis = 1_723_456_789_000L,
+                )
 
-        bridge.emit(PurchaseOutcome.Pending)
-        assertEquals(PurchaseOutcome.Pending, bridge.awaitNext())
+            bridge.emit(PurchaseOutcome.Pending)
+            assertEquals(PurchaseOutcome.Pending, bridge.awaitNext())
 
-        bridge.emit(purchased)
-        assertEquals(purchased, bridge.awaitNext())
-        assertEquals(null, bridge.awaitNext())
-    }
+            bridge.emit(purchased)
+            assertEquals(purchased, bridge.awaitNext())
+            assertEquals(null, bridge.awaitNext())
+        }
 
     @Test
     fun `billing response codes map to distinct device service network and unknown availability`() {
@@ -65,9 +67,10 @@ class PlayBillingGatewayTest {
                 BillingClient.BillingResponseCode.SERVICE_UNAVAILABLE to BillingAvailability.ServiceUnavailable,
                 BillingClient.BillingResponseCode.SERVICE_DISCONNECTED to BillingAvailability.NetworkUnavailable,
                 BillingClient.BillingResponseCode.NETWORK_ERROR to BillingAvailability.NetworkUnavailable,
-                BillingClient.BillingResponseCode.ERROR to BillingAvailability.UnknownFailure(
-                    BillingClient.BillingResponseCode.ERROR,
-                ),
+                BillingClient.BillingResponseCode.ERROR to
+                    BillingAvailability.UnknownFailure(
+                        BillingClient.BillingResponseCode.ERROR,
+                    ),
             )
 
         cases.forEach { (responseCode, expected) ->
@@ -113,194 +116,202 @@ class PlayBillingGatewayTest {
     }
 
     @Test
-    fun `pending purchase is returned without acknowledge or consume`() = runTest {
-        val events = mutableListOf<String>()
+    fun `pending purchase is returned without acknowledge or consume`() =
+        runTest {
+            val events = mutableListOf<String>()
 
-        val outcome = processor(events).process(purchase(state = PurchaseProcessingState.Pending))
+            val outcome = processor(events).process(purchase(state = PurchaseProcessingState.Pending))
 
-        assertEquals(PurchaseOutcome.Pending, outcome)
-        assertTrue(events.isEmpty())
-    }
-
-    @Test
-    fun `unacknowledged purchase is acknowledged before it is consumed`() = runTest {
-        val events = mutableListOf<String>()
-
-        val outcome = processor(events).process(purchase(token = "new-token"))
-
-        assertEquals(
-            PurchaseOutcome.Purchased(
-                productId = "coffee_small",
-                purchaseToken = "new-token",
-                purchasedAtMillis = 1_723_456_789_000L,
-            ),
-            outcome,
-        )
-        assertEquals(listOf("acknowledge:new-token", "consume:new-token"), events)
-    }
-
-    @Test
-    fun `already acknowledged purchase is consumed without a second acknowledge`() = runTest {
-        val events = mutableListOf<String>()
-
-        val outcome =
-            processor(events).process(
-                purchase(
-                    token = "acknowledged-token",
-                    isAcknowledged = true,
-                ),
-            )
-
-        assertEquals(
-            PurchaseOutcome.Purchased(
-                productId = "coffee_small",
-                purchaseToken = "acknowledged-token",
-                purchasedAtMillis = 1_723_456_789_000L,
-            ),
-            outcome,
-        )
-        assertEquals(listOf("consume:acknowledged-token"), events)
-    }
-
-    @Test
-    fun `supporter purchase is recorded before it is consumed`() = runTest {
-        val events = mutableListOf<String>()
-        val processor =
-            PurchaseProcessor(
-                acknowledge = { token ->
-                    events += "acknowledge:$token"
-                    BillingClient.BillingResponseCode.OK
-                },
-                recordPurchase = { outcome ->
-                    events += "record:${outcome.purchaseToken}"
-                    Result.success(Unit)
-                },
-                consume = { token ->
-                    events += "consume:$token"
-                    BillingClient.BillingResponseCode.OK
-                },
-            )
-
-        val outcome = processor.process(purchase(token = "record-first-token"))
-
-        assertTrue(outcome is PurchaseOutcome.Purchased)
-        assertEquals(
-            listOf(
-                "acknowledge:record-first-token",
-                "record:record-first-token",
-                "consume:record-first-token",
-            ),
-            events,
-        )
-    }
-
-    @Test
-    fun `supporter purchase record failure prevents consume`() = runTest {
-        val events = mutableListOf<String>()
-        val processor =
-            PurchaseProcessor(
-                acknowledge = { token ->
-                    events += "acknowledge:$token"
-                    BillingClient.BillingResponseCode.OK
-                },
-                recordPurchase = {
-                    events += "record"
-                    Result.failure(IllegalStateException("store unavailable"))
-                },
-                consume = { token ->
-                    events += "consume:$token"
-                    BillingClient.BillingResponseCode.OK
-                },
-            )
-
-        val outcome = processor.process(purchase(token = "record-failure-token"))
-
-        assertEquals(PurchaseOutcome.NetworkError, outcome)
-        assertEquals(listOf("acknowledge:record-failure-token", "record"), events)
-    }
-
-    @Test
-    fun `acknowledge failure prevents consume`() = runTest {
-        val events = mutableListOf<String>()
-
-        val outcome =
-            processor(
-                events = events,
-                acknowledgeResponseCode = BillingClient.BillingResponseCode.NETWORK_ERROR,
-            ).process(purchase(token = "ack-failure-token"))
-
-        assertEquals(PurchaseOutcome.NetworkError, outcome)
-        assertEquals(listOf("acknowledge:ack-failure-token"), events)
-    }
-
-    @Test
-    fun `consume failure is returned after successful acknowledge`() = runTest {
-        val events = mutableListOf<String>()
-
-        val outcome =
-            processor(
-                events = events,
-                consumeResponseCode = BillingClient.BillingResponseCode.SERVICE_UNAVAILABLE,
-            ).process(purchase(token = "consume-failure-token"))
-
-        assertEquals(PurchaseOutcome.NetworkError, outcome)
-        assertEquals(
-            listOf("acknowledge:consume-failure-token", "consume:consume-failure-token"),
-            events,
-        )
-    }
-
-    @Test
-    fun `purchase processing is serialized without deadlock`() = runTest {
-        val events = mutableListOf<String>()
-        val callbackLock = Any()
-        var concurrentCallbacks = 0
-        var maxConcurrentCallbacks = 0
-
-        suspend fun record(event: String) {
-            synchronized(callbackLock) {
-                concurrentCallbacks += 1
-                maxConcurrentCallbacks = maxOf(maxConcurrentCallbacks, concurrentCallbacks)
-                events += event
-            }
-            yield()
-            synchronized(callbackLock) {
-                concurrentCallbacks -= 1
-            }
+            assertEquals(PurchaseOutcome.Pending, outcome)
+            assertTrue(events.isEmpty())
         }
 
-        val processor =
-            PurchaseProcessor(
-                acknowledge = { token ->
-                    record("acknowledge:$token")
-                    BillingClient.BillingResponseCode.OK
-                },
-                consume = { token ->
-                    record("consume:$token")
-                    BillingClient.BillingResponseCode.OK
-                },
-            )
+    @Test
+    fun `unacknowledged purchase is acknowledged before it is consumed`() =
+        runTest {
+            val events = mutableListOf<String>()
 
-        val outcomes =
-            withTimeout(2_000) {
-                listOf("first-token", "second-token")
-                    .map { token ->
-                        async {
-                            processor.process(purchase(token = token))
-                        }
-                    }.awaitAll()
+            val outcome = processor(events).process(purchase(token = "new-token"))
+
+            assertEquals(
+                PurchaseOutcome.Purchased(
+                    productId = "coffee_small",
+                    purchaseToken = "new-token",
+                    purchasedAtMillis = 1_723_456_789_000L,
+                ),
+                outcome,
+            )
+            assertEquals(listOf("acknowledge:new-token", "consume:new-token"), events)
+        }
+
+    @Test
+    fun `already acknowledged purchase is consumed without a second acknowledge`() =
+        runTest {
+            val events = mutableListOf<String>()
+
+            val outcome =
+                processor(events).process(
+                    purchase(
+                        token = "acknowledged-token",
+                        isAcknowledged = true,
+                    ),
+                )
+
+            assertEquals(
+                PurchaseOutcome.Purchased(
+                    productId = "coffee_small",
+                    purchaseToken = "acknowledged-token",
+                    purchasedAtMillis = 1_723_456_789_000L,
+                ),
+                outcome,
+            )
+            assertEquals(listOf("consume:acknowledged-token"), events)
+        }
+
+    @Test
+    fun `supporter purchase is recorded before it is consumed`() =
+        runTest {
+            val events = mutableListOf<String>()
+            val processor =
+                PurchaseProcessor(
+                    acknowledge = { token ->
+                        events += "acknowledge:$token"
+                        BillingClient.BillingResponseCode.OK
+                    },
+                    recordPurchase = { outcome ->
+                        events += "record:${outcome.purchaseToken}"
+                        Result.success(Unit)
+                    },
+                    consume = { token ->
+                        events += "consume:$token"
+                        BillingClient.BillingResponseCode.OK
+                    },
+                )
+
+            val outcome = processor.process(purchase(token = "record-first-token"))
+
+            assertTrue(outcome is PurchaseOutcome.Purchased)
+            assertEquals(
+                listOf(
+                    "acknowledge:record-first-token",
+                    "record:record-first-token",
+                    "consume:record-first-token",
+                ),
+                events,
+            )
+        }
+
+    @Test
+    fun `supporter purchase record failure prevents consume`() =
+        runTest {
+            val events = mutableListOf<String>()
+            val processor =
+                PurchaseProcessor(
+                    acknowledge = { token ->
+                        events += "acknowledge:$token"
+                        BillingClient.BillingResponseCode.OK
+                    },
+                    recordPurchase = {
+                        events += "record"
+                        Result.failure(IllegalStateException("store unavailable"))
+                    },
+                    consume = { token ->
+                        events += "consume:$token"
+                        BillingClient.BillingResponseCode.OK
+                    },
+                )
+
+            val outcome = processor.process(purchase(token = "record-failure-token"))
+
+            assertEquals(PurchaseOutcome.NetworkError, outcome)
+            assertEquals(listOf("acknowledge:record-failure-token", "record"), events)
+        }
+
+    @Test
+    fun `acknowledge failure prevents consume`() =
+        runTest {
+            val events = mutableListOf<String>()
+
+            val outcome =
+                processor(
+                    events = events,
+                    acknowledgeResponseCode = BillingClient.BillingResponseCode.NETWORK_ERROR,
+                ).process(purchase(token = "ack-failure-token"))
+
+            assertEquals(PurchaseOutcome.NetworkError, outcome)
+            assertEquals(listOf("acknowledge:ack-failure-token"), events)
+        }
+
+    @Test
+    fun `consume failure is returned after successful acknowledge`() =
+        runTest {
+            val events = mutableListOf<String>()
+
+            val outcome =
+                processor(
+                    events = events,
+                    consumeResponseCode = BillingClient.BillingResponseCode.SERVICE_UNAVAILABLE,
+                ).process(purchase(token = "consume-failure-token"))
+
+            assertEquals(PurchaseOutcome.NetworkError, outcome)
+            assertEquals(
+                listOf("acknowledge:consume-failure-token", "consume:consume-failure-token"),
+                events,
+            )
+        }
+
+    @Test
+    fun `purchase processing is serialized without deadlock`() =
+        runTest {
+            val events = mutableListOf<String>()
+            val callbackLock = Any()
+            var concurrentCallbacks = 0
+            var maxConcurrentCallbacks = 0
+
+            suspend fun record(event: String) {
+                synchronized(callbackLock) {
+                    concurrentCallbacks += 1
+                    maxConcurrentCallbacks = maxOf(maxConcurrentCallbacks, concurrentCallbacks)
+                    events += event
+                }
+                yield()
+                synchronized(callbackLock) {
+                    concurrentCallbacks -= 1
+                }
             }
 
-        assertEquals(2, outcomes.count { it is PurchaseOutcome.Purchased })
-        assertEquals(4, events.size)
-        val firstToken = events.first().substringAfter(":")
-        val secondToken = events[2].substringAfter(":")
-        assertEquals("acknowledge:$firstToken", events[0])
-        assertEquals("consume:$firstToken", events[1])
-        assertEquals("acknowledge:$secondToken", events[2])
-        assertEquals("consume:$secondToken", events[3])
-        assertEquals(1, maxConcurrentCallbacks)
-    }
+            val processor =
+                PurchaseProcessor(
+                    acknowledge = { token ->
+                        record("acknowledge:$token")
+                        BillingClient.BillingResponseCode.OK
+                    },
+                    consume = { token ->
+                        record("consume:$token")
+                        BillingClient.BillingResponseCode.OK
+                    },
+                )
+
+            val outcomes =
+                withTimeout(2_000) {
+                    listOf("first-token", "second-token")
+                        .map { token ->
+                            async {
+                                processor.process(purchase(token = token))
+                            }
+                        }.awaitAll()
+                }
+
+            assertEquals(2, outcomes.count { it is PurchaseOutcome.Purchased })
+            assertEquals(4, events.size)
+            val firstToken = events.first().substringAfter(":")
+            val secondToken = events[2].substringAfter(":")
+            assertEquals("acknowledge:$firstToken", events[0])
+            assertEquals("consume:$firstToken", events[1])
+            assertEquals("acknowledge:$secondToken", events[2])
+            assertEquals("consume:$secondToken", events[3])
+            assertEquals(1, maxConcurrentCallbacks)
+        }
 
     private fun fixture(): Fixture {
         val factory = FailingBillingClientFactory()

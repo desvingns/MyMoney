@@ -193,7 +193,7 @@ class EntitlementWarningWorkerTest {
                 object : EntitlementNotifier {
                     override fun notify(warning: EntitlementWarning) {
                         notifyAttempts++
-                        throw RuntimeException("delivery failed")
+                        error("delivery failed")
                     }
                 }
 

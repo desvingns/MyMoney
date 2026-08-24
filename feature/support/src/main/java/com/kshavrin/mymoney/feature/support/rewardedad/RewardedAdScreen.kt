@@ -9,11 +9,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -39,7 +39,6 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.core.ui.theme.rewardAdProgressIndicator
 import com.kshavrin.mymoney.core.ui.theme.rewardAdProgressTrack
@@ -53,6 +52,7 @@ import com.kshavrin.mymoney.core.ui.theme.supportPanelTitle
 import com.kshavrin.mymoney.core.ui.theme.supportPrimaryAction
 import com.kshavrin.mymoney.feature.support.R
 import com.kshavrin.mymoney.feature.support.googlesignin.GoogleSignInDialog
+import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
 
 @Composable
 fun RewardedAdSupportEntry(

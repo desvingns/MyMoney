@@ -151,10 +151,11 @@ class RewardedAdScreenContentTest {
         composeTestRule.setContent {
             MyMoneyTheme {
                 RewardedAdContent(
-                    state = RewardedAdState(
-                        status = RewardedAdStatus.Ready,
-                        reward = defaultProgress(),
-                    ),
+                    state =
+                        RewardedAdState(
+                            status = RewardedAdStatus.Ready,
+                            reward = defaultProgress(),
+                        ),
                     onWatch = { watchClicks++ },
                     onRetry = { retryClicks++ },
                     onSignIn = {},

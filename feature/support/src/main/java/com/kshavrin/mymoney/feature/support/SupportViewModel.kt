@@ -296,9 +296,9 @@ class SupportViewModel
             val currentState = _state.value
             if (
                 currentState.billingState != SupportBillingState.Available ||
-                    currentState.isPurchaseInProgress ||
-                    isForegroundPurchaseActive ||
-                    currentState.products.none { product -> product.id == productId }
+                currentState.isPurchaseInProgress ||
+                isForegroundPurchaseActive ||
+                currentState.products.none { product -> product.id == productId }
             ) {
                 return
             }
@@ -321,7 +321,8 @@ class SupportViewModel
                             completionLogged = true
                         }
                         refreshBillingAfterPurchase =
-                            handlePurchaseOutcome(outcome) || refreshBillingAfterPurchase
+                            handlePurchaseOutcome(outcome) ||
+                            refreshBillingAfterPurchase
                     }
                 } catch (throwable: Throwable) {
                     if (throwable is CancellationException) throw throwable

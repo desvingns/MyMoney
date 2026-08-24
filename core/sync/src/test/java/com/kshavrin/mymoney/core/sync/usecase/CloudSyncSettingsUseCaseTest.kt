@@ -39,29 +39,31 @@ class CloudSyncSettingsUseCaseTest {
     }
 
     @Test
-    fun `observeLastSyncAt maps settings flow to last sync timestamp`() = runTest {
-        val appSettings = FakeAppSettingsRepository(AppSettings(lastSyncAt = 42L))
-        val useCase = CloudSyncSettingsUseCase(appSettings, FakeRemoteConfigRepository())
-        val lastSyncAt = useCase.observeLastSyncAt()
+    fun `observeLastSyncAt maps settings flow to last sync timestamp`() =
+        runTest {
+            val appSettings = FakeAppSettingsRepository(AppSettings(lastSyncAt = 42L))
+            val useCase = CloudSyncSettingsUseCase(appSettings, FakeRemoteConfigRepository())
+            val lastSyncAt = useCase.observeLastSyncAt()
 
-        assertEquals(42L, lastSyncAt.first())
+            assertEquals(42L, lastSyncAt.first())
 
-        appSettings.seed(AppSettings(lastSyncAt = null))
+            appSettings.seed(AppSettings(lastSyncAt = null))
 
-        assertNull(lastSyncAt.first())
-    }
+            assertNull(lastSyncAt.first())
+        }
 
     @Test
-    fun `isAutoSyncEnabled reads the current settings value`() = runTest {
-        val appSettings = FakeAppSettingsRepository(AppSettings(autoSyncEnabled = false))
-        val useCase = CloudSyncSettingsUseCase(appSettings, FakeRemoteConfigRepository())
+    fun `isAutoSyncEnabled reads the current settings value`() =
+        runTest {
+            val appSettings = FakeAppSettingsRepository(AppSettings(autoSyncEnabled = false))
+            val useCase = CloudSyncSettingsUseCase(appSettings, FakeRemoteConfigRepository())
 
-        assertFalse(useCase.isAutoSyncEnabled())
+            assertFalse(useCase.isAutoSyncEnabled())
 
-        appSettings.seed(AppSettings(autoSyncEnabled = true))
+            appSettings.seed(AppSettings(autoSyncEnabled = true))
 
-        assertTrue(useCase.isAutoSyncEnabled())
-    }
+            assertTrue(useCase.isAutoSyncEnabled())
+        }
 
     private class FakeAppSettingsRepository(
         initial: AppSettings = AppSettings(),

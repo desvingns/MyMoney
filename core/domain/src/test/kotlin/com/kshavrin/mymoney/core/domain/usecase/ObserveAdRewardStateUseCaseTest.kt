@@ -37,28 +37,30 @@ class ObserveAdRewardStateUseCaseTest {
     }
 
     @Test
-    fun `refresh delegates and returns the repository result`() = runTest {
-        val repository = FakeAdRewardRepository().apply { refreshResult = Result.success(rewardState) }
-        val useCase = ObserveAdRewardStateUseCase(repository)
+    fun `refresh delegates and returns the repository result`() =
+        runTest {
+            val repository = FakeAdRewardRepository().apply { refreshResult = Result.success(rewardState) }
+            val useCase = ObserveAdRewardStateUseCase(repository)
 
-        val outcome = useCase.refresh()
+            val outcome = useCase.refresh()
 
-        assertTrue(outcome.isSuccess)
-        assertSame(rewardState, outcome.getOrNull())
-        assertEquals(1, repository.refreshCalls)
-    }
+            assertTrue(outcome.isSuccess)
+            assertSame(rewardState, outcome.getOrNull())
+            assertEquals(1, repository.refreshCalls)
+        }
 
     @Test
-    fun `awaitConfirmation delegates and returns the repository outcome`() = runTest {
-        val confirmation = ConfirmationOutcome.ProgressIncreased(rewardState)
-        val repository = FakeAdRewardRepository().apply { confirmationOutcome = confirmation }
-        val useCase = ObserveAdRewardStateUseCase(repository)
+    fun `awaitConfirmation delegates and returns the repository outcome`() =
+        runTest {
+            val confirmation = ConfirmationOutcome.ProgressIncreased(rewardState)
+            val repository = FakeAdRewardRepository().apply { confirmationOutcome = confirmation }
+            val useCase = ObserveAdRewardStateUseCase(repository)
 
-        val outcome = useCase.awaitConfirmation(rewardState)
+            val outcome = useCase.awaitConfirmation(rewardState)
 
-        assertSame(confirmation, outcome)
-        assertSame(rewardState, repository.lastConfirmationPrevious)
-    }
+            assertSame(confirmation, outcome)
+            assertSame(rewardState, repository.lastConfirmationPrevious)
+        }
 
     private class FakeAdRewardRepository : AdRewardRepository {
         private val mutableState = MutableStateFlow<AdRewardState?>(null)

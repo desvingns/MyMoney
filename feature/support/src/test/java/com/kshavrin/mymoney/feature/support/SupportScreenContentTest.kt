@@ -70,7 +70,11 @@ class SupportScreenContentTest {
     fun `headline block fills available width and is centered on screen`() {
         setContent(state = availableState())
 
-        val rootCenterX = composeTestRule.onRoot().fetchSemanticsNode().boundsInRoot.center.x
+        val rootCenterX =
+            composeTestRule
+                .onRoot()
+                .fetchSemanticsNode()
+                .boundsInRoot.center.x
         val headlineCenterX =
             composeTestRule
                 .onNodeWithText(string(R.string.support_headline_lead))
@@ -418,7 +422,11 @@ class SupportScreenContentTest {
         assertCoffeeColumnsDisplayed()
         assertCoffeeActionsEnabled(expectedEnabled = false)
         assertStatusBelowCoffee(string(R.string.support_network_error))
-        composeTestRule.onNodeWithText(string(R.string.support_retry)).performScrollTo().assertIsEnabled().performClick()
+        composeTestRule
+            .onNodeWithText(string(R.string.support_retry))
+            .performScrollTo()
+            .assertIsEnabled()
+            .performClick()
 
         composeTestRule.runOnIdle {
             assertEquals(listOf(SupportEvent.RetryClicked), events)

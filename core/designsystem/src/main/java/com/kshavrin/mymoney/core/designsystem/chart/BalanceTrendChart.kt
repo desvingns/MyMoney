@@ -378,7 +378,7 @@ private fun BalanceTrendChartCubicSegment.splitAt(
                 secondControl = secondEnd,
                 end = end,
             )
-        )
+    )
 }
 
 private fun horizontalZoneFor(

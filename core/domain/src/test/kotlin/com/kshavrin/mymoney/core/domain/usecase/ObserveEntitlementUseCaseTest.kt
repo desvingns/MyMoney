@@ -25,45 +25,50 @@ class ObserveEntitlementUseCaseTest {
         )
 
     @Test
-    fun `exposes repository entitlement state flow`() = runTest {
-        val repository = FakeEntitlementRepository()
-        val useCase = ObserveEntitlementUseCase(repository)
+    fun `exposes repository entitlement state flow`() =
+        runTest {
+            val repository = FakeEntitlementRepository()
+            val useCase = ObserveEntitlementUseCase(repository)
 
-        assertSame(repository.entitlement, useCase.entitlement)
+            assertSame(repository.entitlement, useCase.entitlement)
 
-        repository.seed(plusEntitlement)
+            repository.seed(plusEntitlement)
 
-        assertEquals(plusEntitlement, useCase.entitlement.value)
-    }
+            assertEquals(plusEntitlement, useCase.entitlement.value)
+        }
 
     @Test
-    fun `refresh delegates a successful result`() = runTest {
-        val repository = FakeEntitlementRepository().apply {
-            refreshResult = Result.success(Unit)
+    fun `refresh delegates a successful result`() =
+        runTest {
+            val repository =
+                FakeEntitlementRepository().apply {
+                    refreshResult = Result.success(Unit)
+                }
+            val useCase = ObserveEntitlementUseCase(repository)
+
+            val result = useCase.refresh()
+
+            assertTrue(result.isSuccess)
+            assertEquals(Unit, result.getOrNull())
+            assertEquals(1, repository.refreshCalls)
         }
-        val useCase = ObserveEntitlementUseCase(repository)
-
-        val result = useCase.refresh()
-
-        assertTrue(result.isSuccess)
-        assertEquals(Unit, result.getOrNull())
-        assertEquals(1, repository.refreshCalls)
-    }
 
     @Test
-    fun `refresh delegates a failure result`() = runTest {
-        val failure = IllegalStateException("refresh failed")
-        val repository = FakeEntitlementRepository().apply {
-            refreshResult = Result.failure(failure)
+    fun `refresh delegates a failure result`() =
+        runTest {
+            val failure = IllegalStateException("refresh failed")
+            val repository =
+                FakeEntitlementRepository().apply {
+                    refreshResult = Result.failure(failure)
+                }
+            val useCase = ObserveEntitlementUseCase(repository)
+
+            val result = useCase.refresh()
+
+            assertTrue(result.isFailure)
+            assertSame(failure, result.exceptionOrNull())
+            assertEquals(1, repository.refreshCalls)
         }
-        val useCase = ObserveEntitlementUseCase(repository)
-
-        val result = useCase.refresh()
-
-        assertTrue(result.isFailure)
-        assertSame(failure, result.exceptionOrNull())
-        assertEquals(1, repository.refreshCalls)
-    }
 
     private class FakeEntitlementRepository : EntitlementRepository {
         private val mutableEntitlement = MutableStateFlow<UserEntitlement>(UserEntitlement.Free)

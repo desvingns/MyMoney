@@ -8,8 +8,8 @@ import com.kshavrin.mymoney.core.common.exception.reportToSentry
 import com.kshavrin.mymoney.core.datastore.CloudBinding
 import com.kshavrin.mymoney.core.datastore.CloudProvider
 import com.kshavrin.mymoney.core.datastore.JournalSyncConfigStore
-import com.kshavrin.mymoney.core.domain.model.EntitlementState
 import com.kshavrin.mymoney.core.domain.model.EntitlementSource
+import com.kshavrin.mymoney.core.domain.model.EntitlementState
 import com.kshavrin.mymoney.core.domain.model.EntitlementWarning
 import com.kshavrin.mymoney.core.domain.model.UserEntitlement
 import com.kshavrin.mymoney.core.domain.sync.SharedConflict
@@ -44,9 +44,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import java.time.Clock
 import java.time.Duration
 import javax.inject.Inject
@@ -842,8 +842,8 @@ class CloudSyncViewModel
             val shared = _state.value.shared
             if (
                 !foregroundRealtimeActive ||
-                    !cloudSyncSettings.availability().sharedEnabled ||
-                    !shared.canWrite()
+                !cloudSyncSettings.availability().sharedEnabled ||
+                !shared.canWrite()
             ) {
                 return
             }
@@ -885,7 +885,7 @@ class CloudSyncViewModel
         private fun restartForegroundRealtime() {
             if (
                 !foregroundRealtimeActive ||
-                    !_state.value.shared.canWrite()
+                !_state.value.shared.canWrite()
             ) {
                 return
             }
@@ -1126,7 +1126,8 @@ class CloudSyncViewModel
 
         private fun observeSettings() {
             viewModelScope.launch {
-                cloudSyncSettings.observeLastSyncAt()
+                cloudSyncSettings
+                    .observeLastSyncAt()
                     .catch { t -> reportAndShow(t) }
                     .collect { lastSyncAt ->
                         _state.value = _state.value.copy(lastSyncAtMs = lastSyncAt)

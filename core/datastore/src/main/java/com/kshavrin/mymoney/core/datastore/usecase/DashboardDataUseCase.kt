@@ -53,9 +53,14 @@ class DashboardDataUseCase
             appSettingsRepository.update(transform)
         }
 
-        suspend fun findCurrency(currencyId: Long): Currency? = currencyRepository.findById(currencyId)
+        suspend fun findCurrency(
+            currencyId: Long,
+        ): Currency? = currencyRepository.findById(currencyId)
 
-        suspend fun findTransactions(accountId: Long, period: Period): List<Transaction> =
+        suspend fun findTransactions(
+            accountId: Long,
+            period: Period,
+        ): List<Transaction> =
             transactionRepository.findByPeriod(accountId, period)
 
         suspend fun allTransactions(): List<Transaction> = transactionRepository.observeAll().first()

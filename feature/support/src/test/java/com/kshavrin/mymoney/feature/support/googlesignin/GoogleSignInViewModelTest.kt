@@ -27,7 +27,6 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = android.app.Application::class)
 class GoogleSignInViewModelTest {
-
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 

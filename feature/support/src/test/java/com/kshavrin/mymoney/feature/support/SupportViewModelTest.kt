@@ -2,8 +2,8 @@ package com.kshavrin.mymoney.feature.support
 
 import androidx.lifecycle.ViewModelStore
 import app.cash.turbine.test
-import com.kshavrin.mymoney.core.domain.analytics.AnalyticsEvent
 import com.kshavrin.mymoney.core.domain.ads.AdRewardState
+import com.kshavrin.mymoney.core.domain.analytics.AnalyticsEvent
 import com.kshavrin.mymoney.core.domain.billing.BillingAvailability
 import com.kshavrin.mymoney.core.domain.billing.PurchaseOutcome
 import com.kshavrin.mymoney.core.domain.billing.SupportProduct
@@ -250,7 +250,10 @@ class SupportViewModelTest {
                 SupportBillingState.Unavailable(SupportUnavailableReason.DisabledInBuild),
                 viewModel.state.value.billingState,
             )
-            assertTrue(viewModel.state.value.products.isEmpty())
+            assertTrue(
+                viewModel.state.value.products
+                    .isEmpty(),
+            )
         }
 
     @Test
@@ -331,7 +334,10 @@ class SupportViewModelTest {
             assertEquals(SupportBillingState.Pending, viewModel.state.value.billingState)
             assertFalse(viewModel.state.value.hasSupportActivity)
             assertEquals(0, fixtures.supporter.recordSupportActivityCalls)
-            assertTrue(viewModel.state.value.products.isEmpty())
+            assertTrue(
+                viewModel.state.value.products
+                    .isEmpty(),
+            )
         }
 
     @Test

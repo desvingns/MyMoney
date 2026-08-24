@@ -92,7 +92,7 @@ class PlusSubscriptionCoordinatorImpl
             val currentState = _state.value
             if (
                 currentState.catalog != PlusCatalogState.Available ||
-                    currentState.purchase != PlusPurchaseState.Idle
+                currentState.purchase != PlusPurchaseState.Idle
             ) {
                 purchaseMutex.unlock()
                 return PlusPurchaseOutcome.NotStarted
@@ -164,7 +164,7 @@ class PlusSubscriptionCoordinatorImpl
                                 purchase =
                                     if (
                                         entitlement.hasActivePlus() &&
-                                            currentState.purchase.isAwaitingEntitlement()
+                                        currentState.purchase.isAwaitingEntitlement()
                                     ) {
                                         PlusPurchaseState.Idle
                                     } else {

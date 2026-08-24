@@ -711,11 +711,12 @@ class SharedSyncCoordinatorImpl
                 val prefetchedOperations = nextOperations
                 nextOperations = null
                 val operations =
-                    (prefetchedOperations
-                        ?: journalRepository
-                            .pull(workspaceId, fetchAfter, PAGE_SIZE)
-                            .getOrThrow())
-                        .sortedBy { it.serverSequence }
+                    (
+                        prefetchedOperations
+                            ?: journalRepository
+                                .pull(workspaceId, fetchAfter, PAGE_SIZE)
+                                .getOrThrow()
+                    ).sortedBy { it.serverSequence }
                 if (operations.isEmpty()) break
 
                 val nextFetchAfter = operations.last().serverSequence

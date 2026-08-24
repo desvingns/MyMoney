@@ -13,35 +13,37 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class FakeBillingGatewayTest {
-    private val product = SupportProduct(
-        id = "support_coffee",
-        formattedPrice = "€1.99",
-        title = "Buy me a coffee",
-    )
+    private val product =
+        SupportProduct(
+            id = "support_coffee",
+            formattedPrice = "€1.99",
+            title = "Buy me a coffee",
+        )
 
     @Test
-    fun `availability is a StateFlow and emits every seeded state`() = runTest {
-        val gateway = FakeBillingGateway()
-        val availability = gateway.availability()
+    fun `availability is a StateFlow and emits every seeded state`() =
+        runTest {
+            val gateway = FakeBillingGateway()
+            val availability = gateway.availability()
 
-        assertTrue(availability is StateFlow<*>)
-        availability.test {
-            assertEquals(BillingAvailability.Available, awaitItem())
+            assertTrue(availability is StateFlow<*>)
+            availability.test {
+                assertEquals(BillingAvailability.Available, awaitItem())
 
-            listOf(
-                BillingAvailability.UnavailableOnDevice,
-                BillingAvailability.ServiceUnavailable,
-                BillingAvailability.NetworkUnavailable,
-                BillingAvailability.UnavailableInRegion,
-                BillingAvailability.UnknownFailure(503),
-                BillingAvailability.DisabledInBuild,
-                BillingAvailability.Available,
-            ).forEach { state ->
-                gateway.seedAvailability(state)
-                assertEquals(state, awaitItem())
+                listOf(
+                    BillingAvailability.UnavailableOnDevice,
+                    BillingAvailability.ServiceUnavailable,
+                    BillingAvailability.NetworkUnavailable,
+                    BillingAvailability.UnavailableInRegion,
+                    BillingAvailability.UnknownFailure(503),
+                    BillingAvailability.DisabledInBuild,
+                    BillingAvailability.Available,
+                ).forEach { state ->
+                    gateway.seedAvailability(state)
+                    assertEquals(state, awaitItem())
+                }
             }
         }
-    }
 
     @Test
     fun `products returns seeded Play data including its formatted price`() {
@@ -68,83 +70,88 @@ class FakeBillingGatewayTest {
     }
 
     @Test
-    fun `purchase returns a successful default outcome for an available seeded product`() = runTest {
-        val gateway = FakeBillingGateway()
-        gateway.seedProducts(product)
-
-        gateway.purchase(product.id).test {
-            assertEquals(
-                PurchaseOutcome.Purchased(
-                    productId = product.id,
-                    purchaseToken = "${product.id}-purchase-token",
-                    purchasedAtMillis = 0L,
-                ),
-                awaitItem(),
-            )
-            awaitComplete()
-        }
-    }
-
-    @Test
-    fun `pending purchase emits a newly seeded cancellation then completes`() = runTest {
-        val gateway = FakeBillingGateway()
-        gateway.seedProducts(product)
-        gateway.seedPurchaseOutcome(product.id, PurchaseOutcome.Pending)
-        val purchase = gateway.purchase(product.id)
-
-        purchase.test {
-            assertEquals(PurchaseOutcome.Pending, awaitItem())
-
-            gateway.seedPurchaseOutcome(product.id, PurchaseOutcome.Cancelled)
-
-            assertEquals(PurchaseOutcome.Cancelled, awaitItem())
-            awaitComplete()
-        }
-    }
-
-    @Test
-    fun `terminal purchase outcomes emit once then complete`() = runTest {
-        val gateway = FakeBillingGateway()
-        val outcomes = listOf(
-            PurchaseOutcome.Purchased(product.id, "seeded-token", 42L),
-            PurchaseOutcome.Cancelled,
-            PurchaseOutcome.NetworkError,
-            PurchaseOutcome.Unavailable("region is unsupported"),
-        )
-
-        outcomes.forEach { expected ->
-            gateway.seedPurchaseOutcome(product.id, expected)
+    fun `purchase returns a successful default outcome for an available seeded product`() =
+        runTest {
+            val gateway = FakeBillingGateway()
+            gateway.seedProducts(product)
 
             gateway.purchase(product.id).test {
-                assertEquals(expected, awaitItem())
+                assertEquals(
+                    PurchaseOutcome.Purchased(
+                        productId = product.id,
+                        purchaseToken = "${product.id}-purchase-token",
+                        purchasedAtMillis = 0L,
+                    ),
+                    awaitItem(),
+                )
                 awaitComplete()
             }
         }
-    }
 
     @Test
-    fun `default purchase is unavailable for missing products and unavailable states`() = runTest {
-        val missingProductGateway = FakeBillingGateway()
-        assertEquals(
-            PurchaseOutcome.Unavailable("missing_product"),
-            missingProductGateway.purchase("missing_product").first(),
-        )
-
-        listOf(
-            BillingAvailability.UnavailableOnDevice,
-            BillingAvailability.UnavailableInRegion,
-            BillingAvailability.DisabledInBuild,
-        ).forEach { availability ->
+    fun `pending purchase emits a newly seeded cancellation then completes`() =
+        runTest {
             val gateway = FakeBillingGateway()
             gateway.seedProducts(product)
-            gateway.seedAvailability(availability)
+            gateway.seedPurchaseOutcome(product.id, PurchaseOutcome.Pending)
+            val purchase = gateway.purchase(product.id)
 
-            assertEquals(
-                PurchaseOutcome.Unavailable(product.id),
-                gateway.purchase(product.id).first(),
-            )
+            purchase.test {
+                assertEquals(PurchaseOutcome.Pending, awaitItem())
+
+                gateway.seedPurchaseOutcome(product.id, PurchaseOutcome.Cancelled)
+
+                assertEquals(PurchaseOutcome.Cancelled, awaitItem())
+                awaitComplete()
+            }
         }
-    }
+
+    @Test
+    fun `terminal purchase outcomes emit once then complete`() =
+        runTest {
+            val gateway = FakeBillingGateway()
+            val outcomes =
+                listOf(
+                    PurchaseOutcome.Purchased(product.id, "seeded-token", 42L),
+                    PurchaseOutcome.Cancelled,
+                    PurchaseOutcome.NetworkError,
+                    PurchaseOutcome.Unavailable("region is unsupported"),
+                )
+
+            outcomes.forEach { expected ->
+                gateway.seedPurchaseOutcome(product.id, expected)
+
+                gateway.purchase(product.id).test {
+                    assertEquals(expected, awaitItem())
+                    awaitComplete()
+                }
+            }
+        }
+
+    @Test
+    fun `default purchase is unavailable for missing products and unavailable states`() =
+        runTest {
+            val missingProductGateway = FakeBillingGateway()
+            assertEquals(
+                PurchaseOutcome.Unavailable("missing_product"),
+                missingProductGateway.purchase("missing_product").first(),
+            )
+
+            listOf(
+                BillingAvailability.UnavailableOnDevice,
+                BillingAvailability.UnavailableInRegion,
+                BillingAvailability.DisabledInBuild,
+            ).forEach { availability ->
+                val gateway = FakeBillingGateway()
+                gateway.seedProducts(product)
+                gateway.seedAvailability(availability)
+
+                assertEquals(
+                    PurchaseOutcome.Unavailable(product.id),
+                    gateway.purchase(product.id).first(),
+                )
+            }
+        }
 
     @Test
     fun `pending purchases returns seeded outcomes`() {

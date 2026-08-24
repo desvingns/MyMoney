@@ -8,15 +8,16 @@ import org.junit.Test
 class BillingContractsTest {
     @Test
     fun `billing availability exposes every distinct state`() {
-        val states = listOf(
-            BillingAvailability.Available,
-            BillingAvailability.UnavailableOnDevice,
-            BillingAvailability.ServiceUnavailable,
-            BillingAvailability.NetworkUnavailable,
-            BillingAvailability.UnavailableInRegion,
-            BillingAvailability.UnknownFailure(responseCode = 42),
-            BillingAvailability.DisabledInBuild,
-        )
+        val states =
+            listOf(
+                BillingAvailability.Available,
+                BillingAvailability.UnavailableOnDevice,
+                BillingAvailability.ServiceUnavailable,
+                BillingAvailability.NetworkUnavailable,
+                BillingAvailability.UnavailableInRegion,
+                BillingAvailability.UnknownFailure(responseCode = 42),
+                BillingAvailability.DisabledInBuild,
+            )
 
         assertEquals(7, states.toSet().size)
         assertNotEquals(BillingAvailability.UnavailableOnDevice, BillingAvailability.UnavailableInRegion)
@@ -27,11 +28,12 @@ class BillingContractsTest {
 
     @Test
     fun `support product keeps the Play formatted price string unchanged`() {
-        val product = SupportProduct(
-            id = "support_coffee",
-            formattedPrice = "€1.99",
-            title = "Buy me a coffee",
-        )
+        val product =
+            SupportProduct(
+                id = "support_coffee",
+                formattedPrice = "€1.99",
+                title = "Buy me a coffee",
+            )
 
         assertEquals("support_coffee", product.id)
         assertEquals("€1.99", product.formattedPrice)
@@ -40,11 +42,12 @@ class BillingContractsTest {
 
     @Test
     fun `purchased outcome keeps product receipt fields`() {
-        val outcome = PurchaseOutcome.Purchased(
-            productId = "support_coffee",
-            purchaseToken = "token-123",
-            purchasedAtMillis = 1_723_456_789_000L,
-        )
+        val outcome =
+            PurchaseOutcome.Purchased(
+                productId = "support_coffee",
+                purchaseToken = "token-123",
+                purchasedAtMillis = 1_723_456_789_000L,
+            )
 
         assertEquals("support_coffee", outcome.productId)
         assertEquals("token-123", outcome.purchaseToken)

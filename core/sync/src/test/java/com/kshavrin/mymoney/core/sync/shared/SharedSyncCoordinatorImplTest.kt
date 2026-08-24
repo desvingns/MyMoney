@@ -42,8 +42,8 @@ import com.kshavrin.mymoney.core.network.shared.SharedSession
 import com.kshavrin.mymoney.core.network.shared.SharedUser
 import com.kshavrin.mymoney.core.network.shared.SharedWorkspace
 import com.kshavrin.mymoney.core.network.shared.SharedWorkspaceApi
-import com.kshavrin.mymoney.core.network.shared.WorkspaceInvite
 import com.kshavrin.mymoney.core.network.shared.WorkspaceBillingState
+import com.kshavrin.mymoney.core.network.shared.WorkspaceInvite
 import com.kshavrin.mymoney.core.network.shared.WorkspaceMember
 import com.kshavrin.mymoney.core.network.shared.WorkspaceRole
 import com.kshavrin.mymoney.core.sync.SyncExecutionGate
@@ -1819,11 +1819,26 @@ class SharedSyncCoordinatorImplTest {
 
     private suspend fun assertMaterializedRemoteRows(operations: List<SharedOperation>) {
         assertEquals(1, accountRepository.upsertCalls.size)
-        assertEquals(10L, accountRepository.upsertCalls.single().first.id)
+        assertEquals(
+            10L,
+            accountRepository.upsertCalls
+                .single()
+                .first.id,
+        )
         assertEquals(1, categoryRepository.upsertCalls.size)
-        assertEquals(20L, categoryRepository.upsertCalls.single().first.id)
+        assertEquals(
+            20L,
+            categoryRepository.upsertCalls
+                .single()
+                .first.id,
+        )
         assertEquals(1, transactionRepository.upsertCalls.size)
-        assertEquals(42L, transactionRepository.upsertCalls.single().first.id)
+        assertEquals(
+            42L,
+            transactionRepository.upsertCalls
+                .single()
+                .first.id,
+        )
         assertEquals(10L, accountRepository.idForUuid("remote-account-uuid"))
         assertEquals(20L, categoryRepository.idForUuid("remote-category-uuid"))
         assertEquals("XYZ", currencyRepository.findByCode("XYZ")?.code)

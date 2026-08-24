@@ -73,201 +73,218 @@ class SupportPlusViewModelTest {
     // ─── Analytics ──────────────────────────────────────────────────────────────
 
     @Test
-    fun `paywall shown analytics event is logged once with SupportSection entry point`() = runTest {
-        val analytics = FakeAnalyticsGateway()
-        createViewModel(analytics = analytics)
-        runCurrent()
+    fun `paywall shown analytics event is logged once with SupportSection entry point`() =
+        runTest {
+            val analytics = FakeAnalyticsGateway()
+            createViewModel(analytics = analytics)
+            runCurrent()
 
-        assertEquals(
-            listOf(AnalyticsEvent.PaywallShown(PaywallEntryPoint.SupportSection.name)),
-            analytics.events,
-        )
-    }
+            assertEquals(
+                listOf(AnalyticsEvent.PaywallShown(PaywallEntryPoint.SupportSection.name)),
+                analytics.events,
+            )
+        }
 
     // ─── Initial state ───────────────────────────────────────────────────────────
 
     @Test
-    fun `initial state reflects coordinator loading catalog and free entitlement`() = runTest {
-        val coordinator = FakePlusSubscriptionCoordinator()
-        val viewModel = createViewModel(coordinator)
+    fun `initial state reflects coordinator loading catalog and free entitlement`() =
+        runTest {
+            val coordinator = FakePlusSubscriptionCoordinator()
+            val viewModel = createViewModel(coordinator)
 
-        assertEquals(PaywallCatalogState.Loading, viewModel.state.value.catalogState)
-        assertEquals(UserEntitlement.Free, viewModel.state.value.entitlement)
-        assertNull(viewModel.state.value.errorMessageRes)
-    }
+            assertEquals(PaywallCatalogState.Loading, viewModel.state.value.catalogState)
+            assertEquals(UserEntitlement.Free, viewModel.state.value.entitlement)
+            assertNull(viewModel.state.value.errorMessageRes)
+        }
 
     // ─── Catalog state mapping ───────────────────────────────────────────────────
 
     @Test
-    fun `coordinator available catalog with prices maps to Available state and PaywallPlan list`() = runTest {
-        val coordinator = FakePlusSubscriptionCoordinator()
-        val viewModel = createViewModel(coordinator)
+    fun `coordinator available catalog with prices maps to Available state and PaywallPlan list`() =
+        runTest {
+            val coordinator = FakePlusSubscriptionCoordinator()
+            val viewModel = createViewModel(coordinator)
 
-        coordinator.emitState(
-            PlusSubscriptionState(
-                catalog = PlusCatalogState.Available,
-                prices = mapOf(
-                    PlusPlanId.Monthly to "€2.49 / month",
-                    PlusPlanId.Yearly to "€19.99 / year",
+            coordinator.emitState(
+                PlusSubscriptionState(
+                    catalog = PlusCatalogState.Available,
+                    prices =
+                        mapOf(
+                            PlusPlanId.Monthly to "€2.49 / month",
+                            PlusPlanId.Yearly to "€19.99 / year",
+                        ),
                 ),
-            ),
-        )
-        runCurrent()
+            )
+            runCurrent()
 
-        assertEquals(PaywallCatalogState.Available, viewModel.state.value.catalogState)
-        assertEquals(
-            listOf(
-                PaywallPlan(PaywallPlanId.Monthly, "€2.49 / month"),
-                PaywallPlan(PaywallPlanId.Yearly, "€19.99 / year"),
-            ),
-            viewModel.state.value.plans,
-        )
-    }
+            assertEquals(PaywallCatalogState.Available, viewModel.state.value.catalogState)
+            assertEquals(
+                listOf(
+                    PaywallPlan(PaywallPlanId.Monthly, "€2.49 / month"),
+                    PaywallPlan(PaywallPlanId.Yearly, "€19.99 / year"),
+                ),
+                viewModel.state.value.plans,
+            )
+        }
 
     @Test
-    fun `coordinator error catalog maps to PaywallCatalogState Error`() = runTest {
-        val coordinator = FakePlusSubscriptionCoordinator()
-        val viewModel = createViewModel(coordinator)
+    fun `coordinator error catalog maps to PaywallCatalogState Error`() =
+        runTest {
+            val coordinator = FakePlusSubscriptionCoordinator()
+            val viewModel = createViewModel(coordinator)
 
-        coordinator.emitState(PlusSubscriptionState(catalog = PlusCatalogState.Error))
-        runCurrent()
+            coordinator.emitState(PlusSubscriptionState(catalog = PlusCatalogState.Error))
+            runCurrent()
 
-        assertEquals(PaywallCatalogState.Error, viewModel.state.value.catalogState)
-    }
+            assertEquals(PaywallCatalogState.Error, viewModel.state.value.catalogState)
+        }
 
     // ─── Entitled status ─────────────────────────────────────────────────────────
 
     @Test
-    fun `active Plus entitlement from coordinator is surfaced in SupportPlusState`() = runTest {
-        val coordinator = FakePlusSubscriptionCoordinator()
-        val viewModel = createViewModel(coordinator)
+    fun `active Plus entitlement from coordinator is surfaced in SupportPlusState`() =
+        runTest {
+            val coordinator = FakePlusSubscriptionCoordinator()
+            val viewModel = createViewModel(coordinator)
 
-        val entitlement = activeSubscriptionEntitlement()
-        coordinator.emitState(PlusSubscriptionState(entitlement = entitlement))
-        runCurrent()
+            val entitlement = activeSubscriptionEntitlement()
+            coordinator.emitState(PlusSubscriptionState(entitlement = entitlement))
+            runCurrent()
 
-        assertEquals(entitlement, viewModel.state.value.entitlement)
-    }
+            assertEquals(entitlement, viewModel.state.value.entitlement)
+        }
 
     // ─── onPlanSelected ─────────────────────────────────────────────────────────
 
     @Test
-    fun `onPlanSelected Monthly maps PaywallPlanId Monthly to PlusPlanId Monthly in coordinator`() = runTest {
-        val coordinator = FakePlusSubscriptionCoordinator()
-        val viewModel = createViewModel(coordinator)
-        runCurrent()
+    fun `onPlanSelected Monthly maps PaywallPlanId Monthly to PlusPlanId Monthly in coordinator`() =
+        runTest {
+            val coordinator = FakePlusSubscriptionCoordinator()
+            val viewModel = createViewModel(coordinator)
+            runCurrent()
 
-        viewModel.onPlanSelected(PaywallPlanId.Monthly)
-        runCurrent()
+            viewModel.onPlanSelected(PaywallPlanId.Monthly)
+            runCurrent()
 
-        assertEquals(PlusPlanId.Monthly, coordinator.lastPurchasedPlanId)
-    }
+            assertEquals(PlusPlanId.Monthly, coordinator.lastPurchasedPlanId)
+        }
 
     @Test
-    fun `onPlanSelected Yearly maps PaywallPlanId Yearly to PlusPlanId Yearly in coordinator`() = runTest {
-        val coordinator = FakePlusSubscriptionCoordinator()
-        val viewModel = createViewModel(coordinator)
-        runCurrent()
+    fun `onPlanSelected Yearly maps PaywallPlanId Yearly to PlusPlanId Yearly in coordinator`() =
+        runTest {
+            val coordinator = FakePlusSubscriptionCoordinator()
+            val viewModel = createViewModel(coordinator)
+            runCurrent()
 
-        viewModel.onPlanSelected(PaywallPlanId.Yearly)
-        runCurrent()
+            viewModel.onPlanSelected(PaywallPlanId.Yearly)
+            runCurrent()
 
-        assertEquals(PlusPlanId.Yearly, coordinator.lastPurchasedPlanId)
-    }
+            assertEquals(PlusPlanId.Yearly, coordinator.lastPurchasedPlanId)
+        }
 
     // ─── Purchase outcomes ───────────────────────────────────────────────────────
 
     @Test
-    fun `successful purchase emits RequestNotificationPermission one-shot action`() = runTest {
-        val coordinator = FakePlusSubscriptionCoordinator().apply {
-            purchaseOutcome = PlusPurchaseOutcome.Purchased
+    fun `successful purchase emits RequestNotificationPermission one-shot action`() =
+        runTest {
+            val coordinator =
+                FakePlusSubscriptionCoordinator().apply {
+                    purchaseOutcome = PlusPurchaseOutcome.Purchased
+                }
+            val viewModel = createViewModel(coordinator)
+            runCurrent()
+
+            val collectedActions = mutableListOf<SupportPlusAction>()
+            val collector = launch { viewModel.actions.collect { collectedActions += it } }
+            runCurrent()
+
+            viewModel.onPlanSelected(PaywallPlanId.Monthly)
+            advanceUntilIdle()
+            collector.cancel()
+
+            assertTrue(
+                "Expected RequestNotificationPermission in $collectedActions",
+                SupportPlusAction.RequestNotificationPermission in collectedActions,
+            )
         }
-        val viewModel = createViewModel(coordinator)
-        runCurrent()
-
-        val collectedActions = mutableListOf<SupportPlusAction>()
-        val collector = launch { viewModel.actions.collect { collectedActions += it } }
-        runCurrent()
-
-        viewModel.onPlanSelected(PaywallPlanId.Monthly)
-        advanceUntilIdle()
-        collector.cancel()
-
-        assertTrue(
-            "Expected RequestNotificationPermission in $collectedActions",
-            SupportPlusAction.RequestNotificationPermission in collectedActions,
-        )
-    }
 
     @Test
-    fun `failed purchase outcome sets errorMessageRes in state`() = runTest {
-        val coordinator = FakePlusSubscriptionCoordinator().apply {
-            purchaseOutcome = PlusPurchaseOutcome.Failed
+    fun `failed purchase outcome sets errorMessageRes in state`() =
+        runTest {
+            val coordinator =
+                FakePlusSubscriptionCoordinator().apply {
+                    purchaseOutcome = PlusPurchaseOutcome.Failed
+                }
+            val viewModel = createViewModel(coordinator)
+            runCurrent()
+
+            viewModel.onPlanSelected(PaywallPlanId.Monthly)
+            advanceUntilIdle()
+
+            assertNotNull(
+                "errorMessageRes must be set after a Failed purchase outcome",
+                viewModel.state.value.errorMessageRes,
+            )
         }
-        val viewModel = createViewModel(coordinator)
-        runCurrent()
-
-        viewModel.onPlanSelected(PaywallPlanId.Monthly)
-        advanceUntilIdle()
-
-        assertNotNull(
-            "errorMessageRes must be set after a Failed purchase outcome",
-            viewModel.state.value.errorMessageRes,
-        )
-    }
 
     @Test
-    fun `cancelled purchase outcome leaves errorMessageRes null`() = runTest {
-        val coordinator = FakePlusSubscriptionCoordinator().apply {
-            purchaseOutcome = PlusPurchaseOutcome.Cancelled
+    fun `cancelled purchase outcome leaves errorMessageRes null`() =
+        runTest {
+            val coordinator =
+                FakePlusSubscriptionCoordinator().apply {
+                    purchaseOutcome = PlusPurchaseOutcome.Cancelled
+                }
+            val viewModel = createViewModel(coordinator)
+            runCurrent()
+
+            viewModel.onPlanSelected(PaywallPlanId.Monthly)
+            advanceUntilIdle()
+
+            assertNull(viewModel.state.value.errorMessageRes)
         }
-        val viewModel = createViewModel(coordinator)
-        runCurrent()
-
-        viewModel.onPlanSelected(PaywallPlanId.Monthly)
-        advanceUntilIdle()
-
-        assertNull(viewModel.state.value.errorMessageRes)
-    }
 
     // ─── onRetryClicked ──────────────────────────────────────────────────────────
 
     @Test
-    fun `onRetryClicked delegates to coordinator refreshCatalog`() = runTest {
-        val coordinator = FakePlusSubscriptionCoordinator()
-        val viewModel = createViewModel(coordinator)
-        runCurrent()
-        val callsBefore = coordinator.refreshCatalogCalls
+    fun `onRetryClicked delegates to coordinator refreshCatalog`() =
+        runTest {
+            val coordinator = FakePlusSubscriptionCoordinator()
+            val viewModel = createViewModel(coordinator)
+            runCurrent()
+            val callsBefore = coordinator.refreshCatalogCalls
 
-        viewModel.onRetryClicked()
-        runCurrent()
+            viewModel.onRetryClicked()
+            runCurrent()
 
-        assertEquals(callsBefore + 1, coordinator.refreshCatalogCalls)
-    }
+            assertEquals(callsBefore + 1, coordinator.refreshCatalogCalls)
+        }
 
     // ─── Action replay contract ──────────────────────────────────────────────────
 
     @Test
-    fun `actions SharedFlow has replay 0 — late subscriber misses past emissions`() = runTest {
-        val coordinator = FakePlusSubscriptionCoordinator().apply {
-            purchaseOutcome = PlusPurchaseOutcome.Purchased
+    fun `actions SharedFlow has replay 0 — late subscriber misses past emissions`() =
+        runTest {
+            val coordinator =
+                FakePlusSubscriptionCoordinator().apply {
+                    purchaseOutcome = PlusPurchaseOutcome.Purchased
+                }
+            val viewModel = createViewModel(coordinator)
+            runCurrent()
+
+            viewModel.onPlanSelected(PaywallPlanId.Monthly)
+            advanceUntilIdle()
+
+            val lateCollected = mutableListOf<SupportPlusAction>()
+            val collector = launch { viewModel.actions.collect { lateCollected += it } }
+            runCurrent()
+            collector.cancel()
+
+            assertTrue(
+                "Late subscriber must not receive replayed actions but got $lateCollected",
+                lateCollected.isEmpty(),
+            )
         }
-        val viewModel = createViewModel(coordinator)
-        runCurrent()
-
-        viewModel.onPlanSelected(PaywallPlanId.Monthly)
-        advanceUntilIdle()
-
-        val lateCollected = mutableListOf<SupportPlusAction>()
-        val collector = launch { viewModel.actions.collect { lateCollected += it } }
-        runCurrent()
-        collector.cancel()
-
-        assertTrue(
-            "Late subscriber must not receive replayed actions but got $lateCollected",
-            lateCollected.isEmpty(),
-        )
-    }
 
     // ─── Fake ───────────────────────────────────────────────────────────────────
 

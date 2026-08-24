@@ -6,7 +6,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SignInWithGoogleUseCaseTest {
-
     private inner class FakeSharedAuth(
         private val signInResult: Result<SharedSession> =
             Result.success(SharedSession(SharedUser("u-1", "u@example.com"), "tok")),

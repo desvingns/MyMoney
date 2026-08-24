@@ -25,8 +25,8 @@ import com.kshavrin.mymoney.core.sync.SyncScheduler
 import com.kshavrin.mymoney.core.sync.SyncTarget
 import com.kshavrin.mymoney.core.sync.shared.LocalOnlyReason
 import com.kshavrin.mymoney.core.sync.shared.LocalOnlyState
-import com.kshavrin.mymoney.core.sync.shared.SharedSyncCoordinator
 import com.kshavrin.mymoney.core.sync.shared.SharedRealtimeStatus
+import com.kshavrin.mymoney.core.sync.shared.SharedSyncCoordinator
 import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceAccess
 import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceBillingState
 import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceInvite
@@ -35,14 +35,14 @@ import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceRole
 import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceSummary
 import com.kshavrin.mymoney.core.sync.usecase.CloudSyncBackupsUseCase
 import com.kshavrin.mymoney.core.sync.usecase.CloudSyncSettingsUseCase
-import com.kshavrin.mymoney.core.ui.navigation.PaywallEntryPoint
 import com.kshavrin.mymoney.core.testing.fake.FakeAppSettingsRepository
+import com.kshavrin.mymoney.core.ui.navigation.PaywallEntryPoint
 import com.kshavrin.mymoney.feature.cloudsync.fake.FakeRemoteConfigRepository
 import com.kshavrin.mymoney.feature.cloudsync.util.MainDispatcherRule
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -1119,7 +1119,11 @@ class CloudSyncViewModelTest {
 
             assertTrue(vm.state.value.shared.isWorkspaceReadOnly)
             assertFalse(vm.state.value.shared.isWorkspaceAccessKnown)
-            assertEquals(CloudProvider.Shared, vm.state.value.binding?.provider)
+            assertEquals(
+                CloudProvider.Shared,
+                vm.state.value.binding
+                    ?.provider,
+            )
             vm.onEvent(CloudSyncEvent.SharedRealtimeForegroundStarted)
             runCurrent()
             assertEquals(0, shared.startRealtimeCalls)
@@ -1154,7 +1158,11 @@ class CloudSyncViewModelTest {
             assertNull(vm.state.value.shared.workspaceBillingState)
             assertNull(vm.state.value.shared.workspaceBillingStateUntil)
             assertEquals(SharedRealtimeStatus.Inactive, vm.state.value.shared.realtimeStatus)
-            assertEquals(CloudProvider.Shared, vm.state.value.binding?.provider)
+            assertEquals(
+                CloudProvider.Shared,
+                vm.state.value.binding
+                    ?.provider,
+            )
             assertTrue(shared.stopRealtimeCalls > realtimeStopsBeforeFailure)
 
             shared.workspaceAccessResult = Result.success(SharedWorkspaceAccess(SharedWorkspaceBillingState.Active))

@@ -129,7 +129,7 @@ class SupabaseHttpTransport
                                                     mapBadRequestToAuth = mapBadRequestToAuth,
                                                     mapMembershipDeniedToAuth = mapMembershipDeniedToAuth,
                                                     mapAccountDeletionWorkspaceConflict =
-                                                        mapAccountDeletionWorkspaceConflict,
+                                                    mapAccountDeletionWorkspaceConflict,
                                                     preservePostgrestConflict = preservePostgrestConflict,
                                                 )
                                             }

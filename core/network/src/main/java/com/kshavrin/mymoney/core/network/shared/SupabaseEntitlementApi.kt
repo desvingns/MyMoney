@@ -10,9 +10,9 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
-import java.time.Instant
 
 @Singleton
 class SupabaseEntitlementApi
@@ -44,8 +44,9 @@ class SupabaseEntitlementApi
 
 private fun JsonObject.toEntitlementSnapshotOrNull(): EntitlementSnapshot? {
     val source = this["source"]?.jsonPrimitive?.contentOrNull ?: return null
-    val startsAt = this["starts_at"]?.jsonPrimitive?.contentOrNull?.let(Instant::parse)
-        ?: throw SyncException(SyncError.Server)
+    val startsAt =
+        this["starts_at"]?.jsonPrimitive?.contentOrNull?.let(Instant::parse)
+            ?: throw SyncException(SyncError.Server)
     return EntitlementSnapshot(
         source = source.toEntitlementSource(),
         startsAt = startsAt,

@@ -42,7 +42,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
 import com.kshavrin.mymoney.core.domain.billing.SupportProduct
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.core.ui.theme.supportActionLabel
@@ -58,8 +57,8 @@ import com.kshavrin.mymoney.core.ui.theme.supportPanelIllustration
 import com.kshavrin.mymoney.core.ui.theme.supportPanelOutline
 import com.kshavrin.mymoney.core.ui.theme.supportPanelSubtitle
 import com.kshavrin.mymoney.core.ui.theme.supportPanelTitle
-import com.kshavrin.mymoney.core.ui.theme.supportPrimaryAction
 import com.kshavrin.mymoney.core.ui.theme.supportPriceValue
+import com.kshavrin.mymoney.core.ui.theme.supportPrimaryAction
 import com.kshavrin.mymoney.core.ui.theme.supportProductName
 import com.kshavrin.mymoney.core.ui.theme.supportProductPrice
 import com.kshavrin.mymoney.core.ui.theme.supporterChip
@@ -67,7 +66,7 @@ import com.kshavrin.mymoney.core.ui.theme.supporterChipContainer
 import com.kshavrin.mymoney.core.ui.theme.supporterChipContent
 import com.kshavrin.mymoney.core.ui.theme.supporterChipLabel
 import com.kshavrin.mymoney.core.ui.theme.supporterChipOutline
-import com.kshavrin.mymoney.feature.support.R
+import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
 
 @Composable
 fun SupportContent(

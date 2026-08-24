@@ -21,8 +21,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
@@ -103,7 +103,14 @@ class SupporterSyncImplTest {
             assertEquals("POST", request.method)
             assertEquals("/rest/v1/supporter_purchases", request.path)
             assertEquals("Bearer access-token", request.headers["authorization"])
-            assertEquals("purchase-token", Json.parseToJsonElement(request.body).jsonObject["purchase_token"]?.jsonPrimitive?.content)
+            assertEquals(
+                "purchase-token",
+                Json
+                    .parseToJsonElement(request.body)
+                    .jsonObject["purchase_token"]
+                    ?.jsonPrimitive
+                    ?.content,
+            )
         }
 
     @Test
@@ -211,7 +218,10 @@ class SupporterSyncImplTest {
 
         override suspend fun recordPurchase(outcome: PurchaseOutcome.Purchased): Result<Unit> = Result.success(Unit)
 
-        override suspend fun mergeRemote(remoteCount: Int, remoteBadge: Boolean): Result<Unit> {
+        override suspend fun mergeRemote(
+            remoteCount: Int,
+            remoteBadge: Boolean,
+        ): Result<Unit> {
             lastMerge = remoteCount to remoteBadge
             return Result.success(Unit)
         }
@@ -264,16 +274,17 @@ class SupporterSyncImplTest {
             connection.use { socket ->
                 val reader = BufferedReader(InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8))
                 val requestLine = reader.readLine() ?: return
-                val headers = buildMap {
-                    while (true) {
-                        val line = reader.readLine()
-                        if (line.isNullOrEmpty()) break
-                        val separator = line.indexOf(':')
-                        if (separator > 0) {
-                            put(line.substring(0, separator).lowercase(), line.substring(separator + 1).trim())
+                val headers =
+                    buildMap {
+                        while (true) {
+                            val line = reader.readLine()
+                            if (line.isNullOrEmpty()) break
+                            val separator = line.indexOf(':')
+                            if (separator > 0) {
+                                put(line.substring(0, separator).lowercase(), line.substring(separator + 1).trim())
+                            }
                         }
                     }
-                }
                 val contentLength = headers["content-length"]?.toIntOrNull() ?: 0
                 val body = CharArray(contentLength)
                 var offset = 0

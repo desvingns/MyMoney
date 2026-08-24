@@ -37,25 +37,31 @@ class SupportPlusContentTest {
 
     // ─── Helpers ────────────────────────────────────────────────────────────────
 
-    private fun string(id: Int, vararg args: Any): String = context.getString(id, *args)
+    private fun string(
+        id: Int,
+        vararg args: Any,
+    ): String = context.getString(id, *args)
 
     private fun loadingState() = SupportPlusState(catalogState = PaywallCatalogState.Loading)
 
-    private fun availableState() = SupportPlusState(
-        catalogState = PaywallCatalogState.Available,
-        plans = listOf(
-            PaywallPlan(PaywallPlanId.Monthly, "€2.49 / month"),
-            PaywallPlan(PaywallPlanId.Yearly, "€19.99 / year"),
-        ),
-    )
+    private fun availableState() =
+        SupportPlusState(
+            catalogState = PaywallCatalogState.Available,
+            plans =
+                listOf(
+                    PaywallPlan(PaywallPlanId.Monthly, "€2.49 / month"),
+                    PaywallPlan(PaywallPlanId.Yearly, "€19.99 / year"),
+                ),
+        )
 
-    private fun activeEntitlement(): UserEntitlement.Plus = UserEntitlement.Plus(
-        source = EntitlementSource.SUBSCRIPTION_MONTHLY,
-        state = EntitlementState.ACTIVE,
-        startsAt = Instant.parse("2026-08-01T00:00:00Z"),
-        expiresAt = Instant.parse("2026-09-01T00:00:00Z"),
-        graceEndsAt = null,
-    )
+    private fun activeEntitlement(): UserEntitlement.Plus =
+        UserEntitlement.Plus(
+            source = EntitlementSource.SUBSCRIPTION_MONTHLY,
+            state = EntitlementState.ACTIVE,
+            startsAt = Instant.parse("2026-08-01T00:00:00Z"),
+            expiresAt = Instant.parse("2026-09-01T00:00:00Z"),
+            graceEndsAt = null,
+        )
 
     private fun setContent(
         state: SupportPlusState,
@@ -176,14 +182,16 @@ class SupportPlusContentTest {
     @Test
     fun `active subscription shows PlusStatusCard status text instead of plan columns`() {
         setContent(
-            state = SupportPlusState(
-                catalogState = PaywallCatalogState.Available,
-                plans = listOf(
-                    PaywallPlan(PaywallPlanId.Monthly, "€2.49 / month"),
-                    PaywallPlan(PaywallPlanId.Yearly, "€19.99 / year"),
+            state =
+                SupportPlusState(
+                    catalogState = PaywallCatalogState.Available,
+                    plans =
+                        listOf(
+                            PaywallPlan(PaywallPlanId.Monthly, "€2.49 / month"),
+                            PaywallPlan(PaywallPlanId.Yearly, "€19.99 / year"),
+                        ),
+                    entitlement = activeEntitlement(),
                 ),
-                entitlement = activeEntitlement(),
-            ),
         )
 
         composeTestRule
@@ -200,10 +208,11 @@ class SupportPlusContentTest {
     @Test
     fun `entitled state shows no purchase buttons regardless of catalog state`() {
         setContent(
-            state = SupportPlusState(
-                catalogState = PaywallCatalogState.Available,
-                entitlement = activeEntitlement(),
-            ),
+            state =
+                SupportPlusState(
+                    catalogState = PaywallCatalogState.Available,
+                    entitlement = activeEntitlement(),
+                ),
         )
 
         composeTestRule
@@ -217,13 +226,15 @@ class SupportPlusContentTest {
     fun `catalog error shows error message and an enabled retry button`() {
         var retryCalls = 0
         setContent(
-            state = SupportPlusState(
-                catalogState = PaywallCatalogState.Error,
-                plans = listOf(
-                    PaywallPlan(PaywallPlanId.Monthly),
-                    PaywallPlan(PaywallPlanId.Yearly),
+            state =
+                SupportPlusState(
+                    catalogState = PaywallCatalogState.Error,
+                    plans =
+                        listOf(
+                            PaywallPlan(PaywallPlanId.Monthly),
+                            PaywallPlan(PaywallPlanId.Yearly),
+                        ),
                 ),
-            ),
             onRetry = { retryCalls++ },
         )
 
@@ -245,13 +256,15 @@ class SupportPlusContentTest {
     @Test
     fun `region unavailable catalog explains the limitation without select buttons`() {
         setContent(
-            state = SupportPlusState(
-                catalogState = PaywallCatalogState.UnavailableInRegion,
-                plans = listOf(
-                    PaywallPlan(PaywallPlanId.Monthly, "€2.49 / month"),
-                    PaywallPlan(PaywallPlanId.Yearly, "€19.99 / year"),
+            state =
+                SupportPlusState(
+                    catalogState = PaywallCatalogState.UnavailableInRegion,
+                    plans =
+                        listOf(
+                            PaywallPlan(PaywallPlanId.Monthly, "€2.49 / month"),
+                            PaywallPlan(PaywallPlanId.Yearly, "€19.99 / year"),
+                        ),
                 ),
-            ),
         )
 
         composeTestRule

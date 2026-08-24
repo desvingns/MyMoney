@@ -256,7 +256,8 @@ fun MyMoneyNavHost(
                         .RewardedAdSupportEntry()
                 },
                 plusSlot = {
-                    com.kshavrin.mymoney.feature.support.plus.SupportPlusEntry()
+                    com.kshavrin.mymoney.feature.support.plus
+                        .SupportPlusEntry()
                 },
             )
         }

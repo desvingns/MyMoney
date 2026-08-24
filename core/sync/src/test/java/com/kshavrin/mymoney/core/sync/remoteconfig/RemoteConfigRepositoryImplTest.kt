@@ -28,7 +28,6 @@ import java.io.File
  * shared-sync-remote-killswitch SPEC.
  */
 class RemoteConfigRepositoryImplTest {
-
     private val repository = RemoteConfigRepositoryImpl()
 
     // Normalised production source — used for structural (source-inspection) tests only.

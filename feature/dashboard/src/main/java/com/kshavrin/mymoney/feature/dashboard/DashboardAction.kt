@@ -53,5 +53,4 @@ sealed interface DashboardAction {
         val fromMillis: Long,
         val toMillis: Long,
     ) : DashboardAction
-
 }

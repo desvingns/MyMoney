@@ -257,7 +257,7 @@ class AppSettingsRepositoryTest {
                 fail("firstPositiveSeen should not flip from true to false")
             } catch (_: IllegalStateException) {
             }
-    }
+        }
 
     @Test
     fun `supporter badge cannot be reset from true to false`() =

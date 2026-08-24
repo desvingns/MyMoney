@@ -5,12 +5,12 @@ import com.kshavrin.mymoney.core.common.exception.SyncException
 import com.kshavrin.mymoney.core.domain.ads.AdRewardState
 import com.kshavrin.mymoney.core.domain.ads.ConfirmationOutcome
 import com.kshavrin.mymoney.core.domain.ads.FrozenReason
+import com.kshavrin.mymoney.core.network.shared.AuthSessionLifecycle
 import com.kshavrin.mymoney.core.network.shared.SharedAuth
 import com.kshavrin.mymoney.core.network.shared.SharedSession
 import com.kshavrin.mymoney.core.network.shared.SharedUser
 import com.kshavrin.mymoney.core.network.shared.SupabaseConfig
 import com.kshavrin.mymoney.core.network.shared.SupabaseHttpTransport
-import com.kshavrin.mymoney.core.network.shared.AuthSessionLifecycle
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
@@ -35,8 +35,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import java.time.Instant
-import java.util.concurrent.CountDownLatch
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -256,9 +256,10 @@ class SupabaseAdRewardRepositoryTest {
             val previous = rewardState(progress = 2)
             seed(previous)
             var observed: AdRewardState? = null
-            val collector = launch(start = CoroutineStart.UNDISPATCHED) {
-                repository.state.collect { observed = it }
-            }
+            val collector =
+                launch(start = CoroutineStart.UNDISPATCHED) {
+                    repository.state.collect { observed = it }
+                }
 
             authSessionLifecycle.invalidate()
             yield()
@@ -278,8 +279,8 @@ class SupabaseAdRewardRepositoryTest {
             val requestCount = AtomicInteger()
             server.dispatcher =
                 object : Dispatcher() {
-                    override fun dispatch(request: RecordedRequest): MockResponse {
-                        return if (requestCount.incrementAndGet() == 1) {
+                    override fun dispatch(request: RecordedRequest): MockResponse =
+                        if (requestCount.incrementAndGet() == 1) {
                             firstStarted.countDown()
                             check(releaseFirst.await(1, TimeUnit.SECONDS)) { "first response was not released" }
                             MockResponse().setResponseCode(200).setBody(stateJson(progress = 1))
@@ -287,7 +288,6 @@ class SupabaseAdRewardRepositoryTest {
                             secondStarted.countDown()
                             MockResponse().setResponseCode(200).setBody(stateJson(progress = 2))
                         }
-                    }
                 }
 
             val first = async(start = CoroutineStart.UNDISPATCHED) { repository.refresh().getOrThrow() }

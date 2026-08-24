@@ -113,7 +113,7 @@ class FakeBillingGateway : BillingGateway {
     private fun defaultPurchaseOutcome(productId: String): PurchaseOutcome =
         if (
             availabilityState.value == BillingAvailability.Available &&
-                productsResult.value.getOrNull()?.any { product -> product.id == productId } == true
+            productsResult.value.getOrNull()?.any { product -> product.id == productId } == true
         ) {
             PurchaseOutcome.Purchased(
                 productId = productId,
@@ -127,7 +127,7 @@ class FakeBillingGateway : BillingGateway {
     private fun defaultSubscriptionOutcome(productId: String): PurchaseOutcome =
         if (
             availabilityState.value == BillingAvailability.Available &&
-                subscriptionsResult.value.getOrNull()?.any { product -> product.id == productId } == true
+            subscriptionsResult.value.getOrNull()?.any { product -> product.id == productId } == true
         ) {
             PurchaseOutcome.Purchased(
                 productId = productId,

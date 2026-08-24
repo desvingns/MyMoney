@@ -90,6 +90,7 @@ import com.kshavrin.mymoney.core.sync.shared.LocalOnlyReason
 import com.kshavrin.mymoney.core.sync.shared.SharedRealtimeStatus
 import com.kshavrin.mymoney.core.sync.shared.SharedWorkspaceSummary
 import com.kshavrin.mymoney.core.sync.toCloudProvider
+import com.kshavrin.mymoney.core.ui.navigation.PaywallEntryPoint
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.core.ui.theme.conflictAuthorContainer
 import com.kshavrin.mymoney.core.ui.theme.conflictAuthorLabel
@@ -99,10 +100,10 @@ import com.kshavrin.mymoney.core.ui.theme.conflictRemoteContainer
 import com.kshavrin.mymoney.core.ui.theme.conflictRemoteContent
 import com.kshavrin.mymoney.core.ui.theme.sharedSyncConnectedContainer
 import com.kshavrin.mymoney.core.ui.theme.sharedSyncConnectedContent
-import com.kshavrin.mymoney.core.ui.theme.sharedSyncErrorContainer
-import com.kshavrin.mymoney.core.ui.theme.sharedSyncErrorContent
 import com.kshavrin.mymoney.core.ui.theme.sharedSyncEntitlementWarningContainer
 import com.kshavrin.mymoney.core.ui.theme.sharedSyncEntitlementWarningContent
+import com.kshavrin.mymoney.core.ui.theme.sharedSyncErrorContainer
+import com.kshavrin.mymoney.core.ui.theme.sharedSyncErrorContent
 import com.kshavrin.mymoney.core.ui.theme.sharedSyncReadOnlyContainer
 import com.kshavrin.mymoney.core.ui.theme.sharedSyncReadOnlyContent
 import com.kshavrin.mymoney.core.ui.theme.sharedSyncRetryingContainer
@@ -112,7 +113,6 @@ import com.kshavrin.mymoney.core.ui.theme.sharedSyncSleepingContent
 import com.kshavrin.mymoney.core.ui.theme.sharedSyncStartingContainer
 import com.kshavrin.mymoney.core.ui.theme.sharedSyncStartingContent
 import com.kshavrin.mymoney.core.ui.theme.sharedSyncStatusOutline
-import com.kshavrin.mymoney.core.ui.navigation.PaywallEntryPoint
 import kotlinx.coroutines.CancellationException
 import java.security.MessageDigest
 import java.security.SecureRandom
@@ -496,8 +496,8 @@ fun CloudSyncContent(
                 state.shared.enabled ||
                 (
                     state.binding?.provider == CloudProvider.Shared &&
-                    state.shared.active &&
-                    state.shared.isLocalOnly
+                        state.shared.active &&
+                        state.shared.isLocalOnly
                 )
             ) {
                 state.shared.warning
@@ -519,21 +519,21 @@ fun CloudSyncContent(
             }
             state.errorBannerRes
                 ?.let { res ->
-                androidx.compose.foundation.layout.Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = stringResource(res),
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.weight(1f),
-                    )
-                    IconButton(onClick = { onEvent(CloudSyncEvent.DismissError) }) {
-                        Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.sync_dismiss))
+                    androidx.compose.foundation.layout.Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = stringResource(res),
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.weight(1f),
+                        )
+                        IconButton(onClick = { onEvent(CloudSyncEvent.DismissError) }) {
+                            Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.sync_dismiss))
+                        }
                     }
                 }
-            }
         }
     }
 }
@@ -795,7 +795,8 @@ private fun SharedCardState.localOnlyBodyRes(): Int =
     when (localOnlyReason) {
         LocalOnlyReason.RemoteKillswitch -> R.string.sync_shared_local_only_killswitch_body
         LocalOnlyReason.EntitlementExpired,
-        LocalOnlyReason.AdRewardWindowEnded ->
+        LocalOnlyReason.AdRewardWindowEnded,
+        ->
             when {
                 isWorkspaceOwnershipKnown && isWorkspaceOwner -> R.string.sync_shared_local_only_owner_body
                 isWorkspaceOwnershipKnown -> R.string.sync_shared_local_only_participant_body

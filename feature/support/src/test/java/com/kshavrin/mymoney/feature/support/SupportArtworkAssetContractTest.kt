@@ -4,7 +4,6 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import androidx.test.core.app.ApplicationProvider
-import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -14,6 +13,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import java.io.File
+import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = android.app.Application::class)
@@ -148,7 +148,9 @@ class SupportArtworkAssetContractTest {
         return count
     }
 
-    private data class ColorSample(val pixel: Int) {
+    private data class ColorSample(
+        val pixel: Int,
+    ) {
         val alpha: Int get() = Color.alpha(pixel)
         val red: Int get() = Color.red(pixel)
         val green: Int get() = Color.green(pixel)

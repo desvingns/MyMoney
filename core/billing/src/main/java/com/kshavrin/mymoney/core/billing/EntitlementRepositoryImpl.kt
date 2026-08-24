@@ -40,6 +40,7 @@ class EntitlementRepositoryImpl
         @ApplicationScope private val applicationScope: CoroutineScope,
     ) : EntitlementRepository {
         private val funnelTracker = SubscriptionFunnelTracker(analytics)
+
         // The initial generation accepts the persisted cache until local auth invalidates it.
         private val authSessionGeneration = MutableStateFlow(COLD_START_GENERATION)
         private val activeUserId = MutableStateFlow(currentUserId())
@@ -79,12 +80,11 @@ class EntitlementRepositoryImpl
                 } else {
                     UserEntitlement.Free
                 }
-            }
-                .stateIn(
-                    scope = applicationScope,
-                    started = SharingStarted.Eagerly,
-                    initialValue = UserEntitlement.Free,
-                )
+            }.stateIn(
+                scope = applicationScope,
+                started = SharingStarted.Eagerly,
+                initialValue = UserEntitlement.Free,
+            )
 
         override suspend fun bindGooglePlayPurchase(purchaseToken: String): Result<Unit> =
             withContext(ioDispatcher) {
@@ -93,8 +93,9 @@ class EntitlementRepositoryImpl
 
         override suspend fun refresh(): Result<Unit> =
             withContext(ioDispatcher) {
-                val ownerUserId = currentUserId()
-                    ?: return@withContext Result.failure(SyncException(SyncError.Auth))
+                val ownerUserId =
+                    currentUserId()
+                        ?: return@withContext Result.failure(SyncException(SyncError.Auth))
                 val refreshGeneration = authSessionGeneration.value
                 val previous = entitlement.value
                 api
@@ -118,7 +119,11 @@ class EntitlementRepositoryImpl
             }
 
         private fun currentUserId(): String? =
-            auth.currentSession()?.user?.id?.takeIf(String::isNotBlank)
+            auth
+                .currentSession()
+                ?.user
+                ?.id
+                ?.takeIf(String::isNotBlank)
 
         private companion object {
             const val COLD_START_GENERATION = 0L

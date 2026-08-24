@@ -21,7 +21,6 @@ import org.robolectric.annotation.GraphicsMode
 @Config(sdk = [34], application = android.app.Application::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class GoogleSignInDialogContentTest {
-
     @get:Rule
     val composeTestRule = createComposeRule()
 

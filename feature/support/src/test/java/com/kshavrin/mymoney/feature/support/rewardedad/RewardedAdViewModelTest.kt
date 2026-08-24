@@ -281,7 +281,11 @@ class RewardedAdViewModelTest {
             runCurrent()
 
             assertEquals(RewardedAdStatus.Ready, viewModel.state.value.status)
-            assertEquals(4, viewModel.state.value.reward?.progress)
+            assertEquals(
+                4,
+                viewModel.state.value.reward
+                    ?.progress,
+            )
             assertTrue(fakeGateway.loadRewardedCalls > loadsBeforeWatch)
         }
 
@@ -311,7 +315,11 @@ class RewardedAdViewModelTest {
             runCurrent()
 
             assertEquals(RewardedAdStatus.Ready, viewModel.state.value.status)
-            assertEquals(true, viewModel.state.value.reward?.plusActive)
+            assertEquals(
+                true,
+                viewModel.state.value.reward
+                    ?.plusActive,
+            )
             assertTrue(fakeGateway.loadRewardedCalls > loadsBeforeWatch)
         }
 
@@ -450,7 +458,11 @@ class RewardedAdViewModelTest {
 
             assertEquals(RewardedAdStatus.NoFill, viewModel.state.value.status)
             // Progress counter is unchanged — no reward was counted.
-            assertEquals(3, viewModel.state.value.reward?.progress)
+            assertEquals(
+                3,
+                viewModel.state.value.reward
+                    ?.progress,
+            )
         }
 
     // ─── Acceptance matrix: scenario 8 — Offline ─────────────────────────────────
@@ -542,7 +554,11 @@ class RewardedAdViewModelTest {
             runCurrent()
 
             assertEquals(RewardedAdStatus.Ready, viewModel.state.value.status)
-            assertEquals(42, viewModel.state.value.reward?.totalWatched)
+            assertEquals(
+                42,
+                viewModel.state.value.reward
+                    ?.totalWatched,
+            )
         }
 
     // ─── WATCH-COUNTED-001: frozen view confirmed via totalWatched ───────────────
@@ -575,7 +591,11 @@ class RewardedAdViewModelTest {
             assertNotEquals(RewardedAdStatus.ConfirmationTimeout, viewModel.state.value.status)
             assertNotEquals(RewardedAdStatus.AwaitingConfirmation, viewModel.state.value.status)
             assertEquals(RewardedAdStatus.Ready, viewModel.state.value.status)
-            assertEquals(7, viewModel.state.value.reward?.totalWatched)
+            assertEquals(
+                7,
+                viewModel.state.value.reward
+                    ?.totalWatched,
+            )
             assertTrue(fakeGateway.loadRewardedCalls > loadsBeforeWatch)
         }
 

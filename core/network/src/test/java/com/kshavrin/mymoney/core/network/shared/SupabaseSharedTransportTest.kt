@@ -160,7 +160,7 @@ class SupabaseSharedTransportTest {
             val restartedRpc = SupabaseSharedWorkspaceRpc(restartedAuth, SupabaseHttpTransport(config, OkHttpClient(), Json))
             server.enqueue(
                 MockResponse().setResponseCode(200).setBody(
-                    workspaceResponse(),
+                    workspaceResponse,
                 ),
             )
 
@@ -185,7 +185,7 @@ class SupabaseSharedTransportTest {
             server.enqueue(MockResponse().setResponseCode(200).setBody(sessionResponse("refreshed-access-token", "rotated-refresh-token")))
             server.enqueue(
                 MockResponse().setResponseCode(200).setBody(
-                    workspaceResponse(),
+                    workspaceResponse,
                 ),
             )
 
@@ -578,7 +578,7 @@ class SupabaseSharedTransportTest {
             signIn()
             server.enqueue(
                 MockResponse().setResponseCode(200).setBody(
-                    workspaceResponse(),
+                    workspaceResponse,
                 ),
             )
 
@@ -848,6 +848,6 @@ class SupabaseSharedTransportTest {
         assertEquals(expected, exception?.syncError)
     }
 
-    private fun workspaceResponse(): String =
+    private val workspaceResponse =
         """{"id":"workspace-1","name":"Budget","owner_id":"user-1","created_at":"2026-07-29T12:00:00Z","billing_state":"active","billing_state_until":null}"""
 }

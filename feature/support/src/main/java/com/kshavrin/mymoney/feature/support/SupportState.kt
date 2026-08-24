@@ -1,9 +1,9 @@
 package com.kshavrin.mymoney.feature.support
 
-import com.kshavrin.mymoney.core.domain.billing.COFFEE_LARGE_PRODUCT_ID as domainCoffeeLargeProductId
-import com.kshavrin.mymoney.core.domain.billing.COFFEE_SMALL_PRODUCT_ID as domainCoffeeSmallProductId
 import com.kshavrin.mymoney.core.domain.billing.SupportProduct
 import com.kshavrin.mymoney.core.domain.supporter.SupporterState
+import com.kshavrin.mymoney.core.domain.billing.COFFEE_LARGE_PRODUCT_ID as domainCoffeeLargeProductId
+import com.kshavrin.mymoney.core.domain.billing.COFFEE_SMALL_PRODUCT_ID as domainCoffeeSmallProductId
 
 data class SupportState(
     val billingState: SupportBillingState = SupportBillingState.Loading,

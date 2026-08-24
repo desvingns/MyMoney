@@ -131,10 +131,11 @@ class SupporterPurchaseStoreTest {
         }
 
     private fun createDataStore(job: Job = Job()): DataStore<Preferences> =
-        PreferenceDataStoreFactory.create(
-            scope = CoroutineScope(job + Dispatchers.IO),
-            produceFile = { file },
-        ).also { storeJobs += job }
+        PreferenceDataStoreFactory
+            .create(
+                scope = CoroutineScope(job + Dispatchers.IO),
+                produceFile = { file },
+            ).also { storeJobs += job }
 
     private fun purchasedOutcome(token: String) =
         PurchaseOutcome.Purchased(

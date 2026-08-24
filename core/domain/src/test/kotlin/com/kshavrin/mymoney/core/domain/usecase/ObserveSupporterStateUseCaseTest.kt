@@ -15,32 +15,35 @@ import org.junit.Test
 
 class ObserveSupporterStateUseCaseTest {
     @Test
-    fun `returns and collects repository supporter state flow`() = runTest {
-        val initialState =
-            SupporterState(
-                badgeEarned = true,
-                purchaseCount = 5,
-                smallCoffeeCount = 3,
-                largeCoffeeCount = 2,
-            )
-        val updatedState = initialState.copy(smallCoffeeCount = 4, largeCoffeeCount = 5)
-        val repository = FakeSupporterRepository(initialState)
-        val useCase = ObserveSupporterStateUseCase(repository)
+    fun `returns and collects repository supporter state flow`() =
+        runTest {
+            val initialState =
+                SupporterState(
+                    badgeEarned = true,
+                    purchaseCount = 5,
+                    smallCoffeeCount = 3,
+                    largeCoffeeCount = 2,
+                )
+            val updatedState = initialState.copy(smallCoffeeCount = 4, largeCoffeeCount = 5)
+            val repository = FakeSupporterRepository(initialState)
+            val useCase = ObserveSupporterStateUseCase(repository)
 
-        assertSame(repository.stateFlow, useCase())
+            assertSame(repository.stateFlow, useCase())
 
-        useCase().test {
-            val collectedInitialState = awaitItem()
-            assertEquals(3, collectedInitialState.smallCoffeeCount)
-            assertEquals(2, collectedInitialState.largeCoffeeCount)
+            useCase().test {
+                val collectedInitialState = awaitItem()
+                assertEquals(3, collectedInitialState.smallCoffeeCount)
+                assertEquals(2, collectedInitialState.largeCoffeeCount)
 
-            repository.emit(updatedState)
+                repository.emit(updatedState)
 
-            assertEquals(updatedState, awaitItem())
+                assertEquals(updatedState, awaitItem())
+            }
         }
-    }
 
-    private class FakeSupporterRepository(initialState: SupporterState) : SupporterRepository {
+    private class FakeSupporterRepository(
+        initialState: SupporterState,
+    ) : SupporterRepository {
         private val mutableState = MutableStateFlow(initialState)
         val stateFlow: StateFlow<SupporterState> = mutableState.asStateFlow()
 

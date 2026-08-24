@@ -347,7 +347,7 @@ class DashboardContentUiTest {
                                     state.copy(leftDrawerOpen = false, rightDrawerOpen = false)
                                 else -> state
                             }
-                        }
+                    },
                 )
             }
         }
@@ -1487,8 +1487,10 @@ class DashboardContentUiTest {
         composeTestRule.waitForIdle()
 
         composeTestRule
-            .onAllNodes(androidx.compose.ui.test.hasTestTag("right_drawer_chart_settings"))
-            .assertCountEquals(0)
+            .onAllNodes(
+                androidx.compose.ui.test
+                    .hasTestTag("right_drawer_chart_settings"),
+            ).assertCountEquals(0)
     }
 
     @Test

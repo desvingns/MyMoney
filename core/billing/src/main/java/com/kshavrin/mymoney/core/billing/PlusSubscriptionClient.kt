@@ -42,7 +42,10 @@ class PlusSubscriptionClient
                         ?.let { offer ->
                             SupportProduct(
                                 id = productDetails.productId,
-                                formattedPrice = offer.pricingPhases.pricingPhaseList.last().formattedPrice,
+                                formattedPrice =
+                                    offer.pricingPhases.pricingPhaseList
+                                        .last()
+                                        .formattedPrice,
                                 title = productDetails.title,
                             )
                         }
@@ -81,8 +84,9 @@ class PlusSubscriptionClient
             purchase: Purchase,
         ): PurchaseOutcome =
             processingMutex.withLock {
-                val productId = purchase.products.firstOrNull { it in PlusSku.productIds }
-                    ?: return@withLock PurchaseOutcome.Unavailable(PlayBillingGateway.UNSUPPORTED_PURCHASE_STATE_REASON)
+                val productId =
+                    purchase.products.firstOrNull { it in PlusSku.productIds }
+                        ?: return@withLock PurchaseOutcome.Unavailable(PlayBillingGateway.UNSUPPORTED_PURCHASE_STATE_REASON)
                 when (purchase.purchaseState) {
                     Purchase.PurchaseState.PENDING -> PurchaseOutcome.Pending
                     Purchase.PurchaseState.PURCHASED -> {

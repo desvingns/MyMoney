@@ -85,10 +85,11 @@ class SupabaseSharedAuth
 
         override suspend fun signOut(): Result<Unit> {
             return sessionMutex.withLock {
-                val active = cachedOrStoredSession() ?: run {
-                    authSessionLifecycle.invalidate()
-                    return@withLock Result.success(Unit)
-                }
+                val active =
+                    cachedOrStoredSession() ?: run {
+                        authSessionLifecycle.invalidate()
+                        return@withLock Result.success(Unit)
+                    }
                 try {
                     try {
                         http

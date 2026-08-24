@@ -24,14 +24,15 @@ class EntitlementStateMachineTest {
     @Test
     fun `worked example 2 resolves an active yearly subscription`() {
         val now = instant("2026-08-12T00:00:00Z")
-        val result = resolvePlus(
-            snapshot(
-                source = EntitlementSource.SUBSCRIPTION_YEARLY,
-                startsAt = instant("2026-01-01T00:00:00Z"),
-                expiresAt = instant("2027-01-01T00:00:00Z"),
-            ),
-            now,
-        )
+        val result =
+            resolvePlus(
+                snapshot(
+                    source = EntitlementSource.SUBSCRIPTION_YEARLY,
+                    startsAt = instant("2026-01-01T00:00:00Z"),
+                    expiresAt = instant("2027-01-01T00:00:00Z"),
+                ),
+                now,
+            )
 
         assertEquals(EntitlementState.ACTIVE, result.state)
         assertEquals(instant("2027-01-08T00:00:00Z"), result.graceEndsAt)
@@ -41,15 +42,16 @@ class EntitlementStateMachineTest {
     @Test
     fun `worked example 3 keeps a trial and warns exactly three days before expiry`() {
         val now = instant("2026-08-14T12:00:00Z")
-        val result = resolvePlus(
-            snapshot(
-                source = EntitlementSource.SUBSCRIPTION_YEARLY,
-                startsAt = instant("2026-08-10T12:00:00Z"),
-                expiresAt = instant("2026-08-17T12:00:00Z"),
-                inTrial = true,
-            ),
-            now,
-        )
+        val result =
+            resolvePlus(
+                snapshot(
+                    source = EntitlementSource.SUBSCRIPTION_YEARLY,
+                    startsAt = instant("2026-08-10T12:00:00Z"),
+                    expiresAt = instant("2026-08-17T12:00:00Z"),
+                    inTrial = true,
+                ),
+                now,
+            )
 
         assertEquals(EntitlementState.TRIAL, result.state)
         assertEquals(
@@ -61,15 +63,16 @@ class EntitlementStateMachineTest {
     @Test
     fun `worked example 4 does not warn three days and one second before trial expiry`() {
         val now = instant("2026-08-14T11:59:59Z")
-        val result = resolvePlus(
-            snapshot(
-                source = EntitlementSource.SUBSCRIPTION_YEARLY,
-                startsAt = instant("2026-08-10T12:00:00Z"),
-                expiresAt = instant("2026-08-17T12:00:00Z"),
-                inTrial = true,
-            ),
-            now,
-        )
+        val result =
+            resolvePlus(
+                snapshot(
+                    source = EntitlementSource.SUBSCRIPTION_YEARLY,
+                    startsAt = instant("2026-08-10T12:00:00Z"),
+                    expiresAt = instant("2026-08-17T12:00:00Z"),
+                    inTrial = true,
+                ),
+                now,
+            )
 
         assertEquals(EntitlementState.TRIAL, result.state)
         assertEquals(emptySet<EntitlementWarning>(), EntitlementStateMachine.warnings(null, result, now))
@@ -78,14 +81,15 @@ class EntitlementStateMachineTest {
     @Test
     fun `worked example 5 enters seven-day subscription grace and emits the entry warning`() {
         val now = instant("2026-08-15T00:00:00Z")
-        val result = resolvePlus(
-            snapshot(
-                source = EntitlementSource.SUBSCRIPTION_MONTHLY,
-                startsAt = instant("2026-07-12T00:00:00Z"),
-                expiresAt = instant("2026-08-12T00:00:00Z"),
-            ),
-            now,
-        )
+        val result =
+            resolvePlus(
+                snapshot(
+                    source = EntitlementSource.SUBSCRIPTION_MONTHLY,
+                    startsAt = instant("2026-07-12T00:00:00Z"),
+                    expiresAt = instant("2026-08-12T00:00:00Z"),
+                ),
+                now,
+            )
 
         assertEquals(EntitlementState.GRACE, result.state)
         assertEquals(instant("2026-08-19T00:00:00Z"), result.graceEndsAt)
@@ -98,14 +102,15 @@ class EntitlementStateMachineTest {
     @Test
     fun `worked example 6 warns exactly one day before grace ends`() {
         val now = instant("2026-08-18T00:00:00Z")
-        val result = resolvePlus(
-            snapshot(
-                source = EntitlementSource.SUBSCRIPTION_MONTHLY,
-                startsAt = instant("2026-07-12T00:00:00Z"),
-                expiresAt = instant("2026-08-12T00:00:00Z"),
-            ),
-            now,
-        )
+        val result =
+            resolvePlus(
+                snapshot(
+                    source = EntitlementSource.SUBSCRIPTION_MONTHLY,
+                    startsAt = instant("2026-07-12T00:00:00Z"),
+                    expiresAt = instant("2026-08-12T00:00:00Z"),
+                ),
+                now,
+            )
 
         assertEquals(EntitlementState.GRACE, result.state)
         assertEquals(
@@ -117,14 +122,15 @@ class EntitlementStateMachineTest {
     @Test
     fun `worked example 7 expires at the exact end of subscription grace`() {
         val now = instant("2026-08-19T00:00:00Z")
-        val result = resolvePlus(
-            snapshot(
-                source = EntitlementSource.SUBSCRIPTION_MONTHLY,
-                startsAt = instant("2026-07-12T00:00:00Z"),
-                expiresAt = instant("2026-08-12T00:00:00Z"),
-            ),
-            now,
-        )
+        val result =
+            resolvePlus(
+                snapshot(
+                    source = EntitlementSource.SUBSCRIPTION_MONTHLY,
+                    startsAt = instant("2026-07-12T00:00:00Z"),
+                    expiresAt = instant("2026-08-12T00:00:00Z"),
+                ),
+                now,
+            )
 
         assertEquals(EntitlementState.EXPIRED, result.state)
         assertEquals(emptySet<EntitlementWarning>(), EntitlementStateMachine.warnings(EntitlementState.GRACE, result, now))
@@ -134,14 +140,15 @@ class EntitlementStateMachineTest {
     fun `worked example 8 expires an ad reward immediately without grace`() {
         val expiresAt = instant("2026-08-12T10:00:00Z")
         val now = instant("2026-08-12T10:00:01Z")
-        val result = resolvePlus(
-            snapshot(
-                source = EntitlementSource.AD_REWARD,
-                startsAt = instant("2026-08-11T10:00:00Z"),
-                expiresAt = expiresAt,
-            ),
-            now,
-        )
+        val result =
+            resolvePlus(
+                snapshot(
+                    source = EntitlementSource.AD_REWARD,
+                    startsAt = instant("2026-08-11T10:00:00Z"),
+                    expiresAt = expiresAt,
+                ),
+                now,
+            )
 
         assertEquals(EntitlementState.EXPIRED, result.state)
         assertEquals(expiresAt, result.graceEndsAt)
@@ -151,14 +158,15 @@ class EntitlementStateMachineTest {
     @Test
     fun `worked example 9 keeps a whitelist active without an expiry`() {
         val now = instant("2030-01-01T00:00:00Z")
-        val result = resolvePlus(
-            snapshot(
-                source = EntitlementSource.WHITELIST,
-                startsAt = instant("2026-01-01T00:00:00Z"),
-                expiresAt = null,
-            ),
-            now,
-        )
+        val result =
+            resolvePlus(
+                snapshot(
+                    source = EntitlementSource.WHITELIST,
+                    startsAt = instant("2026-01-01T00:00:00Z"),
+                    expiresAt = null,
+                ),
+                now,
+            )
 
         assertEquals(EntitlementState.ACTIVE, result.state)
         assertEquals(null, result.expiresAt)
@@ -169,15 +177,16 @@ class EntitlementStateMachineTest {
     @Test
     fun `revoked snapshot resolves to Free regardless of its otherwise valid entitlement`() {
         val now = instant("2026-08-12T00:00:00Z")
-        val result = EntitlementStateMachine.resolve(
-            snapshot(
-                source = EntitlementSource.WHITELIST,
-                startsAt = instant("2026-01-01T00:00:00Z"),
-                expiresAt = null,
-                revokedAt = instant("2026-08-01T00:00:00Z"),
-            ),
-            now,
-        )
+        val result =
+            EntitlementStateMachine.resolve(
+                snapshot(
+                    source = EntitlementSource.WHITELIST,
+                    startsAt = instant("2026-01-01T00:00:00Z"),
+                    expiresAt = null,
+                    revokedAt = instant("2026-08-01T00:00:00Z"),
+                ),
+                now,
+            )
 
         assertFreeWithNone(result)
     }
@@ -185,17 +194,19 @@ class EntitlementStateMachineTest {
     @Test
     fun `expiry equal to start resolves a broken record to Free`() {
         val startsAt = instant("2026-08-12T00:00:00Z")
-        val invalidSnapshot = snapshot(
-            source = EntitlementSource.SUBSCRIPTION_MONTHLY,
-            startsAt = startsAt,
-            expiresAt = startsAt,
-        )
+        val invalidSnapshot =
+            snapshot(
+                source = EntitlementSource.SUBSCRIPTION_MONTHLY,
+                startsAt = startsAt,
+                expiresAt = startsAt,
+            )
         val invalidSnapshots = mutableListOf<EntitlementSnapshot>()
-        val result = EntitlementStateMachine.resolve(
-            snapshot = invalidSnapshot,
-            now = startsAt,
-            onInvalidSnapshot = { invalidSnapshots += it },
-        )
+        val result =
+            EntitlementStateMachine.resolve(
+                snapshot = invalidSnapshot,
+                now = startsAt,
+                onInvalidSnapshot = { invalidSnapshots += it },
+            )
 
         assertFreeWithNone(result)
         assertEquals(listOf(invalidSnapshot), invalidSnapshots)
@@ -204,17 +215,19 @@ class EntitlementStateMachineTest {
     @Test
     fun `expiry before start resolves a broken record to Free`() {
         val startsAt = instant("2026-08-12T00:00:00Z")
-        val invalidSnapshot = snapshot(
-            source = EntitlementSource.SUBSCRIPTION_YEARLY,
-            startsAt = startsAt,
-            expiresAt = startsAt.minusSeconds(1),
-        )
+        val invalidSnapshot =
+            snapshot(
+                source = EntitlementSource.SUBSCRIPTION_YEARLY,
+                startsAt = startsAt,
+                expiresAt = startsAt.minusSeconds(1),
+            )
         val invalidSnapshots = mutableListOf<EntitlementSnapshot>()
-        val result = EntitlementStateMachine.resolve(
-            snapshot = invalidSnapshot,
-            now = startsAt,
-            onInvalidSnapshot = { invalidSnapshots += it },
-        )
+        val result =
+            EntitlementStateMachine.resolve(
+                snapshot = invalidSnapshot,
+                now = startsAt,
+                onInvalidSnapshot = { invalidSnapshots += it },
+            )
 
         assertFreeWithNone(result)
         assertEquals(listOf(invalidSnapshot), invalidSnapshots)
@@ -223,19 +236,21 @@ class EntitlementStateMachineTest {
     @Test
     fun `non-whitelist entitlement without an expiry resolves to Free and reports its snapshot`() {
         val now = instant("2026-08-12T00:00:00Z")
-        val invalidSnapshots = listOf(
-            EntitlementSource.SUBSCRIPTION_MONTHLY,
-            EntitlementSource.SUBSCRIPTION_YEARLY,
-            EntitlementSource.AD_REWARD,
-        ).map { source -> snapshot(source = source, expiresAt = null) }
+        val invalidSnapshots =
+            listOf(
+                EntitlementSource.SUBSCRIPTION_MONTHLY,
+                EntitlementSource.SUBSCRIPTION_YEARLY,
+                EntitlementSource.AD_REWARD,
+            ).map { source -> snapshot(source = source, expiresAt = null) }
         val reportedSnapshots = mutableListOf<EntitlementSnapshot>()
 
         invalidSnapshots.forEach { invalidSnapshot ->
-            val result = EntitlementStateMachine.resolve(
-                snapshot = invalidSnapshot,
-                now = now,
-                onInvalidSnapshot = { reportedSnapshots += it },
-            )
+            val result =
+                EntitlementStateMachine.resolve(
+                    snapshot = invalidSnapshot,
+                    now = now,
+                    onInvalidSnapshot = { reportedSnapshots += it },
+                )
 
             assertFreeWithNone(result)
         }
@@ -244,17 +259,19 @@ class EntitlementStateMachineTest {
 
     @Test
     fun `finite whitelist expiry resolves to Free with NONE`() {
-        val invalidSnapshot = snapshot(
-            source = EntitlementSource.WHITELIST,
-            expiresAt = instant("2026-08-20T00:00:00Z"),
-        )
+        val invalidSnapshot =
+            snapshot(
+                source = EntitlementSource.WHITELIST,
+                expiresAt = instant("2026-08-20T00:00:00Z"),
+            )
         val reportedSnapshots = mutableListOf<EntitlementSnapshot>()
 
-        val result = EntitlementStateMachine.resolve(
-            snapshot = invalidSnapshot,
-            now = instant("2026-08-12T00:00:00Z"),
-            onInvalidSnapshot = { reportedSnapshots += it },
-        )
+        val result =
+            EntitlementStateMachine.resolve(
+                snapshot = invalidSnapshot,
+                now = instant("2026-08-12T00:00:00Z"),
+                onInvalidSnapshot = { reportedSnapshots += it },
+            )
 
         assertFreeWithNone(result)
         assertEquals(listOf(invalidSnapshot), reportedSnapshots)
@@ -262,10 +279,11 @@ class EntitlementStateMachineTest {
 
     @Test
     fun `empty collection resolves to Free with NONE`() {
-        val result = EntitlementStateMachine.resolve(
-            snapshots = emptyList(),
-            now = instant("2026-08-12T00:00:00Z"),
-        )
+        val result =
+            EntitlementStateMachine.resolve(
+                snapshots = emptyList(),
+                now = instant("2026-08-12T00:00:00Z"),
+            )
 
         assertFreeWithNone(result)
     }
@@ -274,28 +292,30 @@ class EntitlementStateMachineTest {
     fun `all-invalid collection resolves to Free with NONE and reports every invalid snapshot`() {
         val now = instant("2026-08-12T00:00:00Z")
         val equalExpiry = instant("2026-08-12T00:00:00Z")
-        val invalidSnapshots = listOf(
-            snapshot(
-                source = EntitlementSource.WHITELIST,
-                expiresAt = instant("2026-08-20T00:00:00Z"),
-            ),
-            snapshot(
-                source = EntitlementSource.AD_REWARD,
-                expiresAt = null,
-            ),
-            snapshot(
-                source = EntitlementSource.SUBSCRIPTION_MONTHLY,
-                startsAt = equalExpiry,
-                expiresAt = equalExpiry,
-            ),
-        )
+        val invalidSnapshots =
+            listOf(
+                snapshot(
+                    source = EntitlementSource.WHITELIST,
+                    expiresAt = instant("2026-08-20T00:00:00Z"),
+                ),
+                snapshot(
+                    source = EntitlementSource.AD_REWARD,
+                    expiresAt = null,
+                ),
+                snapshot(
+                    source = EntitlementSource.SUBSCRIPTION_MONTHLY,
+                    startsAt = equalExpiry,
+                    expiresAt = equalExpiry,
+                ),
+            )
         val reportedSnapshots = mutableListOf<EntitlementSnapshot>()
 
-        val result = EntitlementStateMachine.resolve(
-            snapshots = invalidSnapshots,
-            now = now,
-            onInvalidSnapshot = { reportedSnapshots += it },
-        )
+        val result =
+            EntitlementStateMachine.resolve(
+                snapshots = invalidSnapshots,
+                now = now,
+                onInvalidSnapshot = { reportedSnapshots += it },
+            )
 
         assertFreeWithNone(result)
         assertEquals(invalidSnapshots, reportedSnapshots)
@@ -304,19 +324,22 @@ class EntitlementStateMachineTest {
     @Test
     fun `collection resolver selects the candidate with the maximum grace end`() {
         val now = instant("2026-08-01T00:00:00Z")
-        val shorterGrace = snapshot(
-            source = EntitlementSource.SUBSCRIPTION_MONTHLY,
-            expiresAt = instant("2026-08-10T00:00:00Z"),
-        )
-        val longerGrace = snapshot(
-            source = EntitlementSource.SUBSCRIPTION_YEARLY,
-            expiresAt = instant("2026-08-12T00:00:00Z"),
-        )
+        val shorterGrace =
+            snapshot(
+                source = EntitlementSource.SUBSCRIPTION_MONTHLY,
+                expiresAt = instant("2026-08-10T00:00:00Z"),
+            )
+        val longerGrace =
+            snapshot(
+                source = EntitlementSource.SUBSCRIPTION_YEARLY,
+                expiresAt = instant("2026-08-12T00:00:00Z"),
+            )
 
-        val result = resolvePlus(
-            snapshots = listOf(shorterGrace, longerGrace),
-            now = now,
-        )
+        val result =
+            resolvePlus(
+                snapshots = listOf(shorterGrace, longerGrace),
+                now = now,
+            )
 
         assertEquals(EntitlementSource.SUBSCRIPTION_YEARLY, result.source)
         assertEquals(EntitlementState.ACTIVE, result.state)
@@ -327,20 +350,23 @@ class EntitlementStateMachineTest {
     @Test
     fun `whitelist with null grace end outranks finite candidates`() {
         val now = instant("2026-08-01T00:00:00Z")
-        val finiteCandidate = snapshot(
-            source = EntitlementSource.SUBSCRIPTION_YEARLY,
-            expiresAt = instant("2026-08-12T00:00:00Z"),
-        )
-        val whitelist = snapshot(
-            source = EntitlementSource.WHITELIST,
-            startsAt = instant("2026-01-01T00:00:00Z"),
-            expiresAt = null,
-        )
+        val finiteCandidate =
+            snapshot(
+                source = EntitlementSource.SUBSCRIPTION_YEARLY,
+                expiresAt = instant("2026-08-12T00:00:00Z"),
+            )
+        val whitelist =
+            snapshot(
+                source = EntitlementSource.WHITELIST,
+                startsAt = instant("2026-01-01T00:00:00Z"),
+                expiresAt = null,
+            )
 
-        val result = resolvePlus(
-            snapshots = listOf(finiteCandidate, whitelist),
-            now = now,
-        )
+        val result =
+            resolvePlus(
+                snapshots = listOf(finiteCandidate, whitelist),
+                now = now,
+            )
 
         assertEquals(EntitlementSource.WHITELIST, result.source)
         assertEquals(EntitlementState.ACTIVE, result.state)
@@ -351,19 +377,22 @@ class EntitlementStateMachineTest {
     @Test
     fun `equal grace end prefers a subscription over an ad reward`() {
         val now = instant("2026-08-01T00:00:00Z")
-        val adReward = snapshot(
-            source = EntitlementSource.AD_REWARD,
-            expiresAt = instant("2026-08-26T00:00:00Z"),
-        )
-        val subscription = snapshot(
-            source = EntitlementSource.SUBSCRIPTION_MONTHLY,
-            expiresAt = instant("2026-08-19T00:00:00Z"),
-        )
+        val adReward =
+            snapshot(
+                source = EntitlementSource.AD_REWARD,
+                expiresAt = instant("2026-08-26T00:00:00Z"),
+            )
+        val subscription =
+            snapshot(
+                source = EntitlementSource.SUBSCRIPTION_MONTHLY,
+                expiresAt = instant("2026-08-19T00:00:00Z"),
+            )
 
-        val result = resolvePlus(
-            snapshots = listOf(adReward, subscription),
-            now = now,
-        )
+        val result =
+            resolvePlus(
+                snapshots = listOf(adReward, subscription),
+                now = now,
+            )
 
         assertEquals(EntitlementSource.SUBSCRIPTION_MONTHLY, result.source)
         assertEquals(instant("2026-08-26T00:00:00Z"), result.graceEndsAt)
@@ -376,10 +405,11 @@ class EntitlementStateMachineTest {
             EntitlementSource.SUBSCRIPTION_MONTHLY,
             EntitlementSource.SUBSCRIPTION_YEARLY,
         ).forEach { source ->
-            val result = resolvePlus(
-                snapshot(source = source, expiresAt = expiresAt),
-                expiresAt.plusSeconds(1),
-            )
+            val result =
+                resolvePlus(
+                    snapshot(source = source, expiresAt = expiresAt),
+                    expiresAt.plusSeconds(1),
+                )
 
             assertEquals(EntitlementState.GRACE, result.state)
             assertEquals(expiresAt.plusDays(7), result.graceEndsAt)
@@ -389,10 +419,11 @@ class EntitlementStateMachineTest {
     @Test
     fun `subscription enters grace at expiry and expires at the inclusive grace boundary`() {
         val expiresAt = instant("2026-08-12T00:00:00Z")
-        val snapshot = snapshot(
-            source = EntitlementSource.SUBSCRIPTION_MONTHLY,
-            expiresAt = expiresAt,
-        )
+        val snapshot =
+            snapshot(
+                source = EntitlementSource.SUBSCRIPTION_MONTHLY,
+                expiresAt = expiresAt,
+            )
 
         assertEquals(
             EntitlementState.GRACE,
@@ -421,15 +452,16 @@ class EntitlementStateMachineTest {
     @Test
     fun `state follows the formula even when now is before starts`() {
         val startsAt = instant("2026-08-12T00:00:00Z")
-        val result = resolvePlus(
-            snapshot(
-                source = EntitlementSource.SUBSCRIPTION_YEARLY,
-                startsAt = startsAt,
-                expiresAt = startsAt.plusDays(7),
-                inTrial = true,
-            ),
-            startsAt.minusSeconds(1),
-        )
+        val result =
+            resolvePlus(
+                snapshot(
+                    source = EntitlementSource.SUBSCRIPTION_YEARLY,
+                    startsAt = startsAt,
+                    expiresAt = startsAt.plusDays(7),
+                    inTrial = true,
+                ),
+                startsAt.minusSeconds(1),
+            )
 
         assertEquals(EntitlementState.TRIAL, result.state)
     }
@@ -437,13 +469,14 @@ class EntitlementStateMachineTest {
     @Test
     fun `grace entered warning requires a previous non-grace state`() {
         val now = instant("2026-08-15T00:00:00Z")
-        val current = UserEntitlement.Plus(
-            source = EntitlementSource.SUBSCRIPTION_MONTHLY,
-            state = EntitlementState.GRACE,
-            startsAt = instant("2026-07-12T00:00:00Z"),
-            expiresAt = instant("2026-08-12T00:00:00Z"),
-            graceEndsAt = instant("2026-08-19T00:00:00Z"),
-        )
+        val current =
+            UserEntitlement.Plus(
+                source = EntitlementSource.SUBSCRIPTION_MONTHLY,
+                state = EntitlementState.GRACE,
+                startsAt = instant("2026-07-12T00:00:00Z"),
+                expiresAt = instant("2026-08-12T00:00:00Z"),
+                graceEndsAt = instant("2026-08-19T00:00:00Z"),
+            )
 
         listOf(
             EntitlementState.TRIAL,
@@ -496,13 +529,14 @@ class EntitlementStateMachineTest {
     @Test
     fun `trial ending warning excludes an ad reward source even within the threshold`() {
         val now = instant("2026-08-12T00:00:00Z")
-        val adTrial = UserEntitlement.Plus(
-            source = EntitlementSource.AD_REWARD,
-            state = EntitlementState.TRIAL,
-            startsAt = Instant.EPOCH,
-            expiresAt = now.plusDays(3),
-            graceEndsAt = now.plusDays(3),
-        )
+        val adTrial =
+            UserEntitlement.Plus(
+                source = EntitlementSource.AD_REWARD,
+                state = EntitlementState.TRIAL,
+                startsAt = Instant.EPOCH,
+                expiresAt = now.plusDays(3),
+                graceEndsAt = now.plusDays(3),
+            )
 
         assertEquals(emptySet<EntitlementWarning>(), EntitlementStateMachine.warnings(null, adTrial, now))
     }
@@ -510,13 +544,14 @@ class EntitlementStateMachineTest {
     @Test
     fun `warnings are empty for Free and for non-warning Plus states`() {
         val now = instant("2026-08-12T00:00:00Z")
-        val active = UserEntitlement.Plus(
-            source = EntitlementSource.AD_REWARD,
-            state = EntitlementState.ACTIVE,
-            startsAt = instant("2026-08-01T00:00:00Z"),
-            expiresAt = instant("2026-08-20T00:00:00Z"),
-            graceEndsAt = instant("2026-08-20T00:00:00Z"),
-        )
+        val active =
+            UserEntitlement.Plus(
+                source = EntitlementSource.AD_REWARD,
+                state = EntitlementState.ACTIVE,
+                startsAt = instant("2026-08-01T00:00:00Z"),
+                expiresAt = instant("2026-08-20T00:00:00Z"),
+                graceEndsAt = instant("2026-08-20T00:00:00Z"),
+            )
 
         assertEquals(emptySet<EntitlementWarning>(), EntitlementStateMachine.warnings(EntitlementState.ACTIVE, UserEntitlement.Free, now))
         assertEquals(emptySet<EntitlementWarning>(), EntitlementStateMachine.warnings(EntitlementState.ACTIVE, active, now))
@@ -536,21 +571,23 @@ class EntitlementStateMachineTest {
         revokedAt = revokedAt,
     )
 
-    private fun trial(expiresAt: Instant) = UserEntitlement.Plus(
-        source = EntitlementSource.SUBSCRIPTION_YEARLY,
-        state = EntitlementState.TRIAL,
-        startsAt = Instant.EPOCH,
-        expiresAt = expiresAt,
-        graceEndsAt = expiresAt.plusDays(7),
-    )
+    private fun trial(expiresAt: Instant) =
+        UserEntitlement.Plus(
+            source = EntitlementSource.SUBSCRIPTION_YEARLY,
+            state = EntitlementState.TRIAL,
+            startsAt = Instant.EPOCH,
+            expiresAt = expiresAt,
+            graceEndsAt = expiresAt.plusDays(7),
+        )
 
-    private fun grace(graceEndsAt: Instant) = UserEntitlement.Plus(
-        source = EntitlementSource.SUBSCRIPTION_MONTHLY,
-        state = EntitlementState.GRACE,
-        startsAt = Instant.EPOCH,
-        expiresAt = graceEndsAt.minusDays(7),
-        graceEndsAt = graceEndsAt,
-    )
+    private fun grace(graceEndsAt: Instant) =
+        UserEntitlement.Plus(
+            source = EntitlementSource.SUBSCRIPTION_MONTHLY,
+            state = EntitlementState.GRACE,
+            startsAt = Instant.EPOCH,
+            expiresAt = graceEndsAt.minusDays(7),
+            graceEndsAt = graceEndsAt,
+        )
 
     private fun resolvePlus(
         snapshot: EntitlementSnapshot,

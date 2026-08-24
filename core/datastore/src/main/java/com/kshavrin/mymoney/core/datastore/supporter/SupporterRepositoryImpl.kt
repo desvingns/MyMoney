@@ -118,10 +118,12 @@ class SupporterRepositoryImpl
 
         private fun AppSettings.requiresSupportActivityBackfill(): Boolean =
             !supporterActivityRecorded &&
-                (supporterBadgeEarned ||
-                    supportPurchaseCount > 0 ||
-                    supportPurchaseCountSmall > 0 ||
-                    supportPurchaseCountLarge > 0)
+                (
+                    supporterBadgeEarned ||
+                        supportPurchaseCount > 0 ||
+                        supportPurchaseCountSmall > 0 ||
+                        supportPurchaseCountLarge > 0
+                )
 
         private fun AppSettings.hasRecordedSupportActivity(): Boolean =
             supporterActivityRecorded ||

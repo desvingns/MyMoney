@@ -899,11 +899,10 @@ class BalanceTrendChartUiTest {
         actual: Int,
         expected: Int,
         tolerance: Int,
-    ): Boolean {
-        return kotlin.math.abs(channel(actual, 16) - channel(expected, 16)) <= tolerance &&
+    ): Boolean =
+        kotlin.math.abs(channel(actual, 16) - channel(expected, 16)) <= tolerance &&
             kotlin.math.abs(channel(actual, 8) - channel(expected, 8)) <= tolerance &&
             kotlin.math.abs(channel(actual, 0) - channel(expected, 0)) <= tolerance
-    }
 
     private fun channel(
         argb: Int,

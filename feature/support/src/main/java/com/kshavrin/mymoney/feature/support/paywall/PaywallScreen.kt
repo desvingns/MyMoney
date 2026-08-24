@@ -51,10 +51,10 @@ import com.kshavrin.mymoney.core.domain.model.UserEntitlement
 import com.kshavrin.mymoney.core.ui.flow.CollectActions
 import com.kshavrin.mymoney.core.ui.navigation.PaywallEntryPoint
 import com.kshavrin.mymoney.core.ui.theme.Spacing
+import com.kshavrin.mymoney.core.ui.theme.supportActionLabel
 import com.kshavrin.mymoney.core.ui.theme.supportCard
 import com.kshavrin.mymoney.core.ui.theme.supportCardTitle
 import com.kshavrin.mymoney.core.ui.theme.supportDescription
-import com.kshavrin.mymoney.core.ui.theme.supportActionLabel
 import com.kshavrin.mymoney.core.ui.theme.supportPanel
 import com.kshavrin.mymoney.core.ui.theme.supportPanelContainer
 import com.kshavrin.mymoney.core.ui.theme.supportPanelDivider
@@ -75,7 +75,9 @@ import java.util.Locale
 fun PaywallRoute(
     entryPoint: PaywallEntryPoint,
     onBack: () -> Unit,
-    viewModel: PaywallViewModel = androidx.hilt.navigation.compose.hiltViewModel(),
+    viewModel: PaywallViewModel =
+        androidx.hilt.navigation.compose
+            .hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current

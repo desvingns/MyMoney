@@ -211,6 +211,24 @@ jobs:
             echo "OQ-9 unresolved or no CI secret supplied: live Firebase remains disabled."
           fi
 
+      - name: Materialize AdMob release configuration
+        shell: bash
+        env:
+          ADMOB_APPLICATION_ID: ${{ secrets.ADMOB_APPLICATION_ID }}
+          ADMOB_REWARDED_UNIT_ID: ${{ secrets.ADMOB_REWARDED_UNIT_ID }}
+        run: |
+          missing=()
+          [[ -n "$ADMOB_APPLICATION_ID" ]] || missing+=(ADMOB_APPLICATION_ID)
+          [[ -n "$ADMOB_REWARDED_UNIT_ID" ]] || missing+=(ADMOB_REWARDED_UNIT_ID)
+          if (( ${#missing[@]} > 0 )); then
+            printf '::error::Missing AdMob release secrets: %s\n' "${missing[*]}"
+            exit 1
+          fi
+          {
+            printf 'admob.applicationId=%s\n' "$ADMOB_APPLICATION_ID"
+            printf 'admob.rewardedUnitId=%s\n' "$ADMOB_REWARDED_UNIT_ID"
+          } >> local.properties
+
       - name: Materialize release signing config
         shell: bash
         env:
@@ -335,6 +353,24 @@ jobs:
             printf 'supabase.url=%s\n' "$SUPABASE_URL"
             printf 'supabase.anonKey=%s\n' "$SUPABASE_ANON_KEY"
             printf 'supabase.googleWebClientId=%s\n' "$SUPABASE_GOOGLE_WEB_CLIENT_ID"
+          } >> local.properties
+
+      - name: Materialize AdMob release configuration
+        shell: bash
+        env:
+          ADMOB_APPLICATION_ID: ${{ secrets.ADMOB_APPLICATION_ID }}
+          ADMOB_REWARDED_UNIT_ID: ${{ secrets.ADMOB_REWARDED_UNIT_ID }}
+        run: |
+          missing=()
+          [[ -n "$ADMOB_APPLICATION_ID" ]] || missing+=(ADMOB_APPLICATION_ID)
+          [[ -n "$ADMOB_REWARDED_UNIT_ID" ]] || missing+=(ADMOB_REWARDED_UNIT_ID)
+          if (( ${#missing[@]} > 0 )); then
+            printf '::error::Missing AdMob release secrets: %s\n' "${missing[*]}"
+            exit 1
+          fi
+          {
+            printf 'admob.applicationId=%s\n' "$ADMOB_APPLICATION_ID"
+            printf 'admob.rewardedUnitId=%s\n' "$ADMOB_REWARDED_UNIT_ID"
           } >> local.properties
 
       - name: Materialize release signing config

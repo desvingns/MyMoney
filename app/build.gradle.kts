@@ -113,6 +113,26 @@ fun requireSyncRuntimeConfiguration() {
     }
 }
 
+val adsEnabled =
+    localProperties.runtimeValue("ads.enabled")?.toBooleanStrictOrNull() ?: true
+
+val admobApplicationIdPattern = Regex("""ca-app-pub-\d{16}~\d{10}""")
+val admobRewardedUnitIdPattern = Regex("""ca-app-pub-\d{16}/\d{10}""")
+val admobTestPublisherId = "ca-app-pub-3940256099942544"
+
+fun requireAdsRuntimeConfiguration() {
+    listOf(
+        Triple("AdMob application ID", "admob.applicationId", admobApplicationIdPattern),
+        Triple("AdMob rewarded unit ID", "admob.rewardedUnitId", admobRewardedUnitIdPattern),
+    ).forEach { (label, propertyName, pattern) ->
+        val value = localProperties.runtimeValue(propertyName).orEmpty().trim()
+        check(pattern.matches(value) && !value.startsWith(admobTestPublisherId)) {
+            "$label ($propertyName) must be a real production ID when ads.enabled is not false; " +
+                "a placeholder or Google test ID would ship a release whose rewarded ads never load."
+        }
+    }
+}
+
 /*
  * Release versioning is derived from the checked-out Git history:
  * - Stable release tags are exactly vMAJOR.MINOR.PATCH. Other tags never affect a release.
@@ -278,6 +298,9 @@ if (playReleaseSyncEnabled && gradle.startParameter.taskNames.any(::isStagingPac
 if (syncEnabled && gradle.startParameter.taskNames.any(::isNonDebugPackagingTask)) {
     requireSyncRuntimeConfiguration()
 }
+if (adsEnabled && gradle.startParameter.taskNames.any(::isNonDebugPackagingTask)) {
+    requireAdsRuntimeConfiguration()
+}
 gradle.taskGraph.whenReady(
     object : Action<TaskExecutionGraph> {
         override fun execute(taskGraph: TaskExecutionGraph) {
@@ -292,6 +315,9 @@ gradle.taskGraph.whenReady(
             }
             if (syncEnabled && taskGraph.allTasks.any { isNonDebugPackagingTask(it.path) }) {
                 requireSyncRuntimeConfiguration()
+            }
+            if (adsEnabled && taskGraph.allTasks.any { isNonDebugPackagingTask(it.path) }) {
+                requireAdsRuntimeConfiguration()
             }
         }
     },

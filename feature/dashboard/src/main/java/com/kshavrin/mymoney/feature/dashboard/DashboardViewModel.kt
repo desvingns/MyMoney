@@ -590,18 +590,20 @@ class DashboardViewModel
             snapshot: BalanceSnapshot,
             alertCategoryIds: Set<Long>,
         ): List<CategoryTileItem> {
-            val totalExpense = snapshot.expense.amount
-            return snapshot.byCategory
-                .filter { it.isExpense && it.categoryId != OTHER_CATEGORY_ID }
-                .sortedByDescending { it.total.amount }
-                .map { catBal ->
-                    val fraction =
-                        if (totalExpense.signum() == 0) {
-                            0f
-                        } else {
-                            (catBal.total.amount.toFloat() / totalExpense.toFloat()).coerceIn(0f, 1f)
-                        }
-                    CategoryTileItem(
+            val expenseCategories =
+                snapshot.byCategory
+                    .filter { it.isExpense && it.categoryId != OTHER_CATEGORY_ID }
+                    .sortedByDescending { it.total.amount }
+            val maxExpenseAmount =
+                expenseCategories.maxOfOrNull { it.total.amount } ?: BigDecimal.ZERO
+            return expenseCategories.map { catBal ->
+                val fraction =
+                    if (maxExpenseAmount.signum() == 0) {
+                        0f
+                    } else {
+                        (catBal.total.amount.toFloat() / maxExpenseAmount.toFloat()).coerceIn(0f, 1f)
+                    }
+                CategoryTileItem(
                         categoryId = catBal.categoryId,
                         label = catBal.categoryName,
                         amount = catBal.total,

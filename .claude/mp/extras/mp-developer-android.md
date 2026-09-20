@@ -45,7 +45,7 @@ When generating Gradle blocks, use these versions (centralised in `gradle/libs.v
 - kotlinx-coroutines 1.9, kotlinx.serialization 1.7
 - WorkManager 2.10
 - Retrofit 2.11 / OkHttp 4.12 (only where network is needed — most sync uses platform SDKs)
-- `minSdk: 31`, `targetSdk: 36`, `compileSdk: 36`, JVM target = 21 (JBR recommended on Windows)
+- `minSdk: 29`, `targetSdk: 36`, `compileSdk: 36`, JVM target = 21 (JBR recommended on Windows)
 
 ## MVVM + UDF pattern (TDD §2.3, lines 181–228)
 

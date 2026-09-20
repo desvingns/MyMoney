@@ -1,5 +1,8 @@
 package com.kshavrin.mymoney.feature.settings.importwizard
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -45,10 +48,12 @@ class CategoryConfigStepContentTest {
     ) {
         composeTestRule.setContent {
             MyMoneyTheme {
-                CategoryConfigStepContent(
-                    state = state,
-                    onEvent = onEvent,
-                )
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    CategoryConfigStepContent(
+                        state = state,
+                        onEvent = onEvent,
+                    )
+                }
             }
         }
     }
@@ -135,7 +140,7 @@ class CategoryConfigStepContentTest {
             onEvent = { emittedEvents += it },
         )
 
-        composeTestRule.onNodeWithTag("ic_cat_bills").performClick()
+        composeTestRule.onNodeWithTag("ic_cat_bills", useUnmergedTree = true).performClick()
 
         assertEquals(
             listOf(ImportWizardEvent.ConfigIconChanged("ic_cat_bills")),

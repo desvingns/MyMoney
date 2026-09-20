@@ -116,6 +116,19 @@ MVVM + Unidirectional Data Flow.
 
 `JAVA_HOME` must point to a JDK 21 runtime. On Windows under Git Bash, prefer Android Studio's bundled JBR (see `~/.bashrc` snippet at end of this file).
 
+## Android version support policy
+
+Android 10 (API 29) and Android 11 (API 30) are **actively supported** product targets — they
+receive compatibility fixes and must not regress on a release. Android 12 and newer are also
+supported. `minSdk` is 29.
+
+**Current primary regression device**: Pixel 5 / API 34 AVD. A green Pixel 5/API 34 run is
+**API 34 regression evidence only** — it does not validate Android 10 or Android 11 runtime
+behaviour. Real API 29/30 device runs, OEM-specific smoke coverage, and legacy-specific fixes are
+tracked under the separate follow-up order **`android-10-11-legacy-device-validation`**; that order
+defines devices/images, smoke scope, and ownership before any validated legacy-device claim can be
+made.
+
 ## Emulator access on the Windows host
 
 VirtualBox is retired (user directive, 2026-07-12) — Windows host + local ADB only. Never use

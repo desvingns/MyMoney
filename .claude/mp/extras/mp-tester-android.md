@@ -7,7 +7,7 @@ Read this **after** the `mp-tester-android` agent body (from the `mp-dev` plugin
 `MyMoney_TDD.md` §12 (lines 2553–2661) — read before writing test plans. Key extracts:
 
 - **Unit tests**: JUnit 4 + Turbine + `kotlinx-coroutines-test`. ViewModels, UseCases, repository implementations (with fakes for downstream).
-- **Instrumentation tests**: KSP `room-testing` for DAO + migration tests. Real device or emulator API 31+.
+- **Instrumentation tests**: KSP `room-testing` for DAO + migration tests. Real device or emulator; `minSdk` is 29 (Android 10).
 - **Compose UI tests**: `compose-ui-test-junit4`. Test screens with fake ViewModels.
 - **Roborazzi (optional)**: Screenshot regression on JVM via Robolectric. PHASE_15 territory; earlier phases can skip.
 
@@ -60,6 +60,12 @@ For on-device screen coverage (`connectedDebugAndroidTest` on `Pixel_5_API_34`),
 `.claude/mp/extras/mp-runner-instrumented-android.md` and follow the canonical Pattern B template in
 `docs/DEVICE_VERIFICATION_PLAN_FOR_SONNET.md` §5 verbatim (it is copied from the already-green
 `app/src/androidTest/.../dashboard/DashboardContentUiTest.kt`).
+
+**API 34 vs legacy scope**: a green Pixel 5/API 34 run is API 34 regression evidence only. It does
+**not** validate Android 10 (API 29) or Android 11 (API 30) runtime behaviour. API 29/30 device
+runs and legacy-specific fixes are tracked under the separate follow-up order
+`android-10-11-legacy-device-validation`; do not expand the current connected gate to require
+API 29/30 images until that order is resolved.
 
 - **Write exactly ONE `@Test` per `--device` slice** (or one new `@Test` in the screen's existing
   `*ContentUiTest`). Never batch device tests — they run one-at-a-time and get marked in the tracker

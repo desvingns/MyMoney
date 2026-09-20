@@ -1,8 +1,9 @@
 package com.kshavrin.mymoney.feature.settings.importwizard
 
-import androidx.compose.ui.test.assertDoesNotExist
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -120,8 +121,8 @@ class CategoryConfigStepContentTest {
             .onNodeWithText(targetString(R.string.import_wizard_config_field_icon))
             .assertIsDisplayed()
         composeTestRule
-            .onNodeWithText(targetString(R.string.import_wizard_config_field_color))
-            .assertDoesNotExist()
+            .onAllNodesWithText(targetString(R.string.import_wizard_config_field_color))
+            .assertCountEquals(0)
     }
 
     @Test

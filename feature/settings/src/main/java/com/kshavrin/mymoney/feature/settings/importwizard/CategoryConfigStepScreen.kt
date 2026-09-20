@@ -61,6 +61,14 @@ fun CategoryConfigStep(
     state: ImportWizardState,
     onEvent: (ImportWizardEvent) -> Unit,
 ) {
+    CategoryConfigStepContent(state, onEvent)
+}
+
+@Composable
+fun CategoryConfigStepContent(
+    state: ImportWizardState,
+    onEvent: (ImportWizardEvent) -> Unit,
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,

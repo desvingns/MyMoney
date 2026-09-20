@@ -51,7 +51,7 @@ These are **not bugs** — never "fix" them back to Monefy v1.0 behaviour:
 | WorkManager | 2.10 |
 | Retrofit / OkHttp | 2.11 / 4.12 |
 | Sentry | (DSN from `BuildConfig.SENTRY_DSN` — OQ-1) |
-| **SDK targets** | `minSdk: 31`, `targetSdk: 36`, `compileSdk: 36` |
+| **SDK targets** | `minSdk: 29`, `targetSdk: 36`, `compileSdk: 36` |
 | **JVM** | JDK 21 (JBR recommended on Windows) |
 
 Plugins declared in `gradle/libs.versions.toml` only — never literal versions in module `build.gradle.kts`.

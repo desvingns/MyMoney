@@ -19,7 +19,7 @@
 | Navigation | androidx.navigation-compose 2.8.4 (single-activity NavHost) |
 | Async / concurrency | kotlinx-coroutines 1.9 + Flow |
 | Background work | WorkManager 2.10 (Hilt integration) |
-| minSdkVersion / targetSdkVersion / compileSdkVersion | 31 / 36 / 36 |
+| minSdkVersion / targetSdkVersion / compileSdkVersion | 29 / 36 / 36 |
 | Audience focus | "Gaming" — aesthetic-only gamification (animation, haptic, sound), no XP/streaks/achievements |
 | Monetization | Freemium — Plus subscription + "coffee" consumables + rewarded ads (ADR-0010; supersedes Q-B3) |
 | Cloud sync | Dropbox (PKCE) + Google Drive (appDataFolder scope) snapshot sync |
@@ -2001,7 +2001,7 @@ internal val DEFAULT_INCOME_CATEGORIES = listOf(
 
 | Setting              | Value                                                  |
 |----------------------|--------------------------------------------------------|
-| `minSdkVersion`      | 31                                                     |
+| `minSdkVersion`      | 29                                                     |
 | `targetSdkVersion`   | 36                                                     |
 | `compileSdkVersion`  | 36                                                     |
 | Java toolchain       | 17 (OpenJDK)                                           |
@@ -2112,7 +2112,7 @@ Final count: **7 manifest permissions** (down from 12).
 | Sync                    | Dropbox + Google Drive (APK)            | Dropbox + Google Drive (same)         |
 | Permissions             | 12 (APK)                                | 7 (decision)                          |
 | APK size                | 23.1 MB (APK)                           | ≤ 15 MB target                         |
-| `minSdk`                | 21 (APK)                                | 31 (Q-D1)                              |
+| `minSdk`                | 21 (APK)                                | 29 (Q-D1)                              |
 
 ---
 

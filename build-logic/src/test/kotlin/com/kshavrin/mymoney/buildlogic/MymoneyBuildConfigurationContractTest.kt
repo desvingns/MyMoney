@@ -54,7 +54,7 @@ class MymoneyBuildConfigurationContractTest {
 
         listOf(
             "androidCompileSdk = \"36\"",
-            "androidMinSdk = \"31\"",
+            "androidMinSdk = \"29\"",
             "androidTargetSdk = \"36\"",
             "jvmToolchain = \"17\"",
         ).forEach { version -> assertTrue(catalog.contains(version)) }
@@ -139,7 +139,7 @@ class MymoneyBuildConfigurationContractTest {
         assertFalse(app.contains("gitOutput(\"rev-list\""))
         assertFalse(app.contains("gitOutput(\"describe\""))
         assertFalse(app.contains("compileSdk = 36"))
-        assertFalse(app.contains("minSdk = 31"))
+        assertFalse(app.contains("minSdk = 29"))
         assertFalse(app.contains("targetSdk = 36"))
 
         val releaseCodes =

@@ -59,7 +59,7 @@ class MymoneyConventionPluginsTest {
                         check(plugins.hasPlugin("com.android.library"))
                         check(plugins.hasPlugin("org.jetbrains.kotlin.android"))
                         check(android.compileSdk == 36)
-                        check(android.defaultConfig.minSdk == 31)
+                        check(android.defaultConfig.minSdk == 29)
                         check(android.compileOptions.sourceCompatibility == javaVersion(17))
                         check(android.compileOptions.targetCompatibility == javaVersion(17))
                         check(android.buildFeatures.compose != true)
@@ -94,7 +94,7 @@ class MymoneyConventionPluginsTest {
                         check(plugins.hasPlugin("com.android.application"))
                         check(plugins.hasPlugin("org.jetbrains.kotlin.android"))
                         check(android.compileSdk == 36)
-                        check(android.defaultConfig.minSdk == 31)
+                        check(android.defaultConfig.minSdk == 29)
                         check(android.defaultConfig.targetSdk == 36)
                         check(android.compileOptions.sourceCompatibility == javaVersion(17))
                         check(android.compileOptions.targetCompatibility == javaVersion(17))
@@ -130,7 +130,7 @@ class MymoneyConventionPluginsTest {
                         check(plugins.hasPlugin("com.android.test"))
                         check(plugins.hasPlugin("org.jetbrains.kotlin.android"))
                         check(android.compileSdk == 36)
-                        check(android.defaultConfig.minSdk == 31)
+                        check(android.defaultConfig.minSdk == 29)
                         check(android.defaultConfig.targetSdk == 36)
                         check(android.compileOptions.sourceCompatibility == javaVersion(17))
                         check(android.compileOptions.targetCompatibility == javaVersion(17))
@@ -245,7 +245,7 @@ class MymoneyConventionPluginsTest {
 
                         defaultConfig {
                             applicationId = "com.example.fixture.target"
-                            minSdk = 31
+                            minSdk = 29
                             targetSdk = 36
                         }
                     }

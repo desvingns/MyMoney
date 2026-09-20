@@ -8,18 +8,14 @@ import org.junit.Test
 /**
  * JVM-level contract tests for the :core:ui haptic subsystem.
  *
- * The production [HapticKind] enum drives the TDD §6.9 haptic table and the
- * call sites wired across the keypad, dashboard, transaction and
- * swipe-to-delete screens. This test pins the *full membership* of the
- * enum so an accidental addition or removal fails loudly — same style as
- * the legacy `KeypadContractTest` SoundKey pinning.
+ * Pins the full [HapticKind] membership (TDD §6.9) and exercises the pure
+ * [HapticEffectSelector] seam — enable/disable gating, no-vibrator no-op,
+ * the API 29/30 legacy fallback, API 31/32 composition, and API 33+
+ * celebratory branch — without Robolectric or mocking. [HapticPlayerImplTest]
+ * covers the same seam with finer-grained per-kind assertions.
  *
- * The Android-bound behaviour of `HapticPlayerImpl` (Vibrator,
- * VibrationEffect.Composition, hapticEnabled gating, and the
- * SUCCESS_SHIMMER → PRIMITIVE_SPIN on API 33+ / TICK×3 fallback on
- * API 31–32) is NOT exercised here — those require Robolectric, which
- * :core:ui's test classpath does not have. That behaviour is captured as
- * a documented placeholder in [HapticPlayerImplTest].
+ * Only the platform Vibrator dispatch (createOneShot / startComposition /
+ * vibrate) still requires a connected device.
  */
 class HapticPlayerContractTest {
     // ---- HapticKind: exact membership ----

@@ -84,7 +84,12 @@ class HapticPlayerImpl
                         HapticPrimitive.CLICK -> VibrationEffect.Composition.PRIMITIVE_CLICK
                         HapticPrimitive.TICK -> VibrationEffect.Composition.PRIMITIVE_TICK
                         HapticPrimitive.THUD -> VibrationEffect.Composition.PRIMITIVE_THUD
-                        HapticPrimitive.SPIN -> VibrationEffect.Composition.PRIMITIVE_SPIN
+                        HapticPrimitive.SPIN ->
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                VibrationEffect.Composition.PRIMITIVE_SPIN
+                            } else {
+                                VibrationEffect.Composition.PRIMITIVE_TICK
+                            }
                     }
                 if (step.delayMillis > 0) {
                     composition.addPrimitive(primitive, step.scale, step.delayMillis)

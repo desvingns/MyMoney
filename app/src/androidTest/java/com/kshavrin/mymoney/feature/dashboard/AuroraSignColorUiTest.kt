@@ -37,7 +37,7 @@ class AuroraSignColorUiTest {
     // ── Main aurora card (non-separate mode) ──────────────────────────────────
 
     @Test
-    fun `main aurora card renders for positive net without crash`() {
+    fun mainAuroraCardRendersForPositiveNetWithoutCrash() {
         val usd = usdCurrency()
         val snapshot = snapshotWithNet("500.00", usd)
 
@@ -59,7 +59,7 @@ class AuroraSignColorUiTest {
     }
 
     @Test
-    fun `main aurora card renders for negative net without crash`() {
+    fun mainAuroraCardRendersForNegativeNetWithoutCrash() {
         val usd = usdCurrency()
         val snapshot = snapshotWithNet("-250.00", usd)
 
@@ -81,7 +81,7 @@ class AuroraSignColorUiTest {
     }
 
     @Test
-    fun `main aurora card treats zero net as positive and renders`() {
+    fun mainAuroraCardTreatsZeroNetAsPositiveAndRenders() {
         val usd = usdCurrency()
         val snapshot = snapshotWithNet("0.00", usd)
 
@@ -103,7 +103,7 @@ class AuroraSignColorUiTest {
     }
 
     @Test
-    fun `main aurora card does not show the negative card tag in positive state`() {
+    fun mainAuroraCardDoesNotShowTheNegativeCardTagInPositiveState() {
         val usd = usdCurrency()
         val snapshot = snapshotWithNet("1000.00", usd)
 
@@ -122,7 +122,7 @@ class AuroraSignColorUiTest {
     }
 
     @Test
-    fun `main aurora card is absent in separate mode regardless of net sign`() {
+    fun mainAuroraCardIsAbsentInSeparateModeRegardlessOfNetSign() {
         val usd = usdCurrency()
         val eur = eurCurrency()
         val positiveSnapshot = snapshotWithNet("1000.00", usd)
@@ -155,7 +155,7 @@ class AuroraSignColorUiTest {
     // ── Per-currency cards (separate mode) ────────────────────────────────────
 
     @Test
-    fun `per-currency cards render for both positive and negative net without crash`() {
+    fun perCurrencyCardsRenderForBothPositiveAndNegativeNetWithoutCrash() {
         val usd = usdCurrency()
         val eur = eurCurrency()
         val positiveSnapshot = snapshotWithNet("800.00", usd)
@@ -188,7 +188,7 @@ class AuroraSignColorUiTest {
     }
 
     @Test
-    fun `per-currency card with positive net renders its currency code and balance`() {
+    fun perCurrencyCardWithPositiveNetRendersItsCurrencyCodeAndBalance() {
         val usd = usdCurrency()
         val snapshot = snapshotWithNet("1234.00", usd)
 
@@ -211,7 +211,7 @@ class AuroraSignColorUiTest {
     }
 
     @Test
-    fun `per-currency card with negative net renders its currency code`() {
+    fun perCurrencyCardWithNegativeNetRendersItsCurrencyCode() {
         val eur = eurCurrency()
         val snapshot = snapshotWithNet("-567.00", eur)
 
@@ -234,7 +234,7 @@ class AuroraSignColorUiTest {
     }
 
     @Test
-    fun `per-currency card with zero net renders without crash and treats it as positive`() {
+    fun perCurrencyCardWithZeroNetRendersWithoutCrashAndTreatsItAsPositive() {
         val usd = usdCurrency()
         val snapshot = snapshotWithNet("0.00", usd)
 
@@ -260,7 +260,7 @@ class AuroraSignColorUiTest {
     }
 
     @Test
-    fun `sign coloring does not duplicate currency card entries`() {
+    fun signColoringDoesNotDuplicateCurrencyCardEntries() {
         val usd = usdCurrency()
         val eur = eurCurrency()
 
@@ -301,7 +301,7 @@ class AuroraSignColorUiTest {
     // ── FAB layout — glow is colour-per-button, not sign-aware ────────────────
 
     @Test
-    fun `all three fabs remain present regardless of aurora card sign state`() {
+    fun allThreeFabsRemainPresentRegardlessOfAuroraCardSignState() {
         val usd = usdCurrency()
         val negativeSnapshot = snapshotWithNet("-9999.00", usd)
 

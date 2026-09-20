@@ -88,7 +88,7 @@ class DashboardContentUiTest {
     // ── Three-FAB layout (ThreeFabLayout) ─────────────────────────────────────
 
     @Test
-    fun `all three fabs are rendered expense transfer income`() {
+    fun allThreeFabsAreRenderedExpenseTransferIncome() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 DashboardContent(
@@ -120,17 +120,17 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `dashboard balance panel remains readable at font scale 1 point 5`() {
+    fun dashboardBalancePanelRemainsReadableAtFontScale1Point5() {
         assertDashboardBalanceReadableAtFontScale(1.5f)
     }
 
     @Test
-    fun `dashboard balance panel remains readable at font scale 2`() {
+    fun dashboardBalancePanelRemainsReadableAtFontScale2() {
         assertDashboardBalanceReadableAtFontScale(2f)
     }
 
     @Test
-    fun `middle transfer fab emits TransferClicked and the other two fabs do not`() {
+    fun middleTransferFabEmitsTransferClickedAndTheOtherTwoFabsDoNot() {
         val capturedEvents = mutableListOf<DashboardEvent>()
 
         composeTestRule.setContent {
@@ -153,7 +153,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `three fabs carry no visible text labels`() {
+    fun threeFabsCarryNoVisibleTextLabels() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 DashboardContent(
@@ -175,7 +175,7 @@ class DashboardContentUiTest {
     // ── Top bar single-row period switcher ────────────────────────────────────
 
     @Test
-    fun `period switcher in single-row toolbar shows period title and both chevrons`() {
+    fun periodSwitcherInSingleRowToolbarShowsPeriodTitleAndBothChevrons() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 DashboardContent(
@@ -207,7 +207,7 @@ class DashboardContentUiTest {
     // ── Period label tap → date picker dialog ────────────────────────────────
 
     @Test
-    fun `tapping period label opens the date picker dialog`() {
+    fun tappingPeriodLabelOpensTheDatePickerDialog() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 DashboardContent(
@@ -317,7 +317,7 @@ class DashboardContentUiTest {
     // ── Right-drawer Search row ───────────────────────────────────────────────
 
     @Test
-    fun `right drawer search row is displayed when right drawer is open`() {
+    fun rightDrawerSearchRowIsDisplayedWhenRightDrawerIsOpen() {
         setStatefulDashboardContent(
             initialState = DashboardState(isLoading = false, rightDrawerOpen = true),
         )
@@ -373,7 +373,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `pull to refresh gesture emits refresh requested`() {
+    fun pullToRefreshGestureEmitsRefreshRequested() {
         val capturedEvents = mutableListOf<DashboardEvent>()
         setDashboardContent(
             state = refreshableDashboardState(),
@@ -395,7 +395,7 @@ class DashboardContentUiTest {
     // ── Legacy tests (unchanged functionality) ────────────────────────────────
 
     @Test
-    fun `expense fab stays enabled in empty dashboard and emits minus event`() {
+    fun expenseFabStaysEnabledInEmptyDashboardAndEmitsMinusEvent() {
         val capturedEvents = mutableListOf<DashboardEvent>()
 
         setStatefulDashboardContent(
@@ -416,7 +416,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `income fab stays enabled in empty dashboard and emits plus event`() {
+    fun incomeFabStaysEnabledInEmptyDashboardAndEmitsPlusEvent() {
         val capturedEvents = mutableListOf<DashboardEvent>()
 
         setStatefulDashboardContent(
@@ -441,7 +441,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `dashboard fabs remove visible labels and stay reachable by screen reader descriptions`() {
+    fun dashboardFabsRemoveVisibleLabelsAndStayReachableByScreenReaderDescriptions() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 DashboardContent(
@@ -466,7 +466,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `search row in right drawer emits search event when clicked`() {
+    fun searchRowInRightDrawerEmitsSearchEventWhenClicked() {
         val capturedEvents = mutableListOf<DashboardEvent>()
 
         setStatefulDashboardContent(
@@ -493,7 +493,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `top bar removes legacy wordmark and subtitle and keeps the period switcher visible`() {
+    fun topBarRemovesLegacyWordmarkAndSubtitleAndKeepsThePeriodSwitcherVisible() {
         val period = Period.Month(YearMonth.of(2026, 4))
         // 2026 == currentYear → new formatter emits month name only (no year suffix)
         val expectedLabel =
@@ -522,7 +522,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `toolbar action icons stay visible and emit their existing events`() {
+    fun toolbarActionIconsStayVisibleAndEmitTheirExistingEvents() {
         val capturedEvents = mutableListOf<DashboardEvent>()
 
         composeTestRule.setContent {
@@ -563,7 +563,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `toolbar does not expose transfer or search icons`() {
+    fun toolbarDoesNotExposeTransferOrSearchIcons() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 DashboardContent(
@@ -585,7 +585,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `trend balance card is displayed and ring is gone in normal mode`() {
+    fun trendBalanceCardIsDisplayedAndRingIsGoneInNormalMode() {
         setDashboardContent(
             state =
                 snapshotDashboardState(
@@ -605,7 +605,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `category tile under the ring emits filtered transactions event`() {
+    fun categoryTileUnderTheRingEmitsFilteredTransactionsEvent() {
         val usd = usdCurrency()
         val capturedEvents = mutableListOf<DashboardEvent>()
         val tile = categoryTile(categoryId = 42L, label = "Groceries", currency = usd)
@@ -634,7 +634,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `expanded category renders every inline transaction and row tap navigates`() {
+    fun expandedCategoryRendersEveryInlineTransactionAndRowTapNavigates() {
         val capturedEvents = mutableListOf<DashboardEvent>()
         setDashboardContent(
             state = expandedCategoryDashboardState(),
@@ -652,7 +652,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `dashboard vertical content scrolls to overflow category tiles`() {
+    fun dashboardVerticalContentScrollsToOverflowCategoryTiles() {
         val usd = usdCurrency()
         val tiles = (1L..8L).map { categoryTile(it, "Category $it", usd) }
 
@@ -679,7 +679,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `right drawer rows display and emit their destination events`() {
+    fun rightDrawerRowsDisplayAndEmitTheirDestinationEvents() {
         val capturedEvents = mutableListOf<DashboardEvent>()
         val drawerRows = destinationDrawerRowTags()
 
@@ -720,7 +720,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `right drawer shows financial goals item and clicking it emits FinancialGoalsClicked`() {
+    fun rightDrawerShowsFinancialGoalsItemAndClickingItEmitsFinancialGoalsClicked() {
         val capturedEvents = mutableListOf<DashboardEvent>()
 
         setStatefulDashboardContent(
@@ -744,7 +744,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `right drawer financial goals item sits between accounts and currencies`() {
+    fun rightDrawerFinancialGoalsItemSitsBetweenAccountsAndCurrencies() {
         setStatefulDashboardContent(
             initialState = DashboardState(isLoading = false, rightDrawerOpen = true),
         )
@@ -780,7 +780,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `dashboard shows the current period once inside the toolbar period switcher`() {
+    fun dashboardShowsTheCurrentPeriodOnceInsideTheToolbarPeriodSwitcher() {
         val period = Period.Month(YearMonth.of(2026, 4))
         // 2026 == currentYear → new formatter emits month name only (no year suffix)
         val expectedLabel =
@@ -806,7 +806,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `period chevron buttons emit previous and next events`() {
+    fun periodChevronButtonsEmitPreviousAndNextEvents() {
         val capturedEvents = mutableListOf<DashboardEvent>()
 
         composeTestRule.setContent {
@@ -836,7 +836,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `left drawer opens as a partial panel instead of a near full width sheet`() {
+    fun leftDrawerOpensAsAPartialPanelInsteadOfANearFullWidthSheet() {
         setStatefulDashboardContent(initialState = DashboardState(isLoading = false))
 
         composeTestRule
@@ -851,7 +851,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `right drawer opens as a partial panel instead of a near full width sheet`() {
+    fun rightDrawerOpensAsAPartialPanelInsteadOfANearFullWidthSheet() {
         setStatefulDashboardContent(initialState = DashboardState(isLoading = false))
 
         composeTestRule
@@ -867,7 +867,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `left drawer overlay covers the more button so it is not reachable while left drawer is open`() {
+    fun leftDrawerOverlayCoversTheMoreButtonSoItIsNotReachableWhileLeftDrawerIsOpen() {
         val capturedEvents = mutableListOf<DashboardEvent>()
 
         setStatefulDashboardContent(
@@ -901,7 +901,7 @@ class DashboardContentUiTest {
     // calls onDismiss.  No separate FAB-occlusion test is required.
 
     @Test
-    fun `scrim tap dismisses the left drawer and closes both drawer flags`() {
+    fun scrimTapDismissesTheLeftDrawerAndClosesBothDrawerFlags() {
         val capturedEvents = mutableListOf<DashboardEvent>()
 
         val currentState =
@@ -921,7 +921,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `scrim tap dismisses the right drawer and closes both drawer flags`() {
+    fun scrimTapDismissesTheRightDrawerAndClosesBothDrawerFlags() {
         val capturedEvents = mutableListOf<DashboardEvent>()
 
         val currentState =
@@ -946,7 +946,7 @@ class DashboardContentUiTest {
     // re-centres the pager. waitForIdle() lets those coroutines complete before assertions.
 
     @Test
-    fun `swiping the dashboard body left past settle threshold emits next period`() {
+    fun swipingTheDashboardBodyLeftPastSettleThresholdEmitsNextPeriod() {
         val capturedEvents = mutableListOf<DashboardEvent>()
 
         composeTestRule.setContent {
@@ -975,7 +975,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `swiping the dashboard body right past settle threshold emits previous period`() {
+    fun swipingTheDashboardBodyRightPastSettleThresholdEmitsPreviousPeriod() {
         val capturedEvents = mutableListOf<DashboardEvent>()
 
         composeTestRule.setContent {
@@ -1004,7 +1004,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `horizontal swipe on pager body does not open the left drawer`() {
+    fun horizontalSwipeOnPagerBodyDoesNotOpenTheLeftDrawer() {
         val capturedEvents = mutableListOf<DashboardEvent>()
 
         composeTestRule.setContent {
@@ -1029,7 +1029,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `navigation icon changes to back arrow when left drawer is open and reverts to hamburger after dismissal`() {
+    fun navigationIconChangesToBackArrowWhenLeftDrawerIsOpenAndRevertsToHamburgerAfterDismissal() {
         setStatefulDashboardContent(
             initialState = DashboardState(isLoading = false, leftDrawerOpen = true),
         )
@@ -1055,7 +1055,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `back arrow closes the right drawer`() {
+    fun backArrowClosesTheRightDrawer() {
         val capturedEvents = mutableListOf<DashboardEvent>()
 
         val currentState =
@@ -1077,7 +1077,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `hamburger button still opens the left drawer`() {
+    fun hamburgerButtonStillOpensTheLeftDrawer() {
         val capturedEvents = mutableListOf<DashboardEvent>()
 
         composeTestRule.setContent {
@@ -1100,7 +1100,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `period switcher shows only the current period label in the toolbar`() {
+    fun periodSwitcherShowsOnlyTheCurrentPeriodLabelInTheToolbar() {
         val current = Period.Month(YearMonth.of(2026, 4))
         // 2026 == currentYear → new formatter emits month name only (no year suffix)
         val monthNamePattern = DateTimeFormatter.ofPattern("LLLL", targetLocale())
@@ -1124,7 +1124,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `period switcher in the toolbar exposes previous and next controls without placeholder labels`() {
+    fun periodSwitcherInTheToolbarExposesPreviousAndNextControlsWithoutPlaceholderLabels() {
         val current = Period.Month(YearMonth.of(2026, 4))
         // 2026 == currentYear → new formatter emits month name only (no year suffix)
         val monthNamePattern = DateTimeFormatter.ofPattern("LLLL", targetLocale())
@@ -1154,7 +1154,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `all three fabs are exactly dashboardFabSize keep content descriptions and preserve their events`() {
+    fun allThreeFabsAreExactlyDashboardFabSizeKeepContentDescriptionsAndPreserveTheirEvents() {
         val capturedEvents = mutableListOf<DashboardEvent>()
         composeTestRule.setContent {
             MyMoneyTheme {
@@ -1197,7 +1197,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `legacy balance panel and neon ring are absent when dashboard has no snapshot`() {
+    fun legacyBalancePanelAndNeonRingAreAbsentWhenDashboardHasNoSnapshot() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 DashboardContent(
@@ -1213,7 +1213,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `separate mode hides the donut ring and shows the currency cards container`() {
+    fun separateModeHidesTheDonutRingAndShowsTheCurrencyCardsContainer() {
         setDashboardContent(state = separateModeDashboardState())
 
         // Donut must not be present in Separate mode (D6)
@@ -1228,7 +1228,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `separate mode shows one card entry per currency`() {
+    fun separateModeShowsOneCardEntryPerCurrency() {
         setDashboardContent(state = separateModeDashboardState())
 
         composeTestRule.onNodeWithText("USD").assertIsDisplayed()
@@ -1236,7 +1236,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `normal mode shows the trend chart and hides the currency cards container`() {
+    fun normalModeShowsTheTrendChartAndHidesTheCurrencyCardsContainer() {
         setDashboardContent(state = snapshotDashboardState(ringFraction = 0.75f))
 
         composeTestRule
@@ -1251,7 +1251,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `trend chart tag exists in normal mode without a snapshot`() {
+    fun trendChartTagExistsInNormalModeWithoutASnapshot() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 DashboardContent(
@@ -1267,7 +1267,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `income and expense pills inside aurora card show word label and plain amount without currency symbol when snapshot is present`() {
+    fun incomeAndExpensePillsInsideAuroraCardShowWordLabelAndPlainAmountWithoutCurrencySymbolWhenSnapshotIsPresent() {
         val usd = usdCurrency()
         val snapshot =
             BalanceSnapshot(
@@ -1313,7 +1313,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `income and expense pills inside aurora card are shown even when snapshot is null`() {
+    fun incomeAndExpensePillsInsideAuroraCardAreShownEvenWhenSnapshotIsNull() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 DashboardContent(
@@ -1334,7 +1334,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `balance card click emits BalanceCardClicked event`() {
+    fun balanceCardClickEmitsBalanceCardClickedEvent() {
         val capturedEvents = mutableListOf<DashboardEvent>()
         setDashboardContent(
             state = snapshotDashboardState(),
@@ -1354,7 +1354,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `separate mode hides trend chart tag and shows currency cards`() {
+    fun separateModeHidesTrendChartTagAndShowsCurrencyCards() {
         setDashboardContent(state = separateModeDashboardState(cardCount = 1))
 
         composeTestRule
@@ -1370,7 +1370,7 @@ class DashboardContentUiTest {
     // -------------------------------------------------------------------------
 
     @Test
-    fun `aurora card omits the legacy balance for period label in non-separate mode`() {
+    fun auroraCardOmitsTheLegacyBalanceForPeriodLabelInNonSeparateMode() {
         val period = Period.All
         val removedLabel =
             InstrumentationRegistry.getInstrumentation().targetContext.getString(
@@ -1389,7 +1389,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `aurora card spans nearly the full dashboard width and stays centered in non-separate mode`() {
+    fun auroraCardSpansNearlyTheFullDashboardWidthAndStaysCenteredInNonSeparateMode() {
         setDashboardContent(state = snapshotDashboardState())
 
         val rootBounds = composeTestRule.onRoot().fetchSemanticsNode().boundsInRoot
@@ -1401,7 +1401,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `aurora card balance value shows negative truncated integer with currency after in non-separate mode`() {
+    fun auroraCardBalanceValueShowsNegativeTruncatedIntegerWithCurrencyAfterInNonSeparateMode() {
         val usd = usdCurrency()
         val snapshot =
             BalanceSnapshot(
@@ -1436,7 +1436,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `aurora card is absent in separate mode while per currency cards stay visible`() {
+    fun auroraCardIsAbsentInSeparateModeWhilePerCurrencyCardsStayVisible() {
         setDashboardContent(state = separateModeDashboardState(cardCount = 1))
 
         composeTestRule
@@ -1455,7 +1455,7 @@ class DashboardContentUiTest {
     // -------------------------------------------------------------------------
 
     @Test
-    fun `tapping trend chart area emits ChartTapped`() {
+    fun tappingTrendChartAreaEmitsChartTapped() {
         val capturedEvents = mutableListOf<DashboardEvent>()
         setDashboardContent(
             state = snapshotDashboardState(),
@@ -1476,7 +1476,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `right drawer does not expose a chart settings row after its removal from the drawer`() {
+    fun rightDrawerDoesNotExposeAChartSettingsRowAfterItsRemovalFromTheDrawer() {
         // ChartSettingsClicked / ChartSettingsSheet survive in the codebase for SPEC-02
         // (auto-open from dashboard cards), but the right-drawer entry was deleted in the
         // 7-item refactor. Assert the tag is absent so that re-adding the row accidentally
@@ -1494,7 +1494,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `hidden chart hint strip is shown when chartConfig visible is false`() {
+    fun hiddenChartHintStripIsShownWhenChartConfigVisibleIsFalse() {
         setDashboardContent(state = snapshotDashboardState(chartConfig = ChartConfig(visible = false)))
 
         composeTestRule
@@ -1506,7 +1506,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `trend chart tag is present when chartConfig visible is true`() {
+    fun trendChartTagIsPresentWhenChartConfigVisibleIsTrue() {
         setDashboardContent(state = snapshotDashboardState(chartConfig = ChartConfig(visible = true)))
 
         composeTestRule
@@ -1518,7 +1518,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `tapping hidden chart hint strip emits ChartTapped`() {
+    fun tappingHiddenChartHintStripEmitsChartTapped() {
         val capturedEvents = mutableListOf<DashboardEvent>()
         setDashboardContent(
             state = snapshotDashboardState(chartConfig = ChartConfig(visible = false)),
@@ -1539,7 +1539,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `chart settings sheet is shown when chartSettingsSheetOpen is true`() {
+    fun chartSettingsSheetIsShownWhenChartSettingsSheetOpenIsTrue() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 DashboardContent(
@@ -1560,7 +1560,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `chart settings sheet is absent when chartSettingsSheetOpen is false`() {
+    fun chartSettingsSheetIsAbsentWhenChartSettingsSheetOpenIsFalse() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 DashboardContent(
@@ -1862,7 +1862,7 @@ class DashboardContentUiTest {
     // -------------------------------------------------------------------------
 
     @Test
-    fun `operations summary sheet is shown when operationsSummary is not null`() {
+    fun operationsSummarySheetIsShownWhenOperationsSummaryIsNotNull() {
         setDashboardContent(
             state =
                 operationsSummaryDashboardState(
@@ -1880,7 +1880,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `operations summary sheet is absent when operationsSummary is null`() {
+    fun operationsSummarySheetIsAbsentWhenOperationsSummaryIsNull() {
         val usd = usdCurrency()
 
         composeTestRule.setContent {
@@ -1903,7 +1903,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `operations summary sheet shows empty state when records list is empty`() {
+    fun operationsSummarySheetShowsEmptyStateWhenRecordsListIsEmpty() {
         setDashboardContent(
             state =
                 operationsSummaryDashboardState(
@@ -1921,7 +1921,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `tapping category tile emits SliceClicked with correct category id`() {
+    fun tappingCategoryTileEmitsSliceClickedWithCorrectCategoryId() {
         val usd = usdCurrency()
         val capturedEvents = mutableListOf<DashboardEvent>()
         val tile = categoryTile(categoryId = 42L, label = "Groceries", currency = usd)
@@ -1953,7 +1953,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `tapping a tile emits SliceClicked with that category id`() {
+    fun tappingATileEmitsSliceClickedWithThatCategoryId() {
         val usd = usdCurrency()
         val capturedEvents = mutableListOf<DashboardEvent>()
         val tiles = foodAndTransportTiles(usd)
@@ -1985,7 +1985,7 @@ class DashboardContentUiTest {
     }
 
     @Test
-    fun `operations summary sheet title uses category name when filtered`() {
+    fun operationsSummarySheetTitleUsesCategoryNameWhenFiltered() {
         setDashboardContent(
             state =
                 operationsSummaryDashboardState(

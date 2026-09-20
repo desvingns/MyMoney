@@ -190,6 +190,35 @@ class MymoneyBuildConfigurationContractTest {
         )
     }
 
+    @Test
+    fun `dexed test sources avoid backtick method names so androidTest builds at minSdk 29`() {
+        val backtickFun = Regex("""\bfun\s+`[^`]+`""")
+        val offenders =
+            dexedTestKotlinSources()
+                .filter { file -> backtickFun.containsMatchIn(file.readText()) }
+                .map { it.relativeTo(repositoryRoot).invariantSeparatorsPath }
+                .sorted()
+        assertTrue(
+            "Backtick method names dex to a SimpleName with spaces, which D8 rejects prior to DEX " +
+                "version 040 (minSdk < 30). Rename to camelCase in: $offenders",
+            offenders.isEmpty(),
+        )
+    }
+
+    private fun dexedTestKotlinSources(): List<File> {
+        val roots = mutableListOf<File>()
+        repositoryRoot.walkTopDown()
+            .onEnter { dir ->
+                dir.name != ".claude" && dir.name != "build" && dir.name != ".git"
+            }
+            .filter { it.isDirectory && it.name == "androidTest" && it.parentFile?.name == "src" }
+            .forEach { roots.add(it) }
+        File(repositoryRoot, "core/testing/src/main").takeIf { it.isDirectory }?.let { roots.add(it) }
+        return roots.flatMap { root ->
+            root.walkTopDown().filter { it.isFile && it.extension == "kt" }
+        }
+    }
+
     private fun sourceVersionCode(
         app: String,
         major: Int,

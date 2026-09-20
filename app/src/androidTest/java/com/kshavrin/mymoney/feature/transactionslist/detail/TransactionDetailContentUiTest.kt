@@ -44,7 +44,7 @@ class TransactionDetailContentUiTest {
     val composeTestRule = createComposeRule()
 
     @Test
-    fun `back button emits detail back event`() {
+    fun backButtonEmitsDetailBackEvent() {
         val capturedEvents = mutableListOf<TransactionDetailEvent>()
 
         setContent(onEvent = { event -> capturedEvents += event })
@@ -59,7 +59,7 @@ class TransactionDetailContentUiTest {
     }
 
     @Test
-    fun `save button is hidden until detail is dirty and valid`() {
+    fun saveButtonIsHiddenUntilDetailIsDirtyAndValid() {
         setContent(state = loadedExpenseState(isDirty = false))
 
         composeTestRule
@@ -68,7 +68,7 @@ class TransactionDetailContentUiTest {
     }
 
     @Test
-    fun `save button emits detail save event`() {
+    fun saveButtonEmitsDetailSaveEvent() {
         val capturedEvents = mutableListOf<TransactionDetailEvent>()
 
         setContent(
@@ -87,7 +87,7 @@ class TransactionDetailContentUiTest {
     }
 
     @Test
-    fun `delete button emits detail delete event`() {
+    fun deleteButtonEmitsDetailDeleteEvent() {
         val capturedEvents = mutableListOf<TransactionDetailEvent>()
 
         setContent(onEvent = { event -> capturedEvents += event })
@@ -102,7 +102,7 @@ class TransactionDetailContentUiTest {
     }
 
     @Test
-    fun `delete dialog cancel emits detail dismiss event`() {
+    fun deleteDialogCancelEmitsDetailDismissEvent() {
         val capturedEvents = mutableListOf<TransactionDetailEvent>()
 
         setContent(
@@ -122,7 +122,7 @@ class TransactionDetailContentUiTest {
     }
 
     @Test
-    fun `delete dialog confirm emits detail confirm event`() {
+    fun deleteDialogConfirmEmitsDetailConfirmEvent() {
         val capturedEvents = mutableListOf<TransactionDetailEvent>()
 
         setContent(
@@ -139,7 +139,7 @@ class TransactionDetailContentUiTest {
     }
 
     @Test
-    fun `keypad and note controls emit detail edit events`() {
+    fun keypadAndNoteControlsEmitDetailEditEvents() {
         val capturedEvents = mutableListOf<TransactionDetailEvent>()
 
         setContent(onEvent = { event -> capturedEvents += event })
@@ -160,7 +160,7 @@ class TransactionDetailContentUiTest {
     }
 
     @Test
-    fun `picking a different date emits detail date changed event`() {
+    fun pickingADifferentDateEmitsDetailDateChangedEvent() {
         val capturedEvents = mutableListOf<TransactionDetailEvent>()
         val initialDate = LocalDate.of(2026, 5, 17)
         val chosenDate = initialDate.plusDays(1)
@@ -183,7 +183,7 @@ class TransactionDetailContentUiTest {
     }
 
     @Test
-    fun `account dropdown emits detail account changed event`() {
+    fun accountDropdownEmitsDetailAccountChangedEvent() {
         val capturedEvents = mutableListOf<TransactionDetailEvent>()
 
         setContent(onEvent = { event -> capturedEvents += event })
@@ -197,7 +197,7 @@ class TransactionDetailContentUiTest {
     }
 
     @Test
-    fun `cross currency transfer controls emit target and rate events`() {
+    fun crossCurrencyTransferControlsEmitTargetAndRateEvents() {
         val capturedEvents = mutableListOf<TransactionDetailEvent>()
 
         setContent(
@@ -224,7 +224,7 @@ class TransactionDetailContentUiTest {
     }
 
     @Test
-    fun `error banner shows snackbar message and dismisses error state`() {
+    fun errorBannerShowsSnackbarMessageAndDismissesErrorState() {
         val capturedEvents = mutableListOf<TransactionDetailEvent>()
         val snackbarMessages = mutableListOf<String>()
 
@@ -275,7 +275,7 @@ class TransactionDetailContentUiTest {
     // ---- Edit-mode: in-form delete button (SPEC: edit screen uses TransactionFormContent) -----
 
     @Test
-    fun `expense edit screen shows in-form delete button via TransactionFormContent`() {
+    fun expenseEditScreenShowsInFormDeleteButtonViaTransactionFormContent() {
         setContent(state = loadedExpenseState())
 
         composeTestRule
@@ -284,7 +284,7 @@ class TransactionDetailContentUiTest {
     }
 
     @Test
-    fun `in-form delete button emits detail delete event`() {
+    fun inFormDeleteButtonEmitsDetailDeleteEvent() {
         val capturedEvents = mutableListOf<TransactionDetailEvent>()
 
         setContent(onEvent = { event -> capturedEvents += event })
@@ -299,7 +299,7 @@ class TransactionDetailContentUiTest {
     }
 
     @Test
-    fun `choose-category button is shown in Edit mode when amount is positive`() {
+    fun chooseCategoryButtonIsShownInEditModeWhenAmountIsPositive() {
         setContent(state = loadedExpenseState())
 
         composeTestRule
@@ -308,7 +308,7 @@ class TransactionDetailContentUiTest {
     }
 
     @Test
-    fun `choose-category button click emits SelectCategoryClicked`() {
+    fun chooseCategoryButtonClickEmitsSelectCategoryClicked() {
         val capturedEvents = mutableListOf<TransactionDetailEvent>()
 
         setContent(
@@ -326,7 +326,7 @@ class TransactionDetailContentUiTest {
     }
 
     @Test
-    fun `category grid is shown when categoryStep is true`() {
+    fun categoryGridIsShownWhenCategoryStepIsTrue() {
         val category = category(id = 10L, name = "Food")
         setContent(
             state =
@@ -343,7 +343,7 @@ class TransactionDetailContentUiTest {
     }
 
     @Test
-    fun `clicking a category in category step emits CategoryPicked and does NOT emit NavigateBack`() {
+    fun clickingACategoryInCategoryStepEmitsCategoryPickedAndDoesNOTEmitNavigateBack() {
         val capturedEvents = mutableListOf<TransactionDetailEvent>()
         val category = category(id = 10L, name = "Food")
 
@@ -374,7 +374,7 @@ class TransactionDetailContentUiTest {
     }
 
     @Test
-    fun `transfer edit screen does not show the in-form delete button`() {
+    fun transferEditScreenDoesNotShowTheInFormDeleteButton() {
         setContent(state = loadedTransferState())
 
         composeTestRule

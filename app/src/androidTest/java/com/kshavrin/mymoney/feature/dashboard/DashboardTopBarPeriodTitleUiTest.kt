@@ -54,7 +54,7 @@ class DashboardTopBarPeriodTitleUiTest {
     val composeTestRule = createComposeRule()
 
     @Test
-    fun `dashboard top bar passes accessibility framework checks`() {
+    fun dashboardTopBarPassesAccessibilityFrameworkChecks() {
         setDashboard(Period.Week(LocalDate.of(2026, 6, 15)))
 
         composeTestRule.enableAccessibilityChecks()
@@ -64,7 +64,7 @@ class DashboardTopBarPeriodTitleUiTest {
     // ── single-row layout structural assertions ───────────────────────────────
 
     @Test
-    fun `period switcher sits in the same single row as the menu and more icons`() {
+    fun periodSwitcherSitsInTheSameSingleRowAsTheMenuAndMoreIcons() {
         setDashboard(Period.Month(YearMonth.of(2026, 9)))
 
         val ctx = InstrumentationRegistry.getInstrumentation().targetContext
@@ -92,7 +92,7 @@ class DashboardTopBarPeriodTitleUiTest {
     }
 
     @Test
-    fun `toolbar contains exactly three interactive areas menu period more and no transfer or search icons`() {
+    fun toolbarContainsExactlyThreeInteractiveAreasMenuPeriodMoreAndNoTransferOrSearchIcons() {
         setDashboard(Period.Month(YearMonth.of(2026, 9)))
 
         val ctx = InstrumentationRegistry.getInstrumentation().targetContext
@@ -117,7 +117,7 @@ class DashboardTopBarPeriodTitleUiTest {
     }
 
     @Test
-    fun `period switcher is visible inside the single toolbar row`() {
+    fun periodSwitcherIsVisibleInsideTheSingleToolbarRow() {
         setDashboard(Period.Month(YearMonth.of(2026, 9)))
 
         composeTestRule
@@ -128,7 +128,7 @@ class DashboardTopBarPeriodTitleUiTest {
     // ── single-token labels (must be 1 line, no overflow) ────────────────────
 
     @Test
-    fun `current-year month renders the full month name on exactly one line without overflow`() {
+    fun currentYearMonthRendersTheFullMonthNameOnExactlyOneLineWithoutOverflow() {
         val period = Period.Month(YearMonth.of(2026, 9))
         val expectedLabel =
             YearMonth
@@ -148,7 +148,7 @@ class DashboardTopBarPeriodTitleUiTest {
     }
 
     @Test
-    fun `another current-year month renders on exactly one line without overflow`() {
+    fun anotherCurrentYearMonthRendersOnExactlyOneLineWithoutOverflow() {
         val period = Period.Month(YearMonth.of(2026, 1))
         val expectedLabel =
             YearMonth
@@ -166,7 +166,7 @@ class DashboardTopBarPeriodTitleUiTest {
     }
 
     @Test
-    fun `year period renders on exactly one line without overflow`() {
+    fun yearPeriodRendersOnExactlyOneLineWithoutOverflow() {
         setDashboard(Period.Year(2026))
 
         composeTestRule.onNodeWithTag(DASHBOARD_TOP_BAR_PERIOD_TAG).assertIsDisplayed()
@@ -179,7 +179,7 @@ class DashboardTopBarPeriodTitleUiTest {
     }
 
     @Test
-    fun `day period renders on exactly one line without overflow`() {
+    fun dayPeriodRendersOnExactlyOneLineWithoutOverflow() {
         val expectedLabel = formatDate(LocalDate.of(2026, 6, 25))
 
         setDashboard(Period.Day(LocalDate.of(2026, 6, 25)))
@@ -194,7 +194,7 @@ class DashboardTopBarPeriodTitleUiTest {
     }
 
     @Test
-    fun `all period renders on exactly one line without overflow`() {
+    fun allPeriodRendersOnExactlyOneLineWithoutOverflow() {
         setDashboard(Period.All)
 
         val allLabel =
@@ -215,7 +215,7 @@ class DashboardTopBarPeriodTitleUiTest {
     // ── multi-line labels (must be 2 lines, both parts visible, no overflow) ─
 
     @Test
-    fun `week range renders both dates on two lines without overflow`() {
+    fun weekRangeRendersBothDatesOnTwoLinesWithoutOverflow() {
         val weekStart = LocalDate.of(2026, 6, 15)
         val expectedLabel = formatRange(weekStart, weekStart.plusDays(6))
 
@@ -231,7 +231,7 @@ class DashboardTopBarPeriodTitleUiTest {
     }
 
     @Test
-    fun `week range shows both dates in the rendered text`() {
+    fun weekRangeShowsBothDatesInTheRenderedText() {
         val weekStart = LocalDate.of(2026, 6, 15)
         val expectedLabel = formatRange(weekStart, weekStart.plusDays(6))
 
@@ -242,7 +242,7 @@ class DashboardTopBarPeriodTitleUiTest {
     }
 
     @Test
-    fun `off-year month renders month name and year on a single line without overflow`() {
+    fun offYearMonthRendersMonthNameAndYearOnASingleLineWithoutOverflow() {
         val period = Period.Month(YearMonth.of(2025, 4))
         val monthName =
             YearMonth
@@ -263,7 +263,7 @@ class DashboardTopBarPeriodTitleUiTest {
     }
 
     @Test
-    fun `custom range renders both dates on two lines without overflow`() {
+    fun customRangeRendersBothDatesOnTwoLinesWithoutOverflow() {
         val start = LocalDate.of(2026, 3, 1)
         val end = LocalDate.of(2026, 5, 31)
         val expectedLabel = formatRange(start, end)
@@ -280,7 +280,7 @@ class DashboardTopBarPeriodTitleUiTest {
     }
 
     @Test
-    fun `custom range shows both boundary dates in rendered text`() {
+    fun customRangeShowsBothBoundaryDatesInRenderedText() {
         val start = LocalDate.of(2026, 1, 10)
         val end = LocalDate.of(2026, 12, 31)
         val expectedLabel = formatRange(start, end)
@@ -293,7 +293,7 @@ class DashboardTopBarPeriodTitleUiTest {
     // ── toolbar controls remain accessible ────────────────────────────────────
 
     @Test
-    fun `menu more and period chevrons remain visible when period title spans two lines`() {
+    fun menuMoreAndPeriodChevronsRemainVisibleWhenPeriodTitleSpansTwoLines() {
         setDashboard(Period.Week(LocalDate.of(2026, 6, 15)))
 
         val ctx = InstrumentationRegistry.getInstrumentation().targetContext
@@ -321,44 +321,44 @@ class DashboardTopBarPeriodTitleUiTest {
     }
 
     @Test
-    fun `period switcher chevron controls are present for Day period`() {
+    fun periodSwitcherChevronControlsArePresentForDayPeriod() {
         assertChevronControls(Period.Day(LocalDate.of(2026, 6, 20)))
     }
 
     @Test
-    fun `period switcher chevron controls are present for Week period`() {
+    fun periodSwitcherChevronControlsArePresentForWeekPeriod() {
         assertChevronControls(Period.Week(LocalDate.of(2026, 6, 15)))
     }
 
     @Test
-    fun `period switcher chevron controls are present for current-year Month period`() {
+    fun periodSwitcherChevronControlsArePresentForCurrentYearMonthPeriod() {
         assertChevronControls(Period.Month(YearMonth.of(2026, 6)))
     }
 
     @Test
-    fun `period switcher chevron controls are present for off-year Month period`() {
+    fun periodSwitcherChevronControlsArePresentForOffYearMonthPeriod() {
         assertChevronControls(Period.Month(YearMonth.of(2025, 4)))
     }
 
     @Test
-    fun `period switcher chevron controls are present for Year period`() {
+    fun periodSwitcherChevronControlsArePresentForYearPeriod() {
         assertChevronControls(Period.Year(2026))
     }
 
     @Test
-    fun `period switcher chevron controls are present for All period`() {
+    fun periodSwitcherChevronControlsArePresentForAllPeriod() {
         assertChevronControls(Period.All)
     }
 
     @Test
-    fun `period switcher chevron controls are present for CustomRange period`() {
+    fun periodSwitcherChevronControlsArePresentForCustomRangePeriod() {
         assertChevronControls(Period.CustomRange(LocalDate.of(2026, 3, 1), LocalDate.of(2026, 5, 31)))
     }
 
     // ── period switcher row chevrons sit within the period tag bounds ─────────
 
     @Test
-    fun `period switcher chevrons sit inside the period tag bounds`() {
+    fun periodSwitcherChevronsSitInsideThePeriodTagBounds() {
         setDashboard(Period.Month(YearMonth.of(2026, 9)))
 
         val ctx = InstrumentationRegistry.getInstrumentation().targetContext

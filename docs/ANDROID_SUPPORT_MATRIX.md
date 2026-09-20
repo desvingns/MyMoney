@@ -15,6 +15,11 @@
 
 `minSdk = 29`. All API levels 29 and above receive compatibility fixes on regression.
 
+Instrumented tests (`assembleDebugAndroidTest` / `connectedDebugAndroidTest`) are built and run on
+API 30+ (regression gateway: Pixel 5 / API 34); the product `minSdk` stays 29. Kotlin test method
+names use camelCase (not backtick names with spaces) so androidTest DEX satisfies the pre-040 DEX
+`SimpleName` rule that applies once `minSdk` drops to 29.
+
 ## Current primary regression device
 
 **Pixel 5 / API 34 AVD** (`Pixel_5` or `Pixel_5_API_34`, SDK 34).

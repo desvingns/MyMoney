@@ -24,7 +24,7 @@ class IconPickerSheetUiTest {
     val composeTestRule = createComposeRule()
 
     @Test
-    fun `category picker cells render bitmap assets and expose each key once`() {
+    fun categoryPickerCellsRenderBitmapAssetsAndExposeEachKeyOnce() {
         val iconKeys = listOf("ic_cat_food", "ic_cat_bills", "ic_cat_transport")
         val resolvedKeys = linkedSetOf<String>()
 
@@ -57,7 +57,7 @@ class IconPickerSheetUiTest {
     }
 
     @Test
-    fun `picker cell click emits its key`() {
+    fun pickerCellClickEmitsItsKey() {
         val selectedKeys = mutableListOf<String>()
 
         composeTestRule.setContent {

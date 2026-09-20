@@ -26,7 +26,7 @@ class CurrencyRateScreenUiTest {
     val composeTestRule = createComposeRule()
 
     @Test
-    fun `back button emits currency rate back event`() {
+    fun backButtonEmitsCurrencyRateBackEvent() {
         val capturedEvents = mutableListOf<CurrencyRateEvent>()
 
         composeTestRule.setContent {
@@ -49,7 +49,7 @@ class CurrencyRateScreenUiTest {
     }
 
     @Test
-    fun `save button stays disabled until rate is valid`() {
+    fun saveButtonStaysDisabledUntilRateIsValid() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 CurrencyRateScreen(
@@ -65,7 +65,7 @@ class CurrencyRateScreenUiTest {
     }
 
     @Test
-    fun `save button is displayed without scrolling and emits save clicked when rate is valid`() {
+    fun saveButtonIsDisplayedWithoutScrollingAndEmitsSaveClickedWhenRateIsValid() {
         val capturedEvents = mutableListOf<CurrencyRateEvent>()
 
         composeTestRule.setContent {
@@ -89,7 +89,7 @@ class CurrencyRateScreenUiTest {
     }
 
     @Test
-    fun `rate input emits text change event`() {
+    fun rateInputEmitsTextChangeEvent() {
         val capturedEvents = mutableListOf<CurrencyRateEvent>()
 
         composeTestRule.setContent {
@@ -111,7 +111,7 @@ class CurrencyRateScreenUiTest {
     }
 
     @Test
-    fun `invalid rate shows inline error and keeps save disabled`() {
+    fun invalidRateShowsInlineErrorAndKeepsSaveDisabled() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 CurrencyRateScreen(
@@ -135,7 +135,7 @@ class CurrencyRateScreenUiTest {
     }
 
     @Test
-    fun `valid rate shows currency preview`() {
+    fun validRateShowsCurrencyPreview() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 CurrencyRateScreen(

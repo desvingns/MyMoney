@@ -88,13 +88,13 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `sheet renders with its test tag`() {
+    fun sheetRendersWithItsTestTag() {
         setSheet()
         composeTestRule.onNodeWithTag(CHART_SETTINGS_SHEET_TAG).assertExists()
     }
 
     @Test
-    fun `sheet renders exactly the three ChartStyle previews`() {
+    fun sheetRendersExactlyTheThreeChartStylePreviews() {
         setSheet()
         assertEquals("the chart style contract has exactly three previews", 3, ChartStyle.entries.size)
         ChartStyle.entries.forEach { style ->
@@ -105,7 +105,7 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `style thumbs expose the localized label resource for every chart family`() {
+    fun styleThumbsExposeTheLocalizedLabelResourceForEveryChartFamily() {
         setSheet()
         val labelResources =
             mapOf(
@@ -123,7 +123,7 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `tapping each style thumb emits exactly its selected chart family`() {
+    fun tappingEachStyleThumbEmitsExactlyItsSelectedChartFamily() {
         val captured = mutableListOf<DashboardEvent>()
         setSheet(onEvent = { captured += it })
 
@@ -143,7 +143,7 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `tapping a style thumb emits ChartStyleChanged with the selected style`() {
+    fun tappingAStyleThumbEmitsChartStyleChangedWithTheSelectedStyle() {
         val captured = mutableListOf<DashboardEvent>()
         setSheet(onEvent = { captured += it })
 
@@ -161,7 +161,7 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `period type segmented button Follow exists and is rendered`() {
+    fun periodTypeSegmentedButtonFollowExistsAndIsRendered() {
         setSheet()
         composeTestRule
             .onNodeWithTag(chartPeriodTag(ChartPeriodType.Follow))
@@ -169,7 +169,7 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `tapping period type Month emits ChartPeriodTypeChanged Month`() {
+    fun tappingPeriodTypeMonthEmitsChartPeriodTypeChangedMonth() {
         val captured = mutableListOf<DashboardEvent>()
         setSheet(onEvent = { captured += it })
 
@@ -186,7 +186,7 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `point count stepper shows the current count value`() {
+    fun pointCountStepperShowsTheCurrentCountValue() {
         setSheet(config = defaultConfig().copy(pointCount = 7))
         composeTestRule
             .onNodeWithTag(CHART_SETTINGS_POINTS_VALUE_TAG)
@@ -194,7 +194,7 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `tapping increase point count emits ChartPointCountChanged with count plus one`() {
+    fun tappingIncreasePointCountEmitsChartPointCountChangedWithCountPlusOne() {
         val captured = mutableListOf<DashboardEvent>()
         setSheet(
             config = defaultConfig().copy(pointCount = 5),
@@ -214,7 +214,7 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `tapping decrease point count emits ChartPointCountChanged with count minus one`() {
+    fun tappingDecreasePointCountEmitsChartPointCountChangedWithCountMinusOne() {
         val captured = mutableListOf<DashboardEvent>()
         setSheet(
             config = defaultConfig().copy(pointCount = 5),
@@ -234,7 +234,7 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `decrease button is disabled when point count is at minimum`() {
+    fun decreaseButtonIsDisabledWhenPointCountIsAtMinimum() {
         setSheet(config = defaultConfig().copy(pointCount = CHART_POINT_COUNT_RANGE.first))
         composeTestRule
             .onNodeWithTag(CHART_SETTINGS_POINTS_DECREASE_TAG)
@@ -242,7 +242,7 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `increase button is disabled when point count is at maximum`() {
+    fun increaseButtonIsDisabledWhenPointCountIsAtMaximum() {
         setSheet(config = defaultConfig().copy(pointCount = CHART_POINT_COUNT_RANGE.last))
         composeTestRule
             .onNodeWithTag(CHART_SETTINGS_POINTS_INCREASE_TAG)
@@ -250,7 +250,7 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `increase and decrease buttons are both enabled for a mid-range point count`() {
+    fun increaseAndDecreaseButtonsAreBothEnabledForAMidRangePointCount() {
         setSheet(config = defaultConfig().copy(pointCount = 6))
         composeTestRule
             .onNodeWithTag(CHART_SETTINGS_POINTS_INCREASE_TAG)
@@ -261,7 +261,7 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `metric segmented buttons for all three metrics exist`() {
+    fun metricSegmentedButtonsForAllThreeMetricsExist() {
         setSheet()
         ChartMetric.entries.forEach { metric ->
             composeTestRule
@@ -271,7 +271,7 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `tapping metric PERIOD_NET emits ChartMetricChanged PERIOD_NET`() {
+    fun tappingMetricPERIODNETEmitsChartMetricChangedPERIODNET() {
         val captured = mutableListOf<DashboardEvent>()
         setSheet(onEvent = { captured += it })
 
@@ -288,7 +288,7 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `color rule buttons for all four rules exist`() {
+    fun colorRuleButtonsForAllFourRulesExist() {
         setSheet()
         val rules =
             listOf(
@@ -307,7 +307,7 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `color rule buttons expose the localized label for every mode`() {
+    fun colorRuleButtonsExposeTheLocalizedLabelForEveryMode() {
         val locale = Locale.US
         val context = localizedContext(locale)
         setLocalizedSheet(locale, defaultConfig().copy(autoMode = true))
@@ -328,7 +328,7 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `selecting color rule ByDirection emits the event and keeps the new selection`() {
+    fun selectingColorRuleByDirectionEmitsTheEventAndKeepsTheNewSelection() {
         val captured = mutableListOf<DashboardEvent>()
         val config = mutableStateOf(defaultConfig().copy(colorRule = ChartColorRule.Solid))
         composeTestRule.setContent {
@@ -363,7 +363,7 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `gridlines toggle is on when showGridlines is true`() {
+    fun gridlinesToggleIsOnWhenShowGridlinesIsTrue() {
         setSheet(config = defaultConfig().copy(showGridlines = true))
         composeTestRule
             .onNodeWithTag(CHART_SETTINGS_GRIDLINES_TAG)
@@ -371,7 +371,7 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `gridlines toggle is off when showGridlines is false`() {
+    fun gridlinesToggleIsOffWhenShowGridlinesIsFalse() {
         setSheet(config = defaultConfig().copy(showGridlines = false))
         composeTestRule
             .onNodeWithTag(CHART_SETTINGS_GRIDLINES_TAG)
@@ -379,7 +379,7 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `tapping gridlines toggle emits ChartGridlinesToggled with the new state`() {
+    fun tappingGridlinesToggleEmitsChartGridlinesToggledWithTheNewState() {
         val captured = mutableListOf<DashboardEvent>()
         setSheet(
             config = defaultConfig().copy(showGridlines = true),
@@ -399,7 +399,7 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `labels toggle is on when showLabels is true`() {
+    fun labelsToggleIsOnWhenShowLabelsIsTrue() {
         setSheet(config = defaultConfig().copy(showLabels = true))
         composeTestRule
             .onNodeWithTag(CHART_SETTINGS_LABELS_TAG)
@@ -407,7 +407,7 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `labels toggle is off when showLabels is false`() {
+    fun labelsToggleIsOffWhenShowLabelsIsFalse() {
         setSheet(config = defaultConfig().copy(showLabels = false))
         composeTestRule
             .onNodeWithTag(CHART_SETTINGS_LABELS_TAG)
@@ -415,7 +415,7 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `tapping labels toggle emits ChartLabelsToggled with the new state`() {
+    fun tappingLabelsToggleEmitsChartLabelsToggledWithTheNewState() {
         val captured = mutableListOf<DashboardEvent>()
         setSheet(
             config = defaultConfig().copy(showLabels = false),
@@ -435,7 +435,7 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `projection toggle is off when showProjection is false`() {
+    fun projectionToggleIsOffWhenShowProjectionIsFalse() {
         setSheet(config = defaultConfig().copy(showProjection = false))
         composeTestRule
             .onNodeWithTag(CHART_SETTINGS_PROJECTION_TAG)
@@ -443,7 +443,7 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `projection toggle is on when showProjection is true`() {
+    fun projectionToggleIsOnWhenShowProjectionIsTrue() {
         setSheet(config = defaultConfig().copy(showProjection = true))
         composeTestRule
             .onNodeWithTag(CHART_SETTINGS_PROJECTION_TAG)
@@ -451,7 +451,7 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `tapping projection toggle to enable emits ChartProjectionToggled true`() {
+    fun tappingProjectionToggleToEnableEmitsChartProjectionToggledTrue() {
         val captured = mutableListOf<DashboardEvent>()
         setSheet(
             config = defaultConfig().copy(showProjection = false),
@@ -471,7 +471,7 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `projection toggle has localized content description and a 48dp touch target`() {
+    fun projectionToggleHasLocalizedContentDescriptionAndA48dpTouchTarget() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         setSheet()
 
@@ -483,7 +483,7 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `color and projection labels render in Russian`() {
+    fun colorAndProjectionLabelsRenderInRussian() {
         val locale = Locale.forLanguageTag("ru-RU")
         val context = localizedContext(locale)
         setLocalizedSheet(locale, defaultConfig().copy(autoMode = true))
@@ -514,7 +514,7 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `visible toggle is on when visible is true`() {
+    fun visibleToggleIsOnWhenVisibleIsTrue() {
         setSheet(config = defaultConfig().copy(visible = true))
         composeTestRule
             .onNodeWithTag(CHART_SETTINGS_VISIBLE_TAG)
@@ -522,7 +522,7 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `visible toggle is off when visible is false`() {
+    fun visibleToggleIsOffWhenVisibleIsFalse() {
         setSheet(config = defaultConfig().copy(visible = false))
         composeTestRule
             .onNodeWithTag(CHART_SETTINGS_VISIBLE_TAG)
@@ -530,7 +530,7 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `tapping visible toggle to hide emits ChartVisibilityChanged false`() {
+    fun tappingVisibleToggleToHideEmitsChartVisibilityChangedFalse() {
         val captured = mutableListOf<DashboardEvent>()
         setSheet(
             config = defaultConfig().copy(visible = true),
@@ -550,7 +550,7 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `tapping visible toggle to show emits ChartVisibilityChanged true`() {
+    fun tappingVisibleToggleToShowEmitsChartVisibilityChangedTrue() {
         val captured = mutableListOf<DashboardEvent>()
         setSheet(
             config = defaultConfig().copy(visible = false),
@@ -574,7 +574,7 @@ class ChartSettingsSheetUiTest {
     // -------------------------------------------------------------------------
 
     @Test
-    fun `auto mode button exists when autoMode is true`() {
+    fun autoModeButtonExistsWhenAutoModeIsTrue() {
         setSheet(config = defaultConfig().copy(autoMode = true))
         composeTestRule
             .onNodeWithTag(CHART_SETTINGS_MODE_AUTO_TAG)
@@ -582,7 +582,7 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `manual mode button exists when autoMode is false`() {
+    fun manualModeButtonExistsWhenAutoModeIsFalse() {
         setSheet(config = defaultConfig().copy(autoMode = false))
         composeTestRule
             .onNodeWithTag(CHART_SETTINGS_MODE_MANUAL_TAG)
@@ -590,14 +590,14 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `both mode buttons are visible regardless of current mode`() {
+    fun bothModeButtonsAreVisibleRegardlessOfCurrentMode() {
         setSheet(config = defaultConfig().copy(autoMode = true))
         composeTestRule.onNodeWithTag(CHART_SETTINGS_MODE_AUTO_TAG).assertExists()
         composeTestRule.onNodeWithTag(CHART_SETTINGS_MODE_MANUAL_TAG).assertExists()
     }
 
     @Test
-    fun `period type controls are not present when autoMode is true`() {
+    fun periodTypeControlsAreNotPresentWhenAutoModeIsTrue() {
         setSheet(config = defaultConfig().copy(autoMode = true))
         composeTestRule
             .onNodeWithTag(chartPeriodTag(ChartPeriodType.Follow))
@@ -608,7 +608,7 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `point count stepper is not present when autoMode is true`() {
+    fun pointCountStepperIsNotPresentWhenAutoModeIsTrue() {
         setSheet(config = defaultConfig().copy(autoMode = true))
         composeTestRule
             .onNodeWithTag(CHART_SETTINGS_POINTS_VALUE_TAG)
@@ -622,7 +622,7 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `period type controls are present when autoMode is false`() {
+    fun periodTypeControlsArePresentWhenAutoModeIsFalse() {
         setSheet(config = defaultConfig().copy(autoMode = false))
         composeTestRule
             .onNodeWithTag(chartPeriodTag(ChartPeriodType.Follow))
@@ -631,7 +631,7 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `point count stepper is present when autoMode is false`() {
+    fun pointCountStepperIsPresentWhenAutoModeIsFalse() {
         setSheet(config = defaultConfig().copy(autoMode = false))
         composeTestRule
             .onNodeWithTag(CHART_SETTINGS_POINTS_VALUE_TAG)
@@ -640,7 +640,7 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `tapping manual mode button emits ChartAutoModeChanged false`() {
+    fun tappingManualModeButtonEmitsChartAutoModeChangedFalse() {
         val captured = mutableListOf<DashboardEvent>()
         setSheet(
             config = defaultConfig().copy(autoMode = true),
@@ -661,7 +661,7 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `tapping auto mode button emits ChartAutoModeChanged true`() {
+    fun tappingAutoModeButtonEmitsChartAutoModeChangedTrue() {
         val captured = mutableListOf<DashboardEvent>()
         setSheet(
             config = defaultConfig().copy(autoMode = false),
@@ -682,7 +682,7 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `style thumbs are visible in auto mode`() {
+    fun styleThumbsAreVisibleInAutoMode() {
         setSheet(config = defaultConfig().copy(autoMode = true))
         composeTestRule
             .onNodeWithTag(chartStyleThumbTag(ChartStyle.Line))
@@ -690,7 +690,7 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `style thumbs are visible in manual mode`() {
+    fun styleThumbsAreVisibleInManualMode() {
         setSheet(config = defaultConfig().copy(autoMode = false))
         composeTestRule
             .onNodeWithTag(chartStyleThumbTag(ChartStyle.Line))
@@ -698,7 +698,7 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `metric buttons are visible in auto mode`() {
+    fun metricButtonsAreVisibleInAutoMode() {
         setSheet(config = defaultConfig().copy(autoMode = true))
         composeTestRule
             .onNodeWithTag(chartMetricTag(ChartMetric.CUMULATIVE))
@@ -707,7 +707,7 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `metric buttons are visible in manual mode`() {
+    fun metricButtonsAreVisibleInManualMode() {
         setSheet(config = defaultConfig().copy(autoMode = false))
         composeTestRule
             .onNodeWithTag(chartMetricTag(ChartMetric.CUMULATIVE))
@@ -716,7 +716,7 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `color rule buttons are visible in auto mode`() {
+    fun colorRuleButtonsAreVisibleInAutoMode() {
         setSheet(config = defaultConfig().copy(autoMode = true))
         composeTestRule
             .onNodeWithTag(chartColorTag(ChartColorRule.Solid))
@@ -725,7 +725,7 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `color rule buttons are visible in manual mode`() {
+    fun colorRuleButtonsAreVisibleInManualMode() {
         setSheet(config = defaultConfig().copy(autoMode = false))
         composeTestRule
             .onNodeWithTag(chartColorTag(ChartColorRule.Solid))
@@ -734,7 +734,7 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `gridlines toggle is visible in auto mode`() {
+    fun gridlinesToggleIsVisibleInAutoMode() {
         setSheet(config = defaultConfig().copy(autoMode = true))
         composeTestRule
             .onNodeWithTag(CHART_SETTINGS_GRIDLINES_TAG)
@@ -743,7 +743,7 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `gridlines toggle is visible in manual mode`() {
+    fun gridlinesToggleIsVisibleInManualMode() {
         setSheet(config = defaultConfig().copy(autoMode = false))
         composeTestRule
             .onNodeWithTag(CHART_SETTINGS_GRIDLINES_TAG)
@@ -752,7 +752,7 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `visible toggle is present in auto mode`() {
+    fun visibleToggleIsPresentInAutoMode() {
         setSheet(config = defaultConfig().copy(autoMode = true))
         composeTestRule
             .onNodeWithTag(CHART_SETTINGS_VISIBLE_TAG)
@@ -761,7 +761,7 @@ class ChartSettingsSheetUiTest {
     }
 
     @Test
-    fun `visible toggle is present in manual mode`() {
+    fun visibleToggleIsPresentInManualMode() {
         setSheet(config = defaultConfig().copy(autoMode = false))
         composeTestRule
             .onNodeWithTag(CHART_SETTINGS_VISIBLE_TAG)

@@ -78,7 +78,7 @@ class AuroraAutoModeTrendLabelUiTest {
     private val floatPoints = autoModePoints.map { it.value.amount.toFloat() }
 
     @Test
-    fun `aurora card renders with auto-mode day labels — chart tag exists and labels are day numbers`() {
+    fun auroraCardRendersWithAutoModeDayLabelsChartTagExistsAndLabelsAreDayNumbers() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 AuroraBalanceCard(

@@ -25,7 +25,7 @@ class SettingsRootContentUiTest {
     val composeTestRule = createComposeRule()
 
     @Test
-    fun `back button invokes settings back callback`() {
+    fun backButtonInvokesSettingsBackCallback() {
         var backed = false
 
         setContent(onBack = { backed = true })
@@ -40,7 +40,7 @@ class SettingsRootContentUiTest {
     }
 
     @Test
-    fun `destination rows invoke their settings callbacks`() {
+    fun destinationRowsInvokeTheirSettingsCallbacks() {
         val opened = mutableListOf<String>()
 
         setContent(
@@ -79,7 +79,7 @@ class SettingsRootContentUiTest {
     }
 
     @Test
-    fun `current labels and inline switches reflect settings state`() {
+    fun currentLabelsAndInlineSwitchesReflectSettingsState() {
         val emitted = mutableListOf<SettingsEvent>()
 
         setContent(

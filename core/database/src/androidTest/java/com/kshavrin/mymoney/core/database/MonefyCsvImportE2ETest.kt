@@ -471,7 +471,7 @@ class MonefyCsvImportE2ETest {
     // -----------------------------------------------------------------------
 
     @Test
-    fun `currency conflict creates a separate suffixed account and does not mix balances`() =
+    fun currencyConflictCreatesASeparateSuffixedAccountAndDoesNotMixBalances() =
         runTest {
             val context = ApplicationProvider.getApplicationContext<Context>()
             val now = System.currentTimeMillis()
@@ -573,7 +573,7 @@ class MonefyCsvImportE2ETest {
         }
 
     @Test
-    fun `name and currency match reuses the existing account without creating a duplicate`() =
+    fun nameAndCurrencyMatchReusesTheExistingAccountWithoutCreatingADuplicate() =
         runTest {
             val context = ApplicationProvider.getApplicationContext<Context>()
             val now = System.currentTimeMillis()
@@ -662,7 +662,7 @@ class MonefyCsvImportE2ETest {
         }
 
     @Test
-    fun `multiple rows for the same new name and currency create the suffixed account exactly once`() =
+    fun multipleRowsForTheSameNewNameAndCurrencyCreateTheSuffixedAccountExactlyOnce() =
         runTest {
             val context = ApplicationProvider.getApplicationContext<Context>()
             val now = System.currentTimeMillis()
@@ -764,7 +764,7 @@ class MonefyCsvImportE2ETest {
         }
 
     @Test
-    fun `suffixed account name itself normalizes and matches on a subsequent import`() =
+    fun suffixedAccountNameItselfNormalizesAndMatchesOnASubsequentImport() =
         runTest {
             val context = ApplicationProvider.getApplicationContext<Context>()
             val now = System.currentTimeMillis()
@@ -976,7 +976,7 @@ class MonefyCsvImportE2ETest {
     // -----------------------------------------------------------------------
 
     @Test
-    fun `parseImport returns preview without writing to the database`() =
+    fun parseImportReturnsPreviewWithoutWritingToTheDatabase() =
         runTest {
             val context = ApplicationProvider.getApplicationContext<Context>()
             val now = System.currentTimeMillis()
@@ -1109,7 +1109,7 @@ class MonefyCsvImportE2ETest {
     // -----------------------------------------------------------------------
 
     @Test
-    fun `commitImport with Append adds imported rows to existing transactions`() =
+    fun commitImportWithAppendAddsImportedRowsToExistingTransactions() =
         runTest {
             val context = ApplicationProvider.getApplicationContext<Context>()
             val now = System.currentTimeMillis()
@@ -1234,7 +1234,7 @@ class MonefyCsvImportE2ETest {
     // -----------------------------------------------------------------------
 
     @Test
-    fun `commitImport with AppendDedup drops intra-file duplicates and against-DB duplicates`() =
+    fun commitImportWithAppendDedupDropsIntraFileDuplicatesAndAgainstDBDuplicates() =
         runTest {
             val context = ApplicationProvider.getApplicationContext<Context>()
             val now = System.currentTimeMillis()
@@ -1355,7 +1355,7 @@ class MonefyCsvImportE2ETest {
     // -----------------------------------------------------------------------
 
     @Test
-    fun `commitImport with ReplaceAll clears existing data and imports fresh keeping currencies`() =
+    fun commitImportWithReplaceAllClearsExistingDataAndImportsFreshKeepingCurrencies() =
         runTest {
             val context = ApplicationProvider.getApplicationContext<Context>()
             val now = System.currentTimeMillis()
@@ -1530,7 +1530,7 @@ class MonefyCsvImportE2ETest {
     // -----------------------------------------------------------------------
 
     @Test
-    fun `TransactionDao deleteAll removes all rows`() =
+    fun transactionDaoDeleteAllRemovesAllRows() =
         runTest {
             val now = System.currentTimeMillis()
             val rubId =
@@ -1614,7 +1614,7 @@ class MonefyCsvImportE2ETest {
         }
 
     @Test
-    fun `AccountDao deleteAll removes all rows`() =
+    fun accountDaoDeleteAllRemovesAllRows() =
         runTest {
             val now = System.currentTimeMillis()
             val rubId =
@@ -1665,7 +1665,7 @@ class MonefyCsvImportE2ETest {
         }
 
     @Test
-    fun `CategoryDao deleteAll removes all rows`() =
+    fun categoryDaoDeleteAllRemovesAllRows() =
         runTest {
             val now = System.currentTimeMillis()
             db.categoryDao().upsert(
@@ -1707,7 +1707,7 @@ class MonefyCsvImportE2ETest {
     // -----------------------------------------------------------------------
 
     @Test
-    fun `ReplaceCurrent with KeepCategory preserves orphaned category and its transactions`() =
+    fun replaceCurrentWithKeepCategoryPreservesOrphanedCategoryAndItsTransactions() =
         runTest {
             val context = ApplicationProvider.getApplicationContext<Context>()
             val now = System.currentTimeMillis()
@@ -1827,7 +1827,7 @@ class MonefyCsvImportE2ETest {
         }
 
     @Test
-    fun `ReplaceCurrent with DeleteTransactions removes orphaned category and its transactions`() =
+    fun replaceCurrentWithDeleteTransactionsRemovesOrphanedCategoryAndItsTransactions() =
         runTest {
             val context = ApplicationProvider.getApplicationContext<Context>()
             val now = System.currentTimeMillis()
@@ -1946,7 +1946,7 @@ class MonefyCsvImportE2ETest {
         }
 
     @Test
-    fun `ReplaceCurrent deletes empty orphaned category silently without orphanDecision entry`() =
+    fun replaceCurrentDeletesEmptyOrphanedCategorySilentlyWithoutOrphanDecisionEntry() =
         runTest {
             val context = ApplicationProvider.getApplicationContext<Context>()
             val now = System.currentTimeMillis()
@@ -2040,7 +2040,7 @@ class MonefyCsvImportE2ETest {
     // -----------------------------------------------------------------------
 
     @Test
-    fun `AppendManualMerge with MergeInto reassigns all import rows to the target category`() =
+    fun appendManualMergeWithMergeIntoReassignsAllImportRowsToTheTargetCategory() =
         runTest {
             val context = ApplicationProvider.getApplicationContext<Context>()
             val now = System.currentTimeMillis()
@@ -2178,7 +2178,7 @@ class MonefyCsvImportE2ETest {
         }
 
     @Test
-    fun `AppendManualMerge with CreateNew for unmapped category creates a fresh category`() =
+    fun appendManualMergeWithCreateNewForUnmappedCategoryCreatesAFreshCategory() =
         runTest {
             val context = ApplicationProvider.getApplicationContext<Context>()
             val now = System.currentTimeMillis()
@@ -2315,7 +2315,7 @@ class MonefyCsvImportE2ETest {
         }
 
     @Test
-    fun `TransactionDao listDedupRows returns account and category names via join`() =
+    fun transactionDaoListDedupRowsReturnsAccountAndCategoryNamesViaJoin() =
         runTest {
             val now = System.currentTimeMillis()
             val rubId =
@@ -2393,7 +2393,7 @@ class MonefyCsvImportE2ETest {
         }
 
     @Test
-    fun `csv import without color column auto-computes colorHex and textColor from iconKey`() =
+    fun csvImportWithoutColorColumnAutoComputesColorHexAndTextColorFromIconKey() =
         runTest {
             val context = ApplicationProvider.getApplicationContext<Context>()
 

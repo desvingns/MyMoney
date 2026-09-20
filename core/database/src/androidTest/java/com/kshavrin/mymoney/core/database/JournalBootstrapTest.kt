@@ -76,7 +76,7 @@ class JournalBootstrapTest {
     // ─── idempotency ─────────────────────────────────────────────────────────
 
     @Test
-    fun `runIfNeeded is a no-op when bootstrap flag is already set`() =
+    fun runIfNeededIsANoOpWhenBootstrapFlagIsAlreadySet() =
         runTest {
             val account = seedAccount(uuid = "acc-idem-uuid", name = "Cash")
             configStore.markBootstrapDone()
@@ -88,7 +88,7 @@ class JournalBootstrapTest {
         }
 
     @Test
-    fun `runIfNeeded marks bootstrap done after first run`() =
+    fun runIfNeededMarksBootstrapDoneAfterFirstRun() =
         runTest {
             seedAccount(uuid = "acc-done-uuid", name = "Savings")
 
@@ -98,7 +98,7 @@ class JournalBootstrapTest {
         }
 
     @Test
-    fun `runIfNeeded called twice emits ops only once`() =
+    fun runIfNeededCalledTwiceEmitsOpsOnlyOnce() =
         runTest {
             seedAccount(uuid = "acc-twice-uuid", name = "Account A")
 
@@ -118,7 +118,7 @@ class JournalBootstrapTest {
     // ─── stamp missing device_id ──────────────────────────────────────────────
 
     @Test
-    fun `runIfNeeded stamps blank device_id on accounts with the local deviceId`() =
+    fun runIfNeededStampsBlankDeviceIdOnAccountsWithTheLocalDeviceId() =
         runTest {
             db.accountDao().upsert(
                 accountEntity(uuid = "acc-stamp-uuid", name = "Wallet", deviceId = ""),
@@ -131,7 +131,7 @@ class JournalBootstrapTest {
         }
 
     @Test
-    fun `runIfNeeded stamps blank device_id on categories`() =
+    fun runIfNeededStampsBlankDeviceIdOnCategories() =
         runTest {
             db.categoryDao().upsert(
                 categoryEntity(uuid = "cat-stamp-uuid", name = "Food", deviceId = ""),
@@ -146,7 +146,7 @@ class JournalBootstrapTest {
     // ─── initial op emission ──────────────────────────────────────────────────
 
     @Test
-    fun `runIfNeeded emits one Upsert op per active account not yet in the journal`() =
+    fun runIfNeededEmitsOneUpsertOpPerActiveAccountNotYetInTheJournal() =
         runTest {
             seedAccount(uuid = "acc-op-uuid-1", name = "Cash")
             seedAccount(uuid = "acc-op-uuid-2", name = "Card")
@@ -159,7 +159,7 @@ class JournalBootstrapTest {
         }
 
     @Test
-    fun `runIfNeeded emits one Upsert op per active category not yet in the journal`() =
+    fun runIfNeededEmitsOneUpsertOpPerActiveCategoryNotYetInTheJournal() =
         runTest {
             db.categoryDao().upsert(categoryEntity(uuid = "cat-boot-uuid", name = "Food"))
 
@@ -170,7 +170,7 @@ class JournalBootstrapTest {
         }
 
     @Test
-    fun `runIfNeeded does not emit a second op for an entity already in the journal`() =
+    fun runIfNeededDoesNotEmitASecondOpForAnEntityAlreadyInTheJournal() =
         runTest {
             val accountUuid = "acc-known-uuid"
             seedAccount(uuid = accountUuid, name = "Pre-Known Account")
@@ -192,7 +192,7 @@ class JournalBootstrapTest {
         }
 
     @Test
-    fun `runIfNeeded emits Delete op for an archived account`() =
+    fun runIfNeededEmitsDeleteOpForAnArchivedAccount() =
         runTest {
             db.accountDao().upsert(
                 accountEntity(uuid = "acc-archived-uuid", name = "Archived", isArchived = true),
@@ -206,7 +206,7 @@ class JournalBootstrapTest {
         }
 
     @Test
-    fun `runIfNeeded on empty database emits no ops and marks bootstrap done`() =
+    fun runIfNeededOnEmptyDatabaseEmitsNoOpsAndMarksBootstrapDone() =
         runTest {
             bootstrap.runIfNeeded()
 

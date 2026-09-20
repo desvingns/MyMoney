@@ -12,14 +12,14 @@ class ConnectivityCheckerTest {
     private val checker = AndroidConnectivityChecker(context)
 
     @Test
-    fun `isOnline returns a non-null Boolean using real ConnectivityManager`() {
+    fun isOnlineReturnsANonNullBooleanUsingRealConnectivityManager() {
         val result: Boolean? = checker.isOnline()
 
         assertNotNull(result)
     }
 
     @Test
-    fun `isOnline returns false when ConnectivityManager is absent from context`() {
+    fun isOnlineReturnsFalseWhenConnectivityManagerIsAbsentFromContext() {
         val noServiceContext =
             object : android.content.ContextWrapper(context) {
                 override fun getSystemService(name: String): Any? =

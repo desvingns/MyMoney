@@ -23,7 +23,7 @@ class GoalEditContentUiTest {
     private fun defaultState(canSave: Boolean = true) = GoalEditState(canSave = canSave)
 
     @Test
-    fun `save button is displayed at bottom and emits SaveClicked when canSave is true`() {
+    fun saveButtonIsDisplayedAtBottomAndEmitsSaveClickedWhenCanSaveIsTrue() {
         val events = mutableListOf<GoalEditEvent>()
         composeTestRule.setContent {
             MyMoneyTheme {
@@ -46,7 +46,7 @@ class GoalEditContentUiTest {
     }
 
     @Test
-    fun `save button is displayed but disabled when canSave is false`() {
+    fun saveButtonIsDisplayedButDisabledWhenCanSaveIsFalse() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 GoalEditContent(
@@ -63,7 +63,7 @@ class GoalEditContentUiTest {
     }
 
     @Test
-    fun `save button becomes enabled when canSave transitions from false to true`() {
+    fun saveButtonBecomesEnabledWhenCanSaveTransitionsFromFalseToTrue() {
         val events = mutableListOf<GoalEditEvent>()
         composeTestRule.setContent {
             MyMoneyTheme {

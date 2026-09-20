@@ -19,7 +19,7 @@ class TransactionDateRangePickerDialogUiTest {
     val composeTestRule = createComposeRule()
 
     @Test
-    fun `applying without changing the selection emits the initial date`() {
+    fun applyingWithoutChangingTheSelectionEmitsTheInitialDate() {
         val pickedDates = mutableListOf<LocalDate>()
         var dismissCount = 0
         val initialDate = LocalDate.of(2026, 5, 17)
@@ -45,7 +45,7 @@ class TransactionDateRangePickerDialogUiTest {
     }
 
     @Test
-    fun `applying a picked date emits the selected concrete date`() {
+    fun applyingAPickedDateEmitsTheSelectedConcreteDate() {
         val pickedDates = mutableListOf<LocalDate>()
         var dismissCount = 0
         val initialDate = LocalDate.of(2026, 5, 17)

@@ -28,7 +28,7 @@ class AllAccountsConversionDialogHostUiTest {
     // -------------------------------------------------------------------------
 
     @Test
-    fun `mode dialog shows title and both action buttons`() {
+    fun modeDialogShowsTitleAndBothActionButtons() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 AllAccountsConversionDialogHost(
@@ -59,7 +59,7 @@ class AllAccountsConversionDialogHostUiTest {
     }
 
     @Test
-    fun `tapping convert button invokes onConvertChosen`() {
+    fun tappingConvertButtonInvokesOnConvertChosen() {
         var convertChosen = false
 
         composeTestRule.setContent {
@@ -85,7 +85,7 @@ class AllAccountsConversionDialogHostUiTest {
     }
 
     @Test
-    fun `tapping separate button invokes onSeparateChosen`() {
+    fun tappingSeparateButtonInvokesOnSeparateChosen() {
         var separateChosen = false
 
         composeTestRule.setContent {
@@ -115,7 +115,7 @@ class AllAccountsConversionDialogHostUiTest {
     // -------------------------------------------------------------------------
 
     @Test
-    fun `target picker shows title and one row per currency`() {
+    fun targetPickerShowsTitleAndOneRowPerCurrency() {
         val usd = currency(id = 1L, code = "USD", name = "US Dollar")
         val eur = currency(id = 2L, code = "EUR", name = "Euro")
 
@@ -149,7 +149,7 @@ class AllAccountsConversionDialogHostUiTest {
     }
 
     @Test
-    fun `tapping a currency row invokes onTargetChosen with the correct currency id`() {
+    fun tappingACurrencyRowInvokesOnTargetChosenWithTheCorrectCurrencyId() {
         val usd = currency(id = 1L, code = "USD", name = "US Dollar")
         val eur = currency(id = 2L, code = "EUR", name = "Euro")
         var chosenId: Long? = null
@@ -181,7 +181,7 @@ class AllAccountsConversionDialogHostUiTest {
     // -------------------------------------------------------------------------
 
     @Test
-    fun `null dialog renders nothing`() {
+    fun nullDialogRendersNothing() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 AllAccountsConversionDialogHost(
@@ -209,7 +209,7 @@ class AllAccountsConversionDialogHostUiTest {
     // -------------------------------------------------------------------------
 
     @Test
-    fun `rate confirm dialog calls onRatesConfirmed with source currency id mapped from row index`() {
+    fun rateConfirmDialogCallsOnRatesConfirmedWithSourceCurrencyIdMappedFromRowIndex() {
         val eurId = 2L
         val rateRow =
             com.kshavrin.mymoney.core.designsystem.dialog.RateRow(

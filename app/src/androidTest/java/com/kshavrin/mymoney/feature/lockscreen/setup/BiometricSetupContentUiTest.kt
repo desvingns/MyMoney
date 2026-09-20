@@ -25,7 +25,7 @@ class BiometricSetupContentUiTest {
     val composeTestRule = createComposeRule()
 
     @Test
-    fun `back button invokes biometric setup back callback`() {
+    fun backButtonInvokesBiometricSetupBackCallback() {
         var backed = false
 
         setContent(onBack = { backed = true })
@@ -40,7 +40,7 @@ class BiometricSetupContentUiTest {
     }
 
     @Test
-    fun `available enable switch emits enable event`() {
+    fun availableEnableSwitchEmitsEnableEvent() {
         val events = mutableListOf<BiometricSetupEvent>()
 
         setContent(onEvent = events::add)
@@ -60,7 +60,7 @@ class BiometricSetupContentUiTest {
     }
 
     @Test
-    fun `no biometric hardware disables toggle`() {
+    fun noBiometricHardwareDisablesToggle() {
         setContent(
             state = BiometricSetupState(availability = BiometricAvailability.NoHardware),
         )
@@ -74,7 +74,7 @@ class BiometricSetupContentUiTest {
     }
 
     @Test
-    fun `not enrolled text opens system settings and disables toggle`() {
+    fun notEnrolledTextOpensSystemSettingsAndDisablesToggle() {
         var openedSettings = false
 
         setContent(
@@ -96,7 +96,7 @@ class BiometricSetupContentUiTest {
     }
 
     @Test
-    fun `idle timeout row emits selected timeout`() {
+    fun idleTimeoutRowEmitsSelectedTimeout() {
         val events = mutableListOf<BiometricSetupEvent>()
 
         setContent(
@@ -123,7 +123,7 @@ class BiometricSetupContentUiTest {
     }
 
     @Test
-    fun `pin setup keypad confirms four digits and supports backspace`() {
+    fun pinSetupKeypadConfirmsFourDigitsAndSupportsBackspace() {
         val events = mutableListOf<BiometricSetupEvent>()
 
         setContent(

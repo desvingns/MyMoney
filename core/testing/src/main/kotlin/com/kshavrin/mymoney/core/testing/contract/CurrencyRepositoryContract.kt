@@ -13,7 +13,7 @@ abstract class CurrencyRepositoryContract {
     protected abstract fun createRepository(): CurrencyRepository
 
     @Test
-    fun `upsert assigns an id and makes a currency findable by id and code`() =
+    fun upsertAssignsAnIdAndMakesACurrencyFindableByIdAndCode() =
         runTest {
             val repository = createRepository()
             val id = repository.upsert(currency(code = "USD"))
@@ -24,7 +24,7 @@ abstract class CurrencyRepositoryContract {
         }
 
     @Test
-    fun `observe all contains inactive currencies ordered by sort order`() =
+    fun observeAllContainsInactiveCurrenciesOrderedBySortOrder() =
         runTest {
             val repository = createRepository()
             repository.upsertAll(
@@ -38,7 +38,7 @@ abstract class CurrencyRepositoryContract {
         }
 
     @Test
-    fun `observe active excludes inactive currencies`() =
+    fun observeActiveExcludesInactiveCurrencies() =
         runTest {
             val repository = createRepository()
             repository.upsertAll(
@@ -52,7 +52,7 @@ abstract class CurrencyRepositoryContract {
         }
 
     @Test
-    fun `set active updates active observation without removing the currency`() =
+    fun setActiveUpdatesActiveObservationWithoutRemovingTheCurrency() =
         runTest {
             val repository = createRepository()
             repository.upsert(currency(id = 10L, code = "USD", isActive = true))

@@ -49,7 +49,7 @@ class LockOverlayUiTest {
     }
 
     @Test
-    fun `biometric negative button fallback enters pin path when a pin exists`() {
+    fun biometricNegativeButtonFallbackEntersPinPathWhenAPinExists() {
         secureStorage.writePinHash(pinHasher.hash("1234"))
         var unlockCount = 0
 
@@ -76,7 +76,7 @@ class LockOverlayUiTest {
     }
 
     @Test
-    fun `legacy pinless fallback shows retry biometric instead of dead keypad`() {
+    fun legacyPinlessFallbackShowsRetryBiometricInsteadOfDeadKeypad() {
         secureStorage.writePinHash(null)
 
         setOverlayContent(
@@ -104,7 +104,7 @@ class LockOverlayUiTest {
     }
 
     @Test
-    fun `pin fallback survives saveable restoration in fragment activity context`() {
+    fun pinFallbackSurvivesSaveableRestorationInFragmentActivityContext() {
         secureStorage.writePinHash(pinHasher.hash("1234"))
         val restorationTester = StateRestorationTester(composeRule)
         var launchCount = 0

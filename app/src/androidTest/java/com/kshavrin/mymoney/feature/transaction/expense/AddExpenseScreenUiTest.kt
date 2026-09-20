@@ -44,7 +44,7 @@ class AddExpenseScreenUiTest {
     val composeTestRule = createComposeRule().apply { enableAccessibilityChecks() }
 
     @Test
-    fun `default amount step shows keypad and hides category grid`() {
+    fun defaultAmountStepShowsKeypadAndHidesCategoryGrid() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 AddExpenseScreen(
@@ -76,17 +76,17 @@ class AddExpenseScreenUiTest {
     }
 
     @Test
-    fun `add expense form remains usable at font scale 1 point 5`() {
+    fun addExpenseFormRemainsUsableAtFontScale1Point5() {
         assertAddExpenseFormAtFontScale(1.5f)
     }
 
     @Test
-    fun `add expense form remains usable at font scale 2`() {
+    fun addExpenseFormRemainsUsableAtFontScale2() {
         assertAddExpenseFormAtFontScale(2f)
     }
 
     @Test
-    fun `choose category emits select category event`() {
+    fun chooseCategoryEmitsSelectCategoryEvent() {
         val capturedEvents = mutableListOf<AddExpenseEvent>()
 
         composeTestRule.setContent {
@@ -111,7 +111,7 @@ class AddExpenseScreenUiTest {
     }
 
     @Test
-    fun `keypad calculation buttons emit expense input events in order`() {
+    fun keypadCalculationButtonsEmitExpenseInputEventsInOrder() {
         val capturedEvents = mutableListOf<AddExpenseEvent>()
 
         composeTestRule.setContent {
@@ -146,7 +146,7 @@ class AddExpenseScreenUiTest {
     }
 
     @Test
-    fun `keypad operator buttons emit the full expense keypad contract`() {
+    fun keypadOperatorButtonsEmitTheFullExpenseKeypadContract() {
         val capturedEvents = mutableListOf<AddExpenseEvent>()
 
         composeTestRule.setContent {
@@ -180,7 +180,7 @@ class AddExpenseScreenUiTest {
     }
 
     @Test
-    fun `keypad backspace emits expense backspace event`() {
+    fun keypadBackspaceEmitsExpenseBackspaceEvent() {
         val capturedEvents = mutableListOf<AddExpenseEvent>()
 
         composeTestRule.setContent {
@@ -204,7 +204,7 @@ class AddExpenseScreenUiTest {
     }
 
     @Test
-    fun `category step amount field emits back to amount event`() {
+    fun categoryStepAmountFieldEmitsBackToAmountEvent() {
         val capturedEvents = mutableListOf<AddExpenseEvent>()
 
         composeTestRule.setContent {
@@ -244,7 +244,7 @@ class AddExpenseScreenUiTest {
     }
 
     @Test
-    fun `top bar controls emit back then swap events in order`() {
+    fun topBarControlsEmitBackThenSwapEventsInOrder() {
         val capturedEvents = mutableListOf<AddExpenseEvent>()
 
         composeTestRule.setContent {
@@ -278,7 +278,7 @@ class AddExpenseScreenUiTest {
     }
 
     @Test
-    fun `applying a picked date emits the selected expense date event`() {
+    fun applyingAPickedDateEmitsTheSelectedExpenseDateEvent() {
         val capturedEvents = mutableListOf<AddExpenseEvent>()
         val initialDate = LocalDate.of(2026, 5, 17)
         val selectedDate = initialDate.plusDays(1)
@@ -307,7 +307,7 @@ class AddExpenseScreenUiTest {
     }
 
     @Test
-    fun `entering a note emits expense note changed event`() {
+    fun enteringANoteEmitsExpenseNoteChangedEvent() {
         val capturedEvents = mutableListOf<AddExpenseEvent>()
 
         composeTestRule.setContent {
@@ -329,7 +329,7 @@ class AddExpenseScreenUiTest {
     }
 
     @Test
-    fun `category cell emits picked event`() {
+    fun categoryCellEmitsPickedEvent() {
         val capturedEvents = mutableListOf<AddExpenseEvent>()
 
         composeTestRule.setContent {
@@ -361,7 +361,7 @@ class AddExpenseScreenUiTest {
     // ---- Regression: New mode must NOT show the in-form delete button (Edit mode only) --------
 
     @Test
-    fun `New mode expense form does not show the in-form delete button`() {
+    fun newModeExpenseFormDoesNotShowTheInFormDeleteButton() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 AddExpenseScreen(
@@ -377,7 +377,7 @@ class AddExpenseScreenUiTest {
     }
 
     @Test
-    fun `add category cell emits add event`() {
+    fun addCategoryCellEmitsAddEvent() {
         val capturedEvents = mutableListOf<AddExpenseEvent>()
 
         composeTestRule.setContent {

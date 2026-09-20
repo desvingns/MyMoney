@@ -43,7 +43,7 @@ class RingCenterContentUiTest {
     val composeTestRule = createComposeRule()
 
     @Test
-    fun `period net is rounded for display while source money stays unchanged`() {
+    fun periodNetIsRoundedForDisplayWhileSourceMoneyStaysUnchanged() {
         val locale = Locale.forLanguageTag("ru-RU")
         val periodNet = money("37650.49")
 
@@ -66,7 +66,7 @@ class RingCenterContentUiTest {
     }
 
     @Test
-    fun `income and expense badge shows both integer fixture amounts`() {
+    fun incomeAndExpenseBadgeShowsBothIntegerFixtureAmounts() {
         val locale = Locale.forLanguageTag("ru-RU")
         val context = localizedContext(locale)
         setLocalizedContent(locale) {
@@ -87,7 +87,7 @@ class RingCenterContentUiTest {
     }
 
     @Test
-    fun `english resources are visible in the ring center`() {
+    fun englishResourcesAreVisibleInTheRingCenter() {
         val locale = Locale.US
         val context = localizedContext(locale)
 
@@ -110,7 +110,7 @@ class RingCenterContentUiTest {
     }
 
     @Test
-    fun `long content shrinks deterministically and remains inside a narrow inner box`() {
+    fun longContentShrinksDeterministicallyAndRemainsInsideANarrowInnerBox() {
         val locale = Locale.US
         val longNet = money("1234567")
 
@@ -151,7 +151,7 @@ class RingCenterContentUiTest {
     }
 
     @Test
-    fun `complete two line badge stays ordered and bounded in narrow content`() {
+    fun completeTwoLineBadgeStaysOrderedAndBoundedInNarrowContent() {
         val locale = Locale.US
         val context = localizedContext(locale)
         val income = context.getString(R.string.dashboard_ring_income, formattedAmount("85000", locale))
@@ -177,7 +177,7 @@ class RingCenterContentUiTest {
     }
 
     @Test
-    fun `badge fills the lower zone with divider and stays read only`() {
+    fun badgeFillsTheLowerZoneWithDividerAndStaysReadOnly() {
         val locale = Locale.US
         val context = localizedContext(locale)
         val periodNetText = formattedAmount("37650.49", locale)

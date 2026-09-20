@@ -12,13 +12,13 @@ abstract class AppSettingsRepositoryContract {
     protected abstract fun createRepository(): AppSettingsRepository
 
     @Test
-    fun `new repository exposes default settings`() =
+    fun newRepositoryExposesDefaultSettings() =
         runTest {
             assertEquals(AppSettings(), createRepository().settings.first())
         }
 
     @Test
-    fun `update publishes the transformed settings`() =
+    fun updatePublishesTheTransformedSettings() =
         runTest {
             val repository = createRepository()
 
@@ -45,7 +45,7 @@ abstract class AppSettingsRepositoryContract {
         }
 
     @Test
-    fun `reset restores default settings`() =
+    fun resetRestoresDefaultSettings() =
         runTest {
             val repository = createRepository()
             repository.update { it.copy(language = "ru", firstPositiveSeen = true) }
@@ -56,7 +56,7 @@ abstract class AppSettingsRepositoryContract {
         }
 
     @Test
-    fun `first positive seen cannot change from true to false`() =
+    fun firstPositiveSeenCannotChangeFromTrueToFalse() =
         runTest {
             val repository = createRepository()
             repository.update { it.copy(firstPositiveSeen = true) }

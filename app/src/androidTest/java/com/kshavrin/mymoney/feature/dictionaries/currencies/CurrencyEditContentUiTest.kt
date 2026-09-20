@@ -134,7 +134,7 @@ class CurrencyEditContentUiTest {
     }
 
     @Test
-    fun `save button is displayed at bottom and emits SaveClicked in create mode`() {
+    fun saveButtonIsDisplayedAtBottomAndEmitsSaveClickedInCreateMode() {
         val events = mutableListOf<CurrencyEditEvent>()
         composeTestRule.setContent {
             MyMoneyTheme {
@@ -156,7 +156,7 @@ class CurrencyEditContentUiTest {
     }
 
     @Test
-    fun `delete button is present in body in edit mode and save is also displayed`() {
+    fun deleteButtonIsPresentInBodyInEditModeAndSaveIsAlsoDisplayed() {
         val events = mutableListOf<CurrencyEditEvent>()
         composeTestRule.setContent {
             MyMoneyTheme {

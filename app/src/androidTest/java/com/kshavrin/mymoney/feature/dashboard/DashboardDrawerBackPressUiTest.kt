@@ -20,7 +20,7 @@ class DashboardDrawerBackPressUiTest {
     val composeTestRule = createAndroidComposeRule<ComponentActivity>()
 
     @Test
-    fun `system back dismisses the left drawer and closes both drawer flags`() {
+    fun systemBackDismissesTheLeftDrawerAndClosesBothDrawerFlags() {
         val capturedEvents = mutableListOf<DashboardEvent>()
         val currentState =
             setStatefulDashboardContent(
@@ -39,7 +39,7 @@ class DashboardDrawerBackPressUiTest {
     }
 
     @Test
-    fun `system back dismisses the right drawer and closes both drawer flags`() {
+    fun systemBackDismissesTheRightDrawerAndClosesBothDrawerFlags() {
         val capturedEvents = mutableListOf<DashboardEvent>()
         val currentState =
             setStatefulDashboardContent(

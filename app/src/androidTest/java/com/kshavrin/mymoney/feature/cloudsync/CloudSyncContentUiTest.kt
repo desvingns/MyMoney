@@ -51,7 +51,7 @@ class CloudSyncContentUiTest {
     @get:Rule val composeTestRule = createComposeRule()
 
     @Test
-    fun `active invalid binding still shows disconnect`() {
+    fun activeInvalidBindingStillShowsDisconnect() {
         val events = mutableListOf<CloudSyncEvent>()
         setContent(
             CloudSyncState(
@@ -69,7 +69,7 @@ class CloudSyncContentUiTest {
     }
 
     @Test
-    fun `switch control emits target and no folder text field exists`() {
+    fun switchControlEmitsTargetAndNoFolderTextFieldExists() {
         val events = mutableListOf<CloudSyncEvent>()
         setContent(
             CloudSyncState(
@@ -85,7 +85,7 @@ class CloudSyncContentUiTest {
     }
 
     @Test
-    fun `migration review buttons emit explicit resolutions`() {
+    fun migrationReviewButtonsEmitExplicitResolutions() {
         val events = mutableListOf<CloudSyncEvent>()
         setContent(CloudSyncState(migration = MigrationUiState.Reviewing(SyncTarget.GoogleDrive, 2)), events::add)
         composeTestRule.onNodeWithText(targetString(R.string.sync_migration_use_target)).performClick()
@@ -102,7 +102,7 @@ class CloudSyncContentUiTest {
     }
 
     @Test
-    fun `active Shared card exposes invite code copy and dismiss controls`() {
+    fun activeSharedCardExposesInviteCodeCopyAndDismissControls() {
         val fixture = sharedInviteFixture()
 
         composeTestRule.setContent {
@@ -133,7 +133,7 @@ class CloudSyncContentUiTest {
     }
 
     @Test
-    fun `CloudSyncRoute copies invite token to the system clipboard`() {
+    fun cloudSyncRouteCopiesInviteTokenToTheSystemClipboard() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val viewModel = inviteViewModel()
 

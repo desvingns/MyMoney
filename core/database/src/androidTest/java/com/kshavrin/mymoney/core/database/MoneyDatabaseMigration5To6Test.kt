@@ -28,7 +28,7 @@ class MoneyDatabaseMigration5To6Test {
         )
 
     @Test
-    fun `migrate 5 to 6 inserts KZT currency`() {
+    fun migrate5To6InsertsKZTCurrency() {
         helper.createDatabase(dbName, 5).apply { close() }
 
         val db = helper.runMigrationsAndValidate(dbName, 6, true, MIGRATION_5_6)
@@ -47,7 +47,7 @@ class MoneyDatabaseMigration5To6Test {
     }
 
     @Test
-    fun `migrate 5 to 6 inserts AED currency`() {
+    fun migrate5To6InsertsAEDCurrency() {
         helper.createDatabase(dbName, 5).apply { close() }
 
         val db = helper.runMigrationsAndValidate(dbName, 6, true, MIGRATION_5_6)
@@ -66,7 +66,7 @@ class MoneyDatabaseMigration5To6Test {
     }
 
     @Test
-    fun `migrate 5 to 6 inserts five EUR-based rates`() {
+    fun migrate5To6InsertsFiveEURBasedRates() {
         helper.createDatabase(dbName, 5).apply {
             seedRequiredCurrencies()
             close()
@@ -105,7 +105,7 @@ class MoneyDatabaseMigration5To6Test {
     }
 
     @Test
-    fun `migrate 5 to 6 EUR to USD rate matches snapshot value`() {
+    fun migrate5To6EURToUSDRateMatchesSnapshotValue() {
         helper.createDatabase(dbName, 5).apply {
             seedRequiredCurrencies()
             close()
@@ -119,7 +119,7 @@ class MoneyDatabaseMigration5To6Test {
     }
 
     @Test
-    fun `migrate 5 to 6 EUR to RUB rate matches snapshot value`() {
+    fun migrate5To6EURToRUBRateMatchesSnapshotValue() {
         helper.createDatabase(dbName, 5).apply {
             seedRequiredCurrencies()
             close()
@@ -133,7 +133,7 @@ class MoneyDatabaseMigration5To6Test {
     }
 
     @Test
-    fun `migrate 5 to 6 EUR to RSD rate matches snapshot value`() {
+    fun migrate5To6EURToRSDRateMatchesSnapshotValue() {
         helper.createDatabase(dbName, 5).apply {
             seedRequiredCurrencies()
             close()
@@ -147,7 +147,7 @@ class MoneyDatabaseMigration5To6Test {
     }
 
     @Test
-    fun `migrate 5 to 6 EUR to KZT rate matches snapshot value`() {
+    fun migrate5To6EURToKZTRateMatchesSnapshotValue() {
         helper.createDatabase(dbName, 5).apply {
             seedRequiredCurrencies()
             close()
@@ -161,7 +161,7 @@ class MoneyDatabaseMigration5To6Test {
     }
 
     @Test
-    fun `migrate 5 to 6 EUR to AED rate matches snapshot value`() {
+    fun migrate5To6EURToAEDRateMatchesSnapshotValue() {
         helper.createDatabase(dbName, 5).apply {
             seedRequiredCurrencies()
             close()
@@ -175,7 +175,7 @@ class MoneyDatabaseMigration5To6Test {
     }
 
     @Test
-    fun `migrate 5 to 6 is idempotent for KZT and AED currencies`() {
+    fun migrate5To6IsIdempotentForKZTAndAEDCurrencies() {
         helper.createDatabase(dbName, 5).apply {
             execSQL(
                 "INSERT OR IGNORE INTO `currency` " +
@@ -201,7 +201,7 @@ class MoneyDatabaseMigration5To6Test {
     }
 
     @Test
-    fun `migrate 5 to 6 does not create duplicate rates when run twice`() {
+    fun migrate5To6DoesNotCreateDuplicateRatesWhenRunTwice() {
         helper.createDatabase(dbName, 5).apply {
             seedRequiredCurrencies()
             close()
@@ -220,7 +220,7 @@ class MoneyDatabaseMigration5To6Test {
     }
 
     @Test
-    fun `migrate 5 to 6 does not affect pre-existing currencies`() {
+    fun migrate5To6DoesNotAffectPreExistingCurrencies() {
         helper.createDatabase(dbName, 5).apply {
             seedRequiredCurrencies()
             close()

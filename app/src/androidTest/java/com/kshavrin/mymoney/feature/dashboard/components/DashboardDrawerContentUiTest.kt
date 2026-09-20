@@ -37,7 +37,7 @@ class DashboardDrawerContentUiTest {
     val composeTestRule = createComposeRule()
 
     @Test
-    fun `right drawer entries remain exposed and clickable after icon over label restyle`() {
+    fun rightDrawerEntriesRemainExposedAndClickableAfterIconOverLabelRestyle() {
         val capturedEvents = mutableListOf<DashboardEvent>()
         val entries =
             listOf(
@@ -72,7 +72,7 @@ class DashboardDrawerContentUiTest {
     }
 
     @Test
-    fun `left drawer currency header expands to account selection and all accounts row is selectable`() {
+    fun leftDrawerCurrencyHeaderExpandsToAccountSelectionAndAllAccountsRowIsSelectable() {
         val capturedEvents = mutableListOf<DashboardEvent>()
         val currency = currency()
         val cash = account(id = 1L, name = "Cash")
@@ -142,7 +142,7 @@ class DashboardDrawerContentUiTest {
     }
 
     @Test
-    fun `left drawer marks all accounts selected and emits all accounts event when tapped`() {
+    fun leftDrawerMarksAllAccountsSelectedAndEmitsAllAccountsEventWhenTapped() {
         val capturedEvents = mutableListOf<DashboardEvent>()
         val currency = currency()
         val cash = account(id = 1L, name = "Cash")

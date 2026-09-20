@@ -24,7 +24,7 @@ class ThemeSettingsContentUiTest {
     val composeTestRule = createComposeRule()
 
     @Test
-    fun `back button invokes theme settings back callback`() {
+    fun backButtonInvokesThemeSettingsBackCallback() {
         var backed = false
 
         setContent(onBack = { backed = true })
@@ -39,7 +39,7 @@ class ThemeSettingsContentUiTest {
     }
 
     @Test
-    fun `theme mode rows reflect selected state and emit mode selection events`() {
+    fun themeModeRowsReflectSelectedStateAndEmitModeSelectionEvents() {
         val emitted = mutableListOf<ThemeSettingsEvent>()
 
         setContent(

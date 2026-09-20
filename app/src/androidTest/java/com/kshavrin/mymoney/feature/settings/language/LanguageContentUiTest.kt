@@ -23,7 +23,7 @@ class LanguageContentUiTest {
     val composeTestRule = createComposeRule()
 
     @Test
-    fun `back button invokes language settings back callback`() {
+    fun backButtonInvokesLanguageSettingsBackCallback() {
         var backed = false
 
         setContent(onBack = { backed = true })
@@ -38,7 +38,7 @@ class LanguageContentUiTest {
     }
 
     @Test
-    fun `language rows reflect selected state and emit language selection events`() {
+    fun languageRowsReflectSelectedStateAndEmitLanguageSelectionEvents() {
         val emitted = mutableListOf<LanguageEvent>()
 
         setContent(

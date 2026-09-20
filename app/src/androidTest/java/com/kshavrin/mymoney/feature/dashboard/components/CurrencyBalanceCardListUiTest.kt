@@ -82,7 +82,7 @@ class CurrencyBalanceCardListUiTest {
     // -----------------------------------------------------------------------
 
     @Test
-    fun `empty card list renders the currency cards container tag without any children`() {
+    fun emptyCardListRendersTheCurrencyCardsContainerTagWithoutAnyChildren() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 CurrencyBalanceCardList(
@@ -102,7 +102,7 @@ class CurrencyBalanceCardListUiTest {
     // -----------------------------------------------------------------------
 
     @Test
-    fun `single currency card shows the currency code`() {
+    fun singleCurrencyCardShowsTheCurrencyCode() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 CurrencyBalanceCardList(
@@ -121,7 +121,7 @@ class CurrencyBalanceCardListUiTest {
     // -----------------------------------------------------------------------
 
     @Test
-    fun `single currency card has a per-card container tag derived from the currency code`() {
+    fun singleCurrencyCardHasAPerCardContainerTagDerivedFromTheCurrencyCode() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 CurrencyBalanceCardList(
@@ -137,7 +137,7 @@ class CurrencyBalanceCardListUiTest {
     }
 
     @Test
-    fun `single currency card keeps the wide centered aurora container`() {
+    fun singleCurrencyCardKeepsTheWideCenteredAuroraContainer() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 CurrencyBalanceCardList(
@@ -163,7 +163,7 @@ class CurrencyBalanceCardListUiTest {
     // -----------------------------------------------------------------------
 
     @Test
-    fun `single currency card shows the formatted net balance amount`() {
+    fun singleCurrencyCardShowsTheFormattedNetBalanceAmount() {
         val net = BigDecimal("70.50")
 
         composeTestRule.setContent {
@@ -179,7 +179,7 @@ class CurrencyBalanceCardListUiTest {
     }
 
     @Test
-    fun `single currency card balance uses the compact 26sp typography token`() {
+    fun singleCurrencyCardBalanceUsesTheCompact26spTypographyToken() {
         val expected = formatAmount(BigDecimal("70.50"), usd)
 
         composeTestRule.setContent {
@@ -203,7 +203,7 @@ class CurrencyBalanceCardListUiTest {
     // -----------------------------------------------------------------------
 
     @Test
-    fun `single currency card income pill contains the formatted income amount`() {
+    fun singleCurrencyCardIncomePillContainsTheFormattedIncomeAmount() {
         val income = BigDecimal("100.99")
 
         composeTestRule.setContent {
@@ -222,7 +222,7 @@ class CurrencyBalanceCardListUiTest {
     }
 
     @Test
-    fun `single currency card expense pill contains the formatted expense amount`() {
+    fun singleCurrencyCardExpensePillContainsTheFormattedExpenseAmount() {
         val expense = BigDecimal("30.49")
 
         composeTestRule.setContent {
@@ -241,7 +241,7 @@ class CurrencyBalanceCardListUiTest {
     }
 
     @Test
-    fun `single currency card income pill text starts with the up-arrow prefix`() {
+    fun singleCurrencyCardIncomePillTextStartsWithTheUpArrowPrefix() {
         val income = BigDecimal("100.99")
 
         composeTestRule.setContent {
@@ -260,7 +260,7 @@ class CurrencyBalanceCardListUiTest {
     }
 
     @Test
-    fun `single currency card expense pill text starts with the down-arrow prefix`() {
+    fun singleCurrencyCardExpensePillTextStartsWithTheDownArrowPrefix() {
         val expense = BigDecimal("30.49")
 
         composeTestRule.setContent {
@@ -282,7 +282,7 @@ class CurrencyBalanceCardListUiTest {
     // -----------------------------------------------------------------------
 
     @Test
-    fun `currency card figures are in the card currency with no conversion`() {
+    fun currencyCardFiguresAreInTheCardCurrencyWithNoConversion() {
         // EUR card: income 50 EUR, expense 20 EUR, net 30 EUR.
         // If ConvertMoneyUseCase were called, figures would differ.
         val income = BigDecimal("50.75")
@@ -311,7 +311,7 @@ class CurrencyBalanceCardListUiTest {
     }
 
     @Test
-    fun `negative net balance is truncated toward zero instead of rounded away`() {
+    fun negativeNetBalanceIsTruncatedTowardZeroInsteadOfRoundedAway() {
         val expectedNet = formatAmount(BigDecimal("-1234.56"), usd)
         val expectedExpense = formatAmount(BigDecimal("1334.56"), usd)
 
@@ -334,7 +334,7 @@ class CurrencyBalanceCardListUiTest {
     // -----------------------------------------------------------------------
 
     @Test
-    fun `two currency cards render both currency codes`() {
+    fun twoCurrencyCardsRenderBothCurrencyCodes() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 CurrencyBalanceCardList(
@@ -352,7 +352,7 @@ class CurrencyBalanceCardListUiTest {
     }
 
     @Test
-    fun `two currency cards each have their own per-card container tag`() {
+    fun twoCurrencyCardsEachHaveTheirOwnPerCardContainerTag() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 CurrencyBalanceCardList(
@@ -378,7 +378,7 @@ class CurrencyBalanceCardListUiTest {
     // -----------------------------------------------------------------------
 
     @Test
-    fun `two currency cards render two income pills and two expense pills`() {
+    fun twoCurrencyCardsRenderTwoIncomePillsAndTwoExpensePills() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 CurrencyBalanceCardList(
@@ -412,7 +412,7 @@ class CurrencyBalanceCardListUiTest {
     // -----------------------------------------------------------------------
 
     @Test
-    fun `mini trend chart is shown when chart is visible and the card has trend points`() {
+    fun miniTrendChartIsShownWhenChartIsVisibleAndTheCardHasTrendPoints() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 CurrencyBalanceCardList(
@@ -428,7 +428,7 @@ class CurrencyBalanceCardListUiTest {
     }
 
     @Test
-    fun `mini trend chart is hidden when the chart is disabled in settings`() {
+    fun miniTrendChartIsHiddenWhenTheChartIsDisabledInSettings() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 CurrencyBalanceCardList(
@@ -444,7 +444,7 @@ class CurrencyBalanceCardListUiTest {
     }
 
     @Test
-    fun `mini trend chart is absent when the card carries no trend points`() {
+    fun miniTrendChartIsAbsentWhenTheCardCarriesNoTrendPoints() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 CurrencyBalanceCardList(
@@ -460,7 +460,7 @@ class CurrencyBalanceCardListUiTest {
     }
 
     @Test
-    fun `mini trend chart appears only for the card that has trend points when two cards are present`() {
+    fun miniTrendChartAppearsOnlyForTheCardThatHasTrendPointsWhenTwoCardsArePresent() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 CurrencyBalanceCardList(
@@ -483,7 +483,7 @@ class CurrencyBalanceCardListUiTest {
     }
 
     @Test
-    fun `two cards with trend points both render a mini chart`() {
+    fun twoCardsWithTrendPointsBothRenderAMiniChart() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 CurrencyBalanceCardList(
@@ -503,7 +503,7 @@ class CurrencyBalanceCardListUiTest {
     }
 
     @Test
-    fun `CurrencyBalanceCardList renders the full mini chart matrix`() {
+    fun currencyBalanceCardListRendersTheFullMiniChartMatrix() {
         val capture = startMiniChartMatrixCapture()
 
         ChartStyle.entries.forEach { style ->

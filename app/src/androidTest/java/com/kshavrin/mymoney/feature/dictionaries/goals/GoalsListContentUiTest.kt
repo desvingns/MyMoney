@@ -53,7 +53,7 @@ class GoalsListContentUiTest {
         )
 
     @Test
-    fun `empty state shows the empty message and the add FAB`() {
+    fun emptyStateShowsTheEmptyMessageAndTheAddFAB() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 GoalsListContent(
@@ -72,7 +72,7 @@ class GoalsListContentUiTest {
     }
 
     @Test
-    fun `rows render goal name and variant chip for savings`() {
+    fun rowsRenderGoalNameAndVariantChipForSavings() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 GoalsListContent(
@@ -108,7 +108,7 @@ class GoalsListContentUiTest {
     }
 
     @Test
-    fun `rows render goal name and variant chip for credit`() {
+    fun rowsRenderGoalNameAndVariantChipForCredit() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 GoalsListContent(
@@ -144,7 +144,7 @@ class GoalsListContentUiTest {
     }
 
     @Test
-    fun `goal icon node is present for each row`() {
+    fun goalIconNodeIsPresentForEachRow() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 GoalsListContent(
@@ -166,7 +166,7 @@ class GoalsListContentUiTest {
     }
 
     @Test
-    fun `empty state does not show any row items`() {
+    fun emptyStateDoesNotShowAnyRowItems() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 GoalsListContent(
@@ -180,7 +180,7 @@ class GoalsListContentUiTest {
     }
 
     @Test
-    fun `FAB click emits AddClicked event`() {
+    fun fABClickEmitsAddClickedEvent() {
         val events = mutableListOf<GoalsListEvent>()
 
         composeTestRule.setContent {
@@ -202,7 +202,7 @@ class GoalsListContentUiTest {
     }
 
     @Test
-    fun `tapping a goal row emits ItemClicked with the correct id`() {
+    fun tappingAGoalRowEmitsItemClickedWithTheCorrectId() {
         val events = mutableListOf<GoalsListEvent>()
 
         composeTestRule.setContent {
@@ -225,7 +225,7 @@ class GoalsListContentUiTest {
     }
 
     @Test
-    fun `back button click emits BackClicked event`() {
+    fun backButtonClickEmitsBackClickedEvent() {
         val events = mutableListOf<GoalsListEvent>()
 
         composeTestRule.setContent {

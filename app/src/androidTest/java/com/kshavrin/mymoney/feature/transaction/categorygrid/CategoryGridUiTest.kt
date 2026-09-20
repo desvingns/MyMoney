@@ -24,7 +24,7 @@ class CategoryGridUiTest {
     val composeTestRule = createComposeRule()
 
     @Test
-    fun `category cell emits clicked id`() {
+    fun categoryCellEmitsClickedId() {
         val captured = mutableListOf<Long>()
 
         setContent(
@@ -48,7 +48,7 @@ class CategoryGridUiTest {
     }
 
     @Test
-    fun `add cell emits add click`() {
+    fun addCellEmitsAddClick() {
         var clicks = 0
 
         setContent(
@@ -67,7 +67,7 @@ class CategoryGridUiTest {
     }
 
     @Test
-    fun `add cell shows localized label`() {
+    fun addCellShowsLocalizedLabel() {
         setContent(categories = listOf(category(id = 1L, name = "Food")))
 
         composeTestRule
@@ -78,7 +78,7 @@ class CategoryGridUiTest {
     }
 
     @Test
-    fun `empty grid still shows the add cell`() {
+    fun emptyGridStillShowsTheAddCell() {
         var clicks = 0
 
         setContent(

@@ -37,7 +37,7 @@ class AddIncomeScreenUiTest {
     val composeTestRule = createComposeRule()
 
     @Test
-    fun `default income amount step shows keypad and hides category grid`() {
+    fun defaultIncomeAmountStepShowsKeypadAndHidesCategoryGrid() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 AddIncomeScreen(
@@ -63,7 +63,7 @@ class AddIncomeScreenUiTest {
     }
 
     @Test
-    fun `choose category emits income select category event`() {
+    fun chooseCategoryEmitsIncomeSelectCategoryEvent() {
         val capturedEvents = mutableListOf<AddIncomeEvent>()
 
         composeTestRule.setContent {
@@ -86,7 +86,7 @@ class AddIncomeScreenUiTest {
     }
 
     @Test
-    fun `keypad calculation buttons emit income input events in order`() {
+    fun keypadCalculationButtonsEmitIncomeInputEventsInOrder() {
         val capturedEvents = mutableListOf<AddIncomeEvent>()
 
         composeTestRule.setContent {
@@ -119,7 +119,7 @@ class AddIncomeScreenUiTest {
     }
 
     @Test
-    fun `category step amount field emits income back to amount event`() {
+    fun categoryStepAmountFieldEmitsIncomeBackToAmountEvent() {
         val capturedEvents = mutableListOf<AddIncomeEvent>()
 
         composeTestRule.setContent {
@@ -155,7 +155,7 @@ class AddIncomeScreenUiTest {
     }
 
     @Test
-    fun `keypad operator buttons emit the full income keypad contract`() {
+    fun keypadOperatorButtonsEmitTheFullIncomeKeypadContract() {
         val capturedEvents = mutableListOf<AddIncomeEvent>()
 
         composeTestRule.setContent {
@@ -187,7 +187,7 @@ class AddIncomeScreenUiTest {
     }
 
     @Test
-    fun `top bar controls emit back then swap events in order`() {
+    fun topBarControlsEmitBackThenSwapEventsInOrder() {
         val capturedEvents = mutableListOf<AddIncomeEvent>()
 
         composeTestRule.setContent {
@@ -217,7 +217,7 @@ class AddIncomeScreenUiTest {
     }
 
     @Test
-    fun `keypad backspace emits income backspace event`() {
+    fun keypadBackspaceEmitsIncomeBackspaceEvent() {
         val capturedEvents = mutableListOf<AddIncomeEvent>()
 
         composeTestRule.setContent {
@@ -239,7 +239,7 @@ class AddIncomeScreenUiTest {
     }
 
     @Test
-    fun `applying a picked date emits the selected income date event`() {
+    fun applyingAPickedDateEmitsTheSelectedIncomeDateEvent() {
         val capturedEvents = mutableListOf<AddIncomeEvent>()
         val initialDate = LocalDate.of(2026, 5, 17)
         val selectedDate = initialDate.plusDays(1)
@@ -266,7 +266,7 @@ class AddIncomeScreenUiTest {
     }
 
     @Test
-    fun `entering a note emits income note changed event`() {
+    fun enteringANoteEmitsIncomeNoteChangedEvent() {
         val capturedEvents = mutableListOf<AddIncomeEvent>()
 
         composeTestRule.setContent {
@@ -288,7 +288,7 @@ class AddIncomeScreenUiTest {
     }
 
     @Test
-    fun `income category cell emits picked event`() {
+    fun incomeCategoryCellEmitsPickedEvent() {
         val capturedEvents = mutableListOf<AddIncomeEvent>()
 
         composeTestRule.setContent {
@@ -316,7 +316,7 @@ class AddIncomeScreenUiTest {
     }
 
     @Test
-    fun `income add category cell emits add event`() {
+    fun incomeAddCategoryCellEmitsAddEvent() {
         val capturedEvents = mutableListOf<AddIncomeEvent>()
 
         composeTestRule.setContent {
@@ -345,7 +345,7 @@ class AddIncomeScreenUiTest {
     // ---- Regression: New mode must NOT show the in-form delete button (Edit mode only) --------
 
     @Test
-    fun `New mode income form does not show the in-form delete button`() {
+    fun newModeIncomeFormDoesNotShowTheInFormDeleteButton() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 AddIncomeScreen(

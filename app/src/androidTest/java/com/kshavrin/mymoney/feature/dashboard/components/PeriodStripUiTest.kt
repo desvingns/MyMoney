@@ -42,7 +42,7 @@ class PeriodStripUiTest {
     }
 
     @Test
-    fun `pick a date keeps the selected custom range calendar days in america new york`() {
+    fun pickADateKeepsTheSelectedCustomRangeCalendarDaysInAmericaNewYork() {
         var selectedPeriod: Period? = null
         val currentMonth = LocalDate.now()
         val startDate = currentMonth.withDayOfMonth(10)
@@ -71,7 +71,7 @@ class PeriodStripUiTest {
     }
 
     @Test
-    fun `every period chip has a 48dp touch target`() {
+    fun everyPeriodChipHasA48dpTouchTarget() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 PeriodStrip(

@@ -75,7 +75,7 @@ class JournalApplierTest {
     // ─── remote Upsert create ──────────────────────────────────────────────
 
     @Test
-    fun `remote upsert account with no local row creates account by uuid`() =
+    fun remoteUpsertAccountWithNoLocalRowCreatesAccountByUuid() =
         runTest {
             val accountUuid = "account-new-uuid"
             val op = accountUpsertOp(opId = "op-acc-1", uuid = accountUuid, name = "Remote Cash", updatedAtMs = T2)
@@ -89,7 +89,7 @@ class JournalApplierTest {
         }
 
     @Test
-    fun `remote upsert category with no local row creates category by uuid`() =
+    fun remoteUpsertCategoryWithNoLocalRowCreatesCategoryByUuid() =
         runTest {
             val categoryUuid = "category-new-uuid"
             val op = categoryUpsertOp(opId = "op-cat-1", uuid = categoryUuid, name = "Remote Food", updatedAtMs = T2)
@@ -104,7 +104,7 @@ class JournalApplierTest {
     // ─── LWW remote wins ───────────────────────────────────────────────────
 
     @Test
-    fun `remote edit wins by LWW when remote updatedAt is greater than local`() =
+    fun remoteEditWinsByLWWWhenRemoteUpdatedAtIsGreaterThanLocal() =
         runTest {
             val accountUuid = "account-lww-uuid"
             db.accountDao().upsert(
@@ -120,7 +120,7 @@ class JournalApplierTest {
         }
 
     @Test
-    fun `remote category edit wins by LWW when remote updatedAt is greater than local`() =
+    fun remoteCategoryEditWinsByLWWWhenRemoteUpdatedAtIsGreaterThanLocal() =
         runTest {
             val categoryUuid = "cat-lww-uuid"
             db.categoryDao().upsert(
@@ -138,7 +138,7 @@ class JournalApplierTest {
     // ─── stale remote does NOT clobber newer local ─────────────────────────
 
     @Test
-    fun `stale remote upsert does not overwrite newer local account`() =
+    fun staleRemoteUpsertDoesNotOverwriteNewerLocalAccount() =
         runTest {
             val accountUuid = "account-stale-uuid"
             db.accountDao().upsert(
@@ -154,7 +154,7 @@ class JournalApplierTest {
         }
 
     @Test
-    fun `stale remote upsert does not overwrite newer local category`() =
+    fun staleRemoteUpsertDoesNotOverwriteNewerLocalCategory() =
         runTest {
             val categoryUuid = "cat-stale-uuid"
             db.categoryDao().upsert(
@@ -172,7 +172,7 @@ class JournalApplierTest {
     // ─── idempotent re-apply ───────────────────────────────────────────────
 
     @Test
-    fun `applying same account batch twice yields no duplicate ops in journal`() =
+    fun applyingSameAccountBatchTwiceYieldsNoDuplicateOpsInJournal() =
         runTest {
             val accountUuid = "account-idem-uuid"
             val op = accountUpsertOp(opId = "op-idem-1", uuid = accountUuid, name = "Idempotent Account", updatedAtMs = T2)
@@ -189,7 +189,7 @@ class JournalApplierTest {
         }
 
     @Test
-    fun `applying same category batch twice yields no duplicate ops in journal`() =
+    fun applyingSameCategoryBatchTwiceYieldsNoDuplicateOpsInJournal() =
         runTest {
             val categoryUuid = "cat-idem-uuid"
             val op = categoryUpsertOp(opId = "op-cat-idem", uuid = categoryUuid, name = "Idempotent Cat", updatedAtMs = T2)
@@ -202,7 +202,7 @@ class JournalApplierTest {
         }
 
     @Test
-    fun `applying empty batch is a no-op`() =
+    fun applyingEmptyBatchIsANoOp() =
         runTest {
             applier.apply(emptyList())
 
@@ -213,7 +213,7 @@ class JournalApplierTest {
     // ─── loop-guard ────────────────────────────────────────────────────────
 
     @Test
-    fun `applied remote ops are marked appliedFromRemote and not returned by unsyncedLocal`() =
+    fun appliedRemoteOpsAreMarkedAppliedFromRemoteAndNotReturnedByUnsyncedLocal() =
         runTest {
             val accountUuid = "account-loop-uuid"
             val op = accountUpsertOp(opId = "op-loop-1", uuid = accountUuid, name = "Loop Guard Account", updatedAtMs = T2)
@@ -237,7 +237,7 @@ class JournalApplierTest {
         }
 
     @Test
-    fun `multiple remote accounts applied — none appear in unsyncedLocal`() =
+    fun multipleRemoteAccountsAppliedNoneAppearInUnsyncedLocal() =
         runTest {
             val ops =
                 listOf(
@@ -254,7 +254,7 @@ class JournalApplierTest {
     // ─── remote Delete as tombstone ─────────────────────────────────────────
 
     @Test
-    fun `remote delete account archives local row by uuid when delete timestamp wins LWW`() =
+    fun remoteDeleteAccountArchivesLocalRowByUuidWhenDeleteTimestampWinsLWW() =
         runTest {
             val accountUuid = "account-delete-uuid"
             db.accountDao().upsert(
@@ -273,7 +273,7 @@ class JournalApplierTest {
         }
 
     @Test
-    fun `remote delete category archives local row by uuid when delete timestamp wins LWW`() =
+    fun remoteDeleteCategoryArchivesLocalRowByUuidWhenDeleteTimestampWinsLWW() =
         runTest {
             val categoryUuid = "cat-delete-uuid"
             db.categoryDao().upsert(
@@ -292,7 +292,7 @@ class JournalApplierTest {
         }
 
     @Test
-    fun `stale remote delete does not archive account when local is newer`() =
+    fun staleRemoteDeleteDoesNotArchiveAccountWhenLocalIsNewer() =
         runTest {
             val accountUuid = "account-stale-del-uuid"
             db.accountDao().upsert(
@@ -311,7 +311,7 @@ class JournalApplierTest {
         }
 
     @Test
-    fun `remote delete transaction soft-deletes local row by uuid`() =
+    fun remoteDeleteTransactionSoftDeletesLocalRowByUuid() =
         runTest {
             val accountUuid = "acc-tx-del-uuid"
             val txUuid = "tx-delete-uuid"
@@ -337,7 +337,7 @@ class JournalApplierTest {
     // ─── FK-by-uuid ordering ────────────────────────────────────────────────
 
     @Test
-    fun `account and category ops applied before transaction in same batch`() =
+    fun accountAndCategoryOpsAppliedBeforeTransactionInSameBatch() =
         runTest {
             val accountUuid = "acc-fk-uuid"
             val categoryUuid = "cat-fk-uuid"
@@ -361,7 +361,7 @@ class JournalApplierTest {
         }
 
     @Test
-    fun `transaction is skipped when referenced account uuid is absent`() =
+    fun transactionIsSkippedWhenReferencedAccountUuidIsAbsent() =
         runTest {
             val txUuid = "tx-no-acc-uuid"
             val missingAccountUuid = "account-does-not-exist"
@@ -377,7 +377,7 @@ class JournalApplierTest {
         }
 
     @Test
-    fun `transaction with missing category uuid is still applied when category is optional`() =
+    fun transactionWithMissingCategoryUuidIsStillAppliedWhenCategoryIsOptional() =
         runTest {
             val accountUuid = "acc-opt-cat-uuid"
             val txUuid = "tx-no-cat-uuid"
@@ -393,7 +393,7 @@ class JournalApplierTest {
         }
 
     @Test
-    fun `transaction with present non-null category uuid that is missing is skipped`() =
+    fun transactionWithPresentNonNullCategoryUuidThatIsMissingIsSkipped() =
         runTest {
             val accountUuid = "acc-present-uuid"
             val txUuid = "tx-missing-cat-uuid"

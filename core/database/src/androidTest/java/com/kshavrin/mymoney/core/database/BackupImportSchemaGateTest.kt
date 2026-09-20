@@ -84,7 +84,7 @@ class BackupImportSchemaGateTest {
     }
 
     @Test
-    fun `import rejects a backup with a newer schema version`() =
+    fun importRejectsABackupWithANewerSchemaVersion() =
         runTest {
             val newer = createBackupFile(MoneyDatabase.SCHEMA_VERSION + 1)
 
@@ -95,7 +95,7 @@ class BackupImportSchemaGateTest {
         }
 
     @Test
-    fun `import does not touch the current database when rejecting a newer backup`() =
+    fun importDoesNotTouchTheCurrentDatabaseWhenRejectingANewerBackup() =
         runTest {
             db.currencyDao().upsert(
                 CurrencyEntity(
@@ -122,7 +122,7 @@ class BackupImportSchemaGateTest {
         }
 
     @Test
-    fun `import accepts a backup at the current schema version`() =
+    fun importAcceptsABackupAtTheCurrentSchemaVersion() =
         runTest {
             val same = createBackupFile(MoneyDatabase.SCHEMA_VERSION)
 
@@ -132,7 +132,7 @@ class BackupImportSchemaGateTest {
         }
 
     @Test
-    fun `legacy named export and import restores in memory data`() =
+    fun legacyNamedExportAndImportRestoresInMemoryData() =
         runTest {
             db.currencyDao().upsert(
                 CurrencyEntity(
@@ -174,7 +174,7 @@ class BackupImportSchemaGateTest {
         }
 
     @Test
-    fun `export reads neutral database and imports a legacy named backup`() =
+    fun exportReadsNeutralDatabaseAndImportsALegacyNamedBackup() =
         runTest {
             val currencyId =
                 db.currencyDao().upsert(

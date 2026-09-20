@@ -76,7 +76,7 @@ class AccountRepositoryImplDualWriteTest {
     }
 
     @Test
-    fun `setDefault journals each changed account row`() =
+    fun setDefaultJournalsEachChangedAccountRow() =
         runTest {
             val oldDefaultId =
                 db.accountDao().upsert(

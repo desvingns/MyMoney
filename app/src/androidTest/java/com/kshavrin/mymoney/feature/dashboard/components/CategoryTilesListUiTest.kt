@@ -32,7 +32,7 @@ class CategoryTilesListUiTest {
     val composeTestRule = createComposeRule().apply { enableAccessibilityChecks() }
 
     @Test
-    fun `tile shows label whole amount progress and emits tap`() {
+    fun tileShowsLabelWholeAmountProgressAndEmitsTap() {
         val tappedCategoryIds = mutableListOf<Long>()
         val tile =
             CategoryTileItem(
@@ -106,7 +106,7 @@ class CategoryTilesListUiTest {
     }
 
     @Test
-    fun `empty list shows localized empty state copy`() {
+    fun emptyListShowsLocalizedEmptyStateCopy() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 CategoryTilesList(

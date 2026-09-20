@@ -72,7 +72,7 @@ class CategoryEditContentUiTest {
     }
 
     @Test
-    fun `color picker is not present on the screen`() {
+    fun colorPickerIsNotPresentOnTheScreen() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 CategoryEditContent(
@@ -91,7 +91,7 @@ class CategoryEditContentUiTest {
     }
 
     @Test
-    fun `changing icon updates preview name text color`() {
+    fun changingIconUpdatesPreviewNameTextColor() {
         val events = mutableListOf<CategoryEditEvent>()
         composeTestRule.setContent {
             MyMoneyTheme {
@@ -173,7 +173,7 @@ class CategoryEditContentUiTest {
     }
 
     @Test
-    fun `save button is displayed at bottom and emits SaveClicked in create mode`() {
+    fun saveButtonIsDisplayedAtBottomAndEmitsSaveClickedInCreateMode() {
         val events = mutableListOf<CategoryEditEvent>()
         composeTestRule.setContent {
             MyMoneyTheme {
@@ -195,7 +195,7 @@ class CategoryEditContentUiTest {
     }
 
     @Test
-    fun `delete button is present in body in edit mode and save is also displayed`() {
+    fun deleteButtonIsPresentInBodyInEditModeAndSaveIsAlsoDisplayed() {
         val events = mutableListOf<CategoryEditEvent>()
         composeTestRule.setContent {
             MyMoneyTheme {

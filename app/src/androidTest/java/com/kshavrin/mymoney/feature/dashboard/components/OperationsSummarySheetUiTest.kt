@@ -36,7 +36,7 @@ class OperationsSummarySheetUiTest {
     val composeTestRule = createComposeRule()
 
     @Test
-    fun `mixed records show all-operations title and preserve supplied row order`() {
+    fun mixedRecordsShowAllOperationsTitleAndPreserveSuppliedRowOrder() {
         val records =
             listOf(
                 operationRecord(
@@ -117,7 +117,7 @@ class OperationsSummarySheetUiTest {
     }
 
     @Test
-    fun `category title mode shows supplied title and no transfer row route`() {
+    fun categoryTitleModeShowsSuppliedTitleAndNoTransferRowRoute() {
         val categoryTitle = targetString(R.string.dashboard_currency_card_expense)
 
         composeTestRule.setContent {
@@ -176,7 +176,7 @@ class OperationsSummarySheetUiTest {
     }
 
     @Test
-    fun `empty state exposes tagged placeholder container and empty-state copy`() {
+    fun emptyStateExposesTaggedPlaceholderContainerAndEmptyStateCopy() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 OperationsSummarySheet(
@@ -199,7 +199,7 @@ class OperationsSummarySheetUiTest {
     }
 
     @Test
-    fun `transactions list action is hidden when the summary context cannot be routed`() {
+    fun transactionsListActionIsHiddenWhenTheSummaryContextCannotBeRouted() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 OperationsSummarySheet(
@@ -220,7 +220,7 @@ class OperationsSummarySheetUiTest {
     }
 
     @Test
-    fun `tapping an offscreen row emits its id after scrolling into view`() {
+    fun tappingAnOffscreenRowEmitsItsIdAfterScrollingIntoView() {
         val clickedIds = mutableListOf<Long>()
         val records =
             (1L..24L).map { index ->
@@ -269,7 +269,7 @@ class OperationsSummarySheetUiTest {
     }
 
     @Test
-    fun `loading state exposes a progress indicator`() {
+    fun loadingStateExposesAProgressIndicator() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 OperationsSummarySheet(

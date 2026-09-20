@@ -24,7 +24,7 @@ class BackupRestoreContentUiTest {
     val composeTestRule = createComposeRule()
 
     @Test
-    fun `back button invokes backup restore back callback`() {
+    fun backButtonInvokesBackupRestoreBackCallback() {
         var backed = false
 
         setContent(onBack = { backed = true })
@@ -39,7 +39,7 @@ class BackupRestoreContentUiTest {
     }
 
     @Test
-    fun `idle backup restore action buttons invoke their callbacks`() {
+    fun idleBackupRestoreActionButtonsInvokeTheirCallbacks() {
         val invoked = mutableListOf<String>()
 
         setContent(
@@ -77,7 +77,7 @@ class BackupRestoreContentUiTest {
     }
 
     @Test
-    fun `backup restore action buttons are disabled while work is in progress`() {
+    fun backupRestoreActionButtonsAreDisabledWhileWorkIsInProgress() {
         setContent(state = BackupRestoreState(inProgress = true))
 
         listOf(
@@ -94,7 +94,7 @@ class BackupRestoreContentUiTest {
     }
 
     @Test
-    fun `reset confirmation dialog invokes cancel and confirm callbacks`() {
+    fun resetConfirmationDialogInvokesCancelAndConfirmCallbacks() {
         val invoked = mutableListOf<String>()
 
         setContent(
@@ -123,7 +123,7 @@ class BackupRestoreContentUiTest {
     }
 
     @Test
-    fun `backup restore error banner is displayed when present in state`() {
+    fun backupRestoreErrorBannerIsDisplayedWhenPresentInState() {
         setContent(state = BackupRestoreState(errorBannerRes = R.string.backup_error))
 
         composeTestRule

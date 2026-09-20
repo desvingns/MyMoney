@@ -88,7 +88,7 @@ class TypedNavigationDeviceTest {
     }
 
     @Test
-    fun `back from Dashboard opened via settings returns to Settings`() {
+    fun backFromDashboardOpenedViaSettingsReturnsToSettings() {
         lateinit var navController: TestNavHostController
 
         composeTestRule.setContent {

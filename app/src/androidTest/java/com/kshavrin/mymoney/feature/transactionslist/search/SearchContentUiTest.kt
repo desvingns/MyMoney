@@ -46,7 +46,7 @@ class SearchContentUiTest {
     val composeTestRule = createComposeRule()
 
     @Test
-    fun `back button emits search back event`() {
+    fun backButtonEmitsSearchBackEvent() {
         val capturedEvents = mutableListOf<SearchEvent>()
 
         setContent(
@@ -64,7 +64,7 @@ class SearchContentUiTest {
     }
 
     @Test
-    fun `query input emits text change event`() {
+    fun queryInputEmitsTextChangeEvent() {
         val capturedEvents = mutableListOf<SearchEvent>()
 
         setContent(onEvent = { event -> capturedEvents += event })
@@ -79,7 +79,7 @@ class SearchContentUiTest {
     }
 
     @Test
-    fun `search field requests focus when opened`() {
+    fun searchFieldRequestsFocusWhenOpened() {
         setContent()
 
         composeTestRule.waitForIdle()
@@ -90,7 +90,7 @@ class SearchContentUiTest {
     }
 
     @Test
-    fun `hero bar keeps back input and voice controls aligned in one row`() {
+    fun heroBarKeepsBackInputAndVoiceControlsAlignedInOneRow() {
         setContent(voiceSearchAvailable = true)
 
         val backBounds =
@@ -116,7 +116,7 @@ class SearchContentUiTest {
     }
 
     @Test
-    fun `hero bar leaves the empty body below the hero app bar spacing token`() {
+    fun heroBarLeavesTheEmptyBodyBelowTheHeroAppBarSpacingToken() {
         setContent(
             state = SearchState(history = listOf("rent"), phase = SearchPhase.Empty),
         )
@@ -138,7 +138,7 @@ class SearchContentUiTest {
     }
 
     @Test
-    fun `empty query shows hint and voice action instead of clear action`() {
+    fun emptyQueryShowsHintAndVoiceActionInsteadOfClearAction() {
         setContent(voiceSearchAvailable = true)
 
         composeTestRule
@@ -153,7 +153,7 @@ class SearchContentUiTest {
     }
 
     @Test
-    fun `empty query hides both trailing actions when voice search is unavailable`() {
+    fun emptyQueryHidesBothTrailingActionsWhenVoiceSearchIsUnavailable() {
         setContent(voiceSearchAvailable = false)
 
         composeTestRule
@@ -167,7 +167,7 @@ class SearchContentUiTest {
     }
 
     @Test
-    fun `drawer overlay keeps the same hero bar controls as the list route`() {
+    fun drawerOverlayKeepsTheSameHeroBarControlsAsTheListRoute() {
         setContent(
             contextualOverlay = true,
             voiceSearchAvailable = true,
@@ -187,7 +187,7 @@ class SearchContentUiTest {
     }
 
     @Test
-    fun `non blank query shows clear action instead of voice action`() {
+    fun nonBlankQueryShowsClearActionInsteadOfVoiceAction() {
         setContent(
             state = SearchState(query = "coffee"),
             voiceSearchAvailable = true,
@@ -202,7 +202,7 @@ class SearchContentUiTest {
     }
 
     @Test
-    fun `search ime action emits query submitted event`() {
+    fun searchImeActionEmitsQuerySubmittedEvent() {
         val capturedEvents = mutableListOf<SearchEvent>()
 
         setContent(
@@ -221,7 +221,7 @@ class SearchContentUiTest {
     }
 
     @Test
-    fun `clear button emits query cleared event`() {
+    fun clearButtonEmitsQueryClearedEvent() {
         val capturedEvents = mutableListOf<SearchEvent>()
 
         setContent(
@@ -240,7 +240,7 @@ class SearchContentUiTest {
     }
 
     @Test
-    fun `clear button restores the voice action after the query becomes empty`() {
+    fun clearButtonRestoresTheVoiceActionAfterTheQueryBecomesEmpty() {
         composeTestRule.setContent {
             var query by remember { mutableStateOf("coffee") }
 
@@ -277,7 +277,7 @@ class SearchContentUiTest {
     }
 
     @Test
-    fun `loading state shows the progress indicator below the hero bar`() {
+    fun loadingStateShowsTheProgressIndicatorBelowTheHeroBar() {
         setContent(
             state = SearchState(query = "coffee", phase = SearchPhase.Loading),
         )
@@ -288,7 +288,7 @@ class SearchContentUiTest {
     }
 
     @Test
-    fun `voice button launches voice search when available`() {
+    fun voiceButtonLaunchesVoiceSearchWhenAvailable() {
         var launches = 0
 
         setContent(
@@ -307,7 +307,7 @@ class SearchContentUiTest {
     }
 
     @Test
-    fun `history chip emits suggestion clicked event`() {
+    fun historyChipEmitsSuggestionClickedEvent() {
         val capturedEvents = mutableListOf<SearchEvent>()
 
         setContent(
@@ -327,7 +327,7 @@ class SearchContentUiTest {
     }
 
     @Test
-    fun `result row keeps note and emits open detail event`() {
+    fun resultRowKeepsNoteAndEmitsOpenDetailEvent() {
         val capturedEvents = mutableListOf<SearchEvent>()
 
         setContent(
@@ -359,7 +359,7 @@ class SearchContentUiTest {
     }
 
     @Test
-    fun `empty results state shows no matches message`() {
+    fun emptyResultsStateShowsNoMatchesMessage() {
         setContent(
             state =
                 SearchState(
@@ -375,7 +375,7 @@ class SearchContentUiTest {
     }
 
     @Test
-    fun `error state shows search error message`() {
+    fun errorStateShowsSearchErrorMessage() {
         setContent(
             state =
                 SearchState(

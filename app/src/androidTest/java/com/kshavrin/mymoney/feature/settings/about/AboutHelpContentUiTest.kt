@@ -21,7 +21,7 @@ class AboutHelpContentUiTest {
     val composeTestRule = createComposeRule()
 
     @Test
-    fun `back button invokes about help back callback`() {
+    fun backButtonInvokesAboutHelpBackCallback() {
         var backed = false
 
         setContent(onBack = { backed = true })
@@ -36,7 +36,7 @@ class AboutHelpContentUiTest {
     }
 
     @Test
-    fun `about help rows render and invoke their action callbacks`() {
+    fun aboutHelpRowsRenderAndInvokeTheirActionCallbacks() {
         val opened = mutableListOf<String>()
 
         setContent(

@@ -31,7 +31,7 @@ class CategoryRecordsInlineListUiTest {
     val composeTestRule = createComposeRule()
 
     @Test
-    fun `record row shows note amount and date when note is present`() {
+    fun recordRowShowsNoteAmountAndDateWhenNoteIsPresent() {
         val record =
             makeTransaction(
                 id = 1L,
@@ -64,7 +64,7 @@ class CategoryRecordsInlineListUiTest {
     }
 
     @Test
-    fun `record row shows neutral placeholder when note is null`() {
+    fun recordRowShowsNeutralPlaceholderWhenNoteIsNull() {
         val record =
             makeTransaction(
                 id = 2L,
@@ -93,7 +93,7 @@ class CategoryRecordsInlineListUiTest {
     }
 
     @Test
-    fun `record row shows neutral placeholder when note is blank`() {
+    fun recordRowShowsNeutralPlaceholderWhenNoteIsBlank() {
         val record =
             makeTransaction(
                 id = 3L,
@@ -122,7 +122,7 @@ class CategoryRecordsInlineListUiTest {
     }
 
     @Test
-    fun `loading state shows loading indicator instead of records`() {
+    fun loadingStateShowsLoadingIndicatorInsteadOfRecords() {
         val record =
             makeTransaction(
                 id = 4L,
@@ -157,7 +157,7 @@ class CategoryRecordsInlineListUiTest {
     }
 
     @Test
-    fun `empty records list renders the container without crashing`() {
+    fun emptyRecordsListRendersTheContainerWithoutCrashing() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 Box(modifier = Modifier.width(400.dp)) {
@@ -177,7 +177,7 @@ class CategoryRecordsInlineListUiTest {
     }
 
     @Test
-    fun `multiple records each show their own notes`() {
+    fun multipleRecordsEachShowTheirOwnNotes() {
         val records =
             listOf(
                 makeTransaction(id = 10L, note = "Lunch", amount = BigDecimal("400"), currencyId = usd.id),

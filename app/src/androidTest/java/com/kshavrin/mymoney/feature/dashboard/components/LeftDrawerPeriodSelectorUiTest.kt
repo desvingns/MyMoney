@@ -188,7 +188,7 @@ class LeftDrawerPeriodSelectorUiTest {
     }
 
     @Test
-    fun `ordinary period buttons remain present and emit each corresponding period in order`() {
+    fun ordinaryPeriodButtonsRemainPresentAndEmitEachCorrespondingPeriodInOrder() {
         val currentDate = LocalDate.now()
         val selectedEvents = mutableListOf<DashboardEvent>()
         val expectedSelections =
@@ -284,7 +284,7 @@ class LeftDrawerPeriodSelectorUiTest {
     }
 
     @Test
-    fun `compact drawer can scroll to date range row with long currency name`() {
+    fun compactDrawerCanScrollToDateRangeRowWithLongCurrencyName() {
         val serbianDinar =
             currency(
                 code = "RSD",
@@ -322,7 +322,7 @@ class LeftDrawerPeriodSelectorUiTest {
     }
 
     @Test
-    fun `separate mode keeps the account toggle and reveals individual accounts`() {
+    fun separateModeKeepsTheAccountToggleAndRevealsIndividualAccounts() {
         val euro = currency(code = "EUR", symbol = "€", name = "Euro")
         val cash =
             account(

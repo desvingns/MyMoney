@@ -32,7 +32,7 @@ class OnboardingContentUiTest {
     val composeTestRule = createComposeRule()
 
     @Test
-    fun `tapping skip from the first slide invokes completion once`() {
+    fun tappingSkipFromTheFirstSlideInvokesCompletionOnce() {
         var completionCalls = 0
 
         composeTestRule.setContent {
@@ -58,7 +58,7 @@ class OnboardingContentUiTest {
     }
 
     @Test
-    fun `tapping next from the first slide advances without completing onboarding`() {
+    fun tappingNextFromTheFirstSlideAdvancesWithoutCompletingOnboarding() {
         var completionCalls = 0
 
         composeTestRule.setContent {
@@ -86,7 +86,7 @@ class OnboardingContentUiTest {
     }
 
     @Test
-    fun `pager indicator describes the selected page after tapping next`() {
+    fun pagerIndicatorDescribesTheSelectedPageAfterTappingNext() {
         composeTestRule.setContent {
             val pagerState = rememberPagerState(initialPage = 0, pageCount = { 4 })
             val coroutineScope = rememberCoroutineScope()
@@ -114,7 +114,7 @@ class OnboardingContentUiTest {
     }
 
     @Test
-    fun `swiping from the first slide advances without completing onboarding`() {
+    fun swipingFromTheFirstSlideAdvancesWithoutCompletingOnboarding() {
         var completionCalls = 0
 
         composeTestRule.setContent {
@@ -144,7 +144,7 @@ class OnboardingContentUiTest {
     }
 
     @Test
-    fun `tapping get started from the fourth slide invokes completion once`() {
+    fun tappingGetStartedFromTheFourthSlideInvokesCompletionOnce() {
         var completionCalls = 0
 
         composeTestRule.setContent {
@@ -172,7 +172,7 @@ class OnboardingContentUiTest {
     }
 
     @Test
-    fun `first slide headline and body use readable onBackground text on the dark surface`() {
+    fun firstSlideHeadlineAndBodyUseReadableOnBackgroundTextOnTheDarkSurface() {
         composeTestRule.setContent {
             val pagerState = rememberPagerState(initialPage = 0, pageCount = { 4 })
             val coroutineScope = rememberCoroutineScope()

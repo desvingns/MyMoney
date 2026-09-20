@@ -60,7 +60,7 @@ class OperationDaoTest {
     // ─── insert ────────────────────────────────────────────────────────────
 
     @Test
-    fun `insert stores op and it appears in knownOpIds`() =
+    fun insertStoresOpAndItAppearsInKnownOpIds() =
         runTest {
             db.operationDao().insert(op(opId = "op-abc"))
             val ids = db.operationDao().knownOpIds()
@@ -68,7 +68,7 @@ class OperationDaoTest {
         }
 
     @Test
-    fun `insert with same opId is ignored and does not throw`() =
+    fun insertWithSameOpIdIsIgnoredAndDoesNotThrow() =
         runTest {
             db.operationDao().insert(op(opId = "op-dup", opType = "CREATE"))
             db.operationDao().insert(op(opId = "op-dup", opType = "UPDATE"))
@@ -79,7 +79,7 @@ class OperationDaoTest {
     // ─── insertAll ─────────────────────────────────────────────────────────
 
     @Test
-    fun `insertAll stores all ops in empty table`() =
+    fun insertAllStoresAllOpsInEmptyTable() =
         runTest {
             val ops =
                 listOf(
@@ -94,7 +94,7 @@ class OperationDaoTest {
         }
 
     @Test
-    fun `insertAll with duplicate opIds ignores duplicates`() =
+    fun insertAllWithDuplicateOpIdsIgnoresDuplicates() =
         runTest {
             db.operationDao().insert(op(opId = "op-existing"))
             db.operationDao().insertAll(
@@ -108,7 +108,7 @@ class OperationDaoTest {
         }
 
     @Test
-    fun `insertAll with empty list does not throw and table stays empty`() =
+    fun insertAllWithEmptyListDoesNotThrowAndTableStaysEmpty() =
         runTest {
             db.operationDao().insertAll(emptyList())
             val ids = db.operationDao().knownOpIds()
@@ -118,7 +118,7 @@ class OperationDaoTest {
     // ─── unsyncedLocal ─────────────────────────────────────────────────────
 
     @Test
-    fun `unsyncedLocal returns ops with syncedToRemote false and appliedFromRemote false`() =
+    fun unsyncedLocalReturnsOpsWithSyncedToRemoteFalseAndAppliedFromRemoteFalse() =
         runTest {
             db.operationDao().insert(op(opId = "local-unsynced", syncedToRemote = false, appliedFromRemote = false))
             val result = db.operationDao().unsyncedLocal()
@@ -127,7 +127,7 @@ class OperationDaoTest {
         }
 
     @Test
-    fun `unsyncedLocal excludes ops already synced to remote`() =
+    fun unsyncedLocalExcludesOpsAlreadySyncedToRemote() =
         runTest {
             db.operationDao().insert(op(opId = "synced", syncedToRemote = true, appliedFromRemote = false))
             val result = db.operationDao().unsyncedLocal()
@@ -135,7 +135,7 @@ class OperationDaoTest {
         }
 
     @Test
-    fun `unsyncedLocal excludes ops applied from remote`() =
+    fun unsyncedLocalExcludesOpsAppliedFromRemote() =
         runTest {
             db.operationDao().insert(op(opId = "remote-applied", syncedToRemote = false, appliedFromRemote = true))
             val result = db.operationDao().unsyncedLocal()
@@ -143,7 +143,7 @@ class OperationDaoTest {
         }
 
     @Test
-    fun `unsyncedLocal excludes ops that are both synced and applied`() =
+    fun unsyncedLocalExcludesOpsThatAreBothSyncedAndApplied() =
         runTest {
             db.operationDao().insert(op(opId = "both", syncedToRemote = true, appliedFromRemote = true))
             val result = db.operationDao().unsyncedLocal()
@@ -151,7 +151,7 @@ class OperationDaoTest {
         }
 
     @Test
-    fun `unsyncedLocal returns results ordered by updated_at ascending`() =
+    fun unsyncedLocalReturnsResultsOrderedByUpdatedAtAscending() =
         runTest {
             db.operationDao().insertAll(
                 listOf(
@@ -165,7 +165,7 @@ class OperationDaoTest {
         }
 
     @Test
-    fun `unsyncedLocal returns empty list when all ops are synced`() =
+    fun unsyncedLocalReturnsEmptyListWhenAllOpsAreSynced() =
         runTest {
             db.operationDao().insertAll(
                 listOf(
@@ -180,7 +180,7 @@ class OperationDaoTest {
     // ─── markSynced ────────────────────────────────────────────────────────
 
     @Test
-    fun `markSynced sets syncedToRemote true for given opIds`() =
+    fun markSyncedSetsSyncedToRemoteTrueForGivenOpIds() =
         runTest {
             db.operationDao().insertAll(
                 listOf(
@@ -196,7 +196,7 @@ class OperationDaoTest {
         }
 
     @Test
-    fun `markSynced with unknown opId does not throw`() =
+    fun markSyncedWithUnknownOpIdDoesNotThrow() =
         runTest {
             db.operationDao().insert(op(opId = "real-op"))
             db.operationDao().markSynced(listOf("non-existent"))
@@ -205,7 +205,7 @@ class OperationDaoTest {
         }
 
     @Test
-    fun `markSynced with empty list is a no-op`() =
+    fun markSyncedWithEmptyListIsANoOp() =
         runTest {
             db.operationDao().insert(op(opId = "untouched"))
             db.operationDao().markSynced(emptyList())
@@ -216,14 +216,14 @@ class OperationDaoTest {
     // ─── knownOpIds ────────────────────────────────────────────────────────
 
     @Test
-    fun `knownOpIds returns empty list when table is empty`() =
+    fun knownOpIdsReturnsEmptyListWhenTableIsEmpty() =
         runTest {
             val ids = db.operationDao().knownOpIds()
             assertTrue("knownOpIds must be empty for fresh table", ids.isEmpty())
         }
 
     @Test
-    fun `knownOpIds returns all inserted opIds`() =
+    fun knownOpIdsReturnsAllInsertedOpIds() =
         runTest {
             val expected = listOf("id-x", "id-y", "id-z")
             db.operationDao().insertAll(expected.map { op(opId = it) })
@@ -235,20 +235,20 @@ class OperationDaoTest {
     // ─── existsByOpId ──────────────────────────────────────────────────────
 
     @Test
-    fun `existsByOpId returns true for inserted op`() =
+    fun existsByOpIdReturnsTrueForInsertedOp() =
         runTest {
             db.operationDao().insert(op(opId = "exists-op"))
             assertTrue("existsByOpId must return true for a stored op", db.operationDao().existsByOpId("exists-op"))
         }
 
     @Test
-    fun `existsByOpId returns false for unknown opId`() =
+    fun existsByOpIdReturnsFalseForUnknownOpId() =
         runTest {
             assertFalse("existsByOpId must return false when no op with that id exists", db.operationDao().existsByOpId("ghost-op"))
         }
 
     @Test
-    fun `existsByOpId returns false after table is empty`() =
+    fun existsByOpIdReturnsFalseAfterTableIsEmpty() =
         runTest {
             assertFalse("existsByOpId must return false on empty table", db.operationDao().existsByOpId("any-id"))
         }
@@ -256,7 +256,7 @@ class OperationDaoTest {
     // ─── opsForEntity ──────────────────────────────────────────────────────
 
     @Test
-    fun `opsForEntity returns only ops matching given entityUuid`() =
+    fun opsForEntityReturnsOnlyOpsMatchingGivenEntityUuid() =
         runTest {
             db.operationDao().insertAll(
                 listOf(
@@ -271,7 +271,7 @@ class OperationDaoTest {
         }
 
     @Test
-    fun `opsForEntity returns empty list when no ops exist for entity`() =
+    fun opsForEntityReturnsEmptyListWhenNoOpsExistForEntity() =
         runTest {
             db.operationDao().insert(op(opId = "op-other", entityUuid = "other-entity"))
             val result = db.operationDao().opsForEntity("missing-entity")
@@ -279,7 +279,7 @@ class OperationDaoTest {
         }
 
     @Test
-    fun `opsForEntity returns results ordered by updated_at ascending`() =
+    fun opsForEntityReturnsResultsOrderedByUpdatedAtAscending() =
         runTest {
             db.operationDao().insertAll(
                 listOf(
@@ -297,7 +297,7 @@ class OperationDaoTest {
         }
 
     @Test
-    fun `opsForEntity returns single op when only one matches`() =
+    fun opsForEntityReturnsSingleOpWhenOnlyOneMatches() =
         runTest {
             db.operationDao().insert(op(opId = "sole-op", entityUuid = "solo-entity"))
             val result = db.operationDao().opsForEntity("solo-entity")
@@ -308,7 +308,7 @@ class OperationDaoTest {
     // ─── payload field ─────────────────────────────────────────────────────
 
     @Test
-    fun `insert stores null payload and read back returns null`() =
+    fun insertStoresNullPayloadAndReadBackReturnsNull() =
         runTest {
             db.operationDao().insert(op(opId = "null-payload-op", payload = null))
             val result = db.operationDao().opsForEntity("entity-uuid-1")
@@ -317,7 +317,7 @@ class OperationDaoTest {
         }
 
     @Test
-    fun `insert stores non-null payload and read back returns it intact`() =
+    fun insertStoresNonNullPayloadAndReadBackReturnsItIntact() =
         runTest {
             val json = """{"amount":"1500.00","currency":"RUB"}"""
             db.operationDao().insert(op(opId = "payload-op", payload = json))

@@ -25,7 +25,7 @@ class DashboardDrawerOverlayUiTest {
     val composeTestRule = createComposeRule()
 
     @Test
-    fun `open overlay keeps the drawer panel near the configured 62 percent width`() {
+    fun openOverlayKeepsTheDrawerPanelNearTheConfigured62PercentWidth() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 Box(
@@ -68,7 +68,7 @@ class DashboardDrawerOverlayUiTest {
     }
 
     @Test
-    fun `closed overlay does not render the drawer panel`() {
+    fun closedOverlayDoesNotRenderTheDrawerPanel() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 Box(
@@ -97,7 +97,7 @@ class DashboardDrawerOverlayUiTest {
     }
 
     @Test
-    fun `overlay scrim exposes a click action for touch consumption`() {
+    fun overlayScrimExposesAClickActionForTouchConsumption() {
         var dismissCount = 0
 
         composeTestRule.setContent {

@@ -96,7 +96,7 @@ class TransactionRepositoryImplDualWriteTest {
     }
 
     @Test
-    fun `upsert generates journal upsert with transfer snapshot and stable identifiers`() =
+    fun upsertGeneratesJournalUpsertWithTransferSnapshotAndStableIdentifiers() =
         runTest {
             val id =
                 repository.upsert(
@@ -144,7 +144,7 @@ class TransactionRepositoryImplDualWriteTest {
         }
 
     @Test
-    fun `softDelete marks row deleted and emits delete operation`() =
+    fun softDeleteMarksRowDeletedAndEmitsDeleteOperation() =
         runTest {
             val id =
                 db.transactionDao().upsert(
@@ -172,7 +172,7 @@ class TransactionRepositoryImplDualWriteTest {
         }
 
     @Test
-    fun `restore emits upsert snapshot for deleted transfer`() =
+    fun restoreEmitsUpsertSnapshotForDeletedTransfer() =
         runTest {
             val id =
                 db.transactionDao().upsert(

@@ -84,7 +84,7 @@ class DashboardBodyPagerSwipeUiTest {
     // ── Commit next period (left swipe past threshold) ────────────────────────
 
     @Test
-    fun `full left swipe on dashboard body commits the next period`() {
+    fun fullLeftSwipeOnDashboardBodyCommitsTheNextPeriod() {
         val capturedEvents = mutableListOf<DashboardEvent>()
 
         val currentState =
@@ -114,7 +114,7 @@ class DashboardBodyPagerSwipeUiTest {
     }
 
     @Test
-    fun `full right swipe on dashboard body commits the previous period`() {
+    fun fullRightSwipeOnDashboardBodyCommitsThePreviousPeriod() {
         val capturedEvents = mutableListOf<DashboardEvent>()
 
         val currentState =
@@ -146,7 +146,7 @@ class DashboardBodyPagerSwipeUiTest {
     // ── Small drag snaps back (below settle threshold) ────────────────────────
 
     @Test
-    fun `small drag released below the settle threshold does not change the period`() {
+    fun smallDragReleasedBelowTheSettleThresholdDoesNotChangeThePeriod() {
         val capturedEvents = mutableListOf<DashboardEvent>()
 
         composeTestRule.setContent {
@@ -185,7 +185,7 @@ class DashboardBodyPagerSwipeUiTest {
     // ── Period.All disables paging (G13) ──────────────────────────────────────
 
     @Test
-    fun `swiping left on Period All does not emit NextPeriod`() {
+    fun swipingLeftOnPeriodAllDoesNotEmitNextPeriod() {
         val capturedEvents = mutableListOf<DashboardEvent>()
 
         composeTestRule.setContent {
@@ -210,7 +210,7 @@ class DashboardBodyPagerSwipeUiTest {
     }
 
     @Test
-    fun `swiping right on Period All does not emit PreviousPeriod`() {
+    fun swipingRightOnPeriodAllDoesNotEmitPreviousPeriod() {
         val capturedEvents = mutableListOf<DashboardEvent>()
 
         composeTestRule.setContent {
@@ -237,7 +237,7 @@ class DashboardBodyPagerSwipeUiTest {
     // ── No-regression: horizontal swipe must not open the left drawer ─────────
 
     @Test
-    fun `right swipe on dashboard body does not open the left drawer`() {
+    fun rightSwipeOnDashboardBodyDoesNotOpenTheLeftDrawer() {
         val capturedEvents = mutableListOf<DashboardEvent>()
 
         composeTestRule.setContent {
@@ -262,7 +262,7 @@ class DashboardBodyPagerSwipeUiTest {
     }
 
     @Test
-    fun `left swipe on dashboard body does not open the left drawer`() {
+    fun leftSwipeOnDashboardBodyDoesNotOpenTheLeftDrawer() {
         val capturedEvents = mutableListOf<DashboardEvent>()
 
         composeTestRule.setContent {
@@ -289,7 +289,7 @@ class DashboardBodyPagerSwipeUiTest {
     // ── Hamburger still opens the left drawer ─────────────────────────────────
 
     @Test
-    fun `hamburger button opens the left drawer after a swipe gesture`() {
+    fun hamburgerButtonOpensTheLeftDrawerAfterASwipeGesture() {
         val capturedEvents = mutableListOf<DashboardEvent>()
 
         val currentState =
@@ -327,7 +327,7 @@ class DashboardBodyPagerSwipeUiTest {
     // ── Period.All shows the All-label in the toolbar ─────────────────────────
 
     @Test
-    fun `Period All shows the period-all label in the top bar with paging disabled`() {
+    fun periodAllShowsThePeriodAllLabelInTheTopBarWithPagingDisabled() {
         val allLabel = targetString(R.string.period_all)
 
         composeTestRule.setContent {

@@ -137,7 +137,7 @@ class AccountEditContentUiTest {
     }
 
     @Test
-    fun `account icon picker opens and emits selected icon key`() {
+    fun accountIconPickerOpensAndEmitsSelectedIconKey() {
         val events = mutableListOf<AccountEditEvent>()
         composeTestRule.setContent {
             MyMoneyTheme {
@@ -158,7 +158,7 @@ class AccountEditContentUiTest {
     }
 
     @Test
-    fun `save button is displayed at bottom and emits SaveClicked in create mode`() {
+    fun saveButtonIsDisplayedAtBottomAndEmitsSaveClickedInCreateMode() {
         val events = mutableListOf<AccountEditEvent>()
         composeTestRule.setContent {
             MyMoneyTheme {
@@ -180,7 +180,7 @@ class AccountEditContentUiTest {
     }
 
     @Test
-    fun `delete button is present in body in edit mode and save is also displayed`() {
+    fun deleteButtonIsPresentInBodyInEditModeAndSaveIsAlsoDisplayed() {
         val events = mutableListOf<AccountEditEvent>()
         composeTestRule.setContent {
             MyMoneyTheme {

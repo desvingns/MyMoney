@@ -76,7 +76,7 @@ class AuroraBalanceCardUiTest {
     }
 
     @Test
-    fun `aurora card renders without crash when net is positive`() {
+    fun auroraCardRendersWithoutCrashWhenNetIsPositive() {
         setCard(balance = "12 345 $", netPositive = true)
         composeTestRule
             .onNodeWithTag(DASHBOARD_AURORA_CARD_TAG)
@@ -84,7 +84,7 @@ class AuroraBalanceCardUiTest {
     }
 
     @Test
-    fun `aurora card renders without crash when net is negative`() {
+    fun auroraCardRendersWithoutCrashWhenNetIsNegative() {
         setCard(balance = "-3 210 $", netPositive = false)
         composeTestRule
             .onNodeWithTag(DASHBOARD_AURORA_CARD_TAG)
@@ -92,7 +92,7 @@ class AuroraBalanceCardUiTest {
     }
 
     @Test
-    fun `aurora card renders without crash when net is zero treated as positive`() {
+    fun auroraCardRendersWithoutCrashWhenNetIsZeroTreatedAsPositive() {
         setCard(balance = "0 $", netPositive = true)
         composeTestRule
             .onNodeWithTag(DASHBOARD_AURORA_CARD_TAG)
@@ -103,7 +103,7 @@ class AuroraBalanceCardUiTest {
     }
 
     @Test
-    fun `aurora card displays balance text when net is positive`() {
+    fun auroraCardDisplaysBalanceTextWhenNetIsPositive() {
         setCard(balance = "5 000 $", netPositive = true)
         composeTestRule
             .onNodeWithTag(DASHBOARD_AURORA_BALANCE_TAG)
@@ -111,7 +111,7 @@ class AuroraBalanceCardUiTest {
     }
 
     @Test
-    fun `aurora card displays balance text when net is negative`() {
+    fun auroraCardDisplaysBalanceTextWhenNetIsNegative() {
         setCard(balance = "-5 000 $", netPositive = false)
         composeTestRule
             .onNodeWithTag(DASHBOARD_AURORA_BALANCE_TAG)
@@ -119,7 +119,7 @@ class AuroraBalanceCardUiTest {
     }
 
     @Test
-    fun `aurora card root tag exists`() {
+    fun auroraCardRootTagExists() {
         setCard()
         composeTestRule
             .onNodeWithTag(DASHBOARD_AURORA_CARD_TAG)
@@ -127,7 +127,7 @@ class AuroraBalanceCardUiTest {
     }
 
     @Test
-    fun `aurora card omits the legacy balance for period label`() {
+    fun auroraCardOmitsTheLegacyBalanceForPeriodLabel() {
         setCard()
         composeTestRule
             .onNodeWithText("BALANCE FOR JUNE")
@@ -135,7 +135,7 @@ class AuroraBalanceCardUiTest {
     }
 
     @Test
-    fun `aurora card spans the host width with equal side insets`() {
+    fun auroraCardSpansTheHostWidthWithEqualSideInsets() {
         setCard()
 
         val rootBounds = composeTestRule.onRoot().fetchSemanticsNode().boundsInRoot
@@ -147,7 +147,7 @@ class AuroraBalanceCardUiTest {
     }
 
     @Test
-    fun `aurora balance value uses the compact 26sp typography token`() {
+    fun auroraBalanceValueUsesTheCompact26spTypographyToken() {
         setCard(balance = "98 765 $")
 
         val fontSize =
@@ -159,7 +159,7 @@ class AuroraBalanceCardUiTest {
     }
 
     @Test
-    fun `aurora balance value displays the provided integer amount with currency after`() {
+    fun auroraBalanceValueDisplaysTheProvidedIntegerAmountWithCurrencyAfter() {
         val balance = "12 345 $"
         setCard(balance = balance)
 
@@ -172,7 +172,7 @@ class AuroraBalanceCardUiTest {
     }
 
     @Test
-    fun `free balance label is displayed above the balance value`() {
+    fun freeBalanceLabelIsDisplayedAboveTheBalanceValue() {
         setCard(balance = "12 345 $")
         // The label is rendered uppercase by the composable; getString returns the raw resource.
         val rawLabel = targetString(R.string.dashboard_aurora_free_balance_label)
@@ -182,7 +182,7 @@ class AuroraBalanceCardUiTest {
     }
 
     @Test
-    fun `income pill tag is displayed when chart config is visible`() {
+    fun incomePillTagIsDisplayedWhenChartConfigIsVisible() {
         setCard(income = "20 000", chartConfig = defaultConfig(visible = true))
         composeTestRule
             .onNodeWithTag(DASHBOARD_AURORA_INCOME_PILL_TAG)
@@ -195,7 +195,7 @@ class AuroraBalanceCardUiTest {
     }
 
     @Test
-    fun `expense pill tag is displayed when chart config is visible`() {
+    fun expensePillTagIsDisplayedWhenChartConfigIsVisible() {
         setCard(expense = "7 654", chartConfig = defaultConfig(visible = true))
         composeTestRule
             .onNodeWithTag(DASHBOARD_AURORA_EXPENSE_PILL_TAG)
@@ -208,7 +208,7 @@ class AuroraBalanceCardUiTest {
     }
 
     @Test
-    fun `income pill does not show old symbol-only format without word label`() {
+    fun incomePillDoesNotShowOldSymbolOnlyFormatWithoutWordLabel() {
         // The previous contract was "\u2191 20 000 $"; now it must NOT match that pattern.
         setCard(income = "20 000", chartConfig = defaultConfig(visible = true))
         composeTestRule
@@ -217,7 +217,7 @@ class AuroraBalanceCardUiTest {
     }
 
     @Test
-    fun `expense pill does not show old symbol-only format without word label`() {
+    fun expensePillDoesNotShowOldSymbolOnlyFormatWithoutWordLabel() {
         // The previous contract was "\u2193 7 654 $"; now it must NOT match that pattern.
         setCard(expense = "7 654", chartConfig = defaultConfig(visible = true))
         composeTestRule
@@ -226,7 +226,7 @@ class AuroraBalanceCardUiTest {
     }
 
     @Test
-    fun `income pill tag is displayed when chart config is hidden`() {
+    fun incomePillTagIsDisplayedWhenChartConfigIsHidden() {
         setCard(chartConfig = defaultConfig(visible = false))
         composeTestRule
             .onNodeWithTag(DASHBOARD_AURORA_INCOME_PILL_TAG)
@@ -234,7 +234,7 @@ class AuroraBalanceCardUiTest {
     }
 
     @Test
-    fun `expense pill tag is displayed when chart config is hidden`() {
+    fun expensePillTagIsDisplayedWhenChartConfigIsHidden() {
         setCard(chartConfig = defaultConfig(visible = false))
         composeTestRule
             .onNodeWithTag(DASHBOARD_AURORA_EXPENSE_PILL_TAG)
@@ -242,7 +242,7 @@ class AuroraBalanceCardUiTest {
     }
 
     @Test
-    fun `embedded chart tag exists when chartConfig visible is true`() {
+    fun embeddedChartTagExistsWhenChartConfigVisibleIsTrue() {
         setCard(chartConfig = defaultConfig(visible = true))
         composeTestRule
             .onNodeWithTag(DASHBOARD_TREND_CHART_TAG)
@@ -251,7 +251,7 @@ class AuroraBalanceCardUiTest {
     }
 
     @Test
-    fun `chart tag is absent and hidden hint tag is shown when chartConfig visible is false`() {
+    fun chartTagIsAbsentAndHiddenHintTagIsShownWhenChartConfigVisibleIsFalse() {
         setCard(chartConfig = defaultConfig(visible = false).copy(showProjection = true))
         composeTestRule
             .onNodeWithTag(DASHBOARD_CHART_HIDDEN_HINT_TAG)
@@ -263,7 +263,7 @@ class AuroraBalanceCardUiTest {
     }
 
     @Test
-    fun `tapping chart area fires the chart click callback`() {
+    fun tappingChartAreaFiresTheChartClickCallback() {
         var clicked = false
         setCard(
             chartConfig = defaultConfig(visible = true),
@@ -281,7 +281,7 @@ class AuroraBalanceCardUiTest {
     }
 
     @Test
-    fun `tapping hidden hint strip fires the chart click callback`() {
+    fun tappingHiddenHintStripFiresTheChartClickCallback() {
         var clicked = false
         setCard(
             chartConfig = defaultConfig(visible = false),
@@ -301,7 +301,7 @@ class AuroraBalanceCardUiTest {
     // ---- inset layout tests (feathered-backdrop SPEC — full-bleed reverted) ----
 
     @Test
-    fun `chart box is inset within card bounds after full-bleed revert`() {
+    fun chartBoxIsInsetWithinCardBoundsAfterFullBleedRevert() {
         setCard(chartConfig = defaultConfig(visible = true))
 
         val cardBounds =
@@ -326,7 +326,7 @@ class AuroraBalanceCardUiTest {
     }
 
     @Test
-    fun `aurora card uses the borderless plain horizontal padding after substrate removal`() {
+    fun auroraCardUsesTheBorderlessPlainHorizontalPaddingAfterSubstrateRemoval() {
         // "Без подложки" (reference isV1): the framed substrate is gone, so the content is inset by
         // the tighter plain padding, not the old bordered 18dp. Locks the substrate stays removed.
         setCard(chartConfig = defaultConfig(visible = true))
@@ -349,7 +349,7 @@ class AuroraBalanceCardUiTest {
     }
 
     @Test
-    fun `embedded BalanceTrendChart node exists inside aurora card when chart is visible`() {
+    fun embeddedBalanceTrendChartNodeExistsInsideAuroraCardWhenChartIsVisible() {
         setCard(chartConfig = defaultConfig(visible = true))
         composeTestRule
             .onNodeWithTag(BALANCE_TREND_CHART_TAG, useUnmergedTree = true)
@@ -357,7 +357,7 @@ class AuroraBalanceCardUiTest {
     }
 
     @Test
-    fun `Smooth style renders without crash inside aurora card`() {
+    fun smoothStyleRendersWithoutCrashInsideAuroraCard() {
         setCard(
             chartConfig = defaultConfig(visible = true).copy(style = ChartStyle.Smooth),
             points = listOf(100f, 200f, 150f, 300f, 250f),
@@ -371,7 +371,7 @@ class AuroraBalanceCardUiTest {
     }
 
     @Test
-    fun `Bars style renders inside aurora card`() {
+    fun barsStyleRendersInsideAuroraCard() {
         setCard(
             chartConfig = defaultConfig(visible = true).copy(style = ChartStyle.Bars),
             points = listOf(100f, 200f, 150f, 300f, 250f),
@@ -382,7 +382,7 @@ class AuroraBalanceCardUiTest {
     }
 
     @Test
-    fun `Line style renders inside aurora card`() {
+    fun lineStyleRendersInsideAuroraCard() {
         setCard(
             chartConfig = defaultConfig(visible = true).copy(style = ChartStyle.Line),
             points = listOf(100f, 200f, 150f, 300f, 250f),
@@ -393,7 +393,7 @@ class AuroraBalanceCardUiTest {
     }
 
     @Test
-    fun `AuroraBalanceCard renders the full style color and projection matrix`() {
+    fun auroraBalanceCardRendersTheFullStyleColorAndProjectionMatrix() {
         val capture = startChartMatrixCapture()
 
         ChartStyle.entries.forEach { style ->
@@ -429,7 +429,7 @@ class AuroraBalanceCardUiTest {
     }
 
     @Test
-    fun `Smooth style with empty points renders without crash inside aurora card`() {
+    fun smoothStyleWithEmptyPointsRendersWithoutCrashInsideAuroraCard() {
         setCard(
             chartConfig = defaultConfig(visible = true).copy(style = ChartStyle.Smooth),
             points = emptyList(),
@@ -440,7 +440,7 @@ class AuroraBalanceCardUiTest {
     }
 
     @Test
-    fun `Smooth style with single point renders without crash inside aurora card`() {
+    fun smoothStyleWithSinglePointRendersWithoutCrashInsideAuroraCard() {
         setCard(
             chartConfig = defaultConfig(visible = true).copy(style = ChartStyle.Smooth),
             points = listOf(42f),
@@ -451,7 +451,7 @@ class AuroraBalanceCardUiTest {
     }
 
     @Test
-    fun `chart height is unchanged and matches dashboardAuroraChartHeightCompact`() {
+    fun chartHeightIsUnchangedAndMatchesDashboardAuroraChartHeightCompact() {
         setCard(chartConfig = defaultConfig(visible = true))
         composeTestRule
             .onNodeWithTag(DASHBOARD_TREND_CHART_TAG)
@@ -460,7 +460,7 @@ class AuroraBalanceCardUiTest {
     }
 
     @Test
-    fun `balance and pills are unaffected by inset chart when chart is visible`() {
+    fun balanceAndPillsAreUnaffectedByInsetChartWhenChartIsVisible() {
         setCard(
             balance = "9 999 $",
             income = "15 000 $",
@@ -473,7 +473,7 @@ class AuroraBalanceCardUiTest {
     }
 
     @Test
-    fun `balance and pills are unaffected by hidden-hint path when chart is hidden`() {
+    fun balanceAndPillsAreUnaffectedByHiddenHintPathWhenChartIsHidden() {
         setCard(
             balance = "9 999 $",
             income = "15 000 $",

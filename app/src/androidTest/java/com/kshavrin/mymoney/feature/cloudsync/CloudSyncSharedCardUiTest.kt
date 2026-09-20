@@ -33,7 +33,7 @@ class CloudSyncSharedCardUiTest {
     val composeTestRule = createComposeRule()
 
     @Test
-    fun `Shared card shows sign-in button when no provider is active and user is signed out`() {
+    fun sharedCardShowsSignInButtonWhenNoProviderIsActiveAndUserIsSignedOut() {
         val events = mutableListOf<CloudSyncEvent>()
         composeTestRule.setContent {
             MyMoneyTheme {
@@ -64,7 +64,7 @@ class CloudSyncSharedCardUiTest {
     }
 
     @Test
-    fun `Shared card shows leave-first hint and hides action buttons when Dropbox is the active binding`() {
+    fun sharedCardShowsLeaveFirstHintAndHidesActionButtonsWhenDropboxIsTheActiveBinding() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 CloudSyncContent(
@@ -89,7 +89,7 @@ class CloudSyncSharedCardUiTest {
     }
 
     @Test
-    fun `Shared card shows sync-now leave and optional conflicts button when Shared is active`() {
+    fun sharedCardShowsSyncNowLeaveAndOptionalConflictsButtonWhenSharedIsActive() {
         setContent(state = sharedActiveState(conflictCount = 2))
 
         composeTestRule.onNodeWithTag("cloud_sync_shared_sync_now").assertIsDisplayed()
@@ -99,7 +99,7 @@ class CloudSyncSharedCardUiTest {
     }
 
     @Test
-    fun `Shared card exposes realtime error retry action on device`() {
+    fun sharedCardExposesRealtimeErrorRetryActionOnDevice() {
         val events = mutableListOf<CloudSyncEvent>()
         setContent(state = sharedActiveState(realtimeStatus = SharedRealtimeStatus.Error), onEvent = events::add)
 

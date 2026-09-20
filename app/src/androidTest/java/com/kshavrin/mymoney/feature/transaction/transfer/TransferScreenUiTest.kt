@@ -40,7 +40,7 @@ class TransferScreenUiTest {
     val composeTestRule = createComposeRule()
 
     @Test
-    fun `back button emits transfer back event`() {
+    fun backButtonEmitsTransferBackEvent() {
         val capturedEvents = mutableListOf<TransferEvent>()
 
         composeTestRule.setContent {
@@ -64,7 +64,7 @@ class TransferScreenUiTest {
     }
 
     @Test
-    fun `selector stack keeps source row above arrow and target row below it`() {
+    fun selectorStackKeepsSourceRowAboveArrowAndTargetRowBelowIt() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 TransferScreen(
@@ -99,7 +99,7 @@ class TransferScreenUiTest {
     }
 
     @Test
-    fun `source selector row shows selected account and currency code`() {
+    fun sourceSelectorRowShowsSelectedAccountAndCurrencyCode() {
         val sourceAccount = account(id = 10L, name = "Primary wallet", currencyId = 1L)
         val sourceCurrency = currency(id = 1L, code = "USD")
 
@@ -124,7 +124,7 @@ class TransferScreenUiTest {
     }
 
     @Test
-    fun `target selector row shows selected account and currency code`() {
+    fun targetSelectorRowShowsSelectedAccountAndCurrencyCode() {
         val targetAccount = account(id = 20L, name = "Savings account", currencyId = 2L)
         val targetCurrency = currency(id = 2L, code = "EUR")
 
@@ -149,7 +149,7 @@ class TransferScreenUiTest {
     }
 
     @Test
-    fun `save button stays disabled until transfer is valid`() {
+    fun saveButtonStaysDisabledUntilTransferIsValid() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 TransferScreen(
@@ -165,7 +165,7 @@ class TransferScreenUiTest {
     }
 
     @Test
-    fun `dialpad keypad digit emits transfer event`() {
+    fun dialpadKeypadDigitEmitsTransferEvent() {
         val capturedEvents = mutableListOf<TransferEvent>()
 
         composeTestRule.setContent {
@@ -192,7 +192,7 @@ class TransferScreenUiTest {
     }
 
     @Test
-    fun `dialpad fab still opens the keypad sheet`() {
+    fun dialpadFabStillOpensTheKeypadSheet() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 TransferScreen(
@@ -216,7 +216,7 @@ class TransferScreenUiTest {
     }
 
     @Test
-    fun `revealed keypad backspace emits transfer backspace event`() {
+    fun revealedKeypadBackspaceEmitsTransferBackspaceEvent() {
         val capturedEvents = mutableListOf<TransferEvent>()
 
         composeTestRule.setContent {
@@ -242,7 +242,7 @@ class TransferScreenUiTest {
     }
 
     @Test
-    fun `amount field stays form only until dialpad fab is pressed`() {
+    fun amountFieldStaysFormOnlyUntilDialpadFabIsPressed() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 TransferScreen(
@@ -260,7 +260,7 @@ class TransferScreenUiTest {
     }
 
     @Test
-    fun `entering a note emits transfer note changed event`() {
+    fun enteringANoteEmitsTransferNoteChangedEvent() {
         val capturedEvents = mutableListOf<TransferEvent>()
 
         composeTestRule.setContent {
@@ -282,7 +282,7 @@ class TransferScreenUiTest {
     }
 
     @Test
-    fun `picking a date emits transfer date changed event`() {
+    fun pickingADateEmitsTransferDateChangedEvent() {
         val capturedEvents = mutableListOf<TransferEvent>()
         val initialDate = LocalDate.of(2026, 5, 17)
         val chosenDate = initialDate.plusDays(1)
@@ -309,7 +309,7 @@ class TransferScreenUiTest {
     }
 
     @Test
-    fun `choosing a source account emits transfer event`() {
+    fun choosingASourceAccountEmitsTransferEvent() {
         val capturedEvents = mutableListOf<TransferEvent>()
         val sourceAccount = account(id = 10L, name = "Primary wallet")
 
@@ -334,7 +334,7 @@ class TransferScreenUiTest {
     }
 
     @Test
-    fun `choosing a target account emits transfer event`() {
+    fun choosingATargetAccountEmitsTransferEvent() {
         val capturedEvents = mutableListOf<TransferEvent>()
         val targetAccount = account(id = 20L, name = "Savings account")
 
@@ -359,7 +359,7 @@ class TransferScreenUiTest {
     }
 
     @Test
-    fun `changing a visible rate emits transfer event`() {
+    fun changingAVisibleRateEmitsTransferEvent() {
         val capturedEvents = mutableListOf<TransferEvent>()
         val sourceCurrency = currency(id = 1L, code = "USD")
         val targetCurrency = currency(id = 2L, code = "EUR")
@@ -389,7 +389,7 @@ class TransferScreenUiTest {
     }
 
     @Test
-    fun `cross currency transfer keeps the rate panel and keypad fab visible`() {
+    fun crossCurrencyTransferKeepsTheRatePanelAndKeypadFabVisible() {
         val sourceAccount = account(id = 10L, name = "Primary wallet", currencyId = 1L)
         val targetAccount = account(id = 20L, name = "Savings account", currencyId = 2L)
         val sourceCurrency = currency(id = 1L, code = "USD")
@@ -427,7 +427,7 @@ class TransferScreenUiTest {
     }
 
     @Test
-    fun `valid transfer save emits transfer event`() {
+    fun validTransferSaveEmitsTransferEvent() {
         val capturedEvents = mutableListOf<TransferEvent>()
         val sourceAccount = account(id = 10L, name = "Primary wallet")
         val targetAccount = account(id = 20L, name = "Savings account")
@@ -461,7 +461,7 @@ class TransferScreenUiTest {
     }
 
     @Test
-    fun `disabled save tap does not emit transfer event`() {
+    fun disabledSaveTapDoesNotEmitTransferEvent() {
         val capturedEvents = mutableListOf<TransferEvent>()
 
         composeTestRule.setContent {
@@ -484,7 +484,7 @@ class TransferScreenUiTest {
     }
 
     @Test
-    fun `rate dialog row renders confirm dialog and confirm emits rate confirmed event`() {
+    fun rateDialogRowRendersConfirmDialogAndConfirmEmitsRateConfirmedEvent() {
         val capturedEvents = mutableListOf<TransferEvent>()
         val sourceCurrency = currency(id = 1L, code = "USD")
         val targetCurrency = currency(id = 2L, code = "EUR")
@@ -530,7 +530,7 @@ class TransferScreenUiTest {
     }
 
     @Test
-    fun `rate dialog dismiss emits rate dismissed event`() {
+    fun rateDialogDismissEmitsRateDismissedEvent() {
         val capturedEvents = mutableListOf<TransferEvent>()
 
         composeTestRule.setContent {

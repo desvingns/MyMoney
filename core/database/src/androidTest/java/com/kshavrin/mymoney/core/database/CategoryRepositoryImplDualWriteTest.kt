@@ -60,7 +60,7 @@ class CategoryRepositoryImplDualWriteTest {
     }
 
     @Test
-    fun `archive marks category archived and emits delete operation`() =
+    fun archiveMarksCategoryArchivedAndEmitsDeleteOperation() =
         runTest {
             val id =
                 db.categoryDao().upsert(

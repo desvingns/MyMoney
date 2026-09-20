@@ -29,7 +29,7 @@ class MoneyDatabaseMigration6To7Test {
         )
 
     @Test
-    fun `migrate 6 to 7 adds text_color column and backfills from icon key`() {
+    fun migrate6To7AddsTextColorColumnAndBackfillsFromIconKey() {
         val iconKey = "ic_cat_food"
         val arbitraryColorHex = "#FF0000"
         val expectedColorHex = categoryIconDominantHex(iconKey)
@@ -68,7 +68,7 @@ class MoneyDatabaseMigration6To7Test {
     }
 
     @Test
-    fun `migrate 6 to 7 backfills text_color for every existing category row`() {
+    fun migrate6To7BackfillsTextColorForEveryExistingCategoryRow() {
         val seeds =
             listOf(
                 "ic_cat_food" to "#FF0000",
@@ -99,7 +99,7 @@ class MoneyDatabaseMigration6To7Test {
     }
 
     @Test
-    fun `migrate 6 to 7 recomputes color_hex from icon overwriting the stored value`() {
+    fun migrate6To7RecomputesColorHexFromIconOverwritingTheStoredValue() {
         val iconKey = "ic_cat_clothing"
         val storedBeforeMigration = "#123456"
         val expectedAfterMigration = categoryIconDominantHex(iconKey)
@@ -124,7 +124,7 @@ class MoneyDatabaseMigration6To7Test {
     }
 
     @Test
-    fun `migrate 6 to 7 leaves no category with empty text_color`() {
+    fun migrate6To7LeavesNoCategoryWithEmptyTextColor() {
         helper.createDatabase(dbName, 6).apply {
             seedCategory(iconKey = "ic_cat_food", colorHex = "#B7FF7A")
             seedCategory(iconKey = "ic_cat_bills", colorHex = "#FF8A80")
@@ -147,7 +147,7 @@ class MoneyDatabaseMigration6To7Test {
     }
 
     @Test
-    fun `migrate 6 to 7 is a no-op for an empty category table`() {
+    fun migrate6To7IsANoOpForAnEmptyCategoryTable() {
         helper.createDatabase(dbName, 6).apply { close() }
 
         val db = helper.runMigrationsAndValidate(dbName, 7, true, MIGRATION_6_7)

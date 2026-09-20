@@ -29,7 +29,7 @@ class MoneyDatabaseMigration7To8Test {
     // ─── op_journal table ──────────────────────────────────────────────────
 
     @Test
-    fun `migrate 7 to 8 creates op_journal table`() {
+    fun migrate7To8CreatesOpJournalTable() {
         helper.createDatabase(dbName, 7).apply { close() }
 
         val db = helper.runMigrationsAndValidate(dbName, 8, true, MIGRATION_7_8)
@@ -42,7 +42,7 @@ class MoneyDatabaseMigration7To8Test {
     }
 
     @Test
-    fun `migrate 7 to 8 creates index on op_journal entity_uuid`() {
+    fun migrate7To8CreatesIndexOnOpJournalEntityUuid() {
         helper.createDatabase(dbName, 7).apply { close() }
 
         val db = helper.runMigrationsAndValidate(dbName, 8, true, MIGRATION_7_8)
@@ -58,7 +58,7 @@ class MoneyDatabaseMigration7To8Test {
     }
 
     @Test
-    fun `migrate 7 to 8 creates index on op_journal synced_to_remote`() {
+    fun migrate7To8CreatesIndexOnOpJournalSyncedToRemote() {
         helper.createDatabase(dbName, 7).apply { close() }
 
         val db = helper.runMigrationsAndValidate(dbName, 8, true, MIGRATION_7_8)
@@ -74,7 +74,7 @@ class MoneyDatabaseMigration7To8Test {
     }
 
     @Test
-    fun `migrate 7 to 8 op_journal is empty after migration with no data`() {
+    fun migrate7To8OpJournalIsEmptyAfterMigrationWithNoData() {
         helper.createDatabase(dbName, 7).apply { close() }
 
         val db = helper.runMigrationsAndValidate(dbName, 8, true, MIGRATION_7_8)
@@ -90,7 +90,7 @@ class MoneyDatabaseMigration7To8Test {
     // ─── categories.updated_at column ──────────────────────────────────────
 
     @Test
-    fun `migrate 7 to 8 adds updated_at column to category with default 0`() {
+    fun migrate7To8AddsUpdatedAtColumnToCategoryWithDefault0() {
         helper.createDatabase(dbName, 7).apply {
             seedCategory(name = "Food", iconKey = "ic_cat_food")
             close()
@@ -113,7 +113,7 @@ class MoneyDatabaseMigration7To8Test {
     // ─── uuid columns ──────────────────────────────────────────────────────
 
     @Test
-    fun `migrate 7 to 8 adds uuid column to transaction and backfills non-empty value`() {
+    fun migrate7To8AddsUuidColumnToTransactionAndBackfillsNonEmptyValue() {
         helper.createDatabase(dbName, 7).apply {
             seedTransaction()
             close()
@@ -132,7 +132,7 @@ class MoneyDatabaseMigration7To8Test {
     }
 
     @Test
-    fun `migrate 7 to 8 adds uuid column to category and backfills non-empty value`() {
+    fun migrate7To8AddsUuidColumnToCategoryAndBackfillsNonEmptyValue() {
         helper.createDatabase(dbName, 7).apply {
             seedCategory(name = "Bills", iconKey = "ic_cat_bills")
             close()
@@ -151,7 +151,7 @@ class MoneyDatabaseMigration7To8Test {
     }
 
     @Test
-    fun `migrate 7 to 8 adds uuid column to account and backfills non-empty value`() {
+    fun migrate7To8AddsUuidColumnToAccountAndBackfillsNonEmptyValue() {
         helper.createDatabase(dbName, 7).apply {
             seedAccount(name = "Cash")
             close()
@@ -172,7 +172,7 @@ class MoneyDatabaseMigration7To8Test {
     // ─── uuid uniqueness ───────────────────────────────────────────────────
 
     @Test
-    fun `migrate 7 to 8 backfills unique uuid values across transaction rows`() {
+    fun migrate7To8BackfillsUniqueUuidValuesAcrossTransactionRows() {
         helper.createDatabase(dbName, 7).apply {
             seedTransaction()
             seedTransaction()
@@ -195,7 +195,7 @@ class MoneyDatabaseMigration7To8Test {
     }
 
     @Test
-    fun `migrate 7 to 8 backfills unique uuid values across category rows`() {
+    fun migrate7To8BackfillsUniqueUuidValuesAcrossCategoryRows() {
         helper.createDatabase(dbName, 7).apply {
             seedCategory(name = "Cat1", iconKey = "ic_cat_food")
             seedCategory(name = "Cat2", iconKey = "ic_cat_food")
@@ -218,7 +218,7 @@ class MoneyDatabaseMigration7To8Test {
     }
 
     @Test
-    fun `migrate 7 to 8 backfills unique uuid values across account rows`() {
+    fun migrate7To8BackfillsUniqueUuidValuesAcrossAccountRows() {
         helper.createDatabase(dbName, 7).apply {
             seedAccount(name = "Acc1")
             seedAccount(name = "Acc2")
@@ -242,7 +242,7 @@ class MoneyDatabaseMigration7To8Test {
     // ─── UNIQUE index existence ─────────────────────────────────────────────
 
     @Test
-    fun `migrate 7 to 8 creates unique index on transaction uuid`() {
+    fun migrate7To8CreatesUniqueIndexOnTransactionUuid() {
         helper.createDatabase(dbName, 7).apply { close() }
 
         val db = helper.runMigrationsAndValidate(dbName, 8, true, MIGRATION_7_8)
@@ -258,7 +258,7 @@ class MoneyDatabaseMigration7To8Test {
     }
 
     @Test
-    fun `migrate 7 to 8 creates unique index on category uuid`() {
+    fun migrate7To8CreatesUniqueIndexOnCategoryUuid() {
         helper.createDatabase(dbName, 7).apply { close() }
 
         val db = helper.runMigrationsAndValidate(dbName, 8, true, MIGRATION_7_8)
@@ -274,7 +274,7 @@ class MoneyDatabaseMigration7To8Test {
     }
 
     @Test
-    fun `migrate 7 to 8 creates unique index on account uuid`() {
+    fun migrate7To8CreatesUniqueIndexOnAccountUuid() {
         helper.createDatabase(dbName, 7).apply { close() }
 
         val db = helper.runMigrationsAndValidate(dbName, 8, true, MIGRATION_7_8)
@@ -292,7 +292,7 @@ class MoneyDatabaseMigration7To8Test {
     // ─── device_id column ──────────────────────────────────────────────────
 
     @Test
-    fun `migrate 7 to 8 adds device_id column to transaction with empty default`() {
+    fun migrate7To8AddsDeviceIdColumnToTransactionWithEmptyDefault() {
         helper.createDatabase(dbName, 7).apply {
             seedTransaction()
             close()
@@ -313,7 +313,7 @@ class MoneyDatabaseMigration7To8Test {
     }
 
     @Test
-    fun `migrate 7 to 8 adds device_id column to category with empty default`() {
+    fun migrate7To8AddsDeviceIdColumnToCategoryWithEmptyDefault() {
         helper.createDatabase(dbName, 7).apply {
             seedCategory(name = "Transport", iconKey = "ic_cat_taxi")
             close()
@@ -334,7 +334,7 @@ class MoneyDatabaseMigration7To8Test {
     }
 
     @Test
-    fun `migrate 7 to 8 adds device_id column to account with empty default`() {
+    fun migrate7To8AddsDeviceIdColumnToAccountWithEmptyDefault() {
         helper.createDatabase(dbName, 7).apply {
             seedAccount(name = "Wallet")
             close()
@@ -357,7 +357,7 @@ class MoneyDatabaseMigration7To8Test {
     // ─── no existing uuid rows disturbed ───────────────────────────────────
 
     @Test
-    fun `migrate 7 to 8 leaves empty tables intact`() {
+    fun migrate7To8LeavesEmptyTablesIntact() {
         helper.createDatabase(dbName, 7).apply { close() }
 
         val db = helper.runMigrationsAndValidate(dbName, 8, true, MIGRATION_7_8)
@@ -373,7 +373,7 @@ class MoneyDatabaseMigration7To8Test {
     }
 
     @Test
-    fun `migrate 7 to 8 leaves no uuid empty after backfill with multiple rows per table`() {
+    fun migrate7To8LeavesNoUuidEmptyAfterBackfillWithMultipleRowsPerTable() {
         helper.createDatabase(dbName, 7).apply {
             seedTransaction()
             seedTransaction()

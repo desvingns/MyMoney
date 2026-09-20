@@ -26,7 +26,7 @@ class MoneyDatabaseMigration4To5Test {
         )
 
     @Test
-    fun `migrate 4 to 5 rounds every monetary column to two decimal places`() {
+    fun migrate4To5RoundsEveryMonetaryColumnToTwoDecimalPlaces() {
         helper.createDatabase(dbName, 4).apply {
             seedCurrency()
             execSQL(
@@ -80,7 +80,7 @@ class MoneyDatabaseMigration4To5Test {
     }
 
     @Test
-    fun `migrate 4 to 5 preserves null monetary values`() {
+    fun migrate4To5PreservesNullMonetaryValues() {
         helper.createDatabase(dbName, 4).apply {
             seedCurrency()
             execSQL(
@@ -124,7 +124,7 @@ class MoneyDatabaseMigration4To5Test {
     }
 
     @Test
-    fun `migrate 4 to 5 leaves annual rate and term months unchanged`() {
+    fun migrate4To5LeavesAnnualRateAndTermMonthsUnchanged() {
         helper.createDatabase(dbName, 4).apply {
             execSQL(
                 "INSERT INTO `goal` " +

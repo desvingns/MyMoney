@@ -43,6 +43,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
@@ -77,6 +78,7 @@ private fun Modifier.pointerBlocker(): Modifier = pointerInput(Unit) {
 fun SpotlightOverlay(
     registry: SpotlightTargetRegistry,
     cutout: SpotlightCutout?,
+    stepTitle: String,
     card: @Composable () -> Unit,
     skipLabel: String,
     primaryLabel: String,
@@ -126,7 +128,8 @@ fun SpotlightOverlay(
         modifier = modifier
             .fillMaxSize()
             .semantics {
-                paneTitle = primaryLabel
+                isTraversalGroup = true
+                paneTitle = stepTitle
                 liveRegion = LiveRegionMode.Polite
             },
     ) {

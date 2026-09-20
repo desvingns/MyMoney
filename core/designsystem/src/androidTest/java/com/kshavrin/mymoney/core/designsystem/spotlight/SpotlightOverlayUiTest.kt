@@ -28,6 +28,7 @@ import org.junit.runner.RunWith
 
 private const val TAG_TARGET = "spotlight_target_btn"
 private const val TAG_OUTSIDE = "spotlight_outside_btn"
+private const val STEP_TITLE = "Step title"
 private const val SKIP_LABEL = "Skip all"
 private const val PRIMARY_LABEL = "Next"
 
@@ -40,7 +41,7 @@ class SpotlightOverlayUiTest {
     // ── Circle shape ──────────────────────────────────────────────────────────
 
     @Test
-    fun circle_tap_inside_cutout_reaches_underlying_button() {
+    fun circleTapInsideCutoutReachesUnderlyingButton() {
         var clicked = false
         composeTestRule.setContent {
             val registry = rememberSpotlightRegistry()
@@ -57,6 +58,7 @@ class SpotlightOverlayUiTest {
                     SpotlightOverlay(
                         registry = registry,
                         cutout = SpotlightCutout(key = TAG_TARGET, shape = SpotlightShape.Circle),
+                        stepTitle = STEP_TITLE,
                         card = { Text("Card content") },
                         skipLabel = SKIP_LABEL,
                         primaryLabel = PRIMARY_LABEL,
@@ -72,7 +74,7 @@ class SpotlightOverlayUiTest {
     }
 
     @Test
-    fun circle_tap_outside_cutout_is_blocked() {
+    fun circleTapOutsideCutoutIsBlocked() {
         var clicked = false
         composeTestRule.setContent {
             val registry = rememberSpotlightRegistry()
@@ -96,6 +98,7 @@ class SpotlightOverlayUiTest {
                     SpotlightOverlay(
                         registry = registry,
                         cutout = SpotlightCutout(key = TAG_TARGET, shape = SpotlightShape.Circle),
+                        stepTitle = STEP_TITLE,
                         card = { Text("Card content") },
                         skipLabel = SKIP_LABEL,
                         primaryLabel = PRIMARY_LABEL,
@@ -110,10 +113,45 @@ class SpotlightOverlayUiTest {
         composeTestRule.runOnIdle { assertFalse("tap outside circle cutout should be blocked", clicked) }
     }
 
+    // Matrix cell 4: circle shape, unregistered target, outside tap blocked.
+    @Test
+    fun circleUnregisteredTargetStillBlocksOutsideTap() {
+        var clicked = false
+        composeTestRule.setContent {
+            val registry = rememberSpotlightRegistry()
+            MyMoneyTheme {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    Button(
+                        onClick = { clicked = true },
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .size(56.dp)
+                            .testTag(TAG_OUTSIDE),
+                    ) {}
+                    SpotlightOverlay(
+                        registry = registry,
+                        cutout = SpotlightCutout(key = "unregistered_key", shape = SpotlightShape.Circle),
+                        stepTitle = STEP_TITLE,
+                        card = { Text("Card content") },
+                        skipLabel = SKIP_LABEL,
+                        primaryLabel = PRIMARY_LABEL,
+                        onSkip = {},
+                        onPrimary = {},
+                    )
+                }
+            }
+        }
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithTag(TAG_OUTSIDE).performTouchInput { click(center) }
+        composeTestRule.runOnIdle {
+            assertFalse("unregistered circle target: whole scrim must block taps", clicked)
+        }
+    }
+
     // ── RoundedRect shape ─────────────────────────────────────────────────────
 
     @Test
-    fun rounded_rect_tap_inside_cutout_reaches_underlying_button() {
+    fun roundedRectTapInsideCutoutReachesUnderlyingButton() {
         var clicked = false
         composeTestRule.setContent {
             val registry = rememberSpotlightRegistry()
@@ -130,6 +168,7 @@ class SpotlightOverlayUiTest {
                     SpotlightOverlay(
                         registry = registry,
                         cutout = SpotlightCutout(key = TAG_TARGET, shape = SpotlightShape.RoundedRect),
+                        stepTitle = STEP_TITLE,
                         card = { Text("Card content") },
                         skipLabel = SKIP_LABEL,
                         primaryLabel = PRIMARY_LABEL,
@@ -145,7 +184,7 @@ class SpotlightOverlayUiTest {
     }
 
     @Test
-    fun rounded_rect_tap_outside_cutout_is_blocked() {
+    fun roundedRectTapOutsideCutoutIsBlocked() {
         var clicked = false
         composeTestRule.setContent {
             val registry = rememberSpotlightRegistry()
@@ -169,6 +208,7 @@ class SpotlightOverlayUiTest {
                     SpotlightOverlay(
                         registry = registry,
                         cutout = SpotlightCutout(key = TAG_TARGET, shape = SpotlightShape.RoundedRect),
+                        stepTitle = STEP_TITLE,
                         card = { Text("Card content") },
                         skipLabel = SKIP_LABEL,
                         primaryLabel = PRIMARY_LABEL,
@@ -183,16 +223,52 @@ class SpotlightOverlayUiTest {
         composeTestRule.runOnIdle { assertFalse("tap outside rounded rect cutout should be blocked", clicked) }
     }
 
+    // Matrix cell 8: rounded-rect shape, unregistered target, outside tap blocked.
+    @Test
+    fun roundedRectUnregisteredTargetStillBlocksOutsideTap() {
+        var clicked = false
+        composeTestRule.setContent {
+            val registry = rememberSpotlightRegistry()
+            MyMoneyTheme {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    Button(
+                        onClick = { clicked = true },
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .size(56.dp)
+                            .testTag(TAG_OUTSIDE),
+                    ) {}
+                    SpotlightOverlay(
+                        registry = registry,
+                        cutout = SpotlightCutout(key = "unregistered_key", shape = SpotlightShape.RoundedRect),
+                        stepTitle = STEP_TITLE,
+                        card = { Text("Card content") },
+                        skipLabel = SKIP_LABEL,
+                        primaryLabel = PRIMARY_LABEL,
+                        onSkip = {},
+                        onPrimary = {},
+                    )
+                }
+            }
+        }
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithTag(TAG_OUTSIDE).performTouchInput { click(center) }
+        composeTestRule.runOnIdle {
+            assertFalse("unregistered rounded rect target: whole scrim must block taps", clicked)
+        }
+    }
+
     // ── Buttons and card ──────────────────────────────────────────────────────
 
     @Test
-    fun skip_and_primary_buttons_are_displayed_and_at_least_48dp() {
+    fun skipAndPrimaryButtonsAreDisplayedAndAtLeast48dp() {
         composeTestRule.setContent {
             val registry = rememberSpotlightRegistry()
             MyMoneyTheme {
                 SpotlightOverlay(
                     registry = registry,
                     cutout = null,
+                    stepTitle = STEP_TITLE,
                     card = { Text("Hint text") },
                     skipLabel = SKIP_LABEL,
                     primaryLabel = PRIMARY_LABEL,
@@ -210,7 +286,7 @@ class SpotlightOverlayUiTest {
     }
 
     @Test
-    fun skip_button_invokes_onSkip() {
+    fun skipButtonInvokesOnSkip() {
         var skipped = false
         composeTestRule.setContent {
             val registry = rememberSpotlightRegistry()
@@ -218,6 +294,7 @@ class SpotlightOverlayUiTest {
                 SpotlightOverlay(
                     registry = registry,
                     cutout = null,
+                    stepTitle = STEP_TITLE,
                     card = {},
                     skipLabel = SKIP_LABEL,
                     primaryLabel = PRIMARY_LABEL,
@@ -231,7 +308,7 @@ class SpotlightOverlayUiTest {
     }
 
     @Test
-    fun primary_button_invokes_onPrimary() {
+    fun primaryButtonInvokesOnPrimary() {
         var advanced = false
         composeTestRule.setContent {
             val registry = rememberSpotlightRegistry()
@@ -239,6 +316,7 @@ class SpotlightOverlayUiTest {
                 SpotlightOverlay(
                     registry = registry,
                     cutout = null,
+                    stepTitle = STEP_TITLE,
                     card = {},
                     skipLabel = SKIP_LABEL,
                     primaryLabel = PRIMARY_LABEL,
@@ -252,13 +330,14 @@ class SpotlightOverlayUiTest {
     }
 
     @Test
-    fun no_crash_when_cutout_key_is_unregistered() {
+    fun noCrashWhenCutoutKeyIsUnregistered() {
         composeTestRule.setContent {
             val registry = rememberSpotlightRegistry()
             MyMoneyTheme {
                 SpotlightOverlay(
                     registry = registry,
                     cutout = SpotlightCutout(key = "missing_key", shape = SpotlightShape.Circle),
+                    stepTitle = STEP_TITLE,
                     card = { Text("Waiting") },
                     skipLabel = SKIP_LABEL,
                     primaryLabel = PRIMARY_LABEL,
@@ -272,7 +351,7 @@ class SpotlightOverlayUiTest {
     }
 
     @Test
-    fun null_registry_in_spotlight_target_is_noop() {
+    fun nullRegistryInSpotlightTargetIsNoop() {
         var clicked = false
         composeTestRule.setContent {
             MyMoneyTheme {

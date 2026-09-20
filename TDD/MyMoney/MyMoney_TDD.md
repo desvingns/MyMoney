@@ -2772,7 +2772,7 @@ These six items require external accounts and live credentials; they are NOT des
 
 - **Freemium (ADR-0010, supersedes Q-B3).** Plus subscription (€1.99/mo, €12.99/yr with a 7-day trial on annual only), two repeatable "coffee" consumables (€1 / €5), and rewarded ads (5 views = 24 h Plus, granted only via AdMob SSV). Free keeps every local capability plus private Dropbox/GDrive backup; Plus sells shared Supabase workspace and backup version history. The first coffee purchase awards a cosmetic Supporter badge; it is not an entitlement and does not unlock shared workspace. Not available to users in Russia — see ADR-0010 §"Regional constraints".
 - **Aesthetic gamification only.** No XP, streaks, achievements (Q-B4). Confirm scope; this defines what the "gaming audience" message means for marketing.
-- **minSdk 31.** Trades device coverage (~85 % vs ~95 % at minSdk 26) for cleaner code (no compat layers). Confirm with product.
+- **minSdk 29.** Trades device coverage (~95 % vs ~99 % at minSdk 26) for a reduced compat surface (Android 10 and 11 actively supported). Confirm with product.
 - **Custom donut chart.** Builds visual identity but is non-trivial work (~1 week with animations). If schedule slips, consider Vico or MPAndroidChart as fallback for v1.0 with custom rewrite in v1.1.
 - **DEVIATION AS-12 — "Pick a date" is a range picker.** The kickoff should highlight that the "Pick a date" entry in the period drawer is NOT a single-day jump (despite that being the v1.0 assumption); it requires the user to pick both a start and an end date and emits a `CustomRange` period. This shapes the date-picker UX work in week 4.
 - **DEVIATION AS-14 — donut label threshold = 3 %.** The chart will look busier than the v1.0 mock and BR-5 implied. Visual QA should approve the resulting density on the year-view (S05) where more slices appear.
@@ -2823,7 +2823,7 @@ See `pipeline/01_play.md`. Status: **not retrieved** (Chrome MCP unavailable at 
 See `pipeline/07_apk.md`. Key data:
 - `package`: `com.monefy.app.lite`
 - `versionName` / `versionCode`: `1.22.10` / `2228`
-- `minSdk` (original): 21 — we override to 31 per Q-D1.
+- `minSdk` (original): 21 — we override to 29 per Q-D1 (revised: Android 10/11 support).
 - `targetSdk`: 36
 - Theme parent (original): `Theme.MaterialComponents.DayNight.DarkActionBar` — we migrate to M3.
 - Light primary: `#7ac794`; accent/error: `#f66561`; background: `#f2fff7`.

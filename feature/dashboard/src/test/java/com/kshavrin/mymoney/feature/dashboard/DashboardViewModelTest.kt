@@ -1,6 +1,7 @@
 package com.kshavrin.mymoney.feature.dashboard
 
 import androidx.compose.ui.graphics.Color
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
@@ -58,6 +59,8 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import com.kshavrin.mymoney.feature.dashboard.tour.TourPhase
+import com.kshavrin.mymoney.feature.dashboard.tour.TourStep
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -121,7 +124,12 @@ class DashboardViewModelTest {
         budgetRepository = FakeDashboardBudgetRepository()
         settingsRepository =
             FakeDashboardAppSettingsRepository(
-                AppSettings(defaultAccountId = cash.id, firstPositiveSeen = true, chartAutoMode = false),
+                AppSettings(
+                    defaultAccountId = cash.id,
+                    firstPositiveSeen = true,
+                    chartAutoMode = false,
+                    onboardingCompletedAt = 1L,
+                ),
             )
         categoryRepository = FakeDashboardCategoryRepository()
         journalSync = FakeDashboardJournalSync()
@@ -3135,6 +3143,8 @@ class DashboardViewModelTest {
                                     getTransferRecords = getTransferRecordsGated,
                                 ),
                             journalSync = FakeDashboardJournalSync(),
+                            appSettingsRepository = settingsRepository,
+                            savedStateHandle = SavedStateHandle(),
                         ) as T
                     }
                 }
@@ -3568,6 +3578,219 @@ class DashboardViewModelTest {
             }
         }
 
+    // ── First-launch spotlight tour (SPEC-02) ──────────────────────────────────
+
+    private fun tourViewModel(
+        onboardingCompletedAt: Long? = null,
+        savedStateHandle: SavedStateHandle = SavedStateHandle(),
+    ): Pair<DashboardViewModel, ViewModelStore> {
+        settingsRepository =
+            FakeDashboardAppSettingsRepository(
+                AppSettings(
+                    defaultAccountId = cash.id,
+                    firstPositiveSeen = true,
+                    chartAutoMode = false,
+                    onboardingCompletedAt = onboardingCompletedAt,
+                ),
+            )
+        return buildViewModel(savedStateHandle)
+    }
+
+    @Test
+    fun `first launch raises the tour at the actions step with both drawers closed`() =
+        runTest {
+            val (viewModel, store) = tourViewModel(onboardingCompletedAt = null)
+            try {
+                runCurrent()
+                assertEquals(TourStep.Actions, viewModel.state.value.tour?.step)
+                assertEquals(false, viewModel.state.value.tour?.paused)
+                assertFalse(viewModel.state.value.leftDrawerOpen)
+                assertFalse(viewModel.state.value.rightDrawerOpen)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `completed onboarding does not raise the tour`() =
+        runTest {
+            val (viewModel, store) = tourViewModel(onboardingCompletedAt = 123L)
+            try {
+                runCurrent()
+                assertNull(viewModel.state.value.tour)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `next advances actions to left panel button phase`() =
+        runTest {
+            val (viewModel, store) = tourViewModel()
+            try {
+                runCurrent()
+                viewModel.onEvent(DashboardEvent.TourNextClicked)
+                runCurrent()
+                assertEquals(TourStep.LeftPanel, viewModel.state.value.tour?.step)
+                assertEquals(TourPhase.Button, viewModel.state.value.tour?.phase)
+                assertFalse(viewModel.state.value.leftDrawerOpen)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `panel timer opens the left drawer and moves to panel phase`() =
+        runTest {
+            val (viewModel, store) = tourViewModel()
+            try {
+                runCurrent()
+                viewModel.onEvent(DashboardEvent.TourNextClicked)
+                runCurrent()
+                viewModel.onEvent(DashboardEvent.TourPanelOpenElapsed)
+                runCurrent()
+                assertEquals(TourPhase.Panel, viewModel.state.value.tour?.phase)
+                assertTrue(viewModel.state.value.leftDrawerOpen)
+                assertFalse(viewModel.state.value.rightDrawerOpen)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `tapping the menu button opens the panel in the left panel step`() =
+        runTest {
+            val (viewModel, store) = tourViewModel()
+            try {
+                runCurrent()
+                viewModel.onEvent(DashboardEvent.TourNextClicked)
+                runCurrent()
+                viewModel.onEvent(DashboardEvent.LeftDrawerToggled)
+                runCurrent()
+                assertEquals(TourPhase.Panel, viewModel.state.value.tour?.phase)
+                assertTrue(viewModel.state.value.leftDrawerOpen)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `real fab tap pauses the tour and resume advances to the next step`() =
+        runTest {
+            val (viewModel, store) = tourViewModel()
+            try {
+                runCurrent()
+                viewModel.onEvent(DashboardEvent.PlusFabClicked)
+                runCurrent()
+                assertEquals(true, viewModel.state.value.tour?.paused)
+                viewModel.onEvent(DashboardEvent.TourResumed)
+                runCurrent()
+                assertEquals(TourStep.LeftPanel, viewModel.state.value.tour?.step)
+                assertEquals(false, viewModel.state.value.tour?.paused)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `resume is a no-op while the tour is not paused`() =
+        runTest {
+            val (viewModel, store) = tourViewModel()
+            try {
+                runCurrent()
+                viewModel.onEvent(DashboardEvent.TourResumed)
+                runCurrent()
+                assertEquals(TourStep.Actions, viewModel.state.value.tour?.step)
+                assertEquals(false, viewModel.state.value.tour?.paused)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `next reopens the right drawer on the support step`() =
+        runTest {
+            val (viewModel, store) = tourViewModel()
+            try {
+                runCurrent()
+                viewModel.onEvent(DashboardEvent.TourNextClicked)
+                runCurrent()
+                viewModel.onEvent(DashboardEvent.TourNextClicked)
+                runCurrent()
+                viewModel.onEvent(DashboardEvent.TourNextClicked)
+                runCurrent()
+                assertEquals(TourStep.RightSupport, viewModel.state.value.tour?.step)
+                assertTrue(viewModel.state.value.rightDrawerOpen)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `returning after support finishes the tour and stamps onboarding`() =
+        runTest {
+            val (viewModel, store) =
+                tourViewModel(savedStateHandle = SavedStateHandle(mapOf("tour_step" to TourStep.RightSupport.name)))
+            try {
+                runCurrent()
+                assertEquals(TourStep.RightSupport, viewModel.state.value.tour?.step)
+                viewModel.onEvent(DashboardEvent.SupportClicked)
+                runCurrent()
+                assertEquals(true, viewModel.state.value.tour?.paused)
+                viewModel.onEvent(DashboardEvent.TourResumed)
+                runCurrent()
+                assertNull(viewModel.state.value.tour)
+                assertNotNull(settingsRepository.currentSettings().onboardingCompletedAt)
+                assertFalse(viewModel.state.value.rightDrawerOpen)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `skip all finishes the tour closes drawers and stamps onboarding`() =
+        runTest {
+            val (viewModel, store) = tourViewModel()
+            try {
+                runCurrent()
+                viewModel.onEvent(DashboardEvent.TourSkipAllClicked)
+                runCurrent()
+                assertNull(viewModel.state.value.tour)
+                assertFalse(viewModel.state.value.leftDrawerOpen)
+                assertFalse(viewModel.state.value.rightDrawerOpen)
+                assertNotNull(settingsRepository.currentSettings().onboardingCompletedAt)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `process death restores the saved tour step`() =
+        runTest {
+            val (viewModel, store) =
+                tourViewModel(
+                    savedStateHandle =
+                        SavedStateHandle(mapOf("tour_step" to TourStep.RightCategories.name, "tour_paused" to false)),
+                )
+            try {
+                runCurrent()
+                assertEquals(TourStep.RightCategories, viewModel.state.value.tour?.step)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
     private fun buildDashboardDataUseCase(
         transactionRepository: TransactionRepository = this.transactionRepository,
     ): DashboardDataUseCase =
@@ -3579,7 +3802,7 @@ class DashboardViewModelTest {
             categoryRepository = categoryRepository,
         )
 
-    private fun buildViewModel(): Pair<DashboardViewModel, ViewModelStore> {
+    private fun buildViewModel(savedStateHandle: SavedStateHandle = SavedStateHandle()): Pair<DashboardViewModel, ViewModelStore> {
         val dispatcher = mainDispatcherRule.testDispatcher
         val calculator =
             BalanceCalculator(
@@ -3629,6 +3852,8 @@ class DashboardViewModelTest {
                         getCategoryRecords = getCategoryRecords,
                         getOperationsSummary = getOperationsSummary,
                         journalSync = journalSync,
+                        appSettingsRepository = settingsRepository,
+                        savedStateHandle = savedStateHandle,
                     ) as T
             }
         return ViewModelProvider(store, factory)[DashboardViewModel::class.java] to store
@@ -3695,6 +3920,8 @@ class DashboardViewModelTest {
                         getCategoryRecords = getCategoryRecords,
                         getOperationsSummary = getOperationsSummary,
                         journalSync = journalSync,
+                        appSettingsRepository = settingsRepository,
+                        savedStateHandle = SavedStateHandle(),
                     ) as T
             }
         return ViewModelProvider(store, factory)[DashboardViewModel::class.java] to store
@@ -5308,6 +5535,8 @@ class DashboardViewModelTest {
                                     getTransferRecords = getTransferRecordsGated,
                                 ),
                             journalSync = FakeDashboardJournalSync(),
+                            appSettingsRepository = settingsRepository,
+                            savedStateHandle = SavedStateHandle(),
                         ) as T
                     }
                 }

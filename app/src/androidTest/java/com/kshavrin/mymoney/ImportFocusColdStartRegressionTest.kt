@@ -280,6 +280,8 @@ class ImportFocusColdStartRegressionTest {
                                         .ConvertMoneyUseCase(),
                                 clock = java.time.Clock.systemUTC(),
                             ),
+                        appSettingsRepository = settingsRepository,
+                        savedStateHandle = androidx.lifecycle.SavedStateHandle(),
                     )
 
                 val populated =

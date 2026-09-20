@@ -15,6 +15,7 @@ import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.domain.model.TrendPoint
 import com.kshavrin.mymoney.feature.dashboard.components.CategoryTileItem
 import com.kshavrin.mymoney.feature.dashboard.components.SummaryRecordCategoryDisplay
+import com.kshavrin.mymoney.feature.dashboard.tour.TourUiState
 import java.time.YearMonth
 
 @Immutable
@@ -51,6 +52,8 @@ data class DashboardState(
     val categoryDisplays: Map<Long, SummaryRecordCategoryDisplay> = emptyMap(),
     val leftDrawerOpen: Boolean = false,
     val rightDrawerOpen: Boolean = false,
+    // First-launch spotlight tour over the real dashboard (null = not running / already completed).
+    val tour: TourUiState? = null,
     val showConfetti: Boolean = false,
     val chartConfig: ChartConfig = ChartConfig(),
     val chartSettingsSheetOpen: Boolean = false,
@@ -249,6 +252,14 @@ sealed interface DashboardEvent {
     data object RightDrawerToggled : DashboardEvent
 
     data object DrawerDismissed : DashboardEvent
+
+    data object TourNextClicked : DashboardEvent
+
+    data object TourSkipAllClicked : DashboardEvent
+
+    data object TourPanelOpenElapsed : DashboardEvent
+
+    data object TourResumed : DashboardEvent
 
     data object RefreshRequested : DashboardEvent
 

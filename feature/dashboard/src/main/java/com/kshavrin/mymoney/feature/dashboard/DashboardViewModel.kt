@@ -1,9 +1,11 @@
 package com.kshavrin.mymoney.feature.dashboard
 
 import androidx.compose.ui.graphics.Color
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kshavrin.mymoney.core.common.exception.reportToSentry
+import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
 import com.kshavrin.mymoney.core.datastore.model.AppSettings
 import com.kshavrin.mymoney.core.datastore.usecase.DashboardDataUseCase
 import com.kshavrin.mymoney.core.designsystem.dialog.RateRow
@@ -32,9 +34,15 @@ import com.kshavrin.mymoney.core.domain.usecase.RingGaugeCalculator
 import com.kshavrin.mymoney.core.sync.JournalSync
 import com.kshavrin.mymoney.feature.dashboard.components.CategoryTileItem
 import com.kshavrin.mymoney.feature.dashboard.components.SummaryRecordCategoryDisplay
+import com.kshavrin.mymoney.feature.dashboard.tour.DashboardTourReducer
+import com.kshavrin.mymoney.feature.dashboard.tour.TourPhase
+import com.kshavrin.mymoney.feature.dashboard.tour.TourStep
+import com.kshavrin.mymoney.feature.dashboard.tour.TourUiState
+import com.kshavrin.mymoney.feature.dashboard.tour.drawersFor
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -66,6 +74,8 @@ class DashboardViewModel
         private val getCategoryRecords: GetCategoryRecordsUseCase,
         private val getOperationsSummary: GetOperationsSummaryUseCase,
         private val journalSync: JournalSync,
+        private val appSettingsRepository: AppSettingsRepository,
+        private val savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         private val _state = MutableStateFlow(DashboardState())
         val state: StateFlow<DashboardState> = _state.asStateFlow()
@@ -111,6 +121,73 @@ class DashboardViewModel
             observeBudgetAlerts()
             observeExpenseCategories()
             observeCategoryDisplays()
+            initTour()
+        }
+
+        // First-launch spotlight tour: raise it only while onboarding has never been completed (G3).
+        // The step survives process death via SavedStateHandle; a fresh cold start (swiped from
+        // Recents) has no saved step and begins at step 1 (D11).
+        private fun initTour() {
+            viewModelScope.launch {
+                val settings = appSettingsRepository.settings.first()
+                if (settings.onboardingCompletedAt != null) return@launch
+                applyTour(restoreTour() ?: DashboardTourReducer.first())
+            }
+        }
+
+        private fun restoreTour(): TourUiState? {
+            val stepName = savedStateHandle.get<String>(TOUR_STEP_KEY) ?: return null
+            val step = TourStep.entries.firstOrNull { it.name == stepName } ?: return null
+            val paused = savedStateHandle.get<Boolean>(TOUR_PAUSED_KEY) ?: false
+            return DashboardTourReducer.enter(step).copy(paused = paused)
+        }
+
+        // Single writer of tour + drawer state: a paused tour keeps both drawers closed (the overlay
+        // is hidden while the user is off-screen), otherwise the step's required drawers are applied.
+        private fun applyTour(tour: TourUiState) {
+            val drawers = if (tour.paused) TourDrawerClosed else drawersFor(tour)
+            _state.value =
+                _state.value.copy(
+                    tour = tour,
+                    leftDrawerOpen = drawers.left,
+                    rightDrawerOpen = drawers.right,
+                )
+            savedStateHandle[TOUR_STEP_KEY] = tour.step.name
+            savedStateHandle[TOUR_PAUSED_KEY] = tour.paused
+        }
+
+        private fun pauseTourIfActive() {
+            val tour = _state.value.tour ?: return
+            if (tour.paused) return
+            applyTour(DashboardTourReducer.paused(tour))
+        }
+
+        private fun handleTourNext() {
+            val tour = _state.value.tour ?: return
+            if (tour.paused) return
+            when (val next = DashboardTourReducer.next(tour)) {
+                null -> finishTour()
+                else -> applyTour(next)
+            }
+        }
+
+        // "Done" / "Skip all" / Back: close the tour, close both drawers, and stamp
+        // onboardingCompletedAt so the tour never reappears. All throwables funnel to Sentry
+        // (DecisionRouterViewModel.skipOnboarding pattern); CancellationException stays cooperative.
+        @Suppress("TooGenericExceptionCaught")
+        private fun finishTour() {
+            _state.value = _state.value.copy(tour = null, leftDrawerOpen = false, rightDrawerOpen = false)
+            savedStateHandle.remove<String>(TOUR_STEP_KEY)
+            savedStateHandle.remove<Boolean>(TOUR_PAUSED_KEY)
+            viewModelScope.launch {
+                try {
+                    appSettingsRepository.update { it.copy(onboardingCompletedAt = System.currentTimeMillis()) }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (throwable: Throwable) {
+                    throwable.reportToSentry()
+                }
+            }
         }
 
         // Resolve icon + name for every category (income and expense) so the operations-summary rows
@@ -1077,24 +1154,64 @@ class DashboardViewModel
                 is DashboardEvent.AllAccountsTargetCurrencyChosen -> openRateConfirm(event.currencyId)
                 is DashboardEvent.AllAccountsRatesConfirmed -> applyAllAccountsConvert(event.rateOverrides)
                 DashboardEvent.AllAccountsConversionDismissed -> Unit
-                DashboardEvent.LeftDrawerToggled ->
-                    _state.value =
-                        _state.value.copy(
-                            leftDrawerOpen = !_state.value.leftDrawerOpen,
-                            rightDrawerOpen = false,
-                        )
-                DashboardEvent.RightDrawerToggled ->
-                    _state.value =
-                        _state.value.copy(
-                            rightDrawerOpen = !_state.value.rightDrawerOpen,
-                            leftDrawerOpen = false,
-                        )
+                DashboardEvent.LeftDrawerToggled -> {
+                    val tour = _state.value.tour
+                    if (tour != null && !tour.paused && tour.step == TourStep.LeftPanel && tour.phase == TourPhase.Button) {
+                        applyTour(DashboardTourReducer.panelOpenElapsed(tour))
+                    } else {
+                        _state.value =
+                            _state.value.copy(
+                                leftDrawerOpen = !_state.value.leftDrawerOpen,
+                                rightDrawerOpen = false,
+                            )
+                    }
+                }
+                DashboardEvent.RightDrawerToggled -> {
+                    val tour = _state.value.tour
+                    if (tour != null && !tour.paused && tour.step == TourStep.RightCategories && tour.phase == TourPhase.Button) {
+                        applyTour(DashboardTourReducer.panelOpenElapsed(tour))
+                    } else {
+                        _state.value =
+                            _state.value.copy(
+                                rightDrawerOpen = !_state.value.rightDrawerOpen,
+                                leftDrawerOpen = false,
+                            )
+                    }
+                }
                 DashboardEvent.DrawerDismissed ->
                     _state.value = _state.value.copy(leftDrawerOpen = false, rightDrawerOpen = false)
+                DashboardEvent.TourNextClicked -> handleTourNext()
+                DashboardEvent.TourSkipAllClicked -> {
+                    val tour = _state.value.tour ?: return
+                    if (tour.paused) return
+                    finishTour()
+                }
+                DashboardEvent.TourPanelOpenElapsed -> {
+                    val tour = _state.value.tour ?: return
+                    val advanced = DashboardTourReducer.panelOpenElapsed(tour)
+                    if (advanced != tour) applyTour(advanced)
+                }
+                DashboardEvent.TourResumed -> {
+                    val tour = _state.value.tour ?: return
+                    if (!tour.paused) return
+                    when (val resumed = DashboardTourReducer.resumed(tour)) {
+                        null -> finishTour()
+                        else -> applyTour(resumed)
+                    }
+                }
                 DashboardEvent.RefreshRequested -> refreshNow()
-                DashboardEvent.MinusFabClicked -> emit(DashboardAction.NavigateAddExpense)
-                DashboardEvent.PlusFabClicked -> emit(DashboardAction.NavigateAddIncome)
-                DashboardEvent.TransferClicked -> emit(DashboardAction.NavigateTransfer)
+                DashboardEvent.MinusFabClicked -> {
+                    emit(DashboardAction.NavigateAddExpense)
+                    pauseTourIfActive()
+                }
+                DashboardEvent.PlusFabClicked -> {
+                    emit(DashboardAction.NavigateAddIncome)
+                    pauseTourIfActive()
+                }
+                DashboardEvent.TransferClicked -> {
+                    emit(DashboardAction.NavigateTransfer)
+                    pauseTourIfActive()
+                }
                 DashboardEvent.SearchClicked -> {
                     closeDrawers()
                     emit(DashboardAction.NavigateSearch)
@@ -1106,6 +1223,7 @@ class DashboardViewModel
                 DashboardEvent.CategoriesClicked -> {
                     closeDrawers()
                     emit(DashboardAction.NavigateCategories)
+                    pauseTourIfActive()
                 }
                 DashboardEvent.AccountsClicked -> {
                     closeDrawers()
@@ -1122,6 +1240,7 @@ class DashboardViewModel
                 DashboardEvent.SupportClicked -> {
                     closeDrawers()
                     emit(DashboardAction.NavigateSupport)
+                    pauseTourIfActive()
                 }
                 DashboardEvent.BalanceCardClicked -> openOperationsSummary(categoryId = null)
                 is DashboardEvent.SliceClicked -> toggleExpandedCategory(categoryId = event.categoryId)
@@ -1514,6 +1633,10 @@ private data class TrendResult(
 
 private const val DASHBOARD_SELECTION_SPECIFIC = "specific_account"
 private const val DASHBOARD_SELECTION_ALL = "all_accounts"
+
+private const val TOUR_STEP_KEY = "tour_step"
+private const val TOUR_PAUSED_KEY = "tour_paused"
+private val TourDrawerClosed = com.kshavrin.mymoney.feature.dashboard.tour.TourDrawerState(left = false, right = false)
 
 private val DASHBOARD_FALLBACK_CURRENCY =
     Currency(

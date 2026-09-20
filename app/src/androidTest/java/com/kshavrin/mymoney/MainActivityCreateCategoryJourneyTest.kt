@@ -32,7 +32,6 @@ import java.math.BigDecimal
 import javax.inject.Inject
 import com.kshavrin.mymoney.feature.dashboard.R as DashboardR
 import com.kshavrin.mymoney.feature.dictionaries.R as DictionariesR
-import com.kshavrin.mymoney.feature.onboarding.R as OnboardingR
 import com.kshavrin.mymoney.feature.transaction.R as TransactionR
 
 /**
@@ -62,11 +61,7 @@ class MainActivityCreateCategoryJourneyTest {
         runTest {
             hiltRule.inject()
 
-            // Onboarding -> Dashboard
-            val skip = targetString(OnboardingR.string.onboarding_skip)
-            waitForText(skip)
-            composeRule.onNodeWithText(skip).performClick()
-
+            // Debug build (SHOW_ONBOARDING=false) starts straight on the dashboard.
             // Dashboard -> Add expense form
             val expenseFab = targetString(DashboardR.string.fab_expense_content_description)
             waitForContentDescription(expenseFab)

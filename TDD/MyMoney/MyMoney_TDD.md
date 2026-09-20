@@ -269,7 +269,7 @@ The product has **27 navigable destinations** plus 2 drawer overlays. All are in
 | ID  | Name                                       | Source           | Type        | Phase | Has screenshot? |
 |-----|--------------------------------------------|------------------|-------------|-------|-----------------|
 | S00 | Splash                                     | (decision)       | standalone  | MVP   | no              |
-| S11 | Onboarding (4 slides)                      | (APK + qB2)      | standalone  | MVP   | no              |
+| S11 | Onboarding (spotlight tour over S01, AS-16)| (decision)       | overlay     | MVP   | no              |
 | S01 | Main dashboard (period: day, neg. balance) | screenshot 01    | dashboard   | MVP   | yes (01.jpg)    |
 | S05 | Main dashboard (period: year, pos. balance)| screenshot 05    | dashboard   | MVP   | yes (05.jpg)    |
 | S02 | Period & account drawer (left)             | screenshot 02    | drawer      | MVP   | yes (02.jpg)    |
@@ -363,7 +363,7 @@ flowchart LR
 ### 3.3. Back-stack strategy
 
 - **S01 is the single root destination.** System back from S01 exits the app.
-- **S00 (splash) and S11 (onboarding) have `noHistory`** — once dismissed they cannot be returned to. Transition to S01 uses `popUpTo(onboarding_graph) { inclusive = true }`.
+- **S00 (splash) has `noHistory`** — once dismissed it cannot be returned to. Transition to S01 uses `popUpTo<Destinations.Splash> { inclusive = true }`. **S11 (onboarding) is no longer a destination (AS-16):** it is the spotlight-tour overlay on S01, so there is no `Destinations.Onboarding` in the graph and Splash routes directly to Dashboard.
 - **Drawers (S02, S04) are Compose state overlays**, not navigation destinations. They never add entries to the back stack. System back closes an open drawer if one is open; otherwise it follows the normal pop behaviour.
 - **Add transaction forms (S06, S07, S03):** push from S01, pop on save back to S01 (the dashboard auto-refreshes from a `Flow<TransactionEntity>` subscription).
 - **Category picker (S09):** pushed from `S06`/`S07`. Tapping a category pops `S09` and returns the chosen `categoryId` via `SavedStateHandle["pickedCategoryId"]` — the form ViewModel observes the savedStateHandle.
@@ -463,14 +463,29 @@ Convention used in every sub-section:
 - **Layout:** Full-screen background `#f2fff7` (APK light surface), centred vector logo (`monefy_icon.xml` from APK — re-traced as `ic_logo.xml` in our re-impl), no text.
 - **States:**
   - `Initializing` — visible (default).
-  - `RouteToOnboarding` — fires `NavigateToOnboarding` action after `AppSettings.onboardingCompletedAt == null`.
-  - `RouteToMain` — fires `NavigateToMain` action otherwise.
+  - `Ready` — fires `onFinished` and routes straight to S01 Dashboard once the seeder completes (AS-16).
+    The first-launch guide is now the spotlight tour raised on the dashboard while
+    `AppSettings.onboardingCompletedAt == null`; there is no separate onboarding destination.
+  - (superseded) `RouteToOnboarding` / `RouteToMain` — the old split between the pager onboarding and
+    main is gone; Splash always proceeds to Dashboard (AS-16).
 - **Acceptance criteria:**
   1. Splash is dismissed within 500 ms on a Pixel 5 (warm start) and within 1 200 ms on a low-end Android 12 device (cold start).
   2. The decision between Onboarding and Main is taken without flicker (single recomposition).
   3. If Hilt fails to construct any singleton, the splash crashes loudly with a Sentry-reported `FATAL`, not a silent loop.
 
-### 4.1. S11 — Onboarding (4 slides)
+### 4.1. S11 — Onboarding
+
+> **SUPERSEDED by AS-16 (spotlight tour, 2026-09-20; proposal pending review).** The 4-slide
+> `HorizontalPager` onboarding described below is removed. The first-launch guide is now a
+> **spotlight tour drawn on the real S01 dashboard**: a light scrim with a cutout (circle for round
+> icon-buttons, rounded-rect border for the FAB row / side panels / list items) highlights the
+> element a hint card describes, with "Skip all" bottom-left and "Next"/"Done" bottom-right. Four
+> steps: (1) the three-FAB row, (2) the left panel (period + custom range + accounts), (3) the right
+> panel "Categories" item, (4) the right panel "Support the project" item. Tapping a highlighted
+> control performs its real action and pauses the tour until the user returns. `onboardingCompletedAt`
+> is stamped on "Done" / "Skip all" / system Back. `SHOW_ONBOARDING` still gates it (debug = off).
+> The pager text/drawables below are retained only as historical narrative and live in
+> `archive/onboarding-legacy/`.
 
 - **Composable shell:** `OnboardingPager()` — `HorizontalPager(state = pagerState, pageCount = 4)`.
 - **ViewModel:** `OnboardingViewModel`
@@ -2753,6 +2768,7 @@ The table below replaces the v1.0 "assumptions" list. Every row was confirmed by
 | AS-15 / OQ-4  | Privacy Policy for v1.0 is shipped as **bundled HTML** at `assets/privacy_policy_<lang>.html`, opened in-app via Settings → About → Privacy policy. No hosted URL needed at launch. | §4.19, §9.6        | confirms default   |
 | OQ-7          | Auto-sync interval = **fixed 6 h** (`WorkManager` PeriodicWorkRequest); the only user-facing control is the `AppSettings.autoSyncEnabled` toggle in S17. No 3 / 12 / 24 h selector. | §4.16, §7.3        | confirms default   |
 | OQ-8          | Local backup rotation = **fixed N=3**. On creating the 4th backup the oldest is auto-deleted in the same SAF directory. Not user-settable. | §4.17              | confirms default   |
+| **AS-16** ⚠   | First-launch onboarding is a **spotlight tour over the real S01 dashboard** (light scrim + cutout, 4 steps: FAB row, left panel, right "Categories", right "Support"), replacing the 4-slide `HorizontalPager`. Splash routes straight to Dashboard; the tour shows while `onboardingCompletedAt == null` and stamps it on Done / Skip all / Back. `SHOW_ONBOARDING` still gates it. | §4.0, §4.1         | **DEVIATION** from the v1.0 pager onboarding — proposal, pending review |
 
 ### 14.2. Deferred — DevOps prerequisites (resolve before week 8)
 

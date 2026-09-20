@@ -33,7 +33,6 @@ import java.math.BigDecimal
 import java.time.Instant
 import javax.inject.Inject
 import com.kshavrin.mymoney.feature.dashboard.R as DashboardR
-import com.kshavrin.mymoney.feature.onboarding.R as OnboardingR
 import com.kshavrin.mymoney.feature.transaction.R as TransactionR
 
 /**
@@ -69,9 +68,10 @@ class MainActivityTransferJourneyTest {
     fun crossCurrencyTransferStoresSingleRowWithBothLegs() {
         hiltRule.inject()
 
-        // Onboarding visible => the splash seeder has finished (currencies + Cash account exist).
-        val skip = targetString(OnboardingR.string.onboarding_skip)
-        waitForText(skip)
+        // Debug build (SHOW_ONBOARDING=false) starts on the dashboard once the splash seeder has
+        // finished (currencies + Cash account exist). The expense FAB is that ready signal.
+        val expenseFab = targetString(DashboardR.string.fab_expense_content_description)
+        waitForContentDescription(expenseFab)
 
         // Precondition: a second account in a DIFFERENT currency than the seeded Cash account.
         val cash = runBlocking { accountRepository.observeActive().first().first() }
@@ -99,11 +99,7 @@ class MainActivityTransferJourneyTest {
             )
         }
 
-        composeRule.onNodeWithText(skip).performClick()
-
         // Dashboard -> Transfer form
-        val expenseFab = targetString(DashboardR.string.fab_expense_content_description)
-        waitForContentDescription(expenseFab)
         composeRule
             .onAllNodesWithContentDescription(targetString(DashboardR.string.dashboard_transfer))[0]
             .performClick()

@@ -209,10 +209,9 @@ class SearchContentUiTest {
             onEvent = { event -> capturedEvents += event },
         )
 
-        composeTestRule
-            .onNode(hasSetTextAction())
-            .performTextInput("coffee")
-            .performImeAction()
+        val searchField = composeTestRule.onNode(hasSetTextAction())
+        searchField.performTextInput("coffee")
+        searchField.performImeAction()
 
         composeTestRule.runOnIdle {
             assertTrue(capturedEvents.contains(SearchEvent.QueryChanged("coffee")))

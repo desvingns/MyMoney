@@ -108,7 +108,6 @@ class DestinationsTest {
         listOf(
             "Decision",
             "Splash",
-            "Onboarding",
             "Dashboard",
             "AddExpense",
             "AddIncome",
@@ -145,6 +144,14 @@ class DestinationsTest {
         }
         assertTrue(source.contains("DashboardAction.NavigateSupport"))
         assertTrue(source.contains("navController.navigate(Destinations.Support)"))
+        assertFalse(
+            "The old pager onboarding destination must be gone from the graph",
+            source.contains("composable<Destinations.Onboarding>"),
+        )
+        assertTrue(
+            "Splash must route straight to the Dashboard now that the tour replaces onboarding",
+            source.contains("navController.navigate(Destinations.Dashboard())"),
+        )
     }
 
     @Test
@@ -296,7 +303,6 @@ class DestinationsTest {
         val source = readProjectSource("app", "src", "main", "java", "com", "kshavrin", "mymoney", "navigation", "MyMoneyNavHost.kt")
         listOf(
             "popUpTo<Destinations.Splash> { inclusive = true }",
-            "popUpTo<Destinations.Onboarding> { inclusive = true }",
             "popUpTo<Destinations.Decision> { inclusive = true }",
             "popUpTo<Destinations.AddExpense> { inclusive = true }",
             "popUpTo<Destinations.AddIncome> { inclusive = true }",

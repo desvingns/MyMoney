@@ -37,7 +37,7 @@ class SplashViewModel
             viewModelScope.launch {
                 try {
                     initialDataSeeder.seedIfNeeded(Instant.now())
-                    _state.value = _state.value.copy(destination = SplashDestination.Onboarding)
+                    _state.value = _state.value.copy(destination = SplashDestination.Ready)
                 } catch (e: CancellationException) {
                     throw e
                 } catch (throwable: Throwable) {
@@ -53,4 +53,4 @@ data class SplashState(
     val seedFailed: Boolean = false,
 )
 
-enum class SplashDestination { Pending, Onboarding }
+enum class SplashDestination { Pending, Ready }

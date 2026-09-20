@@ -49,7 +49,7 @@ class SplashViewModelTest {
                 viewModel.initialise()
                 advanceUntilIdle()
 
-                assertEquals(SplashDestination.Onboarding, awaitItem().destination)
+                assertEquals(SplashDestination.Ready, awaitItem().destination)
                 cancelAndIgnoreRemainingEvents()
             }
 
@@ -92,7 +92,7 @@ class SplashViewModelTest {
             assertFalse(viewModel.state.value.seedFailed)
             advanceUntilIdle()
 
-            assertEquals(SplashDestination.Onboarding, viewModel.state.value.destination)
+            assertEquals(SplashDestination.Ready, viewModel.state.value.destination)
             assertFalse(viewModel.state.value.seedFailed)
             assertEquals(2, currencyRepository.observeAllCalls)
             assertEquals(1, currencyRepository.upsertAllCalls)

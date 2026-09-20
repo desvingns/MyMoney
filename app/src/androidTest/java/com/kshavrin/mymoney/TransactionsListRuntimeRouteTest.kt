@@ -21,7 +21,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import com.kshavrin.mymoney.feature.dashboard.R as DashboardR
-import com.kshavrin.mymoney.feature.onboarding.R as OnboardingR
 import com.kshavrin.mymoney.feature.transactionslist.R as TransactionsListR
 
 @HiltAndroidTest
@@ -82,13 +81,10 @@ class TransactionsListRuntimeRouteTest {
     }
 
     private fun dismissOnboardingIfPresent() {
-        val skip = targetString(OnboardingR.string.onboarding_skip)
+        // Debug build (SHOW_ONBOARDING=false) starts straight on the dashboard — nothing to dismiss;
+        // just wait until the dashboard top bar is present.
         composeRule.waitUntil(TIMEOUT) {
-            composeRule.onAllNodesWithText(skip).fetchSemanticsNodes().isNotEmpty() ||
-                composeRule.onAllNodesWithTag(DASHBOARD_TOP_BAR_PERIOD_TAG).fetchSemanticsNodes().isNotEmpty()
-        }
-        if (composeRule.onAllNodesWithText(skip).fetchSemanticsNodes().isNotEmpty()) {
-            composeRule.onNodeWithText(skip).performClick()
+            composeRule.onAllNodesWithTag(DASHBOARD_TOP_BAR_PERIOD_TAG).fetchSemanticsNodes().isNotEmpty()
         }
     }
 

@@ -27,7 +27,7 @@ const val SPLASH_LOGO_TAG = "splash_logo"
 
 @Composable
 fun SplashScreen(
-    onNavigateToOnboarding: () -> Unit,
+    onFinished: () -> Unit,
     viewModel: SplashViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -37,8 +37,8 @@ fun SplashScreen(
     }
 
     LaunchedEffect(state.destination) {
-        if (state.destination == SplashDestination.Onboarding) {
-            onNavigateToOnboarding()
+        if (state.destination == SplashDestination.Ready) {
+            onFinished()
         }
     }
 

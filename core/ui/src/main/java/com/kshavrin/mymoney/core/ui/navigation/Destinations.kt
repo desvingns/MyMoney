@@ -20,10 +20,6 @@ object Destinations {
     data object Splash
 
     @Serializable
-    @SerialName("com.kshavrin.mymoney.navigation.Destinations.Onboarding")
-    data object Onboarding
-
-    @Serializable
     @SerialName("com.kshavrin.mymoney.navigation.Destinations.Dashboard")
     data class Dashboard(
         val openChartSettings: Boolean = false,

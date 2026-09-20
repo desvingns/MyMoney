@@ -25,14 +25,13 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import com.kshavrin.mymoney.core.designsystem.R as DesignSystemR
 import com.kshavrin.mymoney.feature.dashboard.R as DashboardR
-import com.kshavrin.mymoney.feature.onboarding.R as OnboardingR
 import com.kshavrin.mymoney.feature.transaction.R as TransactionR
 
 /**
  * J1 — the highest-value end-to-end journey (AS-2, AS-4, TDD §4.6 AC6).
  *
- * Fresh in-memory DB + cleared DataStore => app starts at onboarding. Skip to the dashboard,
- * tap the expense FAB, key `1 2 + 3 =` (=> 15) in the keypad sheet, tap a seeded category,
+ * Fresh in-memory DB + cleared DataStore => the debug build starts on the dashboard.
+ * Tap the expense FAB, key `1 2 + 3 =` (=> 15) in the keypad sheet, tap a seeded category,
  * and confirm the populated dashboard balance bar reflects the new expense.
  *
  * Seeded category names are English literals in InitialDataSeeder regardless of locale, so
@@ -49,11 +48,7 @@ class MainActivityAddExpenseJourneyTest {
 
     @Test
     fun addExpenseJourneyUpdatesDashboardBalance() {
-        // Onboarding -> Dashboard
-        val skip = targetString(OnboardingR.string.onboarding_skip)
-        waitForText(skip)
-        composeRule.onNodeWithText(skip).performClick()
-
+        // Debug build (SHOW_ONBOARDING=false) starts straight on the dashboard — no onboarding step.
         // Dashboard -> Add expense form
         val expenseFab = targetString(DashboardR.string.fab_expense_content_description)
         composeRule.waitUntil(TIMEOUT) {

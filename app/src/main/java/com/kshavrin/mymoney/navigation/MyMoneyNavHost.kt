@@ -38,24 +38,11 @@ fun MyMoneyNavHost(
         }
         composable<Destinations.Splash> {
             com.kshavrin.mymoney.feature.onboarding.SplashScreen(
-                onNavigateToOnboarding = {
-                    if (com.kshavrin.mymoney.BuildConfig.SHOW_ONBOARDING) {
-                        navController.navigate(Destinations.Onboarding) {
-                            popUpTo<Destinations.Splash> { inclusive = true }
-                        }
-                    } else {
-                        navController.navigate(Destinations.Dashboard()) {
-                            popUpTo<Destinations.Splash> { inclusive = true }
-                        }
-                    }
-                },
-            )
-        }
-        composable<Destinations.Onboarding> {
-            com.kshavrin.mymoney.feature.onboarding.OnboardingScreen(
-                onComplete = {
+                onFinished = {
+                    // The first-launch guide is now the spotlight tour raised on the dashboard itself
+                    // while onboardingCompletedAt == null (D1/D12); Splash goes straight to Dashboard.
                     navController.navigate(Destinations.Dashboard()) {
-                        popUpTo<Destinations.Onboarding> { inclusive = true }
+                        popUpTo<Destinations.Splash> { inclusive = true }
                     }
                 },
             )

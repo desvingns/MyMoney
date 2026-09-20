@@ -1487,8 +1487,18 @@ class DashboardViewModelTest {
                 assertFalse(state.ringIsExpense)
                 assertEquals(0, BigDecimal("37650.00").compareTo(state.periodNet.amount))
                 assertEquals(listOf(10L, 20L, 30L), state.expenseTiles.map { it.categoryId })
-                assertEquals(0.9504f, state.expenseTiles[0].fraction, 0.0001f)
-                assertEquals(0.0179f, state.expenseTiles[2].fraction, 0.0001f)
+                assertEquals(1.0f, state.expenseTiles[0].fraction, 0.0001f)
+                assertEquals(0.0189f, state.expenseTiles[2].fraction, 0.0001f)
+                assertEquals(
+                    0.9504f,
+                    state.slices.single { it.categoryId == 10L }.fraction,
+                    0.0001f,
+                )
+                assertEquals(
+                    0.0179f,
+                    state.slices.single { it.categoryId == OTHER_CATEGORY_ID }.fraction,
+                    0.0001f,
+                )
             } finally {
                 store.clear()
                 runCurrent()
@@ -1871,7 +1881,7 @@ class DashboardViewModelTest {
                                         ),
                                         expenseCategoryBalance(
                                             categoryId = OTHER_CATEGORY_ID,
-                                            amount = "1.00",
+                                            amount = "1000.00",
                                             iconKey = "other",
                                         ),
                                         CategoryBalance(
@@ -1896,13 +1906,91 @@ class DashboardViewModelTest {
                 assertEquals(0, BigDecimal("500.00").compareTo(tiles[0].amount.amount))
                 assertEquals(0, BigDecimal("250.00").compareTo(tiles[1].amount.amount))
                 assertEquals(0, BigDecimal("10.00").compareTo(tiles[2].amount.amount))
-                assertEquals(0.6570f, tiles[0].fraction, 0.0001f)
-                assertEquals(0.0131f, tiles[2].fraction, 0.0001f)
+                assertEquals(1.0f, tiles[0].fraction, 0.0001f)
+                assertEquals(0.50f, tiles[1].fraction, 0.0001f)
+                assertEquals(0.02f, tiles[2].fraction, 0.0001f)
                 assertFalse(tiles.any { it.categoryId == OTHER_CATEGORY_ID })
                 assertFalse(tiles.any { it.categoryId == 200L })
                 assertTrue(tiles.single { it.categoryId == 20L }.hasBudgetAlert)
                 assertFalse(tiles.single { it.categoryId == 10L }.hasBudgetAlert)
                 assertFalse(tiles.single { it.categoryId == 30L }.hasBudgetAlert)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `snapshotToExpenseTiles leaves empty data empty and zero expense progress at zero`() =
+        runTest {
+            val (viewModel, store) = buildViewModel()
+            try {
+                assertTrue(
+                    viewModel
+                        .snapshotToExpenseTiles(expenseSnapshot(), alertCategoryIds = emptySet())
+                        .isEmpty(),
+                )
+
+                val zeroTiles =
+                    viewModel.snapshotToExpenseTiles(
+                        snapshot =
+                            expenseSnapshot(
+                                expenseCategoryBalance(categoryId = 10L, amount = "0.00", iconKey = "food"),
+                                expenseCategoryBalance(categoryId = 20L, amount = "0.00", iconKey = "transport"),
+                            ),
+                        alertCategoryIds = emptySet(),
+                    )
+
+                assertEquals(listOf(10L, 20L), zeroTiles.map { it.categoryId })
+                assertTrue(zeroTiles.all { it.fraction == 0f })
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `snapshotToExpenseTiles gives a single visible expense category full progress`() =
+        runTest {
+            val (viewModel, store) = buildViewModel()
+            try {
+                val tiles =
+                    viewModel.snapshotToExpenseTiles(
+                        snapshot =
+                            expenseSnapshot(
+                                expenseCategoryBalance(categoryId = 10L, amount = "850.00", iconKey = "food"),
+                            ),
+                        alertCategoryIds = emptySet(),
+                    )
+
+                assertEquals(listOf(10L), tiles.map { it.categoryId })
+                assertEquals(1.0f, tiles.single().fraction, 0.0001f)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `snapshotToExpenseTiles gives every tied maximum full progress while preserving descending order`() =
+        runTest {
+            val (viewModel, store) = buildViewModel()
+            try {
+                val tiles =
+                    viewModel.snapshotToExpenseTiles(
+                        snapshot =
+                            expenseSnapshot(
+                                expenseCategoryBalance(categoryId = 30L, amount = "100.00", iconKey = "snack"),
+                                expenseCategoryBalance(categoryId = 20L, amount = "450.00", iconKey = "transport"),
+                                expenseCategoryBalance(categoryId = 10L, amount = "450.00", iconKey = "food"),
+                            ),
+                        alertCategoryIds = emptySet(),
+                    )
+
+                assertEquals(listOf(20L, 10L, 30L), tiles.map { it.categoryId })
+                assertEquals(1.0f, tiles[0].fraction, 0.0001f)
+                assertEquals(1.0f, tiles[1].fraction, 0.0001f)
+                assertEquals(0.2222f, tiles[2].fraction, 0.0001f)
             } finally {
                 store.clear()
                 runCurrent()
@@ -4993,7 +5081,12 @@ class DashboardViewModelTest {
         runTest {
             val nextMonth = Period.Month(YearMonth.now().plusMonths(1))
             transactionRepository.seedExpenseSummary(cash.id, initialPeriod, summary(categoryId = 10L, amount = "30.00"))
-            transactionRepository.seedExpenseSummary(cash.id, nextMonth, summary(categoryId = 20L, amount = "70.00"))
+            transactionRepository.seedExpenseSummary(
+                cash.id,
+                nextMonth,
+                summary(categoryId = 20L, amount = "70.00"),
+                summary(categoryId = 21L, amount = "35.00"),
+            )
 
             val (viewModel, store) = buildViewModel()
             try {
@@ -5003,7 +5096,10 @@ class DashboardViewModelTest {
                 val precomputedNext = viewModel.state.value.nextPeriodPage
                 assertNotNull("nextPeriodPage must be precomputed before the swipe commit", precomputedNext)
                 assertEquals(nextMonth, precomputedNext!!.period)
-                assertEquals(0, BigDecimal("70.00").compareTo(precomputedNext.balanceSnapshot!!.expense.amount))
+                assertEquals(0, BigDecimal("105.00").compareTo(precomputedNext.balanceSnapshot!!.expense.amount))
+                assertEquals(listOf(20L, 21L), precomputedNext.expenseTiles.map { it.categoryId })
+                assertEquals(1.0f, precomputedNext.expenseTiles[0].fraction, 0.0001f)
+                assertEquals(0.5f, precomputedNext.expenseTiles[1].fraction, 0.0001f)
                 assertEquals(initialPeriod, viewModel.state.value.period)
                 // The current center still shows the initial period's figures.
                 assertEquals(
@@ -5024,7 +5120,7 @@ class DashboardViewModelTest {
                 assertEquals(
                     "balanceSnapshot must be promoted from nextPeriodPage synchronously",
                     0,
-                    BigDecimal("70.00").compareTo(state.balanceSnapshot!!.expense.amount),
+                    BigDecimal("105.00").compareTo(state.balanceSnapshot!!.expense.amount),
                 )
                 assertEquals(
                     "periodNet must be promoted from nextPeriodPage synchronously",
@@ -5036,8 +5132,8 @@ class DashboardViewModelTest {
                     precomputedNext.trendPoints,
                     state.trendPoints,
                 )
-                assertEquals(listOf(20L), state.slices.map { it.categoryId })
-                assertEquals(listOf(20L), state.expenseTiles.map { it.categoryId })
+                assertEquals(listOf(20L, 21L), state.slices.map { it.categoryId })
+                assertEquals(precomputedNext.expenseTiles, state.expenseTiles)
             } finally {
                 store.clear()
                 runCurrent()

@@ -1,126 +1,149 @@
 package com.kshavrin.mymoney.core.ui.haptic
 
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Placeholder for the Robolectric-backed test of [HapticPlayerImpl].
+ * Deterministic JVM tests for [HapticEffectSelector] — the pure API-selection
+ * seam extracted from [HapticPlayerImpl].
  *
- * # Why this file is a placeholder
- *
- * `:core:ui`'s test classpath currently has NO test runner wired — the
- * module's `build.gradle.kts` declares only production + debug
- * dependencies, no `testImplementation`. To exercise [HapticPlayerImpl]
- * we need:
- *
- *   - org.robolectric:robolectric            (for android.os.Vibrator,
- *                                              android.os.VibratorManager,
- *                                              android.os.VibrationEffect,
- *                                              and per-SDK @Config control)
- *   - androidx.test.ext:junit                (ApplicationProvider)
- *   - libs.junit + libs.kotlinx.coroutines.test
- *
- * Those are NOT present yet. The kind → VibrationEffect.Composition
- * selection inside HapticPlayerImpl (including the SUCCESS_SHIMMER API
- * split) is `private` and is expressed entirely in terms of Android types
- * (Vibrator, VibrationEffect, Build.VERSION.SDK_INT), so there is no
- * JVM-visible seam to pin without Robolectric — hence this placeholder,
- * mirroring the `KeypadTest` convention in :core:designsystem.
- *
- * # What the real test must cover (SPEC §6.9 + CONSTRAINTS)
- *
- * The load-bearing CONSTRAINT is the per-API SUCCESS_SHIMMER behaviour:
- * there is no platform PRIMITIVE_SHIMMER, so the impl uses PRIMITIVE_SPIN
- * on API 33+ and falls back to TICK×3 on API 31–32. Robolectric's @Config
- * sdk lets us drive both branches headlessly via a shadow Vibrator that
- * records the composed VibrationEffect.
- *
- * ```
- * @RunWith(RobolectricTestRunner::class)
- * @Config(application = android.app.Application::class)
- * class HapticPlayerImplTest {
- *
- *     private val fakeSettings = FakeAppSettingsRepository()
- *
- *     private fun newPlayer(context: Context) =
- *         HapticPlayerImpl(context, fakeSettings, UnconfinedTestDispatcher())
- *
- *     // ---- hapticEnabled gating ----
- *
- *     @Test fun `fire does nothing when hapticEnabled is false`() {
- *         fakeSettings.seed(AppSettings(hapticEnabled = false))
- *         val player = newPlayer(ApplicationProvider.getApplicationContext())
- *         player.fire(HapticKind.SOFT)
- *         // ShadowVibrator records no vibration when gated out.
- *         assertNull(shadowOf(vibrator).mostRecentVibration)
- *     }
- *
- *     @Test fun `fire is a no-op and does not throw when device has no vibrator`() {
- *         // ShadowVibrator.setHasVibrator(false) → fire() short-circuits.
- *     }
- *
- *     // ---- SUCCESS_SHIMMER: API split (the headline constraint) ----
- *
- *     @Test @Config(sdk = [33])
- *     fun `SUCCESS_SHIMMER uses a single PRIMITIVE_SPIN on API 33`() {
- *         // Inspect the composed VibrationEffect: one primitive == SPIN.
- *     }
- *
- *     @Test @Config(sdk = [32])
- *     fun `SUCCESS_SHIMMER falls back to three TICK primitives on API 32`() {
- *         // Inspect the composed VibrationEffect: three primitives == TICK,
- *         // each at FULL_SCALE, gapped by GAP_MILLIS.
- *     }
- *
- *     @Test @Config(sdk = [31])
- *     fun `SUCCESS_SHIMMER falls back to three TICK primitives on API 31`() {
- *         // Lower bound of the fallback window (minSdk == 31).
- *     }
- *
- *     // ---- other kinds → primitive selection ----
- *
- *     @Test fun `SOFT composes a single CLICK at half scale`() { ... }
- *     @Test fun `MEDIUM composes a single CLICK at full scale`() { ... }
- *     @Test fun `HEAVY composes a single THUD at full scale`() { ... }
- *     @Test fun `WARNING composes two gapped TICK primitives`() { ... }
- * }
- * ```
- *
- * # What is NOT covered here, by design
- *
- *   - Physical vibration intensity / timing on real hardware: device-only.
- *   - The fact that `fire()` is wrapped behind `hasVibrator()`: covered by
- *     the no-vibrator gating test above.
+ * The Android-bound part of [HapticPlayerImpl] (turning a [HapticSelection]
+ * into a real `VibrationEffect` and dispatching it to the platform `Vibrator`)
+ * still needs a connected device; that is owned by the separate Android 10/11
+ * legacy device order. Everything the SPEC calls the "haptic compatibility
+ * contract" — enable/disable gating, no-vibrator no-op, the API 29/30 legacy
+ * fallback, the API 31/32 composition path and the API 33+ celebratory branch —
+ * is realised in this pure seam and pinned here without any mocking framework.
  */
 class HapticPlayerImplTest {
-    /**
-     * Single live-import guard so the placeholder cannot silently drift
-     * away from the production contract over the coming phases. Constructs
-     * the recorder + a sample kind; the assertions below always pass. Real
-     * Robolectric assertions replace this body once the test classpath is
-     * wired (see template above).
-     */
+    private fun select(
+        sdk: Int,
+        enabled: Boolean = true,
+        hasVibrator: Boolean = true,
+        kind: HapticKind = HapticKind.SOFT,
+    ): HapticSelection = HapticEffectSelector.select(sdk, enabled, hasVibrator, kind)
+
+    private val everyBand = listOf(29, 30, 31, 32, 33, 34)
+
     @Test
-    fun pendingRobolectricTest_seeHapticPlayerImplWiring() {
-        val player: HapticPlayer = RecordingHapticPlayer()
-        player.fire(HapticKind.SOFT)
-        player.fire(HapticKind.SUCCESS_SHIMMER)
-        val rec = player as RecordingHapticPlayer
-        check(rec.calls == listOf(HapticKind.SOFT, HapticKind.SUCCESS_SHIMMER)) {
-            "HapticPlayer interface drift detected"
-        }
-        // The shimmer split is the headline constraint; assert the entry
-        // still exists so a rename forces a visible update to this
-        // placeholder (and to the Robolectric template above).
-        check(HapticKind.entries.contains(HapticKind.SUCCESS_SHIMMER)) {
-            "SUCCESS_SHIMMER must remain — it carries the API 33+ / 31-32 split"
+    fun `disabled haptics select None on every band and kind`() {
+        for (sdk in everyBand) {
+            for (kind in HapticKind.entries) {
+                assertEquals(
+                    "sdk=$sdk kind=$kind",
+                    HapticSelection.None,
+                    select(sdk, enabled = false, kind = kind),
+                )
+            }
         }
     }
 
-    private class RecordingHapticPlayer : HapticPlayer {
-        val calls: MutableList<HapticKind> = mutableListOf()
+    @Test
+    fun `missing vibrator selects None on every band and kind`() {
+        for (sdk in everyBand) {
+            for (kind in HapticKind.entries) {
+                assertEquals(
+                    "sdk=$sdk kind=$kind",
+                    HapticSelection.None,
+                    select(sdk, hasVibrator = false, kind = kind),
+                )
+            }
+        }
+    }
 
-        override fun fire(kind: HapticKind) {
-            calls += kind
+    @Test
+    fun `API 29 and 30 never select a composition or celebratory path`() {
+        for (sdk in listOf(29, 30)) {
+            for (kind in HapticKind.entries) {
+                val selection = select(sdk, kind = kind)
+                assertTrue(
+                    "sdk=$sdk kind=$kind selected $selection",
+                    selection is HapticSelection.LegacyOneShot ||
+                        selection is HapticSelection.LegacyWaveform,
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `API 30 SOFT is a low-amplitude one-shot`() {
+        assertEquals(
+            HapticSelection.LegacyOneShot(durationMillis = 20L, amplitude = 128),
+            select(30, kind = HapticKind.SOFT),
+        )
+    }
+
+    @Test
+    fun `API 29 WARNING is a two-pulse legacy waveform`() {
+        val selection = select(29, kind = HapticKind.WARNING) as HapticSelection.LegacyWaveform
+        assertEquals(selection.timings.size, selection.amplitudes.size)
+        assertEquals(2, selection.amplitudes.count { it > 0 })
+    }
+
+    @Test
+    fun `API 30 SUCCESS_SHIMMER is a three-pulse legacy waveform`() {
+        val selection = select(30, kind = HapticKind.SUCCESS_SHIMMER) as HapticSelection.LegacyWaveform
+        assertEquals(selection.timings.size, selection.amplitudes.size)
+        assertEquals(3, selection.amplitudes.count { it > 0 })
+    }
+
+    @Test
+    fun `API 31 and 32 SOFT composes a single CLICK at half scale`() {
+        for (sdk in listOf(31, 32)) {
+            assertEquals(
+                "sdk=$sdk",
+                HapticSelection.Composition(listOf(HapticStep(HapticPrimitive.CLICK, 0.5f))),
+                select(sdk, kind = HapticKind.SOFT),
+            )
+        }
+    }
+
+    @Test
+    fun `API 31 and 32 HEAVY composes a single THUD at full scale`() {
+        for (sdk in listOf(31, 32)) {
+            assertEquals(
+                "sdk=$sdk",
+                HapticSelection.Composition(listOf(HapticStep(HapticPrimitive.THUD, 1.0f))),
+                select(sdk, kind = HapticKind.HEAVY),
+            )
+        }
+    }
+
+    @Test
+    fun `API 31 and 32 SUCCESS_SHIMMER falls back to three TICK primitives`() {
+        for (sdk in listOf(31, 32)) {
+            val selection = select(sdk, kind = HapticKind.SUCCESS_SHIMMER) as HapticSelection.Composition
+            assertEquals("sdk=$sdk", 3, selection.steps.size)
+            assertTrue("sdk=$sdk", selection.steps.all { it.primitive == HapticPrimitive.TICK })
+        }
+    }
+
+    @Test
+    fun `API 31 and 32 never select the celebratory SPIN`() {
+        for (sdk in listOf(31, 32)) {
+            assertTrue(
+                "sdk=$sdk",
+                select(sdk, kind = HapticKind.SUCCESS_SHIMMER) !is HapticSelection.Celebratory,
+            )
+        }
+    }
+
+    @Test
+    fun `API 33 and above SUCCESS_SHIMMER selects the celebratory SPIN`() {
+        for (sdk in listOf(33, 34)) {
+            assertEquals(
+                "sdk=$sdk",
+                HapticSelection.Celebratory(HapticStep(HapticPrimitive.SPIN, 1.0f)),
+                select(sdk, kind = HapticKind.SUCCESS_SHIMMER),
+            )
+        }
+    }
+
+    @Test
+    fun `API 33 non-shimmer kinds compose exactly like API 31`() {
+        for (kind in HapticKind.entries.filter { it != HapticKind.SUCCESS_SHIMMER }) {
+            assertEquals("kind=$kind", select(31, kind = kind), select(33, kind = kind))
         }
     }
 }

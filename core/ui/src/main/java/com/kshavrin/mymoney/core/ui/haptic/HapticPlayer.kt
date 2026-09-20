@@ -49,50 +49,61 @@ class HapticPlayerImpl
         }
 
         override fun fire(kind: HapticKind) {
-            if (!hapticEnabled.value) return
-            val vibrator = vibrator?.takeIf { it.hasVibrator() } ?: return
-            composition(kind)?.let(vibrator::vibrate)
+            val vibrator = this.vibrator ?: return
+            val selection =
+                HapticEffectSelector.select(
+                    sdkInt = Build.VERSION.SDK_INT,
+                    hapticsEnabled = hapticEnabled.value,
+                    hasVibrator = vibrator.hasVibrator(),
+                    kind = kind,
+                )
+            toVibrationEffect(selection)?.let(vibrator::vibrate)
         }
 
-        private fun composition(kind: HapticKind): VibrationEffect? {
-            val builder = VibrationEffect.startComposition()
-            return when (kind) {
-                HapticKind.SOFT ->
-                    builder.addPrimitive(VibrationEffect.Composition.PRIMITIVE_CLICK, SOFT_SCALE).compose()
-                HapticKind.MEDIUM ->
-                    builder.addPrimitive(VibrationEffect.Composition.PRIMITIVE_CLICK, FULL_SCALE).compose()
-                HapticKind.HEAVY ->
-                    builder.addPrimitive(VibrationEffect.Composition.PRIMITIVE_THUD, FULL_SCALE).compose()
-                HapticKind.WARNING ->
-                    builder
-                        .addPrimitive(VibrationEffect.Composition.PRIMITIVE_TICK, FULL_SCALE)
-                        .addPrimitive(VibrationEffect.Composition.PRIMITIVE_TICK, FULL_SCALE, GAP_MILLIS)
-                        .compose()
-                HapticKind.SUCCESS_SHIMMER -> shimmer(builder)
+        private fun toVibrationEffect(selection: HapticSelection): VibrationEffect? =
+            when (selection) {
+                HapticSelection.None -> null
+                is HapticSelection.LegacyOneShot ->
+                    VibrationEffect.createOneShot(selection.durationMillis, selection.amplitude)
+                is HapticSelection.LegacyWaveform ->
+                    VibrationEffect.createWaveform(
+                        selection.timings.toLongArray(),
+                        selection.amplitudes.toIntArray(),
+                        NO_REPEAT,
+                    )
+                is HapticSelection.Composition -> compose(selection.steps)
+                is HapticSelection.Celebratory -> compose(listOf(selection.step))
             }
+
+        private fun compose(steps: List<HapticStep>): VibrationEffect? {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return null
+            val composition = VibrationEffect.startComposition()
+            steps.forEach { step ->
+                val primitive =
+                    when (step.primitive) {
+                        HapticPrimitive.CLICK -> VibrationEffect.Composition.PRIMITIVE_CLICK
+                        HapticPrimitive.TICK -> VibrationEffect.Composition.PRIMITIVE_TICK
+                        HapticPrimitive.THUD -> VibrationEffect.Composition.PRIMITIVE_THUD
+                        HapticPrimitive.SPIN -> VibrationEffect.Composition.PRIMITIVE_SPIN
+                    }
+                if (step.delayMillis > 0) {
+                    composition.addPrimitive(primitive, step.scale, step.delayMillis)
+                } else {
+                    composition.addPrimitive(primitive, step.scale)
+                }
+            }
+            return composition.compose()
         }
 
-        // TDD §6.9 names a PRIMITIVE_SHIMMER effect, but no such constant exists in the platform.
-        // PRIMITIVE_SPIN is the closest celebratory primitive (API 33+); API 31–32 falls back to TICK×3.
-        private fun shimmer(builder: VibrationEffect.Composition): VibrationEffect =
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                builder.addPrimitive(VibrationEffect.Composition.PRIMITIVE_SPIN, FULL_SCALE).compose()
+        private fun resolveVibrator(context: Context): Vibrator? =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                (context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager)?.defaultVibrator
             } else {
-                builder
-                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_TICK, FULL_SCALE)
-                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_TICK, FULL_SCALE, GAP_MILLIS)
-                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_TICK, FULL_SCALE, GAP_MILLIS)
-                    .compose()
+                @Suppress("DEPRECATION")
+                context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
             }
-
-        private fun resolveVibrator(context: Context): Vibrator? {
-            val manager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
-            return manager?.defaultVibrator
-        }
 
         private companion object {
-            const val SOFT_SCALE = 0.5f
-            const val FULL_SCALE = 1.0f
-            const val GAP_MILLIS = 40
+            const val NO_REPEAT = -1
         }
     }

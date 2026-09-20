@@ -459,7 +459,7 @@ Convention used in every sub-section:
 
 - **Composable shell:** `SplashScreen()`
 - **ViewModel:** `SplashViewModel`
-- **Purpose:** Show the brand logo for the time it takes to initialise Room, DataStore, Hilt graph, and run the first-launch decision. minSdk = 31 gives us the native `SplashScreen` API; we extend it with a 250 ms minimum visible duration to avoid flicker on warm starts.
+- **Purpose:** Show the brand logo for the time it takes to initialise Room, DataStore, Hilt graph, and run the first-launch decision. The splash is driven by the `androidx.core:core-splashscreen` compat library (`installSplashScreen()`), so it works uniformly down to the current floor of minSdk = 29 (Android 10) rather than depending on the native platform `SplashScreen` API introduced in API 31; we extend it with a 250 ms minimum visible duration to avoid flicker on warm starts.
 - **Layout:** Full-screen background `#f2fff7` (APK light surface), centred vector logo (`monefy_icon.xml` from APK — re-traced as `ic_logo.xml` in our re-impl), no text.
 - **States:**
   - `Initializing` — visible (default).
@@ -1030,7 +1030,7 @@ Structurally identical to S06, but for incomes. The same `AddExpenseScreen` Comp
 - **Purpose:** Pick `System`, `English`, `Russian`.
 - **Strings:** `language_system = "Follow system"` / `language_en = "English"` / `language_ru = "Русский"`.
 - **Acceptance criteria:**
-  1. Tapping a non-system row calls `AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags("en"))` (or `ru`); per-app language API is available on minSdk 31+.
+  1. Tapping a non-system row calls `AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags("en"))` (or `ru`); the AppCompat per-app language API backports the platform behaviour, so it works uniformly down to the current floor of minSdk 29 (Android 10) — it delegates to the native per-app-locales service on API 33+ and to the AppCompat storage backport below that.
   2. After change, the app recreates and renders in the chosen locale.
   3. `System` clears the override.
 
@@ -1460,15 +1460,20 @@ A Remote-Config-controlled `aesthetic_sound_pack` parameter swaps the asset fold
 
 ### 6.9. Haptic feedback
 
-Gated on `AppSettings.hapticEnabled`. Use the `androidx.core.view.HapticFeedbackConstants`-equivalent in `View.performHapticFeedback`, or `Vibrator` with predefined effects on Android 12+.
+Gated on `AppSettings.hapticEnabled`. The effect is chosen by the pure `HapticEffectSelector` seam from the running SDK band, the enable flag, and vibrator presence; `HapticPlayerImpl` then realises the selection on the platform `Vibrator`. When haptics are disabled or the device has no vibrator the selection is a no-op on every band.
 
-| Kind            | Effect (API 31+)                  | When                                                       |
-|-----------------|-----------------------------------|------------------------------------------------------------|
-| `SOFT`          | `VibrationEffect.Composition.PRIMITIVE_CLICK` short | Calculator key, chip toggle                        |
-| `MEDIUM`        | `PRIMITIVE_CLICK` standard        | FAB press, drawer open                                     |
-| `HEAVY`         | `PRIMITIVE_THUD`                  | Transaction save, delete                                   |
-| `WARNING`       | `PRIMITIVE_TICK × 2`              | Validation error                                           |
-| `SUCCESS_SHIMMER` | `PRIMITIVE_SHIMMER` (API 33+, fallback to TICK×3 on 31–32) | Milestone confetti                          |
+Two implementation bands:
+
+- **API 31+ (Android 12+):** `VibrationEffect.Composition` primitives, resolved via `VibratorManager.defaultVibrator`.
+- **API 29/30 (Android 10/11):** the composition API and `VibratorManager` are not reachable, so the selector picks a legacy fallback built from `VibrationEffect.createOneShot` (single-pulse kinds) / `createWaveform` (gapped kinds) dispatched through the deprecated `Context.VIBRATOR_SERVICE`. No API 31+ class is referenced before its guard, keeping lint `NewApi` clean.
+
+| Kind            | Effect (API 31+)                  | Effect (API 29/30 legacy)          | When                                                       |
+|-----------------|-----------------------------------|------------------------------------|------------------------------------------------------------|
+| `SOFT`          | `VibrationEffect.Composition.PRIMITIVE_CLICK` short | one-shot, short low-amplitude pulse | Calculator key, chip toggle                        |
+| `MEDIUM`        | `PRIMITIVE_CLICK` standard        | one-shot, short full-amplitude pulse | FAB press, drawer open                                   |
+| `HEAVY`         | `PRIMITIVE_THUD`                  | one-shot, longer full-amplitude pulse | Transaction save, delete                                 |
+| `WARNING`       | `PRIMITIVE_TICK × 2`              | two-pulse waveform                 | Validation error                                           |
+| `SUCCESS_SHIMMER` | `PRIMITIVE_SPIN` (API 33+, fallback to TICK×3 on 31–32; there is no platform `PRIMITIVE_SHIMMER`) | three-pulse waveform | Milestone confetti                          |
 
 ### 6.10. Accessibility
 

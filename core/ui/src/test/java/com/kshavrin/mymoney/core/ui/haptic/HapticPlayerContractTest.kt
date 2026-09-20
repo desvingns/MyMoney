@@ -83,6 +83,71 @@ class HapticPlayerContractTest {
         }
     }
 
+    // ---- API compatibility contract (no mocking framework) ----
+
+    private val supportedBands = listOf(29, 30, 31, 32, 33, 34)
+
+    @Test
+    fun `every kind stays silent when haptics are disabled on every band`() {
+        for (sdk in supportedBands) {
+            for (kind in HapticKind.entries) {
+                assertEquals(
+                    "sdk=$sdk kind=$kind",
+                    HapticSelection.None,
+                    HapticEffectSelector.select(sdk, hapticsEnabled = false, hasVibrator = true, kind = kind),
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `every kind is a no-op without a vibrator on every band`() {
+        for (sdk in supportedBands) {
+            for (kind in HapticKind.entries) {
+                assertEquals(
+                    "sdk=$sdk kind=$kind",
+                    HapticSelection.None,
+                    HapticEffectSelector.select(sdk, hapticsEnabled = true, hasVibrator = false, kind = kind),
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `Android 10 and 11 resolve every kind to the legacy path only`() {
+        for (sdk in listOf(29, 30)) {
+            for (kind in HapticKind.entries) {
+                val selection = HapticEffectSelector.select(sdk, hapticsEnabled = true, hasVibrator = true, kind = kind)
+                assertTrue(
+                    "sdk=$sdk kind=$kind selected $selection must not touch composition",
+                    selection is HapticSelection.LegacyOneShot || selection is HapticSelection.LegacyWaveform,
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `legacy waveforms keep timing and amplitude arrays the same length`() {
+        for (sdk in listOf(29, 30)) {
+            for (kind in HapticKind.entries) {
+                val selection = HapticEffectSelector.select(sdk, hapticsEnabled = true, hasVibrator = true, kind = kind)
+                if (selection is HapticSelection.LegacyWaveform) {
+                    assertEquals("sdk=$sdk kind=$kind", selection.timings.size, selection.amplitudes.size)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `celebratory SPIN is reserved for API 33 and above`() {
+        for (sdk in supportedBands) {
+            val selection =
+                HapticEffectSelector.select(sdk, hapticsEnabled = true, hasVibrator = true, kind = HapticKind.SUCCESS_SHIMMER)
+            val celebratory = selection is HapticSelection.Celebratory
+            assertEquals("sdk=$sdk", sdk >= 33, celebratory)
+        }
+    }
+
     // ---- HapticPlayer interface: the fake recorder used by call-site tests ----
 
     @Test

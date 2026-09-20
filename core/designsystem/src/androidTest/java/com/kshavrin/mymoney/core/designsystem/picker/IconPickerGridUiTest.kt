@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
@@ -50,13 +49,6 @@ class IconPickerGridUiTest {
             }
         }
 
-        val collectionInfo =
-            composeTestRule
-                .onNodeWithTag(GRID_TAG)
-                .fetchSemanticsNode()
-                .config[SemanticsProperties.CollectionInfo]
-        assertEquals(4, collectionInfo.columnCount)
-
         iconKeys.forEach { key ->
             composeTestRule.onNodeWithTag(key).assertIsDisplayed()
         }
@@ -67,6 +59,9 @@ class IconPickerGridUiTest {
         assertEquals(1, secondRowBounds.map { it.top }.distinct().size)
         assertTrue(secondRowBounds.first().top > firstRowBounds.first().top)
         assertTrue(firstRowBounds.zipWithNext().all { (left, right) -> right.left > left.left })
+        firstRowBounds.zip(secondRowBounds).forEach { (firstRow, secondRow) ->
+            assertEquals(firstRow.left, secondRow.left, 1f)
+        }
 
         composeTestRule
             .onNodeWithTag(selectedIconKey)

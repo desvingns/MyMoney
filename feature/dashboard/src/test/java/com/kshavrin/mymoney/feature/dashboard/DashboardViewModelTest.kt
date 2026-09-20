@@ -8,7 +8,9 @@ import androidx.lifecycle.ViewModelStore
 import androidx.paging.PagingData
 import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
 import com.kshavrin.mymoney.core.datastore.model.AppSettings
+import com.kshavrin.mymoney.core.datastore.usecase.CompleteOnboardingTourUseCase
 import com.kshavrin.mymoney.core.datastore.usecase.DashboardDataUseCase
+import com.kshavrin.mymoney.core.datastore.usecase.ObserveOnboardingTourPendingUseCase
 import com.kshavrin.mymoney.core.designsystem.chart.ChartColorRule
 import com.kshavrin.mymoney.core.domain.model.Account
 import com.kshavrin.mymoney.core.domain.model.AccountType
@@ -3143,7 +3145,8 @@ class DashboardViewModelTest {
                                     getTransferRecords = getTransferRecordsGated,
                                 ),
                             journalSync = FakeDashboardJournalSync(),
-                            appSettingsRepository = settingsRepository,
+                            observeOnboardingTourPending = ObserveOnboardingTourPendingUseCase(settingsRepository),
+                            completeOnboardingTour = CompleteOnboardingTourUseCase(settingsRepository),
                             savedStateHandle = SavedStateHandle(),
                         ) as T
                     }
@@ -3852,7 +3855,8 @@ class DashboardViewModelTest {
                         getCategoryRecords = getCategoryRecords,
                         getOperationsSummary = getOperationsSummary,
                         journalSync = journalSync,
-                        appSettingsRepository = settingsRepository,
+                        observeOnboardingTourPending = ObserveOnboardingTourPendingUseCase(settingsRepository),
+                        completeOnboardingTour = CompleteOnboardingTourUseCase(settingsRepository),
                         savedStateHandle = savedStateHandle,
                     ) as T
             }
@@ -3920,7 +3924,8 @@ class DashboardViewModelTest {
                         getCategoryRecords = getCategoryRecords,
                         getOperationsSummary = getOperationsSummary,
                         journalSync = journalSync,
-                        appSettingsRepository = settingsRepository,
+                        observeOnboardingTourPending = ObserveOnboardingTourPendingUseCase(settingsRepository),
+                        completeOnboardingTour = CompleteOnboardingTourUseCase(settingsRepository),
                         savedStateHandle = SavedStateHandle(),
                     ) as T
             }
@@ -5535,7 +5540,8 @@ class DashboardViewModelTest {
                                     getTransferRecords = getTransferRecordsGated,
                                 ),
                             journalSync = FakeDashboardJournalSync(),
-                            appSettingsRepository = settingsRepository,
+                            observeOnboardingTourPending = ObserveOnboardingTourPendingUseCase(settingsRepository),
+                            completeOnboardingTour = CompleteOnboardingTourUseCase(settingsRepository),
                             savedStateHandle = SavedStateHandle(),
                         ) as T
                     }

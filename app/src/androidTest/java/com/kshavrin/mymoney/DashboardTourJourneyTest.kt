@@ -1,5 +1,6 @@
 package com.kshavrin.mymoney
 
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -76,6 +77,8 @@ class DashboardTourJourneyTest {
 
         composeRule.onNodeWithText(str(DashboardR.string.dashboard_tour_skip_all)).performClick()
         waitUntilGone(str(DashboardR.string.dashboard_tour_skip_all))
+        composeRule.onNodeWithText(str(DashboardR.string.dashboard_tour_skip_all)).assertDoesNotExist()
+        composeRule.onNodeWithText(str(DashboardR.string.dashboard_tour_left_title)).assertDoesNotExist()
     }
 
     @Test
@@ -85,6 +88,8 @@ class DashboardTourJourneyTest {
         waitForText(str(DashboardR.string.dashboard_tour_actions_title))
         Espresso.pressBack()
         waitUntilGone(str(DashboardR.string.dashboard_tour_skip_all))
+        composeRule.onNodeWithText(str(DashboardR.string.dashboard_tour_skip_all)).assertDoesNotExist()
+        composeRule.onNodeWithText(str(DashboardR.string.dashboard_tour_actions_title)).assertDoesNotExist()
     }
 
     @Test
@@ -96,10 +101,12 @@ class DashboardTourJourneyTest {
         // Tap the highlighted income FAB — its real action navigates away and pauses the tour.
         composeRule.onNodeWithContentDescription(str(DashboardR.string.fab_income_content_description)).performClick()
         waitUntilGone(str(DashboardR.string.dashboard_tour_actions_title))
+        composeRule.onNodeWithText(str(DashboardR.string.dashboard_tour_actions_title)).assertDoesNotExist()
 
         // Return to the dashboard: ON_RESUME resumes the tour on the next step (left panel).
         Espresso.pressBack()
         waitForText(str(DashboardR.string.dashboard_tour_left_title))
+        composeRule.onNodeWithText(str(DashboardR.string.dashboard_tour_left_title)).assertIsDisplayed()
     }
 
     private fun str(resId: Int): String =

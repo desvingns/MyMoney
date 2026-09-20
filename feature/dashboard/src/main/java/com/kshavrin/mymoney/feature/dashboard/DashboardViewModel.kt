@@ -5,9 +5,10 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kshavrin.mymoney.core.common.exception.reportToSentry
-import com.kshavrin.mymoney.core.datastore.AppSettingsRepository
 import com.kshavrin.mymoney.core.datastore.model.AppSettings
+import com.kshavrin.mymoney.core.datastore.usecase.CompleteOnboardingTourUseCase
 import com.kshavrin.mymoney.core.datastore.usecase.DashboardDataUseCase
+import com.kshavrin.mymoney.core.datastore.usecase.ObserveOnboardingTourPendingUseCase
 import com.kshavrin.mymoney.core.designsystem.dialog.RateRow
 import com.kshavrin.mymoney.core.designsystem.donut.CategorySlice
 import com.kshavrin.mymoney.core.domain.model.Account
@@ -42,7 +43,6 @@ import com.kshavrin.mymoney.feature.dashboard.tour.drawersFor
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -74,7 +74,8 @@ class DashboardViewModel
         private val getCategoryRecords: GetCategoryRecordsUseCase,
         private val getOperationsSummary: GetOperationsSummaryUseCase,
         private val journalSync: JournalSync,
-        private val appSettingsRepository: AppSettingsRepository,
+        private val observeOnboardingTourPending: ObserveOnboardingTourPendingUseCase,
+        private val completeOnboardingTour: CompleteOnboardingTourUseCase,
         private val savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         private val _state = MutableStateFlow(DashboardState())
@@ -129,8 +130,7 @@ class DashboardViewModel
         // Recents) has no saved step and begins at step 1 (D11).
         private fun initTour() {
             viewModelScope.launch {
-                val settings = appSettingsRepository.settings.first()
-                if (settings.onboardingCompletedAt != null) return@launch
+                if (!observeOnboardingTourPending()) return@launch
                 applyTour(restoreTour() ?: DashboardTourReducer.first())
             }
         }
@@ -181,7 +181,7 @@ class DashboardViewModel
             savedStateHandle.remove<Boolean>(TOUR_PAUSED_KEY)
             viewModelScope.launch {
                 try {
-                    appSettingsRepository.update { it.copy(onboardingCompletedAt = System.currentTimeMillis()) }
+                    completeOnboardingTour()
                 } catch (e: CancellationException) {
                     throw e
                 } catch (throwable: Throwable) {

@@ -280,7 +280,10 @@ class ImportFocusColdStartRegressionTest {
                                         .ConvertMoneyUseCase(),
                                 clock = java.time.Clock.systemUTC(),
                             ),
-                        appSettingsRepository = settingsRepository,
+                        observeOnboardingTourPending =
+                            com.kshavrin.mymoney.core.datastore.usecase.ObserveOnboardingTourPendingUseCase(settingsRepository),
+                        completeOnboardingTour =
+                            com.kshavrin.mymoney.core.datastore.usecase.CompleteOnboardingTourUseCase(settingsRepository),
                         savedStateHandle = androidx.lifecycle.SavedStateHandle(),
                     )
 

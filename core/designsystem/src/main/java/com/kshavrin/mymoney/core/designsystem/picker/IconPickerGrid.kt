@@ -1,16 +1,22 @@
 package com.kshavrin.mymoney.core.designsystem.picker
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
@@ -34,7 +40,7 @@ fun IconPickerGrid(
     iconContentDescription: (String) -> String? = { null },
 ) {
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = Spacing.wizardIconPickerItemSize + Spacing.s),
+        columns = GridCells.Fixed(4),
         horizontalArrangement = Arrangement.spacedBy(Spacing.s),
         verticalArrangement = Arrangement.spacedBy(Spacing.s),
         modifier =
@@ -49,28 +55,51 @@ fun IconPickerGrid(
             Box(
                 modifier =
                     Modifier
-                        .testTag(key)
-                        .semantics {
-                            iconDescription?.let { contentDescription = it }
-                            this.selected = selected
-                        }.clickable { onIconSelected(key) },
+                        .fillMaxWidth()
+                        .height(Spacing.wizardIconPickerTileSize),
                 contentAlignment = Alignment.Center,
             ) {
-                if (categoryAsset != null) {
-                    NeonCategoryIcon(
-                        iconKey = key,
-                        selected = selected,
-                        containerSize = Spacing.wizardIconPickerItemSize,
-                        iconSize = NeonCategoryIconDefaults.WizardIconSize,
-                    )
-                } else {
-                    NeonIconTile(
-                        imageVector = iconFor(key),
-                        accent = categoryIconAccent(key),
-                        selected = selected,
-                        containerSize = Spacing.wizardIconPickerItemSize,
-                        iconSize = NeonCategoryIconDefaults.WizardIconSize,
-                    )
+                Box(
+                    modifier =
+                        Modifier
+                            .testTag(key)
+                            .size(Spacing.wizardIconPickerTileSize)
+                            .semantics {
+                                iconDescription?.let { contentDescription = it }
+                                this.selected = selected
+                            }.clickable { onIconSelected(key) },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (categoryAsset != null) {
+                        NeonCategoryIcon(
+                            iconKey = key,
+                            selected = selected,
+                            containerSize = Spacing.wizardIconPickerTileSize,
+                            iconSize = Spacing.wizardIconPickerIconSize,
+                        )
+                    } else {
+                        NeonIconTile(
+                            imageVector = iconFor(key),
+                            accent = categoryIconAccent(key),
+                            selected = selected,
+                            containerSize = Spacing.wizardIconPickerTileSize,
+                            iconSize = Spacing.wizardIconPickerIconSize,
+                        )
+                    }
+                    if (selected) {
+                        Box(
+                            modifier =
+                                Modifier
+                                .size(Spacing.wizardIconPickerTileSize)
+                                    .clip(NeonCategoryIconDefaults.Shape)
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f))
+                                    .border(
+                                        width = 1.dp,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        shape = NeonCategoryIconDefaults.Shape,
+                                    ),
+                        )
+                    }
                 }
             }
         }

@@ -17,7 +17,6 @@ import androidx.compose.ui.res.stringResource
 import com.kshavrin.mymoney.core.designsystem.icon.categoryIcon
 import com.kshavrin.mymoney.core.designsystem.picker.CATEGORY_EXPENSE_ICON_KEYS
 import com.kshavrin.mymoney.core.designsystem.picker.CATEGORY_INCOME_ICON_KEYS
-import com.kshavrin.mymoney.core.designsystem.picker.ColorPickerGrid
 import com.kshavrin.mymoney.core.designsystem.picker.IconPickerGrid
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
 import com.kshavrin.mymoney.core.ui.theme.Spacing
@@ -108,15 +107,6 @@ fun CategoryConfigStep(
         iconFor = { categoryIcon(it) },
         onIconSelected = { onEvent(ImportWizardEvent.ConfigIconChanged(it)) },
         iconContentDescription = { iconOptionDescription },
-    )
-
-    Text(
-        text = stringResource(R.string.import_wizard_config_field_color),
-        style = MaterialTheme.typography.titleSmall,
-    )
-    ColorPickerGrid(
-        selectedHex = state.configColorHex,
-        onColorSelected = { onEvent(ImportWizardEvent.ConfigColorChanged(it)) },
     )
 
     Row(

@@ -94,6 +94,12 @@ object Spacing {
     // 48dp matches the M3 minimum touch target recommendation.
     val wizardIconPickerItemSize = 48.dp
 
+    // Larger visual tile for the four-column import-wizard icon picker.
+    // It keeps the existing 48dp touch-target token intact while giving the
+    // wizard's icons the requested increase in visual weight.
+    val wizardIconPickerTileSize = 64.dp
+    val wizardIconPickerIconSize = 40.dp
+
     // Dashboard «Все счета» Separate mode — vertical gap between per-currency balance cards
     // in the stacked scroll column. 12dp (Spacing.m) keeps the stack dense enough to show
     // 2-3 cards without scrolling on a typical phone, while remaining visually distinct from

@@ -115,6 +115,12 @@ val ColorScheme.recordsFilterChipBorder: Color
 val ColorScheme.dashboardDrawerScrim: Color
     get() = scrim.copy(alpha = 0.32f)
 
+val ColorScheme.spotlightScrim: Color
+    get() = background.copy(alpha = 0.72f)
+
+val ColorScheme.spotlightCutoutRing: Color
+    get() = primary
+
 val ColorScheme.dashboardDrawerPanelContainer: Color
     get() = surface
 

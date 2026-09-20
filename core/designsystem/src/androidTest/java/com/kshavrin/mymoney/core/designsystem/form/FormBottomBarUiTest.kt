@@ -18,7 +18,7 @@ class FormBottomBarUiTest {
     val composeTestRule = createComposeRule()
 
     @Test
-    fun `shows save text and invokes onSave when enabled`() {
+    fun showsSaveTextAndInvokesOnSaveWhenEnabled() {
         var saves = 0
 
         composeTestRule.setContent {
@@ -41,7 +41,7 @@ class FormBottomBarUiTest {
     }
 
     @Test
-    fun `disabled save button does not invoke onSave`() {
+    fun disabledSaveButtonDoesNotInvokeOnSave() {
         var saves = 0
 
         composeTestRule.setContent {

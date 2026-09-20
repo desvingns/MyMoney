@@ -22,7 +22,7 @@ class DateHeaderUiTest {
     val composeTestRule = createComposeRule()
 
     @Test
-    fun `shows formatted date and pick date icon`() {
+    fun showsFormattedDateAndPickDateIcon() {
         val date = LocalDate.of(2026, 6, 6)
 
         composeTestRule.setContent {
@@ -41,7 +41,7 @@ class DateHeaderUiTest {
     }
 
     @Test
-    fun `clicking the header invokes onClick`() {
+    fun clickingTheHeaderInvokesOnClick() {
         val date = LocalDate.of(2026, 6, 6)
         var clicks = 0
 

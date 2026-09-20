@@ -56,7 +56,7 @@ class RateConfirmDialogUiTest {
     // ---- single mode: basic rendering ----
 
     @Test
-    fun `single mode shows dialog container`() {
+    fun singleModeShowsDialogContainer() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 RateConfirmDialogContent(
@@ -73,7 +73,7 @@ class RateConfirmDialogUiTest {
     }
 
     @Test
-    fun `single mode shows last updated date`() {
+    fun singleModeShowsLastUpdatedDate() {
         val date = LocalDate.of(2026, 6, 1)
 
         composeTestRule.setContent {
@@ -95,7 +95,7 @@ class RateConfirmDialogUiTest {
     }
 
     @Test
-    fun `single mode shows rate_last_updated_none when lastUpdated is null`() {
+    fun singleModeShowsRateLastUpdatedNoneWhenLastUpdatedIsNull() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 RateConfirmDialogContent(
@@ -112,7 +112,7 @@ class RateConfirmDialogUiTest {
     }
 
     @Test
-    fun `single mode shows current rate when displayRate is non-null`() {
+    fun singleModeShowsCurrentRateWhenDisplayRateIsNonNull() {
         val rate = BigDecimal("458.75")
 
         composeTestRule.setContent {
@@ -131,7 +131,7 @@ class RateConfirmDialogUiTest {
     }
 
     @Test
-    fun `single mode shows rate_value_none when displayRate is null`() {
+    fun singleModeShowsRateValueNoneWhenDisplayRateIsNull() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 RateConfirmDialogContent(
@@ -148,7 +148,7 @@ class RateConfirmDialogUiTest {
     }
 
     @Test
-    fun `single mode pre-fills input field with displayRate`() {
+    fun singleModePreFillsInputFieldWithDisplayRate() {
         val rate = BigDecimal("458.75")
 
         composeTestRule.setContent {
@@ -173,7 +173,7 @@ class RateConfirmDialogUiTest {
     // ---- single mode: confirm / dismiss ----
 
     @Test
-    fun `single mode confirm button fires onConfirm with pre-filled displayRate`() {
+    fun singleModeConfirmButtonFiresOnConfirmWithPreFilledDisplayRate() {
         val confirmed = mutableMapOf<Int, BigDecimal>()
 
         composeTestRule.setContent {
@@ -198,7 +198,7 @@ class RateConfirmDialogUiTest {
     }
 
     @Test
-    fun `single mode dismiss button fires onDismiss`() {
+    fun singleModeDismissButtonFiresOnDismiss() {
         var dismissed = false
 
         composeTestRule.setContent {
@@ -223,7 +223,7 @@ class RateConfirmDialogUiTest {
     // ---- single mode: manual edit ----
 
     @Test
-    fun `editing field fires onRateEdited with parsed BigDecimal`() {
+    fun editingFieldFiresOnRateEditedWithParsedBigDecimal() {
         val edits = mutableListOf<Pair<Int, BigDecimal>>()
 
         composeTestRule.setContent {
@@ -252,7 +252,7 @@ class RateConfirmDialogUiTest {
     }
 
     @Test
-    fun `editing field with comma separator is parsed as dot`() {
+    fun editingFieldWithCommaSeparatorIsParsedAsDot() {
         val edits = mutableListOf<Pair<Int, BigDecimal>>()
 
         composeTestRule.setContent {
@@ -280,7 +280,7 @@ class RateConfirmDialogUiTest {
     }
 
     @Test
-    fun `confirm fires with manually entered value overriding displayRate`() {
+    fun confirmFiresWithManuallyEnteredValueOverridingDisplayRate() {
         val confirmed = mutableMapOf<Int, BigDecimal>()
 
         composeTestRule.setContent {
@@ -309,7 +309,7 @@ class RateConfirmDialogUiTest {
     }
 
     @Test
-    fun `empty input falls back to displayRate on confirm`() {
+    fun emptyInputFallsBackToDisplayRateOnConfirm() {
         val confirmed = mutableMapOf<Int, BigDecimal>()
 
         composeTestRule.setContent {
@@ -337,7 +337,7 @@ class RateConfirmDialogUiTest {
     // ---- stale / missing hints ----
 
     @Test
-    fun `stale row shows stale hint but confirm button remains enabled`() {
+    fun staleRowShowsStaleHintButConfirmButtonRemainsEnabled() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 RateConfirmDialogContent(
@@ -357,7 +357,7 @@ class RateConfirmDialogUiTest {
     }
 
     @Test
-    fun `missing row without input shows missing hint and disables confirm`() {
+    fun missingRowWithoutInputShowsMissingHintAndDisablesConfirm() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 RateConfirmDialogContent(
@@ -383,7 +383,7 @@ class RateConfirmDialogUiTest {
     }
 
     @Test
-    fun `missing row with valid input shows missing hint but enables confirm`() {
+    fun missingRowWithValidInputShowsMissingHintButEnablesConfirm() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 RateConfirmDialogContent(
@@ -415,7 +415,7 @@ class RateConfirmDialogUiTest {
     // ---- list mode ----
 
     @Test
-    fun `list mode shows dialog container and list title`() {
+    fun listModeShowsDialogContainerAndListTitle() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 RateConfirmDialogContent(
@@ -439,7 +439,7 @@ class RateConfirmDialogUiTest {
     }
 
     @Test
-    fun `list mode renders date row for each pair`() {
+    fun listModeRendersDateRowForEachPair() {
         val date0 = LocalDate.of(2026, 6, 1)
         val date1 = LocalDate.of(2026, 5, 15)
 
@@ -466,7 +466,7 @@ class RateConfirmDialogUiTest {
     }
 
     @Test
-    fun `list mode shows a single confirm button covering all rows`() {
+    fun listModeShowsASingleConfirmButtonCoveringAllRows() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 RateConfirmDialogContent(
@@ -489,7 +489,7 @@ class RateConfirmDialogUiTest {
     }
 
     @Test
-    fun `list mode confirm returns map keyed by row index`() {
+    fun listModeConfirmReturnsMapKeyedByRowIndex() {
         val confirmed = mutableMapOf<Int, BigDecimal>()
 
         composeTestRule.setContent {
@@ -518,7 +518,7 @@ class RateConfirmDialogUiTest {
     }
 
     @Test
-    fun `list mode dismiss fires onDismiss`() {
+    fun listModeDismissFiresOnDismiss() {
         var dismissed = false
 
         composeTestRule.setContent {
@@ -545,7 +545,7 @@ class RateConfirmDialogUiTest {
     }
 
     @Test
-    fun `list mode stale row shows stale hint but confirm stays enabled`() {
+    fun listModeStaleRowShowsStaleHintButConfirmStaysEnabled() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 RateConfirmDialogContent(
@@ -569,7 +569,7 @@ class RateConfirmDialogUiTest {
     }
 
     @Test
-    fun `list mode missing row disables confirm until valid input provided`() {
+    fun listModeMissingRowDisablesConfirmUntilValidInputProvided() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 RateConfirmDialogContent(
@@ -598,7 +598,7 @@ class RateConfirmDialogUiTest {
     }
 
     @Test
-    fun `list mode confirm fires with manually entered value in one row and fallback in other`() {
+    fun listModeConfirmFiresWithManuallyEnteredValueInOneRowAndFallbackInOther() {
         val confirmed = mutableMapOf<Int, BigDecimal>()
 
         composeTestRule.setContent {
@@ -636,7 +636,7 @@ class RateConfirmDialogUiTest {
     // ---- empty list: nothing rendered ----
 
     @Test
-    fun `empty rows list renders nothing`() {
+    fun emptyRowsListRendersNothing() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 RateConfirmDialogContent(

@@ -32,7 +32,7 @@ class NeonCategoryIconUiTest {
     val composeTestRule = createComposeRule()
 
     @Test
-    fun `neon category icon renders with stable touch tile bounds`() {
+    fun neonCategoryIconRendersWithStableTouchTileBounds() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 NeonCategoryIcon(
@@ -50,7 +50,7 @@ class NeonCategoryIconUiTest {
     }
 
     @Test
-    fun `neon category icons render reference bitmap artwork`() {
+    fun neonCategoryIconsRenderReferenceBitmapArtwork() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {

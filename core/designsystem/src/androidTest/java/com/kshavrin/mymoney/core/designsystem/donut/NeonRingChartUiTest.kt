@@ -23,7 +23,7 @@ class NeonRingChartUiTest {
     val composeTestRule = createComposeRule()
 
     @Test
-    fun `outer container reserves glow allowance beyond the nominal diameter`() {
+    fun outerContainerReservesGlowAllowanceBeyondTheNominalDiameter() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 NeonRingChart(fraction = 0.5f) {}
@@ -51,7 +51,7 @@ class NeonRingChartUiTest {
     }
 
     @Test
-    fun `center content fills the centered inner slot instead of the outer glow container`() {
+    fun centerContentFillsTheCenteredInnerSlotInsteadOfTheOuterGlowContainer() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 NeonRingChart(fraction = 0.5f) {
@@ -92,7 +92,7 @@ class NeonRingChartUiTest {
     }
 
     @Test
-    fun `default invocation without explicit gradient params renders chart node with correct outer bounds`() {
+    fun defaultInvocationWithoutExplicitGradientParamsRendersChartNodeWithCorrectOuterBounds() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 NeonRingChart(fraction = 0.5f) {}
@@ -111,7 +111,7 @@ class NeonRingChartUiTest {
     }
 
     @Test
-    fun `explicit red gradient params are accepted and chart node exists with unchanged bounds`() {
+    fun explicitRedGradientParamsAreAcceptedAndChartNodeExistsWithUnchangedBounds() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 NeonRingChart(
@@ -134,7 +134,7 @@ class NeonRingChartUiTest {
     }
 
     @Test
-    fun `explicit green gradient params are accepted and chart node exists with unchanged bounds`() {
+    fun explicitGreenGradientParamsAreAcceptedAndChartNodeExistsWithUnchangedBounds() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 NeonRingChart(
@@ -157,7 +157,7 @@ class NeonRingChartUiTest {
     }
 
     @Test
-    fun `zero fraction chart renders without gradient arc but outer node still present`() {
+    fun zeroFractionChartRendersWithoutGradientArcButOuterNodeStillPresent() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 NeonRingChart(
@@ -183,7 +183,7 @@ class NeonRingChartUiTest {
     }
 
     @Test
-    fun `chart with gradient params passes center content through to inner slot`() {
+    fun chartWithGradientParamsPassesCenterContentThroughToInnerSlot() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 NeonRingChart(
@@ -221,7 +221,7 @@ class NeonRingChartUiTest {
     }
 
     @Test
-    fun `full ring fraction 1f renders without crash and chart node has correct outer bounds`() {
+    fun fullRingFraction1fRendersWithoutCrashAndChartNodeHasCorrectOuterBounds() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 NeonRingChart(fraction = 1f) {}

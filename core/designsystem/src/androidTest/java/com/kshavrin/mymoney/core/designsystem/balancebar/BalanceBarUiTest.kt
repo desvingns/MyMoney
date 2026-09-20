@@ -30,7 +30,7 @@ class BalanceBarUiTest {
     val composeTestRule = createComposeRule()
 
     @Test
-    fun `renders the localized balance label next to the formatted amount`() {
+    fun rendersTheLocalizedBalanceLabelNextToTheFormattedAmount() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 BalanceBar(amount = "12 345,67 RUB", isPositive = true)
@@ -43,7 +43,7 @@ class BalanceBarUiTest {
     }
 
     @Test
-    fun `invokes onClick when the bar is tapped`() {
+    fun invokesOnClickWhenTheBarIsTapped() {
         var clicks = 0
 
         composeTestRule.setContent {
@@ -63,7 +63,7 @@ class BalanceBarUiTest {
     }
 
     @Test
-    fun `places a glyph on both the left and the right of the centered amount`() {
+    fun placesAGlyphOnBothTheLeftAndTheRightOfTheCenteredAmount() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 BalanceBar(
@@ -96,7 +96,7 @@ class BalanceBarUiTest {
     }
 
     @Test
-    fun `positive balance tints the amount with the theme primary colour`() {
+    fun positiveBalanceTintsTheAmountWithTheThemePrimaryColour() {
         var expectedTint = 0
         composeTestRule.setContent {
             MyMoneyTheme {
@@ -113,7 +113,7 @@ class BalanceBarUiTest {
     }
 
     @Test
-    fun `balance bar pill uses primary colour regardless of the sign of the amount`() {
+    fun balanceBarPillUsesPrimaryColourRegardlessOfTheSignOfTheAmount() {
         // isPositive is accepted for API compatibility but the pill colour no longer changes
         // based on sign — the bar always uses the theme primary colour as the pill background.
         var primaryTint = 0
@@ -132,7 +132,7 @@ class BalanceBarUiTest {
     }
 
     @Test
-    fun `bar row exposes open records click action label for TalkBack`() {
+    fun barRowExposesOpenRecordsClickActionLabelForTalkBack() {
         val expectedLabel = targetString(R.string.balance_bar_open_records_action)
 
         composeTestRule.setContent {
@@ -160,7 +160,7 @@ class BalanceBarUiTest {
     }
 
     @Test
-    fun `bar row exposes a merged content description combining label and amount`() {
+    fun barRowExposesAMergedContentDescriptionCombiningLabelAndAmount() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 BalanceBar(
@@ -186,7 +186,7 @@ class BalanceBarUiTest {
     }
 
     @Test
-    fun `flank icons are marked decorative and do not appear as separate a11y nodes`() {
+    fun flankIconsAreMarkedDecorativeAndDoNotAppearAsSeparateA11yNodes() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 BalanceBar(

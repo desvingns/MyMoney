@@ -28,7 +28,7 @@ class MoneyHeroAppBarUiTest {
     val composeTestRule = createComposeRule()
 
     @Test
-    fun `bar is present in the composition with the hero app bar test tag`() {
+    fun barIsPresentInTheCompositionWithTheHeroAppBarTestTag() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 MoneyHeroAppBar(
@@ -44,7 +44,7 @@ class MoneyHeroAppBarUiTest {
     }
 
     @Test
-    fun `title text from resources is rendered inside the bar`() {
+    fun titleTextFromResourcesIsRenderedInsideTheBar() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 MoneyHeroAppBar(
@@ -73,7 +73,7 @@ class MoneyHeroAppBarUiTest {
     }
 
     @Test
-    fun `currency subtitle is displayed when provided`() {
+    fun currencySubtitleIsDisplayedWhenProvided() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 MoneyHeroAppBar(
@@ -89,7 +89,7 @@ class MoneyHeroAppBarUiTest {
     }
 
     @Test
-    fun `subtitle node is absent when subtitle is null`() {
+    fun subtitleNodeIsAbsentWhenSubtitleIsNull() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 MoneyHeroAppBar(
@@ -105,7 +105,7 @@ class MoneyHeroAppBarUiTest {
     }
 
     @Test
-    fun `leading slot composable is rendered`() {
+    fun leadingSlotComposableIsRendered() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 MoneyHeroAppBar(
@@ -128,7 +128,7 @@ class MoneyHeroAppBarUiTest {
     }
 
     @Test
-    fun `click on the leading slot icon button fires the provided lambda`() {
+    fun clickOnTheLeadingSlotIconButtonFiresTheProvidedLambda() {
         var clicks = 0
 
         composeTestRule.setContent {
@@ -157,7 +157,7 @@ class MoneyHeroAppBarUiTest {
     }
 
     @Test
-    fun `back arrow leading slot is rendered and fires its click lambda`() {
+    fun backArrowLeadingSlotIsRenderedAndFiresItsClickLambda() {
         var clicks = 0
 
         composeTestRule.setContent {
@@ -187,7 +187,7 @@ class MoneyHeroAppBarUiTest {
     }
 
     @Test
-    fun `trailing actions slot composable is rendered and clickable`() {
+    fun trailingActionsSlotComposableIsRenderedAndClickable() {
         var clicks = 0
 
         composeTestRule.setContent {
@@ -218,7 +218,7 @@ class MoneyHeroAppBarUiTest {
     }
 
     @Test
-    fun `bar height is at least the heroAppBarHeight spacing token`() {
+    fun barHeightIsAtLeastTheHeroAppBarHeightSpacingToken() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 MoneyHeroAppBar(
@@ -234,7 +234,7 @@ class MoneyHeroAppBarUiTest {
     }
 
     @Test
-    fun `custom title and subtitle test tags override the defaults`() {
+    fun customTitleAndSubtitleTestTagsOverrideTheDefaults() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 MoneyHeroAppBar(

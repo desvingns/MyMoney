@@ -44,7 +44,7 @@ class DonutChartUiTest {
     val composeTestRule = createComposeRule()
 
     @Test
-    fun `announces income expense and multiple slice percentages in merged semantics`() {
+    fun announcesIncomeExpenseAndMultipleSlicePercentagesInMergedSemantics() {
         setChart(
             income = BigDecimal("450.00"),
             expense = BigDecimal("124.00"),
@@ -67,7 +67,7 @@ class DonutChartUiTest {
     }
 
     @Test
-    fun `announces totals without slice descriptions when chart is empty`() {
+    fun announcesTotalsWithoutSliceDescriptionsWhenChartIsEmpty() {
         setChart(
             income = BigDecimal.ZERO,
             expense = BigDecimal.ZERO,
@@ -80,7 +80,7 @@ class DonutChartUiTest {
     }
 
     @Test
-    fun `truncates a three point four percent slice to three percent in semantics`() {
+    fun truncatesAThreePointFourPercentSliceToThreePercentInSemantics() {
         setChart(
             income = BigDecimal.ZERO,
             expense = BigDecimal("100.00"),
@@ -99,7 +99,7 @@ class DonutChartUiTest {
     }
 
     @Test
-    fun `category label and low percent callout options preserve accessibility semantics`() {
+    fun categoryLabelAndLowPercentCalloutOptionsPreserveAccessibilitySemantics() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 DonutChart(
@@ -130,7 +130,7 @@ class DonutChartUiTest {
     }
 
     @Test
-    fun `center totals expose both income and expense figures when a currency symbol is supplied`() {
+    fun centerTotalsExposeBothIncomeAndExpenseFiguresWhenACurrencySymbolIsSupplied() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 DonutChart(
@@ -156,7 +156,7 @@ class DonutChartUiTest {
     }
 
     @Test
-    fun `updated totals invalidate cached center text after recomposition`() {
+    fun updatedTotalsInvalidateCachedCenterTextAfterRecomposition() {
         val income = mutableStateOf(BigDecimal("100.00"))
         val expense = BigDecimal("50.00")
         val slices = listOf(slice(label = "Food", fraction = 1.0f))
@@ -211,7 +211,7 @@ class DonutChartUiTest {
     }
 
     @Test
-    fun `empty period with placeholder icons still announces zero totals`() {
+    fun emptyPeriodWithPlaceholderIconsStillAnnouncesZeroTotals() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 DonutChart(
@@ -236,7 +236,7 @@ class DonutChartUiTest {
     }
 
     @Test
-    fun `empty state visibly paints stacked income and expense center totals`() {
+    fun emptyStateVisiblyPaintsStackedIncomeAndExpenseCenterTotals() {
         var incomeTint = 0
         var expenseTint = 0
 
@@ -305,7 +305,7 @@ class DonutChartUiTest {
     }
 
     @Test
-    fun `empty state icons do not add slice descriptions to semantics`() {
+    fun emptyStateIconsDoNotAddSliceDescriptionsToSemantics() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 DonutChart(
@@ -328,7 +328,7 @@ class DonutChartUiTest {
     }
 
     @Test
-    fun `tapping an empty state placeholder icon invokes the matching callback exactly once`() {
+    fun tappingAnEmptyStatePlaceholderIconInvokesTheMatchingCallbackExactlyOnce() {
         val emptyStateIcons =
             listOf(
                 slice(label = "Food", fraction = 0f),
@@ -372,7 +372,7 @@ class DonutChartUiTest {
     }
 
     @Test
-    fun `empty state extrude ring paints outline color on the ring band`() {
+    fun emptyStateExtrudeRingPaintsOutlineColorOnTheRingBand() {
         var outlineArgb = 0
 
         setChartInContainer(size = 520.dp, containerColor = Color.Black) {
@@ -416,7 +416,7 @@ class DonutChartUiTest {
     }
 
     @Test
-    fun `empty state flat ring paints outline color on the ring band`() {
+    fun emptyStateFlatRingPaintsOutlineColorOnTheRingBand() {
         var outlineArgb = 0
 
         setChartInContainer(size = 520.dp, containerColor = Color.Black) {
@@ -458,7 +458,7 @@ class DonutChartUiTest {
     }
 
     @Test
-    fun `empty state icons render at frame-projected positions`() {
+    fun emptyStateIconsRenderAtFrameProjectedPositions() {
         val emptyStateIcons =
             listOf(
                 slice(label = "Food", fraction = 0f, color = Color(0xFF08A045), iconKey = "ic_cat_food"),
@@ -508,7 +508,7 @@ class DonutChartUiTest {
     }
 
     @Test
-    fun `empty state icon does not paint a solid background disc`() {
+    fun emptyStateIconDoesNotPaintASolidBackgroundDisc() {
         val emptyStateIcons =
             listOf(
                 slice(label = "Food", fraction = 0f, color = Color(0xFF08A045), iconKey = "ic_cat_food"),
@@ -589,7 +589,7 @@ class DonutChartUiTest {
     }
 
     @Test
-    fun `empty state leader lines use category color not the leaderLineColor parameter`() {
+    fun emptyStateLeaderLinesUseCategoryColorNotTheLeaderLineColorParameter() {
         val leaderLineOverrideColor = Color.Magenta
         val emptyStateIcons =
             listOf(
@@ -624,7 +624,7 @@ class DonutChartUiTest {
     }
 
     @Test
-    fun `empty state does not render percentage labels near icons`() {
+    fun emptyStateDoesNotRenderPercentageLabelsNearIcons() {
         // Regression guard: the new empty-state branch must NOT call drawCalloutText.
         // We verify this by checking that no slice color appears in the text-label region
         // to the right of any icon (where % labels would normally sit in the populated path).
@@ -683,7 +683,7 @@ class DonutChartUiTest {
     }
 
     @Test
-    fun `empty state with no empty icons still renders ring and center totals without crash`() {
+    fun emptyStateWithNoEmptyIconsStillRendersRingAndCenterTotalsWithoutCrash() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 DonutChart(
@@ -704,7 +704,7 @@ class DonutChartUiTest {
     }
 
     @Test
-    fun `populated chart ignores empty state icons and keeps slice semantics`() {
+    fun populatedChartIgnoresEmptyStateIconsAndKeepsSliceSemantics() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 DonutChart(
@@ -733,7 +733,7 @@ class DonutChartUiTest {
     }
 
     @Test
-    fun `tapping a populated icon disc invokes the matching slice callback`() {
+    fun tappingAPopulatedIconDiscInvokesTheMatchingSliceCallback() {
         val slices = contourSlices()
         val clickedSlices = mutableListOf<CategorySlice>()
         val chartSize = 240.dp
@@ -778,7 +778,7 @@ class DonutChartUiTest {
     }
 
     @Test
-    fun `tapping a populated ring segment still invokes the matching slice callback`() {
+    fun tappingAPopulatedRingSegmentStillInvokesTheMatchingSliceCallback() {
         val slices = contourSlices()
         val clickedSlices = mutableListOf<CategorySlice>()
         val chartSize = 240.dp
@@ -823,7 +823,7 @@ class DonutChartUiTest {
     }
 
     @Test
-    fun `populated slice icons render at frame-projected positions and include exploded offset`() {
+    fun populatedSliceIconsRenderAtFrameProjectedPositionsAndIncludeExplodedOffset() {
         val slices = contourSlices()
         val chartSize = 520.dp
         val explodedOffset = 16.dp
@@ -890,7 +890,7 @@ class DonutChartUiTest {
     }
 
     @Test
-    fun `populated slice icons do not paint a solid background disc`() {
+    fun populatedSliceIconsDoNotPaintASolidBackgroundDisc() {
         val slices = contourSlices()
         val chartSize = 520.dp
         val explodedOffset = 16.dp
@@ -975,7 +975,7 @@ class DonutChartUiTest {
     }
 
     @Test
-    fun `populated chart with active leader lines renders without crash and preserves semantics`() {
+    fun populatedChartWithActiveLeaderLinesRendersWithoutCrashAndPreservesSemantics() {
         // Leader lines are now drawn for populated slices using each slice's own color.
         // The leaderLineColor parameter is accepted but not applied to populated slices.
         setChart(
@@ -996,7 +996,7 @@ class DonutChartUiTest {
     }
 
     @Test
-    fun `leader line color parameter does not override slice color for populated slices`() {
+    fun leaderLineColorParameterDoesNotOverrideSliceColorForPopulatedSlices() {
         // The leaderLineColor theme parameter is no longer applied to populated-slice leader lines;
         // each leader line uses the slice's own color. Passing a contrasting leaderLineColor must
         // not cause the chart to render that override color anywhere in the pixel buffer.
@@ -1029,7 +1029,7 @@ class DonutChartUiTest {
     // ---- centerDecimalDigits ----
 
     @Test
-    fun `centerDecimalDigits zero hides decimal portion from semantics income string`() {
+    fun centerDecimalDigitsZeroHidesDecimalPortionFromSemanticsIncomeString() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 DonutChart(
@@ -1058,7 +1058,7 @@ class DonutChartUiTest {
     }
 
     @Test
-    fun `centerDecimalDigits two produces same semantics as default decimalDigits`() {
+    fun centerDecimalDigitsTwoProducesSameSemanticsAsDefaultDecimalDigits() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 DonutChart(
@@ -1085,7 +1085,7 @@ class DonutChartUiTest {
     // ---- DonutStyle enum ----
 
     @Test
-    fun `DonutStyle Flat renders chart and preserves slice semantics`() {
+    fun donutStyleFlatRendersChartAndPreservesSliceSemantics() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 DonutChart(
@@ -1113,7 +1113,7 @@ class DonutChartUiTest {
     }
 
     @Test
-    fun `DonutStyle Extrude renders chart and preserves slice semantics`() {
+    fun donutStyleExtrudeRendersChartAndPreservesSliceSemantics() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 DonutChart(
@@ -1139,7 +1139,7 @@ class DonutChartUiTest {
     // ---- ringThicknessFraction and sliceGapDegrees — semantics contract unchanged ----
 
     @Test
-    fun `custom ringThicknessFraction 0 39 preserves full semantics description`() {
+    fun customRingThicknessFraction039PreservesFullSemanticsDescription() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 DonutChart(
@@ -1168,7 +1168,7 @@ class DonutChartUiTest {
     }
 
     @Test
-    fun `sliceGapDegrees zero renders without crash and keeps semantics intact`() {
+    fun sliceGapDegreesZeroRendersWithoutCrashAndKeepsSemanticsIntact() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 DonutChart(
@@ -1194,7 +1194,7 @@ class DonutChartUiTest {
     // ---- budget alert semantics preserved ----
 
     @Test
-    fun `slice with hasBudgetAlert true is still included in semantics description`() {
+    fun sliceWithHasBudgetAlertTrueIsStillIncludedInSemanticsDescription() {
         val alertSlice =
             CategorySlice(
                 categoryId = 99L,
@@ -1226,7 +1226,7 @@ class DonutChartUiTest {
     // ---- compact callout block (icon + % inline, name on one line below) ----
 
     @Test
-    fun `compact callout renders without crash for a very long category name exercising font shrink path`() {
+    fun compactCalloutRendersWithoutCrashForAVeryLongCategoryNameExercisingFontShrinkPath() {
         val longName = "Очень длинное название категории расходов"
         composeTestRule.setContent {
             MyMoneyTheme {
@@ -1253,7 +1253,7 @@ class DonutChartUiTest {
     }
 
     @Test
-    fun `compact callout renders without crash for a normal category name and preserves semantics`() {
+    fun compactCalloutRendersWithoutCrashForANormalCategoryNameAndPreservesSemantics() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 DonutChart(
@@ -1285,7 +1285,7 @@ class DonutChartUiTest {
     // ---- iconScale param — composable renders without crash ----
 
     @Test
-    fun `custom iconScale 1 7 renders without crash and preserves semantics`() {
+    fun customIconScale17RendersWithoutCrashAndPreservesSemantics() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 DonutChart(
@@ -1311,7 +1311,7 @@ class DonutChartUiTest {
     // ---- frame-projection: single slice and many small slices do not crash ----
 
     @Test
-    fun `single full-circle slice with leader line renders without crash and semantics intact`() {
+    fun singleFullCircleSliceWithLeaderLineRendersWithoutCrashAndSemanticsIntact() {
         // Regression guard: projectAngleToFrame on a single 360-degree slice must not
         // throw or produce NaN icon coordinates that crash Canvas drawing.
         composeTestRule.setContent {
@@ -1346,7 +1346,7 @@ class DonutChartUiTest {
     }
 
     @Test
-    fun `eight small slices with leader lines render without crash and all slices in semantics`() {
+    fun eightSmallSlicesWithLeaderLinesRenderWithoutCrashAndAllSlicesInSemantics() {
         // Previously, many small slices could collide when icons were placed radially.
         // With frame-projection, slices are clamped to canvas bounds — no crash expected.
         val smallSlices =
@@ -1379,7 +1379,7 @@ class DonutChartUiTest {
     // ---- zero-fraction slices are excluded from semantics description ----
 
     @Test
-    fun `slices with fraction zero are excluded from semantics description`() {
+    fun slicesWithFractionZeroAreExcludedFromSemanticsDescription() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 DonutChart(
@@ -1409,7 +1409,7 @@ class DonutChartUiTest {
     // ---- per-slice semantics nodes (a11y-audit8-04) ----
 
     @Test
-    fun `each populated slice has its own semantics node with category name and percentage`() {
+    fun eachPopulatedSliceHasItsOwnSemanticsNodeWithCategoryNameAndPercentage() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 DonutChart(
@@ -1435,7 +1435,7 @@ class DonutChartUiTest {
     }
 
     @Test
-    fun `per-slice semantics node content description matches slice label and rounded percent`() {
+    fun perSliceSemanticsNodeContentDescriptionMatchesSliceLabelAndRoundedPercent() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 DonutChart(
@@ -1455,7 +1455,7 @@ class DonutChartUiTest {
     }
 
     @Test
-    fun `per-slice semantics node for slice with fraction zero is absent`() {
+    fun perSliceSemanticsNodeForSliceWithFractionZeroIsAbsent() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 DonutChart(
@@ -1479,7 +1479,7 @@ class DonutChartUiTest {
     }
 
     @Test
-    fun `per-slice semantics node exposes open category click action label`() {
+    fun perSliceSemanticsNodeExposesOpenCategoryClickActionLabel() {
         val clickedSlices = mutableListOf<CategorySlice>()
 
         composeTestRule.setContent {
@@ -1513,7 +1513,7 @@ class DonutChartUiTest {
     }
 
     @Test
-    fun `performing semantics click on per-slice node invokes onSliceClick callback`() {
+    fun performingSemanticsClickOnPerSliceNodeInvokesOnSliceClickCallback() {
         val clickedSlices = mutableListOf<CategorySlice>()
         val foodSlice = slice(label = "Food", fraction = 1.0f)
 
@@ -1544,7 +1544,7 @@ class DonutChartUiTest {
     }
 
     @Test
-    fun `per-slice semantics nodes are absent when onSliceClick is null`() {
+    fun perSliceSemanticsNodesAreAbsentWhenOnSliceClickIsNull() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 DonutChart(
@@ -1575,7 +1575,7 @@ class DonutChartUiTest {
     }
 
     @Test
-    fun `multiple slice nodes are individually reachable by their own content descriptions`() {
+    fun multipleSliceNodesAreIndividuallyReachableByTheirOwnContentDescriptions() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 DonutChart(

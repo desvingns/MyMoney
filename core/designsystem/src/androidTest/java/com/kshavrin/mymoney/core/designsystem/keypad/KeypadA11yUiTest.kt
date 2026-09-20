@@ -25,7 +25,7 @@ class KeypadA11yUiTest {
     val composeTestRule = createComposeRule().apply { enableAccessibilityChecks() }
 
     @Test
-    fun `every calculator key has a 48dp touch target`() {
+    fun everyCalculatorKeyHasA48dpTouchTarget() {
         composeTestRule.setContent {
             MyMoneyTheme { Keypad(onEvent = {}) }
         }
@@ -52,7 +52,7 @@ class KeypadA11yUiTest {
     }
 
     @Test
-    fun `minus operator key exposes content description from string resources`() {
+    fun minusOperatorKeyExposesContentDescriptionFromStringResources() {
         val expectedCd = str(R.string.keypad_op_minus_cd)
         val events = mutableListOf<KeypadEvent>()
 
@@ -68,7 +68,7 @@ class KeypadA11yUiTest {
     }
 
     @Test
-    fun `multiply operator key exposes content description from string resources`() {
+    fun multiplyOperatorKeyExposesContentDescriptionFromStringResources() {
         val expectedCd = str(R.string.keypad_op_multiply_cd)
 
         composeTestRule.setContent {
@@ -83,7 +83,7 @@ class KeypadA11yUiTest {
     }
 
     @Test
-    fun `divide operator key exposes content description from string resources`() {
+    fun divideOperatorKeyExposesContentDescriptionFromStringResources() {
         val expectedCd = str(R.string.keypad_op_divide_cd)
 
         composeTestRule.setContent {
@@ -98,7 +98,7 @@ class KeypadA11yUiTest {
     }
 
     @Test
-    fun `equals operator key exposes content description from string resources`() {
+    fun equalsOperatorKeyExposesContentDescriptionFromStringResources() {
         val expectedCd = str(R.string.keypad_op_equals_cd)
 
         composeTestRule.setContent {
@@ -113,7 +113,7 @@ class KeypadA11yUiTest {
     }
 
     @Test
-    fun `plus operator key exposes content description from string resources`() {
+    fun plusOperatorKeyExposesContentDescriptionFromStringResources() {
         val expectedCd = str(R.string.keypad_op_plus_cd)
 
         composeTestRule.setContent {
@@ -128,7 +128,7 @@ class KeypadA11yUiTest {
     }
 
     @Test
-    fun `tapping the minus key by content description fires minus operator event`() {
+    fun tappingTheMinusKeyByContentDescriptionFiresMinusOperatorEvent() {
         val expectedCd = str(R.string.keypad_op_minus_cd)
         val events = mutableListOf<KeypadEvent>()
 
@@ -149,7 +149,7 @@ class KeypadA11yUiTest {
     }
 
     @Test
-    fun `tapping the multiply key by content description fires multiply operator event`() {
+    fun tappingTheMultiplyKeyByContentDescriptionFiresMultiplyOperatorEvent() {
         val expectedCd = str(R.string.keypad_op_multiply_cd)
         val events = mutableListOf<KeypadEvent>()
 
@@ -170,7 +170,7 @@ class KeypadA11yUiTest {
     }
 
     @Test
-    fun `tapping the divide key by content description fires divide operator event`() {
+    fun tappingTheDivideKeyByContentDescriptionFiresDivideOperatorEvent() {
         val expectedCd = str(R.string.keypad_op_divide_cd)
         val events = mutableListOf<KeypadEvent>()
 
@@ -191,7 +191,7 @@ class KeypadA11yUiTest {
     }
 
     @Test
-    fun `tapping the equals key by content description fires equals event`() {
+    fun tappingTheEqualsKeyByContentDescriptionFiresEqualsEvent() {
         val expectedCd = str(R.string.keypad_op_equals_cd)
         val events = mutableListOf<KeypadEvent>()
 
@@ -212,7 +212,7 @@ class KeypadA11yUiTest {
     }
 
     @Test
-    fun `all four operator keys have distinct non-empty content descriptions`() {
+    fun allFourOperatorKeysHaveDistinctNonEmptyContentDescriptions() {
         val minusCd = str(R.string.keypad_op_minus_cd)
         val multiplyCd = str(R.string.keypad_op_multiply_cd)
         val divideCd = str(R.string.keypad_op_divide_cd)

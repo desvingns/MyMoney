@@ -177,7 +177,7 @@ class BalanceTrendChartUiTest {
     }
 
     @Test
-    fun `five-point series renders a chart node with the expected testTag`() {
+    fun fivePointSeriesRendersAChartNodeWithTheExpectedTestTag() {
         setContent(listOf(10f, 6f, 12f, 12f, 15f))
         composeTestRule
             .onNodeWithTag(BALANCE_TREND_CHART_TAG)
@@ -185,7 +185,7 @@ class BalanceTrendChartUiTest {
     }
 
     @Test
-    fun `crossing series renders a chart node`() {
+    fun crossingSeriesRendersAChartNode() {
         setContent(listOf(4f, 3f, 1f, -2f, -3f))
         composeTestRule
             .onNodeWithTag(BALANCE_TREND_CHART_TAG)
@@ -193,32 +193,32 @@ class BalanceTrendChartUiTest {
     }
 
     @Test
-    fun `every chart style renders without crashing for a five-point series`() {
+    fun everyChartStyleRendersWithoutCrashingForAFivePointSeries() {
         assertAllStylesRender(listOf(10f, 6f, 12f, 12f, 15f))
     }
 
     @Test
-    fun `every chart style renders without crashing for a single-point series`() {
+    fun everyChartStyleRendersWithoutCrashingForASinglePointSeries() {
         assertAllStylesRender(listOf(42f))
     }
 
     @Test
-    fun `every chart style renders without crashing for an all-zero series`() {
+    fun everyChartStyleRendersWithoutCrashingForAnAllZeroSeries() {
         assertAllStylesRender(listOf(0f, 0f, 0f, 0f, 0f))
     }
 
     @Test
-    fun `every chart style renders without crashing for a negative-only series`() {
+    fun everyChartStyleRendersWithoutCrashingForANegativeOnlySeries() {
         assertAllStylesRender(listOf(-8f, -3f, -11f, -5f, -2f))
     }
 
     @Test
-    fun `every chart style renders without crashing for a zero-crossing series`() {
+    fun everyChartStyleRendersWithoutCrashingForAZeroCrossingSeries() {
         assertAllStylesRender(listOf(4f, 3f, 1f, -2f, -3f))
     }
 
     @Test
-    fun `three chart styles render distinct geometry families`() {
+    fun threeChartStylesRenderDistinctGeometryFamilies() {
         val barsPixels = captureStylePixels(ChartStyle.Bars)
         val linePixels = captureStylePixels(ChartStyle.Line)
         val smoothPixels = captureStylePixels(ChartStyle.Smooth)
@@ -231,7 +231,7 @@ class BalanceTrendChartUiTest {
     }
 
     @Test
-    fun `default style renders the same geometry as Smooth`() {
+    fun defaultStyleRendersTheSameGeometryAsSmooth() {
         val defaultPixels = captureStylePixels(ChartStyle.Default)
         val smoothPixels = captureStylePixels(ChartStyle.Smooth)
 
@@ -239,7 +239,7 @@ class BalanceTrendChartUiTest {
     }
 
     @Test
-    fun `all 24 frozen color rule projection and style cells render`() {
+    fun all24FrozenColorRuleProjectionAndStyleCellsRender() {
         val matrixCells =
             buildList {
                 ChartColorRule.entries.forEach { colorRule ->
@@ -286,7 +286,7 @@ class BalanceTrendChartUiTest {
     }
 
     @Test
-    fun `projection changes line and smooth but leaves Bars unchanged for every color rule`() {
+    fun projectionChangesLineAndSmoothButLeavesBarsUnchangedForEveryColorRule() {
         ChartColorRule.entries.forEach { colorRule ->
             val barsWithoutProjection = captureStylePixels(ChartStyle.Bars, colorRule, showProjection = false)
             val barsWithProjection = captureStylePixels(ChartStyle.Bars, colorRule, showProjection = true)
@@ -307,7 +307,7 @@ class BalanceTrendChartUiTest {
     }
 
     @Test
-    fun `projection is disabled by default`() {
+    fun projectionIsDisabledByDefault() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 BalanceTrendChart(
@@ -335,7 +335,7 @@ class BalanceTrendChartUiTest {
     }
 
     @Test
-    fun `every color rule renders its canonical color across all chart styles`() {
+    fun everyColorRuleRendersItsCanonicalColorAcrossAllChartStyles() {
         val points = listOf(1000f, 1200f, 800f)
 
         ChartStyle.entries.forEach { style ->
@@ -368,7 +368,7 @@ class BalanceTrendChartUiTest {
     }
 
     @Test
-    fun `ByDirection bars use both colors relative to the first point`() {
+    fun byDirectionBarsUseBothColorsRelativeToTheFirstPoint() {
         val chart =
             captureChart(
                 points = listOf(1000f, 1200f, 800f),
@@ -381,7 +381,7 @@ class BalanceTrendChartUiTest {
     }
 
     @Test
-    fun `projection uses MaterialTheme tokens above and below zero for every line color rule`() {
+    fun projectionUsesMaterialThemeTokensAboveAndBelowZeroForEveryLineColorRule() {
         listOf(ChartStyle.Line, ChartStyle.Smooth).forEach { style ->
             ChartColorRule.entries.forEach { colorRule ->
                 val withoutProjection =
@@ -423,7 +423,7 @@ class BalanceTrendChartUiTest {
     }
 
     @Test
-    fun `single-sign projection uses one fill color with the zero axis at the edge`() {
+    fun singleSignProjectionUsesOneFillColorWithTheZeroAxisAtTheEdge() {
         val positiveWithoutProjection =
             captureChart(
                 points = listOf(3f, 7f),
@@ -490,7 +490,7 @@ class BalanceTrendChartUiTest {
     }
 
     @Test
-    fun `chartHeight remains the ninth positional parameter`() {
+    fun chartHeightRemainsTheNinthPositionalParameter() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 BalanceTrendChart(
@@ -517,7 +517,7 @@ class BalanceTrendChartUiTest {
     }
 
     @Test
-    fun `empty series renders a chart node without crashing`() {
+    fun emptySeriesRendersAChartNodeWithoutCrashing() {
         setContent(emptyList())
         composeTestRule
             .onNodeWithTag(BALANCE_TREND_CHART_TAG)
@@ -525,7 +525,7 @@ class BalanceTrendChartUiTest {
     }
 
     @Test
-    fun `scrubbing to a new series redraws the chart and updates its summary`() {
+    fun scrubbingToANewSeriesRedrawsTheChartAndUpdatesItsSummary() {
         val points = mutableStateOf(listOf(10f, 20f, 30f))
         val initialLabels = listOf("Jan", "Mar")
         val updatedLabels = listOf("Apr", "Jun")
@@ -585,7 +585,7 @@ class BalanceTrendChartUiTest {
     }
 
     @Test
-    fun `ByDirection summary reports direction relative to the start`() {
+    fun byDirectionSummaryReportsDirectionRelativeToTheStart() {
         val labels = listOf("0", "2", "4")
         val metricLabel = "Income + expense"
         val points = listOf(1234.5f, 1800f, 2500.75f)
@@ -648,7 +648,7 @@ class BalanceTrendChartUiTest {
     }
 
     @Test
-    fun `single-point series renders a chart node without crashing`() {
+    fun singlePointSeriesRendersAChartNodeWithoutCrashing() {
         setContent(listOf(42f))
         composeTestRule
             .onNodeWithTag(BALANCE_TREND_CHART_TAG)
@@ -656,7 +656,7 @@ class BalanceTrendChartUiTest {
     }
 
     @Test
-    fun `chart without labels has height matching trendChartDefaultHeight`() {
+    fun chartWithoutLabelsHasHeightMatchingTrendChartDefaultHeight() {
         setContent(listOf(1f, 2f, 3f), showLabels = false)
         val bounds =
             composeTestRule
@@ -669,7 +669,7 @@ class BalanceTrendChartUiTest {
     }
 
     @Test
-    fun `chart with labels is taller than chart without labels`() {
+    fun chartWithLabelsIsTallerThanChartWithoutLabels() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 Column(modifier = Modifier.fillMaxWidth()) {
@@ -710,7 +710,7 @@ class BalanceTrendChartUiTest {
     }
 
     @Test
-    fun `Solid rule renders the chart node`() {
+    fun solidRuleRendersTheChartNode() {
         setContent(listOf(10f, 6f, 12f, 12f, 15f), colorRule = ChartColorRule.Solid)
         composeTestRule
             .onNodeWithTag(BALANCE_TREND_CHART_TAG)
@@ -718,7 +718,7 @@ class BalanceTrendChartUiTest {
     }
 
     @Test
-    fun `AlwaysGreen rule renders the chart node`() {
+    fun alwaysGreenRuleRendersTheChartNode() {
         setContent(listOf(4f, 3f, 1f, -2f, -3f), colorRule = ChartColorRule.AlwaysGreen)
         composeTestRule
             .onNodeWithTag(BALANCE_TREND_CHART_TAG)
@@ -726,7 +726,7 @@ class BalanceTrendChartUiTest {
     }
 
     @Test
-    fun `AlwaysRed rule renders the chart node`() {
+    fun alwaysRedRuleRendersTheChartNode() {
         setContent(listOf(1f, 2f, 3f), colorRule = ChartColorRule.AlwaysRed)
         composeTestRule
             .onNodeWithTag(BALANCE_TREND_CHART_TAG)
@@ -734,7 +734,7 @@ class BalanceTrendChartUiTest {
     }
 
     @Test
-    fun `ByDirection rule renders the chart node`() {
+    fun byDirectionRuleRendersTheChartNode() {
         setContent(listOf(1000f, 1200f, 800f), colorRule = ChartColorRule.ByDirection)
         composeTestRule
             .onNodeWithTag(BALANCE_TREND_CHART_TAG)
@@ -742,7 +742,7 @@ class BalanceTrendChartUiTest {
     }
 
     @Test
-    fun `showGridlines false still renders the chart node`() {
+    fun showGridlinesFalseStillRendersTheChartNode() {
         setContent(listOf(1f, 2f, 3f), showGridlines = false)
         composeTestRule
             .onNodeWithTag(BALANCE_TREND_CHART_TAG)
@@ -750,7 +750,7 @@ class BalanceTrendChartUiTest {
     }
 
     @Test
-    fun `all-positive series 10 6 12 12 15 renders chart with correct default height`() {
+    fun allPositiveSeries106121215RendersChartWithCorrectDefaultHeight() {
         setContent(listOf(10f, 6f, 12f, 12f, 15f))
         val bounds =
             composeTestRule
@@ -763,7 +763,7 @@ class BalanceTrendChartUiTest {
     }
 
     @Test
-    fun `chart fills the available width so it is wider than its default height`() {
+    fun chartFillsTheAvailableWidthSoItIsWiderThanItsDefaultHeight() {
         setContent(listOf(1f, 5f, 3f, 7f, 2f))
         val bounds =
             composeTestRule
@@ -778,7 +778,7 @@ class BalanceTrendChartUiTest {
     }
 
     @Test
-    fun `Smooth style with five-point positive series renders chart node without crash`() {
+    fun smoothStyleWithFivePointPositiveSeriesRendersChartNodeWithoutCrash() {
         setContent(listOf(10f, 6f, 12f, 12f, 15f), style = ChartStyle.Smooth)
         composeTestRule
             .onNodeWithTag(BALANCE_TREND_CHART_TAG)
@@ -786,7 +786,7 @@ class BalanceTrendChartUiTest {
     }
 
     @Test
-    fun `Smooth style with zero-crossing series renders chart node without crash`() {
+    fun smoothStyleWithZeroCrossingSeriesRendersChartNodeWithoutCrash() {
         setContent(listOf(4f, 3f, 1f, -2f, -3f), style = ChartStyle.Smooth)
         composeTestRule
             .onNodeWithTag(BALANCE_TREND_CHART_TAG)
@@ -794,7 +794,7 @@ class BalanceTrendChartUiTest {
     }
 
     @Test
-    fun `Smooth style with all-zero series renders chart node without crash`() {
+    fun smoothStyleWithAllZeroSeriesRendersChartNodeWithoutCrash() {
         setContent(listOf(0f, 0f, 0f, 0f, 0f), style = ChartStyle.Smooth)
         composeTestRule
             .onNodeWithTag(BALANCE_TREND_CHART_TAG)
@@ -802,7 +802,7 @@ class BalanceTrendChartUiTest {
     }
 
     @Test
-    fun `Smooth style with single-point series renders chart node without crash`() {
+    fun smoothStyleWithSinglePointSeriesRendersChartNodeWithoutCrash() {
         setContent(listOf(42f), style = ChartStyle.Smooth)
         composeTestRule
             .onNodeWithTag(BALANCE_TREND_CHART_TAG)
@@ -810,7 +810,7 @@ class BalanceTrendChartUiTest {
     }
 
     @Test
-    fun `Smooth style with empty series renders chart node without crash`() {
+    fun smoothStyleWithEmptySeriesRendersChartNodeWithoutCrash() {
         setContent(emptyList(), style = ChartStyle.Smooth)
         composeTestRule
             .onNodeWithTag(BALANCE_TREND_CHART_TAG)
@@ -818,7 +818,7 @@ class BalanceTrendChartUiTest {
     }
 
     @Test
-    fun `Smooth style with ByDirection color rule renders chart node without crash`() {
+    fun smoothStyleWithByDirectionColorRuleRendersChartNodeWithoutCrash() {
         setContent(listOf(10f, 6f, 12f, 12f, 15f), colorRule = ChartColorRule.ByDirection, style = ChartStyle.Smooth)
         composeTestRule
             .onNodeWithTag(BALANCE_TREND_CHART_TAG)
@@ -826,7 +826,7 @@ class BalanceTrendChartUiTest {
     }
 
     @Test
-    fun `Smooth style with ByDirection negative series renders chart node without crash`() {
+    fun smoothStyleWithByDirectionNegativeSeriesRendersChartNodeWithoutCrash() {
         setContent(listOf(-5f, -3f, -8f, -1f), colorRule = ChartColorRule.ByDirection, style = ChartStyle.Smooth)
         composeTestRule
             .onNodeWithTag(BALANCE_TREND_CHART_TAG)
@@ -834,7 +834,7 @@ class BalanceTrendChartUiTest {
     }
 
     @Test
-    fun `Smooth style height is unchanged and matches trendChartDefaultHeight`() {
+    fun smoothStyleHeightIsUnchangedAndMatchesTrendChartDefaultHeight() {
         setContent(listOf(1f, 2f, 3f, 4f, 5f), style = ChartStyle.Smooth, showLabels = false)
         val bounds =
             composeTestRule

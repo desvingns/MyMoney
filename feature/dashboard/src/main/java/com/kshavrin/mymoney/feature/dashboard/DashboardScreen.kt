@@ -2,6 +2,7 @@ package com.kshavrin.mymoney.feature.dashboard
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -50,8 +51,16 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import com.kshavrin.mymoney.core.common.money.MoneyFormatter
 import com.kshavrin.mymoney.core.designsystem.confetti.Confetti
+import com.kshavrin.mymoney.core.designsystem.spotlight.SpotlightCutout
+import com.kshavrin.mymoney.core.designsystem.spotlight.SpotlightOverlay
+import com.kshavrin.mymoney.core.designsystem.spotlight.SpotlightShape
+import com.kshavrin.mymoney.core.designsystem.spotlight.SpotlightTargetRegistry
+import com.kshavrin.mymoney.core.designsystem.spotlight.rememberSpotlightRegistry
+import com.kshavrin.mymoney.core.designsystem.spotlight.spotlightTarget
 import com.kshavrin.mymoney.core.domain.model.Money
 import com.kshavrin.mymoney.core.domain.model.Period
 import com.kshavrin.mymoney.core.domain.model.Transaction
@@ -79,6 +88,20 @@ import com.kshavrin.mymoney.feature.dashboard.components.ThreeFabLayout
 import com.kshavrin.mymoney.feature.dashboard.components.localDateToMaterialPickerUtcMillis
 import com.kshavrin.mymoney.feature.dashboard.components.materialPickerUtcMillisToLocalDate
 import com.kshavrin.mymoney.feature.dashboard.components.trendPointLabels
+import com.kshavrin.mymoney.feature.dashboard.tour.TOUR_PANEL_OPEN_DELAY_MS
+import com.kshavrin.mymoney.feature.dashboard.tour.TOUR_TARGET_ACTIONS
+import com.kshavrin.mymoney.feature.dashboard.tour.TOUR_TARGET_CATEGORIES
+import com.kshavrin.mymoney.feature.dashboard.tour.TOUR_TARGET_LEFT_PANEL
+import com.kshavrin.mymoney.feature.dashboard.tour.TOUR_TARGET_MENU
+import com.kshavrin.mymoney.feature.dashboard.tour.TOUR_TARGET_MORE
+import com.kshavrin.mymoney.feature.dashboard.tour.TOUR_TARGET_SUPPORT
+import com.kshavrin.mymoney.feature.dashboard.tour.TourPhase
+import com.kshavrin.mymoney.feature.dashboard.tour.TourStep
+import com.kshavrin.mymoney.feature.dashboard.tour.TourUiState
+import com.kshavrin.mymoney.core.ui.theme.spotlightBody
+import com.kshavrin.mymoney.core.ui.theme.spotlightProgress
+import com.kshavrin.mymoney.core.ui.theme.spotlightTitle
+import kotlinx.coroutines.delay
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.LocalDate
@@ -93,6 +116,12 @@ fun DashboardRoute(
 ) {
     val state by viewModel.state.collectAsState()
     var conversionDialog by remember { mutableStateOf<AllAccountsConversionDialog?>(null) }
+
+    // Resume the paused tour after the user returns from a real action (D6/D8). ON_RESUME also fires
+    // on first show, where TourResumed is a no-op (VM ignores it unless the tour is paused).
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        viewModel.onEvent(DashboardEvent.TourResumed)
+    }
 
     // Deep-linked from Settings → «Настройки графиков»: open the chart-settings sheet once so the
     // user sees the chart react. The consumed flag survives rotation/process-death (rememberSaveable)
@@ -155,6 +184,8 @@ fun DashboardContent(
     val resourceLocale = configuration.locales[0]
     val drawerOpen = state.leftDrawerOpen || state.rightDrawerOpen
     var showPickDateRangePicker by remember { mutableStateOf(false) }
+    val spotlightRegistry = rememberSpotlightRegistry()
+    val tourVisible = state.tour?.let { !it.paused } ?: false
 
     // Monefy-style swipe pager (SPEC 02): the body becomes a 3-up [prev | current | next] pager.
     // Page 1 is always the committed period; settling onto a neighbour commits the period change and
@@ -173,6 +204,12 @@ fun DashboardContent(
 
     BackHandler(enabled = drawerOpen) {
         onEvent(DashboardEvent.DrawerDismissed)
+    }
+
+    // Declared AFTER the drawer BackHandler so it wins while the tour is visible: the last enabled
+    // handler registered takes priority. System Back during the tour = "Skip all".
+    BackHandler(enabled = tourVisible) {
+        onEvent(DashboardEvent.TourSkipAllClicked)
     }
 
     LaunchedEffect(state.showConfetti) {
@@ -214,6 +251,7 @@ fun DashboardContent(
                         onEvent(DashboardEvent.RightDrawerToggled)
                     },
                     onEvent = onEvent,
+                    registry = spotlightRegistry,
                 )
             },
         ) { innerPadding ->
@@ -258,6 +296,7 @@ fun DashboardContent(
                             hapticPlayer.fire(HapticKind.MEDIUM)
                             onEvent(DashboardEvent.PlusFabClicked)
                         },
+                        modifier = Modifier.spotlightTarget(spotlightRegistry, TOUR_TARGET_ACTIONS),
                     )
                 }
 
@@ -279,6 +318,7 @@ fun DashboardContent(
                     showPickDateRangePicker = true
                     onEvent(DashboardEvent.DrawerDismissed)
                 },
+                modifier = Modifier.spotlightTarget(spotlightRegistry, TOUR_TARGET_LEFT_PANEL),
             )
         }
         DashboardDrawerOverlay(
@@ -286,8 +326,15 @@ fun DashboardContent(
             side = DrawerSide.Right,
             onDismiss = { onEvent(DashboardEvent.DrawerDismissed) },
         ) {
-            RightDrawerContent(onEvent = onEvent)
+            RightDrawerContent(onEvent = onEvent, registry = spotlightRegistry)
         }
+
+        // Added LAST in the root Box so it draws above the Scaffold and both drawers (G7/G10).
+        DashboardTourOverlay(
+            tour = state.tour,
+            registry = spotlightRegistry,
+            onEvent = onEvent,
+        )
     }
 
     if (showPickDateRangePicker) {
@@ -506,6 +553,97 @@ private fun DashboardState.toCurrentPageState(): PeriodPageState =
         isLoading = isLoading,
     )
 
+@Composable
+private fun DashboardTourOverlay(
+    tour: TourUiState?,
+    registry: SpotlightTargetRegistry,
+    onEvent: (DashboardEvent) -> Unit,
+) {
+    if (tour == null || tour.paused) return
+
+    // Button phase auto-advances to Panel after the panel-open delay; re-armed per (step, phase) so a
+    // stale timer from a previous phase never fires against the current one.
+    LaunchedEffect(tour.step, tour.phase) {
+        if (tour.phase == TourPhase.Button) {
+            delay(TOUR_PANEL_OPEN_DELAY_MS)
+            onEvent(DashboardEvent.TourPanelOpenElapsed)
+        }
+    }
+
+    val stepNumber = tour.step.ordinal + 1
+    val stepCount = TourStep.entries.size
+    val isLastStep = stepNumber == stepCount
+    val title = stringResource(tourTitleRes(tour.step))
+    val body = stringResource(tourBodyRes(tour.step))
+    val progress = stringResource(R.string.dashboard_tour_progress, stepNumber, stepCount)
+
+    SpotlightOverlay(
+        registry = registry,
+        cutout = tourCutout(tour),
+        stepTitle = title,
+        card = {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.s)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.spotlightTitle,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = body,
+                    style = MaterialTheme.typography.spotlightBody,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = progress,
+                    style = MaterialTheme.typography.spotlightProgress,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        },
+        skipLabel = stringResource(R.string.dashboard_tour_skip_all),
+        primaryLabel =
+            stringResource(
+                if (isLastStep) R.string.dashboard_tour_done else R.string.dashboard_tour_next,
+            ),
+        onSkip = { onEvent(DashboardEvent.TourSkipAllClicked) },
+        onPrimary = { onEvent(DashboardEvent.TourNextClicked) },
+    )
+}
+
+private fun tourCutout(tour: TourUiState): SpotlightCutout =
+    when (tour.step) {
+        TourStep.Actions -> SpotlightCutout(TOUR_TARGET_ACTIONS, SpotlightShape.RoundedRect)
+        TourStep.LeftPanel ->
+            if (tour.phase == TourPhase.Panel) {
+                SpotlightCutout(TOUR_TARGET_LEFT_PANEL, SpotlightShape.RoundedRect)
+            } else {
+                SpotlightCutout(TOUR_TARGET_MENU, SpotlightShape.Circle)
+            }
+        TourStep.RightCategories ->
+            if (tour.phase == TourPhase.Panel) {
+                SpotlightCutout(TOUR_TARGET_CATEGORIES, SpotlightShape.RoundedRect)
+            } else {
+                SpotlightCutout(TOUR_TARGET_MORE, SpotlightShape.Circle)
+            }
+        TourStep.RightSupport -> SpotlightCutout(TOUR_TARGET_SUPPORT, SpotlightShape.RoundedRect)
+    }
+
+private fun tourTitleRes(step: TourStep): Int =
+    when (step) {
+        TourStep.Actions -> R.string.dashboard_tour_actions_title
+        TourStep.LeftPanel -> R.string.dashboard_tour_left_title
+        TourStep.RightCategories -> R.string.dashboard_tour_categories_title
+        TourStep.RightSupport -> R.string.dashboard_tour_support_title
+    }
+
+private fun tourBodyRes(step: TourStep): Int =
+    when (step) {
+        TourStep.Actions -> R.string.dashboard_tour_actions_body
+        TourStep.LeftPanel -> R.string.dashboard_tour_left_body
+        TourStep.RightCategories -> R.string.dashboard_tour_categories_body
+        TourStep.RightSupport -> R.string.dashboard_tour_support_body
+    }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DashboardTopBar(
@@ -518,6 +656,7 @@ private fun DashboardTopBar(
     onNextPeriodClick: () -> Unit,
     onMoreClick: () -> Unit,
     onEvent: (DashboardEvent) -> Unit,
+    registry: SpotlightTargetRegistry? = null,
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
     // Drag offset of the body pager relative to the centred page, in [-1, 1]: 0 at rest, +1 as the
@@ -538,7 +677,10 @@ private fun DashboardTopBar(
                 .heightIn(min = Spacing.dashboardTopBarMinHeight),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(onClick = onNavigationClick) {
+        IconButton(
+            onClick = onNavigationClick,
+            modifier = Modifier.spotlightTarget(registry, TOUR_TARGET_MENU),
+        ) {
             Icon(
                 imageVector = if (drawerOpen) Icons.AutoMirrored.Filled.ArrowBack else Icons.Filled.Menu,
                 contentDescription =
@@ -560,7 +702,10 @@ private fun DashboardTopBar(
                     .weight(1f)
                     .testTag(DASHBOARD_TOP_BAR_PERIOD_TAG),
         )
-        IconButton(onClick = onMoreClick) {
+        IconButton(
+            onClick = onMoreClick,
+            modifier = Modifier.spotlightTarget(registry, TOUR_TARGET_MORE),
+        ) {
             Icon(
                 Icons.Filled.MoreVert,
                 contentDescription = stringResource(R.string.dashboard_overflow_menu),

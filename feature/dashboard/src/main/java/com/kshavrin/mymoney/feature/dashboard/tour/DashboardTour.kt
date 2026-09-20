@@ -5,6 +5,14 @@ package com.kshavrin.mymoney.feature.dashboard.tour
 // panel). The host schedules this; tapping the button itself reaches the same Panel phase sooner.
 const val TOUR_PANEL_OPEN_DELAY_MS = 900L
 
+// Spotlight registry keys for the six tour targets on the dashboard.
+const val TOUR_TARGET_ACTIONS = "tour_target_actions"
+const val TOUR_TARGET_MENU = "tour_target_menu"
+const val TOUR_TARGET_LEFT_PANEL = "tour_target_left_panel"
+const val TOUR_TARGET_MORE = "tour_target_more"
+const val TOUR_TARGET_CATEGORIES = "tour_target_categories"
+const val TOUR_TARGET_SUPPORT = "tour_target_support"
+
 enum class TourStep { Actions, LeftPanel, RightCategories, RightSupport }
 
 // Only LeftPanel and RightCategories are genuinely two-phase (D16): Button = panel closed, cutout on

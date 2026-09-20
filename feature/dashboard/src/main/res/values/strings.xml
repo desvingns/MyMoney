@@ -129,4 +129,18 @@
     <string name="dashboard_category_tile_cd">Open %1$s, %2$s</string>
     <string name="dashboard_inline_record_cd">Open record: %1$s, %2$s, %3$s</string>
     <string name="dashboard_summary_record_cd">Open record: %1$s, %2$s, %3$s, %4$s</string>
+
+    <string name="dashboard_tour_skip_all">Skip all</string>
+    <string name="dashboard_tour_next">Next</string>
+    <string name="dashboard_tour_done">Done</string>
+    <string name="dashboard_tour_progress">%1$d of %2$d</string>
+    <string name="dashboard_tour_overlay_description">Onboarding tour</string>
+    <string name="dashboard_tour_actions_title">Expenses, transfers, income</string>
+    <string name="dashboard_tour_actions_body">Minus records an expense, the arrows transfer between accounts, plus adds income.</string>
+    <string name="dashboard_tour_left_title">Period and accounts</string>
+    <string name="dashboard_tour_left_body">Pick a period, set a custom date range, and choose which accounts the balance covers.</string>
+    <string name="dashboard_tour_categories_title">Categories</string>
+    <string name="dashboard_tour_categories_body">The right menu opens categories — add your own and tune the existing ones.</string>
+    <string name="dashboard_tour_support_title">Support the project</string>
+    <string name="dashboard_tour_support_body">If MyMoney is useful to you, you can support its development here.</string>
 </resources>

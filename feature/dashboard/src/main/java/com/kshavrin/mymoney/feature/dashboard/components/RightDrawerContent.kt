@@ -31,12 +31,19 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import com.kshavrin.mymoney.core.designsystem.drawer.DrawerRowDefaults
+import com.kshavrin.mymoney.core.designsystem.spotlight.SpotlightTargetRegistry
+import com.kshavrin.mymoney.core.designsystem.spotlight.spotlightTarget
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.feature.dashboard.DashboardEvent
 import com.kshavrin.mymoney.feature.dashboard.R
+import com.kshavrin.mymoney.feature.dashboard.tour.TOUR_TARGET_CATEGORIES
+import com.kshavrin.mymoney.feature.dashboard.tour.TOUR_TARGET_SUPPORT
 
 @Composable
-fun RightDrawerContent(onEvent: (DashboardEvent) -> Unit) {
+fun RightDrawerContent(
+    onEvent: (DashboardEvent) -> Unit,
+    registry: SpotlightTargetRegistry? = null,
+) {
     Column(
         modifier =
             Modifier
@@ -61,6 +68,7 @@ fun RightDrawerContent(onEvent: (DashboardEvent) -> Unit) {
             icon = Icons.Outlined.Category,
             onClick = { onEvent(DashboardEvent.CategoriesClicked) },
             testTag = RIGHT_DRAWER_CATEGORIES_TAG,
+            modifier = Modifier.spotlightTarget(registry, TOUR_TARGET_CATEGORIES),
         )
         RightDrawerItem(
             label = stringResource(R.string.right_drawer_accounts),
@@ -91,6 +99,7 @@ fun RightDrawerContent(onEvent: (DashboardEvent) -> Unit) {
             icon = Icons.Outlined.FavoriteBorder,
             onClick = { onEvent(DashboardEvent.SupportClicked) },
             testTag = RIGHT_DRAWER_SUPPORT_TAG,
+            modifier = Modifier.spotlightTarget(registry, TOUR_TARGET_SUPPORT),
         )
     }
 }
@@ -101,10 +110,11 @@ private fun RightDrawerItem(
     icon: ImageVector,
     onClick: () -> Unit,
     testTag: String,
+    modifier: Modifier = Modifier,
 ) {
     Column(
         modifier =
-            Modifier
+            modifier
                 .fillMaxWidth()
                 .clickable(onClick = onClick)
                 .padding(vertical = Spacing.xs)

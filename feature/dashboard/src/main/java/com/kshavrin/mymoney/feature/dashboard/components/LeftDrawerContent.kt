@@ -76,6 +76,7 @@ fun LeftDrawerContent(
     state: DashboardState,
     onEvent: (DashboardEvent) -> Unit,
     onPickDateRangeClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     var accountsExpanded by remember { mutableStateOf(false) }
     val currentInterval = state.period as? Period.Interval
@@ -95,7 +96,7 @@ fun LeftDrawerContent(
 
     Column(
         modifier =
-            Modifier
+            modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .padding(Spacing.l),

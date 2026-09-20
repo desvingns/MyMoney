@@ -1,26 +1,62 @@
 package com.kshavrin.mymoney.feature.settings.importwizard
 
+import androidx.compose.ui.test.assertDoesNotExist
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.test.core.app.ApplicationProvider
 import com.kshavrin.mymoney.core.domain.model.Category
 import com.kshavrin.mymoney.core.domain.model.CategoryKind
+import com.kshavrin.mymoney.core.ui.theme.MyMoneyTheme
 import com.kshavrin.mymoney.feature.settings.R
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 import java.time.Instant
 
 /**
- * Contract-level pinning for [CategoryConfigStep] and [ConfigGateStep] (SPEC D7).
+ * Contract-level and Compose UI pinning for [CategoryConfigStep] and [ConfigGateStep] (SPEC D7).
  *
  * Follows the same "pure-Kotlin mirror" pattern as [ImportWizardContentTest]:
  * every user-visible decision derived from [ImportWizardState] is expressed as a pure function
  * tested here at the JVM level.
  *
- * Full Compose-UI tests (Robolectric) are deferred to PHASE_15 when the compose-test dependencies
- * are wired into `:feature:settings`.
  */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34], application = android.app.Application::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 class CategoryConfigStepContentTest {
+    @get:Rule
+    val composeTestRule = createComposeRule()
+
+    private fun setComposeContent(
+        state: ImportWizardState,
+        onEvent: (ImportWizardEvent) -> Unit = {},
+    ) {
+        composeTestRule.setContent {
+            MyMoneyTheme {
+                CategoryConfigStepContent(
+                    state = state,
+                    onEvent = onEvent,
+                )
+            }
+        }
+    }
+
+    private fun targetString(resourceId: Int): String =
+        ApplicationProvider
+            .getApplicationContext<android.content.Context>()
+            .getString(resourceId)
+
     // ------------------------------------------------------------------ helpers
 
     private fun testCategory(
@@ -60,6 +96,51 @@ class CategoryConfigStepContentTest {
             configColorHex = colorHex,
             inProgress = inProgress,
         )
+
+    @Test
+    fun `category config content shows name and icon controls without color section`() {
+        setComposeContent(
+            stateWith(
+                categories =
+                    listOf(
+                        testCategory(
+                            id = 1L,
+                            name = "Groceries",
+                            iconKey = "ic_cat_food",
+                            colorHex = "#123456",
+                        ),
+                    ),
+            ),
+        )
+
+        composeTestRule
+            .onNodeWithText(targetString(R.string.import_wizard_config_field_name))
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText(targetString(R.string.import_wizard_config_field_icon))
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText(targetString(R.string.import_wizard_config_field_color))
+            .assertDoesNotExist()
+    }
+
+    @Test
+    fun `category config content emits selected icon key`() {
+        val emittedEvents = mutableListOf<ImportWizardEvent>()
+        setComposeContent(
+            stateWith(
+                categories = listOf(testCategory(1L, "Groceries", iconKey = "ic_cat_food")),
+            ),
+            onEvent = { emittedEvents += it },
+        )
+
+        composeTestRule.onNodeWithTag("ic_cat_bills").performClick()
+
+        assertEquals(
+            listOf(ImportWizardEvent.ConfigIconChanged("ic_cat_bills")),
+            emittedEvents,
+        )
+    }
 
     // Mirror of CategoryConfigStep button-label derivation
     private fun configButtonLabelRes(state: ImportWizardState): Int =

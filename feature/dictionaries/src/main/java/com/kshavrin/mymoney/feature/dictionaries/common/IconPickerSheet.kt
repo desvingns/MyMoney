@@ -27,9 +27,10 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.kshavrin.mymoney.core.designsystem.icon.NeonCategoryIcon
 import com.kshavrin.mymoney.core.designsystem.icon.NeonCategoryIconDefaults
+import com.kshavrin.mymoney.core.designsystem.icon.NeonBitmapIcon
 import com.kshavrin.mymoney.core.designsystem.icon.NeonIconTile
+import com.kshavrin.mymoney.core.designsystem.icon.accountNeonIconResOrNull
 import com.kshavrin.mymoney.core.designsystem.icon.categoryIconAccent
 import com.kshavrin.mymoney.core.designsystem.icon.categoryNeonIconResOrNull
 import com.kshavrin.mymoney.feature.dictionaries.R
@@ -69,7 +70,8 @@ fun IconPickerSheet(
             ) {
                 items(iconKeys) { key ->
                     val selected = key == selectedIconKey
-                    val categoryAsset = categoryNeonIconResOrNull(key)
+                    val neonAsset =
+                        categoryNeonIconResOrNull(key) ?: accountNeonIconResOrNull(key)
                     Box(
                         modifier =
                             Modifier
@@ -80,12 +82,10 @@ fun IconPickerSheet(
                                 }.clickable { onIconSelected(key) },
                         contentAlignment = Alignment.Center,
                     ) {
-                        if (categoryAsset != null) {
-                            NeonCategoryIcon(
-                                iconKey = key,
-                                selected = selected,
+                        if (neonAsset != null) {
+                            NeonBitmapIcon(
+                                iconRes = neonAsset,
                                 containerSize = NeonCategoryIconDefaults.PickerContainerSize,
-                                iconSize = NeonCategoryIconDefaults.PickerIconSize,
                             )
                         } else {
                             NeonIconTile(

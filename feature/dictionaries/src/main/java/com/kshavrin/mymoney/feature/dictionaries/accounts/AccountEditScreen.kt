@@ -39,6 +39,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kshavrin.mymoney.core.designsystem.form.FormBottomBar
+import com.kshavrin.mymoney.core.designsystem.icon.NeonAccountIcon
+import com.kshavrin.mymoney.core.designsystem.icon.NeonCategoryIconDefaults
 import com.kshavrin.mymoney.core.designsystem.icon.accountIcon
 import com.kshavrin.mymoney.core.domain.model.AccountType
 import com.kshavrin.mymoney.feature.dictionaries.R
@@ -190,7 +192,13 @@ fun AccountEditContent(
                 onClick = { iconPickerVisible = true },
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(stringResource(R.string.dictionaries_choose_icon))
+                NeonAccountIcon(
+                    iconKey = state.iconKey,
+                    containerSize = NeonCategoryIconDefaults.CompactContainerSize,
+                    iconSize = NeonCategoryIconDefaults.CompactIconSize,
+                    modifier = Modifier.padding(end = 8.dp),
+                )
+                Text(state.name.ifBlank { stringResource(R.string.dictionaries_choose_icon) })
             }
 
             Text(

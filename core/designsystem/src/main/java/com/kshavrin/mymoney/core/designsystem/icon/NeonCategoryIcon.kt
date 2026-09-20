@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.annotation.DrawableRes
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,8 +41,23 @@ fun NeonCategoryIcon(
     iconSize: Dp = NeonCategoryIconDefaults.IconSize,
     shape: Shape = NeonCategoryIconDefaults.Shape,
 ) {
+    NeonBitmapIcon(
+        iconRes = categoryNeonIconRes(iconKey),
+        modifier = modifier,
+        contentDescription = contentDescription,
+        containerSize = containerSize,
+    )
+}
+
+@Composable
+fun NeonBitmapIcon(
+    @DrawableRes iconRes: Int,
+    modifier: Modifier = Modifier,
+    contentDescription: String? = null,
+    containerSize: Dp = NeonCategoryIconDefaults.ContainerSize,
+) {
     Image(
-        painter = painterResource(categoryNeonIconRes(iconKey)),
+        painter = painterResource(iconRes),
         contentDescription = null,
         contentScale = ContentScale.FillBounds,
         modifier =

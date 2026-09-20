@@ -25,7 +25,10 @@ import androidx.compose.material.icons.outlined.Stars
 import androidx.compose.material.icons.outlined.Toll
 import androidx.compose.material.icons.outlined.TrendingUp
 import androidx.compose.material.icons.outlined.Wallet
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.Dp
 
 fun accountIcon(iconKey: String?): ImageVector =
     when (iconKey) {
@@ -55,3 +58,33 @@ fun accountIcon(iconKey: String?): ImageVector =
         "ic_account_family" -> Icons.Outlined.Group
         else -> Icons.Outlined.AccountBalanceWallet
     }
+
+@Composable
+fun NeonAccountIcon(
+    iconKey: String,
+    modifier: Modifier = Modifier,
+    contentDescription: String? = null,
+    selected: Boolean = false,
+    containerSize: Dp = NeonCategoryIconDefaults.ContainerSize,
+    iconSize: Dp = NeonCategoryIconDefaults.IconSize,
+) {
+    val neonAsset = accountNeonIconResOrNull(iconKey)
+    if (neonAsset != null) {
+        NeonBitmapIcon(
+            iconRes = neonAsset,
+            modifier = modifier,
+            contentDescription = contentDescription,
+            containerSize = containerSize,
+        )
+    } else {
+        NeonIconTile(
+            imageVector = accountIcon(iconKey),
+            accent = categoryIconAccent(iconKey),
+            modifier = modifier,
+            contentDescription = contentDescription,
+            selected = selected,
+            containerSize = containerSize,
+            iconSize = iconSize,
+        )
+    }
+}

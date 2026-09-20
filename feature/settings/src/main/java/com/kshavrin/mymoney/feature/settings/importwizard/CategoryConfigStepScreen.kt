@@ -52,7 +52,7 @@ fun ConfigGateStep(onEvent: (ImportWizardEvent) -> Unit) {
 }
 
 /**
- * Embedded per-category config step (D7): edits name/icon/color of one resulting category, with
+ * Embedded per-category config step (D7): edits name/icon of one resulting category, with
  * Back / Next, and "Done" on the last category. Saving each edit goes through
  * [com.kshavrin.mymoney.core.domain.repository.CategoryRepository] (the VM handles persistence).
  */

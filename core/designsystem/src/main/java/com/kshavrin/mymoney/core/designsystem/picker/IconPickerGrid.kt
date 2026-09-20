@@ -90,7 +90,7 @@ fun IconPickerGrid(
                         Box(
                             modifier =
                                 Modifier
-                                .size(Spacing.wizardIconPickerTileSize)
+                                    .size(Spacing.wizardIconPickerTileSize)
                                     .clip(NeonCategoryIconDefaults.Shape)
                                     .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f))
                                     .border(

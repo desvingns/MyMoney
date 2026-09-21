@@ -12,7 +12,7 @@ object Spacing {
     val xl = 24.dp
     val xxl = 32.dp
     val minimumTouchTargetSize = 48.dp
-    val transactionFormChooseCategoryMinHeight = 72.dp
+    val transactionFormChooseCategoryHeight = 68.dp
     val heroAppBarHeight = 64.dp
     val dashboardPeriodIndicatorWidth = 88.dp
     val dashboardPeriodIndicatorHeight = 4.dp

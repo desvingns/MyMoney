@@ -8,6 +8,8 @@
 
 ## Current state
 
+- **2026-09-19 (Codex, transaction form visual polish):** Restyled the add-expense top app bar to match the categories screen's neutral surface palette. The choose-category CTA is now full-width within the form, slightly taller at 68 dp, and uses larger label typography. In the amount-entry flow, `SpaceBetween` now distributes equal vertical gaps between the USD amount block, note, keypad, CTA, and the form's bottom edge. Updated the Compose UI contract with exact gap assertions and verified the app install build plus the targeted `TransactionFormContentUiTest` passed 6/6 on Pixel 5/API 34. The wider `:core:designsystem:connectedDebugAndroidTest` remains non-clean because existing `BalanceTrendChartUiTest` cases fail on repeated `setContent`; graphify AST update ran but its shrink guard preserved the existing graph (17562 extracted vs 17920 existing nodes).
+
 - **2026-08-24 (Claude `/mp --feature`, support-plus-inline-purchase epic, both SPECs + close):**
   Reworked the Support screen's "MyMoney Plus" card after a 1/5 feedback score on the prior
   epic's separate-Paywall-screen approach. SPEC 01 extracted the subscription
@@ -55,21 +57,6 @@
   during this SPEC, discarding an unrelated pre-existing uncommitted edit to that file that
   predated this session; it was never staged so it is not recoverable via git — the user was
   notified and is attempting recovery via Android Studio Local History.
-
-- **2026-08-23 (Claude `/mp --feature`, support-paywall-visual-polish SPEC 01):** Merged the
-  rewarded-ad block's two lines into one bold line (`support_ads_rule` now styled
-  `supportPanelTitle`, `support_ads_title` removed), removed the visible "Watched N of 5" text
-  from the progress row while keeping its `contentDescription` for screen readers, and gave
-  "Support the app" / "Help MyMoney" an explicit `colorScheme.onBackground` so they no longer
-  blend into the themed background added by the prior visual-polish SPEC. Deterministic reviewer,
-  semantic review (3/3 coverage), independent critic, and full Verifier all passed; scoped Runner
-  `:feature:support` 141/0/0, full Runner 2186/0/0 with detekt/lint green. Pixel 5/API 34
-  screenshot confirmed all three fixes. Commits `97985bd2` (code), `7813d231` (tests), pushed to
-  `origin/main`. SPEC moved to `done/`; SPEC 02 (Paywall monthly/yearly two-column card) remains
-  queued in the `support-paywall-visual-polish` epic. Also closed out a stale board entry from a
-  prior session: `support-screen-visual-polish-01` was already fully implemented and committed
-  (`f976f743`) but never moved out of `active/` — verified its tests pass and moved it to `done/`
-  before starting this SPEC.
 
 ## Historical session log archives
 

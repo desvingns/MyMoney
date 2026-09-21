@@ -3,7 +3,7 @@ package com.kshavrin.mymoney.core.designsystem.form
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -45,20 +45,14 @@ fun TransactionFormContent(
             onClick = { onEvent(TransactionFormEvent.DateHeaderClicked) },
         )
 
-        AmountEntrySection(
-            state = state,
-            onEvent = onEvent,
-            showNote = !state.categoryStep,
-            amountInputModifier =
-                if (state.categoryStep) {
-                    Modifier.clickable { onEvent(TransactionFormEvent.BackToAmount) }
-                } else {
-                    Modifier
-                },
-            modifier = Modifier.padding(top = Spacing.m),
-        )
-
         if (state.categoryStep) {
+            AmountEntrySection(
+                state = state,
+                onEvent = onEvent,
+                showNote = false,
+                amountInputModifier = Modifier.clickable { onEvent(TransactionFormEvent.BackToAmount) },
+                modifier = Modifier.padding(top = Spacing.m),
+            )
             CategoryGrid(
                 categories = state.categories,
                 onCategoryClick = { onEvent(TransactionFormEvent.CategoryPicked(it)) },
@@ -68,34 +62,74 @@ fun TransactionFormContent(
                         .weight(1f)
                         .padding(top = Spacing.m),
             )
-        } else {
+        } else if (state.mode == TransactionFormMode.Edit) {
             Column(
                 modifier = Modifier.weight(1f),
             ) {
+                AmountEntrySection(
+                    state = state,
+                    onEvent = onEvent,
+                    showNote = true,
+                    amountInputModifier = Modifier,
+                    modifier = Modifier.padding(top = Spacing.m),
+                )
+                Keypad(
+                    onEvent = { onEvent(TransactionFormEvent.Keypad(it)) },
+                    modifier = Modifier.fillMaxWidth().padding(top = Spacing.s),
+                )
+                ChooseCategoryButton(
+                    state = state,
+                    onClick = { onEvent(TransactionFormEvent.SelectCategoryClicked) },
+                    modifier = Modifier.padding(top = Spacing.s),
+                )
+                DeleteButton(
+                    onClick = { onEvent(TransactionFormEvent.DeleteClicked) },
+                    modifier = Modifier.padding(top = Spacing.s),
+                )
+            }
+        } else {
+            Column(
+                modifier = Modifier.weight(1f).padding(top = Spacing.m),
+                verticalArrangement = Arrangement.SpaceBetween,
+            ) {
+                AmountInputField(
+                    state = state,
+                    onEvent = onEvent,
+                    amountInputModifier = Modifier,
+                )
+                NoteField(
+                    note = state.note,
+                    onNoteChange = { onEvent(TransactionFormEvent.NoteChanged(it)) },
+                )
                 Keypad(
                     onEvent = { onEvent(TransactionFormEvent.Keypad(it)) },
                     modifier = Modifier.fillMaxWidth(),
                 )
-                Button(
+                ChooseCategoryButton(
+                    state = state,
                     onClick = { onEvent(TransactionFormEvent.SelectCategoryClicked) },
-                    enabled = state.chooseCategoryEnabled,
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                            .padding(top = Spacing.s)
-                            .defaultMinSize(minHeight = Spacing.transactionFormChooseCategoryMinHeight),
-                ) {
-                    Text(stringResource(R.string.transaction_form_choose_category_button))
-                }
-                if (state.mode == TransactionFormMode.Edit) {
-                    DeleteButton(
-                        onClick = { onEvent(TransactionFormEvent.DeleteClicked) },
-                        modifier = Modifier.padding(top = Spacing.s),
-                    )
-                }
+                )
+                Spacer(modifier = Modifier)
             }
         }
+    }
+}
+
+@Composable
+private fun ChooseCategoryButton(
+    state: TransactionFormState,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Button(
+        onClick = onClick,
+        enabled = state.chooseCategoryEnabled,
+        modifier = modifier.fillMaxWidth().height(Spacing.transactionFormChooseCategoryHeight),
+    ) {
+        Text(
+            text = stringResource(R.string.transaction_form_choose_category_button),
+            style = MaterialTheme.typography.titleLarge,
+        )
     }
 }
 
@@ -142,23 +176,49 @@ private fun AmountEntrySection(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(Spacing.m),
     ) {
-        AmountInput(
-            display = state.amountInput,
-            expression = state.expression,
-            currencyCode = state.currencyCode,
-            currencySymbol = state.currencySymbol,
-            onClear = { onEvent(TransactionFormEvent.Keypad(KeypadEvent.Backspace)) },
-            clearContentDescription = stringResource(R.string.keypad_backspace_cd),
-            modifier = amountInputModifier.fillMaxWidth(),
+        AmountInputField(
+            state = state,
+            onEvent = onEvent,
+            amountInputModifier = amountInputModifier,
         )
         if (showNote) {
-            OutlinedTextField(
-                value = state.note,
-                onValueChange = { onEvent(TransactionFormEvent.NoteChanged(it)) },
-                label = { Text(stringResource(R.string.amountfield_note_hint)) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
+            NoteField(
+                note = state.note,
+                onNoteChange = { onEvent(TransactionFormEvent.NoteChanged(it)) },
             )
         }
     }
 }
+
+@Composable
+private fun AmountInputField(
+    state: TransactionFormState,
+    onEvent: (TransactionFormEvent) -> Unit,
+    amountInputModifier: Modifier,
+) {
+    AmountInput(
+        display = state.amountInput,
+        expression = state.expression,
+        currencyCode = state.currencyCode,
+        currencySymbol = state.currencySymbol,
+        onClear = { onEvent(TransactionFormEvent.Keypad(KeypadEvent.Backspace)) },
+        clearContentDescription = stringResource(R.string.keypad_backspace_cd),
+        modifier = amountInputModifier.fillMaxWidth().testTag(TRANSACTION_FORM_AMOUNT_TAG),
+    )
+}
+
+@Composable
+private fun NoteField(
+    note: String,
+    onNoteChange: (String) -> Unit,
+) {
+    OutlinedTextField(
+        value = note,
+        onValueChange = onNoteChange,
+        label = { Text(stringResource(R.string.amountfield_note_hint)) },
+        singleLine = true,
+        modifier = Modifier.fillMaxWidth(),
+    )
+}
+
+const val TRANSACTION_FORM_AMOUNT_TAG = "transaction_form_amount"

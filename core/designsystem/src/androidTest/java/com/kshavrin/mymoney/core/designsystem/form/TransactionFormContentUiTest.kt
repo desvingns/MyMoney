@@ -39,7 +39,7 @@ class TransactionFormContentUiTest {
     val composeTestRule = createComposeRule()
 
     @Test
-    fun `amount step shows note keypad and disabled choose category button`() {
+    fun amountStepShowsNoteKeypadAndDisabledChooseCategoryButton() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 TransactionFormContent(
@@ -69,7 +69,7 @@ class TransactionFormContentUiTest {
     }
 
     @Test
-    fun `amount step keeps keypad directly under note and lets choose category fill the freed space`() {
+    fun amountStepDistributesEqualGapsAndKeepsChooseCategoryFullWidth() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 Box(
@@ -88,6 +88,11 @@ class TransactionFormContentUiTest {
             }
         }
 
+        val amountBounds =
+            composeTestRule
+                .onNodeWithTag(TRANSACTION_FORM_AMOUNT_TAG)
+                .fetchSemanticsNode()
+                .boundsInRoot
         val noteBounds =
             composeTestRule
                 .onNode(hasSetTextAction())
@@ -99,6 +104,12 @@ class TransactionFormContentUiTest {
                 .fetchSemanticsNode()
                 .boundsInRoot
                 .top
+        val keypadBottom =
+            composeTestRule
+                .onNode(hasText("÷") and hasClickAction())
+                .fetchSemanticsNode()
+                .boundsInRoot
+                .bottom
         val buttonBounds =
             composeTestRule
                 .onNodeWithText(targetString(R.string.transaction_form_choose_category_button))
@@ -106,23 +117,49 @@ class TransactionFormContentUiTest {
                 .assertIsEnabled()
                 .fetchSemanticsNode()
                 .boundsInRoot
-        val minButtonHeight =
+        val formBottom =
             with(composeTestRule.density) {
-                Spacing.transactionFormChooseCategoryMinHeight.toPx()
+                (700.dp - Spacing.m).toPx()
             }
-
-        assertTrue(
-            "keypad must start immediately under the note field",
-            keypadTop - noteBounds.bottom <= 1f,
+        val gaps =
+            listOf(
+                noteBounds.top - amountBounds.bottom,
+                keypadTop - noteBounds.bottom,
+                buttonBounds.top - keypadBottom,
+                formBottom - buttonBounds.bottom,
+            )
+        gaps.drop(1).forEach { gap ->
+            assertEquals(
+                "amount, note, keypad, button, and bottom edge must have equal gaps",
+                gaps.first(),
+                gap,
+                1f,
+            )
+        }
+        val expectedButtonWidth =
+            with(composeTestRule.density) {
+                (360.dp - Spacing.m * 2).toPx()
+            }
+        assertEquals(
+            "choose category button must fill the form width",
+            expectedButtonWidth,
+            buttonBounds.width,
+            1f,
         )
-        assertTrue(
-            "choose category button must grow beyond its minimum height when space is available",
-            buttonBounds.height > minButtonHeight + 1f,
+        val expectedButtonHeight =
+            with(composeTestRule.density) {
+                Spacing.transactionFormChooseCategoryHeight.toPx()
+            }
+        assertEquals(
+            "choose category button must use the compact height",
+            expectedButtonHeight,
+            buttonBounds.height,
+            1f,
         )
     }
 
     @Test
-    fun `amount step forwards date note keypad and choose category events`() {
+    fun amountStepForwardsDateNoteKeypadAndChooseCategoryEvents() {
         val capturedEvents = mutableListOf<TransactionFormEvent>()
         val occurredAt = LocalDate.of(2026, 6, 6)
 
@@ -168,7 +205,7 @@ class TransactionFormContentUiTest {
     }
 
     @Test
-    fun `amount step keeps keypad usable and button within a short container`() {
+    fun amountStepKeepsKeypadUsableAndButtonWithinAShortContainer() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 Box(
@@ -200,7 +237,7 @@ class TransactionFormContentUiTest {
             composeTestRule
                 .onNodeWithText(targetString(R.string.transaction_form_choose_category_button))
                 .assertIsDisplayed()
-                .assertHeightIsAtLeast(Spacing.transactionFormChooseCategoryMinHeight)
+                .assertHeightIsAtLeast(Spacing.transactionFormChooseCategoryHeight)
                 .fetchSemanticsNode()
                 .boundsInRoot
 
@@ -216,7 +253,7 @@ class TransactionFormContentUiTest {
     }
 
     @Test
-    fun `category step shows grid and hides note keypad and choose category button`() {
+    fun categoryStepShowsGridAndHidesNoteKeypadAndChooseCategoryButton() {
         composeTestRule.setContent {
             MyMoneyTheme {
                 TransactionFormContent(
@@ -253,7 +290,7 @@ class TransactionFormContentUiTest {
     }
 
     @Test
-    fun `category step amount category and add affordances emit shared form events`() {
+    fun categoryStepAmountCategoryAndAddAffordancesEmitSharedFormEvents() {
         val capturedEvents = mutableListOf<TransactionFormEvent>()
 
         composeTestRule.setContent {

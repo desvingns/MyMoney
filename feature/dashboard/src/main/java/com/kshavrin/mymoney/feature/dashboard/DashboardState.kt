@@ -15,6 +15,8 @@ import com.kshavrin.mymoney.core.domain.model.Transaction
 import com.kshavrin.mymoney.core.domain.model.TrendPoint
 import com.kshavrin.mymoney.feature.dashboard.components.CategoryTileItem
 import com.kshavrin.mymoney.feature.dashboard.components.SummaryRecordCategoryDisplay
+import com.kshavrin.mymoney.feature.dashboard.tour.TourPhase
+import com.kshavrin.mymoney.feature.dashboard.tour.TourStep
 import com.kshavrin.mymoney.feature.dashboard.tour.TourUiState
 import java.time.YearMonth
 
@@ -257,7 +259,13 @@ sealed interface DashboardEvent {
 
     data object TourSkipAllClicked : DashboardEvent
 
-    data object TourPanelOpenElapsed : DashboardEvent
+    // Carries the (step, phase) the panel-open timer was scheduled for, so a timer left over from a
+    // previous step (e.g. Next tapped before the delay fires) is ignored instead of opening the
+    // wrong step's panel.
+    data class TourPanelOpenElapsed(
+        val step: TourStep,
+        val phase: TourPhase,
+    ) : DashboardEvent
 
     data object TourResumed : DashboardEvent
 

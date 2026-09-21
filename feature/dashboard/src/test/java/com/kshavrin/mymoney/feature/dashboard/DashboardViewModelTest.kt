@@ -3653,7 +3653,7 @@ class DashboardViewModelTest {
                 runCurrent()
                 viewModel.onEvent(DashboardEvent.TourNextClicked)
                 runCurrent()
-                viewModel.onEvent(DashboardEvent.TourPanelOpenElapsed)
+                viewModel.onEvent(DashboardEvent.TourPanelOpenElapsed(TourStep.LeftPanel, TourPhase.Button))
                 runCurrent()
                 assertEquals(TourPhase.Panel, viewModel.state.value.tour?.phase)
                 assertTrue(viewModel.state.value.leftDrawerOpen)
@@ -3788,6 +3788,127 @@ class DashboardViewModelTest {
             try {
                 runCurrent()
                 assertEquals(TourStep.RightCategories, viewModel.state.value.tour?.step)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `stale panel timer from a previous step is ignored`() =
+        runTest {
+            val (viewModel, store) = tourViewModel()
+            try {
+                runCurrent()
+                // Advance to step 3 (RightCategories, Button) — Next tapped before step 2's timer fired.
+                viewModel.onEvent(DashboardEvent.TourNextClicked)
+                runCurrent()
+                viewModel.onEvent(DashboardEvent.TourNextClicked)
+                runCurrent()
+                assertEquals(TourStep.RightCategories, viewModel.state.value.tour?.step)
+                assertEquals(TourPhase.Button, viewModel.state.value.tour?.phase)
+
+                // The leftover step-2 timer must NOT open step 3's panel.
+                viewModel.onEvent(DashboardEvent.TourPanelOpenElapsed(TourStep.LeftPanel, TourPhase.Button))
+                runCurrent()
+                assertEquals(TourPhase.Button, viewModel.state.value.tour?.phase)
+                assertFalse(viewModel.state.value.leftDrawerOpen)
+                assertFalse(viewModel.state.value.rightDrawerOpen)
+
+                // The matching timer does open this step's panel.
+                viewModel.onEvent(DashboardEvent.TourPanelOpenElapsed(TourStep.RightCategories, TourPhase.Button))
+                runCurrent()
+                assertEquals(TourPhase.Panel, viewModel.state.value.tour?.phase)
+                assertTrue(viewModel.state.value.rightDrawerOpen)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `panel timer is ignored while the tour is paused`() =
+        runTest {
+            val (viewModel, store) = tourViewModel()
+            try {
+                runCurrent()
+                viewModel.onEvent(DashboardEvent.TourNextClicked)
+                runCurrent()
+                assertEquals(TourStep.LeftPanel, viewModel.state.value.tour?.step)
+                // Pause via a real navigation action, then fire the (matching) timer: it must be ignored.
+                viewModel.onEvent(DashboardEvent.PlusFabClicked)
+                runCurrent()
+                assertEquals(true, viewModel.state.value.tour?.paused)
+                viewModel.onEvent(DashboardEvent.TourPanelOpenElapsed(TourStep.LeftPanel, TourPhase.Button))
+                runCurrent()
+                assertEquals(TourPhase.Button, viewModel.state.value.tour?.phase)
+                assertFalse(viewModel.state.value.leftDrawerOpen)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `selecting an account during the left panel step keeps the panel open`() =
+        runTest {
+            val (viewModel, store) = tourViewModel()
+            try {
+                runCurrent()
+                viewModel.onEvent(DashboardEvent.TourNextClicked)
+                runCurrent()
+                viewModel.onEvent(DashboardEvent.TourPanelOpenElapsed(TourStep.LeftPanel, TourPhase.Button))
+                runCurrent()
+                assertTrue(viewModel.state.value.leftDrawerOpen)
+
+                viewModel.onEvent(DashboardEvent.AccountSelected(cash.id))
+                runCurrent()
+                assertEquals(TourStep.LeftPanel, viewModel.state.value.tour?.step)
+                assertEquals(TourPhase.Panel, viewModel.state.value.tour?.phase)
+                assertTrue("account select must not close the tour's left panel", viewModel.state.value.leftDrawerOpen)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `all accounts selected during the left panel step keeps the panel open`() =
+        runTest {
+            val (viewModel, store) = tourViewModel()
+            try {
+                runCurrent()
+                viewModel.onEvent(DashboardEvent.TourNextClicked)
+                runCurrent()
+                viewModel.onEvent(DashboardEvent.TourPanelOpenElapsed(TourStep.LeftPanel, TourPhase.Button))
+                runCurrent()
+
+                viewModel.onEvent(DashboardEvent.AllAccountsSelected)
+                runCurrent()
+                assertTrue(viewModel.state.value.leftDrawerOpen)
+                assertEquals(TourStep.LeftPanel, viewModel.state.value.tour?.step)
+            } finally {
+                store.clear()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `dismissing the drawer during the left panel step re-opens it for the tour`() =
+        runTest {
+            val (viewModel, store) = tourViewModel()
+            try {
+                runCurrent()
+                viewModel.onEvent(DashboardEvent.TourNextClicked)
+                runCurrent()
+                viewModel.onEvent(DashboardEvent.TourPanelOpenElapsed(TourStep.LeftPanel, TourPhase.Button))
+                runCurrent()
+                assertTrue(viewModel.state.value.leftDrawerOpen)
+
+                // The «pick date range» path dismisses the drawer; the tour must re-open it.
+                viewModel.onEvent(DashboardEvent.DrawerDismissed)
+                runCurrent()
+                assertTrue("date-range path must not leave the tour with a closed panel", viewModel.state.value.leftDrawerOpen)
             } finally {
                 store.clear()
                 runCurrent()

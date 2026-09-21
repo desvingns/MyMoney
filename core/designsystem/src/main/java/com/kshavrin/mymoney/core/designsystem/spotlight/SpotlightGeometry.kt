@@ -23,6 +23,8 @@ fun cutoutRect(
     }
 }
 
+// Place the hint card on the side of the cutout that actually fits [cardHeight]; if both fit, pick
+// the roomier side; if neither fits, still pick the roomier side and let the card scroll/clamp.
 fun cardPlacement(
     cutout: Rect,
     containerHeight: Float,
@@ -30,5 +32,12 @@ fun cardPlacement(
 ): CardPlacement {
     val spaceAbove = cutout.top
     val spaceBelow = containerHeight - cutout.bottom
-    return if (spaceAbove >= spaceBelow) CardPlacement.Above else CardPlacement.Below
+    val fitsAbove = spaceAbove >= cardHeight
+    val fitsBelow = spaceBelow >= cardHeight
+    return when {
+        fitsAbove && fitsBelow -> if (spaceAbove >= spaceBelow) CardPlacement.Above else CardPlacement.Below
+        fitsAbove -> CardPlacement.Above
+        fitsBelow -> CardPlacement.Below
+        else -> if (spaceAbove >= spaceBelow) CardPlacement.Above else CardPlacement.Below
+    }
 }

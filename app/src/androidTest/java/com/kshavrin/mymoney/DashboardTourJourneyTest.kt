@@ -2,13 +2,18 @@ package com.kshavrin.mymoney
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_CATEGORIES_TAG
+import com.kshavrin.mymoney.feature.dashboard.components.RIGHT_DRAWER_SUPPORT_TAG
 import com.kshavrin.mymoney.navigation.OnboardingFlagModule
 import com.kshavrin.mymoney.navigation.ShowOnboarding
 import dagger.hilt.android.testing.BindValue
@@ -109,6 +114,79 @@ class DashboardTourJourneyTest {
         composeRule.onNodeWithText(str(DashboardR.string.dashboard_tour_left_title)).assertIsDisplayed()
     }
 
+    @Test
+    fun categoriesTapReturnsToStepFourWithRightPanelReopened() {
+        hiltRule.inject()
+
+        // Advance to step 3 (categories).
+        waitForText(str(DashboardR.string.dashboard_tour_actions_title))
+        composeRule.onNodeWithText(str(DashboardR.string.dashboard_tour_next)).performClick()
+        waitForText(str(DashboardR.string.dashboard_tour_left_title))
+        composeRule.onNodeWithText(str(DashboardR.string.dashboard_tour_next)).performClick()
+        waitForText(str(DashboardR.string.dashboard_tour_categories_title))
+
+        // The right panel opens (timer) and the Categories item becomes tappable; tapping it performs
+        // the real action (navigate to categories) and pauses the tour. Detect the pause via the
+        // unique "Skip all" control — the card title "Categories" collides with the categories screen.
+        waitForTag(RIGHT_DRAWER_CATEGORIES_TAG)
+        composeRule.onNodeWithTag(RIGHT_DRAWER_CATEGORIES_TAG).performClick()
+        waitUntilGone(str(DashboardR.string.dashboard_tour_skip_all))
+        composeRule.onNodeWithText(str(DashboardR.string.dashboard_tour_skip_all)).assertDoesNotExist()
+
+        // Back on the dashboard the tour resumes on step 4 with the right panel re-opened.
+        Espresso.pressBack()
+        waitForText(str(DashboardR.string.dashboard_tour_support_title))
+        composeRule.onNodeWithText(str(DashboardR.string.dashboard_tour_support_title)).assertIsDisplayed()
+        composeRule.onNodeWithTag(RIGHT_DRAWER_SUPPORT_TAG).assertIsDisplayed()
+    }
+
+    @Test
+    fun supportTapFinishesTour() {
+        hiltRule.inject()
+
+        // Advance to step 4 (support); its right panel opens immediately (no button phase).
+        waitForText(str(DashboardR.string.dashboard_tour_actions_title))
+        composeRule.onNodeWithText(str(DashboardR.string.dashboard_tour_next)).performClick()
+        waitForText(str(DashboardR.string.dashboard_tour_left_title))
+        composeRule.onNodeWithText(str(DashboardR.string.dashboard_tour_next)).performClick()
+        waitForText(str(DashboardR.string.dashboard_tour_categories_title))
+        composeRule.onNodeWithText(str(DashboardR.string.dashboard_tour_next)).performClick()
+        waitForText(str(DashboardR.string.dashboard_tour_support_title))
+
+        // Tap the highlighted Support item; the tour pauses (overlay hidden), then returning finishes it.
+        waitForTag(RIGHT_DRAWER_SUPPORT_TAG)
+        composeRule.onNodeWithTag(RIGHT_DRAWER_SUPPORT_TAG).performClick()
+        waitUntilGone(str(DashboardR.string.dashboard_tour_skip_all))
+
+        Espresso.pressBack()
+        waitUntilGone(str(DashboardR.string.dashboard_tour_skip_all))
+        composeRule.onNodeWithText(str(DashboardR.string.dashboard_tour_skip_all)).assertDoesNotExist()
+        composeRule.onNodeWithText(str(DashboardR.string.dashboard_tour_support_title)).assertDoesNotExist()
+    }
+
+    @Test
+    fun recreatingActivityAfterCompletionShowsNoTour() {
+        hiltRule.inject()
+
+        // Complete the whole tour with Next x3 then Done.
+        waitForText(str(DashboardR.string.dashboard_tour_actions_title))
+        composeRule.onNodeWithText(str(DashboardR.string.dashboard_tour_next)).performClick()
+        waitForText(str(DashboardR.string.dashboard_tour_left_title))
+        composeRule.onNodeWithText(str(DashboardR.string.dashboard_tour_next)).performClick()
+        waitForText(str(DashboardR.string.dashboard_tour_categories_title))
+        composeRule.onNodeWithText(str(DashboardR.string.dashboard_tour_next)).performClick()
+        waitForText(str(DashboardR.string.dashboard_tour_support_title))
+        composeRule.onNodeWithText(str(DashboardR.string.dashboard_tour_done)).performClick()
+        waitUntilGone(str(DashboardR.string.dashboard_tour_skip_all))
+
+        // Recreate the activity: onboardingCompletedAt persists in the (singleton) test DataStore, so
+        // the tour must not reappear.
+        composeRule.activityRule.scenario.recreate()
+        waitForContentDescription(str(DashboardR.string.fab_income_content_description))
+        composeRule.onNodeWithText(str(DashboardR.string.dashboard_tour_skip_all)).assertDoesNotExist()
+        composeRule.onNodeWithText(str(DashboardR.string.dashboard_tour_actions_title)).assertDoesNotExist()
+    }
+
     private fun str(resId: Int): String =
         InstrumentationRegistry.getInstrumentation().targetContext.getString(resId)
 
@@ -121,6 +199,18 @@ class DashboardTourJourneyTest {
     private fun waitUntilGone(text: String) {
         composeRule.waitUntil(TIMEOUT) {
             composeRule.onAllNodesWithText(text).fetchSemanticsNodes().isEmpty()
+        }
+    }
+
+    private fun waitForTag(tag: String) {
+        composeRule.waitUntil(TIMEOUT) {
+            composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    private fun waitForContentDescription(cd: String) {
+        composeRule.waitUntil(TIMEOUT) {
+            composeRule.onAllNodesWithContentDescription(cd).fetchSemanticsNodes().isNotEmpty()
         }
     }
 

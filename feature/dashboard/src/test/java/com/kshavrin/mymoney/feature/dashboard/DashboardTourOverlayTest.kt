@@ -1,9 +1,12 @@
 package com.kshavrin.mymoney.feature.dashboard
 
 import android.content.Context
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.unit.Density
 import androidx.test.core.app.ApplicationProvider
 import com.kshavrin.mymoney.core.domain.model.BalanceSnapshot
 import com.kshavrin.mymoney.core.domain.model.Currency
@@ -75,6 +78,41 @@ class DashboardTourOverlayTest {
         render(baseState.copy(tour = TourUiState(TourStep.Actions, TourPhase.Panel, paused = true)))
 
         composeTestRule.onNodeWithText(context.getString(R.string.dashboard_tour_skip_all)).assertDoesNotExist()
+    }
+
+    @Test
+    @Config(qualifiers = "+ru")
+    fun `russian locale renders russian tour strings`() {
+        render(baseState.copy(tour = TourUiState(TourStep.Actions, TourPhase.Panel)))
+
+        composeTestRule.onNodeWithText(context.getString(R.string.dashboard_tour_actions_title)).assertIsDisplayed()
+        composeTestRule.onNodeWithText("Расходы, переводы, доходы").assertIsDisplayed()
+        composeTestRule.onNodeWithText(context.getString(R.string.dashboard_tour_progress, 1, 4)).assertIsDisplayed()
+        composeTestRule.onNodeWithText("1 из 4").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Далее").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Пропустить всё").assertIsDisplayed()
+    }
+
+    @Test
+    fun `tour card and controls are shown at font scale 1_5`() {
+        composeTestRule.setContent {
+            val base = LocalDensity.current
+            CompositionLocalProvider(
+                LocalDensity provides Density(density = base.density, fontScale = 1.5f),
+            ) {
+                MyMoneyTheme {
+                    DashboardContent(
+                        state = baseState.copy(tour = TourUiState(TourStep.Actions, TourPhase.Panel)),
+                        onEvent = {},
+                    )
+                }
+            }
+        }
+
+        composeTestRule.onNodeWithText(context.getString(R.string.dashboard_tour_actions_title)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(context.getString(R.string.dashboard_tour_progress, 1, 4)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(context.getString(R.string.dashboard_tour_skip_all)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(context.getString(R.string.dashboard_tour_next)).assertIsDisplayed()
     }
 
     private companion object {

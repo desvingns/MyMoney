@@ -162,6 +162,18 @@ class DashboardViewModel
             applyTour(DashboardTourReducer.paused(tour))
         }
 
+        // In-screen actions (account select, all-accounts, drawer dismiss / date-range picker) mutate
+        // the drawers directly; while the tour is live and not paused it is the sole authority on the
+        // drawers, so re-assert its (step, phase) drawer state instead of leaving a step whose cutout
+        // target drawer was just closed. Not pause: these actions do not navigate, so no ON_RESUME
+        // would ever un-pause the tour.
+        private fun reapplyTourDrawersIfActive() {
+            val tour = _state.value.tour ?: return
+            if (tour.paused) return
+            val drawers = drawersFor(tour)
+            _state.value = _state.value.copy(leftDrawerOpen = drawers.left, rightDrawerOpen = drawers.right)
+        }
+
         private fun handleTourNext() {
             val tour = _state.value.tour ?: return
             if (tour.paused) return
@@ -1141,10 +1153,12 @@ class DashboardViewModel
                             )
                         }
                     }
+                    reapplyTourDrawersIfActive()
                 }
                 DashboardEvent.AllAccountsSelected -> {
                     _state.value = _state.value.copy(leftDrawerOpen = false)
                     emit(DashboardAction.ShowAllAccountsModeDialog)
+                    reapplyTourDrawersIfActive()
                 }
                 DashboardEvent.AllAccountsConvertChosen -> {
                     // Target currency is asked every time (D7) — nothing is pre-selected here.
@@ -1178,16 +1192,24 @@ class DashboardViewModel
                             )
                     }
                 }
-                DashboardEvent.DrawerDismissed ->
+                DashboardEvent.DrawerDismissed -> {
                     _state.value = _state.value.copy(leftDrawerOpen = false, rightDrawerOpen = false)
+                    // The date-range picker path dismisses the drawer while the tour is on the left
+                    // panel; keep the tour the authority so its cutout target stays visible.
+                    reapplyTourDrawersIfActive()
+                }
                 DashboardEvent.TourNextClicked -> handleTourNext()
                 DashboardEvent.TourSkipAllClicked -> {
                     val tour = _state.value.tour ?: return
                     if (tour.paused) return
                     finishTour()
                 }
-                DashboardEvent.TourPanelOpenElapsed -> {
+                is DashboardEvent.TourPanelOpenElapsed -> {
                     val tour = _state.value.tour ?: return
+                    // Ignore a stale/racy timer: it must match the current live (step, phase) and the
+                    // tour must not be paused, so a timer from a previous step never opens this one.
+                    if (tour.paused) return
+                    if (tour.step != event.step || tour.phase != event.phase) return
                     val advanced = DashboardTourReducer.panelOpenElapsed(tour)
                     if (advanced != tour) applyTour(advanced)
                 }

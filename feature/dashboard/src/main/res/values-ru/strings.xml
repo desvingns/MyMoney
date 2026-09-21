@@ -134,7 +134,6 @@
     <string name="dashboard_tour_next">Далее</string>
     <string name="dashboard_tour_done">Готово</string>
     <string name="dashboard_tour_progress">%1$d из %2$d</string>
-    <string name="dashboard_tour_overlay_description">Обучающий тур</string>
     <string name="dashboard_tour_actions_title">Расходы, переводы, доходы</string>
     <string name="dashboard_tour_actions_body">Минус — записать расход, стрелки — перевод между счетами, плюс — добавить доход.</string>
     <string name="dashboard_tour_left_title">Период и счета</string>

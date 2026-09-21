@@ -566,7 +566,7 @@ private fun DashboardTourOverlay(
     LaunchedEffect(tour.step, tour.phase) {
         if (tour.phase == TourPhase.Button) {
             delay(TOUR_PANEL_OPEN_DELAY_MS)
-            onEvent(DashboardEvent.TourPanelOpenElapsed)
+            onEvent(DashboardEvent.TourPanelOpenElapsed(tour.step, tour.phase))
         }
     }
 

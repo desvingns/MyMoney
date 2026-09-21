@@ -32,7 +32,6 @@ class DashboardTourStringsTest {
                 "dashboard_tour_next",
                 "dashboard_tour_done",
                 "dashboard_tour_progress",
-                "dashboard_tour_overlay_description",
                 "dashboard_tour_actions_title",
                 "dashboard_tour_actions_body",
                 "dashboard_tour_left_title",

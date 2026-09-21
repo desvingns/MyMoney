@@ -87,6 +87,34 @@ class SpotlightGeometryTest {
     }
 
     @Test
+    fun `tall card fits only below is placed below`() {
+        val cutout = Rect(0f, 200f, 400f, 250f)
+        val placement = cardPlacement(cutout = cutout, containerHeight = 1000f, cardHeight = 400f)
+        assertEquals(CardPlacement.Below, placement)
+    }
+
+    @Test
+    fun `tall card fits only above is placed above`() {
+        val cutout = Rect(0f, 750f, 400f, 800f)
+        val placement = cardPlacement(cutout = cutout, containerHeight = 1000f, cardHeight = 400f)
+        assertEquals(CardPlacement.Above, placement)
+    }
+
+    @Test
+    fun `tall card that fits neither side falls back to the roomier side above`() {
+        val cutout = Rect(0f, 300f, 400f, 340f)
+        val placement = cardPlacement(cutout = cutout, containerHeight = 600f, cardHeight = 400f)
+        assertEquals(CardPlacement.Above, placement)
+    }
+
+    @Test
+    fun `tall card that fits neither side falls back to the roomier side below`() {
+        val cutout = Rect(0f, 260f, 400f, 300f)
+        val placement = cardPlacement(cutout = cutout, containerHeight = 600f, cardHeight = 400f)
+        assertEquals(CardPlacement.Below, placement)
+    }
+
+    @Test
     fun `cutout at top of screen places card below`() {
         val cutout = Rect(0f, 0f, 400f, 50f)
         val placement = cardPlacement(cutout = cutout, containerHeight = 800f, cardHeight = 100f)

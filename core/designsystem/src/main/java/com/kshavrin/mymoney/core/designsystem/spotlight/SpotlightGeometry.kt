@@ -4,7 +4,10 @@ import androidx.compose.ui.geometry.Rect
 
 enum class SpotlightShape { Circle, RoundedRect }
 
-enum class CardPlacement { Above, Below }
+// Above / Below the cutout when the card fits there; Inside when the cutout is so tall that neither
+// gap fits the card — the caller then anchors the card in free space (above the controls row) and
+// lets it scroll, so it is never clipped off-screen.
+enum class CardPlacement { Above, Below, Inside }
 
 fun cutoutRect(
     bounds: Rect,
@@ -24,7 +27,10 @@ fun cutoutRect(
 }
 
 // Place the hint card on the side of the cutout that actually fits [cardHeight]; if both fit, pick
-// the roomier side; if neither fits, still pick the roomier side and let the card scroll/clamp.
+// the roomier side; if neither fits (a tall cutout, e.g. the full-height side panel) return Inside so
+// the caller anchors it in free space and lets it scroll — never clipped off-screen.
+// [containerHeight] is the usable height for the card (typically the top of the controls row), so a
+// Below result is guaranteed not to collide with the controls.
 fun cardPlacement(
     cutout: Rect,
     containerHeight: Float,
@@ -38,6 +44,6 @@ fun cardPlacement(
         fitsAbove && fitsBelow -> if (spaceAbove >= spaceBelow) CardPlacement.Above else CardPlacement.Below
         fitsAbove -> CardPlacement.Above
         fitsBelow -> CardPlacement.Below
-        else -> if (spaceAbove >= spaceBelow) CardPlacement.Above else CardPlacement.Below
+        else -> CardPlacement.Inside
     }
 }

@@ -101,17 +101,25 @@ class SpotlightGeometryTest {
     }
 
     @Test
-    fun `tall card that fits neither side falls back to the roomier side above`() {
+    fun `tall cutout that fits neither side returns inside when above is roomier`() {
         val cutout = Rect(0f, 300f, 400f, 340f)
         val placement = cardPlacement(cutout = cutout, containerHeight = 600f, cardHeight = 400f)
-        assertEquals(CardPlacement.Above, placement)
+        assertEquals(CardPlacement.Inside, placement)
     }
 
     @Test
-    fun `tall card that fits neither side falls back to the roomier side below`() {
+    fun `tall cutout that fits neither side returns inside when below is roomier`() {
         val cutout = Rect(0f, 260f, 400f, 300f)
         val placement = cardPlacement(cutout = cutout, containerHeight = 600f, cardHeight = 400f)
-        assertEquals(CardPlacement.Below, placement)
+        assertEquals(CardPlacement.Inside, placement)
+    }
+
+    @Test
+    fun `near full height cutout returns inside`() {
+        // Panel-style cutout that spans almost the whole container: no gap fits the card.
+        val cutout = Rect(0f, 40f, 400f, 960f)
+        val placement = cardPlacement(cutout = cutout, containerHeight = 1000f, cardHeight = 300f)
+        assertEquals(CardPlacement.Inside, placement)
     }
 
     @Test

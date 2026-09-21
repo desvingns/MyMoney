@@ -1,8 +1,10 @@
 package com.kshavrin.mymoney.core.designsystem.spotlight
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
@@ -10,9 +12,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.click
 import androidx.compose.ui.unit.dp
@@ -348,6 +352,79 @@ class SpotlightOverlayUiTest {
         }
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText(SKIP_LABEL).assertIsDisplayed()
+    }
+
+    // ── Layout: card / controls never overlap the cutout ──────────────────────
+
+    @Test
+    fun controlsSitAboveABottomCutoutWithoutOverlap() {
+        composeTestRule.setContent {
+            val registry = rememberSpotlightRegistry()
+            MyMoneyTheme {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    Button(
+                        onClick = {},
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .size(80.dp)
+                            .testTag(TAG_TARGET)
+                            .spotlightTarget(registry, TAG_TARGET),
+                    ) {}
+                    SpotlightOverlay(
+                        registry = registry,
+                        cutout = SpotlightCutout(key = TAG_TARGET, shape = SpotlightShape.RoundedRect),
+                        stepTitle = STEP_TITLE,
+                        card = { Text("Card content") },
+                        skipLabel = SKIP_LABEL,
+                        primaryLabel = PRIMARY_LABEL,
+                        onSkip = {},
+                        onPrimary = {},
+                    )
+                }
+            }
+        }
+        composeTestRule.waitForIdle()
+        val target = composeTestRule.onNodeWithTag(TAG_TARGET).getUnclippedBoundsInRoot()
+        val skip = composeTestRule.onNodeWithText(SKIP_LABEL).getUnclippedBoundsInRoot()
+        val next = composeTestRule.onNodeWithText(PRIMARY_LABEL).getUnclippedBoundsInRoot()
+        assertTrue("skip must sit above the bottom cutout", skip.bottom <= target.top)
+        assertTrue("next must sit above the bottom cutout", next.bottom <= target.top)
+    }
+
+    @Test
+    fun tallCutoutKeepsCardFullyVisibleAboveControls() {
+        composeTestRule.setContent {
+            val registry = rememberSpotlightRegistry()
+            MyMoneyTheme {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .fillMaxHeight(0.9f)
+                            .width(200.dp)
+                            .testTag(TAG_TARGET)
+                            .spotlightTarget(registry, TAG_TARGET),
+                    )
+                    SpotlightOverlay(
+                        registry = registry,
+                        cutout = SpotlightCutout(key = TAG_TARGET, shape = SpotlightShape.RoundedRect),
+                        stepTitle = STEP_TITLE,
+                        card = { Text("Card content") },
+                        skipLabel = SKIP_LABEL,
+                        primaryLabel = PRIMARY_LABEL,
+                        onSkip = {},
+                        onPrimary = {},
+                    )
+                }
+            }
+        }
+        composeTestRule.waitForIdle()
+        val root = composeTestRule.onRoot().getUnclippedBoundsInRoot()
+        val card = composeTestRule.onNodeWithText("Card content").getUnclippedBoundsInRoot()
+        val skip = composeTestRule.onNodeWithText(SKIP_LABEL).getUnclippedBoundsInRoot()
+        assertTrue("card top must be on-screen", card.top >= root.top)
+        assertTrue("card bottom must be on-screen", card.bottom <= root.bottom)
+        assertTrue("card must not overlap the controls row", card.bottom <= skip.top)
     }
 
     @Test

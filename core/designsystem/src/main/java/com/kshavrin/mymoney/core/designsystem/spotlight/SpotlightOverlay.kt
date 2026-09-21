@@ -7,12 +7,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
@@ -25,6 +27,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -48,8 +51,10 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.coerceAtLeast
 import androidx.compose.ui.unit.dp
+import kotlin.math.roundToInt
 import com.kshavrin.mymoney.core.ui.theme.LocalMotion
 import com.kshavrin.mymoney.core.ui.theme.Spacing
 import com.kshavrin.mymoney.core.ui.theme.spotlightCard
@@ -223,26 +228,46 @@ fun SpotlightOverlay(
             Box(modifier = Modifier.fillMaxSize().pointerBlocker())
         }
 
-        val placement = if (activeCutoutPx != null) {
-            cardPlacement(activeCutoutPx, containerHeightPx, cardHeightPx.toFloat())
-        } else CardPlacement.Below
-
-        val cardTopDp: Dp = when {
-            activeCutoutPx == null -> Spacing.xl
-            placement == CardPlacement.Above -> {
-                val cutTopDp = with(density) { activeCutoutPx.top.toDp() }
-                val cardH = with(density) { cardHeightPx.toDp() }
-                (cutTopDp - cardH - Spacing.s).coerceAtLeast(Spacing.s)
-            }
-            else -> with(density) { activeCutoutPx.bottom.toDp() } + Spacing.s
+        val sPx = with(density) { Spacing.s.toPx() }
+        val topSafePx = WindowInsets.statusBars.getTop(density) + sPx
+        var controlsHeightPx by remember {
+            mutableFloatStateOf(with(density) { (Spacing.minimumTouchTargetSize + Spacing.m * 2).toPx() })
         }
+
+        // Move the controls row above the cutout when the cutout would otherwise sit under it (e.g. the
+        // bottom FAB row), so «Skip all»/«Next» never overlap the highlighted control. For a tall
+        // cutout there is no room above it, so the controls stay pinned to the bottom band.
+        val controlsBandTopPx = containerHeightPx - controlsHeightPx
+        val controlsAbove = activeCutoutPx != null &&
+            activeCutoutPx.bottom > controlsBandTopPx - sPx &&
+            (activeCutoutPx.top - controlsHeightPx - sPx) >= topSafePx
+        val controlsTopPx =
+            if (controlsAbove) activeCutoutPx!!.top - controlsHeightPx - sPx else controlsBandTopPx
+
+        // The card lives in the band between the status bar and the controls row; its usable height is
+        // clamped to that band so it scrolls (fontScale 2.0) rather than clipping off-screen.
+        val placement = if (activeCutoutPx != null) {
+            cardPlacement(activeCutoutPx, controlsTopPx, cardHeightPx.toFloat())
+        } else CardPlacement.Below
+        val maxCardHeightPx = (controlsTopPx - topSafePx - sPx * 2f)
+            .coerceAtLeast(with(density) { Spacing.minimumTouchTargetSize.toPx() })
+        val rawCardTopPx = when {
+            activeCutoutPx == null -> topSafePx + with(density) { Spacing.xl.toPx() }
+            controlsAbove -> controlsTopPx - cardHeightPx - sPx
+            placement == CardPlacement.Above -> activeCutoutPx.top - cardHeightPx - sPx
+            placement == CardPlacement.Below -> activeCutoutPx.bottom + sPx
+            else -> controlsTopPx - cardHeightPx - sPx
+        }
+        val cardCeilingPx = (controlsTopPx - cardHeightPx - sPx).coerceAtLeast(topSafePx)
+        val cardTopPx = rawCardTopPx.coerceIn(topSafePx, cardCeilingPx)
 
         Box(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .widthIn(max = Spacing.spotlightCardMaxWidth)
                 .fillMaxWidth()
-                .offset(y = cardTopDp)
+                .offset { IntOffset(0, cardTopPx.roundToInt()) }
+                .heightIn(max = with(density) { maxCardHeightPx.toDp() })
                 .onSizeChanged { cardHeightPx = it.height },
         ) {
             Surface(
@@ -262,8 +287,10 @@ fun SpotlightOverlay(
 
         Row(
             modifier = Modifier
-                .align(Alignment.BottomCenter)
+                .align(Alignment.TopStart)
                 .fillMaxWidth()
+                .offset { IntOffset(0, controlsTopPx.roundToInt()) }
+                .onSizeChanged { controlsHeightPx = it.height.toFloat() }
                 .padding(horizontal = Spacing.l, vertical = Spacing.m),
             verticalAlignment = Alignment.CenterVertically,
         ) {

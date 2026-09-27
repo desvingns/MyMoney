@@ -250,7 +250,10 @@ class BackupCsvTransferTest {
                 )
                 assertTrue(
                     "Transfer row must carry a non-empty to_amount",
-                    transferLine.split(",").last().isNotEmpty(),
+                    com.kshavrin.mymoney.core.domain.csv.MonefyCsvImportParser
+                        .tokenize(transferLine.reader())
+                        .single()[10]
+                        .isNotEmpty(),
                 )
             } finally {
                 csvFile.delete()
@@ -266,8 +269,8 @@ class BackupCsvTransferTest {
     fun round_trip_export_then_import_restores_transfer_with_correct_accounts_and_amounts() =
         runTest {
             val currencyId = seedCurrency()
-            val cashId = seedAccount("Наличные", currencyId, sortOrder = 0)
-            val cardId = seedAccount("Карта", currencyId, sortOrder = 1)
+            val cashId = seedAccount("=HYPERLINK(\"https://example.invalid\")", currencyId, sortOrder = 0)
+            val cardId = seedAccount("'literal destination", currencyId, sortOrder = 1)
 
             val occurredAt = Instant.parse("2026-06-01T12:00:00Z")
             val createdAt = Instant.parse("2026-06-01T12:00:00Z")
@@ -280,7 +283,7 @@ class BackupCsvTransferTest {
                     currencyId = currencyId,
                     accountId = cashId,
                     categoryId = null,
-                    note = null,
+                    note = "\t=1+1,\"quoted\"\n@SUM(A1)",
                     occurredAt = occurredAt.toEpochMilli(),
                     createdAt = createdAt.toEpochMilli(),
                     updatedAt = createdAt.toEpochMilli(),
@@ -298,6 +301,14 @@ class BackupCsvTransferTest {
                     "Export must succeed; error: ${exportResult.exceptionOrNull()?.message}",
                     exportResult.isSuccess,
                 )
+
+                val records =
+                    com.kshavrin.mymoney.core.domain.csv.MonefyCsvImportParser
+                        .tokenize(csvFile.reader())
+                assertEquals("text_encoding", records.first().last())
+                assertTrue(records[1][4].startsWith("'="))
+                assertTrue(records[1][6].startsWith("'\t="))
+                assertTrue(records[1][9].startsWith("''literal"))
 
                 // Purge the seeded transfer so importMyMoneyCsv does not see a duplicate id=1.
                 val nowMs = Instant.now().toEpochMilli()
@@ -332,6 +343,7 @@ class BackupCsvTransferTest {
                     BigDecimal("500").compareTo(BigDecimal.valueOf(restored.toAmount!!)),
                 )
                 assertNull("transfer must have no category", restored.categoryId)
+                assertEquals("\t=1+1,\"quoted\"\n@SUM(A1)", restored.note)
             } finally {
                 csvFile.delete()
             }

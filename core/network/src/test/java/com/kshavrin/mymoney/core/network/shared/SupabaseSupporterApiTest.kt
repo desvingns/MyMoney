@@ -39,147 +39,42 @@ class SupabaseSupporterApiTest {
     }
 
     @Test
-    fun `postPurchase sends the exact user product token and purchase timestamp`() =
+    fun `postPurchase sends only the receipt to the authenticated verification endpoint`() =
         runTest {
-            server.enqueue(MockResponse().setResponseCode(201).setBody("{}"))
-            val outcome = purchasedOutcome()
-
-            api.postPurchase("user-1", outcome, "access-token").getOrThrow()
-
+            server.enqueue(MockResponse().setResponseCode(200).setBody("{\"verified\":true}"))
+            api.postPurchase("user-1", purchasedOutcome("token+/?&=токен"), "access-token").getOrThrow()
             val request = server.takeRequest()
             val body = Json.parseToJsonElement(request.body.readUtf8()).jsonObject
-            assertEquals("/rest/v1/supporter_purchases", request.path)
+            assertEquals("/functions/v1/verify-supporter-purchase", request.path)
             assertEquals("anon-key", request.getHeader("apikey"))
             assertEquals("Bearer access-token", request.getHeader("Authorization"))
-            assertEquals("user-1", body["user_id"]?.jsonPrimitive?.content)
-            assertEquals("coffee_small", body["product_id"]?.jsonPrimitive?.content)
-            assertEquals("purchase-token", body["purchase_token"]?.jsonPrimitive?.content)
-            assertEquals("2024-08-21T16:13:09Z", body["purchased_at"]?.jsonPrimitive?.content)
+            assertEquals(setOf("purchase_token", "expected_user_id"), body.keys)
+            assertEquals("user-1", body["expected_user_id"]?.jsonPrimitive?.content)
+            assertEquals("token+/?&=токен", body["purchase_token"]?.jsonPrimitive?.content)
         }
 
     @Test
-    fun `duplicate purchase token conflict is treated as successful idempotent delivery`() =
+    fun `server owner conflict is preserved without a client duplicate bypass`() =
         runTest {
-            server.enqueue(
-                MockResponse()
-                    .setResponseCode(409)
-                    .setBody(
-                        """{"code":"23505","message":"duplicate key value violates unique constraint \"supporter_purchases_purchase_token_key\"","details":"Key (purchase_token)=(purchase-token) already exists."}""",
-                    ),
-            )
-            server.enqueue(MockResponse().setResponseCode(200).setBody("[{\"id\":\"purchase-1\"}]"))
-
-            assertTrue(api.postPurchase("user-1", purchasedOutcome(), "access-token").isSuccess)
-            server.takeRequest()
-            val verification = server.takeRequest()
-            assertEquals(
-                "/rest/v1/supporter_purchases?select=id&user_id=eq.user-1&purchase_token=eq.purchase-token",
-                verification.path,
-            )
-            assertEquals("Bearer access-token", verification.getHeader("Authorization"))
-        }
-
-    @Test
-    fun `duplicate token verification encodes reserved owner and token values`() =
-        runTest {
-            val userId = "user+1/тест"
-            val purchaseToken = "token+/?&=токен"
-            server.enqueue(
-                MockResponse()
-                    .setResponseCode(409)
-                    .setBody(
-                        """{"code":"23505","message":"duplicate key value violates unique constraint \"supporter_purchases_purchase_token_key\"","details":"Key (purchase_token)=(purchase-token) already exists."}""",
-                    ),
-            )
-            server.enqueue(MockResponse().setResponseCode(200).setBody("[{\"id\":\"purchase-1\"}]"))
-
-            assertTrue(
-                api
-                    .postPurchase(
-                        userId = userId,
-                        outcome = purchasedOutcome(purchaseToken),
-                        accessToken = "access-token",
-                    ).isSuccess,
-            )
-
-            server.takeRequest()
-            val verification = server.takeRequest()
-            assertEquals(
-                "/rest/v1/supporter_purchases?select=id&user_id=eq.user%2B1%2F%D1%82%D0%B5%D1%81%D1%82&purchase_token=eq.token%2B%2F%3F%26%3D%D1%82%D0%BE%D0%BA%D0%B5%D0%BD",
-                verification.path,
-            )
-        }
-
-    @Test
-    fun `duplicate token hidden by owner filter remains a conflict`() =
-        runTest {
-            server.enqueue(
-                MockResponse()
-                    .setResponseCode(409)
-                    .setBody(
-                        """{"code":"23505","message":"duplicate key value violates unique constraint \"supporter_purchases_purchase_token_key\"","details":"Key (purchase_token)=(purchase-token) already exists."}""",
-                    ),
-            )
-            server.enqueue(MockResponse().setResponseCode(200).setBody("[]"))
-
-            val result = api.postPurchase("user-2", purchasedOutcome(), "access-token")
-
-            val failure = result.exceptionOrNull()
+            server.enqueue(MockResponse().setResponseCode(409).setBody("{\"error\":\"purchase_already_bound\"}"))
+            val failure = api.postPurchase("user-1", purchasedOutcome(), "access-token").exceptionOrNull()
             assertTrue(failure is SyncException)
             assertEquals(SyncError.Conflict, (failure as SyncException).syncError)
-            assertTrue(failure is SupabasePostgrestConflictException)
-            server.takeRequest()
-            val verification = server.takeRequest()
-            assertEquals(
-                "/rest/v1/supporter_purchases?select=id&user_id=eq.user-2&purchase_token=eq.purchase-token",
-                verification.path,
-            )
+            assertEquals(1, server.requestCount)
         }
 
     @Test
-    fun `duplicate token verification failure preserves the original conflict`() =
+    fun `failed Play verification does not become successful delivery`() =
         runTest {
-            server.enqueue(
-                MockResponse()
-                    .setResponseCode(409)
-                    .setBody(
-                        """{"code":"23505","message":"duplicate key value violates unique constraint \"supporter_purchases_purchase_token_key\"","details":"Key (purchase_token)=(purchase-token) already exists."}""",
-                    ),
-            )
-            server.enqueue(MockResponse().setResponseCode(500).setBody("server failure"))
-
-            val result = api.postPurchase("user-1", purchasedOutcome(), "access-token")
-
-            val failure = result.exceptionOrNull()
-            assertTrue(failure is SyncException)
-            assertEquals(SyncError.Conflict, (failure as SyncException).syncError)
-            assertTrue(failure is SupabasePostgrestConflictException)
-            server.takeRequest()
-            server.takeRequest()
-        }
-
-    @Test
-    fun `non-token unique conflict is not swallowed as a duplicate purchase`() =
-        runTest {
-            server.enqueue(
-                MockResponse()
-                    .setResponseCode(409)
-                    .setBody(
-                        """{"code":"23505","message":"duplicate key value violates unique constraint \"supporters_pkey\"","details":"Key (user_id)=(user-1) already exists."}""",
-                    ),
-            )
-
-            val result = api.postPurchase("user-1", purchasedOutcome(), "access-token")
-
-            val failure = result.exceptionOrNull()
-            assertTrue(failure is SyncException)
-            assertEquals(SyncError.Conflict, (failure as SyncException).syncError)
-            server.takeRequest()
+            server.enqueue(MockResponse().setResponseCode(422).setBody("{\"error\":\"invalid_supporter_purchase\"}"))
+            assertTrue(api.postPurchase("user-1", purchasedOutcome(), "access-token").isFailure)
+            assertEquals(1, server.requestCount)
         }
 
     @Test
     fun `getState requests an exact count and parses the Content-Range total`() =
         runTest {
+            server.enqueue(MockResponse().setResponseCode(200).setBody("{\"refreshed\":true}"))
             server.enqueue(
                 MockResponse()
                     .setResponseCode(200)
@@ -191,8 +86,11 @@ class SupabaseSupporterApiTest {
 
             assertEquals(3, state.purchaseCount)
             assertTrue(state.badgeEarned)
+            val refresh = server.takeRequest()
+            assertEquals("/functions/v1/verify-supporter-purchase", refresh.path)
+            assertEquals("{\"refresh\":true,\"expected_user_id\":\"user-1\"}", refresh.body.readUtf8())
             val request = server.takeRequest()
-            assertEquals("/rest/v1/supporter_purchases?select=id&user_id=eq.user-1", request.path)
+            assertEquals("/rest/v1/supporter_purchases?select=id&user_id=eq.user-1&verified_at=not.is.null", request.path)
             assertEquals("count=exact", request.getHeader("Prefer"))
             assertEquals("Bearer access-token", request.getHeader("Authorization"))
         }
@@ -200,6 +98,7 @@ class SupabaseSupporterApiTest {
     @Test
     fun `getState reports no badge for an exact zero count`() =
         runTest {
+            server.enqueue(MockResponse().setResponseCode(200).setBody("{\"refreshed\":true}"))
             server.enqueue(
                 MockResponse()
                     .setResponseCode(200)
@@ -217,6 +116,7 @@ class SupabaseSupporterApiTest {
     @Test
     fun `getState fails when Supabase omits the exact count`() =
         runTest {
+            server.enqueue(MockResponse().setResponseCode(200).setBody("{\"refreshed\":true}"))
             server.enqueue(MockResponse().setResponseCode(200).setBody("[]"))
 
             val result = api.getState("user-1", "access-token")

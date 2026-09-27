@@ -25,6 +25,7 @@ import com.kshavrin.mymoney.core.domain.csv.ImportPlan
 import com.kshavrin.mymoney.core.domain.csv.ImportPreview
 import com.kshavrin.mymoney.core.domain.csv.MergeAction
 import com.kshavrin.mymoney.core.domain.csv.MonefyCsvImportParser
+import com.kshavrin.mymoney.core.domain.csv.MyMoneyCsvTextEncoding
 import com.kshavrin.mymoney.core.domain.csv.OrphanDecision
 import com.kshavrin.mymoney.core.domain.csv.PreviewAccount
 import com.kshavrin.mymoney.core.domain.csv.PreviewCategory
@@ -203,7 +204,10 @@ class BackupRepositoryImpl
                                         transaction.createdAt.toString(),
                                         transaction.toAccountId?.let { accounts[it] }.orEmpty(),
                                         transaction.toAmount?.toPlainString().orEmpty(),
-                                    ).joinToString(separator = ",", transform = ::csvField),
+                                    ).mapIndexed { index, value ->
+                                        if (index in MyMoneyCsvTextEncoding.TEXT_COLUMNS) MyMoneyCsvTextEncoding.encode(value) else value
+                                    }.plus(MyMoneyCsvTextEncoding.VERSION)
+                                        .joinToString(separator = ",", transform = ::csvField),
                                 )
                                 writer.write(CSV_LINE_ENDING)
                             }
@@ -420,10 +424,16 @@ class BackupRepositoryImpl
             val seenIds = mutableSetOf<Long>()
 
             val transactions =
-                records.drop(1).mapIndexed { index, fields ->
+                records.drop(1).mapIndexed { index, rawFields ->
+                    val fields =
+                        if (records.first() == MonefyCsvImportParser.MYMONEY_SAFE_HEADER) {
+                            MyMoneyCsvTextEncoding.decodeRow(rawFields)
+                        } else {
+                            rawFields
+                        }
                     val rowNumber = index + 2
-                    if (fields.size != CSV_COLUMNS.size && fields.size != CSV_LEGACY_COLUMN_COUNT) {
-                        invalidCsvRow(rowNumber, "expected $CSV_LEGACY_COLUMN_COUNT or ${CSV_COLUMNS.size} fields")
+                    if (fields.size != MonefyCsvImportParser.MYMONEY_TRANSFER_HEADER.size && fields.size != CSV_LEGACY_COLUMN_COUNT) {
+                        invalidCsvRow(rowNumber, "expected $CSV_LEGACY_COLUMN_COUNT or ${MonefyCsvImportParser.MYMONEY_TRANSFER_HEADER.size} fields")
                     }
                     val id =
                         fields[0].toLongOrNull()?.takeIf { it > 0L }
@@ -456,7 +466,7 @@ class BackupRepositoryImpl
                             .getOrElse { invalidCsvRow(rowNumber, "createdAt must be an instant") }
 
                     if (kind == TransactionKind.Transfer) {
-                        if (fields.size != CSV_COLUMNS.size) {
+                        if (fields.size != MonefyCsvImportParser.MYMONEY_TRANSFER_HEADER.size) {
                             invalidCsvRow(rowNumber, "transfer requires to_account and to_amount columns")
                         }
                         if (fields[5].isNotEmpty()) {
@@ -1112,7 +1122,7 @@ class BackupRepositoryImpl
             name.startsWith(BACKUP_PREFIX) && name.endsWith(BACKUP_SUFFIX)
 
         private fun csvField(value: String): String =
-            if (value.any { it == ',' || it == '"' || it == '\r' || it == '\n' }) {
+            if (value.startsWith("'") || value.any { it == ',' || it == '"' || it == '\r' || it == '\n' }) {
                 "\"${value.replace("\"", "\"\"")}\""
             } else {
                 value
@@ -1215,7 +1225,7 @@ class BackupRepositoryImpl
             const val MIME_TYPE = "application/octet-stream"
             const val MAX_NOTE_LENGTH = 256
             const val CSV_HEADER =
-                "id,kind,amount,currency,account,category,note,occurredAt,createdAt,to_account,to_amount"
+                "id,kind,amount,currency,account,category,note,occurredAt,createdAt,to_account,to_amount,text_encoding"
             val CSV_COLUMNS: List<String> = CSV_HEADER.split(",")
             const val CSV_LEGACY_COLUMN_COUNT = 9
             const val CSV_LINE_ENDING = "\r\n"

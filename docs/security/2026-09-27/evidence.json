@@ -1,0 +1,84 @@
+{
+  "fixture_root": "D:\\Pet\\archive\\mobile-pipeline\\2026-09-27\\security-review\\c105864c",
+  "checks": [
+    {
+      "check": "MP-01 patch outside templates executes during regeneration",
+      "result": "REPRODUCED",
+      "evidence": {
+        "patched_path": "lib/build-marketplace.sh",
+        "marker": "PATCH_EXECUTED",
+        "execution": "exact source prefix, stopped before staging/commit/push"
+      }
+    },
+    {
+      "check": "MP-02 direct proposal stages unrelated files",
+      "result": "REPRODUCED",
+      "evidence": {
+        "unexpected_staged": [
+          ".env.backup",
+          "unrelated-private-note.txt"
+        ],
+        "execution": "git add -A with actual mobile-pipeline ignore rules, offline fixture only"
+      }
+    },
+    {
+      "check": "MP-03 GitHub token forwarded to arbitrary remote host",
+      "result": "REPRODUCED",
+      "evidence": {
+        "constructed_url": "https://x-access-token:AUDIT_FAKE_TOKEN@audit.example.invalid/owner/repo.git",
+        "execution": "extracted URL construction, fake git remote, no git push"
+      }
+    },
+    {
+      "check": "MP-04 remote adb shell command injection",
+      "result": "REPRODUCED",
+      "evidence": {
+        "marker": "AUDIT_ADB_COMMAND_EXECUTED",
+        "execution": "exact space replacement, local simulation of AOSP argument join; no adb/device call"
+      }
+    },
+    {
+      "check": "MM-04 CSV formula prefix survives export",
+      "result": "REPRODUCED",
+      "evidence": {
+        "input": "=1+1",
+        "exported_field": "=1+1",
+        "execution": "faithful Python translation of the Kotlin csvField function; no spreadsheet opened"
+      }
+    },
+    {
+      "check": "MM-01 client-authored purchase grants supporter",
+      "result": "STATIC_CONFIRMED",
+      "evidence": {
+        "execution": "static migration contract only, not a running Postgres test",
+        "checks": [
+          "authenticated INSERT granted",
+          "RLS checks own user only",
+          "trigger grants supporter from client purchase_token"
+        ]
+      }
+    },
+    {
+      "check": "MM-03 voided purchase has no reconciliation branch",
+      "result": "STATIC_CONFIRMED",
+      "evidence": {
+        "execution": "static handler contract only, no Google/RTDN request",
+        "checks": [
+          "token parser accepts voided notifications",
+          "handler has no voided branch",
+          "default event recorded as processed"
+        ]
+      }
+    }
+  ],
+  "boundaries": "No real secrets, external writes, device calls, source fixes or deletion. Backend checks are static.",
+  "source_sha256": {
+    "D:/Pet/mobile-pipeline/templates/common/scripts/{{PREFIX}}-propose-improvement.sh": "abb73c11939e858b012b23b342e25aec95792f2c108112883a6460b595e64261",
+    "D:/Pet/mobile-pipeline/templates/common/scripts/{{PREFIX}}-improve-drain.sh": "ef1e743085a1f785928ce7174001216426ee481a5c857b21b7e8671c90b8a267",
+    "D:/Pet/mobile-pipeline/templates/spec/skills/app-spec-creator/scripts/crawl/input.sh": "3eb5d85566bfdc3aecf72679583e0f24acb863881ba1d2b338c665da1135fdea",
+    "D:/Pet/MyMoney/supabase/migrations/20260813090000_supporter_purchases.sql": "7903e6721b6d45c13a01c67af07f2aec3eeda9d4bf9a2cc280b3c61cac7383f5",
+    "D:/Pet/MyMoney/supabase/functions/google-play-rtdn/index.ts": "998accd82ebb346e8e45cf784c87465a39708a75096e864fd59252d3832e1365",
+    "D:/Pet/MyMoney/core/database/src/main/java/com/kshavrin/mymoney/core/database/repository/BackupRepositoryImpl.kt": "850a17244b38baa48a952bace629200356f804f35c7676b8debbaee7b11b00e5"
+  },
+  "completed_at": "2026-09-27T12:14:07.021219+00:00"
+}

@@ -101,7 +101,7 @@ class SupporterSyncImplTest {
             assertEquals(1, server.requests.size)
             val request = server.requests.single()
             assertEquals("POST", request.method)
-            assertEquals("/rest/v1/supporter_purchases", request.path)
+            assertEquals("/functions/v1/verify-supporter-purchase", request.path)
             assertEquals("Bearer access-token", request.headers["authorization"])
             assertEquals(
                 "purchase-token",
@@ -140,14 +140,15 @@ class SupporterSyncImplTest {
             assertEquals(1, settings.settings.first().supportPurchaseCount)
 
             server.enqueue(HttpResponse(201, "{}"))
+            server.enqueue(HttpResponse(200, "{}"))
             server.enqueue(HttpResponse(200, "[{\"id\":\"purchase-1\"}]", "0-0/1"))
 
             sync.restore().getOrThrow()
 
             assertTrue(purchaseStore.pendingPurchases("user-1").getOrThrow().isEmpty())
             assertEquals(1 to true, repository.lastMerge)
-            assertEquals(listOf("POST", "POST", "GET"), server.requests.map { it.method })
-            assertEquals("/rest/v1/supporter_purchases?select=id&user_id=eq.user-1", server.requests.last().path)
+            assertEquals(listOf("POST", "POST", "POST", "GET"), server.requests.map { it.method })
+            assertEquals("/rest/v1/supporter_purchases?select=id&user_id=eq.user-1&verified_at=not.is.null", server.requests.last().path)
         }
 
     @Test

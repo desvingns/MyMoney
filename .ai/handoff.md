@@ -182,3 +182,14 @@ Phase/release state authority: `docs/implementation_plan/PROGRESS.md` (do not re
   consumer matrix tests in `d2bff540`, and both targeted connected matrix XML reports passed.
 - SPEC `chart-settings-rework-06-integration-and-snapshots` and epic `chart-settings-rework` are
   complete. The user explicitly requested no successor chain task after this close.
+
+
+## 2026-09-27 SECURITY REMEDIATION
+- User-selected findings MP-02, MP-03, MM-01 and MM-04 are implemented and verified; see the
+  security remediation receipt for exact evidence and remaining audit findings.
+- Receipt writes now go through verify-supporter-purchase v2; direct client table INSERT is denied.
+  The verified-write RPC is service_role-only. Old rows are retained and revalidated on refresh.
+- expected_user_id is an assertion against the authenticated user, preventing an account-switch
+  race from binding an old owner's durable outbox receipt to another account.
+- CSV adds text_encoding=apostrophe-v1; import still accepts legacy 9/11-column files.
+- Pixel 5/API34 and real Google Play success remain unverified in this session.

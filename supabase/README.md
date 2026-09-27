@@ -115,3 +115,26 @@ where user_id = :user_id
 
 Free tier only. No paid add-ons, no server-side scheduled backups. Local safety backups and
 manual export remain the user's recovery path (handled in later Shared-mode SPECs).
+
+
+## Verified Supporter receipts
+
+Apply migration `20260927130417_verified_supporter_purchases.sql` and deploy
+`verify-supporter-purchase` with JWT validation. It uses the existing
+`GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` and `GOOGLE_PLAY_PACKAGE_NAME` secrets.
+
+The Android client POSTs `{ "purchase_token": "..." }`; user/product/time fields are ignored.
+`{ "refresh": true }` revalidates up to 100 server-owned legacy receipts for the authenticated user.
+Clients can SELECT only their verified rows and cannot INSERT or call the service-role-only
+`record_verified_supporter_purchase` RPC. Consumed coffee receipts remain eligible if Play reports
+PURCHASED. Provider outages return 503 and preserve the client outbox; invalid receipts return 422.
+
+Focused verification: `deno test supabase/functions/_shared/supporter-verification_test.ts` and
+`deno check supabase/functions/verify-supporter-purchase/index.ts`. The PostgreSQL regression uses
+PGlite: install `@electric-sql/pglite` in a tool directory, set `PGLITE_MODULE` to its `dist/index.js`,
+and run `node supabase/tests/supporter-verification.mjs`. It runs in an isolated in-memory database.
+
+The Android request includes `expected_user_id` as an ownership assertion: a mismatch with the
+verified JWT user returns 403 before touching the receipt. It never selects the granted owner.
+The locally generated migration timestamp was aligned with the applied migration history version
+returned by Supabase (20260927130417); its SQL is unchanged.

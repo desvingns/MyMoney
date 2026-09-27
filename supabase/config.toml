@@ -12,3 +12,6 @@ verify_jwt = false
 
 [functions.bind-google-play-purchase]
 verify_jwt = true
+
+[functions.verify-supporter-purchase]
+verify_jwt = true

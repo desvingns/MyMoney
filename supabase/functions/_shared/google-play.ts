@@ -15,6 +15,12 @@ type TokenResponse = {
 
 let cachedAccessToken: { value: string; expiresAt: number } | null = null;
 
+export class GooglePlayApiError extends Error {
+  constructor(public readonly status: number) {
+    super(`Google Play API request failed with HTTP ${status}`);
+  }
+}
+
 function base64Url(bytes: Uint8Array): string {
   let binary = "";
   for (const byte of bytes) binary += String.fromCharCode(byte);
@@ -122,9 +128,8 @@ async function playGet(path: string): Promise<Record<string, unknown>> {
     headers: { authorization: `Bearer ${await accessToken()}` },
   });
   const payload = await response.json().catch(() => null) as unknown;
-  if (!response.ok || payload === null || typeof payload !== "object") {
-    throw new Error(`Google Play API request failed with HTTP ${response.status}`);
-  }
+  if (!response.ok) throw new GooglePlayApiError(response.status);
+  if (payload === null || typeof payload !== "object") throw new Error("Invalid Google Play response");
   return payload as Record<string, unknown>;
 }
 

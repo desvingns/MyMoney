@@ -1,0 +1,38 @@
+{
+  "date": "2026-09-27",
+  "findings": [
+    "MP-02",
+    "MP-03",
+    "MM-01",
+    "MM-04"
+  ],
+  "jvm": {
+    "passed": 805,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "edge_tests": {
+    "passed": 7,
+    "failed": 0
+  },
+  "sql_regression": "PASS (PGlite/PostgreSQL)",
+  "live_backend": {
+    "project_id": "shwzjlkhlpgbmzgnxhxi",
+    "function_version": 2,
+    "verify_jwt": true,
+    "client_insert": false,
+    "client_verified_rpc": false,
+    "unauthenticated_http": 401
+  },
+  "device_tests_run": false,
+  "real_paid_purchase_run": false,
+  "sha256": {
+    "core/domain/src/main/kotlin/com/kshavrin/mymoney/core/domain/csv/MyMoneyCsvTextEncoding.kt": "e4f0cd4403f2c96e5ea2ee84d7485a791a83c23fe0b1b725f7df3049395ad9ba",
+    "core/database/src/main/java/com/kshavrin/mymoney/core/database/repository/BackupRepositoryImpl.kt": "503b40e663e7641f33d4e695ea8f148f83daa35a0edaae40cb620aee7cbabe0f",
+    "core/network/src/main/java/com/kshavrin/mymoney/core/network/shared/SupabaseSupporterApi.kt": "d6e57575aabd0803a3a41abc4f1e9adf296a469ffadd89e785ae030c678c7f02",
+    "supabase/functions/_shared/supporter-verification.ts": "32862bf2005208de5ccffaf56c8be4b9069e2f865471d96d781cf6cfa8eff2ce",
+    "supabase/functions/verify-supporter-purchase/index.ts": "602c7201d4ff92be24eb98f7e48baf4ce1e0afa267bf4ec7ecf47e94cefa1198",
+    "supabase/migrations/20260927130417_verified_supporter_purchases.sql": "21517ea1a4b11fc4b630c004970a9013e2640d56808a8de4e8487c7d822e46fd"
+  }
+}

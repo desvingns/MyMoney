@@ -1,13 +1,8 @@
 package com.kshavrin.mymoney.core.network.shared
 
 import com.kshavrin.mymoney.core.domain.billing.PurchaseOutcome
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
-import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -26,78 +21,46 @@ class SupabaseSupporterApi
             userId: String,
             outcome: PurchaseOutcome.Purchased,
             accessToken: String,
-        ): Result<Unit> {
-            val postResult =
-                http
-                    .post(
-                        path = "rest/v1/supporter_purchases",
-                        payload =
-                            buildJsonObject {
-                                put("user_id", userId)
-                                put("product_id", outcome.productId)
-                                put("purchase_token", outcome.purchaseToken)
-                                put("purchased_at", Instant.ofEpochMilli(outcome.purchasedAtMillis).toString())
-                            },
-                        accessToken = accessToken,
-                        preservePostgrestConflict = true,
-                    ).map { Unit }
-            val failure = postResult.exceptionOrNull() ?: return postResult
-            if (!failure.isDuplicatePurchase()) {
-                return postResult
-            }
-            return if (duplicateBelongsToUser(userId, outcome.purchaseToken, accessToken)) {
-                Result.success(Unit)
-            } else {
-                Result.failure(failure)
-            }
-        }
-
-        private suspend fun duplicateBelongsToUser(
-            userId: String,
-            purchaseToken: String,
-            accessToken: String,
-        ): Boolean =
+        ): Result<Unit> =
             http
-                .get(
-                    path =
-                        "rest/v1/supporter_purchases?select=id&user_id=eq.${userId.percentEncodeQueryValue()}&purchase_token=eq.${purchaseToken.percentEncodeQueryValue()}",
+                .post(
+                    path = "functions/v1/verify-supporter-purchase",
+                    payload =
+                        buildJsonObject {
+                            put("purchase_token", outcome.purchaseToken)
+                            put("expected_user_id", userId)
+                        },
                     accessToken = accessToken,
-                ).mapCatching { response ->
-                    response.jsonArray.isNotEmpty()
-                }.getOrDefault(false)
+                ).map { Unit }
 
         suspend fun getState(
             userId: String,
             accessToken: String,
         ): Result<RemoteSupporterState> =
             http
-                .getWithExactCount(
-                    path = "rest/v1/supporter_purchases?select=id&user_id=eq.$userId",
+                .post(
+                    path = "functions/v1/verify-supporter-purchase",
+                    payload =
+                        buildJsonObject {
+                            put("refresh", true)
+                            put("expected_user_id", userId)
+                        },
                     accessToken = accessToken,
-                ).mapCatching { response ->
-                    val purchaseCount = response.contentRange.exactCount()
-                    RemoteSupporterState(
-                        purchaseCount = purchaseCount,
-                        badgeEarned = purchaseCount > 0,
-                    )
+                ).mapCatching {
+                    http
+                        .getWithExactCount(
+                            path = "rest/v1/supporter_purchases?select=id&user_id=eq.${userId.percentEncodeQueryValue()}&verified_at=not.is.null",
+                            accessToken = accessToken,
+                        ).getOrThrow()
+                        .let { response ->
+                            val purchaseCount = response.contentRange.exactCount()
+                            RemoteSupporterState(
+                                purchaseCount = purchaseCount,
+                                badgeEarned = purchaseCount > 0,
+                            )
+                        }
                 }
     }
-
-private fun Throwable.isDuplicatePurchase(): Boolean =
-    (this as? SupabasePostgrestConflictException)?.isDuplicatePurchaseTokenConflict() == true
-
-private fun SupabasePostgrestConflictException.isDuplicatePurchaseTokenConflict(): Boolean =
-    runCatching {
-        val error = Json.parseToJsonElement(responseBody).jsonObject
-        val code = error["code"]?.jsonPrimitive?.content
-        val message = error["message"]?.jsonPrimitive?.content.orEmpty()
-        val details = error["details"]?.jsonPrimitive?.content.orEmpty()
-        code == "23505" &&
-            (
-                message.contains("supporter_purchases_purchase_token_key") ||
-                    details.contains("Key (purchase_token)=")
-            )
-    }.getOrDefault(false)
 
 private fun String?.exactCount(): Int =
     this

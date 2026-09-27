@@ -43,6 +43,8 @@ object MonefyCsvImportParser {
     val MYMONEY_TRANSFER_HEADER: List<String> =
         MYMONEY_HEADER + listOf("to_account", "to_amount")
 
+    val MYMONEY_SAFE_HEADER: List<String> = MYMONEY_TRANSFER_HEADER + "text_encoding"
+
     private const val MAX_NOTE_LENGTH = 256
 
     private val DATE_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
@@ -76,7 +78,8 @@ object MonefyCsvImportParser {
         when {
             header == null -> CsvImportFormat.Unknown
             header.map { it.trim() } == MONEFY_HEADER -> CsvImportFormat.Monefy
-            header == MYMONEY_HEADER || header == MYMONEY_TRANSFER_HEADER -> CsvImportFormat.MyMoney
+            header == MYMONEY_HEADER || header == MYMONEY_TRANSFER_HEADER || header == MYMONEY_SAFE_HEADER ->
+                CsvImportFormat.MyMoney
             else -> CsvImportFormat.Unknown
         }
 

@@ -8,6 +8,8 @@
 
 ## Current state
 
+- **2026-09-27 (Codex, selected security remediation):** Closed the four user-selected audit findings: scoped proposal staging and GitHub host-bound credentials in mobile-pipeline 1.18.1 (including installed-helper hotfix), server-verified Supporter receipts and read-only client purchase access, and reversible spreadsheet-safe CSV text encoding. Applied the Supabase migration and deployed the JWT-protected receipt verifier v2. Evidence: 805 JVM tests / 0 failures, four-module detekt, database Android-test compilation, 7 Edge tests, isolated PostgreSQL privilege/idempotency/RLS checks, live ACL and unauthenticated HTTP 401 checks, and pipeline lifecycle/security/bootstrap/runtime/graph checks. Pixel 5/API34 was absent; no device or real paid-purchase result is claimed. Detailed receipt: `docs/security/2026-09-27/REMEDIATION.md`. Phase completion remains unchanged.
+
 - **2026-09-19 (Codex, transaction form visual polish):** Restyled the add-expense top app bar to match the categories screen's neutral surface palette. The choose-category CTA is now full-width within the form, slightly taller at 68 dp, and uses larger label typography. In the amount-entry flow, `SpaceBetween` now distributes equal vertical gaps between the USD amount block, note, keypad, CTA, and the form's bottom edge. Updated the Compose UI contract with exact gap assertions and verified the app install build plus the targeted `TransactionFormContentUiTest` passed 6/6 on Pixel 5/API 34. The wider `:core:designsystem:connectedDebugAndroidTest` remains non-clean because existing `BalanceTrendChartUiTest` cases fail on repeated `setContent`; graphify AST update ran but its shrink guard preserved the existing graph (17562 extracted vs 17920 existing nodes).
 
 - **2026-08-24 (Claude `/mp --feature`, support-plus-inline-purchase epic, both SPECs + close):**
@@ -38,25 +40,6 @@
   Session also survived two agent session-limit interruptions (Developer retried cleanly both
   times; repo verified clean via `git status` before each retry, per the prior session's
   `git checkout` data-loss incident making that check mandatory).
-
-- **2026-08-23 (Claude `/mp --feature`, support-paywall-visual-polish SPEC 02 + epic close):**
-  Replaced the vertical Paywall plan list with a single two-column card (Monthly left, Yearly
-  right) visually identical to `CoffeePurchaseCard` — same `supportPanel`/`supportPanelContainer`/
-  `supportPanelOutline`/`supportPanelDivider` tokens, `CreditCard` icon per column, one button per
-  plan; the yearly-trial text and disabled/non-interactive behaviour in
-  Loading/UnavailableInRegion/Unavailable/Error catalog states are preserved. Deterministic
-  reviewer, semantic review (6/6 coverage), and full Verifier passed; independent critic found one
-  non-blocking test-coverage warning (missing non-interactive assertion for the Error state), fixed
-  before shipping. Scoped Runner `:feature:support` 146/0/0, full Runner 2191/0/0 with detekt/lint
-  green. Pixel 5/API 34 screenshot confirmed the two-column layout in the Unavailable catalog
-  state. Commits `fade4a24` (code), `233adeed` + `bc8a5143` (tests), pushed to `origin/main`. SPEC
-  and the `support-paywall-visual-polish` epic overview both moved to `done/` after a clean
-  epic-completion review — both SPECs shipped with commits and the overview's four stated fixes
-  (ad-line merge, progress-counter text removal, headline contrast, Paywall two-column card) are
-  all delivered. Note: the Developer agent accidentally ran `git checkout app/build.gradle.kts`
-  during this SPEC, discarding an unrelated pre-existing uncommitted edit to that file that
-  predated this session; it was never staged so it is not recoverable via git — the user was
-  notified and is attempting recovery via Android Studio Local History.
 
 ## Historical session log archives
 
